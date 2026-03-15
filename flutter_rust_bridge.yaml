@@ -1,0 +1,11 @@
+rust_input: crate::api
+rust_root: rust/
+dart_output: lib/src/rust
+c_output: rust_builder/cargokit/build_output/include
+
+# 生成类型安全的 Dart 代码
+full_dep: true
+
+# 代码生成配置
+dart_format_line_length: 80
+llvm_path: ['D:/app/scoop/apps/llvm/current']

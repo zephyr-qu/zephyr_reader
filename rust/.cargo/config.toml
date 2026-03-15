@@ -1,0 +1,4 @@
+[env]
+# Windows SDK 路径
+INCLUDE = { value = "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\ucrt;C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\shared;C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\um;C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\winrt;D:\\app\\BuildTools\\VC\\Tools\\MSVC\\14.50.35717\\include", relative = false }
+LIB = { value = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.26100.0\\ucrt\\x64;C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.26100.0\\um\\x64;D:\\app\\BuildTools\\VC\\Tools\\MSVC\\14.50.35717\\lib\\x64", relative = false }
