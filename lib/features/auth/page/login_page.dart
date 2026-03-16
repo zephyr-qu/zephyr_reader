@@ -17,11 +17,15 @@ class LoginPage extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            TextField(onChanged: (v) => vm.email.value = v,
-                     decoration: const InputDecoration(labelText: 'Email')),
-            TextField(onChanged: (v) => vm.password.value = v,
-                     obscureText: true,
-                     decoration: const InputDecoration(labelText: 'Password')),
+            TextField(
+              onChanged: (v) => vm.email.value = v,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+            TextField(
+              onChanged: (v) => vm.password.value = v,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Password'),
+            ),
             const SizedBox(height: 20),
             Watch.builder(
               builder: (context) {
@@ -29,14 +33,19 @@ class LoginPage extends StatelessWidget {
                 if (async.isLoading) {
                   return const CircularProgressIndicator();
                 } else if (async.hasError) {
-                  return Text(async.error.toString(), style: const TextStyle(color: Colors.red));
+                  return Text(
+                    async.error.toString(),
+                    style: const TextStyle(color: Colors.red),
+                  );
                 } else {
                   return ElevatedButton(
-                    onPressed: vm.canSubmit ? () async {
-                      await vm.login();
-                      // ignore: use_build_context_synchronously
-                      context.go('/articles');
-                    } : null,
+                    onPressed: vm.canSubmit
+                        ? () async {
+                            await vm.login();
+                            // ignore: use_build_context_synchronously
+                            context.go('/articles');
+                          }
+                        : null,
                     child: const Text('Login'),
                   );
                 }

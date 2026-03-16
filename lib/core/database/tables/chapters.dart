@@ -7,7 +7,8 @@ class Chapters extends Table {
   IntColumn get id => integer().autoIncrement()();
 
   /// 关联的小说ID
-  IntColumn get novelId => integer().references(Novels, #id, onDelete: KeyAction.cascade)();
+  IntColumn get novelId =>
+      integer().references(Novels, #id, onDelete: KeyAction.cascade)();
 
   /// 章节标题
   TextColumn get title => text()();

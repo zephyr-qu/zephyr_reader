@@ -41,6 +41,7 @@ signals.md
 signals_hooks.md
 QWEN.md
 docs/
+rust/target/
 
 # Symbolication related
 app.*.symbols

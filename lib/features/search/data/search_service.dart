@@ -6,7 +6,11 @@ import '../domain/search_repository.dart';
 @LazySingleton(as: SearchRepository)
 class SearchService implements SearchRepository {
   @override
-  Future<List<SearchResult>> search(String keyword, {int page = 1, int pageSize = 20}) async {
+  Future<List<SearchResult>> search(
+    String keyword, {
+    int page = 1,
+    int pageSize = 20,
+  }) async {
     // 这里是示例代码，实际需要对接具体的小说源API
     // 模拟网络请求延迟
     await Future.delayed(const Duration(milliseconds: 500));

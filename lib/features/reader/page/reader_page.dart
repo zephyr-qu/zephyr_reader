@@ -10,11 +10,7 @@ class ReaderPage extends StatefulWidget {
   final int bookId;
   final int chapterId;
 
-  const ReaderPage({
-    super.key,
-    required this.bookId,
-    required this.chapterId,
-  });
+  const ReaderPage({super.key, required this.bookId, required this.chapterId});
 
   @override
   State<ReaderPage> createState() => _ReaderPageState();
@@ -84,7 +80,12 @@ class _ReaderPageState extends State<ReaderPage> {
     );
   }
 
-  Widget _buildContent(ReaderTheme theme, ReaderFontSize fontSize, double lineHeight, double padding) {
+  Widget _buildContent(
+    ReaderTheme theme,
+    ReaderFontSize fontSize,
+    double lineHeight,
+    double padding,
+  ) {
     return GestureDetector(
       onTap: () {
         // 点击中间区域切换菜单
@@ -118,7 +119,10 @@ class _ReaderPageState extends State<ReaderPage> {
                   padding: const EdgeInsets.all(100),
                   child: Column(
                     children: [
-                      Text('加载失败: ${async.error}', style: TextStyle(color: theme.textColor)),
+                      Text(
+                        '加载失败: ${async.error}',
+                        style: TextStyle(color: theme.textColor),
+                      ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: () => vm.loadChapter(vm.chapterIndex.value),
@@ -200,10 +204,15 @@ class _ReaderPageState extends State<ReaderPage> {
               children: [
                 Row(
                   children: [
-                    Text('进度: ${vm.progressText}', style: TextStyle(color: theme.textColor, fontSize: 12)),
+                    Text(
+                      '进度: ${vm.progressText}',
+                      style: TextStyle(color: theme.textColor, fontSize: 12),
+                    ),
                     const Spacer(),
-                    Text('${vm.readingDuration.value ~/ 60}分${vm.readingDuration.value % 60}秒',
-                        style: TextStyle(color: theme.textColor, fontSize: 12)),
+                    Text(
+                      '${vm.readingDuration.value ~/ 60}分${vm.readingDuration.value % 60}秒',
+                      style: TextStyle(color: theme.textColor, fontSize: 12),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -211,9 +220,24 @@ class _ReaderPageState extends State<ReaderPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildIconButton(Icons.list, '目录', vm.toggleCatalog, theme),
-                    _buildIconButton(Icons.settings, '设置', vm.toggleSettings, theme),
-                    _buildIconButton(Icons.arrow_back_ios, '上一章', vm.previousChapter, theme),
-                    _buildIconButton(Icons.arrow_forward_ios, '下一章', vm.nextChapter, theme),
+                    _buildIconButton(
+                      Icons.settings,
+                      '设置',
+                      vm.toggleSettings,
+                      theme,
+                    ),
+                    _buildIconButton(
+                      Icons.arrow_back_ios,
+                      '上一章',
+                      vm.previousChapter,
+                      theme,
+                    ),
+                    _buildIconButton(
+                      Icons.arrow_forward_ios,
+                      '下一章',
+                      vm.nextChapter,
+                      theme,
+                    ),
                   ],
                 ),
               ],
@@ -224,7 +248,12 @@ class _ReaderPageState extends State<ReaderPage> {
     );
   }
 
-  Widget _buildIconButton(IconData icon, String label, VoidCallback onTap, ReaderTheme theme) {
+  Widget _buildIconButton(
+    IconData icon,
+    String label,
+    VoidCallback onTap,
+    ReaderTheme theme,
+  ) {
     return InkWell(
       onTap: onTap,
       child: Column(
@@ -254,7 +283,14 @@ class _ReaderPageState extends State<ReaderPage> {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      Text('目录', style: TextStyle(color: theme.textColor, fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text(
+                        '目录',
+                        style: TextStyle(
+                          color: theme.textColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const Spacer(),
                       IconButton(
                         icon: Icon(Icons.close, color: theme.textColor),
@@ -267,25 +303,38 @@ class _ReaderPageState extends State<ReaderPage> {
                   child: async.isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : async.hasError
-                          ? Center(child: Text('加载失败: ${async.error}', style: TextStyle(color: theme.textColor)))
-                          : ListView.builder(
-                              itemCount: async.value?.length ?? 0,
-                              itemBuilder: (context, index) {
-                                final chapter = async.value![index];
-                                final isCurrent = chapter.chapterIndex == vm.chapterIndex.value;
-                                return ListTile(
-                                  title: Text(
-                                    chapter.title,
-                                    style: TextStyle(
-                                      color: isCurrent ? theme.backgroundColor : theme.textColor,
-                                      fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                                    ),
-                                  ),
-                                  onTap: () => vm.jumpToChapter(chapter.chapterIndex),
-                                  tileColor: isCurrent ? theme.textColor.withValues(alpha: .1) : null,
-                                );
-                              },
-                            ),
+                      ? Center(
+                          child: Text(
+                            '加载失败: ${async.error}',
+                            style: TextStyle(color: theme.textColor),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: async.value?.length ?? 0,
+                          itemBuilder: (context, index) {
+                            final chapter = async.value![index];
+                            final isCurrent =
+                                chapter.chapterIndex == vm.chapterIndex.value;
+                            return ListTile(
+                              title: Text(
+                                chapter.title,
+                                style: TextStyle(
+                                  color: isCurrent
+                                      ? theme.backgroundColor
+                                      : theme.textColor,
+                                  fontWeight: isCurrent
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                              onTap: () =>
+                                  vm.jumpToChapter(chapter.chapterIndex),
+                              tileColor: isCurrent
+                                  ? theme.textColor.withValues(alpha: .1)
+                                  : null,
+                            );
+                          },
+                        ),
                 ),
               ],
             ),
@@ -309,7 +358,14 @@ class _ReaderPageState extends State<ReaderPage> {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      Text('设置', style: TextStyle(color: theme.textColor, fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text(
+                        '设置',
+                        style: TextStyle(
+                          color: theme.textColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const Spacer(),
                       IconButton(
                         icon: Icon(Icons.close, color: theme.textColor),
@@ -398,7 +454,10 @@ class _ReaderPageState extends State<ReaderPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('行间距: ${vm.config.lineHeight.value.toStringAsFixed(1)}', style: TextStyle(color: theme.textColor, fontSize: 16)),
+        Text(
+          '行间距: ${vm.config.lineHeight.value.toStringAsFixed(1)}',
+          style: TextStyle(color: theme.textColor, fontSize: 16),
+        ),
         Slider(
           value: vm.config.lineHeight.value,
           min: 1.2,
@@ -416,7 +475,10 @@ class _ReaderPageState extends State<ReaderPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('页边距: ${vm.config.padding.value.toInt()}', style: TextStyle(color: theme.textColor, fontSize: 16)),
+        Text(
+          '页边距: ${vm.config.padding.value.toInt()}',
+          style: TextStyle(color: theme.textColor, fontSize: 16),
+        ),
         Slider(
           value: vm.config.padding.value,
           min: 8,
@@ -452,12 +514,14 @@ class _ReaderPageState extends State<ReaderPage> {
           ),
           TextButton(
             onPressed: () async {
-              final success = await vm.addBookmark(noteController.text.isEmpty ? null : noteController.text);
+              final success = await vm.addBookmark(
+                noteController.text.isEmpty ? null : noteController.text,
+              );
               if (success && mounted) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('书签添加成功')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('书签添加成功')));
               }
             },
             child: const Text('添加'),

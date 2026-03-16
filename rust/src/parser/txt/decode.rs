@@ -3,7 +3,7 @@
 
 use crate::ffi::ParserError;
 use chardetng::EncodingDetector;
-use encoding_rs::{Encoding, BIG5, GB18030, UTF_16BE, UTF_16LE, UTF_8};
+use encoding_rs::{Encoding, GB18030, UTF_16BE, UTF_16LE, UTF_8};
 use memmap2::Mmap;
 use std::fs::File;
 
@@ -48,17 +48,23 @@ pub fn detect_encoding_from_bytes(buffer: &[u8]) -> Result<&'static Encoding, Pa
     let mut detector = EncodingDetector::new();
     detector.feed(buffer, buffer.len() < 1024);
 
-    // 优先检测中文编码
+    // 信任 chardetng 的检测结果
     let detected = detector.guess(None, true);
 
-    // 对于可能包含中文的内容，优先使用 GB18030
-    if detected == UTF_8 && buffer.len() > 100 {
-        let mut detector_gb = EncodingDetector::new();
-        detector_gb.feed(buffer, true);
-        let gb_encoding = detector_gb.guess(None, true);
-        if gb_encoding != UTF_8 && gb_encoding != BIG5 {
-            return Ok(GB18030);
+    // 如果检测为 UTF-8，验证其有效性
+    if detected == UTF_8 {
+        // 尝试将缓冲区作为 UTF-8 解码，检查是否有效
+        if std::str::from_utf8(buffer).is_ok() {
+            return Ok(UTF_8);
         }
+        // 如果 UTF-8 无效，回退到 GB18030
+        log::warn!("检测到 UTF-8 但解码失败，尝试使用 GB18030");
+        return Ok(GB18030);
+    }
+
+    // 对于 GBK 检测结果，使用 GB18030（兼容 GBK/GB2312）
+    if detected.name() == "GBK" || detected.name() == "GB2312" {
+        return Ok(GB18030);
     }
 
     Ok(detected)

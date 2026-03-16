@@ -21,9 +21,9 @@ class BookshelfService implements BookshelfRepository {
     if (category == BookCategory.all) {
       return await getAllBooks();
     }
-    return await (_database.select(_database.novels)
-      ..where((tbl) => tbl.status.equals(category.name))
-    ).get();
+    return await (_database.select(
+      _database.novels,
+    )..where((tbl) => tbl.status.equals(category.name))).get();
   }
 
   @override
@@ -38,20 +38,28 @@ class BookshelfService implements BookshelfRepository {
 
   @override
   Future<bool> updateBook(Novel book) async {
-    return await (_database.update(_database.novels)..where((tbl) => tbl.id.equals(book.id))).write(NovelsCompanion(
-      title: Value(book.title),
-      author: Value(book.author),
-      coverPath: Value(book.coverPath),
-      description: Value(book.description),
-      totalChapters: Value(book.totalChapters),
-      status: Value(book.status),
-      updatedAt: Value(DateTime.now()),
-    )) > 0;
+    return await (_database.update(
+          _database.novels,
+        )..where((tbl) => tbl.id.equals(book.id))).write(
+          NovelsCompanion(
+            title: Value(book.title),
+            author: Value(book.author),
+            coverPath: Value(book.coverPath),
+            description: Value(book.description),
+            totalChapters: Value(book.totalChapters),
+            status: Value(book.status),
+            updatedAt: Value(DateTime.now()),
+          ),
+        ) >
+        0;
   }
 
   @override
   Future<bool> deleteBook(int id) async {
-    return await (_database.delete(_database.novels)..where((tbl) => tbl.id.equals(id))).go() > 0;
+    return await (_database.delete(
+          _database.novels,
+        )..where((tbl) => tbl.id.equals(id))).go() >
+        0;
   }
 
   @override

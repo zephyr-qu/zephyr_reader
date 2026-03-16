@@ -36,44 +36,47 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Novel>> getAllNovels() => select(novels).get();
 
   /// 根据ID查询小说
-  Future<Novel?> getNovelById(int id) => (select(novels)..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
+  Future<Novel?> getNovelById(int id) =>
+      (select(novels)..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
 
   /// 搜索小说
   Future<List<Novel>> searchNovels(String keyword) {
-    return (select(novels)
-      ..where((tbl) =>
-        tbl.title.contains(keyword) |
-        tbl.author.contains(keyword))
-    ).get();
+    return (select(novels)..where(
+          (tbl) => tbl.title.contains(keyword) | tbl.author.contains(keyword),
+        ))
+        .get();
   }
 
   /// 查询小说的所有章节
   Future<List<Chapter>> getChaptersByNovelId(int novelId) {
     return (select(chapters)
-      ..where((tbl) => tbl.novelId.equals(novelId))
-      ..orderBy([(tbl) => OrderingTerm.asc(tbl.chapterIndex)])
-    ).get();
+          ..where((tbl) => tbl.novelId.equals(novelId))
+          ..orderBy([(tbl) => OrderingTerm.asc(tbl.chapterIndex)]))
+        .get();
   }
 
   /// 根据小说ID和章节索引查询章节
   Future<Chapter?> getChapter(int novelId, int chapterIndex) {
-    return (select(chapters)
-      ..where((tbl) => tbl.novelId.equals(novelId) & tbl.chapterIndex.equals(chapterIndex))
-    ).getSingleOrNull();
+    return (select(chapters)..where(
+          (tbl) =>
+              tbl.novelId.equals(novelId) &
+              tbl.chapterIndex.equals(chapterIndex),
+        ))
+        .getSingleOrNull();
   }
 
   /// 获取阅读历史
   Future<List<ReadingHistory>> getReadingHistory() {
-    return (select(readingHistories)
-      ..orderBy([(tbl) => OrderingTerm.desc(tbl.readTime)])
-    ).get();
+    return (select(
+      readingHistories,
+    )..orderBy([(tbl) => OrderingTerm.desc(tbl.readTime)])).get();
   }
 
   /// 获取小说的阅读历史
   Future<ReadingHistory?> getNovelReadingHistory(int novelId) {
-    return (select(readingHistories)
-      ..where((tbl) => tbl.novelId.equals(novelId))
-    ).getSingleOrNull();
+    return (select(
+      readingHistories,
+    )..where((tbl) => tbl.novelId.equals(novelId))).getSingleOrNull();
   }
 
   /// 获取所有书签
@@ -82,9 +85,9 @@ class AppDatabase extends _$AppDatabase {
   /// 获取小说的所有书签
   Future<List<Bookmark>> getBookmarksByNovelId(int novelId) {
     return (select(bookmarks)
-      ..where((tbl) => tbl.novelId.equals(novelId))
-      ..orderBy([(tbl) => OrderingTerm.asc(tbl.createdAt)])
-    ).get();
+          ..where((tbl) => tbl.novelId.equals(novelId))
+          ..orderBy([(tbl) => OrderingTerm.asc(tbl.createdAt)]))
+        .get();
   }
 }
 

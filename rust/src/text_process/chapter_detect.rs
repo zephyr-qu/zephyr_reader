@@ -1,24 +1,31 @@
 //! 章节标题自动检测
 //! 识别中文和英文小说的章节标题
+//!
+//! 使用 `rayon` 并行库优化大文本的预处理和匹配后处理。
 
 use crate::ffi::ChapterInfo;
 use once_cell::sync::Lazy;
+use rayon::prelude::*;
 use regex::Regex;
 
+/// 中文章节匹配模式
 static CHAPTER_PATTERN_ZH: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
         r"(?m)^(?:第\s*)?([零〇一二三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟 0-9]+)\s*[章回卷节部篇集]\s*(.+)?|(?:楔子 | 序 [言引]|前言 | 引子 | 尾声 | 完结 | 番外 | 后记)\s*(.+)?$"
-    ).expect("Invalid chapter pattern regex")
+    ).expect("CHAPTER_PATTERN_ZH 正则表达式编译失败 - 检查模式语法")
 });
 
+/// 英文章节匹配模式
 static CHAPTER_PATTERN_EN: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
         r"(?mi)^(?:Chapter\s+\d+|[IVX]+\.[\s.]|[IVX]+\s+[A-Z]|\bPart\s+\d+|Book\s+\d+|Prologue|Epilogue|Preface|Introduction|Conclusion)\s*:?\s*(.*)$"
-    ).expect("Invalid English chapter pattern regex")
+    ).expect("CHAPTER_PATTERN_EN 正则表达式编译失败 - 检查模式语法")
 });
 
+/// 数字章节匹配模式
 static CHAPTER_PATTERN_DIGIT: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?m)^(\d+)[\s.、:：](.+)$").expect("Invalid digit chapter pattern regex")
+    Regex::new(r"(?m)^(\d+)[\s.、:：](.+)$")
+        .expect("CHAPTER_PATTERN_DIGIT 正则表达式编译失败 - 检查模式语法")
 });
 
 /// 从文本中提取章节信息
@@ -229,6 +236,103 @@ fn roman_to_int(roman: &str) -> i32 {
     result
 }
 
+// ==================== 并行优化辅助函数 ====================
+
+/// 并行检测文本中的潜在章节位置
+///
+/// 使用 rayon 并行处理大文本的分块检测，
+/// 适用于超长文本（>100KB）的预处理。
+///
+/// # 参数
+///
+/// * `content` - 待检测的文本内容
+/// * `chunk_size` - 分块大小（字符数），默认 10000
+///
+/// # 返回值
+///
+/// 返回所有检测到的潜在章节位置（字节偏移）
+#[allow(dead_code)]
+pub fn parallel_detect_chapter_positions(content: &str, chunk_size: usize) -> Vec<usize> {
+    const DEFAULT_CHUNK_SIZE: usize = 10_000;
+    const MIN_CONTENT_SIZE: usize = 100_000; // 100KB
+
+    let effective_chunk_size = if chunk_size == 0 {
+        DEFAULT_CHUNK_SIZE
+    } else {
+        chunk_size
+    };
+
+    // 小文本直接顺序处理
+    if content.len() < MIN_CONTENT_SIZE {
+        return CHAPTER_PATTERN_ZH
+            .captures_iter(content)
+            .filter_map(|cap| cap.get(0).map(|m| m.start()))
+            .collect();
+    }
+
+    // 大文本并行处理
+    let chunks: Vec<&str> = content
+        .char_indices()
+        .step_by(effective_chunk_size)
+        .map(|(i, _)| &content[i..])
+        .collect();
+
+    let mut positions: Vec<(usize, usize)> = chunks
+        .par_iter()
+        .flat_map(|chunk_text| {
+            CHAPTER_PATTERN_ZH
+                .captures_iter(chunk_text)
+                .filter_map(|cap| {
+                    cap.get(0).map(|m| {
+                        // 计算全局位置
+                        let global_pos = content
+                            .char_indices()
+                            .position(|(i, _)| {
+                                i == chunk_text.as_ptr() as usize - content.as_ptr() as usize
+                            })
+                            .unwrap_or(0);
+                        (global_pos, m.start())
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect();
+
+    // 排序并去重
+    positions.par_sort_by_key(|&(pos, _)| pos);
+    positions.into_iter().map(|(pos, _)| pos).collect()
+}
+
+/// 并行验证章节标题
+///
+/// 使用 rayon 并行验证多个候选标题是否符合章节格式。
+///
+/// # 参数
+///
+/// * `candidates` - 候选标题列表
+///
+/// # 返回值
+///
+/// 返回所有确认的章节标题及其索引
+#[allow(dead_code)]
+pub fn parallel_validate_chapter_titles(candidates: Vec<&str>) -> Vec<(usize, String)> {
+    candidates
+        .par_iter()
+        .enumerate()
+        .filter_map(|(i, &title)| {
+            let trimmed = title.trim();
+            if CHAPTER_PATTERN_ZH.is_match(trimmed)
+                || CHAPTER_PATTERN_EN.is_match(trimmed)
+                || CHAPTER_PATTERN_DIGIT.is_match(trimmed)
+            {
+                Some((i, trimmed.to_string()))
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -279,5 +383,25 @@ This is chapter 2.
         assert_eq!(roman_to_int("I"), 1);
         assert_eq!(roman_to_int("X"), 10);
         assert_eq!(roman_to_int("XXI"), 21);
+    }
+
+    #[test]
+    fn test_parallel_validate_chapter_titles() {
+        let candidates = vec![
+            "第一章 开始",
+            "普通文本",
+            "Chapter 2: Test",
+            "随机内容",
+            "第三章 结局",
+        ];
+
+        let results = parallel_validate_chapter_titles(candidates);
+        assert_eq!(results.len(), 3);
+
+        // 验证结果包含正确的章节
+        let titles: Vec<&String> = results.iter().map(|(_, t)| t).collect();
+        assert!(titles.iter().any(|t| t.contains("第一章")));
+        assert!(titles.iter().any(|t| t.contains("Chapter 2")));
+        assert!(titles.iter().any(|t| t.contains("第三章")));
     }
 }

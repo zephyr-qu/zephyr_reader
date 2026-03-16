@@ -50,8 +50,8 @@ class AppConfig {
         _prefs!.getInt(_keyThemeMode) ?? ThemeMode.system.index;
     final int resolvedIndex =
         themeIndex >= 0 && themeIndex < ThemeMode.values.length
-            ? themeIndex
-            : ThemeMode.system.index;
+        ? themeIndex
+        : ThemeMode.system.index;
     themeMode.value = ThemeMode.values[resolvedIndex];
     enableDebugLogging.value = _prefs!.getBool(_keyDebugLogging) ?? false;
     apiTimeout.value = _prefs!.getInt(_keyApiTimeout) ?? 30;

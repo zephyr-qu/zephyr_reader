@@ -22,10 +22,7 @@ class ErrorText extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           if (onRetry != null)
-            TextButton(
-              onPressed: onRetry,
-              child: const Text('重试'),
-            ),
+            TextButton(onPressed: onRetry, child: const Text('重试')),
         ],
       ),
     );

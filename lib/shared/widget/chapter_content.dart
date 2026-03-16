@@ -19,16 +19,15 @@ class ChapterContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveTextStyle = textStyle ?? Theme.of(context).textTheme.bodyLarge;
+    final effectiveTextStyle =
+        textStyle ?? Theme.of(context).textTheme.bodyLarge;
     final effectivePadding = padding ?? const EdgeInsets.all(16);
 
     return Container(
       padding: effectivePadding,
       child: Text(
         content,
-        style: effectiveTextStyle?.copyWith(
-          height: lineHeight ?? 1.6,
-        ),
+        style: effectiveTextStyle?.copyWith(height: lineHeight ?? 1.6),
         textAlign: textAlign ?? TextAlign.start,
       ),
     );

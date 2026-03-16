@@ -113,10 +113,7 @@ class BookDetailPage extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   book.author,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
@@ -151,20 +148,11 @@ class BookDetailPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -180,19 +168,12 @@ class BookDetailPage extends StatelessWidget {
       children: [
         const Text(
           '简介',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
           book.description!,
-          style: TextStyle(
-            fontSize: 14,
-            height: 1.6,
-            color: Colors.grey[800],
-          ),
+          style: TextStyle(fontSize: 14, height: 1.6, color: Colors.grey[800]),
         ),
       ],
     );
@@ -207,10 +188,7 @@ class BookDetailPage extends StatelessWidget {
           children: [
             const Text(
               '章节目录',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             TextButton(
               onPressed: () {},
@@ -260,9 +238,9 @@ class BookDetailPage extends StatelessWidget {
               final success = await vm.deleteBook(bookId);
               if (success && context.mounted) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('删除成功')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('删除成功')));
               }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),

@@ -41,10 +41,7 @@ class BookCover extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: defaultBorderRadius,
-        child: child,
-      ),
+      child: ClipRRect(borderRadius: defaultBorderRadius, child: child),
     );
   }
 

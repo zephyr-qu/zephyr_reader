@@ -12,15 +12,13 @@ class ArticleListPage extends StatelessWidget {
     final vm = getIt<ArticleViewModel>();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-       if (vm.articles.value.value == null) vm.load();
+      if (vm.articles.value.value == null) vm.load();
     });
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          const SliverAppBar.large(
-            title: Text('Articles'),
-          ),
+          const SliverAppBar.large(title: Text('Articles')),
           Watch.builder(
             builder: (context) {
               final async = vm.articles.value;
@@ -35,60 +33,66 @@ class ArticleListPage extends StatelessWidget {
               } else {
                 final list = async.value ?? [];
                 return SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final article = list[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Card(
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            onTap: () {
-                              context.push('/articles/${article.id}', extra: article);
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(24.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    article.title,
-                                    style: Theme.of(context).textTheme.titleLarge,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Read more about this topic...',
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Colors.grey,
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final article = list[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Card(
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: () {
+                            context.push(
+                              '/articles/${article.id}',
+                              extra: article,
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  article.title,
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Read more about this topic...',
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(color: Colors.grey),
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Read Now',
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        'Read Now',
-                                        style: TextStyle(
-                                          color: Theme.of(context).colorScheme.primary,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Icon(
-                                        Icons.arrow_forward,
-                                        size: 16,
-                                        color: Theme.of(context).colorScheme.primary,
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.arrow_forward,
+                                      size: 16,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      );
-                    },
-                    childCount: list.length,
-                  ),
+                      ),
+                    );
+                  }, childCount: list.length),
                 );
               }
             },

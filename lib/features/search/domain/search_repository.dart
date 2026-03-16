@@ -22,7 +22,11 @@ class SearchResult {
 /// 搜索仓库接口
 abstract class SearchRepository {
   /// 搜索小说
-  Future<List<SearchResult>> search(String keyword, {int page = 1, int pageSize = 20});
+  Future<List<SearchResult>> search(
+    String keyword, {
+    int page = 1,
+    int pageSize = 20,
+  });
 
   /// 获取小说详情
   Future<SearchResult?> getDetail(String id);

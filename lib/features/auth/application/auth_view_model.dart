@@ -3,7 +3,6 @@ import 'package:zephyr_reader/features/auth/domain/models/user.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import '../domain/auth_repository.dart';
 
-
 @injectable
 class AuthViewModel {
   final AuthRepository _repo;

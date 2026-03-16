@@ -1,27 +1,97 @@
 //! 文件流式读取
 //! 支持大文件分块读取，避免内存溢出
+//!
+//! 使用 `memmap2` 库实现内存映射文件读取，
+//! 对于大文件（>1MB）可显著提升性能。
 
 use crate::ffi::{ApiResult, ParserError};
 use encoding_rs::Encoding;
 use flutter_rust_bridge::frb;
+use memmap2::Mmap;
 use std::fs::File;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 
+/// 文件大小阈值（1MB），超过此值使用内存映射
+const MMAP_THRESHOLD: u64 = 1024 * 1024;
+
 /// 读取文件块（支持编码）
+///
+/// 自动选择最优读取方式：
+/// - 文件 > 1MB：使用内存映射（memmap2）
+/// - 文件 ≤ 1MB：使用标准 IO
 #[frb(sync)]
 pub fn read_chunk(file_path: String, start_pos: i64, chunk_size: i64) -> ApiResult<String> {
     read_chunk_with_encoding(file_path, start_pos, chunk_size, encoding_rs::UTF_8)
 }
 
-/// 读取文件块（指定编码）
+/// 读取文件块（指定编码，内存映射优化版）
 pub fn read_chunk_with_encoding(
     file_path: String,
     start_pos: i64,
     chunk_size: i64,
     encoding: &'static Encoding,
 ) -> ApiResult<String> {
-    let mut file = File::open(&file_path)
+    // 获取文件大小
+    let file = File::open(&file_path)
         .map_err(|e| ParserError::file_read_error(&file_path, e.to_string()))?;
+    let file_size = file
+        .metadata()
+        .map_err(|e| ParserError::StreamError(format!("获取元数据失败：{}", e)))?
+        .len();
+
+    // 根据文件大小选择读取方式
+    if file_size > MMAP_THRESHOLD {
+        // 大文件：使用内存映射
+        read_chunk_mmap(&file_path, start_pos, chunk_size, encoding)
+    } else {
+        // 小文件：使用标准 IO
+        read_chunk_io(&file_path, start_pos, chunk_size, encoding)
+    }
+}
+
+/// 使用内存映射读取文件块
+fn read_chunk_mmap(
+    file_path: &str,
+    start_pos: i64,
+    chunk_size: i64,
+    encoding: &'static Encoding,
+) -> ApiResult<String> {
+    let file = File::open(file_path)
+        .map_err(|e| ParserError::file_read_error(file_path, e.to_string()))?;
+
+    // 创建内存映射
+    let mmap = unsafe { Mmap::map(&file) }
+        .map_err(|e| ParserError::StreamError(format!("内存映射失败：{}", e)))?;
+
+    // 边界检查
+    let start = start_pos as usize;
+    let end = (start + chunk_size as usize).min(mmap.len());
+
+    if start >= mmap.len() {
+        return Ok(String::new());
+    }
+
+    // 从映射内存中读取
+    let buffer = &mmap[start..end];
+
+    // 解码
+    let (content, _, had_errors) = encoding.decode(buffer);
+    if had_errors {
+        log::warn!("解码文件块时遇到错误");
+    }
+
+    Ok(content.into_owned())
+}
+
+/// 使用标准 IO 读取文件块
+fn read_chunk_io(
+    file_path: &str,
+    start_pos: i64,
+    chunk_size: i64,
+    encoding: &'static Encoding,
+) -> ApiResult<String> {
+    let mut file = File::open(file_path)
+        .map_err(|e| ParserError::file_read_error(file_path, e.to_string()))?;
 
     // 定位到起始位置
     file.seek(SeekFrom::Start(start_pos as u64))

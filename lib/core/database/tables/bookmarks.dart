@@ -8,10 +8,12 @@ class Bookmarks extends Table {
   IntColumn get id => integer().autoIncrement()();
 
   /// 关联的小说ID
-  IntColumn get novelId => integer().references(Novels, #id, onDelete: KeyAction.cascade)();
+  IntColumn get novelId =>
+      integer().references(Novels, #id, onDelete: KeyAction.cascade)();
 
   /// 关联的章节ID
-  IntColumn get chapterId => integer().references(Chapters, #id, onDelete: KeyAction.cascade)();
+  IntColumn get chapterId =>
+      integer().references(Chapters, #id, onDelete: KeyAction.cascade)();
 
   /// 书签位置（字符偏移量）
   IntColumn get position => integer()();

@@ -53,17 +53,21 @@ class ReaderService implements ReaderRepository {
 
     if (existing != null) {
       // 更新现有记录
-      await (_database.update(_database.readingHistories)
-            ..where((tbl) => tbl.novelId.equals(novelId)))
-          .write(ReadingHistoriesCompanion(
-        chapterId: Value(chapterId),
-        position: Value(position),
-        readTime: Value(now),
-        duration: Value(existing.duration + duration),
-      ));
+      await (_database.update(
+        _database.readingHistories,
+      )..where((tbl) => tbl.novelId.equals(novelId))).write(
+        ReadingHistoriesCompanion(
+          chapterId: Value(chapterId),
+          position: Value(position),
+          readTime: Value(now),
+          duration: Value(existing.duration + duration),
+        ),
+      );
     } else {
       // 创建新记录
-      await _database.into(_database.readingHistories).insert(
+      await _database
+          .into(_database.readingHistories)
+          .insert(
             ReadingHistoriesCompanion.insert(
               novelId: novelId,
               chapterId: chapterId,
@@ -87,7 +91,9 @@ class ReaderService implements ReaderRepository {
     int position,
     String? note,
   ) async {
-    return await _database.into(_database.bookmarks).insert(
+    return await _database
+        .into(_database.bookmarks)
+        .insert(
           BookmarksCompanion.insert(
             novelId: novelId,
             chapterId: chapterId,
@@ -104,9 +110,10 @@ class ReaderService implements ReaderRepository {
 
   @override
   Future<bool> deleteBookmark(int bookmarkId) async {
-    return await (_database.delete(_database.bookmarks)
-          ..where((tbl) => tbl.id.equals(bookmarkId)))
-        .go() > 0;
+    return await (_database.delete(
+          _database.bookmarks,
+        )..where((tbl) => tbl.id.equals(bookmarkId))).go() >
+        0;
   }
 
   /// 保存章节内容到文件

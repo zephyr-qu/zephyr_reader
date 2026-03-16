@@ -11,9 +11,7 @@ class ArticleDetailPage extends StatelessWidget {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          SliverAppBar.large(
-            title: Text(article.title),
-          ),
+          SliverAppBar.large(title: Text(article.title)),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
@@ -22,9 +20,9 @@ class ArticleDetailPage extends StatelessWidget {
                 children: [
                   Text(
                     'Published on Jan 22, 2026',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: Colors.grey,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelLarge?.copyWith(color: Colors.grey),
                   ),
                   const SizedBox(height: 24),
                   Text(

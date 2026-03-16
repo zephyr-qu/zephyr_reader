@@ -8,9 +8,7 @@ class ProfilePage extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-      ),
+      appBar: AppBar(title: const Text('Profile')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -31,10 +29,7 @@ class ProfilePage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'John Doe',
-                    style: theme.textTheme.headlineMedium,
-                  ),
+                  Text('John Doe', style: theme.textTheme.headlineMedium),
                   Text(
                     'UI/UX Designer',
                     style: theme.textTheme.bodyLarge?.copyWith(
@@ -49,7 +44,11 @@ class ProfilePage extends StatelessWidget {
             // Settings Section
             Text('Settings', style: theme.textTheme.titleLarge),
             const SizedBox(height: 16),
-            _buildSettingItem(context, 'Notifications', Icons.notifications_outlined),
+            _buildSettingItem(
+              context,
+              'Notifications',
+              Icons.notifications_outlined,
+            ),
             _buildSettingItem(context, 'Privacy', Icons.lock_outline),
             _buildSettingItem(context, 'Appearance', Icons.palette_outlined),
             _buildSettingItem(context, 'Help & Support', Icons.help_outline),
@@ -63,7 +62,9 @@ class ProfilePage extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   side: BorderSide(color: theme.colorScheme.error),
                   foregroundColor: theme.colorScheme.error,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 child: const Text('Log Out'),
               ),

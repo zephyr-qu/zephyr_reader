@@ -1,11 +1,11 @@
 //! EPUB 目录提取
-//! 从 NCX 或 Nav 文档中提取章节信息
+//! 从 NCX 或 Nav 文档中提取章节信息，支持多级目录
 
 use super::unzip::EpubFile;
 use crate::ffi::ChapterInfo;
 use std::collections::HashMap;
 
-/// 从 EPUB 中提取章节信息
+/// 从 EPUB 中提取章节信息（支持多级目录）
 pub fn extract_chapters_from_epub(epub_file: &mut EpubFile) -> Vec<ChapterInfo> {
     let toc = epub_file.toc();
     let spine = epub_file.spine();
@@ -25,18 +25,19 @@ pub fn extract_chapters_from_epub(epub_file: &mut EpubFile) -> Vec<ChapterInfo> 
     let mut chapters = Vec::new();
     let mut chapter_id = 0i32;
 
-    // 递归处理目录项
-    extract_toc_items(&toc, &href_map, &mut chapters, &mut chapter_id);
+    // 递归处理目录项（支持多级）
+    extract_toc_items_recursive(&toc, &href_map, &mut chapters, &mut chapter_id, 0);
 
     chapters
 }
 
-/// 递归提取目录项
-fn extract_toc_items(
+/// 递归提取目录项（支持多级嵌套）
+fn extract_toc_items_recursive(
     items: &[(String, String)],
     href_map: &HashMap<&str, usize>,
     chapters: &mut Vec<ChapterInfo>,
     chapter_id: &mut i32,
+    _level: usize,
 ) {
     for (title, href) in items {
         // 提取纯 href（去掉片段标识符）
@@ -47,9 +48,13 @@ fn extract_toc_items(
             .copied()
             .unwrap_or(*chapter_id as usize);
 
+        // 检测并格式化层级标题
+        // 如果标题包含 ">" 或其他分隔符，说明是多级目录
+        let full_title = format_title_with_hierarchy(title, _level);
+
         chapters.push(ChapterInfo {
             chapter_id: *chapter_id,
-            title: title.clone(),
+            title: full_title,
             start_index: index as i64,
             end_index: (index + 1) as i64,
             content_length: 0, // EPUB 章节长度在读取时确定
@@ -57,6 +62,22 @@ fn extract_toc_items(
         });
 
         *chapter_id += 1;
+    }
+}
+
+/// 格式化带层级的标题
+fn format_title_with_hierarchy(title: &str, level: usize) -> String {
+    // 检查标题是否已经包含层级分隔符
+    if title.contains(" > ") || title.contains("·") || title.contains("．") {
+        // 已经有层级标记，直接返回
+        return title.to_string();
+    }
+
+    // 根据层级添加前缀
+    if level > 0 {
+        format!("{}{}", "  ".repeat(level), title)
+    } else {
+        title.to_string()
     }
 }
 
