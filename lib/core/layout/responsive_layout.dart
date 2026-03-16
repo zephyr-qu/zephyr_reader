@@ -1,7 +1,6 @@
 /// 响应式布局工具
-///
 /// 提供自适应布局、屏幕尺寸检测、双栏布局等功能，
-/// 支持手机和平板的响应式设计�?
+/// 支持手机和平板的响应式设计
 library;
 
 import 'package:flutter/material.dart';
@@ -29,10 +28,10 @@ enum LayoutDirection {
 
 /// 响应式布局配置
 class ResponsiveConfig {
-  /// 平板最小宽度（逻辑像素�?
+  /// 平板最小宽度（逻辑像素
   final double tabletBreakpoint;
 
-  /// 桌面最小宽度（逻辑像素�?
+  /// 桌面最小宽度（逻辑像素
   final double desktopBreakpoint;
 
   const ResponsiveConfig({
@@ -44,7 +43,7 @@ class ResponsiveConfig {
   static const defaultConfig = ResponsiveConfig();
 }
 
-/// 响应式布局构建�?
+/// 响应式布局构建
 class ResponsiveBuilder extends StatelessWidget {
   final Widget Function(
     BuildContext context,
@@ -84,21 +83,21 @@ class ResponsiveBuilder extends StatelessWidget {
 
 /// 自适应双栏布局
 ///
-/// 在大屏幕上显示双栏（主内�?+ 侧边栏）�?/// 在小屏幕上显示单栏（通过导航切换）�?
+/// 在大屏幕上显示双栏（主内+ 侧边栏）/// 在小屏幕上显示单栏（通过导航切换）
 class AdaptiveTwoPaneLayout extends StatelessWidget {
-  /// 主内容区�?
+  /// 主内容区
   final Widget mainContent;
 
-  /// 侧边栏内�?
+  /// 侧边栏内
   final Widget sideContent;
 
-  /// 侧边栏宽度（平板/桌面�?
+  /// 侧边栏宽度（平板/桌面
   final double sidePaneWidth;
 
   /// 是否强制显示双栏
   final bool forceTwoPane;
 
-  /// 侧边栏位�?
+  /// 侧边栏位
   final Axis sidePaneAxis;
 
   const AdaptiveTwoPaneLayout({
@@ -121,7 +120,7 @@ class AdaptiveTwoPaneLayout extends StatelessWidget {
 
         if (isTwoPane) {
           if (sidePaneAxis == Axis.horizontal) {
-            // 水平双栏（左右布局�?
+            // 水平双栏（左右布局
             return Row(
               children: [
                 Expanded(flex: 3, child: mainContent),
@@ -140,7 +139,7 @@ class AdaptiveTwoPaneLayout extends StatelessWidget {
               ],
             );
           } else {
-            // 垂直双栏（上下布局�?
+            // 垂直双栏（上下布局
             return Column(
               children: [
                 Expanded(flex: 3, child: mainContent),
@@ -160,7 +159,7 @@ class AdaptiveTwoPaneLayout extends StatelessWidget {
             );
           }
         } else {
-          // 单栏模式，只显示主内�?
+          // 单栏模式，只显示主内
           return mainContent;
         }
       },
@@ -168,8 +167,8 @@ class AdaptiveTwoPaneLayout extends StatelessWidget {
   }
 }
 
-/// 自适应导航�?///
-/// 在大屏幕上显示永久侧边栏�?/// 在小屏幕上显示抽屉式导航�?
+/// 自适应导航///
+/// 在大屏幕上显示永久侧边栏/// 在小屏幕上显示抽屉式导航
 class AdaptiveNavigation extends StatelessWidget {
   final Widget body;
   final Widget drawerContent;
@@ -192,7 +191,7 @@ class AdaptiveNavigation extends StatelessWidget {
             screenSize == ScreenSize.tablet || screenSize == ScreenSize.desktop;
 
         if (isLargeScreen) {
-          // 大屏幕：使用永久侧边�?
+          // 大屏幕：使用永久侧边
           return Scaffold(
             body: Row(
               children: [
@@ -207,7 +206,7 @@ class AdaptiveNavigation extends StatelessWidget {
             floatingActionButton: showFab ? fab : null,
           );
         } else {
-          // 小屏幕：使用抽屉式导�?
+          // 小屏幕：使用抽屉式导
           return Scaffold(
             appBar: AppBar(title: const Text('Zephyr Reader')),
             drawer: Drawer(child: drawerContent),
@@ -220,8 +219,8 @@ class AdaptiveNavigation extends StatelessWidget {
   }
 }
 
-/// 响应式网�?///
-/// 根据屏幕宽度自动调整列数�?
+/// 响应式网///
+/// 根据屏幕宽度自动调整列数
 class ResponsiveGrid extends StatelessWidget {
   final List<Widget> children;
   final double minColumnWidth;
@@ -274,7 +273,7 @@ ScreenSize getScreenSize(BuildContext context) {
   }
 }
 
-/// 检查是否为平板或更大屏�?
+/// 检查是否为平板或更大屏
 bool isTablet(BuildContext context) {
   return getScreenSize(context) != ScreenSize.phone;
 }

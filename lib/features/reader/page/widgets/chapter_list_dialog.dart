@@ -1,9 +1,9 @@
-/// 章节列表对话�?
- library;
+/// 章节列表对话
+library;
 
 import 'package:flutter/material.dart';
 
-/// 章节列表对话�?
+/// 章节列表对话
 class ChapterListDialog extends StatelessWidget {
   final List<Map<String, dynamic>> chapters;
   final int currentChapterId;

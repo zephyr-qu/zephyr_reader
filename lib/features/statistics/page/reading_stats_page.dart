@@ -1,10 +1,10 @@
 /// 阅读统计图表页面
 ///
-/// 展示阅读时长、字数等统计数据的图�?
+/// 展示阅读时长、字数等统计数据的图
 library;
 
-import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 /// 阅读统计页面
@@ -34,8 +34,8 @@ class ReadingStatsPage extends HookWidget {
             // 总览卡片
             _buildOverviewCard(context),
             const SizedBox(height: 24),
-            // 周统计图�?
-           _buildWeeklyChartCard(context, weeklyData.value),
+            // 周统计图
+            _buildWeeklyChartCard(context, weeklyData.value),
             const SizedBox(height: 24),
             // 阅读习惯
             _buildHabitCard(context),
@@ -65,7 +65,7 @@ class ReadingStatsPage extends HookWidget {
               children: [
                 _buildStatItem(context, '阅读时长', '8.5 小时', Icons.timer_outlined),
                 _buildStatItem(context, '阅读字数', '13 万字', Icons.text_fields),
-                _buildStatItem(context, '阅读天数', '5 �?', Icons.calendar_today),
+                _buildStatItem(context, '阅读天数', '5 ', Icons.calendar_today),
               ],
             ),
           ],
@@ -205,13 +205,13 @@ class ReadingStatsPage extends HookWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-            _buildHabitItem(theme, '最佳阅读时�?', '晚上 8-10 �?', '这段时间阅读效率最�?'),
+            _buildHabitItem(theme, '最佳阅读时', '晚上 8-10 ', '这段时间阅读效率最'),
             const Divider(),
-            _buildHabitItem(theme, '平均阅读速度', '350 �?分钟', '高于平均水平'),
+            _buildHabitItem(theme, '平均阅读速度', '350 分钟', '高于平均水平'),
             const Divider(),
-            _buildHabitItem(theme, '连续阅读天数', '12 �?', '继续保持�?'),
+            _buildHabitItem(theme, '连续阅读天数', '12 ', '继续保持'),
             const Divider(),
-            _buildHabitItem(theme, '偏好题材', '科幻/技�?', '最近阅读较�?'),
+            _buildHabitItem(theme, '偏好题材', '科幻/技', '最近阅读较'),
           ],
         ),
       ),
@@ -268,8 +268,8 @@ class ReadingStatsPage extends HookWidget {
               runSpacing: 12,
               children: [
                 _buildAchievementChip('📚 书海新人', '阅读 1 本书', true),
-                _buildAchievementChip('🔥 坚持不懈', '连续阅读 7 �?', true),
-                _buildAchievementChip('�?阅读达人', '阅读 10 本书', false),
+                _buildAchievementChip('🔥 坚持不懈', '连续阅读 7 ', true),
+                _buildAchievementChip('阅读达人', '阅读 10 本书', false),
                 _buildAchievementChip('🏆 博学多才', '阅读 50 本书', false),
               ],
             ),
@@ -285,7 +285,7 @@ class ReadingStatsPage extends HookWidget {
     bool unlocked,
   ) {
     return Chip(
-      avatar: Text(unlocked ? '�?' : '🔒'),
+      avatar: Text(unlocked ? '' : '🔒'),
       label: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -309,7 +309,7 @@ class ReadingStatsPage extends HookWidget {
   }
 }
 
-/// 周统计数�?
+/// 周统计数
 class WeeklyStatData {
   final String day;
   final int minutes;

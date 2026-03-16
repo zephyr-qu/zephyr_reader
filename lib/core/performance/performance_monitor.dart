@@ -1,11 +1,12 @@
-/// 性能监控与分析工�?///
+/// 性能监控与分析工///
 /// 提供性能监控、分析和优化建议
 library;
 
 import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
 
-/// 性能监控�?
+/// 性能监控
 class PerformanceMonitor {
   static final PerformanceMonitor _instance = PerformanceMonitor._internal();
   factory PerformanceMonitor() => _instance;
@@ -20,12 +21,12 @@ class PerformanceMonitor {
   /// 帧率记录
   final _frameRates = <double>[];
 
-  /// 慢操作阈值（毫秒�?
+  /// 慢操作阈值（毫秒
   static const int slowOperationThreshold = 100;
 
-  /// 记录操作开�?
+  /// 记录操作开
   void startOperation(String operationName) {
-    // 使用 DateTime 而不�?Stopwatch 避免额外导入
+    // 使用 DateTime 而不Stopwatch 避免额外导入
     final startTime = DateTime.now().millisecondsSinceEpoch;
     _operationTimes.putIfAbsent(operationName, () => []).add(startTime);
   }
@@ -100,7 +101,7 @@ class PerformanceMonitor {
     );
   }
 
-  /// 获取慢操作列�?
+  /// 获取慢操作列
   List<SlowOperation> _getSlowOperations() {
     final slowOps = <SlowOperation>[];
 
@@ -122,7 +123,7 @@ class PerformanceMonitor {
     return slowOps;
   }
 
-  /// 清除所有记�?
+  /// 清除所有记
   void clear() {
     _operationTimes.clear();
     _memoryUsage.clear();
@@ -153,7 +154,7 @@ class PerformanceReport {
   }
 }
 
-/// 慢操作信�?
+/// 慢操作信
 class SlowOperation {
   final String name;
   final int averageTime;
@@ -178,29 +179,29 @@ class PerformanceOptimizer {
   /// 优化图片加载
   static Future<void> optimizeImageLoading() async {
     // TODO: 实现图片缓存和预加载
-    debugPrint('图片加载优化已启�?');
+    debugPrint('图片加载优化已启');
   }
 
   /// 优化列表滚动
   static void optimizeListScrolling() {
-    // TODO: 使用 const widget、缓�?key �?
-    debugPrint('列表滚动优化已启�?');
+    // TODO: 使用 const widget、缓key
+    debugPrint('列表滚动优化已启');
   }
 
   /// 优化构建性能
   static void optimizeBuildPerformance() {
-    // TODO: 使用 RepaintBoundary、CachedNetworkImage �?
-    debugPrint('构建性能优化已启�?');
+    // TODO: 使用 RepaintBoundary、CachedNetworkImage
+    debugPrint('构建性能优化已启');
   }
 
   /// 优化内存使用
   static void optimizeMemoryUsage() {
-    // TODO: 及时释放不用的资�?
-    debugPrint('内存使用优化已启�?');
+    // TODO: 及时释放不用的资
+    debugPrint('内存使用优化已启');
   }
 }
 
-/// 性能监控中间�?
+/// 性能监控中间
 class PerformanceMiddleware {
   final PerformanceMonitor _monitor = PerformanceMonitor();
 
@@ -213,11 +214,11 @@ class PerformanceMiddleware {
     try {
       final result = await operation();
       final duration = _monitor.endOperation(operationName);
-      debugPrint('�?$operationName: ${duration}ms');
+      debugPrint('$operationName: ${duration}ms');
       return result;
     } catch (e) {
       _monitor.endOperation(operationName);
-      debugPrint('�?$operationName failed: $e');
+      debugPrint('$operationName failed: $e');
       rethrow;
     }
   }

@@ -25,7 +25,7 @@ class BookSearchPage extends HookWidget {
     final searchQuery = useSignal('');
     final error = useSignal<String?>(null);
 
-    // 初始化搜索服�?
+    // 初始化搜索服
     useEffect(() {
       searchService.init();
       return null;
@@ -84,7 +84,7 @@ class BookSearchPage extends HookWidget {
                 children: [
                   CircularProgressIndicator(),
                   SizedBox(height: 16),
-                  Text('搜索�?..'),
+                  Text('搜索..'),
                 ],
               ),
             );
@@ -101,7 +101,7 @@ class BookSearchPage extends HookWidget {
                     color: Theme.of(context).colorScheme.error,
                   ),
                   const SizedBox(height: 16),
-                  Text('搜索失败�?{error.value}'),
+                  Text('搜索失败{error.value}'),
                   const SizedBox(height: 16),
                   FilledButton(
                     onPressed: () {
@@ -134,27 +134,27 @@ class BookSearchPage extends HookWidget {
                     size: 64,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.3),
+                    ).colorScheme.onSurface.withValues(alpha: .3),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    searchQuery.value.isEmpty ? '请输入搜索关键词' : '未找到相关结�?',
+                    searchQuery.value.isEmpty ? '请输入搜索关键词' : '未找到相关结',
                     style: TextStyle(
                       fontSize: 16,
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.6),
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   if (searchQuery.value.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
-                      '建议：尝试其他关键词或检查拼�?',
+                      '建议：尝试其他关键词或检查拼',
                       style: TextStyle(
                         fontSize: 14,
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.4),
+                        ).colorScheme.onSurface.withValues(alpha: 0.4),
                       ),
                     ),
                   ],
@@ -197,7 +197,7 @@ class BookSearchPage extends HookWidget {
   }
 }
 
-/// 搜索结果�?
+/// 搜索结果
 class _SearchResultTile extends StatelessWidget {
   final SearchHit result;
 
@@ -219,7 +219,9 @@ class _SearchResultTile extends StatelessWidget {
             result.bookTitle,
             style: TextStyle(
               fontSize: 12,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 4),
@@ -227,7 +229,9 @@ class _SearchResultTile extends StatelessWidget {
             result.snippet,
             style: TextStyle(
               fontSize: 13,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.8),
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -250,7 +254,7 @@ class _SearchResultTile extends StatelessWidget {
         ],
       ),
       onTap: () {
-        // 跳转到书籍阅读页�?
+        // 跳转到书籍阅读页
         context.goNamed(
           RouteNames.reader,
           pathParameters: {

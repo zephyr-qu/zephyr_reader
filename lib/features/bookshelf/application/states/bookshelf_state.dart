@@ -1,4 +1,4 @@
-/// 书架状态管�?
+/// 书架状态管
 library;
 
 import 'package:signals_flutter/signals_flutter.dart';
@@ -16,7 +16,8 @@ enum BookshelfViewMode {
 
 /// 书架排序方式
 enum BookshelfSortType {
-  /// 最后阅读时�?  lastRead,
+  /// 最后阅读时
+  lastRead,
 
   /// 添加时间
   createdAt,
@@ -24,18 +25,23 @@ enum BookshelfSortType {
   /// 书名
   title,
 
-  /// 作�?  author,
+  /// 作
+  author,
 
   /// 阅读进度
   progress,
 }
 
-/// 书架筛选状�?class BookshelfFilter {
-  /// 搜索关键�?  final String? keyword;
+/// 书架筛选状
+class BookshelfFilter {
+  /// 搜索关键
+  final String? keyword;
 
-  /// 书籍状态筛�?  final String? status;
+  /// 书籍状态筛
+  final String? status;
 
-  /// 文件格式筛�?  final String? format;
+  /// 文件格式筛
+  final String? format;
 
   /// 排序方式
   final BookshelfSortType sortType;
@@ -73,12 +79,14 @@ class BookshelfState {
   /// 视图模式
   final viewMode = signal(BookshelfViewMode.grid);
 
-  /// 筛选条�?  final filter = signal(const BookshelfFilter());
+  /// 筛选条
+  final filter = signal(const BookshelfFilter());
 
   /// 书籍列表
   final books = signal<List<Book>>([]);
 
-  /// 加载状�?  final isLoading = signal(false);
+  /// 加载状
+  final isLoading = signal(false);
 
   /// 错误信息
   final error = signal<String?>(null);
@@ -101,21 +109,25 @@ class BookshelfState {
     viewMode.value = mode;
   }
 
-  /// 更新筛选条�?  void updateFilter(BookshelfFilter Function(BookshelfFilter) update) {
+  /// 更新筛选条
+  void updateFilter(BookshelfFilter Function(BookshelfFilter) update) {
     final currentFilter = filter.value;
     final newFilter = update(currentFilter);
     filter.value = newFilter;
   }
 
-  /// 设置搜索关键�?  void setSearchKeyword(String? keyword) {
+  /// 设置搜索关键
+  void setSearchKeyword(String? keyword) {
     updateFilter((f) => f.copyWith(keyword: keyword));
   }
 
-  /// 设置状态筛�?  void setStatusFilter(String? status) {
+  /// 设置状态筛
+  void setStatusFilter(String? status) {
     updateFilter((f) => f.copyWith(status: status));
   }
 
-  /// 设置格式筛�?  void setFormatFilter(String? format) {
+  /// 设置格式筛
+  void setFormatFilter(String? format) {
     updateFilter((f) => f.copyWith(format: format));
   }
 
@@ -131,7 +143,8 @@ class BookshelfState {
     updateFilter((f) => f.copyWith(ascending: !f.ascending));
   }
 
-  /// 重置筛�?  void resetFilter() {
+  /// 重置筛
+  void resetFilter() {
     filter.value = const BookshelfFilter();
   }
 
@@ -156,7 +169,8 @@ class BookshelfState {
     selectedBookIds.value.remove(bookId);
   }
 
-  /// 切换选择状�?  void toggleSelection(int bookId) {
+  /// 切换选择状
+  void toggleSelection(int bookId) {
     final newSet = Set<int>.from(selectedBookIds.value);
     if (newSet.contains(bookId)) {
       newSet.remove(bookId);
@@ -172,7 +186,8 @@ class BookshelfState {
     isSelectingMode.value = false;
   }
 
-  /// 全�?  void selectAll() {
+  /// 全
+  void selectAll() {
     selectedBookIds.value = books.value.map((b) => b.id).toSet();
   }
 
@@ -187,5 +202,6 @@ class BookshelfState {
   /// 获取选中书籍数量
   int get selectedCount => selectedBookIds.value.length;
 
-  /// 是否已选中某书�?  bool isSelected(int bookId) => selectedBookIds.value.contains(bookId);
+  /// 是否已选中某书
+  bool isSelected(int bookId) => selectedBookIds.value.contains(bookId);
 }

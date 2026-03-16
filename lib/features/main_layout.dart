@@ -7,7 +7,7 @@ import 'package:zephyr_reader/features/profile/page/profile_page.dart';
 import 'package:zephyr_reader/features/statistics/page/statistics_page.dart';
 import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
 
-/// 底部导航栏配�?
+/// 底部导航栏配
 enum BottomNavItem {
   home(
     label: '首页',
@@ -54,8 +54,8 @@ enum BottomNavItem {
 }
 
 /// 带自适应导航栏的主布局
-/// 手机：底�?NavigationBar
-/// 平板：NavigationRail 侧边�?
+/// 手机：底NavigationBar
+/// 平板：NavigationRail 侧边
 class MainLayout extends StatefulWidget {
   final Widget child;
 
@@ -76,7 +76,7 @@ class _MainLayoutState extends State<MainLayout> {
         deviceType == DeviceType.tablet || deviceType == DeviceType.desktop;
     final theme = Theme.of(context);
 
-    // 根据当前路由更新选中的索�?
+    // 根据当前路由更新选中的索
     for (var i = 0; i < BottomNavItem.values.length; i++) {
       if (currentRoute == BottomNavItem.values[i].route) {
         _currentIndex = i;
@@ -85,7 +85,7 @@ class _MainLayoutState extends State<MainLayout> {
     }
 
     if (isTabletOrDesktop) {
-      // 平板/桌面：使�?NavigationRail 侧边栏布局
+      // 平板/桌面：使NavigationRail 侧边栏布局
       return Scaffold(
         body: Row(
           children: [
@@ -173,7 +173,7 @@ class _MainLayoutState extends State<MainLayout> {
         ),
       );
     } else {
-      // 手机：使�?NavigationBar 底部导航
+      // 手机：使NavigationBar 底部导航
       return Scaffold(
         body: widget.child,
         extendBody: true,
@@ -226,7 +226,7 @@ class _MainLayoutState extends State<MainLayout> {
   }
 }
 
-/// 主页面容器，根据路由显示不同的页�?
+/// 主页面容器，根据路由显示不同的页
 class MainContainerPage extends StatelessWidget {
   const MainContainerPage({super.key});
 
@@ -236,7 +236,7 @@ class MainContainerPage extends StatelessWidget {
       builder: (context, constraints) {
         final currentRoute = GoRouterState.of(context).uri.path;
 
-        // 根据当前路由返回对应的页�?
+        // 根据当前路由返回对应的页
         return switch (currentRoute) {
           RoutePaths.home => const HomePage(),
           RoutePaths.bookshelf => const BookshelfPage(),

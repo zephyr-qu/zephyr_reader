@@ -61,7 +61,7 @@ class ReaderSettingsDialog extends HookWidget {
               ],
             ),
             const SizedBox(height: 16),
-            // 行间�?            const Text('行间�?),
+            // 行间            const Text('行间),
             Row(
               children: [
                 Expanded(
@@ -88,8 +88,8 @@ class ReaderSettingsDialog extends HookWidget {
               children: [
                 _buildThemeChip(context, '日间', ThemeMode.light),
                 _buildThemeChip(context, '深色', ThemeMode.dark),
-                _buildThemeChip(context, '护眼', ThemeMode.light), // 使用米黄色背�?
-                 ],
+                _buildThemeChip(context, '护眼', ThemeMode.light), // 使用米黄色背
+              ],
             ),
             const SizedBox(height: 24),
             // 关闭按钮

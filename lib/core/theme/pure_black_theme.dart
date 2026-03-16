@@ -1,37 +1,25 @@
-/// �??�?��?�?�??�AMOLED �?�?��???///
-/// 针??? OLED/AMOLED ??�??��?�?��的�??�?��?�?�??�省�?且?????�???�??
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// �??�?��?�?�?��?�?
 class PureBlackTheme {
-  /// �??�?�?��?�?
   static const Color backgroundColor = Color(0xFF000000);
 
-  /// ???灰?�?片??�与?��?�??�??��??��?�???
   static const Color surfaceColor = Color(0xFF0A0A0A);
 
-  /// 中灰?????�
   static const Color borderColor = Color(0xFF1A1A1A);
 
-  /// �???�?��?��??��?�?????�?????�
   static const Color textPrimary = Color(0xFFFFFFFF);
 
-  /// ?????�?��?��
   static const Color textSecondary = Color(0xFF9CA3AF);
 
-  /// �??�???�青�????�
   static const Color primary = Color(0xFF5EEAD4);
 
-  /// �??�?????��
   static const Color primaryContainer = Color(0xFF115E59);
 
-  /// 错????�?
   static const Color error = Color(0xFFF87171);
 
-  /// ?��???�??�?��?�?�
   static ThemeData buildTheme() {
     return ThemeData(
       useMaterial3: true,
@@ -173,7 +161,7 @@ class PureBlackTheme {
     );
   }
 
-  /// ?�??���??�?��?�?��?�?��
+  /// ??��?����
   static Widget buildPreview() {
     return Container(
       color: backgroundColor,
@@ -181,18 +169,15 @@ class PureBlackTheme {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '�??�?��?�?�',
-            style: TextStyle(color: textPrimary, fontSize: 20),
-          ),
+          Text('?��', style: TextStyle(color: textPrimary, fontSize: 20)),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),
             color: surfaceColor,
-            child: Text('?�?片?��?�?', style: TextStyle(color: textSecondary)),
+            child: Text('?片?�', style: TextStyle(color: textSecondary)),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: () {}, child: const Text('?���?')),
+          ElevatedButton(onPressed: () {}, child: const Text('?��')),
         ],
       ),
     );

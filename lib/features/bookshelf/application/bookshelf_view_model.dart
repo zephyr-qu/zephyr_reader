@@ -1,6 +1,7 @@
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/database/database.dart';
+
 import '../domain/bookshelf_repository.dart';
 import '../domain/models/book_category.dart';
 
@@ -10,7 +11,7 @@ class BookshelfViewModel {
   final BookshelfRepository _repo;
 
   /// 所有书籍
-  final books = asyncSignal<List<Novel>>(AsyncState.loading());
+  final books = asyncSignal<List<Book>>(AsyncState.loading());
 
   /// 当前选中的分类
   final selectedCategory = signal<BookCategory>(BookCategory.all);
@@ -31,7 +32,7 @@ class BookshelfViewModel {
   Future<void> loadBooks() async {
     books.value = AsyncState.loading();
     try {
-      List<Novel> data;
+      List<Book> data;
 
       if (isSearching.value && searchKeyword.value.isNotEmpty) {
         data = await _repo.searchBooks(searchKeyword.value);
@@ -82,7 +83,7 @@ class BookshelfViewModel {
   }
 
   /// 获取书籍详情
-  Future<Novel?> getBookDetail(int id) async {
+  Future<Book?> getBookDetail(int id) async {
     return await _repo.getBookById(id);
   }
 }

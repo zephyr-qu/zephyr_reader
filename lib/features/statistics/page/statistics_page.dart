@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
 
 /// 统计页面 - 展示阅读数据统计
@@ -24,7 +24,7 @@ class StatisticsPage extends StatelessWidget {
               // TODO: 调用 ReadingStatsService 刷新数据
               ScaffoldMessenger.of(
                 context,
-              ).showSnackBar(const SnackBar(content: Text('统计数据已刷�?')));
+              ).showSnackBar(const SnackBar(content: Text('统计数据已刷')));
             },
           ),
         ],
@@ -98,7 +98,7 @@ class StatisticsPage extends StatelessWidget {
             ),
           ),
           SizedBox(width: spacing),
-          // 右侧：书籍分类统�?+ 详细统计
+          // 右侧：书籍分类统+ 详细统计
           Expanded(
             flex: 1,
             child: Column(
@@ -149,7 +149,7 @@ class StatisticsPage extends StatelessWidget {
                   child: _buildOverviewItem(
                     context,
                     '已读书籍',
-                    '24 �?',
+                    '24 ',
                     theme.colorScheme.secondary,
                   ),
                 ),
@@ -162,7 +162,7 @@ class StatisticsPage extends StatelessWidget {
                   child: _buildOverviewItem(
                     context,
                     '阅读天数',
-                    '89 �?',
+                    '89 ',
                     theme.colorScheme.tertiary,
                   ),
                 ),
@@ -421,7 +421,7 @@ class StatisticsPage extends StatelessWidget {
                     ),
                     SizedBox(width: isTabletOrDesktop ? 8 : 6),
                     Text(
-                      '${category['name']} ${category['count']}�?',
+                      '${category['name']} ${category['count']}',
                       style: isTabletOrDesktop
                           ? theme.textTheme.bodyMedium
                           : theme.textTheme.bodySmall,

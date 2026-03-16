@@ -13,7 +13,7 @@ void main() {
 
     test('添加书籍', () {
       // final state = BookshelfState();
-      // final book = Novel(...);
+      // final book = Book(...);
       // state.addBook(book);
       // expect(state.books.value.length, equals(1));
     });

@@ -53,7 +53,7 @@ class HomePage extends StatelessWidget {
     return [
       _buildWelcomeCard(context),
       SizedBox(height: LayoutBreakpoints.getSpacing(context)),
-      Text('最近阅�?', style: theme.textTheme.titleLarge),
+      Text('最近阅', style: theme.textTheme.titleLarge),
       SizedBox(height: LayoutBreakpoints.getSpacing(context) / 2),
       _buildRecentReading(context),
       SizedBox(height: LayoutBreakpoints.getSpacing(context)),
@@ -82,7 +82,7 @@ class HomePage extends StatelessWidget {
               children: [
                 _buildWelcomeCard(context),
                 SizedBox(height: spacing),
-                Text('最近阅�?', style: theme.textTheme.titleLarge),
+                Text('最近阅', style: theme.textTheme.titleLarge),
                 SizedBox(height: spacing / 2),
                 _buildRecentReading(context),
               ],
@@ -113,15 +113,15 @@ class HomePage extends StatelessWidget {
     String greeting;
 
     if (hour < 6) {
-      greeting = '夜深�?';
+      greeting = '夜深';
     } else if (hour < 12) {
-      greeting = '早上�?';
+      greeting = '早上';
     } else if (hour < 14) {
       greeting = '中午?';
     } else if (hour < 18) {
-      greeting = '下午�?';
+      greeting = '下午';
     } else {
-      greeting = '晚上�?';
+      greeting = '晚上';
     }
 
     return Container(
@@ -237,8 +237,8 @@ class HomePage extends StatelessWidget {
     final theme = Theme.of(context);
 
     final recentBooks = [
-      {'title': '三体', 'author': '刘慈�?', 'progress': 0.65, 'chapter': '�?45 �?'},
-      {'title': '活着', 'author': '余华', 'progress': 0.30, 'chapter': '�?12 �?'},
+      {'title': '三体', 'author': '刘慈', 'progress': 0.65, 'chapter': '45 '},
+      {'title': '活着', 'author': '余华', 'progress': 0.30, 'chapter': '12 '},
     ];
 
     if (recentBooks.isEmpty) {
@@ -255,7 +255,7 @@ class HomePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '还没有开始阅�?',
+                  '还没有开始阅',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
@@ -263,7 +263,7 @@ class HomePage extends StatelessWidget {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => context.pushNamed(RouteNames.bookshelf),
-                  child: const Text('去书�?'),
+                  child: const Text('去书'),
                 ),
               ],
             ),
@@ -467,9 +467,9 @@ class HomePage extends StatelessWidget {
     final theme = Theme.of(context);
 
     final recommendations = [
-      {'title': '百年孤独', 'author': '加西亚·马尔克�?'},
-      {'title': '1984', 'author': '乔治·奥威�?'},
-      {'title': '小王�?', 'author': '圣埃克苏佩里'},
+      {'title': '百年孤独', 'author': '加西亚·马尔克'},
+      {'title': '1984', 'author': '乔治·奥威'},
+      {'title': '小王', 'author': '圣埃克苏佩里'},
     ];
 
     return SizedBox(

@@ -1,6 +1,6 @@
 /// 备份恢复服务
 ///
-/// 提供数据备份和恢复功�?
+/// 提供数据备份和恢复功
 library;
 
 import 'dart:convert';
@@ -79,7 +79,7 @@ class BackupRestoreService {
       backupList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       backups.value = backupList;
     } catch (e) {
-      debugPrint('加载备份列表失败�?e');
+      debugPrint('加载备份列表失败e');
       backups.value = [];
     }
   }
@@ -137,11 +137,11 @@ class BackupRestoreService {
       );
 
       await _loadBackups();
-      debugPrint('备份创建成功�?fileName');
+      debugPrint('备份创建成功fileName');
 
       return backupInfo;
     } catch (e) {
-      debugPrint('创建备份失败�?e');
+      debugPrint('创建备份失败e');
       return null;
     } finally {
       isBackingUp.value = false;
@@ -180,10 +180,10 @@ class BackupRestoreService {
         await _restoreSettings(backupData['settings']);
       }
 
-      debugPrint('备份恢复成功�?backupId');
+      debugPrint('备份恢复成功backupId');
       return true;
     } catch (e) {
-      debugPrint('备份恢复失败�?e');
+      debugPrint('备份恢复失败e');
       return false;
     } finally {
       isRestoring.value = false;
@@ -199,13 +199,13 @@ class BackupRestoreService {
       if (await file.exists()) {
         await file.delete();
         await _loadBackups();
-        debugPrint('备份删除成功�?backupId');
+        debugPrint('备份删除成功backupId');
         return true;
       }
 
       return false;
     } catch (e) {
-      debugPrint('备份删除失败�?e');
+      debugPrint('备份删除失败e');
       return false;
     }
   }
@@ -224,10 +224,10 @@ class BackupRestoreService {
       final sourceFile = File(sourcePath);
       await sourceFile.copy(destPath);
 
-      debugPrint('备份导出成功�?destPath');
+      debugPrint('备份导出成功destPath');
       return destPath;
     } catch (e) {
-      debugPrint('备份导出失败�?e');
+      debugPrint('备份导出失败e');
       return null;
     }
   }
@@ -251,10 +251,10 @@ class BackupRestoreService {
       await file.copy(destPath);
 
       await _loadBackups();
-      debugPrint('备份导入成功�?fileName');
+      debugPrint('备份导入成功fileName');
       return true;
     } catch (e) {
-      debugPrint('备份导入失败�?e');
+      debugPrint('备份导入失败e');
       return false;
     }
   }

@@ -1,26 +1,27 @@
 import 'package:zephyr_reader/core/database/database.dart';
+
 import 'models/book_category.dart';
 
 /// 书架仓库接口
 abstract class BookshelfRepository {
   /// 获取所有书籍
-  Future<List<Novel>> getAllBooks();
+  Future<List<Book>> getAllBooks();
 
   /// 根据分类获取书籍
-  Future<List<Novel>> getBooksByCategory(BookCategory category);
+  Future<List<Book>> getBooksByCategory(BookCategory category);
 
   /// 根据ID获取书籍
-  Future<Novel?> getBookById(int id);
+  Future<Book?> getBookById(int id);
 
   /// 添加书籍
-  Future<int> addBook(NovelsCompanion book);
+  Future<int> addBook(BooksCompanion book);
 
   /// 更新书籍
-  Future<bool> updateBook(Novel book);
+  Future<bool> updateBook(Book book);
 
   /// 删除书籍
   Future<bool> deleteBook(int id);
 
   /// 搜索书籍
-  Future<List<Novel>> searchBooks(String keyword);
+  Future<List<Book>> searchBooks(String keyword);
 }

@@ -3,14 +3,13 @@
 /// 作为 Flutter 应用的核心数据模型，与 Rust 侧的 BookInfo 对齐
 library;
 
-import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'book.freezed.dart';
 
 /// 书籍领域模型
 @freezed
-class Book with _$Book {
+abstract class Book with _$Book {
   const factory Book({
     /// 书籍唯一标识（与 Rust book_id 对齐，使用 UUID 字符串）
     required String id,

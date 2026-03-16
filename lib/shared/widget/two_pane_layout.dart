@@ -1,22 +1,26 @@
 /// 平板双栏布局组件
-///
-/// 用于平板横屏模式下的双栏显示（如：左侧目录，右侧内容�?library;
+library;
+/// 用于平板横屏模式下的双栏显示（如：左侧目录，右侧内容library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 /// 双栏布局
 class TwoPaneLayout extends HookWidget {
-  /// 左侧面板（主列表�?  final Widget firstPane;
+  /// 左侧面板（主列表
+  final Widget firstPane;
 
   /// 右侧面板（详情内容）
   final Widget secondPane;
 
-  /// 面板比例（默�?0.3�?  final double paneProportion;
+  /// 面板比例（默0.3
+  final double paneProportion;
 
-  /// 最小面板宽�?  final double minPaneWidth;
+  /// 最小面板宽
+  final double minPaneWidth;
 
-  /// 是否可调整大�?  final bool resizable;
+  /// 是否可调整大
+  final bool resizable;
 
   const TwoPaneLayout({
     super.key,
@@ -85,7 +89,8 @@ class TwoPaneLayout extends HookWidget {
   double max(double a, double b) => a > b ? a : b;
 }
 
-/// 平板阅读器布局（左侧目录，右侧阅读�?class TabletReaderLayout extends StatelessWidget {
+/// 平板阅读器布局（左侧目录，右侧阅读
+class TabletReaderLayout extends StatelessWidget {
   /// 目录面板
   final Widget catalogPanel;
 
@@ -130,14 +135,17 @@ class TwoPaneLayout extends HookWidget {
             ),
           ),
         ),
-        // 分隔�?        VerticalDivider(thickness: 1, width: 1),
-        // 右侧阅读�?        Expanded(child: readerContent),
+        // 分隔
+        VerticalDivider(thickness: 1, width: 1),
+        // 右侧阅读
+        Expanded(child: readerContent),
       ],
     );
   }
 }
 
-/// 主从布局（Master-Detail�?class MasterDetailLayout extends StatelessWidget {
+/// 主从布局（Master-Detail
+class MasterDetailLayout extends StatelessWidget {
   final Widget master;
   final Widget detail;
   final double masterWidth;

@@ -8,7 +8,7 @@ part 'bookmark.freezed.dart';
 
 /// 书签领域模型
 @freezed
-class BookmarkItem with _$BookmarkItem {
+abstract class BookmarkItem with _$BookmarkItem {
   const factory BookmarkItem({
     /// 书签唯一标识（UUID）
     required String id,

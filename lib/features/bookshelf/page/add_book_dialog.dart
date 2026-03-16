@@ -1,13 +1,13 @@
 import 'dart:io';
 
+import 'package:drift/drift.dart' as drift;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:drift/drift.dart' as drift;
 import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/core/database/database.dart';
 import 'package:zephyr_reader/src/rust/api.dart' as rust_api;
 
-/// 添加书籍对话框（文件选择方式�?
+/// 添加书籍对话框（文件选择方式
 class AddBookDialog extends StatefulWidget {
   const AddBookDialog({super.key});
 
@@ -72,7 +72,7 @@ class _AddBookDialogState extends State<AddBookDialog> {
                           ),
                         ),
                         Text(
-                          '选择本地 TXT �?EPUB 文件',
+                          '选择本地 TXT EPUB 文件',
                           style: TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],
@@ -214,7 +214,7 @@ class _AddBookDialogState extends State<AddBookDialog> {
             ),
             const SizedBox(height: 16),
             Text(
-              _selectedFilePath != null ? '已选择文件' : '点击选择 TXT �?EPUB 文件',
+              _selectedFilePath != null ? '已选择文件' : '点击选择 TXT EPUB 文件',
               style: theme.textTheme.titleMedium?.copyWith(
                 color: _selectedFilePath != null
                     ? theme.colorScheme.primary
@@ -268,7 +268,7 @@ class _AddBookDialogState extends State<AddBookDialog> {
     });
 
     try {
-      // 打开文件选择�?
+      // 打开文件选择
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['txt', 'epub'],
@@ -297,7 +297,7 @@ class _AddBookDialogState extends State<AddBookDialog> {
         final bookInfo = (bookInfoResult as dynamic).value;
 
         if (bookInfo == null) {
-          throw Exception('解析失败：返回空�?');
+          throw Exception('解析失败：返回空');
         }
 
         setState(() {
@@ -314,13 +314,13 @@ class _AddBookDialogState extends State<AddBookDialog> {
       } catch (e) {
         setState(() {
           _isParsing = false;
-          _parseError = '解析失败�?e';
+          _parseError = '解析失败e';
         });
       }
     } catch (e) {
       setState(() {
         _isParsing = false;
-        _parseError = '解析失败�?e';
+        _parseError = '解析失败e';
       });
     }
   }
@@ -340,12 +340,12 @@ class _AddBookDialogState extends State<AddBookDialog> {
         await booksDir.create(recursive: true);
       }
 
-      // 复制文件到应用目�?
+      // 复制文件到应用目
       final fileName = _selectedFilePath!.split(Platform.pathSeparator).last;
       final destPath = '${booksDir.path}/$fileName';
       await File(_selectedFilePath!).copy(destPath);
 
-      // 提取封面（如果是 EPUB�?
+      // 提取封面（如果是 EPUB
       String? savedCoverPath;
       if (fileName.toLowerCase().endsWith('.epub') && _coverPath != null) {
         try {
@@ -362,17 +362,17 @@ class _AddBookDialogState extends State<AddBookDialog> {
           try {
             savedCoverPath = (coverResult as dynamic).value;
           } catch (e) {
-            debugPrint('提取封面失败�?e');
+            debugPrint('提取封面失败e');
           }
         } catch (e) {
-          debugPrint('提取封面失败�?e');
+          debugPrint('提取封面失败e');
         }
       }
 
       // 创建书籍记录
       final book = BooksCompanion(
         title: drift.Value(_bookTitle ?? '未知书籍'),
-        author: drift.Value(_bookAuthor ?? '未知作�?'),
+        author: drift.Value(_bookAuthor ?? '未知作'),
         coverPath: savedCoverPath != null
             ? drift.Value(savedCoverPath)
             : const drift.Value.absent(),
@@ -394,7 +394,7 @@ class _AddBookDialogState extends State<AddBookDialog> {
       if (mounted) {
         setState(() {
           _isParsing = false;
-          _parseError = '添加失败�?e';
+          _parseError = '添加失败e';
         });
       }
     }

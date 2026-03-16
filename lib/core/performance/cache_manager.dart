@@ -1,6 +1,6 @@
-/// 阅读器缓存管�?///
+/// 阅读器缓存管///
 /// 提供章节内容缓存、图片缓存、布局缓存等功能，
-/// 优化大文件加载性能和内存使用�?
+/// 优化大文件加载性能和内存使用
 library;
 
 import 'dart:async';
@@ -49,7 +49,7 @@ class LruCache<K, T> {
 
   LruCache({required this.maxSize}) : _cache = {}, _accessOrder = Queue();
 
-  /// 获取缓存�?
+  /// 获取缓存
   T? get(K key) {
     final entry = _cache[key];
     if (entry == null) return null;
@@ -61,20 +61,20 @@ class LruCache<K, T> {
     return entry.value;
   }
 
-  /// 设置缓存�?
+  /// 设置缓存
   void put(K key, T value, {int size = 1}) {
-    // 如果已存在，先移�?
+    // 如果已存在，先移
     if (_cache.containsKey(key)) {
       _accessOrder.remove(key);
     }
 
-    // 如果缓存已满，移除最久未使用�?
+    // 如果缓存已满，移除最久未使用
     while (_cache.length >= maxSize && _accessOrder.isNotEmpty) {
       final oldestKey = _accessOrder.removeFirst();
       _cache.remove(oldestKey);
     }
 
-    // 添加新条�?
+    // 添加新条
     _cache[key] = CacheEntry(
       value: value,
       createdAt: DateTime.now(),
@@ -89,7 +89,7 @@ class LruCache<K, T> {
     _accessOrder.remove(key);
   }
 
-  /// 清除所有缓�?
+  /// 清除所有缓
   void clear() {
     _cache.clear();
     _accessOrder.clear();
@@ -112,7 +112,7 @@ class ChapterContentCache {
   late final Directory _cacheDir;
 
   ChapterContentCache._() {
-    // 使用内存缓存（最�?100 章）
+    // 使用内存缓存（最100 章）
     _cache = LruCache(maxSize: 100);
     _initCacheDir();
   }
@@ -130,7 +130,7 @@ class ChapterContentCache {
     }
   }
 
-  /// 获取缓存�?
+  /// 获取缓存
   String _getCacheKey(int bookId, int chapterId) =>
       'book_${bookId}_chapter_$chapterId';
 
@@ -138,17 +138,17 @@ class ChapterContentCache {
   Future<String?> get(int bookId, int chapterId) async {
     final key = _getCacheKey(bookId, chapterId);
 
-    // 先尝试内存缓�?
+    // 先尝试内存缓
     final cached = _cache.get(key);
     if (cached != null) {
-      debugPrint('内存缓存命中�?key');
+      debugPrint('内存缓存命中key');
       return cached;
     }
 
     // 尝试磁盘缓存
     final cacheFile = File(p.join(_cacheDir.path, '$key.txt'));
     if (await cacheFile.exists()) {
-      debugPrint('磁盘缓存命中�?key');
+      debugPrint('磁盘缓存命中key');
       final content = await cacheFile.readAsString();
       // 写入内存缓存
       _cache.put(key, content);
@@ -184,24 +184,24 @@ class ChapterContentCache {
     }
   }
 
-  /// 清除书籍的所有缓�?
+  /// 清除书籍的所有缓
   Future<void> clearBook(int bookId) async {
     final keysToRemove = <String>[];
     final prefix = 'book_${bookId}_';
 
-    // 收集要删除的�?
+    // 收集要删除的
     for (final key in _cache._cache.keys) {
       if (key.toString().startsWith(prefix)) {
         keysToRemove.add(key.toString());
       }
     }
 
-    // 从内存缓存删�?
+    // 从内存缓存删
     for (final key in keysToRemove) {
       _cache.remove(key);
     }
 
-    // 从磁盘缓存删�?
+    // 从磁盘缓存删
     if (await _cacheDir.exists()) {
       await for (final entity in _cacheDir.list()) {
         if (entity is File && p.basename(entity.path).startsWith(prefix)) {
@@ -213,7 +213,7 @@ class ChapterContentCache {
     debugPrint('书籍缓存已清除：bookId=$bookId');
   }
 
-  /// 清除所有缓�?
+  /// 清除所有缓
   Future<void> clearAll() async {
     _cache.clear();
 
@@ -263,24 +263,24 @@ class ImageCache {
     }
   }
 
-  /// 获取缓存�?
+  /// 获取缓存
   String _getCacheKey(String imagePath) => imagePath.hashCode.toString();
 
   /// 获取图片
   Future<ui.Image?> get(String imagePath) async {
     final key = _getCacheKey(imagePath);
 
-    // 先尝试内存缓�?
+    // 先尝试内存缓
     final cached = _memoryCache.get(key);
     if (cached != null) {
-      debugPrint('图片内存缓存命中�?imagePath');
+      debugPrint('图片内存缓存命中imagePath');
       return cached;
     }
 
     // 尝试磁盘缓存
     final cacheFile = File(p.join(_cacheDir.path, '$key.png'));
     if (await cacheFile.exists()) {
-      debugPrint('图片磁盘缓存命中�?imagePath');
+      debugPrint('图片磁盘缓存命中imagePath');
       final bytes = await cacheFile.readAsBytes();
       final codec = await ui.instantiateImageCodec(bytes);
       final frame = await codec.getNextFrame();
@@ -308,7 +308,7 @@ class ImageCache {
     debugPrint('图片缓存已写入：$imagePath');
   }
 
-  /// 清除所有缓�?
+  /// 清除所有缓
   Future<void> clearAll() async {
     _memoryCache.clear();
 
@@ -317,7 +317,7 @@ class ImageCache {
       await _cacheDir.create(recursive: true);
     }
 
-    debugPrint('图片缓存已清�?');
+    debugPrint('图片缓存已清');
   }
 }
 
@@ -347,7 +347,7 @@ class PrefetchManager {
 
   PrefetchManager(this._contentCache) : _prefetchQueue = [];
 
-  /// 添加预加载任�?
+  /// 添加预加载任
   void addPrefetchTask(int chapterId) {
     if (!_prefetchQueue.contains(chapterId)) {
       _prefetchQueue.add(chapterId);

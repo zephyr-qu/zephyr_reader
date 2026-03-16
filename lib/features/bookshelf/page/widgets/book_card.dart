@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:zephyr_reader/domain/models/book.dart';
 
-import '../../../../core/database/database.dart';
 import '../../application/states/bookshelf_state.dart';
 
 /// 书籍卡片
@@ -132,7 +131,7 @@ class BookCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  // 作�?
+                  // 作
                   Text(
                     book.author,
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -142,7 +141,7 @@ class BookCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
-                  // 进度百分�?
+                  // 进度百分
                   Row(
                     children: [
                       Icon(
@@ -170,7 +169,7 @@ class BookCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          book.fileFormat.toUpperCase(),
+                          book.fileType.toUpperCase(),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: _getFormatColor(theme),
                             fontWeight: FontWeight.w600,
@@ -202,7 +201,7 @@ class BookCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            // 选择�?
+            // 选择
             if (selectingMode)
               Padding(
                 padding: const EdgeInsets.only(right: 12),
@@ -215,7 +214,7 @@ class BookCard extends StatelessWidget {
                       : theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-            // 封面缩略�?
+            // 封面缩略
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: _buildCoverImage(context, width: 60, height: 80),
@@ -236,7 +235,7 @@ class BookCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  // 作�?
+                  // 作
                   Text(
                     book.author,
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -246,11 +245,11 @@ class BookCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
-                  // 进度和格�?
-                   Row(
+                  // 进度和格
+                  Row(
                     children: [
-                      // 进度�?
-                       Expanded(
+                      // 进度
+                      Expanded(
                         child: LinearProgressIndicator(
                           value: book.progress,
                           minHeight: 4,
@@ -280,7 +279,7 @@ class BookCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          book.fileFormat.toUpperCase(),
+                          book.fileType.toUpperCase(),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: _getFormatColor(theme),
                             fontWeight: FontWeight.w600,
@@ -291,10 +290,10 @@ class BookCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  // 最后阅读时�?
-                   if (book.lastReadAt != null)
+                  // 最后阅读时
+                  if (book.lastReadAt != null)
                     Text(
-                      '阅读�?${DateFormat('MM-dd HH:mm').format(book.lastReadAt!)}',
+                      '阅读${DateFormat('MM-dd HH:mm').format(book.lastReadAt!)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 11,
@@ -317,8 +316,8 @@ class BookCard extends StatelessWidget {
                       await _showRenameDialog(context, book);
                       break;
                     case 'delete':
-                      // 显示删除确认对话�?
-                              await _showDeleteConfirm(context, book);
+                      // 显示删除确认对话
+                      await _showDeleteConfirm(context, book);
                       break;
                   }
                 },
@@ -334,7 +333,7 @@ class BookCard extends StatelessWidget {
                     value: 'rename',
                     child: ListTile(
                       leading: Icon(Icons.edit),
-                      title: Text('重命�?'),
+                      title: Text('重命'),
                     ),
                   ),
                   const PopupMenuItem(
@@ -393,7 +392,7 @@ class BookCard extends StatelessWidget {
   }
 
   Color _getFormatColor(ThemeData theme) {
-    switch (book.fileFormat) {
+    switch (book.fileType) {
       case 'txt':
         return theme.colorScheme.primary;
       case 'epub':
@@ -412,7 +411,7 @@ class BookCard extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('重命�?'),
+        title: const Text('重命'),
         content: TextField(
           controller: controller,
           decoration: const InputDecoration(
@@ -439,17 +438,17 @@ class BookCard extends StatelessWidget {
       // TODO: 调用 BookshelfService.updateBookTitle
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('书名已更�?')));
+      ).showSnackBar(const SnackBar(content: Text('书名已更')));
     }
   }
 
-  /// 显示删除确认对话�?
+  /// 显示删除确认对话
   Future<void> _showDeleteConfirm(BuildContext context, Book book) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('删除书籍'),
-        content: Text('确定要删�?${book.title}"吗？'),
+        content: Text('确定要删${book.title}"吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -471,7 +470,7 @@ class BookCard extends StatelessWidget {
       // TODO: 调用 BookshelfService.deleteBook
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('书籍已删�?')));
+      ).showSnackBar(const SnackBar(content: Text('书籍已删')));
     }
   }
 }

@@ -23,7 +23,7 @@ class BookDetailPage extends StatelessWidget {
           ),
         ],
       ),
-      body: FutureBuilder<Novel?>(
+      body: FutureBuilder<Book?>(
         future: vm.getBookDetail(bookId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -45,7 +45,7 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, Novel book) {
+  Widget _buildContent(BuildContext context, Book book) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,7 +69,7 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, Novel book) {
+  Widget _buildHeader(BuildContext context, Book book) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -132,7 +132,7 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoSection(Novel book) {
+  Widget _buildInfoSection(Book book) {
     return Row(
       children: [
         _buildInfoItem('总章节', '${book.totalChapters}'),
@@ -158,7 +158,7 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDescriptionSection(Novel book) {
+  Widget _buildDescriptionSection(Book book) {
     if (book.description == null || book.description!.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -179,7 +179,7 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildChaptersSection(BuildContext context, Novel book) {
+  Widget _buildChaptersSection(BuildContext context, Book book) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -210,7 +210,7 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  void _startReading(BuildContext context, Novel book, {int? chapterIndex}) {
+  void _startReading(BuildContext context, Book book, {int? chapterIndex}) {
     final targetChapter = chapterIndex ?? 1;
     context.pushNamed(
       RouteNames.reader,

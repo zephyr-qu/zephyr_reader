@@ -1,9 +1,9 @@
-/// 书签对话�?
+/// 书签对话
 library;
 
 import 'package:flutter/material.dart';
 
-/// 书签对话�?
+/// 书签对话
 class BookmarkDialog extends StatelessWidget {
   final List<Map<String, dynamic>> bookmarks;
   final int currentChapterId;
@@ -54,7 +54,7 @@ class BookmarkDialog extends StatelessWidget {
                 leading: const Icon(Icons.add),
                 title: const Text('添加书签'),
                 subtitle: Text(
-                  '�?{currentChapterId + 1}�?�?{currentPageIndex + 1}�?',
+                  '${currentChapterId + 1}-${currentPageIndex + 1}',
                 ),
                 onTap: () {
                   onAddBookmark?.call();
@@ -74,7 +74,7 @@ class BookmarkDialog extends StatelessWidget {
                           leading: const Icon(Icons.bookmark),
                           title: Text(bookmark['title'] ?? '书签'),
                           subtitle: Text(
-                            '�?{bookmark['chapterId'] + 1}�?�?{bookmark['pageIndex'] + 1}�?',
+                            '${bookmark['chapterId'] + 1}-${bookmark['pageIndex'] + 1}',
                           ),
                           trailing: IconButton(
                             icon: const Icon(Icons.delete_outline),

@@ -24,7 +24,6 @@ pdfium-render = "0.8"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 
 # HTML parsing for rich text support
-# 注意：markup5ever_rcdom 0.3+ 与 html5ever 0.39+ 配套使用
 html5ever = "0.39"
 markup5ever_rcdom = "0.38"
 
@@ -44,18 +43,19 @@ anyhow = "1.0"
 log = "0.4.29"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+
 # UUID
 uuid = { version = "1.22.0", features = ["v4"] }
-
-# SQLite database
-rusqlite = { version = "0.38.0", features = ["bundled"] }
 
 # Date and time
 chrono = "0.4.44"
 
-# Regex and lazy initialization
+# Lazy initialization
+lazy_static = "1.5.0"
+once_cell = "1.21"
+
+# Regex
 regex = "1.12.3"
-once_cell = "1.21.4"
 
 # Parallel processing
 rayon = "1.11.0"
@@ -72,10 +72,12 @@ hyphenation = { version = "0.8.4", features = ["embed_en-us"] }
 # Chinese text segmentation (used in search module)
 jieba-rs = "0.8.1"
 
+# SQLite for full-text search (仅用于搜索索引，可重建的临时数据)
+# 如果不需要搜索功能，可以注释掉
+rusqlite = { version = "0.31", features = ["bundled"] }
+
 # Configuration
 toml = "0.8"
-
-# Note: tantivy was removed in favor of SQLite FTS5 (see search/mod.rs)
 
 [dev-dependencies]
 criterion = { version = "0.8.2", features = ["html_reports"] }

@@ -16,16 +16,17 @@ pub mod simple;
 
 use crate::catch_panic;
 pub use crate::ffi::*;
-use crate::storage::{ProgressStorage, SqliteStorage};
+use crate::storage::{ProgressStorage, InMemoryStorage};
 use flutter_rust_bridge::{frb, ZeroCopyBuffer};
 use once_cell::sync::OnceCell;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
-// 全局 SQLite 存储实例
-static STORAGE: OnceCell<Mutex<SqliteStorage>> = OnceCell::new();
+// 全局存储实例（内存实现，不持久化）
+// 所有持久化操作已迁移到 Flutter 侧（使用 Drift）
+static STORAGE: std::sync::OnceLock<Arc<dyn ProgressStorage>> = std::sync::OnceLock::new();
 
 /// 验证文件路径是否安全
 ///
@@ -88,40 +89,37 @@ fn validate_file_path(file_path: &str) -> ApiResult<String> {
 
 /// 初始化存储
 ///
-/// 在应用启动时调用，设置 SQLite 数据库路径。
-/// 如果未调用此函数，进度和书签将使用临时内存存储（不推荐）。
+/// **注意：此函数现在是 no-op，仅用于向后兼容。**
+///
+/// 所有持久化存储操作已迁移到 Flutter 侧（使用 Drift 数据库）。
+/// Rust 侧现在仅使用内存存储，数据不会持久化。
 ///
 /// # 参数
 ///
-/// * `db_path` - SQLite 数据库文件路径（建议放在应用文档目录）
+/// * `_db_path` - 被忽略（仅用于向后兼容）
 ///
-/// # 示例
+/// # 返回值
 ///
-/// Flutter 侧：
-/// ```dart
-/// final directory = await getApplicationDocumentsDirectory();
-/// await initStorage('${directory.path}/zephyr_reader.db');
-/// ```
+/// 始终返回 `Ok(())`
 #[frb(sync)]
-pub fn init_storage(db_path: String) -> ApiResult<()> {
-    let storage = SqliteStorage::new(&db_path)
-        .map_err(|e| ParserError::Other(format!("初始化存储失败: {}", e)))?;
+pub fn init_storage(_db_path: String) -> ApiResult<()> {
+    // 初始化内存存储（不持久化）
+    let storage = Arc::new(InMemoryStorage::new());
 
     STORAGE
-        .set(Mutex::new(storage))
+        .set(storage)
         .map_err(|_| ParserError::Other("存储已经初始化".to_string()))?;
 
-    tracing::info!("SQLite 存储已初始化: {}", db_path);
+    tracing::info!("内存存储已初始化（不持久化，所有数据已迁移到 Flutter 侧）");
     Ok(())
 }
 
 /// 获取存储实例
-fn get_storage() -> ApiResult<std::sync::MutexGuard<'static, SqliteStorage>> {
+fn get_storage() -> Result<Arc<dyn ProgressStorage>, ParserError> {
     STORAGE
         .get()
-        .ok_or_else(|| ParserError::Other("存储未初始化，请先调用 init_storage".to_string()))?
-        .lock()
-        .map_err(|e| ParserError::Other(format!("存储锁定失败: {}", e)))
+        .cloned()
+        .ok_or_else(|| ParserError::Other("存储未初始化，请先调用 init_storage".to_string()))
 }
 
 /// 初始化应用
@@ -1364,7 +1362,7 @@ pub fn clear_layout_cache(book_id: String) -> i32 {
         Ok(storage) => match storage.clear_layout_cache(&book_id) {
             Ok(count) => {
                 tracing::info!("清除排版缓存：book={}, count={}", book_id, count);
-                count
+                count as i32
             }
             Err(e) => {
                 tracing::error!("清除排版缓存失败：{}", e);
@@ -1398,7 +1396,7 @@ pub fn clear_chapter_layout_cache(book_id: String, chapter_id: i32) -> i32 {
                     chapter_id,
                     count
                 );
-                count
+                count as i32
             }
             Err(e) => {
                 tracing::error!("清除章节排版缓存失败：{}", e);

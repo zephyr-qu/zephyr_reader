@@ -13,10 +13,10 @@ class ReaderViewModel {
   final ReaderRepository _repo;
   final ReaderConfig config;
 
-  /// 当前小说ID
-  final novelId = signal<int>(0);
+  /// 当前小说 ID
+  final bookId = signal<int>(0);
 
-  /// 当前章节ID
+  /// 当前章节 ID
   final chapterId = signal<int>(0);
 
   /// 当前章节索引
@@ -71,7 +71,7 @@ class ReaderViewModel {
 
   /// 加载书籍
   Future<void> loadBook(int bookId) async {
-    novelId.value = bookId;
+    bookId = bookId;
     await loadChapters();
     await loadBookmarks();
   }
@@ -80,7 +80,7 @@ class ReaderViewModel {
   Future<void> loadChapters() async {
     chapters.value = AsyncState.loading();
     try {
-      final data = await _repo.getChapters(novelId.value);
+      final data = await _repo.getChapters(bookId.value);
       chapters.value = AsyncState.data(data);
     } catch (e) {
       chapters.value = AsyncState.error(e);
@@ -93,7 +93,7 @@ class ReaderViewModel {
 
     chapterContent.value = AsyncState.loading();
     try {
-      final chapter = await _repo.getChapter(novelId.value, index);
+      final chapter = await _repo.getChapter(bookId.value, index);
       if (chapter == null) {
         chapterContent.value = AsyncState.error('章节不存在');
         return;
@@ -105,7 +105,7 @@ class ReaderViewModel {
       totalCharacters.value = content?.length ?? 0;
 
       // 保存阅读历史
-      await _repo.saveReadingHistory(novelId.value, chapter.id, 0, 0);
+      await _repo.saveReadingHistory(bookId.value, chapter.id, 0, 0);
     } catch (e) {
       chapterContent.value = AsyncState.error(e);
     }
@@ -156,7 +156,7 @@ class ReaderViewModel {
 
     // 保存阅读时长
     await _repo.saveReadingHistory(
-      novelId.value,
+      bookId.value,
       chapterId.value,
       scrollPosition.value.toInt(),
       readingDuration.value,
@@ -198,7 +198,7 @@ class ReaderViewModel {
   Future<void> loadBookmarks() async {
     bookmarks.value = AsyncState.loading();
     try {
-      final data = await _repo.getBookmarks(novelId.value);
+      final data = await _repo.getBookmarks(bookId.value);
       bookmarks.value = AsyncState.data(data);
     } catch (e) {
       bookmarks.value = AsyncState.error(e);
@@ -209,7 +209,7 @@ class ReaderViewModel {
   Future<bool> addBookmark(String? note) async {
     try {
       await _repo.addBookmark(
-        novelId.value,
+        bookId.value,
         chapterId.value,
         scrollPosition.value.toInt(),
         note,
@@ -222,7 +222,7 @@ class ReaderViewModel {
   }
 
   /// 删除书签
-  Future<bool> deleteBookmark(int bookmarkId) async {
+  Future<bool> deleteBookmark(String bookmarkId) async {
     try {
       final success = await _repo.deleteBookmark(bookmarkId);
       if (success) {
@@ -231,6 +231,22 @@ class ReaderViewModel {
       return success;
     } catch (e) {
       return false;
+    }
+  }
+
+  /// 跳转到书签位置
+  Future<void> jumpToBookmark(Bookmark bookmark) async {
+    // 先找到书签对应的章节索引
+    final chapterList = chapters.value.value ?? [];
+    final chapterIndex = chapterList.indexWhere(
+      (chapter) => chapter.id == bookmark.chapterId,
+    );
+
+    if (chapterIndex != -1) {
+      // 加载对应章节
+      await loadChapter(chapterIndex + 1); // 章节索引从1开始
+      // 设置滚动位置，使用 pageIndex
+      scrollPosition.value = bookmark.pageIndex.toDouble();
     }
   }
 
