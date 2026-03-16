@@ -25,17 +25,22 @@ class ReadingStats extends StatelessWidget {
           children: [
             const Text(
               '阅读统计',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            _buildStatItem('阅读时长', _formatDuration(totalDuration), Icons.access_time),
+            _buildStatItem(
+              '阅读时长',
+              _formatDuration(totalDuration),
+              Icons.access_time,
+            ),
             const SizedBox(height: 12),
             _buildStatItem('阅读字数', '$totalWords 字', Icons.text_fields),
             const SizedBox(height: 12),
-            _buildStatItem('阅读进度', '$chaptersRead / $totalChapters 章', Icons.menu_book),
+            _buildStatItem(
+              '阅读进度',
+              '$chaptersRead / $totalChapters 章',
+              Icons.menu_book,
+            ),
           ],
         ),
       ),
@@ -47,20 +52,11 @@ class ReadingStats extends StatelessWidget {
       children: [
         Icon(icon, size: 20, color: Colors.grey[600]),
         const SizedBox(width: 12),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[600],
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
         const Spacer(),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ],
     );

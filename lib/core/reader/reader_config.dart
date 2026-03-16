@@ -14,7 +14,12 @@ enum ReaderTheme {
   final Color backgroundColor;
   final Color textColor;
 
-  const ReaderTheme(this.id, this.displayName, this.backgroundColor, this.textColor);
+  const ReaderTheme(
+    this.id,
+    this.displayName,
+    this.backgroundColor,
+    this.textColor,
+  );
 
   static ReaderTheme fromId(String id) {
     return ReaderTheme.values.firstWhere(
@@ -83,8 +88,12 @@ class ReaderConfig {
   static const String _keyAutoScrollSpeed = 'reader_auto_scroll_speed';
 
   Future<void> _loadSettings() async {
-    theme.value = ReaderTheme.fromId(prefs.getString(_keyTheme) ?? ReaderTheme.light.id);
-    fontSize.value = ReaderFontSize.fromSize(prefs.getDouble(_keyFontSize) ?? ReaderFontSize.medium.size);
+    theme.value = ReaderTheme.fromId(
+      prefs.getString(_keyTheme) ?? ReaderTheme.light.id,
+    );
+    fontSize.value = ReaderFontSize.fromSize(
+      prefs.getDouble(_keyFontSize) ?? ReaderFontSize.medium.size,
+    );
     lineHeight.value = prefs.getDouble(_keyLineHeight) ?? 1.6;
     paragraphSpacing.value = prefs.getDouble(_keyParagraphSpacing) ?? 16.0;
     padding.value = prefs.getDouble(_keyPadding) ?? 16.0;

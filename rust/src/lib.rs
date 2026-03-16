@@ -2,8 +2,11 @@
 //! 高性能双语文本解析引擎
 
 pub mod api;
+pub mod config;
 pub mod ffi;
 pub mod parser;
+pub mod search;
+pub mod storage;
 pub mod stream;
 pub mod text_process;
 pub mod utils;

@@ -22,17 +22,21 @@ class SyncService implements SyncRepository {
       if (content == null) return [];
 
       final List<dynamic> json = jsonDecode(content);
-      return json.map((item) => SyncTask(
-        id: item['id'],
-        type: item['type'],
-        data: Map<String, dynamic>.from(item['data']),
-        createdAt: DateTime.parse(item['createdAt']),
-        status: SyncStatus.values.firstWhere(
-          (s) => s.name == item['status'],
-          orElse: () => SyncStatus.idle,
-        ),
-        errorMessage: item['errorMessage'],
-      )).toList();
+      return json
+          .map(
+            (item) => SyncTask(
+              id: item['id'],
+              type: item['type'],
+              data: Map<String, dynamic>.from(item['data']),
+              createdAt: DateTime.parse(item['createdAt']),
+              status: SyncStatus.values.firstWhere(
+                (s) => s.name == item['status'],
+                orElse: () => SyncStatus.idle,
+              ),
+              errorMessage: item['errorMessage'],
+            ),
+          )
+          .toList();
     } catch (e) {
       Logging.error('Failed to load sync queue: $e');
       return [];
@@ -80,19 +84,29 @@ class SyncService implements SyncRepository {
   @override
   Future<void> clearCompleted() async {
     final tasks = await getPendingTasks();
-    final pending = tasks.where((task) => task.status == SyncStatus.idle || task.status == SyncStatus.failed).toList();
+    final pending = tasks
+        .where(
+          (task) =>
+              task.status == SyncStatus.idle ||
+              task.status == SyncStatus.failed,
+        )
+        .toList();
     await _saveTasks(pending);
   }
 
   Future<void> _saveTasks(List<SyncTask> tasks) async {
-    final json = tasks.map((task) => {
-      'id': task.id,
-      'type': task.type,
-      'data': task.data,
-      'createdAt': task.createdAt.toIso8601String(),
-      'status': task.status.name,
-      'errorMessage': task.errorMessage,
-    }).toList();
+    final json = tasks
+        .map(
+          (task) => {
+            'id': task.id,
+            'type': task.type,
+            'data': task.data,
+            'createdAt': task.createdAt.toIso8601String(),
+            'status': task.status.name,
+            'errorMessage': task.errorMessage,
+          },
+        )
+        .toList();
 
     await _fileStorage.saveString(_syncQueueFile, jsonEncode(json));
   }

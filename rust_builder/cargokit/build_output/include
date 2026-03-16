@@ -28,16 +28,100 @@ typedef struct wire_cst_typeset_config {
   float paragraph_spacing;
   uint8_t first_line_indent;
   int32_t language;
+  bool enable_hyphenation;
+  struct wire_cst_list_prim_u_8_strict *hyphenation_language;
 } wire_cst_typeset_config;
 
-typedef struct wire_cst_reading_progress {
+typedef struct wire_cst_RichTextSpan_Plain {
+  struct wire_cst_list_prim_u_8_strict *text;
+} wire_cst_RichTextSpan_Plain;
+
+typedef struct wire_cst_RichTextSpan_Bold {
+  struct wire_cst_list_prim_u_8_strict *text;
+} wire_cst_RichTextSpan_Bold;
+
+typedef struct wire_cst_RichTextSpan_Italic {
+  struct wire_cst_list_prim_u_8_strict *text;
+} wire_cst_RichTextSpan_Italic;
+
+typedef struct wire_cst_RichTextSpan_BoldItalic {
+  struct wire_cst_list_prim_u_8_strict *text;
+} wire_cst_RichTextSpan_BoldItalic;
+
+typedef struct wire_cst_RichTextSpan_Underline {
+  struct wire_cst_list_prim_u_8_strict *text;
+} wire_cst_RichTextSpan_Underline;
+
+typedef struct wire_cst_RichTextSpan_Strikethrough {
+  struct wire_cst_list_prim_u_8_strict *text;
+} wire_cst_RichTextSpan_Strikethrough;
+
+typedef struct wire_cst_RichTextSpan_Code {
+  struct wire_cst_list_prim_u_8_strict *text;
+} wire_cst_RichTextSpan_Code;
+
+typedef struct wire_cst_RichTextSpan_Link {
+  struct wire_cst_list_prim_u_8_strict *text;
+  struct wire_cst_list_prim_u_8_strict *url;
+} wire_cst_RichTextSpan_Link;
+
+typedef union RichTextSpanKind {
+  struct wire_cst_RichTextSpan_Plain Plain;
+  struct wire_cst_RichTextSpan_Bold Bold;
+  struct wire_cst_RichTextSpan_Italic Italic;
+  struct wire_cst_RichTextSpan_BoldItalic BoldItalic;
+  struct wire_cst_RichTextSpan_Underline Underline;
+  struct wire_cst_RichTextSpan_Strikethrough Strikethrough;
+  struct wire_cst_RichTextSpan_Code Code;
+  struct wire_cst_RichTextSpan_Link Link;
+} RichTextSpanKind;
+
+typedef struct wire_cst_rich_text_span {
+  int32_t tag;
+  union RichTextSpanKind kind;
+} wire_cst_rich_text_span;
+
+typedef struct wire_cst_list_rich_text_span {
+  struct wire_cst_rich_text_span *ptr;
+  int32_t len;
+} wire_cst_list_rich_text_span;
+
+typedef struct wire_cst_rich_paragraph {
+  struct wire_cst_list_rich_text_span *spans;
+  uint8_t indent;
+  bool is_heading;
+  uint8_t heading_level;
+  struct wire_cst_list_prim_u_8_strict *class_name;
+} wire_cst_rich_paragraph;
+
+typedef struct wire_cst_list_rich_paragraph {
+  struct wire_cst_rich_paragraph *ptr;
+  int32_t len;
+} wire_cst_list_rich_paragraph;
+
+typedef struct wire_cst_rich_chapter_content {
   int32_t chapter_id;
-  int32_t page_index;
+  struct wire_cst_list_rich_paragraph *paragraphs;
+  int64_t total_characters;
+} wire_cst_rich_chapter_content;
+
+typedef struct wire_cst_page_offset {
+  int64_t offset;
+  int64_t length;
+} wire_cst_page_offset;
+
+typedef struct wire_cst_list_page_offset {
+  struct wire_cst_page_offset *ptr;
+  int32_t len;
+} wire_cst_list_page_offset;
+
+typedef struct wire_cst_cached_layout {
+  int32_t chapter_id;
+  struct wire_cst_list_prim_u_8_strict *config_hash;
+  struct wire_cst_list_page_offset *page_offsets;
   int32_t total_pages;
-  float progress;
-  int64_t reading_time_seconds;
-  int64_t last_read_timestamp;
-} wire_cst_reading_progress;
+  int64_t created_at;
+} wire_cst_cached_layout;
 
 typedef struct wire_cst_list_String {
   struct wire_cst_list_prim_u_8_strict **ptr;
@@ -59,6 +143,24 @@ typedef struct wire_cst_list_bookmark {
   int32_t len;
 } wire_cst_list_bookmark;
 
+typedef struct wire_cst_list_cached_layout {
+  struct wire_cst_cached_layout *ptr;
+  int32_t len;
+} wire_cst_list_cached_layout;
+
+typedef struct wire_cst_daily_reading_record {
+  struct wire_cst_list_prim_u_8_strict *date;
+  int64_t reading_time_seconds;
+  int64_t characters_read;
+  int32_t chapters_read;
+  int32_t pages_read;
+} wire_cst_daily_reading_record;
+
+typedef struct wire_cst_list_daily_reading_record {
+  struct wire_cst_daily_reading_record *ptr;
+  int32_t len;
+} wire_cst_list_daily_reading_record;
+
 typedef struct wire_cst_page_content {
   int32_t chapter_id;
   int32_t page_index;
@@ -71,16 +173,82 @@ typedef struct wire_cst_list_page_content {
   int32_t len;
 } wire_cst_list_page_content;
 
+typedef struct wire_cst_reading_progress {
+  int32_t chapter_id;
+  int32_t page_index;
+  int32_t total_pages;
+  float progress;
+  int64_t reading_time_seconds;
+  int64_t last_read_timestamp;
+} wire_cst_reading_progress;
+
 typedef struct wire_cst_list_reading_progress {
   struct wire_cst_reading_progress *ptr;
   int32_t len;
 } wire_cst_list_reading_progress;
 
+typedef struct wire_cst_record_usize_usize {
+  uintptr_t field0;
+  uintptr_t field1;
+} wire_cst_record_usize_usize;
+
+typedef struct wire_cst_list_record_usize_usize {
+  struct wire_cst_record_usize_usize *ptr;
+  int32_t len;
+} wire_cst_list_record_usize_usize;
+
+typedef struct wire_cst_search_hit {
+  int32_t chapter_id;
+  struct wire_cst_list_prim_u_8_strict *chapter_title;
+  struct wire_cst_list_prim_u_8_strict *snippet;
+  int64_t position;
+  float score;
+} wire_cst_search_hit;
+
+typedef struct wire_cst_list_search_hit {
+  struct wire_cst_search_hit *ptr;
+  int32_t len;
+} wire_cst_list_search_hit;
+
+typedef struct wire_cst_cache_stats {
+  uintptr_t file_count;
+  uintptr_t chapter_count;
+  uintptr_t total_memory_estimate;
+} wire_cst_cache_stats;
+
+typedef struct wire_cst_layout_cache_result {
+  bool hit;
+  struct wire_cst_cached_layout *cached_layout;
+} wire_cst_layout_cache_result;
+
 typedef struct wire_cst_page_streamer {
   struct wire_cst_list_String *lines;
   uintptr_t current_page;
   uintptr_t lines_per_page;
+  struct wire_cst_list_record_usize_usize *line_offsets;
 } wire_cst_page_streamer;
+
+typedef struct wire_cst_reading_stats {
+  int64_t total_reading_time_seconds;
+  int64_t total_characters_read;
+  int32_t books_read_count;
+  int32_t books_completed_count;
+  int32_t consecutive_reading_days;
+  int64_t today_reading_time_seconds;
+  int64_t today_characters_read;
+  float average_reading_speed;
+} wire_cst_reading_stats;
+
+typedef struct wire_cst_record_i_64_i_64 {
+  int64_t field0;
+  int64_t field1;
+} wire_cst_record_i_64_i_64;
+
+typedef struct wire_cst_search_results {
+  int32_t total_hits;
+  struct wire_cst_list_search_hit *hits;
+  int64_t elapsed_ms;
+} wire_cst_search_results;
 
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__add_bookmark(struct wire_cst_list_prim_u_8_strict *book_id,
                                                                          int32_t chapter_id,
@@ -88,32 +256,135 @@ WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__add_bookmark(struct 
                                                                          struct wire_cst_list_prim_u_8_strict *title,
                                                                          struct wire_cst_list_prim_u_8_strict *note);
 
+void frbgen_zephyr_reader_wire__crate__api__async_parse_epub_file(int64_t port_,
+                                                                  struct wire_cst_list_prim_u_8_strict *file_path);
+
+void frbgen_zephyr_reader_wire__crate__api__async_parse_local_book(int64_t port_,
+                                                                   struct wire_cst_list_prim_u_8_strict *file_path);
+
+void frbgen_zephyr_reader_wire__crate__api__async_parse_pdf_file(int64_t port_,
+                                                                 struct wire_cst_list_prim_u_8_strict *file_path);
+
+void frbgen_zephyr_reader_wire__crate__api__async_parse_txt_file(int64_t port_,
+                                                                 struct wire_cst_list_prim_u_8_strict *file_path);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__clear_all_search_index(struct wire_cst_list_prim_u_8_strict *index_path);
+
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__clear_bookmarks(struct wire_cst_list_prim_u_8_strict *book_id);
 
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__clear_chapter_layout_cache(struct wire_cst_list_prim_u_8_strict *book_id,
+                                                                                       int32_t chapter_id);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__clear_incremental_parser_cache(void);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__clear_layout_cache(struct wire_cst_list_prim_u_8_strict *book_id);
+
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__clear_reading_progress(struct wire_cst_list_prim_u_8_strict *book_id);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__compute_config_hash(struct wire_cst_typeset_config *config);
 
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__create_page_streamer(struct wire_cst_list_prim_u_8_strict *content,
                                                                                  struct wire_cst_typeset_config *config);
 
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__delete_search_index(struct wire_cst_list_prim_u_8_strict *book_id,
+                                                                                struct wire_cst_list_prim_u_8_strict *index_path);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__extract_book_cover(struct wire_cst_list_prim_u_8_strict *file_path,
+                                                                               struct wire_cst_list_prim_u_8_strict *output_dir);
+
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_all_bookmarks(void);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_all_layout_cache(struct wire_cst_list_prim_u_8_strict *book_id);
 
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_all_reading_progress(void);
 
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_bookmarks(struct wire_cst_list_prim_u_8_strict *book_id);
 
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_chapter_content_zero_copy(struct wire_cst_list_prim_u_8_strict *file_path,
+                                                                                          int32_t chapter_id);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_consecutive_reading_days(void);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_daily_reading_record(struct wire_cst_list_prim_u_8_strict *date);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_daily_reading_records_in_range(struct wire_cst_list_prim_u_8_strict *start_date,
+                                                                                               struct wire_cst_list_prim_u_8_strict *end_date);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_epub_cover_data(struct wire_cst_list_prim_u_8_strict *file_path);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_epub_cover_data_zero_copy(struct wire_cst_list_prim_u_8_strict *file_path);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_epub_cover_image(struct wire_cst_list_prim_u_8_strict *file_path);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_epub_full_metadata(struct wire_cst_list_prim_u_8_strict *file_path);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_epub_image_metadata(struct wire_cst_list_prim_u_8_strict *file_path,
+                                                                                    struct wire_cst_list_prim_u_8_strict *image_href);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_epub_image_resource(struct wire_cst_list_prim_u_8_strict *file_path,
+                                                                                    struct wire_cst_list_prim_u_8_strict *image_href);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_epub_images(struct wire_cst_list_prim_u_8_strict *file_path);
+
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_file_size(struct wire_cst_list_prim_u_8_strict *file_path);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_incremental_parser_stats(void);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_layout_cache(struct wire_cst_list_prim_u_8_strict *book_id,
+                                                                             int32_t chapter_id,
+                                                                             struct wire_cst_typeset_config *config);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_pdf_cover_data(struct wire_cst_list_prim_u_8_strict *file_path);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_pdf_cover_data_zero_copy(struct wire_cst_list_prim_u_8_strict *file_path);
 
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_reading_progress(struct wire_cst_list_prim_u_8_strict *book_id);
 
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_reading_speed(void);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_reading_stats(void);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_recent_reading_records(int32_t days);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__get_today_reading_data(void);
+
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__simple__greet(struct wire_cst_list_prim_u_8_strict *name);
 
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__increment_books_completed_count(void);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__increment_books_read_count(void);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__index_chapter_content(struct wire_cst_list_prim_u_8_strict *book_id,
+                                                                                  struct wire_cst_list_prim_u_8_strict *index_path,
+                                                                                  int32_t chapter_id,
+                                                                                  struct wire_cst_list_prim_u_8_strict *chapter_title,
+                                                                                  struct wire_cst_list_prim_u_8_strict *content);
+
 void frbgen_zephyr_reader_wire__crate__api__init_app(int64_t port_);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__init_incremental_parser(void);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__init_search_index(struct wire_cst_list_prim_u_8_strict *book_id,
+                                                                              struct wire_cst_list_prim_u_8_strict *index_path);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__init_storage(struct wire_cst_list_prim_u_8_strict *db_path);
 
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__paginate_all_content(struct wire_cst_list_prim_u_8_strict *content,
                                                                                  int32_t chapter_id,
                                                                                  struct wire_cst_typeset_config *config);
 
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__parse_epub_chapter_rich(struct wire_cst_list_prim_u_8_strict *file_path,
+                                                                                    int32_t chapter_index);
+
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__parse_epub_file(struct wire_cst_list_prim_u_8_strict *file_path);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__parse_html_content(struct wire_cst_list_prim_u_8_strict *html_content);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__parse_html_content_simple(struct wire_cst_list_prim_u_8_strict *html_content);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__parse_local_book(struct wire_cst_list_prim_u_8_strict *file_path);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__parse_local_book_incremental(struct wire_cst_list_prim_u_8_strict *file_path);
 
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__parse_txt_file(struct wire_cst_list_prim_u_8_strict *file_path);
 
@@ -121,8 +392,30 @@ WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__read_file_chunk(stru
                                                                             int64_t start_pos,
                                                                             int64_t chunk_size);
 
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__record_reading_session(struct wire_cst_list_prim_u_8_strict *book_id,
+                                                                                   int32_t chapter_id,
+                                                                                   int64_t duration_seconds,
+                                                                                   int64_t characters_read);
+
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__remove_bookmark(struct wire_cst_list_prim_u_8_strict *book_id,
                                                                             struct wire_cst_list_prim_u_8_strict *bookmark_id);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__rich_text_to_plain(struct wire_cst_rich_chapter_content *rich_content);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__save_layout_cache(struct wire_cst_list_prim_u_8_strict *book_id,
+                                                                              int32_t chapter_id,
+                                                                              struct wire_cst_typeset_config *config,
+                                                                              struct wire_cst_list_page_offset *page_offsets);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__search_books_zero_copy(struct wire_cst_list_prim_u_8_strict *book_id,
+                                                                                   struct wire_cst_list_prim_u_8_strict *query,
+                                                                                   int32_t limit,
+                                                                                   struct wire_cst_list_prim_u_8_strict *index_path);
+
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__search_in_book(struct wire_cst_list_prim_u_8_strict *book_id,
+                                                                           struct wire_cst_list_prim_u_8_strict *index_path,
+                                                                           struct wire_cst_list_prim_u_8_strict *query,
+                                                                           int32_t limit);
 
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__test_connection(void);
 
@@ -135,19 +428,59 @@ WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__update_reading_progr
                                                                                     int32_t page_index,
                                                                                     int32_t total_pages);
 
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__update_reading_progress_with_duration(struct wire_cst_list_prim_u_8_strict *book_id,
+                                                                                                  int32_t chapter_id,
+                                                                                                  int32_t page_index,
+                                                                                                  int32_t total_pages,
+                                                                                                  int64_t session_duration);
+
+void frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(const void *ptr);
+
+void frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(const void *ptr);
+
+void frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(const void *ptr);
+
+void frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(const void *ptr);
+
+void frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(const void *ptr);
+
+void frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(const void *ptr);
+
+void frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(const void *ptr);
+
+void frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(const void *ptr);
+
+void frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(const void *ptr);
+
+void frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(const void *ptr);
+
 void frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(const void *ptr);
 
 void frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(const void *ptr);
+
+void frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(const void *ptr);
+
+void frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(const void *ptr);
 
 void frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(const void *ptr);
 
 void frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(const void *ptr);
 
+void frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(const void *ptr);
+
+void frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(const void *ptr);
+
+void frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(const void *ptr);
+
+void frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(const void *ptr);
+
 void frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(const void *ptr);
 
 void frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(const void *ptr);
 
-struct wire_cst_reading_progress *frbgen_zephyr_reader_cst_new_box_autoadd_reading_progress(void);
+struct wire_cst_cached_layout *frbgen_zephyr_reader_cst_new_box_autoadd_cached_layout(void);
+
+struct wire_cst_rich_chapter_content *frbgen_zephyr_reader_cst_new_box_autoadd_rich_chapter_content(void);
 
 struct wire_cst_typeset_config *frbgen_zephyr_reader_cst_new_box_autoadd_typeset_config(void);
 
@@ -155,45 +488,131 @@ struct wire_cst_list_String *frbgen_zephyr_reader_cst_new_list_String(int32_t le
 
 struct wire_cst_list_bookmark *frbgen_zephyr_reader_cst_new_list_bookmark(int32_t len);
 
+struct wire_cst_list_cached_layout *frbgen_zephyr_reader_cst_new_list_cached_layout(int32_t len);
+
+struct wire_cst_list_daily_reading_record *frbgen_zephyr_reader_cst_new_list_daily_reading_record(int32_t len);
+
 struct wire_cst_list_page_content *frbgen_zephyr_reader_cst_new_list_page_content(int32_t len);
+
+struct wire_cst_list_page_offset *frbgen_zephyr_reader_cst_new_list_page_offset(int32_t len);
 
 struct wire_cst_list_prim_u_8_strict *frbgen_zephyr_reader_cst_new_list_prim_u_8_strict(int32_t len);
 
 struct wire_cst_list_reading_progress *frbgen_zephyr_reader_cst_new_list_reading_progress(int32_t len);
+
+struct wire_cst_list_record_usize_usize *frbgen_zephyr_reader_cst_new_list_record_usize_usize(int32_t len);
+
+struct wire_cst_list_rich_paragraph *frbgen_zephyr_reader_cst_new_list_rich_paragraph(int32_t len);
+
+struct wire_cst_list_rich_text_span *frbgen_zephyr_reader_cst_new_list_rich_text_span(int32_t len);
+
+struct wire_cst_list_search_hit *frbgen_zephyr_reader_cst_new_list_search_hit(int32_t len);
 static int64_t dummy_method_to_enforce_bundling(void) {
     int64_t dummy_var = 0;
-    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_reading_progress);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_cached_layout);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_rich_chapter_content);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_typeset_config);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_String);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_bookmark);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_cached_layout);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_daily_reading_record);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_page_content);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_page_offset);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_prim_u_8_strict);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_reading_progress);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_record_usize_usize);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_rich_paragraph);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_rich_text_span);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_search_hit);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__add_bookmark);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__async_parse_epub_file);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__async_parse_local_book);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__async_parse_pdf_file);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__async_parse_txt_file);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__clear_all_search_index);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__clear_bookmarks);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__clear_chapter_layout_cache);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__clear_incremental_parser_cache);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__clear_layout_cache);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__clear_reading_progress);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__compute_config_hash);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__create_page_streamer);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__delete_search_index);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__extract_book_cover);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_all_bookmarks);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_all_layout_cache);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_all_reading_progress);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_bookmarks);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_chapter_content_zero_copy);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_consecutive_reading_days);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_daily_reading_record);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_daily_reading_records_in_range);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_epub_cover_data);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_epub_cover_data_zero_copy);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_epub_cover_image);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_epub_full_metadata);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_epub_image_metadata);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_epub_image_resource);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_epub_images);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_file_size);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_incremental_parser_stats);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_layout_cache);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_pdf_cover_data);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_pdf_cover_data_zero_copy);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_reading_progress);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_reading_speed);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_reading_stats);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_recent_reading_records);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__get_today_reading_data);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__increment_books_completed_count);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__increment_books_read_count);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__index_chapter_content);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__init_app);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__init_incremental_parser);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__init_search_index);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__init_storage);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__paginate_all_content);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__parse_epub_chapter_rich);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__parse_epub_file);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__parse_html_content);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__parse_html_content_simple);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__parse_local_book);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__parse_local_book_incremental);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__parse_txt_file);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__read_file_chunk);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__record_reading_session);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__remove_bookmark);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__rich_text_to_plain);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__save_layout_cache);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__search_books_zero_copy);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__search_in_book);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__simple__greet);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__test_connection);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__typeset_text);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__update_reading_progress);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__update_reading_progress_with_duration);
     dummy_var ^= ((int64_t) (void*) store_dart_post_cobject);
     return dummy_var;
 }

@@ -31,7 +31,8 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       vm.loadMore();
     }
   }
@@ -39,9 +40,7 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('搜索小说'),
-      ),
+      appBar: AppBar(title: const Text('搜索小说')),
       body: Column(
         children: [
           _buildSearchBar(),
@@ -64,7 +63,8 @@ class _SearchPageState extends State<SearchPage> {
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: Watch.builder(
                   builder: (context) {
-                    if (vm.keyword.value.isEmpty) return const SizedBox.shrink();
+                    if (vm.keyword.value.isEmpty)
+                      return const SizedBox.shrink();
                     return IconButton(
                       icon: const Icon(Icons.clear),
                       onPressed: () {
@@ -78,7 +78,10 @@ class _SearchPageState extends State<SearchPage> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
               ),
               onSubmitted: (value) {
                 vm.updateKeyword(value);
@@ -150,10 +153,7 @@ class _SearchPageState extends State<SearchPage> {
               children: [
                 Icon(Icons.menu_book, size: 64, color: Colors.grey[400]),
                 const SizedBox(height: 16),
-                Text(
-                  '输入关键词开始搜索',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
+                Text('输入关键词开始搜索', style: TextStyle(color: Colors.grey[600])),
               ],
             ),
           );
@@ -206,7 +206,11 @@ class _SearchPageState extends State<SearchPage> {
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return const Center(
-                              child: Icon(Icons.book, size: 32, color: Colors.grey),
+                              child: Icon(
+                                Icons.book,
+                                size: 32,
+                                color: Colors.grey,
+                              ),
                             );
                           },
                         )
@@ -232,18 +236,12 @@ class _SearchPageState extends State<SearchPage> {
                     const SizedBox(height: 4),
                     Text(
                       result.author,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${result.totalChapters}章 · ${result.source}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[500],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                     if (result.description != null) ...[
                       const SizedBox(height: 8),
@@ -306,7 +304,10 @@ class _SearchPageState extends State<SearchPage> {
               Text('来源: ${result.source}'),
               if (result.description != null) ...[
                 const SizedBox(height: 16),
-                const Text('简介:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  '简介:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 Text(result.description!),
               ],

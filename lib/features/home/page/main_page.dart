@@ -8,7 +8,6 @@ class MainPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth > 800) {
@@ -17,7 +16,8 @@ class MainPage extends StatelessWidget {
               children: [
                 NavigationRail(
                   selectedIndex: _calculateSelectedIndex(context),
-                  onDestinationSelected: (index) => _onItemTapped(index, context),
+                  onDestinationSelected: (index) =>
+                      _onItemTapped(index, context),
                   labelType: NavigationRailLabelType.all,
                   groupAlignment: -0.9,
                   destinations: const [

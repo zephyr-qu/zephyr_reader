@@ -1,7 +1,7 @@
 //! 内容分页流
 //! 将解析后的内容分页输出，支持基于像素宽度的精确定位
 
-use crate::ffi::{PageContent, TypesetConfig};
+use crate::ffi::{PageContent, PageOffset, TypesetConfig};
 use flutter_rust_bridge::frb;
 
 /// 计算单个字符的像素宽度
@@ -30,11 +30,6 @@ fn char_pixel_width(c: char, font_size: f32) -> f32 {
     else {
         font_size * 0.8
     }
-}
-
-/// 计算字符串的像素宽度
-fn string_pixel_width(s: &str, font_size: f32) -> f32 {
-    s.chars().map(|c| char_pixel_width(c, font_size)).sum()
 }
 
 /// 基于像素宽度的智能断行
@@ -103,25 +98,22 @@ fn is_start_avoid_punctuation(c: char) -> bool {
             | ','
             | '.'
             | '?'
-            | ';'
             | ':'
     )
 }
 
-/// 判断是否为避尾标点（不应出现在行尾）
-fn is_end_avoid_punctuation(c: char) -> bool {
-    matches!(
-        c,
-        '（' | '【' | '《' | '「' | '『' | '(' | '[' | '<' | '"' | '\''
-    )
-}
-
 /// 分页器（基于像素宽度）
+///
+/// 支持克隆，便于在 Flutter 侧传递和保存状态
 #[frb]
+#[derive(Clone)]
 pub struct PageStreamer {
     pub lines: Vec<String>, // 已断行的所有行
     pub current_page: usize,
     pub lines_per_page: usize,
+    /// 每行的字符偏移量（在原始内容中的起始和结束位置）
+    #[frb]
+    pub line_offsets: Vec<(usize, usize)>,
 }
 
 #[frb]
@@ -129,6 +121,10 @@ impl PageStreamer {
     /// 创建分页器（基于像素宽度精确计算）
     #[frb(sync)]
     pub fn new(content: String, config: TypesetConfig) -> Self {
+        let start_time = std::time::Instant::now();
+        let content_len = content.len();
+        tracing::debug!("开始分页处理，字符数：{}", content_len);
+
         let font_size = config.font_size as f32;
         let line_spacing = config.line_spacing;
         let page_height_px = config.page_height as f32;
@@ -144,10 +140,18 @@ impl PageStreamer {
 
         // 智能断行
         let mut lines = Vec::new();
+        let mut line_offsets = Vec::new();
+        let mut global_offset = 0; // 在原始内容中的字符偏移
+        let mut line_count: usize = 0;
+
+        // 计算换行符长度（处理 \r\n 和 \n 的差异）
+        let line_ending_len = if content.contains("\r\n") { 2 } else { 1 };
 
         for paragraph in content.lines() {
             if paragraph.trim().is_empty() {
                 lines.push(String::new());
+                line_offsets.push((global_offset, global_offset));
+                line_count += 1;
                 continue;
             }
 
@@ -159,19 +163,38 @@ impl PageStreamer {
 
             for (i, (start, end)) in line_breaks.iter().enumerate() {
                 let line_text = &paragraph[*start..*end];
+                // 计算在原始内容中的偏移量
+                let line_start = global_offset + *start;
+                let line_end = global_offset + *end;
+
                 if i == 0 {
                     // 首行添加缩进
                     lines.push(format!("{}{}", indent_str, line_text));
                 } else {
                     lines.push(line_text.to_string());
                 }
+                line_offsets.push((line_start, line_end));
+                line_count += 1;
             }
+
+            // 更新全局偏移（包括换行符）
+            global_offset += paragraph.len() + line_ending_len;
         }
+
+        let elapsed = start_time.elapsed();
+        tracing::debug!(
+            "分页处理完成：总行数={}, 每页行数={}, 预计页数={}, 耗时：{:?}",
+            line_count,
+            lines_per_page,
+            line_count.div_ceil(lines_per_page),
+            elapsed
+        );
 
         Self {
             lines,
             current_page: 0,
             lines_per_page,
+            line_offsets,
         }
     }
 
@@ -282,6 +305,39 @@ impl PageStreamer {
     pub fn current_line_index(&self) -> usize {
         self.current_page * self.lines_per_page
     }
+
+    /// 获取所有页面的偏移量信息
+    ///
+    /// 用于缓存分页结果，实现"秒开"功能。
+    /// 返回每个页面的起始字符偏移量和长度。
+    #[frb(sync)]
+    pub fn get_page_offsets(&self) -> Vec<PageOffset> {
+        let mut offsets = Vec::with_capacity(self.total_pages());
+
+        for page_idx in 0..self.total_pages() {
+            let start_line = page_idx * self.lines_per_page;
+            let end_line = (start_line + self.lines_per_page).min(self.lines.len());
+
+            if start_line >= self.line_offsets.len() {
+                offsets.push(PageOffset {
+                    offset: 0,
+                    length: 0,
+                });
+                continue;
+            }
+
+            let actual_end = end_line.min(self.line_offsets.len());
+            let (page_start, _) = self.line_offsets[start_line];
+            let (_, page_end) = self.line_offsets[actual_end.saturating_sub(1)];
+
+            offsets.push(PageOffset {
+                offset: page_start as i64,
+                length: (page_end - page_start) as i64,
+            });
+        }
+
+        offsets
+    }
 }
 
 /// 将所有内容分页（基于像素宽度）
@@ -303,6 +359,12 @@ pub fn paginate_all(content: String, chapter_id: i32, config: TypesetConfig) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 计算字符串的像素宽度（测试辅助函数）
+    #[cfg(test)]
+    fn string_pixel_width(s: &str, font_size: f32) -> f32 {
+        s.chars().map(|c| char_pixel_width(c, font_size)).sum()
+    }
 
     #[test]
     fn test_string_pixel_width() {
@@ -341,6 +403,8 @@ mod tests {
             paragraph_spacing: 1.0,
             first_line_indent: 2,
             language: crate::ffi::LanguageType::Auto,
+            enable_hyphenation: false,
+            hyphenation_language: None,
         };
 
         let streamer = PageStreamer::new(content.to_string(), config);
@@ -367,6 +431,7 @@ mod tests {
             paragraph_spacing: 1.0,
             first_line_indent: 2,
             language: crate::ffi::LanguageType::Auto,
+            ..Default::default()
         };
 
         let streamer = PageStreamer::new(content.to_string(), config);

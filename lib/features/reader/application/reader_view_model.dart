@@ -105,12 +105,7 @@ class ReaderViewModel {
       totalCharacters.value = content?.length ?? 0;
 
       // 保存阅读历史
-      await _repo.saveReadingHistory(
-        novelId.value,
-        chapter.id,
-        0,
-        0,
-      );
+      await _repo.saveReadingHistory(novelId.value, chapter.id, 0, 0);
     } catch (e) {
       chapterContent.value = AsyncState.error(e);
     }

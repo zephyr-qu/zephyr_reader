@@ -159,7 +159,11 @@ class BookshelfPage extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return const Center(
-                            child: Icon(Icons.book, size: 48, color: Colors.grey),
+                            child: Icon(
+                              Icons.book,
+                              size: 48,
+                              color: Colors.grey,
+                            ),
                           );
                         },
                       )
@@ -185,10 +189,7 @@ class BookshelfPage extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     book.author,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -199,10 +200,7 @@ class BookshelfPage extends StatelessWidget {
                       const Spacer(),
                       Text(
                         '${book.totalChapters}章',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -243,13 +241,7 @@ class BookshelfPage extends StatelessWidget {
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10,
-          color: color,
-        ),
-      ),
+      child: Text(label, style: TextStyle(fontSize: 10, color: color)),
     );
   }
 }
