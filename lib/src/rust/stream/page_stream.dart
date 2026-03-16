@@ -7,20 +7,29 @@ import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 /// 分页器（基于像素宽度）
+///
+/// 支持克隆，便于在 Flutter 侧传递和保存状态
 class PageStreamer {
   final List<String> lines;
   final BigInt currentPage;
   final BigInt linesPerPage;
 
+  /// 每行的字符偏移量（在原始内容中的起始和结束位置）
+  final List<(BigInt, BigInt)> lineOffsets;
+
   const PageStreamer({
     required this.lines,
     required this.currentPage,
     required this.linesPerPage,
+    required this.lineOffsets,
   });
 
   @override
   int get hashCode =>
-      lines.hashCode ^ currentPage.hashCode ^ linesPerPage.hashCode;
+      lines.hashCode ^
+      currentPage.hashCode ^
+      linesPerPage.hashCode ^
+      lineOffsets.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -29,5 +38,6 @@ class PageStreamer {
           runtimeType == other.runtimeType &&
           lines == other.lines &&
           currentPage == other.currentPage &&
-          linesPerPage == other.linesPerPage;
+          linesPerPage == other.linesPerPage &&
+          lineOffsets == other.lineOffsets;
 }

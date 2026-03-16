@@ -7,15 +7,22 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/database/database.dart';
+import '../../data/bookshelf_local_data_source.dart';
 import '../states/bookshelf_state.dart';
 import 'book_import_service.dart';
 
-/// 书架服务�?
+/// 书架业务服务
+///
+/// 负责书架相关的业务逻辑，包括：
+/// - 书籍列表加载、筛选、排序
+/// - 书籍导入与解析
+/// - 书籍删除与文件清理
+/// - 阅读进度更新
 class BookshelfService {
-  final AppDatabase _db;
+  final BookshelfLocalDataSource _dataSource;
   final BookshelfState _state;
 
-  BookshelfService(this._db, this._state);
+  BookshelfService(this._dataSource, this._state);
 
   /// 加载书架书籍列表
   Future<void> loadBooks() async {
@@ -23,13 +30,13 @@ class BookshelfService {
     _state.error.value = null;
 
     try {
-      final books = await _db.getAllBooks();
+      final books = await _dataSource.getAllBooks();
 
-      // 在内存中排序和筛�?
+      // 在内存中排序和筛
       var filteredBooks = books;
       final filter = _state.filter.value;
 
-      // 筛�?
+      // 筛
       if (filter.keyword != null && filter.keyword!.isNotEmpty) {
         final keyword = filter.keyword!.toLowerCase();
         filteredBooks = filteredBooks
@@ -83,14 +90,14 @@ class BookshelfService {
 
       _state.setBooks(filteredBooks);
     } catch (e) {
-      _state.error.value = '加载书架失败�?e';
+      _state.error.value = '加载书架失败e';
       debugPrint('BookshelfService.loadBooks error: $e');
     } finally {
       _state.isLoading.value = false;
     }
   }
 
-  /// 添加书籍到书架（集成 Rust 解析�?
+  /// 添加书籍到书架（集成 Rust 解析
   Future<Book?> addBookFromImportTask(ImportTask task) async {
     if (task.status != ImportTaskStatus.completed) {
       debugPrint('任务未完成，无法添加书籍');
@@ -98,8 +105,8 @@ class BookshelfService {
     }
 
     try {
-      // 检查是否已存在（通过文件路径�?
-      final existing = await _db.getAllBooks();
+      // 检查是否已存在（通过文件路径
+      final existing = await _dataSource.getAllBooks();
       final exists = existing.any((b) => b.filePath == task.filePath);
 
       if (exists) {
@@ -110,18 +117,22 @@ class BookshelfService {
       // 创建书籍记录
       final companion = BooksCompanion.insert(
         title: task.title ?? task.fileName,
-        author: task.author ?? '未知作�?',
+        author: task.author ?? '未知作',
         filePath: task.filePath,
         fileFormat: task.format,
-        fileSize: task.fileSize,
-        totalChapters: task.chapterCount ?? 0,
-        totalCharacters: task.chapterCount != null ? Value(task.chapterCount) : const Value(null),
-        coverPath: task.coverPath != null ? Value(task.coverPath) : const Value(null),
+        fileSize: Value(task.fileSize),
+        totalChapters: Value(task.chapterCount ?? 0),
+        totalCharacters: task.chapterCount != null
+            ? Value(task.chapterCount!)
+            : Value(0),
+        coverPath: task.coverPath != null
+            ? Value(task.coverPath)
+            : const Value(null),
         description: const Value(null),
       );
 
-      final id = await _db.into(_db.Books).insert(companion);
-      final newBook = await _db.getBookById(id);
+      final id = await _dataSource.addBook(companion);
+      final newBook = await _dataSource.getBookById(id);
 
       if (newBook != null) {
         _state.addBook(newBook);
@@ -145,29 +156,32 @@ class BookshelfService {
 
     try {
       // 使用事务批量插入
-      await _db.transaction(() async {
+      await _dataSource.database.transaction(() async {
         for (final chapter in task.chapters) {
-          await _db.into(_db.chapters).insert(
-            ChaptersCompanion.insert(
-              bookId: bookId,
-              title: chapter.title,
-              contentFile: task.filePath, // 章节内容存储在原文件�?
-              chapterIndex: chapter.index,
-              wordCount: Value(chapter.contentLength.toInt()),
-            ),
-          );
+          await _dataSource.database
+              .into(_dataSource.database.chapters)
+              .insert(
+                ChaptersCompanion.insert(
+                  bookId: bookId,
+                  title: chapter.title,
+                  contentFile: task.filePath, // 章节内容存储在原文件
+                  chapterIndex: chapter.index,
+                  wordCount: Value(chapter.contentLength.toInt()),
+                ),
+              );
         }
       });
 
       // 更新书籍的总章节数
-      await (await _db.update(_db.Books)..where((tbl) => tbl.id.equals(bookId)))
-        .write(BooksCompanion(totalChapters: Value(task.chapterCount)));
+      await (await _dataSource.database.update(_dataSource.database.books)
+            ..where((tbl) => tbl.id.equals(bookId)))
+          .write(BooksCompanion(totalChapters: Value(task.chapterCount ?? 0)));
     } catch (e) {
       debugPrint('BookshelfService._saveChapters error: $e');
     }
   }
 
-  /// 添加书籍到书架（通用方法�?
+  /// 添加书籍到书架（通用方法
   Future<Book?> addBook({
     required String title,
     required String author,
@@ -181,7 +195,7 @@ class BookshelfService {
   }) async {
     try {
       // 检查是否已存在
-      final existing = await _db.getAllBooks();
+      final existing = await _dataSource.getAllBooks();
       final exists = existing.any((b) => b.filePath == filePath);
 
       if (exists) {
@@ -194,15 +208,19 @@ class BookshelfService {
         author: author,
         filePath: filePath,
         fileFormat: fileFormat,
-        fileSize: fileSize,
-        totalChapters: totalChapters,
-        totalCharacters: totalCharacters > 0 ? Value(totalCharacters) : const Value(null),
+        fileSize: Value(fileSize),
+        totalChapters: Value(totalChapters),
+        totalCharacters: totalCharacters > 0
+            ? Value(totalCharacters)
+            : Value(0),
         coverPath: coverPath != null ? Value(coverPath) : const Value(null),
-        description: description != null ? Value(description!) : const Value(null),
+        description: description != null
+            ? Value(description!)
+            : const Value(null),
       );
 
-      final id = await _db.into(_db.Books).insert(companion);
-      final newBook = await _db.getBookById(id);
+      final id = await _dataSource.addBook(companion);
+      final newBook = await _dataSource.getBookById(id);
 
       if (newBook != null) {
         _state.addBook(newBook);
@@ -218,13 +236,17 @@ class BookshelfService {
   /// 删除书籍
   Future<bool> deleteBook(int bookId) async {
     try {
-      final book = await _db.getBookById(bookId);
+      final book = await _dataSource.getBookById(bookId);
       if (book == null) return false;
 
       // 删除关联数据
-      await (await _db.delete(_db.Books)..where((tbl) => tbl.id.equals(bookId))).go();
-      await (await _db.delete(_db.chapters)..where((tbl) => tbl.bookId.equals(bookId))).go();
-      await (await _db.delete(_db.bookmarks)..where((tbl) => tbl.bookId.equals(bookId))).go();
+      await _dataSource.deleteBook(bookId);
+      await (_dataSource.database.delete(
+        _dataSource.database.chapters,
+      )..where((tbl) => tbl.bookId.equals(bookId))).go();
+      await (_dataSource.database.delete(
+        _dataSource.database.bookmarks,
+      )..where((tbl) => tbl.bookId.equals(bookId))).go();
 
       // 删除封面文件
       if (book.coverPath != null) {
@@ -234,7 +256,7 @@ class BookshelfService {
             await coverFile.delete();
           }
         } catch (e) {
-          debugPrint('删除封面文件失败�?e');
+          debugPrint('删除封面文件失败e');
         }
       }
 
@@ -259,18 +281,16 @@ class BookshelfService {
     return deletedCount;
   }
 
-  /// 更新书籍阅读状�?
+  /// 更新书籍阅读状
   Future<bool> updateBookStatus(int bookId, String status) async {
     try {
-      await _db.update(_db.Books).write(
-        BooksCompanion(
-          status: Value(status),
-          updatedAt: Value(DateTime.now()),
-        ),
-        where: (tbl) => tbl.id.equals(bookId),
+      await (_dataSource.database.update(
+        _dataSource.database.books,
+      )..where((tbl) => tbl.id.equals(bookId))).write(
+        BooksCompanion(status: Value(status), updatedAt: Value(DateTime.now())),
       );
 
-      // 更新状�?
+      // 更新状
       final books = _state.books.value;
       final index = books.indexWhere((b) => b.id == bookId);
       if (index != -1) {
@@ -294,26 +314,29 @@ class BookshelfService {
     required double progress,
   }) async {
     try {
-      await (await _db.update(_db.Books)..where((tbl) => tbl.id.equals(bookId)))
-        .write(BooksCompanion(
+      await (_dataSource.database.update(
+        _dataSource.database.books,
+      )..where((tbl) => tbl.id.equals(bookId))).write(
+        BooksCompanion(
           currentChapterId: Value(chapterId),
           currentPageIndex: Value(currentPage),
           totalPages: Value(totalPages),
           progress: Value(progress),
           lastReadAt: Value(DateTime.now()),
           updatedAt: Value(DateTime.now()),
-        ));
+        ),
+      );
 
-      // 更新状�?
+      // 更新状
       final books = _state.books.value;
       final index = books.indexWhere((b) => b.id == bookId);
       if (index != -1) {
         final updatedBook = books[index].copyWith(
-          currentChapterId: chapterId,
+          currentChapterId: Value(chapterId),
           currentPageIndex: currentPage,
           totalPages: totalPages,
           progress: progress,
-          lastReadAt: DateTime.now(),
+          lastReadAt: Value(DateTime.now()),
         );
         _state.updateBook(updatedBook);
       }
@@ -327,12 +350,12 @@ class BookshelfService {
 
   /// 获取书籍详情
   Future<Book?> getBookDetail(int bookId) async {
-    return await _db.getBookById(bookId);
+    return await _dataSource.getBookById(bookId);
   }
 
   /// 获取书籍章节列表
   Future<List<Chapter>> getBookChapters(int bookId) async {
-    return await _db.getChaptersByNovelId(bookId);
+    return await _dataSource.database.getChaptersByBookId(bookId);
   }
 
   /// 刷新书架

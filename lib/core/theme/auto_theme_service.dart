@@ -4,7 +4,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
@@ -15,7 +14,7 @@ class AutoThemeService {
   /// 是否启用自动主题切换
   final autoThemeEnabled = signal(false);
 
-  /// 深色模式开始时间（小时�?
+  /// 深色模式开始时间（小时
   final darkModeStartHour = signal(18);
 
   /// 深色模式结束时间（小时）
@@ -83,20 +82,20 @@ class AutoThemeService {
 
     bool isDarkMode;
     if (startHour > endHour) {
-      // 跨天情况（如 18 �?- 6 点）
+      // 跨天情况（如 18 - 6 点）
       isDarkMode = currentHour >= startHour || currentHour < endHour;
     } else {
-      // 不跨天情况（�?20 �?- 4 点）
+      // 不跨天情况（20 - 4 点）
       isDarkMode = currentHour >= startHour && currentHour < endHour;
     }
 
     themeMode.value = isDarkMode ? ThemeMode.dark : ThemeMode.light;
-    debugPrint('自动主题切换�?{isDarkMode ? "深色" : "浅色"} 模式');
+    debugPrint('自动主题切换{isDarkMode ? "深色" : "浅色"} 模式');
   }
 
-  /// 开始自动切�?
+  /// 开始自动切
   void _startAutoSwitch() {
-    // 每小时检查一�?
+    // 每小时检查一
     Future.delayed(const Duration(hours: 1), () {
       _updateThemeMode();
       _startAutoSwitch();
@@ -113,7 +112,7 @@ class AutoThemeService {
     return Duration(hours: darkModeStartHour.value);
   }
 
-  /// 是否为深色模式时�?
+  /// 是否为深色模式时
   bool get isDarkModeTime {
     if (!autoThemeEnabled.value) {
       return false;
@@ -134,13 +133,13 @@ class AutoThemeService {
 
 /// 主题时间预设
 enum ThemeTimePreset {
-  /// 日落到日�?
+  /// 日落到日
   sunsetToSunrise('日落到日出', 18, 6),
 
-  /// 傍晚到早�?
+  /// 傍晚到早
   eveningToMorning('傍晚到早晨', 20, 7),
 
-  /// 自定�?
+  /// 自定
   custom('自定义', 0, 0);
 
   final String displayName;

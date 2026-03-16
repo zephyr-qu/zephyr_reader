@@ -7,26 +7,25 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:zephyr_reader/features/reader/page/reader_page_new.dart';
+import 'package:zephyr_reader/features/reader/domain/models.dart';
 import 'package:zephyr_reader/src/rust/api.dart' as rust_api;
 import 'package:zephyr_reader/src/rust/api.dart';
-import 'package:zephyr_reader/src/rust/ffi/error.dart';
 
-/// 导入任务状�?
+/// 导入任务状
 enum ImportTaskStatus {
-  /// 等待�?
-pending,
+  /// 等待
+  pending,
 
-  /// 进行�?
+  /// 进行
   processing,
 
-  /// 已完�?
+  /// 已完
   completed,
 
   /// 失败
   failed,
 
-  /// 已跳过（重复�?
+  /// 已跳过（重复
   skipped,
 }
 
@@ -35,7 +34,7 @@ class ImportTask {
   /// 文件路径
   final String filePath;
 
-  /// 文件�?
+  /// 文件
   final String fileName;
 
   /// 文件格式
@@ -44,7 +43,7 @@ class ImportTask {
   /// 文件大小
   final int fileSize;
 
-  /// 状�?
+  /// 状
   ImportTaskStatus status;
 
   /// 错误信息
@@ -53,19 +52,19 @@ class ImportTask {
   /// 导入后的书籍 ID
   int? bookId;
 
-  /// 书籍标题（从 Rust 解析获取�?
+  /// 书籍标题（从 Rust 解析获取
   String? title;
 
-  /// 作者（�?Rust 解析获取�?
+  /// 作者（Rust 解析获取
   String? author;
 
-  /// 章节数量（从 Rust 解析获取�?
+  /// 章节数量（从 Rust 解析获取
   int? chapterCount;
 
-  /// 封面路径（从 Rust 解析获取�?
+  /// 封面路径（从 Rust 解析获取
   String? coverPath;
 
-  /// 章节列表（从 Rust 解析获取�?
+  /// 章节列表（从 Rust 解析获取
   List<ChapterInfo> chapters = [];
 
   ImportTask({
@@ -80,7 +79,7 @@ class ImportTask {
     this.author,
     this.chapterCount,
     this.coverPath,
-    List<Types.ChapterInfo>? chapters,
+    List<ChapterInfo>? chapters,
   }) {
     this.chapters = chapters ?? [];
   }
@@ -98,7 +97,7 @@ class BookImportService {
     _initDirectories();
   }
 
-  /// 初始化存储目�?
+  /// 初始化存储目
   Future<void> _initDirectories() async {
     final appDir = await getApplicationDocumentsDirectory();
     _booksDir = Directory(p.join(appDir.path, 'books'));
@@ -131,7 +130,7 @@ class BookImportService {
     }
   }
 
-  /// 选择文件�?
+  /// 选择文件
   Future<String?> selectFolder() async {
     try {
       final folder = await FilePicker.platform.getDirectoryPath();
@@ -142,7 +141,7 @@ class BookImportService {
     }
   }
 
-  /// 扫描文件夹中的所有书籍文�?
+  /// 扫描文件夹中的所有书籍文
   Future<List<PlatformFile>> scanFolder(String folderPath) async {
     final files = <PlatformFile>[];
     final supportedFormats = {'txt', 'epub', 'pdf'};
@@ -150,7 +149,7 @@ class BookImportService {
     try {
       final dir = Directory(folderPath);
       if (!await dir.exists()) {
-        debugPrint('文件夹不存在�?folderPath');
+        debugPrint('文件夹不存在folderPath');
         return files;
       }
 
@@ -190,12 +189,12 @@ class BookImportService {
       // 检查是否已存在
       if (await isDuplicate(file.path!)) {
         task.status = ImportTaskStatus.skipped;
-        task.error = '书籍已存�?';
+        task.error = '书籍已存';
         return task;
       }
 
-      // 复制文件到应用目�?
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
+      // 复制文件到应用目
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = '${timestamp}_${file.name}';
       final destPath = p.join(_booksDir.path, fileName);
 
@@ -224,39 +223,72 @@ class BookImportService {
       return task;
     } catch (e) {
       task.status = ImportTaskStatus.failed;
-      task.error = '导入失败�?e';
+      task.error = '导入失败e';
       debugPrint('BookImportService.importFile error: $e');
       return task;
     }
   }
 
   /// 使用 Rust 引擎解析书籍
-  Future<LocalBookInfo?> _parseBook(String filePath, String format) async {
+  Future<dynamic> _parseBook(String filePath, String format) async {
     try {
       // 调用 Rust 异步解析
       final result = await asyncParseLocalBook(filePath: filePath);
 
-      // 解包 ApiResult 获取 LocalBookInfo
-      // ApiResultLocalBookInfo �?data 字段存储实际数据
-      if (result is ApiResultLocalBookInfo && result.data != null) {
-        final bookInfo = result.data!;
+      // 解包 ApiResult 获取实际数据
+      // 对于 Opaque 类型，使用 .value 属性访问实际数据
+      if (result is ApiResultLocalBookInfo) {
+        final bookInfo = (result as dynamic).value;
 
-        // 如果�?EPUB �?PDF，提取封�?
-      String? coverPath;
-        if (format == 'epub' || format == 'pdf') {
-          coverPath = await _extractCover(filePath);
+        if (bookInfo != null) {
+          // 如果EPUB PDF，提取封面
+          String? coverPath;
+          if (format == 'epub' || format == 'pdf') {
+            coverPath = await _extractCover(filePath);
+          }
+
+          // 转换章节数据
+          final chapters = _convertChapters(bookInfo.chapters);
+
+          // 创建包含正确类型的数据对象
+          return {
+            'title': bookInfo.title,
+            'author': bookInfo.author,
+            'chapterCount': bookInfo.chapter_count,
+            'coverPath': coverPath ?? bookInfo.cover_path,
+            'chapters': chapters,
+          };
         }
-
-        return bookInfo;
       }
-      return null;
-    } on ApiError catch (e) {
-      debugPrint('BookImportService._parseBook Rust error: $e');
       return null;
     } catch (e) {
       debugPrint('BookImportService._parseBook error: $e');
       return null;
     }
+  }
+
+  /// 将动态章节数据转换为 ChapterInfo 列表
+  List<ChapterInfo> _convertChapters(dynamic chapters) {
+    if (chapters == null || !(chapters is List)) {
+      return [];
+    }
+
+    final List<ChapterInfo> result = [];
+    for (final chapter in chapters) {
+      if (chapter != null) {
+        result.add(
+          ChapterInfo(
+            chapterId: chapter.chapter_id ?? 0,
+            title: chapter.title ?? '',
+            startIndex: (chapter.start_index ?? 0).toInt(),
+            endIndex: (chapter.end_index ?? 0).toInt(),
+            contentLength: (chapter.content_length ?? 0).toInt(),
+            index: chapter.index ?? 0,
+          ),
+        );
+      }
+    }
+    return result;
   }
 
   /// 提取书籍封面
@@ -266,27 +298,26 @@ class BookImportService {
       final coverFilename = 'cover_$timestamp.jpg';
       final coverDestPath = p.join(_coversDir.path, coverFilename);
 
-      // 调用 Rust 提取封面（返�?ApiResultString�?
+      // 调用 Rust 提取封面（返回ApiResultString）
       final result = rust_api.extractBookCover(
         filePath: filePath,
         outputDir: _coversDir.path,
       );
 
       // 解包 ApiResultString 获取路径
-      if (result is ApiResultString && result.data != null) {
-        final coverPath = result.data!;
+      if (result is ApiResultString) {
+        final coverPath = (result as dynamic).value;
 
-        // 复制封面到标准位�?
-        final coverFile = File(coverPath);
-        if (await coverFile.exists()) {
-          final newCoverFile = await coverFile.copy(coverDestPath);
-          return newCoverFile.path;
+        if (coverPath != null && coverPath is String) {
+          // 复制封面到标准位置
+          final coverFile = File(coverPath);
+          if (await coverFile.exists()) {
+            final newCoverFile = await coverFile.copy(coverDestPath);
+            return newCoverFile.path;
+          }
         }
       }
 
-      return null;
-    } on ParserError catch (e) {
-      debugPrint('BookImportService._extractCover Rust error: $e');
       return null;
     } catch (e) {
       debugPrint('BookImportService._extractCover error: $e');
@@ -314,8 +345,8 @@ class BookImportService {
 
   /// 检查文件是否为重复
   Future<bool> isDuplicate(String filePath) async {
-    // 获取文件名（不含路径�?
-  final fileName = p.basename(filePath);
+    // 获取文件名（不含路径
+    final fileName = p.basename(filePath);
 
     // 检查书籍目录中是否存在相同文件名的文件
     if (await _booksDir.exists()) {
@@ -354,7 +385,7 @@ class BookImportService {
     }
   }
 
-  /// 获取支持的格式列�?
+  /// 获取支持的格式列
   List<String> getSupportedFormats() {
     return ['txt', 'epub', 'pdf'];
   }

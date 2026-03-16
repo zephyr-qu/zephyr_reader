@@ -1,0 +1,104 @@
+# Git 编码配置
+# 强制所有文本文件使用 UTF-8 编码（无 BOM）
+# https://git-scm.com/docs/gitattributes
+
+# ==================== 全局设置 ====================
+# 检出时自动转换 LF，提交时转换为 LF（统一使用 Unix 换行）
+* text=auto eol=lf
+
+# ==================== Dart 文件 ====================
+*.dart text diff=dart eol=lf encoding=UTF-8
+
+# ==================== Rust 文件 ====================
+*.rs text diff=rust eol=lf encoding=UTF-8
+*.toml text eol=lf encoding=UTF-8
+Cargo.lock text eol=lf encoding=UTF-8
+
+# ==================== Flutter/YAML ====================
+*.yaml text eol=lf encoding=UTF-8
+*.yml text eol=lf encoding=UTF-8
+pubspec.yaml text eol=lf encoding=UTF-8
+pubspec.lock text eol=lf encoding=UTF-8
+analysis_options.yaml text eol=lf encoding=UTF-8
+
+# ==================== 配置文件 ====================
+*.json text eol=lf encoding=UTF-8
+*.md text eol=lf encoding=UTF-8
+*.txt text eol=lf encoding=UTF-8
+*.xml text eol=lf encoding=UTF-8
+*.properties text eol=lf encoding=UTF-8
+
+# ==================== 脚本文件 ====================
+*.py text eol=lf encoding=UTF-8
+*.sh text eol=lf encoding=UTF-8
+*.bat text eol=lf
+*.cmd text eol=lf
+*.ps1 text eol=lf encoding=UTF-8
+
+# ==================== Web 文件 ====================
+*.html text eol=lf encoding=UTF-8
+*.css text eol=lf encoding=UTF-8
+*.js text eol=lf encoding=UTF-8
+*.ts text eol=lf encoding=UTF-8
+
+# ==================== 其他文本文件 ====================
+*.log text eol=lf encoding=UTF-8
+*.diff text eol=lf encoding=UTF-8
+*.patch text eol=lf encoding=UTF-8
+
+# ==================== 二进制文件（明确标记） ====================
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.svg binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+*.mp3 binary
+*.mp4 binary
+*.webm binary
+*.ogg binary
+*.zip binary
+*.7z binary
+*.gz binary
+*.tar binary
+*.rar binary
+*.apk binary
+*.aab binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.lib binary
+*.a binary
+*.exe binary
+*.bin binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+
+# ==================== Git 相关 ====================
+.gitignore text eol=lf encoding=UTF-8
+.gitattributes text eol=lf encoding=UTF-8
+.gitmodules text eol=lf encoding=UTF-8
+
+# ==================== IDE 配置 ====================
+.idea/* binary
+.vscode/* text eol=lf encoding=UTF-8
+*.iml text eol=lf encoding=UTF-8
+
+# ==================== 强制 UTF-8（Git 2.28+） ====================
+# 注意：encoding 属性需要 Git 2.28+ 才支持
+# 对于旧版本 Git，UTF-8 是默认编码
+
+# ==================== 特殊处理 ====================
+# 环境变量文件（可能包含敏感信息）
+.env text eol=lf encoding=UTF-8
+.env.* text eol=lf encoding=UTF-8
+
+# 锁定文件
+*.lock text eol=lf encoding=UTF-8

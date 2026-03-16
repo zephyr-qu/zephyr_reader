@@ -7,8 +7,8 @@ import '../../application/states/bookshelf_state.dart';
 
 /// 排序筛选栏
 class SortFilterBar extends StatelessWidget {
-  /// 当前筛选条�?
-   final BookshelfFilter filter;
+  /// 当前筛选条
+  final BookshelfFilter filter;
 
   /// 排序变化回调
   final Function(BookshelfSortType sortType, bool ascending) onSortChange;
@@ -73,7 +73,7 @@ class SortFilterBar extends StatelessWidget {
                       const SizedBox(width: 8),
                       const Icon(Icons.history, size: 20),
                       const SizedBox(width: 12),
-                      const Text('最后阅�?'),
+                      const Text('最后阅'),
                     ],
                   ),
                 ),
@@ -130,7 +130,7 @@ class SortFilterBar extends StatelessWidget {
                       const SizedBox(width: 8),
                       const Icon(Icons.person, size: 20),
                       const SizedBox(width: 12),
-                      const Text('作�?'),
+                      const Text('作'),
                     ],
                   ),
                 ),

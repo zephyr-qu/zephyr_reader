@@ -1,82 +1,72 @@
-/// 阅读进度服务
+/// 阅读进度服务（基于 Drift）
 ///
-/// 功能�?/// - 保存和加载阅读进�?/// - 记录阅读时长
-/// - �?Rust 引擎同步进度
+/// 功能：
+/// - 保存和加载阅读进度
+/// - 记录阅读时长
+/// - 所有数据持久化到 Flutter 侧的 Drift 数据库
 library;
 
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/database/database.dart';
+import 'package:zephyr_reader/core/database/tables/reading_progress.dart';
 
 /// 阅读进度服务
 class ReadingProgressService {
-  final SharedPreferences? _prefs;
+  final AppDatabase _db;
 
-  ReadingProgressService(this._prefs);
-
-  static const String _prefix = 'reading_progress_';
+  ReadingProgressService(this._db);
 
   /// 更新阅读进度
-  void updateReadingProgress({
+  Future<void> updateReadingProgress({
     required int bookId,
     required int chapterId,
     required int pageIndex,
     required int totalPages,
-  }) {
-    if (_prefs == null) return;
-
-    final key = '$_prefix$bookId';
-    final data = {
-      'chapterId': chapterId,
-      'pageIndex': pageIndex,
-      'totalPages': totalPages,
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
-    };
-
-    _prefs.setString(key, jsonEncode(data));
-    debugPrint(
-      '保存进度：book=$bookId, chapter=$chapterId, page=$pageIndex/$totalPages',
-    );
+    int readingTimeSeconds = 0,
+  }) async {
+    try {
+      await _db.updateReadingProgress(
+        bookId: bookId.toString(),
+        chapterId: chapterId,
+        pageIndex: pageIndex,
+        totalPages: totalPages,
+        readingTimeSeconds: readingTimeSeconds,
+      );
+      debugPrint(
+        '保存进度：book=$bookId, chapter=$chapterId, page=$pageIndex/$totalPages',
+      );
+    } catch (e) {
+      debugPrint('ReadingProgressService.updateReadingProgress error: $e');
+      rethrow;
+    }
   }
 
   /// 加载阅读进度
-  Map<String, dynamic>? loadReadingProgress(int bookId) {
-    if (_prefs == null) return null;
-
-    final key = '$_prefix$bookId';
-    final data = _prefs.getString(key);
-    if (data == null) return null;
-
-    return jsonDecode(data) as Map<String, dynamic>;
+  Future<ReadingProgressItem?> loadReadingProgress(int bookId) async {
+    try {
+      return await _db.getReadingProgress(bookId.toString());
+    } catch (e) {
+      debugPrint('ReadingProgressService.loadReadingProgress error: $e');
+      return null;
+    }
   }
 
   /// 清除阅读进度
-  void clearReadingProgress(int bookId) {
-    if (_prefs == null) return;
-
-    final key = '$_prefix$bookId';
-    _prefs.remove(key);
+  Future<void> clearReadingProgress(int bookId) async {
+    try {
+      await _db.clearReadingProgress(bookId.toString());
+    } catch (e) {
+      debugPrint('ReadingProgressService.clearReadingProgress error: $e');
+    }
   }
 
-  /// 获取所有阅读进�?
-   Map<int, Map<String, dynamic>> getAllReadingProgress() {
-    final result = <int, Map<String, dynamic>>{};
-
-    if (_prefs == null) return result;
-
-    for (final key in _prefs.getKeys()) {
-      if (key.startsWith(_prefix)) {
-        final bookId = int.tryParse(key.substring(_prefix.length));
-        if (bookId != null) {
-          final data = _prefs.getString(key);
-          if (data != null) {
-            result[bookId] = jsonDecode(data) as Map<String, dynamic>;
-          }
-        }
-      }
+  /// 获取所有阅读进度
+  Future<List<ReadingProgressItem>> getAllReadingProgress() async {
+    try {
+      return await _db.getAllReadingProgress();
+    } catch (e) {
+      debugPrint('ReadingProgressService.getAllReadingProgress error: $e');
+      return [];
     }
-
-    return result;
   }
 }

@@ -25,7 +25,7 @@ clippy::needless_borrow
 
 // Section: imports
 
-use crate::api::*;use flutter_rust_bridge::{Handler, IntoIntoDart};
+use crate::api::*;use flutter_rust_bridge::{Handler, IntoIntoDart, ZeroCopyBuffer};
 use flutter_rust_bridge::for_generated::{Lockable, transform_result_dco, Lifetimeable};
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, WriteBytesExt, ReadBytesExt};
 
@@ -1872,7 +1872,7 @@ crate::ffi::types::RichTextSpan::Link{text,url} => { <i32>::sse_encode(7, serial
 
 // Section: imports
 
-use crate::api::*;use flutter_rust_bridge::{Handler, IntoIntoDart};
+use crate::api::*;use flutter_rust_bridge::{Handler, IntoIntoDart, ZeroCopyBuffer};
 use flutter_rust_bridge::for_generated::{Lockable, transform_result_dco, Lifetimeable};
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, WriteBytesExt, ReadBytesExt};use super::*;
 
@@ -3238,7 +3238,7 @@ hyphenation_language: *mut wire_cst_list_prim_u_8_strict }
 
 // Section: imports
 
-use crate::api::*;use flutter_rust_bridge::{Handler, IntoIntoDart};
+use crate::api::*;use flutter_rust_bridge::{Handler, IntoIntoDart, ZeroCopyBuffer};
 use flutter_rust_bridge::for_generated::{Lockable, transform_result_dco, Lifetimeable};
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, WriteBytesExt, ReadBytesExt};use super::*;
                 use flutter_rust_bridge::for_generated::wasm_bindgen;

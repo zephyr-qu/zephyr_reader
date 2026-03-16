@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/database/database.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/models/book_category.dart';
 import 'package:zephyr_reader/shared/widget/loading_indicator.dart';
-import 'package:signals_flutter/signals_flutter.dart';
 
 class BookshelfPage extends StatelessWidget {
   const BookshelfPage({super.key});
@@ -55,7 +55,7 @@ class BookshelfPage extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: categories.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               final category = categories[index];
               final isSelected = category == selected;
@@ -138,7 +138,7 @@ class BookshelfPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBookCard(BuildContext context, Novel book) {
+  Widget _buildBookCard(BuildContext context, Book book) {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(

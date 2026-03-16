@@ -19,7 +19,7 @@ class ResponsiveLayout {
     }
   }
 
-  /// 是否为窄屏（手机竖屏�?
+  /// 是否为窄屏（手机竖屏
   static bool isCompact(BuildContext context) {
     return getScreenWidthType(context) == ScreenWidthType.compact;
   }
@@ -29,7 +29,7 @@ class ResponsiveLayout {
     return getScreenWidthType(context) == ScreenWidthType.medium;
   }
 
-  /// 是否为宽屏（平板/桌面�?
+  /// 是否为宽屏（平板/桌面
   static bool isExpanded(BuildContext context) {
     return getScreenWidthType(context) == ScreenWidthType.expanded;
   }
@@ -87,25 +87,25 @@ class ResponsiveLayout {
 
 /// 屏幕宽度类型
 enum ScreenWidthType {
-  /// 窄屏�? 600dp�?
+  /// 窄屏 600dp
   compact,
 
-  /// 中等屏幕�?00-840dp�?
+  /// 中等屏幕00-840dp
   medium,
 
-  /// 宽屏�? 840dp�?
+  /// 宽屏 840dp
   expanded,
 }
 
 /// 导航模式
 enum NavigationMode {
-  /// 底部导航�?
+  /// 底部导航
   bottomNavigationBar,
 
-  /// 侧边导航�?
+  /// 侧边导航
   navigationRail,
 
-  /// 永久侧边�?
+  /// 永久侧边
   permanentNavigationRail,
 }
 

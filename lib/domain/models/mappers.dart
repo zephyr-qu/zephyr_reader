@@ -3,9 +3,10 @@
 /// 提供不同层之间数据模型的转换方法
 library;
 
-import 'domain/models/book.dart';
-import 'domain/models/chapter.dart';
-import 'domain/models/bookmark.dart';
+import 'package:zephyr_reader/domain/models/book.dart';
+import 'package:zephyr_reader/domain/models/bookmark.dart';
+
+import 'chapter.dart';
 
 /// 模型转换器
 class ModelMapper {

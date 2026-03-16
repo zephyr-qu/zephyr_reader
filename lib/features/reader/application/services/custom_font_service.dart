@@ -1,5 +1,5 @@
-/// 自定义字体管�?///
-/// 支持系统字体选择和本地字体导�?
+/// 自定义字体管///
+/// 支持系统字体选择和本地字体导
 library;
 
 import 'dart:io';
@@ -26,7 +26,7 @@ class FontInfo {
   });
 }
 
-/// 自定义字体服�?
+/// 自定义字体服
 class CustomFontService {
   final SharedPreferences _prefs;
 
@@ -102,7 +102,7 @@ class CustomFontService {
         }
       }
     } catch (e) {
-      debugPrint('加载本地字体失败�?e');
+      debugPrint('加载本地字体失败e');
     }
 
     return fonts;
@@ -118,7 +118,7 @@ class CustomFontService {
     currentFont.value = font;
     await _prefs.setString(_keyCurrentFont, fontId);
 
-    debugPrint('设置字体�?{font.name}');
+    debugPrint('设置字体{font.name}');
   }
 
   /// 导入本地字体
@@ -139,17 +139,17 @@ class CustomFontService {
       // 重新加载字体列表
       await _loadFonts();
 
-      debugPrint('字体导入成功�?fileName');
+      debugPrint('字体导入成功fileName');
       return true;
     } catch (e) {
-      debugPrint('字体导入失败�?e');
+      debugPrint('字体导入失败e');
       return false;
     }
   }
 
-  /// 删除自定义字�?
+  /// 删除自定义字
   ///
-   Future<bool> deleteCustomFont(String fontId) async {
+  Future<bool> deleteCustomFont(String fontId) async {
     if (!fontId.startsWith('custom_')) {
       return false;
     }
@@ -161,7 +161,7 @@ class CustomFontService {
       if (await file.exists()) {
         await file.delete();
 
-        // 如果当前使用的是该字体，切换回系统默�?
+        // 如果当前使用的是该字体，切换回系统默
         if (currentFont.value?.id == fontId) {
           await setCurrentFont('system');
         }
@@ -169,13 +169,13 @@ class CustomFontService {
         // 重新加载字体列表
         await _loadFonts();
 
-        debugPrint('字体删除成功�?filePath');
+        debugPrint('字体删除成功filePath');
         return true;
       }
 
       return false;
     } catch (e) {
-      debugPrint('字体删除失败�?e');
+      debugPrint('字体删除失败e');
       return false;
     }
   }
@@ -199,11 +199,11 @@ class CustomFontService {
         await fontDir.delete(recursive: true);
       }
 
-      // 切换回系统默�?      await setCurrentFont('system');
+      // 切换回系统默      await setCurrentFont('system');
 
       debugPrint('清除所有自定义字体完成');
     } catch (e) {
-      debugPrint('清除字体失败�?e');
+      debugPrint('清除字体失败e');
     }
   }
 }
@@ -213,7 +213,7 @@ class FontDownloadService {
   /// 下载字体
   Future<bool> downloadFont({required String url, required String name}) async {
     // TODO: 实现字体下载
-    debugPrint('下载字体�?name, URL: $url');
+    debugPrint('下载字体name, URL: $url');
     return false;
   }
 
@@ -223,17 +223,17 @@ class FontDownloadService {
       {
         'name': '思源宋体',
         'url': 'https://github.com/adobe-fonts/source-han-serif',
-        'description': 'Adobe 开源字�?',
+        'description': 'Adobe 开源字',
       },
       {
         'name': '思源黑体',
         'url': 'https://github.com/adobe-fonts/source-han-sans',
-        'description': 'Adobe 开源字�?',
+        'description': 'Adobe 开源字',
       },
       {
         'name': '霞鹜文楷',
         'url': 'https://github.com/lxgw/LxgwWenKai',
-        'description': '开源楷�?',
+        'description': '开源楷',
       },
     ];
   }

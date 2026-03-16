@@ -1,6 +1,6 @@
 /// 护眼主题
 ///
-/// 米黄色背景，柔和绿色主色，减少蓝光伤�?
+/// 米黄色背景，柔和绿色主色，减少蓝光伤
 library;
 
 import 'package:flutter/material.dart';
@@ -8,10 +8,10 @@ import 'package:flutter/services.dart';
 
 /// 护眼主题数据
 class EyeProtectionTheme {
-  /// 米黄色背�?
+  /// 米黄色背
   static const Color backgroundColor = Color(0xFFFAF9F5);
 
-  /// 浅米色卡�?
+  /// 浅米色卡
   static const Color surfaceColor = Color(0xFFF5F4F0);
 
   /// 深褐色文字（比纯黑柔和）
@@ -20,16 +20,16 @@ class EyeProtectionTheme {
   /// 次要文字
   static const Color textSecondary = Color(0xFF6B7280);
 
-  /// 主色（柔和绿�?
+  /// 主色（柔和绿
   static const Color primary = Color(0xFF86EFAC);
 
-  /// 主色�?
+  /// 主色
   static const Color primaryDark = Color(0xFF10B981);
 
   /// 主色容器
   static const Color primaryContainer = Color(0xFFD1FAE5);
 
-  /// 成功�?
+  /// 成功
   static const Color success = Color(0xFF10B981);
 
   /// 构建护眼主题

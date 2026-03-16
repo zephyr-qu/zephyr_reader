@@ -5,8 +5,6 @@ library;
 
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
-
 /// 推荐服务
 class RecommendationService {
   /// 基于阅读历史推荐
@@ -24,12 +22,12 @@ class RecommendationService {
     // 生成推荐（示例）
     final recommendations = <BookRecommendation>[];
 
-    // 基于作者推�?
+    // 基于作者推
     if (preferences.favoriteAuthors.isNotEmpty) {
       for (final author in preferences.favoriteAuthors.take(3)) {
         recommendations.add(
           BookRecommendation(
-            reason: '你喜欢阅�?$author 的作�?',
+            reason: '你喜欢阅$author 的作',
             score: 0.9,
             metadata: {'author': author},
           ),
@@ -42,7 +40,7 @@ class RecommendationService {
       for (final genre in preferences.favoriteGenres.take(3)) {
         recommendations.add(
           BookRecommendation(
-            reason: '你可能喜�?genre 题材',
+            reason: '你可能喜genre 题材',
             score: 0.8,
             metadata: {'genre': genre},
           ),
@@ -73,7 +71,7 @@ class RecommendationService {
     return List.generate(
       limit,
       (index) => BookRecommendation(
-        reason: '与当前书籍相�?',
+        reason: '与当前书籍相',
         score: 0.5 + (Random().nextDouble() * 0.3),
         metadata: {'bookId': bookId},
       ),
@@ -100,8 +98,8 @@ class RecommendationService {
     var totalTime = 0;
 
     for (final record in history) {
-      // 统计作�?
-        authorCount[record.author] = (authorCount[record.author] ?? 0) + 1;
+      // 统计作
+      authorCount[record.author] = (authorCount[record.author] ?? 0) + 1;
 
       // 统计题材
       if (record.genre != null) {
@@ -112,12 +110,12 @@ class RecommendationService {
       totalTime += record.readingTimeMinutes;
     }
 
-    // 找出最喜欢的作�?
-      final favoriteAuthors = authorCount.entries.toList()
+    // 找出最喜欢的作
+    final favoriteAuthors = authorCount.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    // 找出最喜欢的题�?
-      final favoriteGenres = genreCount.entries.toList()
+    // 找出最喜欢的题
+    final favoriteGenres = genreCount.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     return ReadingPreferences(
@@ -165,11 +163,11 @@ class BookRecommendation {
   /// 推荐原因
   final String reason;
 
-  /// 推荐分数�?-1�?
-    final double score;
+  /// 推荐分数-1
+  final double score;
 
-  /// 元数�?
-   final Map<String, dynamic> metadata;
+  /// 元数
+  final Map<String, dynamic> metadata;
 
   BookRecommendation({
     required this.reason,

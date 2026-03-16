@@ -9,8 +9,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:zephyr_reader/src/rust/api.dart';
 
-import '../../../src/rust/frb_generated.dart';
 import '../../../src/rust/ffi/types.dart';
 
 /// 每日阅读记录
@@ -31,7 +31,7 @@ class DailyReadingRecord {
     this.booksRead = 0,
   });
 
-  /// �?Rust 结构转换
+  /// Rust 结构转换
   factory DailyReadingRecord.fromRust(RustDailyReadingRecord rust) {
     return DailyReadingRecord(
       date: DateTime.parse(rust.date),
@@ -42,7 +42,7 @@ class DailyReadingRecord {
     );
   }
 
-  /// 转换�?JSON
+  /// 转换JSON
   Map<String, dynamic> toJson() {
     return {
       'date': date.toIso8601String(),
@@ -54,7 +54,7 @@ class DailyReadingRecord {
     };
   }
 
-  /// �?JSON 创建
+  /// JSON 创建
   factory DailyReadingRecord.fromJson(Map<String, dynamic> json) {
     return DailyReadingRecord(
       date: DateTime.parse(json['date'] as String),
@@ -87,7 +87,7 @@ class ReadingSession {
     required this.charactersRead,
   });
 
-  /// 转换�?JSON
+  /// 转换JSON
   Map<String, dynamic> toJson() {
     return {
       'sessionId': sessionId,
@@ -106,8 +106,8 @@ class ReadingStatistics {
   /// 总阅读时长（秒）
   final int totalReadingTimeSeconds;
 
-  /// 总阅读字�?
-   final int totalCharactersRead;
+  /// 总阅读字
+  final int totalCharactersRead;
 
   /// 阅读书籍数量
   final int booksReadCount;
@@ -118,14 +118,14 @@ class ReadingStatistics {
   /// 连续阅读天数
   final int consecutiveReadingDays;
 
-  /// 今日阅读时长（秒�?
-   final int todayReadingTimeSeconds;
+  /// 今日阅读时长（秒
+  final int todayReadingTimeSeconds;
 
   /// 今日阅读字数
   final int todayCharactersRead;
 
-  /// 平均阅读速度（字/分钟�?
-   final double averageReadingSpeed;
+  /// 平均阅读速度（字/分钟
+  final double averageReadingSpeed;
 
   ReadingStatistics({
     required this.totalReadingTimeSeconds,
@@ -138,7 +138,7 @@ class ReadingStatistics {
     required this.averageReadingSpeed,
   });
 
-  /// �?Rust 结构转换
+  /// Rust 结构转换
   factory ReadingStatistics.fromRust(ReadingStats rust) {
     return ReadingStatistics(
       totalReadingTimeSeconds: rust.totalReadingTimeSeconds.toInt(),
@@ -152,8 +152,8 @@ class ReadingStatistics {
     );
   }
 
-  /// 空统计数�?
-   factory ReadingStatistics.empty() {
+  /// 空统计数
+  factory ReadingStatistics.empty() {
     return ReadingStatistics(
       totalReadingTimeSeconds: 0,
       totalCharactersRead: 0,
@@ -190,7 +190,7 @@ class ReadingStatsService {
     }
   }
 
-  /// 开始阅读会�?
+  /// 开始阅读会
   Future<void> startReadingSession(int bookId, int chapterId) async {
     final sessionId = DateTime.now().millisecondsSinceEpoch.toString();
     _currentSession = ReadingSession(
@@ -218,8 +218,8 @@ class ReadingStatsService {
       charactersRead: charactersRead,
     );
 
-    // 保存到会话日�?
-      await _saveSessionLog(_currentSession!);
+    // 保存到会话日
+    await _saveSessionLog(_currentSession!);
 
     // 更新每日记录
     await _updateDailyRecord(_currentSession!);
@@ -229,7 +229,7 @@ class ReadingStatsService {
   Future<void> endReadingSession() async {
     if (_currentSession == null) return;
 
-    debugPrint('结束阅读会话�?{_currentSession!.sessionId}');
+    debugPrint('结束阅读会话{_currentSession!.sessionId}');
     _currentSession = null;
   }
 
@@ -244,8 +244,8 @@ class ReadingStatsService {
       sessions = jsonList.map((j) => ReadingSession.fromJson(j)).toList();
     }
 
-    // 添加新会话，保留最�?1000 �?
-     sessions.add(session);
+    // 添加新会话，保留最1000
+    sessions.add(session);
     if (sessions.length > 1000) {
       sessions = sessions.sublist(sessions.length - 1000);
     }
@@ -258,8 +258,6 @@ class ReadingStatsService {
   /// 更新每日记录
   Future<void> _updateDailyRecord(ReadingSession session) async {
     final today = DateTime.now();
-    final todayStr =
-        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
     final recordFile = File(p.join(_dataDir.path, 'daily_records.json'));
 
@@ -291,8 +289,8 @@ class ReadingStatsService {
         booksRead: records[todayIndex].booksRead,
       );
     } else {
-      // 添加新记�?
-       records.add(
+      // 添加新记
+      records.add(
         DailyReadingRecord(
           date: today,
           readingTimeSeconds: session.durationSeconds,
@@ -304,8 +302,8 @@ class ReadingStatsService {
       );
     }
 
-    // 保留最�?365 天记�?
-       if (records.length > 365) {
+    // 保留最365 天记
+    if (records.length > 365) {
       records = records.sublist(records.length - 365);
     }
 
@@ -318,10 +316,10 @@ class ReadingStatsService {
   Future<ReadingStatistics> getStatistics() async {
     try {
       // 使用 Rust 引擎获取统计数据
-      final rustStats = RustLib.instance.api.getReadingStats();
+      final rustStats = getReadingStats();
       return ReadingStatistics.fromRust(rustStats);
     } catch (e) {
-      debugPrint('获取统计数据失败�?e');
+      debugPrint('获取统计数据失败e');
       return ReadingStatistics.empty();
     }
   }
@@ -340,10 +338,10 @@ class ReadingStatsService {
           .map((j) => DailyReadingRecord.fromJson(j))
           .toList();
 
-      // 返回最�?N 天记�?
-        return records.reversed.take(days).toList();
+      // 返回最N 天记
+      return records.reversed.take(days).toList();
     } catch (e) {
-      debugPrint('获取每日记录失败�?e');
+      debugPrint('获取每日记录失败e');
       return [];
     }
   }
@@ -360,16 +358,16 @@ class ReadingStatsService {
       final List<dynamic> jsonList = jsonDecode(content);
       final sessions = jsonList.map((j) => ReadingSession.fromJson(j)).toList();
 
-      // 返回最�?N 条记�?
-        return sessions.reversed.take(limit).toList();
+      // 返回最N 条记
+      return sessions.reversed.take(limit).toList();
     } catch (e) {
-      debugPrint('获取会话历史失败�?e');
+      debugPrint('获取会话历史失败e');
       return [];
     }
   }
 
-  /// 清除所有统计数�?
-   Future<void> clearAllStats() async {
+  /// 清除所有统计数
+  Future<void> clearAllStats() async {
     if (await _dataDir.exists()) {
       await _dataDir.delete(recursive: true);
       await _dataDir.create(recursive: true);
@@ -378,7 +376,7 @@ class ReadingStatsService {
   }
 }
 
-/// Rust 每日阅读记录（用�?FFI�?
+/// Rust 每日阅读记录（用FFI
 class RustDailyReadingRecord {
   final String date;
   final int readingTimeSeconds;
@@ -397,7 +395,7 @@ class RustDailyReadingRecord {
   });
 }
 
-/// 扩展 ReadingSession 以支�?copyWith
+/// 扩展 ReadingSession 以支copyWith
 extension ReadingSessionExtension on ReadingSession {
   ReadingSession copyWith({
     String? sessionId,

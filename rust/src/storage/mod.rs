@@ -1,18 +1,31 @@
-//! 持久化存储模块
+//! 持久化存储模块（已弃用 - 仅用于向后兼容）
 //!
-//! 提供阅读进度和书签的持久化存储功能。
-//! 支持多种存储后端：内存、JSON 文件、SQLite 数据库。
-//! 包含 LRU 缓存用于高性能数据缓存。
+//! **注意：此模块已弃用。所有持久化存储操作已迁移到 Flutter 侧（使用 Drift）。**
+//!
+//! 此模块现在仅提供内存存储实现，用于临时存储和向后兼容。
+//! 应用重启后数据不会保留。
+//!
+//! # 迁移指南
+//!
+//! 所有存储操作现在应通过 Flutter 侧的 Drift 数据库进行：
+//! - 阅读进度：`ReadingProgressService` (Flutter)
+//! - 书签：`BookmarkService` (Flutter)
+//! - 排版缓存：`LayoutCacheService` (Flutter)
+//! - 阅读统计：`ReadingStatsService` (Flutter)
 
-use crate::ffi::{Bookmark, ReadingProgress};
+use crate::ffi::{Bookmark, CachedLayout, DailyReadingRecord, LayoutCacheResult, PageOffset, ReadingProgress, ReadingStats};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 pub mod lru_cache;
-pub mod sqlite_storage;
 
-pub use lru_cache::{CacheStats, ExpiringLruCache, LruCache};
-pub use sqlite_storage::SqliteStorage;
+pub use lru_cache::{CacheStats, LruCache};
+
+/// 排版缓存结构
+#[derive(Debug, Clone)]
+pub struct LayoutCacheEntry {
+    pub page_offsets: Vec<PageOffset>,
+}
 
 /// 存储结果类型
 pub type StorageResult<T> = Result<T, StorageError>;
@@ -52,6 +65,9 @@ impl std::error::Error for StorageError {}
 /// 存储后端 trait
 ///
 /// 定义存储进度和书签的接口
+/// 
+/// **注意**: 所有持久化操作已迁移到 Flutter 侧。
+/// 此 trait 的方法现在仅用于临时内存存储，数据不会持久化。
 pub trait ProgressStorage: Send + Sync {
     /// 保存阅读进度
     fn save_progress(&self, book_id: &str, progress: &ReadingProgress) -> StorageResult<()>;
@@ -79,14 +95,78 @@ pub trait ProgressStorage: Send + Sync {
 
     /// 获取所有书签
     fn get_all_bookmarks(&self) -> StorageResult<Vec<Bookmark>>;
+
+    // ==================== 阅读统计（内存实现，不持久化）====================
+
+    /// 记录阅读会话
+    fn record_reading_session(
+        &self,
+        book_id: &str,
+        chapter_id: i32,
+        duration_seconds: i64,
+        characters_read: i64,
+    ) -> StorageResult<()>;
+
+    /// 获取阅读统计
+    fn get_reading_stats(&self) -> StorageResult<ReadingStats>;
+
+    /// 获取指定日期的阅读记录
+    fn get_daily_record(&self, date: &str) -> StorageResult<Option<DailyReadingRecord>>;
+
+    /// 获取日期范围内的阅读记录
+    fn get_daily_records_in_range(
+        &self,
+        start_date: &str,
+        end_date: &str,
+    ) -> StorageResult<Vec<DailyReadingRecord>>;
+
+    /// 增加已读书籍计数
+    fn increment_books_read_count(&self) -> StorageResult<()>;
+
+    /// 增加已完成书籍计数
+    fn increment_books_completed_count(&self) -> StorageResult<()>;
+
+    // ==================== 排版缓存（内存实现，不持久化）====================
+
+    /// 保存排版缓存
+    fn save_layout_cache(
+        &self,
+        book_id: &str,
+        chapter_id: i32,
+        config_hash: &str,
+        page_offsets: &[PageOffset],
+    ) -> StorageResult<()>;
+
+    /// 获取排版缓存
+    fn get_layout_cache(
+        &self,
+        book_id: &str,
+        chapter_id: i32,
+        config_hash: &str,
+    ) -> StorageResult<LayoutCacheResult>;
+
+    /// 清除书籍的所有排版缓存
+    fn clear_layout_cache(&self, book_id: &str) -> StorageResult<usize>;
+
+    /// 清除指定章节的排版缓存
+    fn clear_chapter_layout_cache(&self, book_id: &str, chapter_id: i32) -> StorageResult<usize>;
+
+    /// 获取书籍的所有排版缓存
+    fn get_all_layout_cache(&self, book_id: &str) -> StorageResult<Vec<CachedLayout>>;
 }
 
-/// 内存存储实现
+/// 内存存储实现（默认）
 ///
-/// 用于测试或临时存储，数据在应用重启后丢失
+/// 用于临时存储，数据在应用重启后丢失
+/// 所有持久化操作应使用 Flutter 侧的 Drift 数据库
 pub struct InMemoryStorage {
     progress: Arc<RwLock<HashMap<String, ReadingProgress>>>,
     bookmarks: Arc<RwLock<HashMap<String, Vec<Bookmark>>>>,
+    // 阅读统计（内存实现）
+    reading_stats: Arc<RwLock<ReadingStats>>,
+    daily_records: Arc<RwLock<HashMap<String, DailyReadingRecord>>>,
+    // 排版缓存（内存实现）
+    layout_cache: Arc<RwLock<HashMap<String, HashMap<i32, LayoutCacheEntry>>>>,
 }
 
 impl InMemoryStorage {
@@ -95,6 +175,9 @@ impl InMemoryStorage {
         Self {
             progress: Arc::new(RwLock::new(HashMap::new())),
             bookmarks: Arc::new(RwLock::new(HashMap::new())),
+            reading_stats: Arc::new(RwLock::new(ReadingStats::default())),
+            daily_records: Arc::new(RwLock::new(HashMap::new())),
+            layout_cache: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 }
@@ -107,288 +190,164 @@ impl Default for InMemoryStorage {
 
 impl ProgressStorage for InMemoryStorage {
     fn save_progress(&self, book_id: &str, progress: &ReadingProgress) -> StorageResult<()> {
-        let mut map = self
-            .progress
-            .write()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
+        let mut map = self.progress.write().map_err(|e| StorageError::LockError(e.to_string()))?;
         map.insert(book_id.to_string(), progress.clone());
         Ok(())
     }
 
     fn load_progress(&self, book_id: &str) -> StorageResult<Option<ReadingProgress>> {
-        let map = self
-            .progress
-            .read()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
+        let map = self.progress.read().map_err(|e| StorageError::LockError(e.to_string()))?;
         Ok(map.get(book_id).cloned())
     }
 
     fn delete_progress(&self, book_id: &str) -> StorageResult<()> {
-        let mut map = self
-            .progress
-            .write()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
+        let mut map = self.progress.write().map_err(|e| StorageError::LockError(e.to_string()))?;
         map.remove(book_id);
         Ok(())
     }
 
+    fn get_all_progress(&self) -> StorageResult<Vec<(String, ReadingProgress)>> {
+        let map = self.progress.read().map_err(|e| StorageError::LockError(e.to_string()))?;
+        Ok(map.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+    }
+
     fn save_bookmark(&self, book_id: &str, bookmark: &Bookmark) -> StorageResult<()> {
-        let mut map = self
-            .bookmarks
-            .write()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
-        map.entry(book_id.to_string())
-            .or_insert_with(Vec::new)
-            .push(bookmark.clone());
+        let mut map = self.bookmarks.write().map_err(|e| StorageError::LockError(e.to_string()))?;
+        let bookmarks = map.entry(book_id.to_string()).or_insert_with(Vec::new);
+        bookmarks.push(bookmark.clone());
         Ok(())
     }
 
     fn load_bookmarks(&self, book_id: &str) -> StorageResult<Vec<Bookmark>> {
-        let map = self
-            .bookmarks
-            .read()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
+        let map = self.bookmarks.read().map_err(|e| StorageError::LockError(e.to_string()))?;
         Ok(map.get(book_id).cloned().unwrap_or_default())
     }
 
     fn delete_bookmark(&self, book_id: &str, bookmark_id: &str) -> StorageResult<bool> {
-        let mut map = self
-            .bookmarks
-            .write()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
+        let mut map = self.bookmarks.write().map_err(|e| StorageError::LockError(e.to_string()))?;
         if let Some(bookmarks) = map.get_mut(book_id) {
-            let original_len = bookmarks.len();
+            let len = bookmarks.len();
             bookmarks.retain(|b| b.bookmark_id != bookmark_id);
-            Ok(bookmarks.len() < original_len)
+            Ok(bookmarks.len() != len)
         } else {
             Ok(false)
         }
     }
 
     fn clear_bookmarks(&self, book_id: &str) -> StorageResult<usize> {
-        let mut map = self
-            .bookmarks
-            .write()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
-        if let Some(bookmarks) = map.remove(book_id) {
-            Ok(bookmarks.len())
-        } else {
-            Ok(0)
-        }
-    }
-
-    fn get_all_progress(&self) -> StorageResult<Vec<(String, ReadingProgress)>> {
-        let map = self
-            .progress
-            .read()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
-        let result: Vec<(String, ReadingProgress)> =
-            map.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
-        Ok(result)
+        let mut map = self.bookmarks.write().map_err(|e| StorageError::LockError(e.to_string()))?;
+        Ok(map.remove(book_id).map(|v| v.len()).unwrap_or(0))
     }
 
     fn get_all_bookmarks(&self) -> StorageResult<Vec<Bookmark>> {
-        let map = self
-            .bookmarks
-            .read()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
-        let result: Vec<Bookmark> = map.values().flat_map(|v| v.iter().cloned()).collect();
-        Ok(result)
+        let map = self.bookmarks.read().map_err(|e| StorageError::LockError(e.to_string()))?;
+        Ok(map.values().flatten().cloned().collect())
+    }
+
+    // ==================== 阅读统计（内存实现，不持久化）====================
+
+    fn record_reading_session(
+        &self,
+        _book_id: &str,
+        _chapter_id: i32,
+        _duration_seconds: i64,
+        _characters_read: i64,
+    ) -> StorageResult<()> {
+        // 内存实现：不执行任何操作，仅记录日志
+        tracing::debug!("记录阅读会话（内存存储，不持久化）");
+        Ok(())
+    }
+
+    fn get_reading_stats(&self) -> StorageResult<ReadingStats> {
+        // 内存实现：返回默认统计
+        let stats = self.reading_stats.read().map_err(|e| StorageError::LockError(e.to_string()))?;
+        Ok(stats.clone())
+    }
+
+    fn get_daily_record(&self, _date: &str) -> StorageResult<Option<DailyReadingRecord>> {
+        // 内存实现：返回 None
+        Ok(None)
+    }
+
+    fn get_daily_records_in_range(
+        &self,
+        _start_date: &str,
+        _end_date: &str,
+    ) -> StorageResult<Vec<DailyReadingRecord>> {
+        // 内存实现：返回空列表
+        Ok(vec![])
+    }
+
+    fn increment_books_read_count(&self) -> StorageResult<()> {
+        // 内存实现：不执行任何操作
+        tracing::debug!("增加已读书籍计数（内存存储，不持久化）");
+        Ok(())
+    }
+
+    fn increment_books_completed_count(&self) -> StorageResult<()> {
+        // 内存实现：不执行任何操作
+        tracing::debug!("增加已完成书籍计数（内存存储，不持久化）");
+        Ok(())
+    }
+
+    // ==================== 排版缓存（内存实现，不持久化）====================
+
+    fn save_layout_cache(
+        &self,
+        book_id: &str,
+        chapter_id: i32,
+        config_hash: &str,
+        page_offsets: &[PageOffset],
+    ) -> StorageResult<()> {
+        // 内存实现：仅记录日志，不实际存储
+        tracing::debug!(
+            "保存排版缓存（内存存储，不持久化）：book={}, chapter={}, hash={}",
+            book_id,
+            chapter_id,
+            config_hash
+        );
+        Ok(())
+    }
+
+    fn get_layout_cache(
+        &self,
+        _book_id: &str,
+        _chapter_id: i32,
+        _config_hash: &str,
+    ) -> StorageResult<LayoutCacheResult> {
+        // 内存实现：返回未命中
+        Ok(LayoutCacheResult {
+            hit: false,
+            cached_layout: None,
+        })
+    }
+
+    fn clear_layout_cache(&self, _book_id: &str) -> StorageResult<usize> {
+        // 内存实现：返回 0
+        Ok(0)
+    }
+
+    fn clear_chapter_layout_cache(&self, _book_id: &str, _chapter_id: i32) -> StorageResult<usize> {
+        // 内存实现：返回 0
+        Ok(0)
+    }
+
+    fn get_all_layout_cache(&self, _book_id: &str) -> StorageResult<Vec<CachedLayout>> {
+        // 内存实现：返回空列表
+        Ok(vec![])
     }
 }
 
-/// JSON 文件存储实现
+/// 获取全局存储实例（内存实现）
 ///
-/// 将数据持久化到 JSON 文件，应用重启后数据保留
-pub struct JsonFileStorage {
-    storage_path: std::path::PathBuf,
-    progress: Arc<RwLock<HashMap<String, ReadingProgress>>>,
-    bookmarks: Arc<RwLock<HashMap<String, Vec<Bookmark>>>>,
+/// **注意：此函数返回的是内存存储，数据不会持久化。**
+/// 所有持久化操作应使用 Flutter 侧的 Drift 数据库。
+pub fn get_storage_instance() -> Result<Arc<dyn ProgressStorage>, StorageError> {
+    lazy_static::lazy_static! {
+        static ref STORAGE: Arc<dyn ProgressStorage> = Arc::new(InMemoryStorage::new());
+    }
+    Ok(STORAGE.clone())
 }
 
-impl JsonFileStorage {
-    /// 创建新的 JSON 文件存储
-    ///
-    /// # 参数
-    ///
-    /// * `storage_path` - 存储文件路径
-    pub fn new<P: AsRef<std::path::Path>>(storage_path: P) -> StorageResult<Self> {
-        let storage = Self {
-            storage_path: storage_path.as_ref().to_path_buf(),
-            progress: Arc::new(RwLock::new(HashMap::new())),
-            bookmarks: Arc::new(RwLock::new(HashMap::new())),
-        };
-
-        // 创建目录（如果不存在）
-        if let Some(parent) = storage.storage_path.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| StorageError::FileError(e.to_string()))?;
-        }
-
-        // 加载现有数据
-        storage.load_from_file()?;
-
-        Ok(storage)
-    }
-
-    /// 从文件加载数据
-    fn load_from_file(&self) -> StorageResult<()> {
-        if !self.storage_path.exists() {
-            return Ok(());
-        }
-
-        let content = std::fs::read_to_string(&self.storage_path)
-            .map_err(|e| StorageError::FileError(e.to_string()))?;
-
-        let data: serde_json::Value = serde_json::from_str(&content)
-            .map_err(|e| StorageError::SerializationError(e.to_string()))?;
-
-        // 解析进度
-        if let Some(progress_data) = data.get("progress") {
-            let progress: HashMap<String, ReadingProgress> =
-                serde_json::from_value(progress_data.clone())
-                    .map_err(|e| StorageError::SerializationError(e.to_string()))?;
-            let mut map = self
-                .progress
-                .write()
-                .map_err(|e| StorageError::LockError(e.to_string()))?;
-            *map = progress;
-        }
-
-        // 解析书签
-        if let Some(bookmarks_data) = data.get("bookmarks") {
-            let bookmarks: HashMap<String, Vec<Bookmark>> =
-                serde_json::from_value(bookmarks_data.clone())
-                    .map_err(|e| StorageError::SerializationError(e.to_string()))?;
-            let mut map = self
-                .bookmarks
-                .write()
-                .map_err(|e| StorageError::LockError(e.to_string()))?;
-            *map = bookmarks;
-        }
-
-        Ok(())
-    }
-
-    /// 保存数据到文件
-    fn save_to_file(&self) -> StorageResult<()> {
-        let progress_map = self
-            .progress
-            .read()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
-        let bookmarks_map = self
-            .bookmarks
-            .read()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
-
-        let data = serde_json::json!({
-            "progress": *progress_map,
-            "bookmarks": *bookmarks_map,
-        });
-
-        let content = serde_json::to_string_pretty(&data)
-            .map_err(|e| StorageError::SerializationError(e.to_string()))?;
-
-        std::fs::write(&self.storage_path, content)
-            .map_err(|e| StorageError::FileError(e.to_string()))?;
-
-        Ok(())
-    }
-}
-
-impl ProgressStorage for JsonFileStorage {
-    fn save_progress(&self, book_id: &str, progress: &ReadingProgress) -> StorageResult<()> {
-        let mut map = self
-            .progress
-            .write()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
-        map.insert(book_id.to_string(), progress.clone());
-        self.save_to_file()
-    }
-
-    fn load_progress(&self, book_id: &str) -> StorageResult<Option<ReadingProgress>> {
-        let map = self
-            .progress
-            .read()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
-        Ok(map.get(book_id).cloned())
-    }
-
-    fn delete_progress(&self, book_id: &str) -> StorageResult<()> {
-        let mut map = self
-            .progress
-            .write()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
-        map.remove(book_id);
-        self.save_to_file()
-    }
-
-    fn save_bookmark(&self, book_id: &str, bookmark: &Bookmark) -> StorageResult<()> {
-        let mut map = self
-            .bookmarks
-            .write()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
-        map.entry(book_id.to_string())
-            .or_insert_with(Vec::new)
-            .push(bookmark.clone());
-        self.save_to_file()
-    }
-
-    fn load_bookmarks(&self, book_id: &str) -> StorageResult<Vec<Bookmark>> {
-        let map = self
-            .bookmarks
-            .read()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
-        Ok(map.get(book_id).cloned().unwrap_or_default())
-    }
-
-    fn delete_bookmark(&self, book_id: &str, bookmark_id: &str) -> StorageResult<bool> {
-        let mut map = self
-            .bookmarks
-            .write()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
-        if let Some(bookmarks) = map.get_mut(book_id) {
-            let original_len = bookmarks.len();
-            bookmarks.retain(|b| b.bookmark_id != bookmark_id);
-            let deleted = bookmarks.len() < original_len;
-            if deleted {
-                self.save_to_file()?;
-            }
-            Ok(deleted)
-        } else {
-            Ok(false)
-        }
-    }
-
-    fn clear_bookmarks(&self, book_id: &str) -> StorageResult<usize> {
-        let mut map = self
-            .bookmarks
-            .write()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
-        let count = if let Some(bookmarks) = map.remove(book_id) {
-            bookmarks.len()
-        } else {
-            0
-        };
-        self.save_to_file()?;
-        Ok(count)
-    }
-
-    fn get_all_progress(&self) -> StorageResult<Vec<(String, ReadingProgress)>> {
-        let map = self
-            .progress
-            .read()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
-        let result: Vec<(String, ReadingProgress)> =
-            map.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
-        Ok(result)
-    }
-
-    fn get_all_bookmarks(&self) -> StorageResult<Vec<Bookmark>> {
-        let map = self
-            .bookmarks
-            .read()
-            .map_err(|e| StorageError::LockError(e.to_string()))?;
-        let result: Vec<Bookmark> = map.values().flat_map(|v| v.iter().cloned()).collect();
-        Ok(result)
-    }
-}
+// 所有 SQLite 操作已迁移到 Flutter 侧
+// 此模块仅提供内存存储实现用于临时存储和向后兼容

@@ -1,6 +1,8 @@
-/// 阅读器页�?- 核心阅读功能
+/// 阅读器页面 - 新版本
 ///
-/// 功能�?/// - 支持上下滚动和左右翻页模�?/// - �?Rust 引擎集成，使用其分页功能
+/// 功能：
+/// - 支持上下滚动和左右翻页模式
+/// - 与 Rust 引擎集成，使用其分页功能
 /// - 自动保存阅读进度
 /// - 支持章节跳转
 /// - 阅读设置（字体、间距、主题）
@@ -14,6 +16,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
+import '../domain/models.dart';
 import '../application/services/reading_progress_service.dart';
 import 'widgets/reader_content.dart';
 import 'widgets/reader_toolbar.dart';
@@ -28,49 +31,7 @@ enum ReadingMode {
   pagination,
 }
 
-/// 书籍信息（简化版本）
-class BookInfo {
-  final String bookId;
-  final String title;
-  final String author;
-  final int chapterCount;
-  final int totalCharacters;
-  final String filePath;
-  final String fileType;
-  final String? coverPath;
-
-  BookInfo({
-    required this.bookId,
-    required this.title,
-    required this.author,
-    required this.chapterCount,
-    required this.totalCharacters,
-    required this.filePath,
-    required this.fileType,
-    this.coverPath,
-  });
-}
-
-/// 章节信息（简化版本）
-class ChapterInfo {
-  final int chapterId;
-  final String title;
-  final int startIndex;
-  final int endIndex;
-  final int contentLength;
-  final int index;
-
-  ChapterInfo({
-    required this.chapterId,
-    required this.title,
-    required this.startIndex,
-    required this.endIndex,
-    required this.contentLength,
-    required this.index,
-  });
-}
-
-/// 阅读器页�?
+/// 阅读器页面
 class ReaderPageNew extends HookWidget {
   /// 书籍 ID
   final int bookId;
@@ -90,7 +51,7 @@ class ReaderPageNew extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 状态信�?
+    // 状态信号
     final bookInfo = useSignal<BookInfo?>(null);
     final chapters = useSignal<List<ChapterInfo>>([]);
     final currentChapterId = useSignal(initialChapterId);
@@ -99,8 +60,8 @@ class ReaderPageNew extends HookWidget {
     final isLoading = useSignal(true);
     final error = useSignal<String?>(null);
 
-    // UI 状�?
-   final showToolbar = useSignal(false);
+    // UI 状态
+    final showToolbar = useSignal(false);
     final showChapterList = useSignal(false);
     final showSettings = useSignal(false);
     final showBookmarks = useSignal(false);
@@ -111,29 +72,31 @@ class ReaderPageNew extends HookWidget {
     final lineHeight = useSignal(1.5);
     final themeMode = useSignal(ThemeMode.light);
 
+    // 阅读时长
+    final readingDuration = useSignal(0);
+    final readingTimer = useRef<Timer?>(null);
+
     // 进度服务
     final progressService = useMemoized(() {
       // 使用空的 SharedPreferences 实例
       return ReadingProgressService(null);
     });
+
+    // 加载书籍信息
     useEffect(() {
       _loadBookInfo(context, bookId, bookInfo, chapters, isLoading, error);
-      return null;
-    }, []);
-
-    // 保存进度定时�?
-     Timer? saveTimer;
-    useEffect(() {
-      saveTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _startReadingTimer(readingDuration, readingTimer);
+      return () {
+        _stopReadingTimer(readingTimer);
         _saveProgress(
           progressService,
           bookId,
           currentChapterId.value,
           currentPageIndex.value,
           totalPages.value,
+          readingDuration.value,
         );
-      });
-      return () => saveTimer?.cancel();
+      };
     }, []);
 
     // 监听页面变化自动保存
@@ -141,18 +104,24 @@ class ReaderPageNew extends HookWidget {
       final chapterId = currentChapterId.value;
       final pageIndex = currentPageIndex.value;
 
-      saveTimer?.cancel();
-      saveTimer = Timer(const Duration(seconds: 2), () {
-        _saveProgress(
-          progressService,
-          bookId,
-          chapterId,
-          pageIndex,
-          totalPages.value,
-        );
-      });
-      return () => saveTimer?.cancel();
+      _saveProgress(
+        progressService,
+        bookId,
+        chapterId,
+        pageIndex,
+        totalPages.value,
+        readingDuration.value,
+      );
+      return null;
     }, [currentChapterId.value, currentPageIndex.value]);
+
+    // 切换工具栏显示
+    final toggleToolbar = useCallback(() {
+      showToolbar.value = !showToolbar.value;
+      showSettings.value = false;
+      showChapterList.value = false;
+      showBookmarks.value = false;
+    }, []);
 
     return PopScope(
       canPop: true,
@@ -164,6 +133,7 @@ class ReaderPageNew extends HookWidget {
             currentChapterId.value,
             currentPageIndex.value,
             totalPages.value,
+            readingDuration.value,
           );
         }
       },
@@ -192,8 +162,8 @@ class ReaderPageNew extends HookWidget {
                       currentPageIndex.value = pageIndex,
                   onTotalPagesChanged: (total) => totalPages.value = total,
                 ),
-                // 顶部工具�?
-                    AnimatedOpacity(
+                // 顶部工具栏
+                AnimatedOpacity(
                   opacity: showToolbar.value ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 300),
                   child: _buildTopBar(
@@ -201,14 +171,21 @@ class ReaderPageNew extends HookWidget {
                     bookInfo.value,
                     themeMode.value,
                     onClose: () => context.pop(),
-                    onToggleToolbar: () =>
-                        showToolbar.value = !showToolbar.value,
-                    onShowChapterList: () => showChapterList.value = true,
-                    onShowBookmarks: () => showBookmarks.value = true,
+                    onToggleToolbar: toggleToolbar,
+                    onShowChapterList: () {
+                      showChapterList.value = true;
+                      showSettings.value = false;
+                      showBookmarks.value = false;
+                    },
+                    onShowBookmarks: () {
+                      showBookmarks.value = true;
+                      showSettings.value = false;
+                      showChapterList.value = false;
+                    },
                   ),
                 ),
-                // 底部工具�?
-                     AnimatedOpacity(
+                // 底部工具栏
+                AnimatedOpacity(
                   opacity: showToolbar.value ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 300),
                   child: _buildBottomBar(
@@ -217,10 +194,16 @@ class ReaderPageNew extends HookWidget {
                     currentPageIndex.value,
                     totalPages.value,
                     themeMode.value,
-                    onPreviousChapter: () =>
-                        _previousChapter(chapters.value, currentChapterId),
-                    onNextChapter: () =>
-                        _nextChapter(chapters.value, currentChapterId),
+                    onPreviousChapter: () => _previousChapter(
+                      chapters.value,
+                      currentChapterId,
+                      currentPageIndex,
+                    ),
+                    onNextChapter: () => _nextChapter(
+                      chapters.value,
+                      currentChapterId,
+                      currentPageIndex,
+                    ),
                     onPreviousPage: () {
                       if (currentPageIndex.value > 0) {
                         currentPageIndex.value--;
@@ -231,9 +214,48 @@ class ReaderPageNew extends HookWidget {
                         currentPageIndex.value++;
                       }
                     },
-                    onShowSettings: () => showSettings.value = true,
+                    onShowSettings: () {
+                      showSettings.value = true;
+                      showChapterList.value = false;
+                      showBookmarks.value = false;
+                    },
                   ),
                 ),
+                // 章节列表面板
+                if (showChapterList.value)
+                  _buildChapterListPanel(
+                    context,
+                    chapters.value,
+                    currentChapterId.value,
+                    themeMode.value,
+                    onChapterSelected: (chapterId) {
+                      currentChapterId.value = chapterId;
+                      currentPageIndex.value = 0;
+                      showChapterList.value = false;
+                    },
+                    onClose: () => showChapterList.value = false,
+                  ),
+                // 设置面板
+                if (showSettings.value)
+                  _buildSettingsPanel(
+                    context,
+                    themeMode.value,
+                    readingMode.value,
+                    fontSize.value,
+                    lineHeight.value,
+                    onReadingModeChanged: (mode) => readingMode.value = mode,
+                    onFontSizeChanged: (size) => fontSize.value = size,
+                    onLineHeightChanged: (height) => lineHeight.value = height,
+                    onThemeChanged: (mode) => themeMode.value = mode,
+                    onClose: () => showSettings.value = false,
+                  ),
+                // 书签面板
+                if (showBookmarks.value)
+                  _buildBookmarksPanel(
+                    context,
+                    themeMode.value,
+                    onClose: () => showBookmarks.value = false,
+                  ),
               ],
             ),
           ),
@@ -251,13 +273,11 @@ class ReaderPageNew extends HookWidget {
     Signal<String?> error,
   ) async {
     try {
-      // 从数据库加载书籍信息
       // TODO: 调用 BookshelfService.getBookDetail(bookId) 获取书籍信息
-      // 这里使用示例数据
       bookInfo.value = BookInfo(
         bookId: bookId.toString(),
         title: '示例书籍',
-        author: '作�?',
+        author: '作者',
         chapterCount: 10,
         totalCharacters: 100000,
         filePath: '/path/to/book.txt',
@@ -271,7 +291,7 @@ class ReaderPageNew extends HookWidget {
         10,
         (index) => ChapterInfo(
           chapterId: index,
-          title: '�?{index + 1}�?',
+          title: '第 ${index + 1} 章',
           startIndex: index * 10000,
           endIndex: (index + 1) * 10000,
           contentLength: 10000,
@@ -281,9 +301,20 @@ class ReaderPageNew extends HookWidget {
 
       isLoading.value = false;
     } catch (e) {
-      error.value = '加载失败�?e';
+      error.value = '加载失败：$e';
       isLoading.value = false;
     }
+  }
+
+  void _startReadingTimer(Signal<int> duration, ObjectRef<Timer?> timerRef) {
+    timerRef.value = Timer.periodic(const Duration(seconds: 1), (timer) {
+      duration.value++;
+    });
+  }
+
+  void _stopReadingTimer(ObjectRef<Timer?> timerRef) {
+    timerRef.value?.cancel();
+    timerRef.value = null;
   }
 
   void _saveProgress(
@@ -292,6 +323,7 @@ class ReaderPageNew extends HookWidget {
     int chapterId,
     int pageIndex,
     int totalPages,
+    int duration,
   ) {
     service.updateReadingProgress(
       bookId: bookId,
@@ -343,8 +375,8 @@ class ReaderPageNew extends HookWidget {
 
     return GestureDetector(
       onTap: () {
-        // 点击切换工具�?
-            },
+        // 点击切换工具栏
+      },
       child: mode == ReadingMode.scroll
           ? _buildScrollMode(
               context,
@@ -380,8 +412,10 @@ class ReaderPageNew extends HookWidget {
     required ValueChanged<int> onPageChanged,
     required ValueChanged<int> onTotalPagesChanged,
   }) {
-    // 实现滚动模式
-    // TODO: 完善滚动模式的实现，包括连续滚动、自动加载等
+    final textColor = themeMode == ThemeMode.dark
+        ? Colors.grey[300]!
+        : Colors.black87;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Text(
@@ -389,9 +423,7 @@ class ReaderPageNew extends HookWidget {
         style: TextStyle(
           fontSize: fontSize,
           height: lineHeight,
-          color: themeMode == ThemeMode.dark
-              ? Colors.grey[300]
-              : Colors.black87,
+          color: textColor,
         ),
       ),
     );
@@ -430,7 +462,7 @@ class ReaderPageNew extends HookWidget {
     required VoidCallback onShowBookmarks,
   }) {
     return ReaderToolbar(
-      title: bookInfo?.title ?? '阅读�?',
+      title: bookInfo?.title ?? '阅读器',
       themeMode: themeMode,
       onClose: onClose,
       onToggleToolbar: onToggleToolbar,
@@ -464,18 +496,310 @@ class ReaderPageNew extends HookWidget {
     );
   }
 
+  Widget _buildChapterListPanel(
+    BuildContext context,
+    List<ChapterInfo> chapters,
+    int currentChapterId,
+    ThemeMode themeMode, {
+    required ValueChanged<int> onChapterSelected,
+    required VoidCallback onClose,
+  }) {
+    final textColor = themeMode == ThemeMode.dark
+        ? Colors.grey[300]!
+        : Colors.black87;
+    final backgroundColor = themeMode == ThemeMode.dark
+        ? const Color(0xFF1a1a1a)
+        : const Color(0xFFF5F5DC);
+
+    return Container(
+      color: backgroundColor,
+      child: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Text(
+                    '目录',
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(Icons.close, color: textColor),
+                    onPressed: onClose,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: chapters.length,
+                itemBuilder: (context, index) {
+                  final chapter = chapters[index];
+                  final isCurrent = chapter.chapterId == currentChapterId;
+                  return ListTile(
+                    title: Text(
+                      chapter.title,
+                      style: TextStyle(
+                        color: isCurrent ? Colors.blue : textColor,
+                        fontWeight: isCurrent
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                    onTap: () => onChapterSelected(chapter.chapterId),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsPanel(
+    BuildContext context,
+    ThemeMode themeMode,
+    ReadingMode readingMode,
+    double fontSize,
+    double lineHeight, {
+    required ValueChanged<ReadingMode> onReadingModeChanged,
+    required ValueChanged<double> onFontSizeChanged,
+    required ValueChanged<double> onLineHeightChanged,
+    required ValueChanged<ThemeMode> onThemeChanged,
+    required VoidCallback onClose,
+  }) {
+    final textColor = themeMode == ThemeMode.dark
+        ? Colors.grey[300]!
+        : Colors.black87;
+    final backgroundColor = themeMode == ThemeMode.dark
+        ? const Color(0xFF1a1a1a)
+        : const Color(0xFFF5F5DC);
+
+    return Container(
+      color: backgroundColor,
+      child: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Text(
+                    '设置',
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(Icons.close, color: textColor),
+                    onPressed: onClose,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // 阅读模式
+                  _buildSettingSection(
+                    title: '阅读模式',
+                    child: Row(
+                      children: [
+                        _buildChoiceChip(
+                          label: '滚动',
+                          selected: readingMode == ReadingMode.scroll,
+                          onTap: () => onReadingModeChanged(ReadingMode.scroll),
+                          textColor: textColor,
+                        ),
+                        const SizedBox(width: 16),
+                        _buildChoiceChip(
+                          label: '分页',
+                          selected: readingMode == ReadingMode.pagination,
+                          onTap: () =>
+                              onReadingModeChanged(ReadingMode.pagination),
+                          textColor: textColor,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // 字体大小
+                  _buildSettingSection(
+                    title: '字体大小：${fontSize.toStringAsFixed(1)}',
+                    child: Slider(
+                      value: fontSize,
+                      min: 12,
+                      max: 32,
+                      divisions: 20,
+                      onChanged: onFontSizeChanged,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // 行间距
+                  _buildSettingSection(
+                    title: '行间距：${lineHeight.toStringAsFixed(1)}',
+                    child: Slider(
+                      value: lineHeight,
+                      min: 1.0,
+                      max: 3.0,
+                      divisions: 20,
+                      onChanged: onLineHeightChanged,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // 主题
+                  _buildSettingSection(
+                    title: '主题',
+                    child: Row(
+                      children: [
+                        _buildChoiceChip(
+                          label: '浅色',
+                          selected: themeMode == ThemeMode.light,
+                          onTap: () => onThemeChanged(ThemeMode.light),
+                          textColor: textColor,
+                        ),
+                        const SizedBox(width: 16),
+                        _buildChoiceChip(
+                          label: '深色',
+                          selected: themeMode == ThemeMode.dark,
+                          onTap: () => onThemeChanged(ThemeMode.dark),
+                          textColor: textColor,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingSection({required String title, required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+
+  Widget _buildChoiceChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+    required Color textColor,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? textColor.withValues(alpha: 0.2)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: textColor),
+        ),
+        child: Text(label, style: TextStyle(color: textColor)),
+      ),
+    );
+  }
+
+  Widget _buildBookmarksPanel(
+    BuildContext context,
+    ThemeMode themeMode, {
+    required VoidCallback onClose,
+  }) {
+    final textColor = themeMode == ThemeMode.dark
+        ? Colors.grey[300]!
+        : Colors.black87;
+    final backgroundColor = themeMode == ThemeMode.dark
+        ? const Color(0xFF1a1a1a)
+        : const Color(0xFFF5F5DC);
+
+    return Container(
+      color: backgroundColor,
+      child: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Text(
+                    '书签',
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(Icons.close, color: textColor),
+                    onPressed: onClose,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.bookmark, color: textColor),
+                    title: Text('暂无书签', style: TextStyle(color: textColor)),
+                    subtitle: Text(
+                      '阅读时点击书签按钮添加',
+                      style: TextStyle(color: textColor.withValues(alpha: 0.6)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _previousChapter(
     List<ChapterInfo> chapters,
     Signal<int> currentChapterId,
+    Signal<int> currentPageIndex,
   ) {
     if (currentChapterId.value > 0) {
       currentChapterId.value--;
+      currentPageIndex.value = 0;
     }
   }
 
-  void _nextChapter(List<ChapterInfo> chapters, Signal<int> currentChapterId) {
+  void _nextChapter(
+    List<ChapterInfo> chapters,
+    Signal<int> currentChapterId,
+    Signal<int> currentPageIndex,
+  ) {
     if (currentChapterId.value < chapters.length - 1) {
       currentChapterId.value++;
+      currentPageIndex.value = 0;
     }
   }
 
@@ -485,6 +809,7 @@ class ReaderPageNew extends HookWidget {
         return const Color(0xFF1a1a1a);
       case ThemeMode.light:
       default:
-        return const Color(0xFFF5F5DC); // 米黄色护眼背�?    }
+        return const Color(0xFFF5F5DC); // 米黄色护眼背景
+    }
   }
 }

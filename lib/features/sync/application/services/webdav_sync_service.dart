@@ -1,8 +1,8 @@
 /// WebDAV 同步服务
 ///
-/// 提供�?WebDAV 服务器的数据同步功能
+/// 提供WebDAV 服务器的数据同步功能
 ///
-/// 功能�?/// - 连接测试
+/// 功能/// - 连接测试
 /// - 账号认证
 /// - 文件上传/下载
 /// - 数据同步（进度、书签、书架）
@@ -13,18 +13,18 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import 'package:signals_flutter/signals_flutter.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:signals_flutter/signals_flutter.dart';
 
 /// WebDAV 配置
 class WebDavConfig {
   /// 服务器地址
   final String baseUrl;
 
-  /// 用户�?
-   final String username;
+  /// 用户
+  final String username;
 
   /// 密码
   final String password;
@@ -39,14 +39,14 @@ class WebDavConfig {
     required this.remotePath,
   });
 
-  /// 获取基础认证�?
+  /// 获取基础认证
   String get authHeader {
     final credentials = base64Encode(utf8.encode('$username:$password'));
     return 'Basic $credentials';
   }
 
-  /// 复制并修改配�?
-   WebDavConfig copyWith({
+  /// 复制并修改配
+  WebDavConfig copyWith({
     String? baseUrl,
     String? username,
     String? password,
@@ -60,8 +60,8 @@ class WebDavConfig {
     );
   }
 
-  /// 验证配置完整�?
-   bool get isValid {
+  /// 验证配置完整
+  bool get isValid {
     return baseUrl.isNotEmpty &&
         username.isNotEmpty &&
         password.isNotEmpty &&
@@ -69,12 +69,12 @@ class WebDavConfig {
   }
 }
 
-/// 同步状�?
+/// 同步状
 enum SyncStatus {
   /// 空闲
   idle,
 
-  /// 同步�?
+  /// 同步
   syncing,
 
   /// 同步成功
@@ -83,8 +83,8 @@ enum SyncStatus {
   /// 同步失败
   failed,
 
-  /// 冲突需要解�?
-   conflict,
+  /// 冲突需要解
+  conflict,
 }
 
 /// 同步数据类型
@@ -104,17 +104,17 @@ enum SyncDataType {
 
 /// 同步方向
 enum SyncDirection {
-  /// 仅上�?
-   upload,
+  /// 仅上
+  upload,
 
-  /// 仅下�?
-   download,
+  /// 仅下
+  download,
 
   /// 双向同步
   both,
 }
 
-/// 数据同步�?
+/// 数据同步
 class SyncDataItem {
   final SyncDataType type;
   final String filename;
@@ -138,20 +138,20 @@ class WebDavSyncService {
   WebDavConfig? _config;
   final http.Client _client;
 
-  /// 当前同步状�?
+  /// 当前同步状
   final syncStatus = signal<SyncStatus>(SyncStatus.idle);
 
-  /// 同步进度�?-100�?
-   final syncProgress = signal<double>(0.0);
+  /// 同步进度-100
+  final syncProgress = signal<double>(0.0);
 
-  /// 最后同步时�?
-   final lastSyncTime = signal<DateTime?>(null);
+  /// 最后同步时
+  final lastSyncTime = signal<DateTime?>(null);
 
   /// 错误信息
   final errorMessage = signal<String?>(null);
 
-  /// 同步状态详�?
-   final syncMessage = signal<String>('');
+  /// 同步状态详
+  final syncMessage = signal<String>('');
 
   WebDavSyncService({WebDavConfig? config, http.Client? client})
     : _config = config,
@@ -184,32 +184,32 @@ class WebDavSyncService {
         debugPrint('WebDAV 连接测试成功');
         return true;
       } else if (response.statusCode == 401) {
-        debugPrint('WebDAV 认证失败：请检查用户名和密�?');
-        errorMessage.value = '认证失败：请检查用户名和密�?';
+        debugPrint('WebDAV 认证失败：请检查用户名和密');
+        errorMessage.value = '认证失败：请检查用户名和密';
         return false;
       } else {
-        debugPrint('WebDAV 连接测试失败�?{response.statusCode}');
-        errorMessage.value = '连接失败�?{response.statusCode}';
+        debugPrint('WebDAV 连接测试失败{response.statusCode}');
+        errorMessage.value = '连接失败{response.statusCode}';
         return false;
       }
     } catch (e) {
-      debugPrint('WebDAV 连接测试异常�?e');
-      errorMessage.value = '连接异常�?e';
+      debugPrint('WebDAV 连接测试异常e');
+      errorMessage.value = '连接异常e';
       return false;
     }
   }
 
-  /// 同步所有数�?
-   Future<SyncResult> syncAll({
+  /// 同步所有数
+  Future<SyncResult> syncAll({
     SyncDirection direction = SyncDirection.both,
   }) async {
     if (_config == null || !_config!.isValid) {
-      return SyncResult(success: false, error: 'WebDAV 配置未设�?');
+      return SyncResult(success: false, error: 'WebDAV 配置未设');
     }
 
     syncStatus.value = SyncStatus.syncing;
     syncProgress.value = 0.0;
-    syncMessage.value = '开始同�?..';
+    syncMessage.value = '开始同..';
 
     final result = SyncResult();
 
@@ -256,9 +256,9 @@ class WebDavSyncService {
       result.success = result.conflictCount == 0;
       return result;
     } catch (e) {
-      debugPrint('同步异常�?e');
+      debugPrint('同步异常e');
       syncStatus.value = SyncStatus.failed;
-      errorMessage.value = '同步异常�?e';
+      errorMessage.value = '同步异常e';
       syncMessage.value = '同步失败';
       return SyncResult(success: false, error: e.toString());
     }
@@ -285,7 +285,7 @@ class WebDavSyncService {
           debugPrint('远程目录创建成功');
           return true;
         } else {
-          debugPrint('远程目录创建失败�?{createResponse.statusCode}');
+          debugPrint('远程目录创建失败{createResponse.statusCode}');
           return false;
         }
       }
@@ -330,7 +330,7 @@ class WebDavSyncService {
         }
       }
     } catch (e) {
-      debugPrint('同步阅读进度异常�?e');
+      debugPrint('同步阅读进度异常e');
     }
 
     return result;
@@ -367,7 +367,7 @@ class WebDavSyncService {
         }
       }
     } catch (e) {
-      debugPrint('同步书签异常�?e');
+      debugPrint('同步书签异常e');
     }
 
     return result;
@@ -404,7 +404,7 @@ class WebDavSyncService {
         }
       }
     } catch (e) {
-      debugPrint('同步书架异常�?e');
+      debugPrint('同步书架异常e');
     }
 
     return result;
@@ -441,7 +441,7 @@ class WebDavSyncService {
         }
       }
     } catch (e) {
-      debugPrint('同步设置异常�?e');
+      debugPrint('同步设置异常e');
     }
 
     return result;
@@ -453,7 +453,7 @@ class WebDavSyncService {
     required String remoteName,
   }) async {
     if (_config == null) {
-      debugPrint('WebDAV 配置未设�?');
+      debugPrint('WebDAV 配置未设');
       return false;
     }
 
@@ -481,14 +481,14 @@ class WebDavSyncService {
       if (response.statusCode == 200 ||
           response.statusCode == 201 ||
           response.statusCode == 204) {
-        debugPrint('文件上传成功�?remoteName');
+        debugPrint('文件上传成功remoteName');
         return true;
       } else {
-        debugPrint('文件上传失败�?{response.statusCode}');
+        debugPrint('文件上传失败{response.statusCode}');
         return false;
       }
     } catch (e) {
-      debugPrint('文件上传异常�?e');
+      debugPrint('文件上传异常e');
       return false;
     }
   }
@@ -499,7 +499,7 @@ class WebDavSyncService {
     required String localPath,
   }) async {
     if (_config == null) {
-      debugPrint('WebDAV 配置未设�?');
+      debugPrint('WebDAV 配置未设');
       return false;
     }
 
@@ -518,17 +518,17 @@ class WebDavSyncService {
         await file.parent.create(recursive: true);
         await file.writeAsBytes(response.bodyBytes);
 
-        debugPrint('文件下载成功�?remoteName');
+        debugPrint('文件下载成功remoteName');
         return true;
       } else if (response.statusCode == 404) {
         debugPrint('文件不存在于服务器：$remoteName');
         return false;
       } else {
-        debugPrint('文件下载失败�?{response.statusCode}');
+        debugPrint('文件下载失败{response.statusCode}');
         return false;
       }
     } catch (e) {
-      debugPrint('文件下载异常�?e');
+      debugPrint('文件下载异常e');
       return false;
     }
   }
@@ -536,7 +536,7 @@ class WebDavSyncService {
   /// 列出远程文件
   Future<List<RemoteFileInfo>> listRemoteFiles() async {
     if (_config == null) {
-      debugPrint('WebDAV 配置未设�?');
+      debugPrint('WebDAV 配置未设');
       return [];
     }
 
@@ -549,16 +549,16 @@ class WebDavSyncService {
       );
 
       if (response.statusCode == 200) {
-        // 简单解析响�?
-          final files = <RemoteFileInfo>[];
+        // 简单解析响
+        final files = <RemoteFileInfo>[];
         // TODO: 解析 XML 响应获取文件列表
         return files;
       } else {
-        debugPrint('列出文件失败�?{response.statusCode}');
+        debugPrint('列出文件失败{response.statusCode}');
         return [];
       }
     } catch (e) {
-      debugPrint('列出文件异常�?e');
+      debugPrint('列出文件异常e');
       return [];
     }
   }
@@ -580,14 +580,14 @@ class WebDavSyncService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
-        debugPrint('文件删除成功�?remoteName');
+        debugPrint('文件删除成功remoteName');
         return true;
       } else {
-        debugPrint('文件删除失败�?{response.statusCode}');
+        debugPrint('文件删除失败{response.statusCode}');
         return false;
       }
     } catch (e) {
-      debugPrint('文件删除异常�?e');
+      debugPrint('文件删除异常e');
       return false;
     }
   }
@@ -608,13 +608,13 @@ class WebDavSyncService {
           await _downloadData(type);
           break;
         case ConflictResolution.merge:
-          // 合并两个版本（需要实现合并逻辑�?
-                   await _mergeData(type);
+          // 合并两个版本（需要实现合并逻辑
+          await _mergeData(type);
           break;
       }
       return true;
     } catch (e) {
-      debugPrint('解决冲突异常�?e');
+      debugPrint('解决冲突异常e');
       return false;
     }
   }

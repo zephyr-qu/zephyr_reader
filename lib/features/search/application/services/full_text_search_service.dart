@@ -5,9 +5,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:sqlite3/sqlite3.dart';
 
-/// 搜索结果�?
+/// 搜索结果
 class SearchHit {
   final int chapterId;
   final String chapterTitle;
@@ -29,18 +28,18 @@ class FullTextSearchService {
   Database? _db;
   String? _dbPath;
 
-  /// 初始化搜索服�?
-   Future<void> init() async {
+  /// 初始化搜索服
+  Future<void> init() async {
     final dir = await getApplicationDocumentsDirectory();
     _dbPath = '${dir.path}/zephyr_reader/search_index.db';
     _db = sqlite3.open(_dbPath!);
 
-    // 创建 FTS5 虚拟�?
+    // 创建 FTS5 虚拟
     _createSearchTable();
   }
 
-  /// 创建搜索�?
-   void _createSearchTable() {
+  /// 创建搜索
+  void _createSearchTable() {
     _db!.execute('''
       CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
         book_id UNINDEXED,
@@ -66,8 +65,8 @@ class FullTextSearchService {
     }
 
     try {
-      // 分块索引（每�?500 字符�?
-         const chunkSize = 500;
+      // 分块索引（每500 字符
+      const chunkSize = 500;
       final chars = content.split('');
       final totalChunks = (chars.length / chunkSize).ceil();
 
@@ -86,9 +85,9 @@ class FullTextSearchService {
       }
 
       stmt.dispose();
-      debugPrint('章节索引完成�?bookId - $chapterId');
+      debugPrint('章节索引完成bookId - $chapterId');
     } catch (e) {
-      debugPrint('索引章节失败�?e');
+      debugPrint('索引章节失败e');
       rethrow;
     }
   }
@@ -104,8 +103,8 @@ class FullTextSearchService {
     }
 
     try {
-      // 对搜索词进行分词（简单实现，实际应该使用 jieba 等分词器�?
-         final tokenizedQuery = _tokenize(query);
+      // 对搜索词进行分词（简单实现，实际应该使用 jieba 等分词器
+      final tokenizedQuery = _tokenize(query);
 
       final stmt = _db!.prepare('''
         SELECT chapter_id, chapter_title, content, position, bm25(search_index) as score
@@ -131,7 +130,7 @@ class FullTextSearchService {
       stmt.dispose();
       return results;
     } catch (e) {
-      debugPrint('搜索失败�?e');
+      debugPrint('搜索失败e');
       return [];
     }
   }
@@ -144,23 +143,23 @@ class FullTextSearchService {
 
     try {
       _db!.execute('DELETE FROM search_index WHERE book_id = ?', [bookId]);
-      debugPrint('删除书籍索引�?bookId');
+      debugPrint('删除书籍索引bookId');
     } catch (e) {
-      debugPrint('删除索引失败�?e');
+      debugPrint('删除索引失败e');
     }
   }
 
-  /// 清除所有索�?
-   void clearAll() {
+  /// 清除所有索
+  void clearAll() {
     if (_db == null) {
       return;
     }
 
     try {
       _db!.execute('DELETE FROM search_index');
-      debugPrint('清除所有索�?');
+      debugPrint('清除所有索');
     } catch (e) {
-      debugPrint('清除索引失败�?e');
+      debugPrint('清除索引失败e');
     }
   }
 
@@ -181,17 +180,17 @@ class FullTextSearchService {
 
       return {'total_chunks': totalCount, 'book_count': bookCount};
     } catch (e) {
-      debugPrint('获取统计失败�?e');
+      debugPrint('获取统计失败e');
       return {};
     }
   }
 
   /// 简单分词（中文按字符，英文按单词）
-  /// 注意：Rust 侧已集成 jieba 分词器，Flutter 侧使用简单分词作为降级方�?
-   String _tokenize(String text) {
-    // 使用简单分词：中文按字符，英文按空�?
-    //  // Rust 侧已集成 jieba 分词器，提供完整的中文分词支�?
-   return text.replaceAll(RegExp(r'\s+'), ' ');
+  /// 注意：Rust 侧已集成 jieba 分词器，Flutter 侧使用简单分词作为降级方
+  String _tokenize(String text) {
+    // 使用简单分词：中文按字符，英文按空
+    //  // Rust 侧已集成 jieba 分词器，提供完整的中文分词支
+    return text.replaceAll(RegExp(r'\s+'), ' ');
   }
 
   /// 截断摘要
@@ -225,11 +224,11 @@ class SearchHistoryService {
   void addHistory(String query) {
     if (query.trim().isEmpty) return;
 
-    // 移除重复�?
-     _history.remove(query);
+    // 移除重复
+    _history.remove(query);
 
-    // 添加到开�?
-      _history.insert(0, query);
+    // 添加到开
+    _history.insert(0, query);
 
     // 限制历史记录数量
     if (_history.length > maxHistory) {
@@ -250,8 +249,8 @@ class SearchHistoryService {
 
 /// 搜索高亮工具
 class SearchHighlighter {
-  /// 高亮关键�?
-   static String highlight({
+  /// 高亮关键
+  static String highlight({
     required String text,
     required List<String> keywords,
     String openTag = '<span class="highlight">',
@@ -283,8 +282,8 @@ class SearchHighlighter {
     final spans = <TextSpan>[];
     String remaining = text;
 
-    // 简单实现：查找第一个匹配的�?
-       for (final keyword in keywords) {
+    // 简单实现：查找第一个匹配的
+    for (final keyword in keywords) {
       final index = remaining.toLowerCase().indexOf(keyword.toLowerCase());
       if (index == -1) continue;
 

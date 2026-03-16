@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
-import 'package:zephyr_reader/gen/assets.gen.dart';
 
 class LoadingIndicator extends StatelessWidget {
   const LoadingIndicator({super.key, this.size = 40.0, this.color});
@@ -14,7 +12,17 @@ class LoadingIndicator extends StatelessWidget {
       child: SizedBox(
         width: size,
         height: size,
-        child: Center(child: Lottie.asset(Assets.json.lottieCta)),
+        child: Center(
+          child:
+              // Lottie.asset(Assets.json.lottieCta)
+              Text(
+                '加载中...',
+                style: TextStyle(
+                  fontSize: size * 0.5,
+                  color: color ?? Theme.of(context).primaryColor,
+                ),
+              ),
+        ),
       ),
     );
   }

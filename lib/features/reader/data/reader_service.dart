@@ -15,8 +15,8 @@ class ReaderService implements ReaderRepository {
   ReaderService(this._database, this._fileStorage);
 
   @override
-  Future<Chapter?> getChapter(int novelId, int chapterIndex) async {
-    final chapter = await _database.getChapter(novelId, chapterIndex);
+  Future<Chapter?> getChapter(int bookId, int chapterIndex) async {
+    final chapter = await _database.getChapter(bookId, chapterIndex);
 
     if (chapter == null) {
       return null;
@@ -35,13 +35,13 @@ class ReaderService implements ReaderRepository {
   }
 
   @override
-  Future<List<Chapter>> getChapters(int novelId) async {
-    return await _database.getChaptersByNovelId(novelId);
+  Future<List<Chapter>> getChapters(int bookId) async {
+    return await _database.getChaptersByBookId(bookId);
   }
 
   @override
   Future<void> saveReadingHistory(
-    int novelId,
+    int bookId,
     int chapterId,
     int position,
     int duration,
@@ -49,13 +49,13 @@ class ReaderService implements ReaderRepository {
     final now = DateTime.now();
 
     // 检查是否已有阅读历史
-    final existing = await _database.getNovelReadingHistory(novelId);
+    final existing = await _database.getBookReadingHistory(bookId);
 
     if (existing != null) {
       // 更新现有记录
       await (_database.update(
         _database.readingHistories,
-      )..where((tbl) => tbl.novelId.equals(novelId))).write(
+      )..where((tbl) => tbl.bookId.equals(bookId))).write(
         ReadingHistoriesCompanion(
           chapterId: Value(chapterId),
           position: Value(position),
@@ -69,7 +69,7 @@ class ReaderService implements ReaderRepository {
           .into(_database.readingHistories)
           .insert(
             ReadingHistoriesCompanion.insert(
-              novelId: novelId,
+              bookId: bookId,
               chapterId: chapterId,
               position: position,
               readTime: Value(now),
@@ -80,13 +80,13 @@ class ReaderService implements ReaderRepository {
   }
 
   @override
-  Future<ReadingHistory?> getReadingHistory(int novelId) async {
-    return await _database.getNovelReadingHistory(novelId);
+  Future<ReadingHistory?> getReadingHistory(int bookId) async {
+    return await _database.getBookReadingHistory(bookId);
   }
 
   @override
   Future<int> addBookmark(
-    int novelId,
+    int bookId,
     int chapterId,
     int position,
     String? note,
@@ -95,34 +95,38 @@ class ReaderService implements ReaderRepository {
         .into(_database.bookmarks)
         .insert(
           BookmarksCompanion.insert(
-            novelId: novelId,
+            bookId: bookId,
             chapterId: chapterId,
             position: position,
             note: Value(note),
+            bookmarkId: '',
+            pageIndex: 0,
+            title: '',
+            createdTimestamp: DateTime.now().millisecondsSinceEpoch,
           ),
         );
   }
 
   @override
-  Future<List<Bookmark>> getBookmarks(int novelId) async {
-    return await _database.getBookmarksByNovelId(novelId);
+  Future<List<Bookmark>> getBookmarks(int bookId) async {
+    return await _database.getBookmarks(bookId);
   }
 
   @override
-  Future<bool> deleteBookmark(int bookmarkId) async {
+  Future<bool> deleteBookmark(String bookmarkId) async {
     return await (_database.delete(
           _database.bookmarks,
-        )..where((tbl) => tbl.id.equals(bookmarkId))).go() >
+        )..where((tbl) => tbl.bookmarkId.equals(bookmarkId))).go() >
         0;
   }
 
   /// 保存章节内容到文件
   Future<bool> saveChapterContent(
-    int novelId,
+    int bookId,
     int chapterIndex,
     String content,
   ) async {
-    final filename = 'novels/$novelId/chapter_$chapterIndex.txt';
+    final filename = 'Books/$bookId/chapter_$chapterIndex.txt';
     return await _fileStorage.saveString(filename, content);
   }
 

@@ -14,7 +14,7 @@ enum AppThemeType {
   /// 纯黑主题 (AMOLED)
   pureDark(label: '纯黑'),
 
-  /// 护眼主题 (米黄�?
+  /// 护眼主题 (米黄
   eyeProtection(label: '护眼'),
 
   /// 跟随系统
@@ -24,7 +24,7 @@ enum AppThemeType {
   const AppThemeType({required this.label});
 }
 
-/// 主题管理器单�?
+/// 主题管理器单
 class ThemeManager {
   static final ThemeManager _instance = ThemeManager._internal();
   static ThemeManager get instance => _instance;
@@ -39,10 +39,10 @@ class ThemeManager {
   /// 当前主题类型信号
   final themeType = signal<AppThemeType>(AppThemeType.system);
 
-  /// 自定义主题色信号（允许用户自定义主色�?
+  /// 自定义主题色信号（允许用户自定义主色
   final customPrimaryColor = signal<Color?>(null);
 
-  /// 主题模式（兼�?Flutter �?ThemeMode�?
+  /// 主题模式（兼Flutter ThemeMode
   ThemeMode get themeMode {
     switch (themeType.value) {
       case AppThemeType.light:
@@ -58,7 +58,7 @@ class ThemeManager {
     }
   }
 
-  /// 是否为深色模�?
+  /// 是否为深色模
   bool get isDarkMode {
     switch (themeType.value) {
       case AppThemeType.dark:
@@ -92,7 +92,7 @@ class ThemeManager {
         : AppThemeType.system.index;
     themeType.value = AppThemeType.values[resolvedIndex];
 
-    // 加载自定义主�?
+    // 加载自定义主
     final colorValue = _prefs!.getInt(_keyCustomPrimaryColor);
     if (colorValue != null) {
       customPrimaryColor.value = Color(colorValue);
@@ -107,7 +107,7 @@ class ThemeManager {
     await _prefs?.setInt(_keyThemeType, type.index);
   }
 
-  /// 设置自定义主�?
+  /// 设置自定义主
   Future<void> setCustomPrimaryColor(Color? color) async {
     customPrimaryColor.value = color;
     if (color != null) {
@@ -130,35 +130,35 @@ class ThemeManager {
         id: 'default_teal',
         name: '清新青绿',
         primaryColor: const Color(0xFF2DD4BF),
-        description: '默认主题，清新活�?',
+        description: '默认主题，清新活',
       ),
       ThemePreset(
         id: 'ocean_blue',
-        name: '海洋�?',
+        name: '海洋',
         primaryColor: const Color(0xFF3B82F6),
         description: '沉稳专业',
       ),
       ThemePreset(
         id: 'forest_green',
-        name: '森林�?',
+        name: '森林',
         primaryColor: const Color(0xFF10B981),
         description: '自然护眼',
       ),
       ThemePreset(
         id: 'sunset_orange',
-        name: '日落�?',
+        name: '日落',
         primaryColor: const Color(0xFFF97316),
         description: '温暖活力',
       ),
       ThemePreset(
         id: 'royal_purple',
-        name: '贵族�?',
+        name: '贵族',
         primaryColor: const Color(0xFF8B5CF6),
         description: '优雅神秘',
       ),
       ThemePreset(
         id: 'rose_pink',
-        name: '玫瑰�?',
+        name: '玫瑰',
         primaryColor: const Color(0xFFEC4899),
         description: '浪漫温馨',
       ),
@@ -175,13 +175,13 @@ class ThemeManager {
     await setCustomPrimaryColor(preset.primaryColor);
   }
 
-  /// 获取当前主题的名�?
+  /// 获取当前主题的名
   String get currentThemeName => themeType.value.label;
 
-  /// 是否为护眼模�?
+  /// 是否为护眼模
   bool get isEyeProtectionMode => themeType.value == AppThemeType.eyeProtection;
 
-  /// 是否为纯黑模�?
+  /// 是否为纯黑模
   bool get isPureDarkMode => themeType.value == AppThemeType.pureDark;
 }
 

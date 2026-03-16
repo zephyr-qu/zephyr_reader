@@ -15,8 +15,8 @@ class WebDavConfigService {
   final SharedPreferences _prefs;
   final FlutterSecureStorage _secureStorage;
 
-  /// WebDAV 配置是否已设�?
-    final isConfigured = signal(false);
+  /// WebDAV 配置是否已设
+  final isConfigured = signal(false);
 
   /// 是否启用自动同步
   final autoSyncEnabled = signal(false);
@@ -40,8 +40,8 @@ class WebDavConfigService {
   static const String _keySyncInterval = 'webdav.sync_interval';
   static const String _keyLastSyncTime = 'webdav.last_sync_time';
 
-  /// 加载配置状�?
-   void _loadConfigStatus() {
+  /// 加载配置状
+  void _loadConfigStatus() {
     final baseUrl = _prefs.getString(_keyBaseUrl);
     isConfigured.value = baseUrl != null && baseUrl.isNotEmpty;
     autoSyncEnabled.value = _prefs.getBool(_keyAutoSync) ?? false;
@@ -82,7 +82,7 @@ class WebDavConfigService {
     await _secureStorage.write(key: _keyPassword, value: config.password);
 
     isConfigured.value = true;
-    debugPrint('WebDAV 配置已保�?');
+    debugPrint('WebDAV 配置已保');
   }
 
   /// 清除 WebDAV 配置
@@ -93,7 +93,7 @@ class WebDavConfigService {
     await _secureStorage.delete(key: _keyPassword);
 
     isConfigured.value = false;
-    debugPrint('WebDAV 配置已清�?');
+    debugPrint('WebDAV 配置已清');
   }
 
   /// 设置自动同步
@@ -107,7 +107,7 @@ class WebDavConfigService {
       autoSyncInterval.value = intervalMinutes;
     }
     autoSyncEnabled.value = enabled;
-    // debugPrint('自动同步�?{enabled ? '启用' : '禁用'}');
+    // debugPrint('自动同步{enabled ? '启用' : '禁用'}');
   }
 
   /// 测试当前配置
@@ -124,16 +124,16 @@ class WebDavConfigService {
     return result;
   }
 
-  /// 获取最后同步时�?
+  /// 获取最后同步时
 
-   Future<DateTime?> getLastSyncTime() async {
+  Future<DateTime?> getLastSyncTime() async {
     final timestamp = _prefs.getInt(_keyLastSyncTime);
     if (timestamp == null) return null;
     return DateTime.fromMillisecondsSinceEpoch(timestamp);
   }
 
-  /// 设置最后同步时�?
-   Future<void> setLastSyncTime(DateTime time) async {
+  /// 设置最后同步时
+  Future<void> setLastSyncTime(DateTime time) async {
     await _prefs.setInt(_keyLastSyncTime, time.millisecondsSinceEpoch);
   }
 
@@ -141,7 +141,7 @@ class WebDavConfigService {
   static List<WebDavPreset> getPresets() {
     return [
       WebDavPreset(
-        name: '坚果�?',
+        name: '坚果',
         baseUrl: 'https://dav.jianguoyun.com/dav',
         remotePath: '/zephyr_reader',
         helpUrl: 'https://help.jianguoyun.com',

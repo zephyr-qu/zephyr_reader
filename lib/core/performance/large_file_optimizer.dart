@@ -1,4 +1,4 @@
-/// 大文件加载优�?///
+/// 大文件加载优///
 /// 优化大文件（>10MB）的加载性能
 library;
 
@@ -9,13 +9,13 @@ import 'package:flutter/foundation.dart';
 
 /// 大文件加载优化器
 class LargeFileOptimizer {
-  /// 大文件阈值（10MB�?
+  /// 大文件阈值（10MB
   static const int largeFileThreshold = 10 * 1024 * 1024;
 
-  /// 分块大小�?MB�?
+  /// 分块大小MB
   static const int chunkSize = 1024 * 1024;
 
-  /// 预加载块�?
+  /// 预加载块
   static const int preloadChunks = 3;
 
   /// 分块加载文件
@@ -26,24 +26,24 @@ class LargeFileOptimizer {
   }) async {
     final file = File(filePath);
     if (!await file.exists()) {
-      throw FileSystemException('文件不存�?, filePath');
+      throw FileSystemException('文件不存, filePath');
     }
 
     final fileSize = await file.length();
     final isLargeFile = fileSize > largeFileThreshold;
 
     if (isLargeFile) {
-      debugPrint('大文件检测：${fileSize ~/ 1024 ~/ 1024}MB，使用分块加�?');
+      debugPrint('大文件检测：${fileSize ~/ 1024 ~/ 1024}MB，使用分块加');
       return _loadLargeFile(file, chunkSize, onProgress);
     } else {
-      // 小文件直接加�?
+      // 小文件直接加
       final content = await file.readAsString();
       onProgress?.call(1, 1);
       return [content];
     }
   }
 
-  /// 加载大文�?
+  /// 加载大文
   static Future<List<String>> _loadLargeFile(
     File file,
     int chunkSize,
@@ -65,7 +65,7 @@ class LargeFileOptimizer {
 
         onProgress?.call(i + 1, totalChunks);
 
-        // 让出事件循环，避免阻�?UI
+        // 让出事件循环，避免阻UI
         if (i % 10 == 0) {
           await Future.delayed(Duration.zero);
         }
@@ -84,10 +84,10 @@ class LargeFileOptimizer {
     int chunksToPreload,
   ) async {
     // TODO: 实现预加载逻辑
-    debugPrint('预加载第 $currentChunkIndex 块后�?$chunksToPreload �?');
+    debugPrint('预加载第 $currentChunkIndex 块后$chunksToPreload ');
   }
 
-  /// 释放已加载的�?
+  /// 释放已加载的
   static void releaseChunks(List<String> chunks, int keepFrom, int keepTo) {
     // TODO: 实现块释放逻辑
     debugPrint('释放块：$keepFrom - $keepTo');
@@ -107,17 +107,17 @@ class LargeFileOptimizer {
 
 /// 文件加载策略
 enum FileLoadingStrategy {
-  /// 直接加载�? 1MB�?
+  /// 直接加载 1MB
   direct,
 
-  /// 缓冲加载�?-10MB�?
+  /// 缓冲加载-10MB
   buffered,
 
-  /// 分块加载�? 10MB�?
+  /// 分块加载 10MB
   chunked,
 }
 
-/// 文件加载�?
+/// 文件加载
 class OptimizedFileLoader {
   final String filePath;
   final FileLoadingStrategy strategy;
@@ -129,7 +129,7 @@ class OptimizedFileLoader {
   static Future<OptimizedFileLoader> create(String filePath) async {
     final file = File(filePath);
     if (!await file.exists()) {
-      throw FileSystemException('文件不存�?, filePath');
+      throw FileSystemException('文件不存, filePath');
     }
 
     final fileSize = await file.length();
@@ -158,7 +158,7 @@ class OptimizedFileLoader {
     final file = File(filePath);
     final bytes = await file.readAsBytes();
 
-    // 使用 UTF-8 解码�?
+    // 使用 UTF-8 解码
     String content;
     try {
       content = String.fromCharCodes(bytes);

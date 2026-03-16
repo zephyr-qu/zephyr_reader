@@ -1,6 +1,6 @@
 /// 数据同步服务
 ///
-/// 协调阅读进度、书签、书架等数据的同�?library;
+/// 协调阅读进度、书签、书架等数据的同library;
 
 import 'dart:convert';
 import 'dart:io';
@@ -8,8 +8,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'webdav_sync_service.dart';
 import 'webdav_config_service.dart';
+import 'webdav_sync_service.dart';
 
 /// 数据同步服务
 class DataSyncService {
@@ -18,16 +18,16 @@ class DataSyncService {
 
   DataSyncService(this._configService);
 
-  /// 初始化同步服�?
-   Future<void> init() async {
+  /// 初始化同步服
+  Future<void> init() async {
     final config = await _configService.getConfig();
     if (config != null) {
       _syncService = WebDavSyncService(config: config);
     }
   }
 
-  /// 同步所有数�?
-   Future<SyncResult> syncAll({
+  /// 同步所有数
+  Future<SyncResult> syncAll({
     SyncDirection direction = SyncDirection.both,
   }) async {
     if (_syncService == null) {
@@ -59,14 +59,14 @@ class DataSyncService {
       result.success = result.conflictCount == 0;
       return result;
     } catch (e) {
-      debugPrint('同步异常�?e');
-      return SyncResult(error: '同步异常�?e');
+      debugPrint('同步异常e');
+      return SyncResult(error: '同步异常e');
     }
   }
 
-  /// 导出阅读进度�?JSON
+  /// 导出阅读进度JSON
   Future<void> _exportReadingProgress(String localPath) async {
-    // 从数据库�?SharedPreferences 读取阅读进度
+    // 从数据库SharedPreferences 读取阅读进度
     // 这里使用示例数据结构
     final progressData = <String, dynamic>{};
     final file = File(localPath);
@@ -82,10 +82,10 @@ class DataSyncService {
         final content = await file.readAsString();
         final progressData = jsonDecode(content) as Map<String, dynamic>;
         // 将进度数据导入到本地数据库或 SharedPreferences
-        debugPrint('导入阅读进度�?{progressData.length} 条记�?');
+        debugPrint('导入阅读进度{progressData.length} 条记');
       }
     } catch (e) {
-      debugPrint('导入阅读进度失败�?e');
+      debugPrint('导入阅读进度失败e');
     }
   }
 
@@ -120,13 +120,13 @@ class DataSyncService {
         }
       }
     } catch (e) {
-      debugPrint('阅读进度同步异常�?e');
+      debugPrint('阅读进度同步异常e');
     }
 
     return result;
   }
 
-  /// 导出书签�?JSON
+  /// 导出书签JSON
   Future<void> _exportBookmarks(String localPath) async {
     // 从数据库读取书签数据
     // 这里使用示例数据结构
@@ -143,11 +143,11 @@ class DataSyncService {
       if (await file.exists()) {
         final content = await file.readAsString();
         final bookmarkData = jsonDecode(content) as List<dynamic>;
-        // 将书签数据导入到本地数据�?
-          debugPrint('导入书签�?{bookmarkData.length} 条记�?');
+        // 将书签数据导入到本地数据
+        debugPrint('导入书签{bookmarkData.length} 条记');
       }
     } catch (e) {
-      debugPrint('导入书签失败�?e');
+      debugPrint('导入书签失败e');
     }
   }
 
@@ -182,13 +182,13 @@ class DataSyncService {
         }
       }
     } catch (e) {
-      debugPrint('书签同步异常�?e');
+      debugPrint('书签同步异常e');
     }
 
     return result;
   }
 
-  /// 导出书架�?JSON
+  /// 导出书架JSON
   Future<void> _exportBookshelf(String localPath) async {
     // 从数据库读取书架数据
     // 这里使用示例数据结构
@@ -205,10 +205,10 @@ class DataSyncService {
       if (await file.exists()) {
         final content = await file.readAsString();
         final bookshelfData = jsonDecode(content) as List<dynamic>;
-        // 将书架数据导入到本地数据�?        debugPrint('导入书架�?{bookshelfData.length} 本书');
+        // 将书架数据导入到本地数据        debugPrint('导入书架{bookshelfData.length} 本书');
       }
     } catch (e) {
-      debugPrint('导入书架失败�?e');
+      debugPrint('导入书架失败e');
     }
   }
 
@@ -243,7 +243,7 @@ class DataSyncService {
         }
       }
     } catch (e) {
-      debugPrint('书架同步异常�?e');
+      debugPrint('书架同步异常e');
     }
 
     return result;
@@ -254,23 +254,23 @@ class DataSyncService {
     required String dataType,
     required ConflictResolution resolution,
   }) async {
-    debugPrint('解决冲突�?dataType, 方案�?resolution');
-    // 根据 resolution 参数实现不同的冲突解决策�?
-      switch (resolution) {
+    debugPrint('解决冲突dataType, 方案resolution');
+    // 根据 resolution 参数实现不同的冲突解决策
+    switch (resolution) {
       case ConflictResolution.useLocal:
         // 使用本地版本覆盖远程版本
-        debugPrint('使用本地版本覆盖�?dataType');
+        debugPrint('使用本地版本覆盖dataType');
         break;
       case ConflictResolution.useRemote:
         // 使用远程版本覆盖本地版本
-        debugPrint('使用远程版本覆盖�?dataType');
+        debugPrint('使用远程版本覆盖dataType');
         break;
       case ConflictResolution.keepBoth:
-        // 保留两个版本，创建副�?        debugPrint('保留两个版本�?dataType');
+        // 保留两个版本，创建副        debugPrint('保留两个版本dataType');
         break;
       case ConflictResolution.skip:
         // 跳过本次同步
-        debugPrint('跳过同步�?dataType');
+        debugPrint('跳过同步dataType');
         break;
     }
   }

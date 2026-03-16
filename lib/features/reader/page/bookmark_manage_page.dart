@@ -3,14 +3,12 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
+import 'package:zephyr_reader/src/rust/api.dart';
 
 import '../../../../core/database/database.dart';
-import '../../../../core/routing/route_constants.dart';
 import '../../../../di/service_locator.dart';
-import '../../../../src/rust/frb_generated.dart';
-import '../../application/reader_view_model.dart';
 
 /// 书签管理页面
 class BookmarkManagePage extends HookWidget {
@@ -59,7 +57,7 @@ class BookmarkManagePage extends HookWidget {
                     color: Theme.of(context).colorScheme.error,
                   ),
                   const SizedBox(height: 16),
-                  Text('加载失败�?{async.error}'),
+                  Text('加载失败{async.error}'),
                 ],
               ),
             );
@@ -77,7 +75,7 @@ class BookmarkManagePage extends HookWidget {
                     size: 64,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.3),
+                    ).colorScheme.onSurface.withValues(alpha: .3),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -86,17 +84,17 @@ class BookmarkManagePage extends HookWidget {
                       fontSize: 16,
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.6),
+                      ).colorScheme.onSurface.withValues(alpha: .6),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '阅读时点击顶部书签图标添�?',
+                    '阅读时点击顶部书签图标添',
                     style: TextStyle(
                       fontSize: 14,
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.4),
+                      ).colorScheme.onSurface.withValues(alpha: .4),
                     ),
                   ),
                 ],
@@ -140,7 +138,7 @@ class BookmarkManagePage extends HookWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('删除书签'),
-        content: Text('确定要删�?${bookmark.note ?? '书签'}"吗？'),
+        content: Text('确定要删${bookmark.note ?? '书签'}"吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -156,15 +154,15 @@ class BookmarkManagePage extends HookWidget {
 
     if (confirmed == true) {
       // 使用 Rust API 删除书签
-      await RustLib.instance.api.removeBookmark(
-        bookId: 'novel_${vm.bookId.value}',
-        bookmarkId: bookmark.id.toString(),
+      removeBookmark(
+        bookId: 'Book_${vm.bookId.value}',
+        bookmarkId: bookmark.bookmarkId,
       );
       await vm.loadBookmarks();
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('书签已删�?')));
+        ).showSnackBar(const SnackBar(content: Text('书签已删')));
       }
     }
   }
@@ -177,7 +175,7 @@ class BookmarkManagePage extends HookWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('清空书签'),
-        content: const Text('确定要清空本书的所有书签吗？此操作不可恢复�?'),
+        content: const Text('确定要清空本书的所有书签吗？此操作不可恢复'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -195,22 +193,20 @@ class BookmarkManagePage extends HookWidget {
     );
 
     if (confirmed == true) {
-      // 清空所有书�?
-      await RustLib.instance.api.clearBookmarks(
-        bookId: 'novel_${vm.bookId.value}',
-      );
+      // 清空所有书签
+      clearBookmarks(bookId: 'Book_${vm.bookId.value}');
       await vm.loadBookmarks();
 
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('书签已清�?')));
+        ).showSnackBar(const SnackBar(content: Text('书签已清')));
       }
     }
   }
 }
 
-/// 书签列表�?
+/// 书签列表
 class _BookmarkTile extends StatelessWidget {
   final Bookmark bookmark;
   final VoidCallback onTap;
@@ -231,13 +227,15 @@ class _BookmarkTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 4),
-          Text('�?${bookmark.chapterId} �?'),
+          Text('${bookmark.chapterId} '),
           if (bookmark.note != null && bookmark.note!.isNotEmpty)
             Text(
               bookmark.note!,
               style: TextStyle(
                 fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -248,10 +246,12 @@ class _BookmarkTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            _formatDate(bookmark.createdAt),
+            _formatDate(bookmark.createdTimestamp),
             style: TextStyle(
               fontSize: 12,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(width: 8),
@@ -267,15 +267,16 @@ class _BookmarkTile extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(int timestamp) {
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
     final now = DateTime.now();
     final difference = now.difference(date);
 
     if (difference.inDays == 0) {
       if (difference.inHours == 0) {
-        return '${difference.inMinutes}分钟�?';
+        return '${difference.inMinutes}分钟';
       }
-      return '${difference.inHours}小时�?';
+      return '${difference.inHours}小时';
     } else if (difference.inDays < 7) {
       return '${difference.inDays}天前';
     } else {

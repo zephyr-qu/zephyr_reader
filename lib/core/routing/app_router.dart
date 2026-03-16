@@ -7,7 +7,7 @@ import 'package:zephyr_reader/features/bookshelf/page/book_detail_page.dart';
 import 'package:zephyr_reader/features/bookshelf/page/bookshelf_page.dart';
 import 'package:zephyr_reader/features/home/page/main_page.dart';
 import 'package:zephyr_reader/features/profile/page/profile_page.dart';
-import 'package:zephyr_reader/features/reader/page/reader_page.dart';
+import 'package:zephyr_reader/features/reader/page/reader_page_new.dart';
 import 'package:zephyr_reader/features/search/page/search_page.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
@@ -81,7 +81,11 @@ final router = GoRouter(
       builder: (_, state) {
         final bookId = int.parse(state.pathParameters['bookId'] ?? '0');
         final chapterId = int.parse(state.pathParameters['chapterId'] ?? '1');
-        return ReaderPage(bookId: bookId, chapterId: chapterId);
+        return ReaderPageNew(
+          bookId: bookId,
+          initialChapterId: chapterId,
+          initialPageIndex: 0,
+        );
       },
     ),
     // 搜索路由

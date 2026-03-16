@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
-import 'novels.dart';
+
+import 'books.dart';
 import 'chapters.dart';
 
 /// 阅读历史表
@@ -8,8 +9,8 @@ class ReadingHistories extends Table {
   IntColumn get id => integer().autoIncrement()();
 
   /// 关联的小说ID
-  IntColumn get novelId =>
-      integer().references(Novels, #id, onDelete: KeyAction.cascade)();
+  IntColumn get bookId =>
+      integer().references(Books, #id, onDelete: KeyAction.cascade)();
 
   /// 关联的章节ID
   IntColumn get chapterId =>

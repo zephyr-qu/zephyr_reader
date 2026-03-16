@@ -6,8 +6,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
-import '../../../core/theme/pure_black_theme.dart';
 import '../../../core/theme/eye_protection_theme.dart';
+import '../../../core/theme/pure_black_theme.dart';
 
 /// 主题设置页面
 class ThemeSettingsPage extends HookWidget {
@@ -126,7 +126,7 @@ class ThemeSettingsPage extends HookWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('开始时�?'),
+                            const Text('开始时'),
                             DropdownButton<int>(
                               value: darkModeStart.value,
                               isExpanded: true,
@@ -149,7 +149,7 @@ class ThemeSettingsPage extends HookWidget {
                       ),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('�?'),
+                        child: Text(''),
                       ),
                       Expanded(
                         child: Column(
@@ -293,11 +293,11 @@ class ThemeSettingsPage extends HookWidget {
           ),
           ListTile(
             leading: const Icon(Icons.book),
-            title: const Text('阅读背景�?'),
-            subtitle: const Text('设置阅读页面的背景颜�?'),
+            title: const Text('阅读背景'),
+            subtitle: const Text('设置阅读页面的背景颜'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              // 跳转到阅读背景设�?
+              // 跳转到阅读背景设
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(const SnackBar(content: Text('阅读背景设置功能开发中')));
@@ -306,11 +306,11 @@ class ThemeSettingsPage extends HookWidget {
           ListTile(
             leading: const Icon(Icons.brightness_6),
             title: const Text('阅读亮度'),
-            subtitle: const Text('调节阅读页面的屏幕亮�?'),
+            subtitle: const Text('调节阅读页面的屏幕亮'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              // 跳转到亮度设�?
-               ScaffoldMessenger.of(
+              // 跳转到亮度设
+              ScaffoldMessenger.of(
                 context,
               ).showSnackBar(const SnackBar(content: Text('阅读亮度设置功能开发中')));
             },

@@ -10,6 +10,7 @@ abstract class RoutePaths {
   static const String profile = '/profile';
   static const String articles = '/articles';
   static const String articleDetail = '/articles/:id';
+  static const String statistics = '/statistics';
 }
 
 abstract class RouteNames {
@@ -24,4 +25,5 @@ abstract class RouteNames {
   static const String profile = 'profile';
   static const String articles = 'articles';
   static const String articleDetail = 'articleDetail';
+  static const String statistics = 'statistics';
 }

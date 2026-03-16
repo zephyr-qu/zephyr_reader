@@ -1,9 +1,9 @@
-/// 空状态组�?
+/// 空状态组
 library;
 
 import 'package:flutter/material.dart';
 
-/// 书架空状�?
+/// 书架空状
 class EmptyState extends StatelessWidget {
   /// 导入回调
   final VoidCallback? onImport;
@@ -20,8 +20,8 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 空状态图�?
-             Container(
+            // 空状态图
+            Container(
               width: 120,
               height: 120,
               decoration: BoxDecoration(
@@ -45,7 +45,7 @@ class EmptyState extends StatelessWidget {
             const SizedBox(height: 12),
             // 描述
             Text(
-              '导入本地书籍，开始阅读之�?',
+              '导入本地书籍，开始阅读之',
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

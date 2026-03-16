@@ -8,7 +8,7 @@ part 'chapter.freezed.dart';
 
 /// 章节领域模型
 @freezed
-class Chapter with _$Chapter {
+abstract class Chapter with _$Chapter {
   const factory Chapter({
     /// 章节唯一标识
     required int id,

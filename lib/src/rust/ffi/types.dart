@@ -5,6 +5,8 @@
 
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+part 'types.freezed.dart';
 
 /// 书签信息
 class Bookmark {
@@ -63,6 +65,96 @@ class Bookmark {
           note == other.note;
 }
 
+/// 缓存的排版结果
+class CachedLayout {
+  /// 章节 ID
+  final int chapterId;
+
+  /// 排版配置哈希
+  final String configHash;
+
+  /// 页面偏移量列表
+  final List<PageOffset> pageOffsets;
+
+  /// 总页数
+  final int totalPages;
+
+  /// 创建时间戳
+  final PlatformInt64 createdAt;
+
+  const CachedLayout({
+    required this.chapterId,
+    required this.configHash,
+    required this.pageOffsets,
+    required this.totalPages,
+    required this.createdAt,
+  });
+
+  @override
+  int get hashCode =>
+      chapterId.hashCode ^
+      configHash.hashCode ^
+      pageOffsets.hashCode ^
+      totalPages.hashCode ^
+      createdAt.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CachedLayout &&
+          runtimeType == other.runtimeType &&
+          chapterId == other.chapterId &&
+          configHash == other.configHash &&
+          pageOffsets == other.pageOffsets &&
+          totalPages == other.totalPages &&
+          createdAt == other.createdAt;
+}
+
+/// 每日阅读记录
+class DailyReadingRecord {
+  /// 日期（YYYY-MM-DD 格式）
+  final String date;
+
+  /// 阅读时长（秒）
+  final PlatformInt64 readingTimeSeconds;
+
+  /// 阅读字数
+  final PlatformInt64 charactersRead;
+
+  /// 阅读章节数
+  final int chaptersRead;
+
+  /// 阅读页数
+  final int pagesRead;
+
+  const DailyReadingRecord({
+    required this.date,
+    required this.readingTimeSeconds,
+    required this.charactersRead,
+    required this.chaptersRead,
+    required this.pagesRead,
+  });
+
+  @override
+  int get hashCode =>
+      date.hashCode ^
+      readingTimeSeconds.hashCode ^
+      charactersRead.hashCode ^
+      chaptersRead.hashCode ^
+      pagesRead.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DailyReadingRecord &&
+          runtimeType == other.runtimeType &&
+          date == other.date &&
+          readingTimeSeconds == other.readingTimeSeconds &&
+          charactersRead == other.charactersRead &&
+          chaptersRead == other.chaptersRead &&
+          pagesRead == other.pagesRead;
+}
+
 /// 文本语言类型
 enum LanguageType {
   /// 中文
@@ -76,6 +168,28 @@ enum LanguageType {
 
   /// 自动检测
   auto,
+}
+
+/// 排版缓存查询结果
+class LayoutCacheResult {
+  /// 是否命中缓存
+  final bool hit;
+
+  /// 缓存的排版结果（如果命中）
+  final CachedLayout? cachedLayout;
+
+  const LayoutCacheResult({required this.hit, this.cachedLayout});
+
+  @override
+  int get hashCode => hit.hashCode ^ cachedLayout.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LayoutCacheResult &&
+          runtimeType == other.runtimeType &&
+          hit == other.hit &&
+          cachedLayout == other.cachedLayout;
 }
 
 /// 分页内容结构体
@@ -115,6 +229,28 @@ class PageContent {
           pageIndex == other.pageIndex &&
           content == other.content &&
           isLastPage == other.isLastPage;
+}
+
+/// 排版缓存中的页面偏移量
+class PageOffset {
+  /// 字符偏移量（在原始内容中的位置）
+  final PlatformInt64 offset;
+
+  /// 页面长度（字符数）
+  final PlatformInt64 length;
+
+  const PageOffset({required this.offset, required this.length});
+
+  @override
+  int get hashCode => offset.hashCode ^ length.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PageOffset &&
+          runtimeType == other.runtimeType &&
+          offset == other.offset &&
+          length == other.length;
 }
 
 /// 阅读进度信息
@@ -168,6 +304,258 @@ class ReadingProgress {
           lastReadTimestamp == other.lastReadTimestamp;
 }
 
+/// 阅读统计数据
+class ReadingStats {
+  /// 总阅读时长（秒）
+  final PlatformInt64 totalReadingTimeSeconds;
+
+  /// 总阅读字数
+  final PlatformInt64 totalCharactersRead;
+
+  /// 阅读书籍数量
+  final int booksReadCount;
+
+  /// 完成阅读书籍数量
+  final int booksCompletedCount;
+
+  /// 连续阅读天数
+  final int consecutiveReadingDays;
+
+  /// 今日阅读时长（秒）
+  final PlatformInt64 todayReadingTimeSeconds;
+
+  /// 今日阅读字数
+  final PlatformInt64 todayCharactersRead;
+
+  /// 平均阅读速度（字/分钟）
+  final double averageReadingSpeed;
+
+  const ReadingStats({
+    required this.totalReadingTimeSeconds,
+    required this.totalCharactersRead,
+    required this.booksReadCount,
+    required this.booksCompletedCount,
+    required this.consecutiveReadingDays,
+    required this.todayReadingTimeSeconds,
+    required this.todayCharactersRead,
+    required this.averageReadingSpeed,
+  });
+
+  @override
+  int get hashCode =>
+      totalReadingTimeSeconds.hashCode ^
+      totalCharactersRead.hashCode ^
+      booksReadCount.hashCode ^
+      booksCompletedCount.hashCode ^
+      consecutiveReadingDays.hashCode ^
+      todayReadingTimeSeconds.hashCode ^
+      todayCharactersRead.hashCode ^
+      averageReadingSpeed.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ReadingStats &&
+          runtimeType == other.runtimeType &&
+          totalReadingTimeSeconds == other.totalReadingTimeSeconds &&
+          totalCharactersRead == other.totalCharactersRead &&
+          booksReadCount == other.booksReadCount &&
+          booksCompletedCount == other.booksCompletedCount &&
+          consecutiveReadingDays == other.consecutiveReadingDays &&
+          todayReadingTimeSeconds == other.todayReadingTimeSeconds &&
+          todayCharactersRead == other.todayCharactersRead &&
+          averageReadingSpeed == other.averageReadingSpeed;
+}
+
+/// 富文本章节内容
+///
+/// 包含完整章节的富文本结构化数据。
+class RichChapterContent {
+  /// 章节 ID
+  final int chapterId;
+
+  /// 段落列表
+  final List<RichParagraph> paragraphs;
+
+  /// 总字符数（不含样式标记）
+  final PlatformInt64 totalCharacters;
+
+  const RichChapterContent({
+    required this.chapterId,
+    required this.paragraphs,
+    required this.totalCharacters,
+  });
+
+  @override
+  int get hashCode =>
+      chapterId.hashCode ^ paragraphs.hashCode ^ totalCharacters.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RichChapterContent &&
+          runtimeType == other.runtimeType &&
+          chapterId == other.chapterId &&
+          paragraphs == other.paragraphs &&
+          totalCharacters == other.totalCharacters;
+}
+
+/// 富文本段落
+///
+/// 由多个富文本片段组成的段落，支持首行缩进和标题标记。
+class RichParagraph {
+  /// 文本片段列表
+  final List<RichTextSpan> spans;
+
+  /// 首行缩进字符数
+  final int indent;
+
+  /// 是否为标题
+  final bool isHeading;
+
+  /// 标题层级（1-6，0 表示非标题）
+  final int headingLevel;
+
+  /// 段落样式类名（来自 HTML class 属性）
+  final String? className;
+
+  const RichParagraph({
+    required this.spans,
+    required this.indent,
+    required this.isHeading,
+    required this.headingLevel,
+    this.className,
+  });
+
+  @override
+  int get hashCode =>
+      spans.hashCode ^
+      indent.hashCode ^
+      isHeading.hashCode ^
+      headingLevel.hashCode ^
+      className.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RichParagraph &&
+          runtimeType == other.runtimeType &&
+          spans == other.spans &&
+          indent == other.indent &&
+          isHeading == other.isHeading &&
+          headingLevel == other.headingLevel &&
+          className == other.className;
+}
+
+@freezed
+sealed class RichTextSpan with _$RichTextSpan {
+  const RichTextSpan._();
+
+  /// 纯文本
+  const factory RichTextSpan.plain({required String text}) = RichTextSpan_Plain;
+
+  /// 粗体
+  const factory RichTextSpan.bold({required String text}) = RichTextSpan_Bold;
+
+  /// 斜体
+  const factory RichTextSpan.italic({required String text}) =
+      RichTextSpan_Italic;
+
+  /// 粗体 + 斜体
+  const factory RichTextSpan.boldItalic({required String text}) =
+      RichTextSpan_BoldItalic;
+
+  /// 下划线
+  const factory RichTextSpan.underline({required String text}) =
+      RichTextSpan_Underline;
+
+  /// 删除线
+  const factory RichTextSpan.strikethrough({required String text}) =
+      RichTextSpan_Strikethrough;
+
+  /// 行内代码
+  const factory RichTextSpan.code({required String text}) = RichTextSpan_Code;
+
+  /// 超链接
+  const factory RichTextSpan.link({required String text, required String url}) =
+      RichTextSpan_Link;
+}
+
+/// 搜索结果项
+class SearchHit {
+  /// 章节 ID
+  final int chapterId;
+
+  /// 章节标题
+  final String chapterTitle;
+
+  /// 匹配的文本片段
+  final String snippet;
+
+  /// 匹配位置（字符偏移）
+  final PlatformInt64 position;
+
+  /// 相关度评分
+  final double score;
+
+  const SearchHit({
+    required this.chapterId,
+    required this.chapterTitle,
+    required this.snippet,
+    required this.position,
+    required this.score,
+  });
+
+  @override
+  int get hashCode =>
+      chapterId.hashCode ^
+      chapterTitle.hashCode ^
+      snippet.hashCode ^
+      position.hashCode ^
+      score.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SearchHit &&
+          runtimeType == other.runtimeType &&
+          chapterId == other.chapterId &&
+          chapterTitle == other.chapterTitle &&
+          snippet == other.snippet &&
+          position == other.position &&
+          score == other.score;
+}
+
+/// 搜索结果
+class SearchResults {
+  /// 总匹配数
+  final int totalHits;
+
+  /// 搜索结果列表
+  final List<SearchHit> hits;
+
+  /// 搜索耗时（毫秒）
+  final PlatformInt64 elapsedMs;
+
+  const SearchResults({
+    required this.totalHits,
+    required this.hits,
+    required this.elapsedMs,
+  });
+
+  @override
+  int get hashCode => totalHits.hashCode ^ hits.hashCode ^ elapsedMs.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SearchResults &&
+          runtimeType == other.runtimeType &&
+          totalHits == other.totalHits &&
+          hits == other.hits &&
+          elapsedMs == other.elapsedMs;
+}
+
 /// 排版配置
 class TypesetConfig {
   /// 页面宽度（像素）
@@ -194,6 +582,12 @@ class TypesetConfig {
   /// 语言类型
   final LanguageType language;
 
+  /// 是否启用英文连字符
+  final bool enableHyphenation;
+
+  /// 连字符语言（如 "en-us", "en-gb"）
+  final String? hyphenationLanguage;
+
   const TypesetConfig({
     required this.pageWidth,
     required this.pageHeight,
@@ -203,6 +597,8 @@ class TypesetConfig {
     required this.paragraphSpacing,
     required this.firstLineIndent,
     required this.language,
+    required this.enableHyphenation,
+    this.hyphenationLanguage,
   });
 
   @override
@@ -214,7 +610,9 @@ class TypesetConfig {
       letterSpacing.hashCode ^
       paragraphSpacing.hashCode ^
       firstLineIndent.hashCode ^
-      language.hashCode;
+      language.hashCode ^
+      enableHyphenation.hashCode ^
+      hyphenationLanguage.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -228,5 +626,7 @@ class TypesetConfig {
           letterSpacing == other.letterSpacing &&
           paragraphSpacing == other.paragraphSpacing &&
           firstLineIndent == other.firstLineIndent &&
-          language == other.language;
+          language == other.language &&
+          enableHyphenation == other.enableHyphenation &&
+          hyphenationLanguage == other.hyphenationLanguage;
 }
