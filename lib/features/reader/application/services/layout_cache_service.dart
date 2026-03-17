@@ -10,7 +10,6 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:zephyr_reader/core/database/database.dart';
-import 'package:zephyr_reader/core/database/tables/layout_cache.dart';
 import 'package:zephyr_reader/src/rust/ffi/types.dart';
 
 /// 排版缓存服务
@@ -21,7 +20,7 @@ class LayoutCacheService {
 
   /// 保存排版缓存
   Future<void> saveLayoutCache({
-    required String bookId,
+    required int bookId,
     required int chapterId,
     required String configHash,
     required List<PageOffset> pageOffsets,
@@ -57,7 +56,7 @@ class LayoutCacheService {
 
   /// 获取排版缓存
   Future<LayoutCacheResult?> getLayoutCache({
-    required String bookId,
+    required int bookId,
     required int chapterId,
     required String configHash,
   }) async {
@@ -99,7 +98,7 @@ class LayoutCacheService {
   }
 
   /// 清除书籍的所有排版缓存
-  Future<int> clearLayoutCache(String bookId) async {
+  Future<int> clearLayoutCache(int bookId) async {
     try {
       return await _db.clearLayoutCache(bookId);
     } catch (e) {
@@ -109,7 +108,7 @@ class LayoutCacheService {
   }
 
   /// 清除指定章节的排版缓存
-  Future<int> clearChapterLayoutCache(String bookId, int chapterId) async {
+  Future<int> clearChapterLayoutCache(int bookId, int chapterId) async {
     try {
       return await _db.clearChapterLayoutCache(bookId, chapterId);
     } catch (e) {
@@ -119,7 +118,7 @@ class LayoutCacheService {
   }
 
   /// 获取书籍的所有排版缓存
-  Future<List<CachedLayout>> getAllLayoutCache(String bookId) async {
+  Future<List<CachedLayout>> getAllLayoutCache(int bookId) async {
     try {
       final cacheItems = await _db.getAllLayoutCache(bookId);
 

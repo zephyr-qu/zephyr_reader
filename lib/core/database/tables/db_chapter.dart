@@ -1,14 +1,14 @@
 import 'package:drift/drift.dart';
-import 'package:zephyr_reader/core/database/tables/books.dart';
+import 'package:zephyr_reader/core/database/tables/db_book.dart';
 
 /// 章节表
-@DataClassName('Chapter')
-class Chapters extends Table {
+@DataClassName('DbChapter')
+class DbChapters extends Table {
   IntColumn get id => integer().autoIncrement()();
 
   /// 关联的小说ID
   IntColumn get bookId =>
-      integer().references(Books, #id, onDelete: KeyAction.cascade)();
+      integer().references(DbBooks, #id, onDelete: KeyAction.cascade)();
 
   /// 章节标题
   TextColumn get title => text()();

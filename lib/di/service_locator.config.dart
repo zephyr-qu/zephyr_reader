@@ -34,8 +34,10 @@ import 'package:zephyr_reader/features/auth/domain/auth_repository.dart'
     as _i304;
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart'
     as _i790;
-import 'package:zephyr_reader/features/bookshelf/data/bookshelf_service.dart'
-    as _i167;
+import 'package:zephyr_reader/features/bookshelf/application/states/bookshelf_state.dart'
+    as _i999;
+import 'package:zephyr_reader/features/bookshelf/data/bookshelf_local_data_source.dart'
+    as _i888;
 import 'package:zephyr_reader/features/bookshelf/domain/bookshelf_repository.dart'
     as _i208;
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart'
@@ -79,8 +81,12 @@ extension GetItInjectableX on _i174.GetIt {
       return i.init().then((_) => i);
     });
     gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
+    gh.lazySingleton<_i999.BookshelfState>(() => _i999.BookshelfState());
+    gh.lazySingleton<_i888.BookshelfLocalDataSource>(
+      () => _i888.BookshelfLocalDataSource(gh<_i731.AppDatabase>()),
+    );
     gh.lazySingleton<_i208.BookshelfRepository>(
-      () => _i167.BookshelfService(gh<_i731.AppDatabase>()),
+      () => gh<_i888.BookshelfLocalDataSource>(),
     );
     gh.lazySingleton<_i935.SearchRepository>(() => _i584.SearchService());
     gh.lazySingletonAsync<_i972.ReaderRepository>(

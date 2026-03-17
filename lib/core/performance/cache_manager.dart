@@ -1,4 +1,5 @@
-/// 阅读器缓存管///
+/// 阅读器缓存管理器
+///
 /// 提供章节内容缓存、图片缓存、布局缓存等功能，
 /// 优化大文件加载性能和内存使用
 library;
@@ -63,7 +64,7 @@ class LruCache<K, T> {
 
   /// 设置缓存
   void put(K key, T value, {int size = 1}) {
-    // 如果已存在，先移
+    // 如果已存在，先移除
     if (_cache.containsKey(key)) {
       _accessOrder.remove(key);
     }
@@ -74,7 +75,7 @@ class LruCache<K, T> {
       _cache.remove(oldestKey);
     }
 
-    // 添加新条
+    // 添加新条目
     _cache[key] = CacheEntry(
       value: value,
       createdAt: DateTime.now(),
@@ -89,7 +90,7 @@ class LruCache<K, T> {
     _accessOrder.remove(key);
   }
 
-  /// 清除所有缓
+  /// 清除所有缓存
   void clear() {
     _cache.clear();
     _accessOrder.clear();
@@ -99,21 +100,34 @@ class LruCache<K, T> {
   int get length => _cache.length;
 
   /// 获取缓存占用
-  int get totalSize => _cache.values.fold(0, (sum, entry) => sum + entry.size);
+  int get totalSize =>
+      _cache.values.fold(0, (sum, entry) => sum + entry.size);
 
-  /// 检查是否包含某个键
-  bool containsKey(K key) => _cache.containsKey(key);
+  /// 获取所有键
+  Iterable<K> get keys => _cache.keys;
+
+  /// 获取访问队列
+  Queue<K> get accessOrder => _accessOrder;
 }
 
 /// 章节内容缓存
+///
+/// 提供章节内容的二级缓存（内存 + 磁盘），优化阅读器加载性能
 class ChapterContentCache {
   static ChapterContentCache? _instance;
   late final LruCache<String, String> _cache;
   late final Directory _cacheDir;
+  bool _isInitialized = false;
+
+  /// 最大内存缓存章节数
+  static const int maxMemoryCacheSize = 100;
+
+  /// 最大磁盘缓存大小（100MB）
+  static const int maxDiskCacheSize = 100 * 1024 * 1024;
 
   ChapterContentCache._() {
-    // 使用内存缓存（最100 章）
-    _cache = LruCache(maxSize: 100);
+    // 使用内存缓存（最多 100 章）
+    _cache = LruCache(maxSize: maxMemoryCacheSize);
     _initCacheDir();
   }
 
@@ -123,106 +137,175 @@ class ChapterContentCache {
   }
 
   Future<void> _initCacheDir() async {
-    final tempDir = await getTemporaryDirectory();
-    _cacheDir = Directory(p.join(tempDir.path, 'chapter_cache'));
-    if (!await _cacheDir.exists()) {
-      await _cacheDir.create(recursive: true);
+    try {
+      final tempDir = await getTemporaryDirectory();
+      _cacheDir = Directory(p.join(tempDir.path, 'chapter_cache'));
+      if (!await _cacheDir.exists()) {
+        await _cacheDir.create(recursive: true);
+      }
+      _isInitialized = true;
+      debugPrint('章节缓存目录初始化完成：${_cacheDir.path}');
+    } catch (e) {
+      debugPrint('章节缓存目录初始化失败：$e');
+      _isInitialized = false;
     }
   }
 
-  /// 获取缓存
+  /// 确保缓存目录已初始化
+  Future<void> _ensureInitialized() async {
+    if (!_isInitialized) {
+      await _initCacheDir();
+    }
+  }
+
+  /// 获取缓存键
   String _getCacheKey(int bookId, int chapterId) =>
       'book_${bookId}_chapter_$chapterId';
 
   /// 获取章节内容
+  ///
+  /// [bookId] 书籍 ID
+  /// [chapterId] 章节 ID
+  ///
+  /// 返回章节内容，如果缓存未命中则返回 null
   Future<String?> get(int bookId, int chapterId) async {
+    await _ensureInitialized();
+
     final key = _getCacheKey(bookId, chapterId);
 
-    // 先尝试内存缓
+    // 先尝试内存缓存
     final cached = _cache.get(key);
     if (cached != null) {
-      debugPrint('内存缓存命中key');
+      debugPrint('章节内存缓存命中：$key');
       return cached;
     }
 
     // 尝试磁盘缓存
     final cacheFile = File(p.join(_cacheDir.path, '$key.txt'));
     if (await cacheFile.exists()) {
-      debugPrint('磁盘缓存命中key');
-      final content = await cacheFile.readAsString();
-      // 写入内存缓存
-      _cache.put(key, content);
-      return content;
+      debugPrint('章节磁盘缓存命中：$key');
+      try {
+        final content = await cacheFile.readAsString();
+        // 写入内存缓存
+        _cache.put(key, content);
+        return content;
+      } catch (e) {
+        debugPrint('读取缓存文件失败：$e');
+        // 文件损坏，删除它
+        await cacheFile.delete();
+      }
     }
 
     return null;
   }
 
   /// 设置章节内容
+  ///
+  /// [bookId] 书籍 ID
+  /// [chapterId] 章节 ID
+  /// [content] 章节内容
   Future<void> put(int bookId, int chapterId, String content) async {
+    await _ensureInitialized();
+
     final key = _getCacheKey(bookId, chapterId);
 
     // 写入内存缓存
     _cache.put(key, content);
 
     // 写入磁盘缓存
-    final cacheFile = File(p.join(_cacheDir.path, '$key.txt'));
-    await cacheFile.parent.create(recursive: true);
-    await cacheFile.writeAsString(content);
-
-    debugPrint('缓存已写入：$key');
-  }
-
-  /// 移除章节缓存
-  Future<void> remove(int bookId, int chapterId) async {
-    final key = _getCacheKey(bookId, chapterId);
-    _cache.remove(key);
-
-    final cacheFile = File(p.join(_cacheDir.path, '$key.txt'));
-    if (await cacheFile.exists()) {
-      await cacheFile.delete();
+    try {
+      final cacheFile = File(p.join(_cacheDir.path, '$key.txt'));
+      await cacheFile.parent.create(recursive: true);
+      await cacheFile.writeAsString(content);
+      debugPrint('章节缓存已写入：$key');
+    } catch (e) {
+      debugPrint('写入缓存文件失败：$e');
     }
   }
 
-  /// 清除书籍的所有缓
+  /// 批量设置章节内容
+  ///
+  /// [bookId] 书籍 ID
+  /// [chapters] 章节 ID 到内容的映射
+  Future<void> putAll(int bookId, Map<int, String> chapters) async {
+    await _ensureInitialized();
+
+    for (final entry in chapters.entries) {
+      await put(bookId, entry.key, entry.value);
+    }
+    debugPrint('批量缓存已写入：bookId=$bookId, count=${chapters.length}');
+  }
+
+  /// 移除章节缓存
+  ///
+  /// [bookId] 书籍 ID
+  /// [chapterId] 章节 ID
+  Future<void> remove(int bookId, int chapterId) async {
+    await _ensureInitialized();
+
+    final key = _getCacheKey(bookId, chapterId);
+    _cache.remove(key);
+
+    try {
+      final cacheFile = File(p.join(_cacheDir.path, '$key.txt'));
+      if (await cacheFile.exists()) {
+        await cacheFile.delete();
+      }
+    } catch (e) {
+      debugPrint('删除缓存文件失败：$e');
+    }
+  }
+
+  /// 清除书籍的所有缓存
+  ///
+  /// [bookId] 书籍 ID
   Future<void> clearBook(int bookId) async {
-    final keysToRemove = <String>[];
+    await _ensureInitialized();
+
     final prefix = 'book_${bookId}_';
 
-    // 收集要删除的
+    // 从内存缓存删除
+    final keysToRemove = <String>[];
     for (final key in _cache._cache.keys) {
       if (key.toString().startsWith(prefix)) {
         keysToRemove.add(key.toString());
       }
     }
-
-    // 从内存缓存删
     for (final key in keysToRemove) {
       _cache.remove(key);
     }
 
-    // 从磁盘缓存删
-    if (await _cacheDir.exists()) {
-      await for (final entity in _cacheDir.list()) {
-        if (entity is File && p.basename(entity.path).startsWith(prefix)) {
-          await entity.delete();
+    // 从磁盘缓存删除
+    try {
+      if (await _cacheDir.exists()) {
+        await for (final entity in _cacheDir.list()) {
+          if (entity is File && p.basename(entity.path).startsWith(prefix)) {
+            await entity.delete();
+          }
         }
       }
+    } catch (e) {
+      debugPrint('删除磁盘缓存失败：$e');
     }
 
-    debugPrint('书籍缓存已清除：bookId=$bookId');
+    debugPrint('书籍章节缓存已清除：bookId=$bookId');
   }
 
-  /// 清除所有缓
+  /// 清除所有缓存
   Future<void> clearAll() async {
+    await _ensureInitialized();
+
     _cache.clear();
 
-    if (await _cacheDir.exists()) {
-      await _cacheDir.delete(recursive: true);
+    try {
+      if (await _cacheDir.exists()) {
+        await _cacheDir.delete(recursive: true);
+      }
       await _cacheDir.create(recursive: true);
+      debugPrint('所有章节缓存已清除');
+    } catch (e) {
+      debugPrint('清除磁盘缓存失败：$e');
     }
-
-    debugPrint('所有缓存已清除');
   }
 
   /// 获取缓存统计
@@ -233,6 +316,64 @@ class ChapterContentCache {
       diskCachePath: _cacheDir.path,
     );
   }
+
+  /// 检查章节是否已缓存
+  Future<bool> isCached(int bookId, int chapterId) async {
+    await _ensureInitialized();
+
+    final key = _getCacheKey(bookId, chapterId);
+
+    // 检查内存缓存
+    if (_cache._cache.containsKey(key)) {
+      return true;
+    }
+
+    // 检查磁盘缓存
+    final cacheFile = File(p.join(_cacheDir.path, '$key.txt'));
+    return await cacheFile.exists();
+  }
+
+  /// 获取所有缓存的章节键
+  List<String> getCachedKeys() {
+    return _cache._cache.keys.map((k) => k.toString()).toList();
+  }
+
+  /// 获取磁盘缓存大小（字节）
+  Future<int> getDiskCacheSize() async {
+    await _ensureInitialized();
+
+    try {
+      if (!await _cacheDir.exists()) {
+        return 0;
+      }
+
+      int totalSize = 0;
+      await for (final entity in _cacheDir.list()) {
+        if (entity is File) {
+          totalSize += await entity.length();
+        }
+      }
+      return totalSize;
+    } catch (e) {
+      debugPrint('获取磁盘缓存大小失败：$e');
+      return 0;
+    }
+  }
+
+  /// 修剪缓存到指定大小
+  ///
+  /// [maxSize] 最大缓存章节数
+  Future<void> trimToSize(int maxSize) async {
+    await _ensureInitialized();
+
+    // 调整 LRU 缓存大小
+    while (_cache.length > maxSize) {
+      // LRU 会自动移除最久未使用的
+      final oldestKey = _cache._accessOrder.first;
+      _cache.remove(oldestKey);
+    }
+    debugPrint('缓存已修剪到 $maxSize 个条目');
+  }
 }
 
 /// 图片缓存
@@ -240,12 +381,8 @@ class ImageCache {
   static ImageCache? _instance;
   late final LruCache<String, ui.Image> _memoryCache;
   late final Directory _cacheDir;
-  final int _maxMemorySize;
-  final int _maxDiskSize;
 
-  ImageCache._({int maxMemorySize = 50, int maxDiskSize = 100})
-    : _maxMemorySize = maxMemorySize,
-      _maxDiskSize = maxDiskSize {
+  ImageCache._({int maxMemorySize = 50}) {
     _memoryCache = LruCache(maxSize: maxMemorySize);
     _initCacheDir();
   }
@@ -270,17 +407,17 @@ class ImageCache {
   Future<ui.Image?> get(String imagePath) async {
     final key = _getCacheKey(imagePath);
 
-    // 先尝试内存缓
+    // 先尝试内存缓存
     final cached = _memoryCache.get(key);
     if (cached != null) {
-      debugPrint('图片内存缓存命中imagePath');
+      debugPrint('图片内存缓存命中：$imagePath');
       return cached;
     }
 
     // 尝试磁盘缓存
     final cacheFile = File(p.join(_cacheDir.path, '$key.png'));
     if (await cacheFile.exists()) {
-      debugPrint('图片磁盘缓存命中imagePath');
+      debugPrint('图片磁盘缓存命中：$imagePath');
       final bytes = await cacheFile.readAsBytes();
       final codec = await ui.instantiateImageCodec(bytes);
       final frame = await codec.getNextFrame();
@@ -299,16 +436,29 @@ class ImageCache {
 
     // 写入磁盘缓存
     final cacheFile = File(p.join(_cacheDir.path, '$key.png'));
+    await cacheFile.parent.create(recursive: true);
+
+    // 将图片编码为 PNG
     final byteData = await image.toByteData();
     if (byteData != null) {
-      await cacheFile.parent.create(recursive: true);
       await cacheFile.writeAsBytes(byteData.buffer.asUint8List());
     }
 
     debugPrint('图片缓存已写入：$imagePath');
   }
 
-  /// 清除所有缓
+  /// 移除图片缓存
+  Future<void> remove(String imagePath) async {
+    final key = _getCacheKey(imagePath);
+    _memoryCache.remove(key);
+
+    final cacheFile = File(p.join(_cacheDir.path, '$key.png'));
+    if (await cacheFile.exists()) {
+      await cacheFile.delete();
+    }
+  }
+
+  /// 清除所有图片缓存
   Future<void> clearAll() async {
     _memoryCache.clear();
 
@@ -317,7 +467,16 @@ class ImageCache {
       await _cacheDir.create(recursive: true);
     }
 
-    debugPrint('图片缓存已清');
+    debugPrint('所有图片缓存已清除');
+  }
+
+  /// 获取图片缓存统计
+  CacheStats getStats() {
+    return CacheStats(
+      memoryCacheSize: _memoryCache.length,
+      memoryCacheTotalSize: _memoryCache.totalSize,
+      diskCachePath: _cacheDir.path,
+    );
   }
 }
 
@@ -341,13 +500,12 @@ class CacheStats {
 
 /// 预加载管理器
 class PrefetchManager {
-  final ChapterContentCache _contentCache;
   final List<int> _prefetchQueue;
   bool _isPrefetching = false;
 
-  PrefetchManager(this._contentCache) : _prefetchQueue = [];
+  PrefetchManager() : _prefetchQueue = [];
 
-  /// 添加预加载任
+  /// 添加预加载任务
   void addPrefetchTask(int chapterId) {
     if (!_prefetchQueue.contains(chapterId)) {
       _prefetchQueue.add(chapterId);

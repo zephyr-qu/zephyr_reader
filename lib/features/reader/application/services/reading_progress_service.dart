@@ -8,7 +8,7 @@ library;
 
 import 'package:flutter/foundation.dart';
 import 'package:zephyr_reader/core/database/database.dart';
-import 'package:zephyr_reader/core/database/tables/reading_progress.dart';
+import 'package:zephyr_reader/domain/models/reading_progress.dart';
 
 /// 阅读进度服务
 class ReadingProgressService {
@@ -42,9 +42,9 @@ class ReadingProgressService {
   }
 
   /// 加载阅读进度
-  Future<ReadingProgressItem?> loadReadingProgress(int bookId) async {
+  Future<ReadingProgress?> loadReadingProgress(int bookId) async {
     try {
-      return await _db.getReadingProgress(bookId.toString());
+      return await _db.getReadingProgress(bookId);
     } catch (e) {
       debugPrint('ReadingProgressService.loadReadingProgress error: $e');
       return null;
@@ -54,14 +54,14 @@ class ReadingProgressService {
   /// 清除阅读进度
   Future<void> clearReadingProgress(int bookId) async {
     try {
-      await _db.clearReadingProgress(bookId.toString());
+      await _db.clearReadingProgress(bookId);
     } catch (e) {
       debugPrint('ReadingProgressService.clearReadingProgress error: $e');
     }
   }
 
   /// 获取所有阅读进度
-  Future<List<ReadingProgressItem>> getAllReadingProgress() async {
+  Future<List<ReadingProgress>> getAllReadingProgress() async {
     try {
       return await _db.getAllReadingProgress();
     } catch (e) {

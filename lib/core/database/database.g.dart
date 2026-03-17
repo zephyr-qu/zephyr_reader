@@ -3,11 +3,11 @@
 part of 'database.dart';
 
 // ignore_for_file: type=lint
-class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
+class $DbBooksTable extends DbBooks with TableInfo<$DbBooksTable, DbBook> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $BooksTable(this.attachedDatabase, [this._alias]);
+  $DbBooksTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -72,12 +72,12 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _fileFormatMeta = const VerificationMeta(
-    'fileFormat',
+  static const VerificationMeta _fileTypeMeta = const VerificationMeta(
+    'fileType',
   );
   @override
-  late final GeneratedColumn<String> fileFormat = GeneratedColumn<String>(
-    'file_format',
+  late final GeneratedColumn<String> fileType = GeneratedColumn<String>(
+    'file_type',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -234,7 +234,7 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
     coverPath,
     description,
     filePath,
-    fileFormat,
+    fileType,
     fileSize,
     totalChapters,
     totalCharacters,
@@ -252,10 +252,10 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'books';
+  static const String $name = 'db_books';
   @override
   VerificationContext validateIntegrity(
-    Insertable<Book> instance, {
+    Insertable<DbBook> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -302,13 +302,13 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
     } else if (isInserting) {
       context.missing(_filePathMeta);
     }
-    if (data.containsKey('file_format')) {
+    if (data.containsKey('file_type')) {
       context.handle(
-        _fileFormatMeta,
-        fileFormat.isAcceptableOrUnknown(data['file_format']!, _fileFormatMeta),
+        _fileTypeMeta,
+        fileType.isAcceptableOrUnknown(data['file_type']!, _fileTypeMeta),
       );
     } else if (isInserting) {
-      context.missing(_fileFormatMeta);
+      context.missing(_fileTypeMeta);
     }
     if (data.containsKey('file_size')) {
       context.handle(
@@ -403,9 +403,9 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  Book map(Map<String, dynamic> data, {String? tablePrefix}) {
+  DbBook map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Book(
+    return DbBook(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
@@ -430,9 +430,9 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
         DriftSqlType.string,
         data['${effectivePrefix}file_path'],
       )!,
-      fileFormat: attachedDatabase.typeMapping.read(
+      fileType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}file_format'],
+        data['${effectivePrefix}file_type'],
       )!,
       fileSize: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -486,19 +486,20 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
   }
 
   @override
-  $BooksTable createAlias(String alias) {
-    return $BooksTable(attachedDatabase, alias);
+  $DbBooksTable createAlias(String alias) {
+    return $DbBooksTable(attachedDatabase, alias);
   }
 }
 
-class Book extends DataClass implements Insertable<Book> {
+class DbBook extends DataClass implements Insertable<DbBook> {
+  /// 书籍 ID（UUID）
   final int id;
   final String title;
   final String author;
   final String? coverPath;
   final String? description;
   final String filePath;
-  final String fileFormat;
+  final String fileType;
   final int fileSize;
   final int totalChapters;
   final int totalCharacters;
@@ -511,14 +512,14 @@ class Book extends DataClass implements Insertable<Book> {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? lastReadAt;
-  const Book({
+  const DbBook({
     required this.id,
     required this.title,
     required this.author,
     this.coverPath,
     this.description,
     required this.filePath,
-    required this.fileFormat,
+    required this.fileType,
     required this.fileSize,
     required this.totalChapters,
     required this.totalCharacters,
@@ -545,7 +546,7 @@ class Book extends DataClass implements Insertable<Book> {
       map['description'] = Variable<String>(description);
     }
     map['file_path'] = Variable<String>(filePath);
-    map['file_format'] = Variable<String>(fileFormat);
+    map['file_type'] = Variable<String>(fileType);
     map['file_size'] = Variable<int>(fileSize);
     map['total_chapters'] = Variable<int>(totalChapters);
     map['total_characters'] = Variable<int>(totalCharacters);
@@ -565,8 +566,8 @@ class Book extends DataClass implements Insertable<Book> {
     return map;
   }
 
-  BooksCompanion toCompanion(bool nullToAbsent) {
-    return BooksCompanion(
+  DbBooksCompanion toCompanion(bool nullToAbsent) {
+    return DbBooksCompanion(
       id: Value(id),
       title: Value(title),
       author: Value(author),
@@ -577,7 +578,7 @@ class Book extends DataClass implements Insertable<Book> {
           ? const Value.absent()
           : Value(description),
       filePath: Value(filePath),
-      fileFormat: Value(fileFormat),
+      fileType: Value(fileType),
       fileSize: Value(fileSize),
       totalChapters: Value(totalChapters),
       totalCharacters: Value(totalCharacters),
@@ -597,19 +598,19 @@ class Book extends DataClass implements Insertable<Book> {
     );
   }
 
-  factory Book.fromJson(
+  factory DbBook.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Book(
+    return DbBook(
       id: serializer.fromJson<int>(json['id']),
       title: serializer.fromJson<String>(json['title']),
       author: serializer.fromJson<String>(json['author']),
       coverPath: serializer.fromJson<String?>(json['coverPath']),
       description: serializer.fromJson<String?>(json['description']),
       filePath: serializer.fromJson<String>(json['filePath']),
-      fileFormat: serializer.fromJson<String>(json['fileFormat']),
+      fileType: serializer.fromJson<String>(json['fileType']),
       fileSize: serializer.fromJson<int>(json['fileSize']),
       totalChapters: serializer.fromJson<int>(json['totalChapters']),
       totalCharacters: serializer.fromJson<int>(json['totalCharacters']),
@@ -634,7 +635,7 @@ class Book extends DataClass implements Insertable<Book> {
       'coverPath': serializer.toJson<String?>(coverPath),
       'description': serializer.toJson<String?>(description),
       'filePath': serializer.toJson<String>(filePath),
-      'fileFormat': serializer.toJson<String>(fileFormat),
+      'fileType': serializer.toJson<String>(fileType),
       'fileSize': serializer.toJson<int>(fileSize),
       'totalChapters': serializer.toJson<int>(totalChapters),
       'totalCharacters': serializer.toJson<int>(totalCharacters),
@@ -650,14 +651,14 @@ class Book extends DataClass implements Insertable<Book> {
     };
   }
 
-  Book copyWith({
+  DbBook copyWith({
     int? id,
     String? title,
     String? author,
     Value<String?> coverPath = const Value.absent(),
     Value<String?> description = const Value.absent(),
     String? filePath,
-    String? fileFormat,
+    String? fileType,
     int? fileSize,
     int? totalChapters,
     int? totalCharacters,
@@ -670,14 +671,14 @@ class Book extends DataClass implements Insertable<Book> {
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> lastReadAt = const Value.absent(),
-  }) => Book(
+  }) => DbBook(
     id: id ?? this.id,
     title: title ?? this.title,
     author: author ?? this.author,
     coverPath: coverPath.present ? coverPath.value : this.coverPath,
     description: description.present ? description.value : this.description,
     filePath: filePath ?? this.filePath,
-    fileFormat: fileFormat ?? this.fileFormat,
+    fileType: fileType ?? this.fileType,
     fileSize: fileSize ?? this.fileSize,
     totalChapters: totalChapters ?? this.totalChapters,
     totalCharacters: totalCharacters ?? this.totalCharacters,
@@ -693,8 +694,8 @@ class Book extends DataClass implements Insertable<Book> {
     updatedAt: updatedAt ?? this.updatedAt,
     lastReadAt: lastReadAt.present ? lastReadAt.value : this.lastReadAt,
   );
-  Book copyWithCompanion(BooksCompanion data) {
-    return Book(
+  DbBook copyWithCompanion(DbBooksCompanion data) {
+    return DbBook(
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
       author: data.author.present ? data.author.value : this.author,
@@ -703,9 +704,7 @@ class Book extends DataClass implements Insertable<Book> {
           ? data.description.value
           : this.description,
       filePath: data.filePath.present ? data.filePath.value : this.filePath,
-      fileFormat: data.fileFormat.present
-          ? data.fileFormat.value
-          : this.fileFormat,
+      fileType: data.fileType.present ? data.fileType.value : this.fileType,
       fileSize: data.fileSize.present ? data.fileSize.value : this.fileSize,
       totalChapters: data.totalChapters.present
           ? data.totalChapters.value
@@ -735,14 +734,14 @@ class Book extends DataClass implements Insertable<Book> {
 
   @override
   String toString() {
-    return (StringBuffer('Book(')
+    return (StringBuffer('DbBook(')
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('author: $author, ')
           ..write('coverPath: $coverPath, ')
           ..write('description: $description, ')
           ..write('filePath: $filePath, ')
-          ..write('fileFormat: $fileFormat, ')
+          ..write('fileType: $fileType, ')
           ..write('fileSize: $fileSize, ')
           ..write('totalChapters: $totalChapters, ')
           ..write('totalCharacters: $totalCharacters, ')
@@ -767,7 +766,7 @@ class Book extends DataClass implements Insertable<Book> {
     coverPath,
     description,
     filePath,
-    fileFormat,
+    fileType,
     fileSize,
     totalChapters,
     totalCharacters,
@@ -784,14 +783,14 @@ class Book extends DataClass implements Insertable<Book> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is Book &&
+      (other is DbBook &&
           other.id == this.id &&
           other.title == this.title &&
           other.author == this.author &&
           other.coverPath == this.coverPath &&
           other.description == this.description &&
           other.filePath == this.filePath &&
-          other.fileFormat == this.fileFormat &&
+          other.fileType == this.fileType &&
           other.fileSize == this.fileSize &&
           other.totalChapters == this.totalChapters &&
           other.totalCharacters == this.totalCharacters &&
@@ -806,14 +805,14 @@ class Book extends DataClass implements Insertable<Book> {
           other.lastReadAt == this.lastReadAt);
 }
 
-class BooksCompanion extends UpdateCompanion<Book> {
+class DbBooksCompanion extends UpdateCompanion<DbBook> {
   final Value<int> id;
   final Value<String> title;
   final Value<String> author;
   final Value<String?> coverPath;
   final Value<String?> description;
   final Value<String> filePath;
-  final Value<String> fileFormat;
+  final Value<String> fileType;
   final Value<int> fileSize;
   final Value<int> totalChapters;
   final Value<int> totalCharacters;
@@ -826,14 +825,14 @@ class BooksCompanion extends UpdateCompanion<Book> {
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> lastReadAt;
-  const BooksCompanion({
+  const DbBooksCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
     this.author = const Value.absent(),
     this.coverPath = const Value.absent(),
     this.description = const Value.absent(),
     this.filePath = const Value.absent(),
-    this.fileFormat = const Value.absent(),
+    this.fileType = const Value.absent(),
     this.fileSize = const Value.absent(),
     this.totalChapters = const Value.absent(),
     this.totalCharacters = const Value.absent(),
@@ -847,14 +846,14 @@ class BooksCompanion extends UpdateCompanion<Book> {
     this.updatedAt = const Value.absent(),
     this.lastReadAt = const Value.absent(),
   });
-  BooksCompanion.insert({
+  DbBooksCompanion.insert({
     this.id = const Value.absent(),
     required String title,
     required String author,
     this.coverPath = const Value.absent(),
     this.description = const Value.absent(),
     required String filePath,
-    required String fileFormat,
+    required String fileType,
     this.fileSize = const Value.absent(),
     this.totalChapters = const Value.absent(),
     this.totalCharacters = const Value.absent(),
@@ -870,15 +869,15 @@ class BooksCompanion extends UpdateCompanion<Book> {
   }) : title = Value(title),
        author = Value(author),
        filePath = Value(filePath),
-       fileFormat = Value(fileFormat);
-  static Insertable<Book> custom({
+       fileType = Value(fileType);
+  static Insertable<DbBook> custom({
     Expression<int>? id,
     Expression<String>? title,
     Expression<String>? author,
     Expression<String>? coverPath,
     Expression<String>? description,
     Expression<String>? filePath,
-    Expression<String>? fileFormat,
+    Expression<String>? fileType,
     Expression<int>? fileSize,
     Expression<int>? totalChapters,
     Expression<int>? totalCharacters,
@@ -899,7 +898,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
       if (coverPath != null) 'cover_path': coverPath,
       if (description != null) 'description': description,
       if (filePath != null) 'file_path': filePath,
-      if (fileFormat != null) 'file_format': fileFormat,
+      if (fileType != null) 'file_type': fileType,
       if (fileSize != null) 'file_size': fileSize,
       if (totalChapters != null) 'total_chapters': totalChapters,
       if (totalCharacters != null) 'total_characters': totalCharacters,
@@ -915,14 +914,14 @@ class BooksCompanion extends UpdateCompanion<Book> {
     });
   }
 
-  BooksCompanion copyWith({
+  DbBooksCompanion copyWith({
     Value<int>? id,
     Value<String>? title,
     Value<String>? author,
     Value<String?>? coverPath,
     Value<String?>? description,
     Value<String>? filePath,
-    Value<String>? fileFormat,
+    Value<String>? fileType,
     Value<int>? fileSize,
     Value<int>? totalChapters,
     Value<int>? totalCharacters,
@@ -936,14 +935,14 @@ class BooksCompanion extends UpdateCompanion<Book> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? lastReadAt,
   }) {
-    return BooksCompanion(
+    return DbBooksCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
       author: author ?? this.author,
       coverPath: coverPath ?? this.coverPath,
       description: description ?? this.description,
       filePath: filePath ?? this.filePath,
-      fileFormat: fileFormat ?? this.fileFormat,
+      fileType: fileType ?? this.fileType,
       fileSize: fileSize ?? this.fileSize,
       totalChapters: totalChapters ?? this.totalChapters,
       totalCharacters: totalCharacters ?? this.totalCharacters,
@@ -980,8 +979,8 @@ class BooksCompanion extends UpdateCompanion<Book> {
     if (filePath.present) {
       map['file_path'] = Variable<String>(filePath.value);
     }
-    if (fileFormat.present) {
-      map['file_format'] = Variable<String>(fileFormat.value);
+    if (fileType.present) {
+      map['file_type'] = Variable<String>(fileType.value);
     }
     if (fileSize.present) {
       map['file_size'] = Variable<int>(fileSize.value);
@@ -1024,14 +1023,14 @@ class BooksCompanion extends UpdateCompanion<Book> {
 
   @override
   String toString() {
-    return (StringBuffer('BooksCompanion(')
+    return (StringBuffer('DbBooksCompanion(')
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('author: $author, ')
           ..write('coverPath: $coverPath, ')
           ..write('description: $description, ')
           ..write('filePath: $filePath, ')
-          ..write('fileFormat: $fileFormat, ')
+          ..write('fileType: $fileType, ')
           ..write('fileSize: $fileSize, ')
           ..write('totalChapters: $totalChapters, ')
           ..write('totalCharacters: $totalCharacters, ')
@@ -1049,11 +1048,12 @@ class BooksCompanion extends UpdateCompanion<Book> {
   }
 }
 
-class $ChaptersTable extends Chapters with TableInfo<$ChaptersTable, Chapter> {
+class $DbChaptersTable extends DbChapters
+    with TableInfo<$DbChaptersTable, DbChapter> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $ChaptersTable(this.attachedDatabase, [this._alias]);
+  $DbChaptersTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -1076,7 +1076,7 @@ class $ChaptersTable extends Chapters with TableInfo<$ChaptersTable, Chapter> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES books (id) ON DELETE CASCADE',
+      'REFERENCES db_books (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
@@ -1148,10 +1148,10 @@ class $ChaptersTable extends Chapters with TableInfo<$ChaptersTable, Chapter> {
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'chapters';
+  static const String $name = 'db_chapters';
   @override
   VerificationContext validateIntegrity(
-    Insertable<Chapter> instance, {
+    Insertable<DbChapter> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -1215,9 +1215,9 @@ class $ChaptersTable extends Chapters with TableInfo<$ChaptersTable, Chapter> {
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  Chapter map(Map<String, dynamic> data, {String? tablePrefix}) {
+  DbChapter map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Chapter(
+    return DbChapter(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
@@ -1250,12 +1250,12 @@ class $ChaptersTable extends Chapters with TableInfo<$ChaptersTable, Chapter> {
   }
 
   @override
-  $ChaptersTable createAlias(String alias) {
-    return $ChaptersTable(attachedDatabase, alias);
+  $DbChaptersTable createAlias(String alias) {
+    return $DbChaptersTable(attachedDatabase, alias);
   }
 }
 
-class Chapter extends DataClass implements Insertable<Chapter> {
+class DbChapter extends DataClass implements Insertable<DbChapter> {
   final int id;
 
   /// 关联的小说ID
@@ -1275,7 +1275,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
 
   /// 缓存时间
   final DateTime cachedAt;
-  const Chapter({
+  const DbChapter({
     required this.id,
     required this.bookId,
     required this.title,
@@ -1297,8 +1297,8 @@ class Chapter extends DataClass implements Insertable<Chapter> {
     return map;
   }
 
-  ChaptersCompanion toCompanion(bool nullToAbsent) {
-    return ChaptersCompanion(
+  DbChaptersCompanion toCompanion(bool nullToAbsent) {
+    return DbChaptersCompanion(
       id: Value(id),
       bookId: Value(bookId),
       title: Value(title),
@@ -1309,12 +1309,12 @@ class Chapter extends DataClass implements Insertable<Chapter> {
     );
   }
 
-  factory Chapter.fromJson(
+  factory DbChapter.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Chapter(
+    return DbChapter(
       id: serializer.fromJson<int>(json['id']),
       bookId: serializer.fromJson<int>(json['bookId']),
       title: serializer.fromJson<String>(json['title']),
@@ -1338,7 +1338,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
     };
   }
 
-  Chapter copyWith({
+  DbChapter copyWith({
     int? id,
     int? bookId,
     String? title,
@@ -1346,7 +1346,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
     int? chapterIndex,
     int? wordCount,
     DateTime? cachedAt,
-  }) => Chapter(
+  }) => DbChapter(
     id: id ?? this.id,
     bookId: bookId ?? this.bookId,
     title: title ?? this.title,
@@ -1355,8 +1355,8 @@ class Chapter extends DataClass implements Insertable<Chapter> {
     wordCount: wordCount ?? this.wordCount,
     cachedAt: cachedAt ?? this.cachedAt,
   );
-  Chapter copyWithCompanion(ChaptersCompanion data) {
-    return Chapter(
+  DbChapter copyWithCompanion(DbChaptersCompanion data) {
+    return DbChapter(
       id: data.id.present ? data.id.value : this.id,
       bookId: data.bookId.present ? data.bookId.value : this.bookId,
       title: data.title.present ? data.title.value : this.title,
@@ -1373,7 +1373,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
 
   @override
   String toString() {
-    return (StringBuffer('Chapter(')
+    return (StringBuffer('DbChapter(')
           ..write('id: $id, ')
           ..write('bookId: $bookId, ')
           ..write('title: $title, ')
@@ -1398,7 +1398,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is Chapter &&
+      (other is DbChapter &&
           other.id == this.id &&
           other.bookId == this.bookId &&
           other.title == this.title &&
@@ -1408,7 +1408,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
           other.cachedAt == this.cachedAt);
 }
 
-class ChaptersCompanion extends UpdateCompanion<Chapter> {
+class DbChaptersCompanion extends UpdateCompanion<DbChapter> {
   final Value<int> id;
   final Value<int> bookId;
   final Value<String> title;
@@ -1416,7 +1416,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
   final Value<int> chapterIndex;
   final Value<int> wordCount;
   final Value<DateTime> cachedAt;
-  const ChaptersCompanion({
+  const DbChaptersCompanion({
     this.id = const Value.absent(),
     this.bookId = const Value.absent(),
     this.title = const Value.absent(),
@@ -1425,7 +1425,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
     this.wordCount = const Value.absent(),
     this.cachedAt = const Value.absent(),
   });
-  ChaptersCompanion.insert({
+  DbChaptersCompanion.insert({
     this.id = const Value.absent(),
     required int bookId,
     required String title,
@@ -1437,7 +1437,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
        title = Value(title),
        contentFile = Value(contentFile),
        chapterIndex = Value(chapterIndex);
-  static Insertable<Chapter> custom({
+  static Insertable<DbChapter> custom({
     Expression<int>? id,
     Expression<int>? bookId,
     Expression<String>? title,
@@ -1457,7 +1457,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
     });
   }
 
-  ChaptersCompanion copyWith({
+  DbChaptersCompanion copyWith({
     Value<int>? id,
     Value<int>? bookId,
     Value<String>? title,
@@ -1466,7 +1466,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
     Value<int>? wordCount,
     Value<DateTime>? cachedAt,
   }) {
-    return ChaptersCompanion(
+    return DbChaptersCompanion(
       id: id ?? this.id,
       bookId: bookId ?? this.bookId,
       title: title ?? this.title,
@@ -1506,7 +1506,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
 
   @override
   String toString() {
-    return (StringBuffer('ChaptersCompanion(')
+    return (StringBuffer('DbChaptersCompanion(')
           ..write('id: $id, ')
           ..write('bookId: $bookId, ')
           ..write('title: $title, ')
@@ -1519,22 +1519,24 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
   }
 }
 
-class $BookmarksTable extends Bookmarks
-    with TableInfo<$BookmarksTable, Bookmark> {
+class $DbBookmarksTable extends DbBookmarks
+    with TableInfo<$DbBookmarksTable, DbBookmark> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $BookmarksTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _bookmarkIdMeta = const VerificationMeta(
-    'bookmarkId',
-  );
+  $DbBookmarksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<String> bookmarkId = GeneratedColumn<String>(
-    'bookmark_id',
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
     aliasedName,
     false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
   );
   static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
   @override
@@ -1545,7 +1547,7 @@ class $BookmarksTable extends Bookmarks
     type: DriftSqlType.int,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES books (id) ON DELETE CASCADE',
+      'REFERENCES db_books (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _chapterIdMeta = const VerificationMeta(
@@ -1558,6 +1560,9 @@ class $BookmarksTable extends Bookmarks
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES db_chapters (id) ON DELETE CASCADE',
+    ),
   );
   static const VerificationMeta _pageIndexMeta = const VerificationMeta(
     'pageIndex',
@@ -1599,35 +1604,42 @@ class $BookmarksTable extends Bookmarks
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
-    bookmarkId,
+    id,
     bookId,
     chapterId,
     pageIndex,
     title,
     createdTimestamp,
     note,
+    position,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'bookmarks';
+  static const String $name = 'db_bookmarks';
   @override
   VerificationContext validateIntegrity(
-    Insertable<Bookmark> instance, {
+    Insertable<DbBookmark> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('bookmark_id')) {
-      context.handle(
-        _bookmarkIdMeta,
-        bookmarkId.isAcceptableOrUnknown(data['bookmark_id']!, _bookmarkIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_bookmarkIdMeta);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
     if (data.containsKey('book_id')) {
       context.handle(
@@ -1678,18 +1690,24 @@ class $BookmarksTable extends Bookmarks
         note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    }
     return context;
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {bookmarkId};
+  Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  Bookmark map(Map<String, dynamic> data, {String? tablePrefix}) {
+  DbBookmark map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Bookmark(
-      bookmarkId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}bookmark_id'],
+    return DbBookmark(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
       )!,
       bookId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -1715,18 +1733,22 @@ class $BookmarksTable extends Bookmarks
         DriftSqlType.string,
         data['${effectivePrefix}note'],
       ),
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      ),
     );
   }
 
   @override
-  $BookmarksTable createAlias(String alias) {
-    return $BookmarksTable(attachedDatabase, alias);
+  $DbBookmarksTable createAlias(String alias) {
+    return $DbBookmarksTable(attachedDatabase, alias);
   }
 }
 
-class Bookmark extends DataClass implements Insertable<Bookmark> {
+class DbBookmark extends DataClass implements Insertable<DbBookmark> {
   /// 书签 ID（UUID，主键）
-  final String bookmarkId;
+  final int id;
 
   /// 关联的小说 ID
   final int bookId;
@@ -1745,19 +1767,23 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
 
   /// 书签备注
   final String? note;
-  const Bookmark({
-    required this.bookmarkId,
+
+  /// 书签位置序号
+  final int? position;
+  const DbBookmark({
+    required this.id,
     required this.bookId,
     required this.chapterId,
     required this.pageIndex,
     required this.title,
     required this.createdTimestamp,
     this.note,
+    this.position,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['bookmark_id'] = Variable<String>(bookmarkId);
+    map['id'] = Variable<int>(id);
     map['book_id'] = Variable<int>(bookId);
     map['chapter_id'] = Variable<int>(chapterId);
     map['page_index'] = Variable<int>(pageIndex);
@@ -1766,72 +1792,80 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
+    if (!nullToAbsent || position != null) {
+      map['position'] = Variable<int>(position);
+    }
     return map;
   }
 
-  BookmarksCompanion toCompanion(bool nullToAbsent) {
-    return BookmarksCompanion(
-      bookmarkId: Value(bookmarkId),
+  DbBookmarksCompanion toCompanion(bool nullToAbsent) {
+    return DbBookmarksCompanion(
+      id: Value(id),
       bookId: Value(bookId),
       chapterId: Value(chapterId),
       pageIndex: Value(pageIndex),
       title: Value(title),
       createdTimestamp: Value(createdTimestamp),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      position: position == null && nullToAbsent
+          ? const Value.absent()
+          : Value(position),
     );
   }
 
-  factory Bookmark.fromJson(
+  factory DbBookmark.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Bookmark(
-      bookmarkId: serializer.fromJson<String>(json['bookmarkId']),
+    return DbBookmark(
+      id: serializer.fromJson<int>(json['id']),
       bookId: serializer.fromJson<int>(json['bookId']),
       chapterId: serializer.fromJson<int>(json['chapterId']),
       pageIndex: serializer.fromJson<int>(json['pageIndex']),
       title: serializer.fromJson<String>(json['title']),
       createdTimestamp: serializer.fromJson<int>(json['createdTimestamp']),
       note: serializer.fromJson<String?>(json['note']),
+      position: serializer.fromJson<int?>(json['position']),
     );
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'bookmarkId': serializer.toJson<String>(bookmarkId),
+      'id': serializer.toJson<int>(id),
       'bookId': serializer.toJson<int>(bookId),
       'chapterId': serializer.toJson<int>(chapterId),
       'pageIndex': serializer.toJson<int>(pageIndex),
       'title': serializer.toJson<String>(title),
       'createdTimestamp': serializer.toJson<int>(createdTimestamp),
       'note': serializer.toJson<String?>(note),
+      'position': serializer.toJson<int?>(position),
     };
   }
 
-  Bookmark copyWith({
-    String? bookmarkId,
+  DbBookmark copyWith({
+    int? id,
     int? bookId,
     int? chapterId,
     int? pageIndex,
     String? title,
     int? createdTimestamp,
     Value<String?> note = const Value.absent(),
-  }) => Bookmark(
-    bookmarkId: bookmarkId ?? this.bookmarkId,
+    Value<int?> position = const Value.absent(),
+  }) => DbBookmark(
+    id: id ?? this.id,
     bookId: bookId ?? this.bookId,
     chapterId: chapterId ?? this.chapterId,
     pageIndex: pageIndex ?? this.pageIndex,
     title: title ?? this.title,
     createdTimestamp: createdTimestamp ?? this.createdTimestamp,
     note: note.present ? note.value : this.note,
+    position: position.present ? position.value : this.position,
   );
-  Bookmark copyWithCompanion(BookmarksCompanion data) {
-    return Bookmark(
-      bookmarkId: data.bookmarkId.present
-          ? data.bookmarkId.value
-          : this.bookmarkId,
+  DbBookmark copyWithCompanion(DbBookmarksCompanion data) {
+    return DbBookmark(
+      id: data.id.present ? data.id.value : this.id,
       bookId: data.bookId.present ? data.bookId.value : this.bookId,
       chapterId: data.chapterId.present ? data.chapterId.value : this.chapterId,
       pageIndex: data.pageIndex.present ? data.pageIndex.value : this.pageIndex,
@@ -1840,130 +1874,132 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
           ? data.createdTimestamp.value
           : this.createdTimestamp,
       note: data.note.present ? data.note.value : this.note,
+      position: data.position.present ? data.position.value : this.position,
     );
   }
 
   @override
   String toString() {
-    return (StringBuffer('Bookmark(')
-          ..write('bookmarkId: $bookmarkId, ')
+    return (StringBuffer('DbBookmark(')
+          ..write('id: $id, ')
           ..write('bookId: $bookId, ')
           ..write('chapterId: $chapterId, ')
           ..write('pageIndex: $pageIndex, ')
           ..write('title: $title, ')
           ..write('createdTimestamp: $createdTimestamp, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('position: $position')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(
-    bookmarkId,
+    id,
     bookId,
     chapterId,
     pageIndex,
     title,
     createdTimestamp,
     note,
+    position,
   );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is Bookmark &&
-          other.bookmarkId == this.bookmarkId &&
+      (other is DbBookmark &&
+          other.id == this.id &&
           other.bookId == this.bookId &&
           other.chapterId == this.chapterId &&
           other.pageIndex == this.pageIndex &&
           other.title == this.title &&
           other.createdTimestamp == this.createdTimestamp &&
-          other.note == this.note);
+          other.note == this.note &&
+          other.position == this.position);
 }
 
-class BookmarksCompanion extends UpdateCompanion<Bookmark> {
-  final Value<String> bookmarkId;
+class DbBookmarksCompanion extends UpdateCompanion<DbBookmark> {
+  final Value<int> id;
   final Value<int> bookId;
   final Value<int> chapterId;
   final Value<int> pageIndex;
   final Value<String> title;
   final Value<int> createdTimestamp;
   final Value<String?> note;
-  final Value<int> rowid;
-  const BookmarksCompanion({
-    this.bookmarkId = const Value.absent(),
+  final Value<int?> position;
+  const DbBookmarksCompanion({
+    this.id = const Value.absent(),
     this.bookId = const Value.absent(),
     this.chapterId = const Value.absent(),
     this.pageIndex = const Value.absent(),
     this.title = const Value.absent(),
     this.createdTimestamp = const Value.absent(),
     this.note = const Value.absent(),
-    this.rowid = const Value.absent(),
+    this.position = const Value.absent(),
   });
-  BookmarksCompanion.insert({
-    required String bookmarkId,
+  DbBookmarksCompanion.insert({
+    this.id = const Value.absent(),
     required int bookId,
     required int chapterId,
     required int pageIndex,
     required String title,
     required int createdTimestamp,
     this.note = const Value.absent(),
-    this.rowid = const Value.absent(),
-    required int position,
-  }) : bookmarkId = Value(bookmarkId),
-       bookId = Value(bookId),
+    this.position = const Value.absent(),
+  }) : bookId = Value(bookId),
        chapterId = Value(chapterId),
        pageIndex = Value(pageIndex),
        title = Value(title),
        createdTimestamp = Value(createdTimestamp);
-  static Insertable<Bookmark> custom({
-    Expression<String>? bookmarkId,
+  static Insertable<DbBookmark> custom({
+    Expression<int>? id,
     Expression<int>? bookId,
     Expression<int>? chapterId,
     Expression<int>? pageIndex,
     Expression<String>? title,
     Expression<int>? createdTimestamp,
     Expression<String>? note,
-    Expression<int>? rowid,
+    Expression<int>? position,
   }) {
     return RawValuesInsertable({
-      if (bookmarkId != null) 'bookmark_id': bookmarkId,
+      if (id != null) 'id': id,
       if (bookId != null) 'book_id': bookId,
       if (chapterId != null) 'chapter_id': chapterId,
       if (pageIndex != null) 'page_index': pageIndex,
       if (title != null) 'title': title,
       if (createdTimestamp != null) 'created_timestamp': createdTimestamp,
       if (note != null) 'note': note,
-      if (rowid != null) 'rowid': rowid,
+      if (position != null) 'position': position,
     });
   }
 
-  BookmarksCompanion copyWith({
-    Value<String>? bookmarkId,
+  DbBookmarksCompanion copyWith({
+    Value<int>? id,
     Value<int>? bookId,
     Value<int>? chapterId,
     Value<int>? pageIndex,
     Value<String>? title,
     Value<int>? createdTimestamp,
     Value<String?>? note,
-    Value<int>? rowid,
+    Value<int?>? position,
   }) {
-    return BookmarksCompanion(
-      bookmarkId: bookmarkId ?? this.bookmarkId,
+    return DbBookmarksCompanion(
+      id: id ?? this.id,
       bookId: bookId ?? this.bookId,
       chapterId: chapterId ?? this.chapterId,
       pageIndex: pageIndex ?? this.pageIndex,
       title: title ?? this.title,
       createdTimestamp: createdTimestamp ?? this.createdTimestamp,
       note: note ?? this.note,
-      rowid: rowid ?? this.rowid,
+      position: position ?? this.position,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (bookmarkId.present) {
-      map['bookmark_id'] = Variable<String>(bookmarkId.value);
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
     }
     if (bookId.present) {
       map['book_id'] = Variable<int>(bookId.value);
@@ -1983,34 +2019,34 @@ class BookmarksCompanion extends UpdateCompanion<Bookmark> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
     }
     return map;
   }
 
   @override
   String toString() {
-    return (StringBuffer('BookmarksCompanion(')
-          ..write('bookmarkId: $bookmarkId, ')
+    return (StringBuffer('DbBookmarksCompanion(')
+          ..write('id: $id, ')
           ..write('bookId: $bookId, ')
           ..write('chapterId: $chapterId, ')
           ..write('pageIndex: $pageIndex, ')
           ..write('title: $title, ')
           ..write('createdTimestamp: $createdTimestamp, ')
           ..write('note: $note, ')
-          ..write('rowid: $rowid')
+          ..write('position: $position')
           ..write(')'))
         .toString();
   }
 }
 
-class $ReadingHistoriesTable extends ReadingHistories
-    with TableInfo<$ReadingHistoriesTable, ReadingHistory> {
+class $DbReadingHistorysTable extends DbReadingHistorys
+    with TableInfo<$DbReadingHistorysTable, DbReadingHistory> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $ReadingHistoriesTable(this.attachedDatabase, [this._alias]);
+  $DbReadingHistorysTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -2033,7 +2069,7 @@ class $ReadingHistoriesTable extends ReadingHistories
     type: DriftSqlType.int,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES books (id) ON DELETE CASCADE',
+      'REFERENCES db_books (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _chapterIdMeta = const VerificationMeta(
@@ -2047,7 +2083,7 @@ class $ReadingHistoriesTable extends ReadingHistories
     type: DriftSqlType.int,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES chapters (id) ON DELETE CASCADE',
+      'REFERENCES db_chapters (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _positionMeta = const VerificationMeta(
@@ -2098,10 +2134,10 @@ class $ReadingHistoriesTable extends ReadingHistories
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'reading_histories';
+  static const String $name = 'db_reading_historys';
   @override
   VerificationContext validateIntegrity(
-    Insertable<ReadingHistory> instance, {
+    Insertable<DbReadingHistory> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -2151,9 +2187,9 @@ class $ReadingHistoriesTable extends ReadingHistories
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  ReadingHistory map(Map<String, dynamic> data, {String? tablePrefix}) {
+  DbReadingHistory map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return ReadingHistory(
+    return DbReadingHistory(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
@@ -2182,12 +2218,13 @@ class $ReadingHistoriesTable extends ReadingHistories
   }
 
   @override
-  $ReadingHistoriesTable createAlias(String alias) {
-    return $ReadingHistoriesTable(attachedDatabase, alias);
+  $DbReadingHistorysTable createAlias(String alias) {
+    return $DbReadingHistorysTable(attachedDatabase, alias);
   }
 }
 
-class ReadingHistory extends DataClass implements Insertable<ReadingHistory> {
+class DbReadingHistory extends DataClass
+    implements Insertable<DbReadingHistory> {
   final int id;
 
   /// 关联的小说ID
@@ -2204,7 +2241,7 @@ class ReadingHistory extends DataClass implements Insertable<ReadingHistory> {
 
   /// 阅读时长（秒）
   final int duration;
-  const ReadingHistory({
+  const DbReadingHistory({
     required this.id,
     required this.bookId,
     required this.chapterId,
@@ -2224,8 +2261,8 @@ class ReadingHistory extends DataClass implements Insertable<ReadingHistory> {
     return map;
   }
 
-  ReadingHistoriesCompanion toCompanion(bool nullToAbsent) {
-    return ReadingHistoriesCompanion(
+  DbReadingHistorysCompanion toCompanion(bool nullToAbsent) {
+    return DbReadingHistorysCompanion(
       id: Value(id),
       bookId: Value(bookId),
       chapterId: Value(chapterId),
@@ -2235,12 +2272,12 @@ class ReadingHistory extends DataClass implements Insertable<ReadingHistory> {
     );
   }
 
-  factory ReadingHistory.fromJson(
+  factory DbReadingHistory.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return ReadingHistory(
+    return DbReadingHistory(
       id: serializer.fromJson<int>(json['id']),
       bookId: serializer.fromJson<int>(json['bookId']),
       chapterId: serializer.fromJson<int>(json['chapterId']),
@@ -2262,14 +2299,14 @@ class ReadingHistory extends DataClass implements Insertable<ReadingHistory> {
     };
   }
 
-  ReadingHistory copyWith({
+  DbReadingHistory copyWith({
     int? id,
     int? bookId,
     int? chapterId,
     int? position,
     DateTime? readTime,
     int? duration,
-  }) => ReadingHistory(
+  }) => DbReadingHistory(
     id: id ?? this.id,
     bookId: bookId ?? this.bookId,
     chapterId: chapterId ?? this.chapterId,
@@ -2277,8 +2314,8 @@ class ReadingHistory extends DataClass implements Insertable<ReadingHistory> {
     readTime: readTime ?? this.readTime,
     duration: duration ?? this.duration,
   );
-  ReadingHistory copyWithCompanion(ReadingHistoriesCompanion data) {
-    return ReadingHistory(
+  DbReadingHistory copyWithCompanion(DbReadingHistorysCompanion data) {
+    return DbReadingHistory(
       id: data.id.present ? data.id.value : this.id,
       bookId: data.bookId.present ? data.bookId.value : this.bookId,
       chapterId: data.chapterId.present ? data.chapterId.value : this.chapterId,
@@ -2290,7 +2327,7 @@ class ReadingHistory extends DataClass implements Insertable<ReadingHistory> {
 
   @override
   String toString() {
-    return (StringBuffer('ReadingHistory(')
+    return (StringBuffer('DbReadingHistory(')
           ..write('id: $id, ')
           ..write('bookId: $bookId, ')
           ..write('chapterId: $chapterId, ')
@@ -2307,7 +2344,7 @@ class ReadingHistory extends DataClass implements Insertable<ReadingHistory> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is ReadingHistory &&
+      (other is DbReadingHistory &&
           other.id == this.id &&
           other.bookId == this.bookId &&
           other.chapterId == this.chapterId &&
@@ -2316,14 +2353,14 @@ class ReadingHistory extends DataClass implements Insertable<ReadingHistory> {
           other.duration == this.duration);
 }
 
-class ReadingHistoriesCompanion extends UpdateCompanion<ReadingHistory> {
+class DbReadingHistorysCompanion extends UpdateCompanion<DbReadingHistory> {
   final Value<int> id;
   final Value<int> bookId;
   final Value<int> chapterId;
   final Value<int> position;
   final Value<DateTime> readTime;
   final Value<int> duration;
-  const ReadingHistoriesCompanion({
+  const DbReadingHistorysCompanion({
     this.id = const Value.absent(),
     this.bookId = const Value.absent(),
     this.chapterId = const Value.absent(),
@@ -2331,7 +2368,7 @@ class ReadingHistoriesCompanion extends UpdateCompanion<ReadingHistory> {
     this.readTime = const Value.absent(),
     this.duration = const Value.absent(),
   });
-  ReadingHistoriesCompanion.insert({
+  DbReadingHistorysCompanion.insert({
     this.id = const Value.absent(),
     required int bookId,
     required int chapterId,
@@ -2341,7 +2378,7 @@ class ReadingHistoriesCompanion extends UpdateCompanion<ReadingHistory> {
   }) : bookId = Value(bookId),
        chapterId = Value(chapterId),
        position = Value(position);
-  static Insertable<ReadingHistory> custom({
+  static Insertable<DbReadingHistory> custom({
     Expression<int>? id,
     Expression<int>? bookId,
     Expression<int>? chapterId,
@@ -2359,7 +2396,7 @@ class ReadingHistoriesCompanion extends UpdateCompanion<ReadingHistory> {
     });
   }
 
-  ReadingHistoriesCompanion copyWith({
+  DbReadingHistorysCompanion copyWith({
     Value<int>? id,
     Value<int>? bookId,
     Value<int>? chapterId,
@@ -2367,7 +2404,7 @@ class ReadingHistoriesCompanion extends UpdateCompanion<ReadingHistory> {
     Value<DateTime>? readTime,
     Value<int>? duration,
   }) {
-    return ReadingHistoriesCompanion(
+    return DbReadingHistorysCompanion(
       id: id ?? this.id,
       bookId: bookId ?? this.bookId,
       chapterId: chapterId ?? this.chapterId,
@@ -2403,7 +2440,7 @@ class ReadingHistoriesCompanion extends UpdateCompanion<ReadingHistory> {
 
   @override
   String toString() {
-    return (StringBuffer('ReadingHistoriesCompanion(')
+    return (StringBuffer('DbReadingHistorysCompanion(')
           ..write('id: $id, ')
           ..write('bookId: $bookId, ')
           ..write('chapterId: $chapterId, ')
@@ -2415,20 +2452,23 @@ class ReadingHistoriesCompanion extends UpdateCompanion<ReadingHistory> {
   }
 }
 
-class $ReadingProgressesTable extends ReadingProgresses
-    with TableInfo<$ReadingProgressesTable, ReadingProgressItem> {
+class $DbReadingProgresssTable extends DbReadingProgresss
+    with TableInfo<$DbReadingProgresssTable, DbReadingProgress> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $ReadingProgressesTable(this.attachedDatabase, [this._alias]);
+  $DbReadingProgresssTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
   @override
-  late final GeneratedColumn<String> bookId = GeneratedColumn<String>(
+  late final GeneratedColumn<int> bookId = GeneratedColumn<int>(
     'book_id',
     aliasedName,
     false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES db_books (id) ON DELETE CASCADE',
+    ),
   );
   static const VerificationMeta _chapterIdMeta = const VerificationMeta(
     'chapterId',
@@ -2440,6 +2480,9 @@ class $ReadingProgressesTable extends ReadingProgresses
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES db_chapters (id) ON DELETE CASCADE',
+    ),
   );
   static const VerificationMeta _pageIndexMeta = const VerificationMeta(
     'pageIndex',
@@ -2510,10 +2553,10 @@ class $ReadingProgressesTable extends ReadingProgresses
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'reading_progresses';
+  static const String $name = 'db_reading_progresss';
   @override
   VerificationContext validateIntegrity(
-    Insertable<ReadingProgressItem> instance, {
+    Insertable<DbReadingProgress> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -2523,8 +2566,6 @@ class $ReadingProgressesTable extends ReadingProgresses
         _bookIdMeta,
         bookId.isAcceptableOrUnknown(data['book_id']!, _bookIdMeta),
       );
-    } else if (isInserting) {
-      context.missing(_bookIdMeta);
     }
     if (data.containsKey('chapter_id')) {
       context.handle(
@@ -2584,11 +2625,11 @@ class $ReadingProgressesTable extends ReadingProgresses
   @override
   Set<GeneratedColumn> get $primaryKey => {bookId};
   @override
-  ReadingProgressItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+  DbReadingProgress map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return ReadingProgressItem(
+    return DbReadingProgress(
       bookId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
+        DriftSqlType.int,
         data['${effectivePrefix}book_id'],
       )!,
       chapterId: attachedDatabase.typeMapping.read(
@@ -2619,17 +2660,18 @@ class $ReadingProgressesTable extends ReadingProgresses
   }
 
   @override
-  $ReadingProgressesTable createAlias(String alias) {
-    return $ReadingProgressesTable(attachedDatabase, alias);
+  $DbReadingProgresssTable createAlias(String alias) {
+    return $DbReadingProgresssTable(attachedDatabase, alias);
   }
 }
 
-class ReadingProgressItem extends DataClass
-    implements Insertable<ReadingProgressItem> {
+class DbReadingProgress extends DataClass
+    implements Insertable<DbReadingProgress> {
   /// 书籍 ID（主键）
-  final String bookId;
+  final int bookId;
 
   /// 当前章节 ID
+  /// 关联的章节 ID
   final int chapterId;
 
   /// 当前页码
@@ -2646,7 +2688,7 @@ class ReadingProgressItem extends DataClass
 
   /// 最后阅读时间戳（Unix 时间戳，秒）
   final int lastReadTimestamp;
-  const ReadingProgressItem({
+  const DbReadingProgress({
     required this.bookId,
     required this.chapterId,
     required this.pageIndex,
@@ -2658,7 +2700,7 @@ class ReadingProgressItem extends DataClass
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['book_id'] = Variable<String>(bookId);
+    map['book_id'] = Variable<int>(bookId);
     map['chapter_id'] = Variable<int>(chapterId);
     map['page_index'] = Variable<int>(pageIndex);
     map['total_pages'] = Variable<int>(totalPages);
@@ -2668,8 +2710,8 @@ class ReadingProgressItem extends DataClass
     return map;
   }
 
-  ReadingProgressesCompanion toCompanion(bool nullToAbsent) {
-    return ReadingProgressesCompanion(
+  DbReadingProgresssCompanion toCompanion(bool nullToAbsent) {
+    return DbReadingProgresssCompanion(
       bookId: Value(bookId),
       chapterId: Value(chapterId),
       pageIndex: Value(pageIndex),
@@ -2680,13 +2722,13 @@ class ReadingProgressItem extends DataClass
     );
   }
 
-  factory ReadingProgressItem.fromJson(
+  factory DbReadingProgress.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return ReadingProgressItem(
-      bookId: serializer.fromJson<String>(json['bookId']),
+    return DbReadingProgress(
+      bookId: serializer.fromJson<int>(json['bookId']),
       chapterId: serializer.fromJson<int>(json['chapterId']),
       pageIndex: serializer.fromJson<int>(json['pageIndex']),
       totalPages: serializer.fromJson<int>(json['totalPages']),
@@ -2699,7 +2741,7 @@ class ReadingProgressItem extends DataClass
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'bookId': serializer.toJson<String>(bookId),
+      'bookId': serializer.toJson<int>(bookId),
       'chapterId': serializer.toJson<int>(chapterId),
       'pageIndex': serializer.toJson<int>(pageIndex),
       'totalPages': serializer.toJson<int>(totalPages),
@@ -2709,15 +2751,15 @@ class ReadingProgressItem extends DataClass
     };
   }
 
-  ReadingProgressItem copyWith({
-    String? bookId,
+  DbReadingProgress copyWith({
+    int? bookId,
     int? chapterId,
     int? pageIndex,
     int? totalPages,
     double? progress,
     int? readingTimeSeconds,
     int? lastReadTimestamp,
-  }) => ReadingProgressItem(
+  }) => DbReadingProgress(
     bookId: bookId ?? this.bookId,
     chapterId: chapterId ?? this.chapterId,
     pageIndex: pageIndex ?? this.pageIndex,
@@ -2726,8 +2768,8 @@ class ReadingProgressItem extends DataClass
     readingTimeSeconds: readingTimeSeconds ?? this.readingTimeSeconds,
     lastReadTimestamp: lastReadTimestamp ?? this.lastReadTimestamp,
   );
-  ReadingProgressItem copyWithCompanion(ReadingProgressesCompanion data) {
-    return ReadingProgressItem(
+  DbReadingProgress copyWithCompanion(DbReadingProgresssCompanion data) {
+    return DbReadingProgress(
       bookId: data.bookId.present ? data.bookId.value : this.bookId,
       chapterId: data.chapterId.present ? data.chapterId.value : this.chapterId,
       pageIndex: data.pageIndex.present ? data.pageIndex.value : this.pageIndex,
@@ -2746,7 +2788,7 @@ class ReadingProgressItem extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('ReadingProgressItem(')
+    return (StringBuffer('DbReadingProgress(')
           ..write('bookId: $bookId, ')
           ..write('chapterId: $chapterId, ')
           ..write('pageIndex: $pageIndex, ')
@@ -2771,7 +2813,7 @@ class ReadingProgressItem extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is ReadingProgressItem &&
+      (other is DbReadingProgress &&
           other.bookId == this.bookId &&
           other.chapterId == this.chapterId &&
           other.pageIndex == this.pageIndex &&
@@ -2781,16 +2823,15 @@ class ReadingProgressItem extends DataClass
           other.lastReadTimestamp == this.lastReadTimestamp);
 }
 
-class ReadingProgressesCompanion extends UpdateCompanion<ReadingProgressItem> {
-  final Value<String> bookId;
+class DbReadingProgresssCompanion extends UpdateCompanion<DbReadingProgress> {
+  final Value<int> bookId;
   final Value<int> chapterId;
   final Value<int> pageIndex;
   final Value<int> totalPages;
   final Value<double> progress;
   final Value<int> readingTimeSeconds;
   final Value<int> lastReadTimestamp;
-  final Value<int> rowid;
-  const ReadingProgressesCompanion({
+  const DbReadingProgresssCompanion({
     this.bookId = const Value.absent(),
     this.chapterId = const Value.absent(),
     this.pageIndex = const Value.absent(),
@@ -2798,32 +2839,28 @@ class ReadingProgressesCompanion extends UpdateCompanion<ReadingProgressItem> {
     this.progress = const Value.absent(),
     this.readingTimeSeconds = const Value.absent(),
     this.lastReadTimestamp = const Value.absent(),
-    this.rowid = const Value.absent(),
   });
-  ReadingProgressesCompanion.insert({
-    required String bookId,
+  DbReadingProgresssCompanion.insert({
+    this.bookId = const Value.absent(),
     required int chapterId,
     required int pageIndex,
     required int totalPages,
     required double progress,
     this.readingTimeSeconds = const Value.absent(),
     required int lastReadTimestamp,
-    this.rowid = const Value.absent(),
-  }) : bookId = Value(bookId),
-       chapterId = Value(chapterId),
+  }) : chapterId = Value(chapterId),
        pageIndex = Value(pageIndex),
        totalPages = Value(totalPages),
        progress = Value(progress),
        lastReadTimestamp = Value(lastReadTimestamp);
-  static Insertable<ReadingProgressItem> custom({
-    Expression<String>? bookId,
+  static Insertable<DbReadingProgress> custom({
+    Expression<int>? bookId,
     Expression<int>? chapterId,
     Expression<int>? pageIndex,
     Expression<int>? totalPages,
     Expression<double>? progress,
     Expression<int>? readingTimeSeconds,
     Expression<int>? lastReadTimestamp,
-    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (bookId != null) 'book_id': bookId,
@@ -2834,21 +2871,19 @@ class ReadingProgressesCompanion extends UpdateCompanion<ReadingProgressItem> {
       if (readingTimeSeconds != null)
         'reading_time_seconds': readingTimeSeconds,
       if (lastReadTimestamp != null) 'last_read_timestamp': lastReadTimestamp,
-      if (rowid != null) 'rowid': rowid,
     });
   }
 
-  ReadingProgressesCompanion copyWith({
-    Value<String>? bookId,
+  DbReadingProgresssCompanion copyWith({
+    Value<int>? bookId,
     Value<int>? chapterId,
     Value<int>? pageIndex,
     Value<int>? totalPages,
     Value<double>? progress,
     Value<int>? readingTimeSeconds,
     Value<int>? lastReadTimestamp,
-    Value<int>? rowid,
   }) {
-    return ReadingProgressesCompanion(
+    return DbReadingProgresssCompanion(
       bookId: bookId ?? this.bookId,
       chapterId: chapterId ?? this.chapterId,
       pageIndex: pageIndex ?? this.pageIndex,
@@ -2856,7 +2891,6 @@ class ReadingProgressesCompanion extends UpdateCompanion<ReadingProgressItem> {
       progress: progress ?? this.progress,
       readingTimeSeconds: readingTimeSeconds ?? this.readingTimeSeconds,
       lastReadTimestamp: lastReadTimestamp ?? this.lastReadTimestamp,
-      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -2864,7 +2898,7 @@ class ReadingProgressesCompanion extends UpdateCompanion<ReadingProgressItem> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (bookId.present) {
-      map['book_id'] = Variable<String>(bookId.value);
+      map['book_id'] = Variable<int>(bookId.value);
     }
     if (chapterId.present) {
       map['chapter_id'] = Variable<int>(chapterId.value);
@@ -2884,34 +2918,30 @@ class ReadingProgressesCompanion extends UpdateCompanion<ReadingProgressItem> {
     if (lastReadTimestamp.present) {
       map['last_read_timestamp'] = Variable<int>(lastReadTimestamp.value);
     }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
     return map;
   }
 
   @override
   String toString() {
-    return (StringBuffer('ReadingProgressesCompanion(')
+    return (StringBuffer('DbReadingProgresssCompanion(')
           ..write('bookId: $bookId, ')
           ..write('chapterId: $chapterId, ')
           ..write('pageIndex: $pageIndex, ')
           ..write('totalPages: $totalPages, ')
           ..write('progress: $progress, ')
           ..write('readingTimeSeconds: $readingTimeSeconds, ')
-          ..write('lastReadTimestamp: $lastReadTimestamp, ')
-          ..write('rowid: $rowid')
+          ..write('lastReadTimestamp: $lastReadTimestamp')
           ..write(')'))
         .toString();
   }
 }
 
-class $LayoutCachesTable extends LayoutCaches
-    with TableInfo<$LayoutCachesTable, LayoutCacheItem> {
+class $DbLayoutCachesTable extends DbLayoutCaches
+    with TableInfo<$DbLayoutCachesTable, DbLayoutCache> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $LayoutCachesTable(this.attachedDatabase, [this._alias]);
+  $DbLayoutCachesTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -2927,12 +2957,15 @@ class $LayoutCachesTable extends LayoutCaches
   );
   static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
   @override
-  late final GeneratedColumn<String> bookId = GeneratedColumn<String>(
+  late final GeneratedColumn<int> bookId = GeneratedColumn<int>(
     'book_id',
     aliasedName,
     false,
-    type: DriftSqlType.string,
+    type: DriftSqlType.int,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES db_books (id) ON DELETE CASCADE',
+    ),
   );
   static const VerificationMeta _chapterIdMeta = const VerificationMeta(
     'chapterId',
@@ -2944,6 +2977,9 @@ class $LayoutCachesTable extends LayoutCaches
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES db_chapters (id) ON DELETE CASCADE',
+    ),
   );
   static const VerificationMeta _configHashMeta = const VerificationMeta(
     'configHash',
@@ -3003,10 +3039,10 @@ class $LayoutCachesTable extends LayoutCaches
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'layout_caches';
+  static const String $name = 'db_layout_caches';
   @override
   VerificationContext validateIntegrity(
-    Insertable<LayoutCacheItem> instance, {
+    Insertable<DbLayoutCache> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -3075,15 +3111,15 @@ class $LayoutCachesTable extends LayoutCaches
     {bookId, chapterId, configHash},
   ];
   @override
-  LayoutCacheItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+  DbLayoutCache map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return LayoutCacheItem(
+    return DbLayoutCache(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
       bookId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
+        DriftSqlType.int,
         data['${effectivePrefix}book_id'],
       )!,
       chapterId: attachedDatabase.typeMapping.read(
@@ -3110,17 +3146,17 @@ class $LayoutCachesTable extends LayoutCaches
   }
 
   @override
-  $LayoutCachesTable createAlias(String alias) {
-    return $LayoutCachesTable(attachedDatabase, alias);
+  $DbLayoutCachesTable createAlias(String alias) {
+    return $DbLayoutCachesTable(attachedDatabase, alias);
   }
 }
 
-class LayoutCacheItem extends DataClass implements Insertable<LayoutCacheItem> {
+class DbLayoutCache extends DataClass implements Insertable<DbLayoutCache> {
   /// 自增主键
   final int id;
 
   /// 书籍 ID
-  final String bookId;
+  final int bookId;
 
   /// 章节 ID
   final int chapterId;
@@ -3136,7 +3172,7 @@ class LayoutCacheItem extends DataClass implements Insertable<LayoutCacheItem> {
 
   /// 创建时间戳（Unix 时间戳，秒）
   final int createdAt;
-  const LayoutCacheItem({
+  const DbLayoutCache({
     required this.id,
     required this.bookId,
     required this.chapterId,
@@ -3149,7 +3185,7 @@ class LayoutCacheItem extends DataClass implements Insertable<LayoutCacheItem> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['book_id'] = Variable<String>(bookId);
+    map['book_id'] = Variable<int>(bookId);
     map['chapter_id'] = Variable<int>(chapterId);
     map['config_hash'] = Variable<String>(configHash);
     map['page_offsets'] = Variable<String>(pageOffsets);
@@ -3158,8 +3194,8 @@ class LayoutCacheItem extends DataClass implements Insertable<LayoutCacheItem> {
     return map;
   }
 
-  LayoutCachesCompanion toCompanion(bool nullToAbsent) {
-    return LayoutCachesCompanion(
+  DbLayoutCachesCompanion toCompanion(bool nullToAbsent) {
+    return DbLayoutCachesCompanion(
       id: Value(id),
       bookId: Value(bookId),
       chapterId: Value(chapterId),
@@ -3170,14 +3206,14 @@ class LayoutCacheItem extends DataClass implements Insertable<LayoutCacheItem> {
     );
   }
 
-  factory LayoutCacheItem.fromJson(
+  factory DbLayoutCache.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return LayoutCacheItem(
+    return DbLayoutCache(
       id: serializer.fromJson<int>(json['id']),
-      bookId: serializer.fromJson<String>(json['bookId']),
+      bookId: serializer.fromJson<int>(json['bookId']),
       chapterId: serializer.fromJson<int>(json['chapterId']),
       configHash: serializer.fromJson<String>(json['configHash']),
       pageOffsets: serializer.fromJson<String>(json['pageOffsets']),
@@ -3190,7 +3226,7 @@ class LayoutCacheItem extends DataClass implements Insertable<LayoutCacheItem> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'bookId': serializer.toJson<String>(bookId),
+      'bookId': serializer.toJson<int>(bookId),
       'chapterId': serializer.toJson<int>(chapterId),
       'configHash': serializer.toJson<String>(configHash),
       'pageOffsets': serializer.toJson<String>(pageOffsets),
@@ -3199,15 +3235,15 @@ class LayoutCacheItem extends DataClass implements Insertable<LayoutCacheItem> {
     };
   }
 
-  LayoutCacheItem copyWith({
+  DbLayoutCache copyWith({
     int? id,
-    String? bookId,
+    int? bookId,
     int? chapterId,
     String? configHash,
     String? pageOffsets,
     int? totalPages,
     int? createdAt,
-  }) => LayoutCacheItem(
+  }) => DbLayoutCache(
     id: id ?? this.id,
     bookId: bookId ?? this.bookId,
     chapterId: chapterId ?? this.chapterId,
@@ -3216,8 +3252,8 @@ class LayoutCacheItem extends DataClass implements Insertable<LayoutCacheItem> {
     totalPages: totalPages ?? this.totalPages,
     createdAt: createdAt ?? this.createdAt,
   );
-  LayoutCacheItem copyWithCompanion(LayoutCachesCompanion data) {
-    return LayoutCacheItem(
+  DbLayoutCache copyWithCompanion(DbLayoutCachesCompanion data) {
+    return DbLayoutCache(
       id: data.id.present ? data.id.value : this.id,
       bookId: data.bookId.present ? data.bookId.value : this.bookId,
       chapterId: data.chapterId.present ? data.chapterId.value : this.chapterId,
@@ -3236,7 +3272,7 @@ class LayoutCacheItem extends DataClass implements Insertable<LayoutCacheItem> {
 
   @override
   String toString() {
-    return (StringBuffer('LayoutCacheItem(')
+    return (StringBuffer('DbLayoutCache(')
           ..write('id: $id, ')
           ..write('bookId: $bookId, ')
           ..write('chapterId: $chapterId, ')
@@ -3261,7 +3297,7 @@ class LayoutCacheItem extends DataClass implements Insertable<LayoutCacheItem> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is LayoutCacheItem &&
+      (other is DbLayoutCache &&
           other.id == this.id &&
           other.bookId == this.bookId &&
           other.chapterId == this.chapterId &&
@@ -3271,15 +3307,15 @@ class LayoutCacheItem extends DataClass implements Insertable<LayoutCacheItem> {
           other.createdAt == this.createdAt);
 }
 
-class LayoutCachesCompanion extends UpdateCompanion<LayoutCacheItem> {
+class DbLayoutCachesCompanion extends UpdateCompanion<DbLayoutCache> {
   final Value<int> id;
-  final Value<String> bookId;
+  final Value<int> bookId;
   final Value<int> chapterId;
   final Value<String> configHash;
   final Value<String> pageOffsets;
   final Value<int> totalPages;
   final Value<int> createdAt;
-  const LayoutCachesCompanion({
+  const DbLayoutCachesCompanion({
     this.id = const Value.absent(),
     this.bookId = const Value.absent(),
     this.chapterId = const Value.absent(),
@@ -3288,9 +3324,9 @@ class LayoutCachesCompanion extends UpdateCompanion<LayoutCacheItem> {
     this.totalPages = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
-  LayoutCachesCompanion.insert({
+  DbLayoutCachesCompanion.insert({
     this.id = const Value.absent(),
-    required String bookId,
+    required int bookId,
     required int chapterId,
     required String configHash,
     required String pageOffsets,
@@ -3302,9 +3338,9 @@ class LayoutCachesCompanion extends UpdateCompanion<LayoutCacheItem> {
        pageOffsets = Value(pageOffsets),
        totalPages = Value(totalPages),
        createdAt = Value(createdAt);
-  static Insertable<LayoutCacheItem> custom({
+  static Insertable<DbLayoutCache> custom({
     Expression<int>? id,
-    Expression<String>? bookId,
+    Expression<int>? bookId,
     Expression<int>? chapterId,
     Expression<String>? configHash,
     Expression<String>? pageOffsets,
@@ -3322,16 +3358,16 @@ class LayoutCachesCompanion extends UpdateCompanion<LayoutCacheItem> {
     });
   }
 
-  LayoutCachesCompanion copyWith({
+  DbLayoutCachesCompanion copyWith({
     Value<int>? id,
-    Value<String>? bookId,
+    Value<int>? bookId,
     Value<int>? chapterId,
     Value<String>? configHash,
     Value<String>? pageOffsets,
     Value<int>? totalPages,
     Value<int>? createdAt,
   }) {
-    return LayoutCachesCompanion(
+    return DbLayoutCachesCompanion(
       id: id ?? this.id,
       bookId: bookId ?? this.bookId,
       chapterId: chapterId ?? this.chapterId,
@@ -3349,7 +3385,7 @@ class LayoutCachesCompanion extends UpdateCompanion<LayoutCacheItem> {
       map['id'] = Variable<int>(id.value);
     }
     if (bookId.present) {
-      map['book_id'] = Variable<String>(bookId.value);
+      map['book_id'] = Variable<int>(bookId.value);
     }
     if (chapterId.present) {
       map['chapter_id'] = Variable<int>(chapterId.value);
@@ -3371,7 +3407,7 @@ class LayoutCachesCompanion extends UpdateCompanion<LayoutCacheItem> {
 
   @override
   String toString() {
-    return (StringBuffer('LayoutCachesCompanion(')
+    return (StringBuffer('DbLayoutCachesCompanion(')
           ..write('id: $id, ')
           ..write('bookId: $bookId, ')
           ..write('chapterId: $chapterId, ')
@@ -3384,12 +3420,12 @@ class LayoutCachesCompanion extends UpdateCompanion<LayoutCacheItem> {
   }
 }
 
-class $ReadingStatsesTable extends ReadingStatses
-    with TableInfo<$ReadingStatsesTable, ReadingStatsItem> {
+class $DbReadingStatssTable extends DbReadingStatss
+    with TableInfo<$DbReadingStatssTable, DbReadingStats> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $ReadingStatsesTable(this.attachedDatabase, [this._alias]);
+  $DbReadingStatssTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -3482,10 +3518,10 @@ class $ReadingStatsesTable extends ReadingStatses
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'reading_statses';
+  static const String $name = 'db_reading_statss';
   @override
   VerificationContext validateIntegrity(
-    Insertable<ReadingStatsItem> instance, {
+    Insertable<DbReadingStats> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -3553,9 +3589,9 @@ class $ReadingStatsesTable extends ReadingStatses
   @override
   Set<GeneratedColumn> get $primaryKey => const {};
   @override
-  ReadingStatsItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+  DbReadingStats map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return ReadingStatsItem(
+    return DbReadingStats(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
@@ -3588,13 +3624,12 @@ class $ReadingStatsesTable extends ReadingStatses
   }
 
   @override
-  $ReadingStatsesTable createAlias(String alias) {
-    return $ReadingStatsesTable(attachedDatabase, alias);
+  $DbReadingStatssTable createAlias(String alias) {
+    return $DbReadingStatssTable(attachedDatabase, alias);
   }
 }
 
-class ReadingStatsItem extends DataClass
-    implements Insertable<ReadingStatsItem> {
+class DbReadingStats extends DataClass implements Insertable<DbReadingStats> {
   /// 固定 ID = 1
   final int id;
 
@@ -3615,7 +3650,7 @@ class ReadingStatsItem extends DataClass
 
   /// 连续阅读天数
   final int consecutiveReadingDays;
-  const ReadingStatsItem({
+  const DbReadingStats({
     required this.id,
     required this.totalReadingTimeSeconds,
     required this.totalCharactersRead,
@@ -3639,8 +3674,8 @@ class ReadingStatsItem extends DataClass
     return map;
   }
 
-  ReadingStatsesCompanion toCompanion(bool nullToAbsent) {
-    return ReadingStatsesCompanion(
+  DbReadingStatssCompanion toCompanion(bool nullToAbsent) {
+    return DbReadingStatssCompanion(
       id: Value(id),
       totalReadingTimeSeconds: Value(totalReadingTimeSeconds),
       totalCharactersRead: Value(totalCharactersRead),
@@ -3653,12 +3688,12 @@ class ReadingStatsItem extends DataClass
     );
   }
 
-  factory ReadingStatsItem.fromJson(
+  factory DbReadingStats.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return ReadingStatsItem(
+    return DbReadingStats(
       id: serializer.fromJson<int>(json['id']),
       totalReadingTimeSeconds: serializer.fromJson<int>(
         json['totalReadingTimeSeconds'],
@@ -3692,7 +3727,7 @@ class ReadingStatsItem extends DataClass
     };
   }
 
-  ReadingStatsItem copyWith({
+  DbReadingStats copyWith({
     int? id,
     int? totalReadingTimeSeconds,
     int? totalCharactersRead,
@@ -3700,7 +3735,7 @@ class ReadingStatsItem extends DataClass
     int? booksCompletedCount,
     Value<String?> lastReadDate = const Value.absent(),
     int? consecutiveReadingDays,
-  }) => ReadingStatsItem(
+  }) => DbReadingStats(
     id: id ?? this.id,
     totalReadingTimeSeconds:
         totalReadingTimeSeconds ?? this.totalReadingTimeSeconds,
@@ -3711,8 +3746,8 @@ class ReadingStatsItem extends DataClass
     consecutiveReadingDays:
         consecutiveReadingDays ?? this.consecutiveReadingDays,
   );
-  ReadingStatsItem copyWithCompanion(ReadingStatsesCompanion data) {
-    return ReadingStatsItem(
+  DbReadingStats copyWithCompanion(DbReadingStatssCompanion data) {
+    return DbReadingStats(
       id: data.id.present ? data.id.value : this.id,
       totalReadingTimeSeconds: data.totalReadingTimeSeconds.present
           ? data.totalReadingTimeSeconds.value
@@ -3737,7 +3772,7 @@ class ReadingStatsItem extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('ReadingStatsItem(')
+    return (StringBuffer('DbReadingStats(')
           ..write('id: $id, ')
           ..write('totalReadingTimeSeconds: $totalReadingTimeSeconds, ')
           ..write('totalCharactersRead: $totalCharactersRead, ')
@@ -3762,7 +3797,7 @@ class ReadingStatsItem extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is ReadingStatsItem &&
+      (other is DbReadingStats &&
           other.id == this.id &&
           other.totalReadingTimeSeconds == this.totalReadingTimeSeconds &&
           other.totalCharactersRead == this.totalCharactersRead &&
@@ -3772,7 +3807,7 @@ class ReadingStatsItem extends DataClass
           other.consecutiveReadingDays == this.consecutiveReadingDays);
 }
 
-class ReadingStatsesCompanion extends UpdateCompanion<ReadingStatsItem> {
+class DbReadingStatssCompanion extends UpdateCompanion<DbReadingStats> {
   final Value<int> id;
   final Value<int> totalReadingTimeSeconds;
   final Value<int> totalCharactersRead;
@@ -3781,7 +3816,7 @@ class ReadingStatsesCompanion extends UpdateCompanion<ReadingStatsItem> {
   final Value<String?> lastReadDate;
   final Value<int> consecutiveReadingDays;
   final Value<int> rowid;
-  const ReadingStatsesCompanion({
+  const DbReadingStatssCompanion({
     this.id = const Value.absent(),
     this.totalReadingTimeSeconds = const Value.absent(),
     this.totalCharactersRead = const Value.absent(),
@@ -3791,7 +3826,7 @@ class ReadingStatsesCompanion extends UpdateCompanion<ReadingStatsItem> {
     this.consecutiveReadingDays = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  ReadingStatsesCompanion.insert({
+  DbReadingStatssCompanion.insert({
     this.id = const Value.absent(),
     this.totalReadingTimeSeconds = const Value.absent(),
     this.totalCharactersRead = const Value.absent(),
@@ -3801,7 +3836,7 @@ class ReadingStatsesCompanion extends UpdateCompanion<ReadingStatsItem> {
     this.consecutiveReadingDays = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  static Insertable<ReadingStatsItem> custom({
+  static Insertable<DbReadingStats> custom({
     Expression<int>? id,
     Expression<int>? totalReadingTimeSeconds,
     Expression<int>? totalCharactersRead,
@@ -3827,7 +3862,7 @@ class ReadingStatsesCompanion extends UpdateCompanion<ReadingStatsItem> {
     });
   }
 
-  ReadingStatsesCompanion copyWith({
+  DbReadingStatssCompanion copyWith({
     Value<int>? id,
     Value<int>? totalReadingTimeSeconds,
     Value<int>? totalCharactersRead,
@@ -3837,7 +3872,7 @@ class ReadingStatsesCompanion extends UpdateCompanion<ReadingStatsItem> {
     Value<int>? consecutiveReadingDays,
     Value<int>? rowid,
   }) {
-    return ReadingStatsesCompanion(
+    return DbReadingStatssCompanion(
       id: id ?? this.id,
       totalReadingTimeSeconds:
           totalReadingTimeSeconds ?? this.totalReadingTimeSeconds,
@@ -3887,7 +3922,7 @@ class ReadingStatsesCompanion extends UpdateCompanion<ReadingStatsItem> {
 
   @override
   String toString() {
-    return (StringBuffer('ReadingStatsesCompanion(')
+    return (StringBuffer('DbReadingStatssCompanion(')
           ..write('id: $id, ')
           ..write('totalReadingTimeSeconds: $totalReadingTimeSeconds, ')
           ..write('totalCharactersRead: $totalCharactersRead, ')
@@ -3901,12 +3936,12 @@ class ReadingStatsesCompanion extends UpdateCompanion<ReadingStatsItem> {
   }
 }
 
-class $DailyReadingRecordsTable extends DailyReadingRecords
-    with TableInfo<$DailyReadingRecordsTable, DailyReadingRecordItem> {
+class $DbDailyReadingRecordsTable extends DbDailyReadingRecords
+    with TableInfo<$DbDailyReadingRecordsTable, DbDailyReadingRecord> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $DailyReadingRecordsTable(this.attachedDatabase, [this._alias]);
+  $DbDailyReadingRecordsTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _dateMeta = const VerificationMeta('date');
   @override
   late final GeneratedColumn<String> date = GeneratedColumn<String>(
@@ -3975,10 +4010,10 @@ class $DailyReadingRecordsTable extends DailyReadingRecords
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'daily_reading_records';
+  static const String $name = 'db_daily_reading_records';
   @override
   VerificationContext validateIntegrity(
-    Insertable<DailyReadingRecordItem> instance, {
+    Insertable<DbDailyReadingRecord> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -4030,9 +4065,9 @@ class $DailyReadingRecordsTable extends DailyReadingRecords
   @override
   Set<GeneratedColumn> get $primaryKey => {date};
   @override
-  DailyReadingRecordItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+  DbDailyReadingRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return DailyReadingRecordItem(
+    return DbDailyReadingRecord(
       date: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}date'],
@@ -4057,13 +4092,13 @@ class $DailyReadingRecordsTable extends DailyReadingRecords
   }
 
   @override
-  $DailyReadingRecordsTable createAlias(String alias) {
-    return $DailyReadingRecordsTable(attachedDatabase, alias);
+  $DbDailyReadingRecordsTable createAlias(String alias) {
+    return $DbDailyReadingRecordsTable(attachedDatabase, alias);
   }
 }
 
-class DailyReadingRecordItem extends DataClass
-    implements Insertable<DailyReadingRecordItem> {
+class DbDailyReadingRecord extends DataClass
+    implements Insertable<DbDailyReadingRecord> {
   /// 日期（YYYY-MM-DD 格式，主键）
   final String date;
 
@@ -4078,7 +4113,7 @@ class DailyReadingRecordItem extends DataClass
 
   /// 阅读页数
   final int pagesRead;
-  const DailyReadingRecordItem({
+  const DbDailyReadingRecord({
     required this.date,
     required this.readingTimeSeconds,
     required this.charactersRead,
@@ -4096,8 +4131,8 @@ class DailyReadingRecordItem extends DataClass
     return map;
   }
 
-  DailyReadingRecordsCompanion toCompanion(bool nullToAbsent) {
-    return DailyReadingRecordsCompanion(
+  DbDailyReadingRecordsCompanion toCompanion(bool nullToAbsent) {
+    return DbDailyReadingRecordsCompanion(
       date: Value(date),
       readingTimeSeconds: Value(readingTimeSeconds),
       charactersRead: Value(charactersRead),
@@ -4106,12 +4141,12 @@ class DailyReadingRecordItem extends DataClass
     );
   }
 
-  factory DailyReadingRecordItem.fromJson(
+  factory DbDailyReadingRecord.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return DailyReadingRecordItem(
+    return DbDailyReadingRecord(
       date: serializer.fromJson<String>(json['date']),
       readingTimeSeconds: serializer.fromJson<int>(json['readingTimeSeconds']),
       charactersRead: serializer.fromJson<int>(json['charactersRead']),
@@ -4131,21 +4166,21 @@ class DailyReadingRecordItem extends DataClass
     };
   }
 
-  DailyReadingRecordItem copyWith({
+  DbDailyReadingRecord copyWith({
     String? date,
     int? readingTimeSeconds,
     int? charactersRead,
     int? chaptersRead,
     int? pagesRead,
-  }) => DailyReadingRecordItem(
+  }) => DbDailyReadingRecord(
     date: date ?? this.date,
     readingTimeSeconds: readingTimeSeconds ?? this.readingTimeSeconds,
     charactersRead: charactersRead ?? this.charactersRead,
     chaptersRead: chaptersRead ?? this.chaptersRead,
     pagesRead: pagesRead ?? this.pagesRead,
   );
-  DailyReadingRecordItem copyWithCompanion(DailyReadingRecordsCompanion data) {
-    return DailyReadingRecordItem(
+  DbDailyReadingRecord copyWithCompanion(DbDailyReadingRecordsCompanion data) {
+    return DbDailyReadingRecord(
       date: data.date.present ? data.date.value : this.date,
       readingTimeSeconds: data.readingTimeSeconds.present
           ? data.readingTimeSeconds.value
@@ -4162,7 +4197,7 @@ class DailyReadingRecordItem extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('DailyReadingRecordItem(')
+    return (StringBuffer('DbDailyReadingRecord(')
           ..write('date: $date, ')
           ..write('readingTimeSeconds: $readingTimeSeconds, ')
           ..write('charactersRead: $charactersRead, ')
@@ -4183,7 +4218,7 @@ class DailyReadingRecordItem extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is DailyReadingRecordItem &&
+      (other is DbDailyReadingRecord &&
           other.date == this.date &&
           other.readingTimeSeconds == this.readingTimeSeconds &&
           other.charactersRead == this.charactersRead &&
@@ -4191,15 +4226,15 @@ class DailyReadingRecordItem extends DataClass
           other.pagesRead == this.pagesRead);
 }
 
-class DailyReadingRecordsCompanion
-    extends UpdateCompanion<DailyReadingRecordItem> {
+class DbDailyReadingRecordsCompanion
+    extends UpdateCompanion<DbDailyReadingRecord> {
   final Value<String> date;
   final Value<int> readingTimeSeconds;
   final Value<int> charactersRead;
   final Value<int> chaptersRead;
   final Value<int> pagesRead;
   final Value<int> rowid;
-  const DailyReadingRecordsCompanion({
+  const DbDailyReadingRecordsCompanion({
     this.date = const Value.absent(),
     this.readingTimeSeconds = const Value.absent(),
     this.charactersRead = const Value.absent(),
@@ -4207,7 +4242,7 @@ class DailyReadingRecordsCompanion
     this.pagesRead = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  DailyReadingRecordsCompanion.insert({
+  DbDailyReadingRecordsCompanion.insert({
     required String date,
     this.readingTimeSeconds = const Value.absent(),
     this.charactersRead = const Value.absent(),
@@ -4215,7 +4250,7 @@ class DailyReadingRecordsCompanion
     this.pagesRead = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : date = Value(date);
-  static Insertable<DailyReadingRecordItem> custom({
+  static Insertable<DbDailyReadingRecord> custom({
     Expression<String>? date,
     Expression<int>? readingTimeSeconds,
     Expression<int>? charactersRead,
@@ -4234,7 +4269,7 @@ class DailyReadingRecordsCompanion
     });
   }
 
-  DailyReadingRecordsCompanion copyWith({
+  DbDailyReadingRecordsCompanion copyWith({
     Value<String>? date,
     Value<int>? readingTimeSeconds,
     Value<int>? charactersRead,
@@ -4242,7 +4277,7 @@ class DailyReadingRecordsCompanion
     Value<int>? pagesRead,
     Value<int>? rowid,
   }) {
-    return DailyReadingRecordsCompanion(
+    return DbDailyReadingRecordsCompanion(
       date: date ?? this.date,
       readingTimeSeconds: readingTimeSeconds ?? this.readingTimeSeconds,
       charactersRead: charactersRead ?? this.charactersRead,
@@ -4278,7 +4313,7 @@ class DailyReadingRecordsCompanion
 
   @override
   String toString() {
-    return (StringBuffer('DailyReadingRecordsCompanion(')
+    return (StringBuffer('DbDailyReadingRecordsCompanion(')
           ..write('date: $date, ')
           ..write('readingTimeSeconds: $readingTimeSeconds, ')
           ..write('charactersRead: $charactersRead, ')
@@ -4290,31 +4325,36 @@ class DailyReadingRecordsCompanion
   }
 }
 
-class $ReadingSessionsTable extends ReadingSessions
-    with TableInfo<$ReadingSessionsTable, ReadingSessionItem> {
+class $DbReadingSessionsTable extends DbReadingSessions
+    with TableInfo<$DbReadingSessionsTable, DbReadingSession> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $ReadingSessionsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
-    'sessionId',
-  );
+  $DbReadingSessionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
-    'session_id',
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
     aliasedName,
     false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
   );
   static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
   @override
-  late final GeneratedColumn<String> bookId = GeneratedColumn<String>(
+  late final GeneratedColumn<int> bookId = GeneratedColumn<int>(
     'book_id',
     aliasedName,
     false,
-    type: DriftSqlType.string,
+    type: DriftSqlType.int,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES db_books (id) ON DELETE CASCADE',
+    ),
   );
   static const VerificationMeta _chapterIdMeta = const VerificationMeta(
     'chapterId',
@@ -4326,6 +4366,9 @@ class $ReadingSessionsTable extends ReadingSessions
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES db_chapters (id) ON DELETE CASCADE',
+    ),
   );
   static const VerificationMeta _startTimestampMeta = const VerificationMeta(
     'startTimestamp',
@@ -4374,7 +4417,7 @@ class $ReadingSessionsTable extends ReadingSessions
   );
   @override
   List<GeneratedColumn> get $columns => [
-    sessionId,
+    id,
     bookId,
     chapterId,
     startTimestamp,
@@ -4386,21 +4429,16 @@ class $ReadingSessionsTable extends ReadingSessions
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'reading_sessions';
+  static const String $name = 'db_reading_sessions';
   @override
   VerificationContext validateIntegrity(
-    Insertable<ReadingSessionItem> instance, {
+    Insertable<DbReadingSession> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('session_id')) {
-      context.handle(
-        _sessionIdMeta,
-        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_sessionIdMeta);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
     if (data.containsKey('book_id')) {
       context.handle(
@@ -4464,17 +4502,17 @@ class $ReadingSessionsTable extends ReadingSessions
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {sessionId};
+  Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  ReadingSessionItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+  DbReadingSession map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return ReadingSessionItem(
-      sessionId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}session_id'],
+    return DbReadingSession(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
       )!,
       bookId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
+        DriftSqlType.int,
         data['${effectivePrefix}book_id'],
       )!,
       chapterId: attachedDatabase.typeMapping.read(
@@ -4501,20 +4539,20 @@ class $ReadingSessionsTable extends ReadingSessions
   }
 
   @override
-  $ReadingSessionsTable createAlias(String alias) {
-    return $ReadingSessionsTable(attachedDatabase, alias);
+  $DbReadingSessionsTable createAlias(String alias) {
+    return $DbReadingSessionsTable(attachedDatabase, alias);
   }
 }
 
-class ReadingSessionItem extends DataClass
-    implements Insertable<ReadingSessionItem> {
+class DbReadingSession extends DataClass
+    implements Insertable<DbReadingSession> {
   /// 会话 ID（UUID）
-  final String sessionId;
+  final int id;
 
   /// 书籍 ID
-  final String bookId;
+  final int bookId;
 
-  /// 章节 ID
+  /// 关联的章节 ID
   final int chapterId;
 
   /// 开始时间戳（Unix 时间戳，秒）
@@ -4528,8 +4566,8 @@ class ReadingSessionItem extends DataClass
 
   /// 阅读字数
   final int charactersRead;
-  const ReadingSessionItem({
-    required this.sessionId,
+  const DbReadingSession({
+    required this.id,
     required this.bookId,
     required this.chapterId,
     required this.startTimestamp,
@@ -4540,8 +4578,8 @@ class ReadingSessionItem extends DataClass
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['session_id'] = Variable<String>(sessionId);
-    map['book_id'] = Variable<String>(bookId);
+    map['id'] = Variable<int>(id);
+    map['book_id'] = Variable<int>(bookId);
     map['chapter_id'] = Variable<int>(chapterId);
     map['start_timestamp'] = Variable<int>(startTimestamp);
     map['end_timestamp'] = Variable<int>(endTimestamp);
@@ -4550,9 +4588,9 @@ class ReadingSessionItem extends DataClass
     return map;
   }
 
-  ReadingSessionsCompanion toCompanion(bool nullToAbsent) {
-    return ReadingSessionsCompanion(
-      sessionId: Value(sessionId),
+  DbReadingSessionsCompanion toCompanion(bool nullToAbsent) {
+    return DbReadingSessionsCompanion(
+      id: Value(id),
       bookId: Value(bookId),
       chapterId: Value(chapterId),
       startTimestamp: Value(startTimestamp),
@@ -4562,14 +4600,14 @@ class ReadingSessionItem extends DataClass
     );
   }
 
-  factory ReadingSessionItem.fromJson(
+  factory DbReadingSession.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return ReadingSessionItem(
-      sessionId: serializer.fromJson<String>(json['sessionId']),
-      bookId: serializer.fromJson<String>(json['bookId']),
+    return DbReadingSession(
+      id: serializer.fromJson<int>(json['id']),
+      bookId: serializer.fromJson<int>(json['bookId']),
       chapterId: serializer.fromJson<int>(json['chapterId']),
       startTimestamp: serializer.fromJson<int>(json['startTimestamp']),
       endTimestamp: serializer.fromJson<int>(json['endTimestamp']),
@@ -4581,8 +4619,8 @@ class ReadingSessionItem extends DataClass
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'sessionId': serializer.toJson<String>(sessionId),
-      'bookId': serializer.toJson<String>(bookId),
+      'id': serializer.toJson<int>(id),
+      'bookId': serializer.toJson<int>(bookId),
       'chapterId': serializer.toJson<int>(chapterId),
       'startTimestamp': serializer.toJson<int>(startTimestamp),
       'endTimestamp': serializer.toJson<int>(endTimestamp),
@@ -4591,16 +4629,16 @@ class ReadingSessionItem extends DataClass
     };
   }
 
-  ReadingSessionItem copyWith({
-    String? sessionId,
-    String? bookId,
+  DbReadingSession copyWith({
+    int? id,
+    int? bookId,
     int? chapterId,
     int? startTimestamp,
     int? endTimestamp,
     int? durationSeconds,
     int? charactersRead,
-  }) => ReadingSessionItem(
-    sessionId: sessionId ?? this.sessionId,
+  }) => DbReadingSession(
+    id: id ?? this.id,
     bookId: bookId ?? this.bookId,
     chapterId: chapterId ?? this.chapterId,
     startTimestamp: startTimestamp ?? this.startTimestamp,
@@ -4608,9 +4646,9 @@ class ReadingSessionItem extends DataClass
     durationSeconds: durationSeconds ?? this.durationSeconds,
     charactersRead: charactersRead ?? this.charactersRead,
   );
-  ReadingSessionItem copyWithCompanion(ReadingSessionsCompanion data) {
-    return ReadingSessionItem(
-      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+  DbReadingSession copyWithCompanion(DbReadingSessionsCompanion data) {
+    return DbReadingSession(
+      id: data.id.present ? data.id.value : this.id,
       bookId: data.bookId.present ? data.bookId.value : this.bookId,
       chapterId: data.chapterId.present ? data.chapterId.value : this.chapterId,
       startTimestamp: data.startTimestamp.present
@@ -4630,8 +4668,8 @@ class ReadingSessionItem extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('ReadingSessionItem(')
-          ..write('sessionId: $sessionId, ')
+    return (StringBuffer('DbReadingSession(')
+          ..write('id: $id, ')
           ..write('bookId: $bookId, ')
           ..write('chapterId: $chapterId, ')
           ..write('startTimestamp: $startTimestamp, ')
@@ -4644,7 +4682,7 @@ class ReadingSessionItem extends DataClass
 
   @override
   int get hashCode => Object.hash(
-    sessionId,
+    id,
     bookId,
     chapterId,
     startTimestamp,
@@ -4655,8 +4693,8 @@ class ReadingSessionItem extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is ReadingSessionItem &&
-          other.sessionId == this.sessionId &&
+      (other is DbReadingSession &&
+          other.id == this.id &&
           other.bookId == this.bookId &&
           other.chapterId == this.chapterId &&
           other.startTimestamp == this.startTimestamp &&
@@ -4665,92 +4703,84 @@ class ReadingSessionItem extends DataClass
           other.charactersRead == this.charactersRead);
 }
 
-class ReadingSessionsCompanion extends UpdateCompanion<ReadingSessionItem> {
-  final Value<String> sessionId;
-  final Value<String> bookId;
+class DbReadingSessionsCompanion extends UpdateCompanion<DbReadingSession> {
+  final Value<int> id;
+  final Value<int> bookId;
   final Value<int> chapterId;
   final Value<int> startTimestamp;
   final Value<int> endTimestamp;
   final Value<int> durationSeconds;
   final Value<int> charactersRead;
-  final Value<int> rowid;
-  const ReadingSessionsCompanion({
-    this.sessionId = const Value.absent(),
+  const DbReadingSessionsCompanion({
+    this.id = const Value.absent(),
     this.bookId = const Value.absent(),
     this.chapterId = const Value.absent(),
     this.startTimestamp = const Value.absent(),
     this.endTimestamp = const Value.absent(),
     this.durationSeconds = const Value.absent(),
     this.charactersRead = const Value.absent(),
-    this.rowid = const Value.absent(),
   });
-  ReadingSessionsCompanion.insert({
-    required String sessionId,
-    required String bookId,
+  DbReadingSessionsCompanion.insert({
+    this.id = const Value.absent(),
+    required int bookId,
     required int chapterId,
     required int startTimestamp,
     required int endTimestamp,
     required int durationSeconds,
     this.charactersRead = const Value.absent(),
-    this.rowid = const Value.absent(),
-  }) : sessionId = Value(sessionId),
-       bookId = Value(bookId),
+  }) : bookId = Value(bookId),
        chapterId = Value(chapterId),
        startTimestamp = Value(startTimestamp),
        endTimestamp = Value(endTimestamp),
        durationSeconds = Value(durationSeconds);
-  static Insertable<ReadingSessionItem> custom({
-    Expression<String>? sessionId,
-    Expression<String>? bookId,
+  static Insertable<DbReadingSession> custom({
+    Expression<int>? id,
+    Expression<int>? bookId,
     Expression<int>? chapterId,
     Expression<int>? startTimestamp,
     Expression<int>? endTimestamp,
     Expression<int>? durationSeconds,
     Expression<int>? charactersRead,
-    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
-      if (sessionId != null) 'session_id': sessionId,
+      if (id != null) 'id': id,
       if (bookId != null) 'book_id': bookId,
       if (chapterId != null) 'chapter_id': chapterId,
       if (startTimestamp != null) 'start_timestamp': startTimestamp,
       if (endTimestamp != null) 'end_timestamp': endTimestamp,
       if (durationSeconds != null) 'duration_seconds': durationSeconds,
       if (charactersRead != null) 'characters_read': charactersRead,
-      if (rowid != null) 'rowid': rowid,
     });
   }
 
-  ReadingSessionsCompanion copyWith({
-    Value<String>? sessionId,
-    Value<String>? bookId,
+  DbReadingSessionsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? bookId,
     Value<int>? chapterId,
     Value<int>? startTimestamp,
     Value<int>? endTimestamp,
     Value<int>? durationSeconds,
     Value<int>? charactersRead,
-    Value<int>? rowid,
   }) {
-    return ReadingSessionsCompanion(
-      sessionId: sessionId ?? this.sessionId,
+    return DbReadingSessionsCompanion(
+      id: id ?? this.id,
       bookId: bookId ?? this.bookId,
       chapterId: chapterId ?? this.chapterId,
       startTimestamp: startTimestamp ?? this.startTimestamp,
       endTimestamp: endTimestamp ?? this.endTimestamp,
       durationSeconds: durationSeconds ?? this.durationSeconds,
       charactersRead: charactersRead ?? this.charactersRead,
-      rowid: rowid ?? this.rowid,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (sessionId.present) {
-      map['session_id'] = Variable<String>(sessionId.value);
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
     }
     if (bookId.present) {
-      map['book_id'] = Variable<String>(bookId.value);
+      map['book_id'] = Variable<int>(bookId.value);
     }
     if (chapterId.present) {
       map['chapter_id'] = Variable<int>(chapterId.value);
@@ -4767,23 +4797,19 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSessionItem> {
     if (charactersRead.present) {
       map['characters_read'] = Variable<int>(charactersRead.value);
     }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
     return map;
   }
 
   @override
   String toString() {
-    return (StringBuffer('ReadingSessionsCompanion(')
-          ..write('sessionId: $sessionId, ')
+    return (StringBuffer('DbReadingSessionsCompanion(')
+          ..write('id: $id, ')
           ..write('bookId: $bookId, ')
           ..write('chapterId: $chapterId, ')
           ..write('startTimestamp: $startTimestamp, ')
           ..write('endTimestamp: $endTimestamp, ')
           ..write('durationSeconds: $durationSeconds, ')
-          ..write('charactersRead: $charactersRead, ')
-          ..write('rowid: $rowid')
+          ..write('charactersRead: $charactersRead')
           ..write(')'))
         .toString();
   }
@@ -4792,78 +4818,127 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSessionItem> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
-  late final $BooksTable books = $BooksTable(this);
-  late final $ChaptersTable chapters = $ChaptersTable(this);
-  late final $BookmarksTable bookmarks = $BookmarksTable(this);
-  late final $ReadingHistoriesTable readingHistories = $ReadingHistoriesTable(
+  late final $DbBooksTable dbBooks = $DbBooksTable(this);
+  late final $DbChaptersTable dbChapters = $DbChaptersTable(this);
+  late final $DbBookmarksTable dbBookmarks = $DbBookmarksTable(this);
+  late final $DbReadingHistorysTable dbReadingHistorys =
+      $DbReadingHistorysTable(this);
+  late final $DbReadingProgresssTable dbReadingProgresss =
+      $DbReadingProgresssTable(this);
+  late final $DbLayoutCachesTable dbLayoutCaches = $DbLayoutCachesTable(this);
+  late final $DbReadingStatssTable dbReadingStatss = $DbReadingStatssTable(
     this,
   );
-  late final $ReadingProgressesTable readingProgresses =
-      $ReadingProgressesTable(this);
-  late final $LayoutCachesTable layoutCaches = $LayoutCachesTable(this);
-  late final $ReadingStatsesTable readingStatses = $ReadingStatsesTable(this);
-  late final $DailyReadingRecordsTable dailyReadingRecords =
-      $DailyReadingRecordsTable(this);
-  late final $ReadingSessionsTable readingSessions = $ReadingSessionsTable(
-    this,
-  );
+  late final $DbDailyReadingRecordsTable dbDailyReadingRecords =
+      $DbDailyReadingRecordsTable(this);
+  late final $DbReadingSessionsTable dbReadingSessions =
+      $DbReadingSessionsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
-    books,
-    chapters,
-    bookmarks,
-    readingHistories,
-    readingProgresses,
-    layoutCaches,
-    readingStatses,
-    dailyReadingRecords,
-    readingSessions,
+    dbBooks,
+    dbChapters,
+    dbBookmarks,
+    dbReadingHistorys,
+    dbReadingProgresss,
+    dbLayoutCaches,
+    dbReadingStatss,
+    dbDailyReadingRecords,
+    dbReadingSessions,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'books',
+        'db_books',
         limitUpdateKind: UpdateKind.delete,
       ),
-      result: [TableUpdate('chapters', kind: UpdateKind.delete)],
+      result: [TableUpdate('db_chapters', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'books',
+        'db_books',
         limitUpdateKind: UpdateKind.delete,
       ),
-      result: [TableUpdate('bookmarks', kind: UpdateKind.delete)],
+      result: [TableUpdate('db_bookmarks', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'books',
+        'db_chapters',
         limitUpdateKind: UpdateKind.delete,
       ),
-      result: [TableUpdate('reading_histories', kind: UpdateKind.delete)],
+      result: [TableUpdate('db_bookmarks', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'chapters',
+        'db_books',
         limitUpdateKind: UpdateKind.delete,
       ),
-      result: [TableUpdate('reading_histories', kind: UpdateKind.delete)],
+      result: [TableUpdate('db_reading_historys', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'db_chapters',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('db_reading_historys', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'db_books',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('db_reading_progresss', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'db_chapters',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('db_reading_progresss', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'db_books',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('db_layout_caches', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'db_chapters',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('db_layout_caches', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'db_books',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('db_reading_sessions', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'db_chapters',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('db_reading_sessions', kind: UpdateKind.delete)],
     ),
   ]);
 }
 
-typedef $$BooksTableCreateCompanionBuilder =
-    BooksCompanion Function({
+typedef $$DbBooksTableCreateCompanionBuilder =
+    DbBooksCompanion Function({
       Value<int> id,
       required String title,
       required String author,
       Value<String?> coverPath,
       Value<String?> description,
       required String filePath,
-      required String fileFormat,
+      required String fileType,
       Value<int> fileSize,
       Value<int> totalChapters,
       Value<int> totalCharacters,
@@ -4877,15 +4952,15 @@ typedef $$BooksTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> lastReadAt,
     });
-typedef $$BooksTableUpdateCompanionBuilder =
-    BooksCompanion Function({
+typedef $$DbBooksTableUpdateCompanionBuilder =
+    DbBooksCompanion Function({
       Value<int> id,
       Value<String> title,
       Value<String> author,
       Value<String?> coverPath,
       Value<String?> description,
       Value<String> filePath,
-      Value<String> fileFormat,
+      Value<String> fileType,
       Value<int> fileSize,
       Value<int> totalChapters,
       Value<int> totalCharacters,
@@ -4900,61 +4975,130 @@ typedef $$BooksTableUpdateCompanionBuilder =
       Value<DateTime?> lastReadAt,
     });
 
-final class $$BooksTableReferences
-    extends BaseReferences<_$AppDatabase, $BooksTable, Book> {
-  $$BooksTableReferences(super.$_db, super.$_table, super.$_typedResult);
+final class $$DbBooksTableReferences
+    extends BaseReferences<_$AppDatabase, $DbBooksTable, DbBook> {
+  $$DbBooksTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static MultiTypedResultKey<$ChaptersTable, List<Chapter>> _chaptersRefsTable(
-    _$AppDatabase db,
-  ) => MultiTypedResultKey.fromTable(
-    db.chapters,
-    aliasName: $_aliasNameGenerator(db.books.id, db.chapters.bookId),
+  static MultiTypedResultKey<$DbChaptersTable, List<DbChapter>>
+  _dbChaptersRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.dbChapters,
+    aliasName: $_aliasNameGenerator(db.dbBooks.id, db.dbChapters.bookId),
   );
 
-  $$ChaptersTableProcessedTableManager get chaptersRefs {
-    final manager = $$ChaptersTableTableManager(
+  $$DbChaptersTableProcessedTableManager get dbChaptersRefs {
+    final manager = $$DbChaptersTableTableManager(
       $_db,
-      $_db.chapters,
+      $_db.dbChapters,
     ).filter((f) => f.bookId.id.sqlEquals($_itemColumn<int>('id')!));
 
-    final cache = $_typedResult.readTableOrNull(_chaptersRefsTable($_db));
+    final cache = $_typedResult.readTableOrNull(_dbChaptersRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
 
-  static MultiTypedResultKey<$BookmarksTable, List<Bookmark>>
-  _bookmarksRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.bookmarks,
-    aliasName: $_aliasNameGenerator(db.books.id, db.bookmarks.bookId),
+  static MultiTypedResultKey<$DbBookmarksTable, List<DbBookmark>>
+  _dbBookmarksRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.dbBookmarks,
+    aliasName: $_aliasNameGenerator(db.dbBooks.id, db.dbBookmarks.bookId),
   );
 
-  $$BookmarksTableProcessedTableManager get bookmarksRefs {
-    final manager = $$BookmarksTableTableManager(
+  $$DbBookmarksTableProcessedTableManager get dbBookmarksRefs {
+    final manager = $$DbBookmarksTableTableManager(
       $_db,
-      $_db.bookmarks,
+      $_db.dbBookmarks,
     ).filter((f) => f.bookId.id.sqlEquals($_itemColumn<int>('id')!));
 
-    final cache = $_typedResult.readTableOrNull(_bookmarksRefsTable($_db));
+    final cache = $_typedResult.readTableOrNull(_dbBookmarksRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
 
-  static MultiTypedResultKey<$ReadingHistoriesTable, List<ReadingHistory>>
-  _readingHistoriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.readingHistories,
-    aliasName: $_aliasNameGenerator(db.books.id, db.readingHistories.bookId),
-  );
+  static MultiTypedResultKey<$DbReadingHistorysTable, List<DbReadingHistory>>
+  _dbReadingHistorysRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.dbReadingHistorys,
+        aliasName: $_aliasNameGenerator(
+          db.dbBooks.id,
+          db.dbReadingHistorys.bookId,
+        ),
+      );
 
-  $$ReadingHistoriesTableProcessedTableManager get readingHistoriesRefs {
-    final manager = $$ReadingHistoriesTableTableManager(
+  $$DbReadingHistorysTableProcessedTableManager get dbReadingHistorysRefs {
+    final manager = $$DbReadingHistorysTableTableManager(
       $_db,
-      $_db.readingHistories,
+      $_db.dbReadingHistorys,
     ).filter((f) => f.bookId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(
-      _readingHistoriesRefsTable($_db),
+      _dbReadingHistorysRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DbReadingProgresssTable, List<DbReadingProgress>>
+  _dbReadingProgresssRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.dbReadingProgresss,
+        aliasName: $_aliasNameGenerator(
+          db.dbBooks.id,
+          db.dbReadingProgresss.bookId,
+        ),
+      );
+
+  $$DbReadingProgresssTableProcessedTableManager get dbReadingProgresssRefs {
+    final manager = $$DbReadingProgresssTableTableManager(
+      $_db,
+      $_db.dbReadingProgresss,
+    ).filter((f) => f.bookId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _dbReadingProgresssRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DbLayoutCachesTable, List<DbLayoutCache>>
+  _dbLayoutCachesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.dbLayoutCaches,
+    aliasName: $_aliasNameGenerator(db.dbBooks.id, db.dbLayoutCaches.bookId),
+  );
+
+  $$DbLayoutCachesTableProcessedTableManager get dbLayoutCachesRefs {
+    final manager = $$DbLayoutCachesTableTableManager(
+      $_db,
+      $_db.dbLayoutCaches,
+    ).filter((f) => f.bookId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_dbLayoutCachesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DbReadingSessionsTable, List<DbReadingSession>>
+  _dbReadingSessionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.dbReadingSessions,
+        aliasName: $_aliasNameGenerator(
+          db.dbBooks.id,
+          db.dbReadingSessions.bookId,
+        ),
+      );
+
+  $$DbReadingSessionsTableProcessedTableManager get dbReadingSessionsRefs {
+    final manager = $$DbReadingSessionsTableTableManager(
+      $_db,
+      $_db.dbReadingSessions,
+    ).filter((f) => f.bookId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _dbReadingSessionsRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -4962,8 +5106,9 @@ final class $$BooksTableReferences
   }
 }
 
-class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
-  $$BooksTableFilterComposer({
+class $$DbBooksTableFilterComposer
+    extends Composer<_$AppDatabase, $DbBooksTable> {
+  $$DbBooksTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -5000,8 +5145,8 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get fileFormat => $composableBuilder(
-    column: $table.fileFormat,
+  ColumnFilters<String> get fileType => $composableBuilder(
+    column: $table.fileType,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5065,22 +5210,22 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  Expression<bool> chaptersRefs(
-    Expression<bool> Function($$ChaptersTableFilterComposer f) f,
+  Expression<bool> dbChaptersRefs(
+    Expression<bool> Function($$DbChaptersTableFilterComposer f) f,
   ) {
-    final $$ChaptersTableFilterComposer composer = $composerBuilder(
+    final $$DbChaptersTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
-      referencedTable: $db.chapters,
+      referencedTable: $db.dbChapters,
       getReferencedColumn: (t) => t.bookId,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$ChaptersTableFilterComposer(
+          }) => $$DbChaptersTableFilterComposer(
             $db: $db,
-            $table: $db.chapters,
+            $table: $db.dbChapters,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5090,22 +5235,22 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
     return f(composer);
   }
 
-  Expression<bool> bookmarksRefs(
-    Expression<bool> Function($$BookmarksTableFilterComposer f) f,
+  Expression<bool> dbBookmarksRefs(
+    Expression<bool> Function($$DbBookmarksTableFilterComposer f) f,
   ) {
-    final $$BookmarksTableFilterComposer composer = $composerBuilder(
+    final $$DbBookmarksTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
-      referencedTable: $db.bookmarks,
+      referencedTable: $db.dbBookmarks,
       getReferencedColumn: (t) => t.bookId,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$BookmarksTableFilterComposer(
+          }) => $$DbBookmarksTableFilterComposer(
             $db: $db,
-            $table: $db.bookmarks,
+            $table: $db.dbBookmarks,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5115,22 +5260,97 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
     return f(composer);
   }
 
-  Expression<bool> readingHistoriesRefs(
-    Expression<bool> Function($$ReadingHistoriesTableFilterComposer f) f,
+  Expression<bool> dbReadingHistorysRefs(
+    Expression<bool> Function($$DbReadingHistorysTableFilterComposer f) f,
   ) {
-    final $$ReadingHistoriesTableFilterComposer composer = $composerBuilder(
+    final $$DbReadingHistorysTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
-      referencedTable: $db.readingHistories,
+      referencedTable: $db.dbReadingHistorys,
       getReferencedColumn: (t) => t.bookId,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$ReadingHistoriesTableFilterComposer(
+          }) => $$DbReadingHistorysTableFilterComposer(
             $db: $db,
-            $table: $db.readingHistories,
+            $table: $db.dbReadingHistorys,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> dbReadingProgresssRefs(
+    Expression<bool> Function($$DbReadingProgresssTableFilterComposer f) f,
+  ) {
+    final $$DbReadingProgresssTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.dbReadingProgresss,
+      getReferencedColumn: (t) => t.bookId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbReadingProgresssTableFilterComposer(
+            $db: $db,
+            $table: $db.dbReadingProgresss,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> dbLayoutCachesRefs(
+    Expression<bool> Function($$DbLayoutCachesTableFilterComposer f) f,
+  ) {
+    final $$DbLayoutCachesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.dbLayoutCaches,
+      getReferencedColumn: (t) => t.bookId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbLayoutCachesTableFilterComposer(
+            $db: $db,
+            $table: $db.dbLayoutCaches,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> dbReadingSessionsRefs(
+    Expression<bool> Function($$DbReadingSessionsTableFilterComposer f) f,
+  ) {
+    final $$DbReadingSessionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.dbReadingSessions,
+      getReferencedColumn: (t) => t.bookId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbReadingSessionsTableFilterComposer(
+            $db: $db,
+            $table: $db.dbReadingSessions,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5141,9 +5361,9 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
   }
 }
 
-class $$BooksTableOrderingComposer
-    extends Composer<_$AppDatabase, $BooksTable> {
-  $$BooksTableOrderingComposer({
+class $$DbBooksTableOrderingComposer
+    extends Composer<_$AppDatabase, $DbBooksTable> {
+  $$DbBooksTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -5180,8 +5400,8 @@ class $$BooksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get fileFormat => $composableBuilder(
-    column: $table.fileFormat,
+  ColumnOrderings<String> get fileType => $composableBuilder(
+    column: $table.fileType,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -5246,9 +5466,9 @@ class $$BooksTableOrderingComposer
   );
 }
 
-class $$BooksTableAnnotationComposer
-    extends Composer<_$AppDatabase, $BooksTable> {
-  $$BooksTableAnnotationComposer({
+class $$DbBooksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DbBooksTable> {
+  $$DbBooksTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -5275,10 +5495,8 @@ class $$BooksTableAnnotationComposer
   GeneratedColumn<String> get filePath =>
       $composableBuilder(column: $table.filePath, builder: (column) => column);
 
-  GeneratedColumn<String> get fileFormat => $composableBuilder(
-    column: $table.fileFormat,
-    builder: (column) => column,
-  );
+  GeneratedColumn<String> get fileType =>
+      $composableBuilder(column: $table.fileType, builder: (column) => column);
 
   GeneratedColumn<int> get fileSize =>
       $composableBuilder(column: $table.fileSize, builder: (column) => column);
@@ -5328,22 +5546,22 @@ class $$BooksTableAnnotationComposer
     builder: (column) => column,
   );
 
-  Expression<T> chaptersRefs<T extends Object>(
-    Expression<T> Function($$ChaptersTableAnnotationComposer a) f,
+  Expression<T> dbChaptersRefs<T extends Object>(
+    Expression<T> Function($$DbChaptersTableAnnotationComposer a) f,
   ) {
-    final $$ChaptersTableAnnotationComposer composer = $composerBuilder(
+    final $$DbChaptersTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
-      referencedTable: $db.chapters,
+      referencedTable: $db.dbChapters,
       getReferencedColumn: (t) => t.bookId,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$ChaptersTableAnnotationComposer(
+          }) => $$DbChaptersTableAnnotationComposer(
             $db: $db,
-            $table: $db.chapters,
+            $table: $db.dbChapters,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5353,22 +5571,22 @@ class $$BooksTableAnnotationComposer
     return f(composer);
   }
 
-  Expression<T> bookmarksRefs<T extends Object>(
-    Expression<T> Function($$BookmarksTableAnnotationComposer a) f,
+  Expression<T> dbBookmarksRefs<T extends Object>(
+    Expression<T> Function($$DbBookmarksTableAnnotationComposer a) f,
   ) {
-    final $$BookmarksTableAnnotationComposer composer = $composerBuilder(
+    final $$DbBookmarksTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
-      referencedTable: $db.bookmarks,
+      referencedTable: $db.dbBookmarks,
       getReferencedColumn: (t) => t.bookId,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$BookmarksTableAnnotationComposer(
+          }) => $$DbBookmarksTableAnnotationComposer(
             $db: $db,
-            $table: $db.bookmarks,
+            $table: $db.dbBookmarks,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5378,62 +5596,143 @@ class $$BooksTableAnnotationComposer
     return f(composer);
   }
 
-  Expression<T> readingHistoriesRefs<T extends Object>(
-    Expression<T> Function($$ReadingHistoriesTableAnnotationComposer a) f,
+  Expression<T> dbReadingHistorysRefs<T extends Object>(
+    Expression<T> Function($$DbReadingHistorysTableAnnotationComposer a) f,
   ) {
-    final $$ReadingHistoriesTableAnnotationComposer composer = $composerBuilder(
+    final $$DbReadingHistorysTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.dbReadingHistorys,
+          getReferencedColumn: (t) => t.bookId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$DbReadingHistorysTableAnnotationComposer(
+                $db: $db,
+                $table: $db.dbReadingHistorys,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> dbReadingProgresssRefs<T extends Object>(
+    Expression<T> Function($$DbReadingProgresssTableAnnotationComposer a) f,
+  ) {
+    final $$DbReadingProgresssTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.dbReadingProgresss,
+          getReferencedColumn: (t) => t.bookId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$DbReadingProgresssTableAnnotationComposer(
+                $db: $db,
+                $table: $db.dbReadingProgresss,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> dbLayoutCachesRefs<T extends Object>(
+    Expression<T> Function($$DbLayoutCachesTableAnnotationComposer a) f,
+  ) {
+    final $$DbLayoutCachesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
-      referencedTable: $db.readingHistories,
+      referencedTable: $db.dbLayoutCaches,
       getReferencedColumn: (t) => t.bookId,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$ReadingHistoriesTableAnnotationComposer(
+          }) => $$DbLayoutCachesTableAnnotationComposer(
             $db: $db,
-            $table: $db.readingHistories,
+            $table: $db.dbLayoutCaches,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<T> dbReadingSessionsRefs<T extends Object>(
+    Expression<T> Function($$DbReadingSessionsTableAnnotationComposer a) f,
+  ) {
+    final $$DbReadingSessionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.dbReadingSessions,
+          getReferencedColumn: (t) => t.bookId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$DbReadingSessionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.dbReadingSessions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 }
 
-class $$BooksTableTableManager
+class $$DbBooksTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $BooksTable,
-          Book,
-          $$BooksTableFilterComposer,
-          $$BooksTableOrderingComposer,
-          $$BooksTableAnnotationComposer,
-          $$BooksTableCreateCompanionBuilder,
-          $$BooksTableUpdateCompanionBuilder,
-          (Book, $$BooksTableReferences),
-          Book,
+          $DbBooksTable,
+          DbBook,
+          $$DbBooksTableFilterComposer,
+          $$DbBooksTableOrderingComposer,
+          $$DbBooksTableAnnotationComposer,
+          $$DbBooksTableCreateCompanionBuilder,
+          $$DbBooksTableUpdateCompanionBuilder,
+          (DbBook, $$DbBooksTableReferences),
+          DbBook,
           PrefetchHooks Function({
-            bool chaptersRefs,
-            bool bookmarksRefs,
-            bool readingHistoriesRefs,
+            bool dbChaptersRefs,
+            bool dbBookmarksRefs,
+            bool dbReadingHistorysRefs,
+            bool dbReadingProgresssRefs,
+            bool dbLayoutCachesRefs,
+            bool dbReadingSessionsRefs,
           })
         > {
-  $$BooksTableTableManager(_$AppDatabase db, $BooksTable table)
+  $$DbBooksTableTableManager(_$AppDatabase db, $DbBooksTable table)
     : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$BooksTableFilterComposer($db: db, $table: table),
+              $$DbBooksTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$BooksTableOrderingComposer($db: db, $table: table),
+              $$DbBooksTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$BooksTableAnnotationComposer($db: db, $table: table),
+              $$DbBooksTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
@@ -5442,7 +5741,7 @@ class $$BooksTableTableManager
                 Value<String?> coverPath = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<String> filePath = const Value.absent(),
-                Value<String> fileFormat = const Value.absent(),
+                Value<String> fileType = const Value.absent(),
                 Value<int> fileSize = const Value.absent(),
                 Value<int> totalChapters = const Value.absent(),
                 Value<int> totalCharacters = const Value.absent(),
@@ -5455,14 +5754,14 @@ class $$BooksTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> lastReadAt = const Value.absent(),
-              }) => BooksCompanion(
+              }) => DbBooksCompanion(
                 id: id,
                 title: title,
                 author: author,
                 coverPath: coverPath,
                 description: description,
                 filePath: filePath,
-                fileFormat: fileFormat,
+                fileType: fileType,
                 fileSize: fileSize,
                 totalChapters: totalChapters,
                 totalCharacters: totalCharacters,
@@ -5484,7 +5783,7 @@ class $$BooksTableTableManager
                 Value<String?> coverPath = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 required String filePath,
-                required String fileFormat,
+                required String fileType,
                 Value<int> fileSize = const Value.absent(),
                 Value<int> totalChapters = const Value.absent(),
                 Value<int> totalCharacters = const Value.absent(),
@@ -5497,14 +5796,14 @@ class $$BooksTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> lastReadAt = const Value.absent(),
-              }) => BooksCompanion.insert(
+              }) => DbBooksCompanion.insert(
                 id: id,
                 title: title,
                 author: author,
                 coverPath: coverPath,
                 description: description,
                 filePath: filePath,
-                fileFormat: fileFormat,
+                fileType: fileType,
                 fileSize: fileSize,
                 totalChapters: totalChapters,
                 totalCharacters: totalCharacters,
@@ -5520,75 +5819,154 @@ class $$BooksTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) =>
-                    (e.readTable(table), $$BooksTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable(table),
+                  $$DbBooksTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback:
               ({
-                chaptersRefs = false,
-                bookmarksRefs = false,
-                readingHistoriesRefs = false,
+                dbChaptersRefs = false,
+                dbBookmarksRefs = false,
+                dbReadingHistorysRefs = false,
+                dbReadingProgresssRefs = false,
+                dbLayoutCachesRefs = false,
+                dbReadingSessionsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
-                    if (chaptersRefs) db.chapters,
-                    if (bookmarksRefs) db.bookmarks,
-                    if (readingHistoriesRefs) db.readingHistories,
+                    if (dbChaptersRefs) db.dbChapters,
+                    if (dbBookmarksRefs) db.dbBookmarks,
+                    if (dbReadingHistorysRefs) db.dbReadingHistorys,
+                    if (dbReadingProgresssRefs) db.dbReadingProgresss,
+                    if (dbLayoutCachesRefs) db.dbLayoutCaches,
+                    if (dbReadingSessionsRefs) db.dbReadingSessions,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
                     return [
-                      if (chaptersRefs)
-                        await $_getPrefetchedData<Book, $BooksTable, Chapter>(
-                          currentTable: table,
-                          referencedTable: $$BooksTableReferences
-                              ._chaptersRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$BooksTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).chaptersRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.bookId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (bookmarksRefs)
-                        await $_getPrefetchedData<Book, $BooksTable, Bookmark>(
-                          currentTable: table,
-                          referencedTable: $$BooksTableReferences
-                              ._bookmarksRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$BooksTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).bookmarksRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.bookId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (readingHistoriesRefs)
+                      if (dbChaptersRefs)
                         await $_getPrefetchedData<
-                          Book,
-                          $BooksTable,
-                          ReadingHistory
+                          DbBook,
+                          $DbBooksTable,
+                          DbChapter
                         >(
                           currentTable: table,
-                          referencedTable: $$BooksTableReferences
-                              ._readingHistoriesRefsTable(db),
+                          referencedTable: $$DbBooksTableReferences
+                              ._dbChaptersRefsTable(db),
                           managerFromTypedResult: (p0) =>
-                              $$BooksTableReferences(
+                              $$DbBooksTableReferences(
                                 db,
                                 table,
                                 p0,
-                              ).readingHistoriesRefs,
+                              ).dbChaptersRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.bookId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (dbBookmarksRefs)
+                        await $_getPrefetchedData<
+                          DbBook,
+                          $DbBooksTable,
+                          DbBookmark
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DbBooksTableReferences
+                              ._dbBookmarksRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DbBooksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).dbBookmarksRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.bookId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (dbReadingHistorysRefs)
+                        await $_getPrefetchedData<
+                          DbBook,
+                          $DbBooksTable,
+                          DbReadingHistory
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DbBooksTableReferences
+                              ._dbReadingHistorysRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DbBooksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).dbReadingHistorysRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.bookId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (dbReadingProgresssRefs)
+                        await $_getPrefetchedData<
+                          DbBook,
+                          $DbBooksTable,
+                          DbReadingProgress
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DbBooksTableReferences
+                              ._dbReadingProgresssRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DbBooksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).dbReadingProgresssRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.bookId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (dbLayoutCachesRefs)
+                        await $_getPrefetchedData<
+                          DbBook,
+                          $DbBooksTable,
+                          DbLayoutCache
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DbBooksTableReferences
+                              ._dbLayoutCachesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DbBooksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).dbLayoutCachesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.bookId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (dbReadingSessionsRefs)
+                        await $_getPrefetchedData<
+                          DbBook,
+                          $DbBooksTable,
+                          DbReadingSession
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DbBooksTableReferences
+                              ._dbReadingSessionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DbBooksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).dbReadingSessionsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.bookId == item.id,
@@ -5603,26 +5981,29 @@ class $$BooksTableTableManager
       );
 }
 
-typedef $$BooksTableProcessedTableManager =
+typedef $$DbBooksTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $BooksTable,
-      Book,
-      $$BooksTableFilterComposer,
-      $$BooksTableOrderingComposer,
-      $$BooksTableAnnotationComposer,
-      $$BooksTableCreateCompanionBuilder,
-      $$BooksTableUpdateCompanionBuilder,
-      (Book, $$BooksTableReferences),
-      Book,
+      $DbBooksTable,
+      DbBook,
+      $$DbBooksTableFilterComposer,
+      $$DbBooksTableOrderingComposer,
+      $$DbBooksTableAnnotationComposer,
+      $$DbBooksTableCreateCompanionBuilder,
+      $$DbBooksTableUpdateCompanionBuilder,
+      (DbBook, $$DbBooksTableReferences),
+      DbBook,
       PrefetchHooks Function({
-        bool chaptersRefs,
-        bool bookmarksRefs,
-        bool readingHistoriesRefs,
+        bool dbChaptersRefs,
+        bool dbBookmarksRefs,
+        bool dbReadingHistorysRefs,
+        bool dbReadingProgresssRefs,
+        bool dbLayoutCachesRefs,
+        bool dbReadingSessionsRefs,
       })
     >;
-typedef $$ChaptersTableCreateCompanionBuilder =
-    ChaptersCompanion Function({
+typedef $$DbChaptersTableCreateCompanionBuilder =
+    DbChaptersCompanion Function({
       Value<int> id,
       required int bookId,
       required String title,
@@ -5631,8 +6012,8 @@ typedef $$ChaptersTableCreateCompanionBuilder =
       Value<int> wordCount,
       Value<DateTime> cachedAt,
     });
-typedef $$ChaptersTableUpdateCompanionBuilder =
-    ChaptersCompanion Function({
+typedef $$DbChaptersTableUpdateCompanionBuilder =
+    DbChaptersCompanion Function({
       Value<int> id,
       Value<int> bookId,
       Value<String> title,
@@ -5642,20 +6023,20 @@ typedef $$ChaptersTableUpdateCompanionBuilder =
       Value<DateTime> cachedAt,
     });
 
-final class $$ChaptersTableReferences
-    extends BaseReferences<_$AppDatabase, $ChaptersTable, Chapter> {
-  $$ChaptersTableReferences(super.$_db, super.$_table, super.$_typedResult);
+final class $$DbChaptersTableReferences
+    extends BaseReferences<_$AppDatabase, $DbChaptersTable, DbChapter> {
+  $$DbChaptersTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $BooksTable _bookIdTable(_$AppDatabase db) => db.books.createAlias(
-    $_aliasNameGenerator(db.chapters.bookId, db.books.id),
+  static $DbBooksTable _bookIdTable(_$AppDatabase db) => db.dbBooks.createAlias(
+    $_aliasNameGenerator(db.dbChapters.bookId, db.dbBooks.id),
   );
 
-  $$BooksTableProcessedTableManager get bookId {
+  $$DbBooksTableProcessedTableManager get bookId {
     final $_column = $_itemColumn<int>('book_id')!;
 
-    final manager = $$BooksTableTableManager(
+    final manager = $$DbBooksTableTableManager(
       $_db,
-      $_db.books,
+      $_db.dbBooks,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_bookIdTable($_db));
     if (item == null) return manager;
@@ -5664,23 +6045,111 @@ final class $$ChaptersTableReferences
     );
   }
 
-  static MultiTypedResultKey<$ReadingHistoriesTable, List<ReadingHistory>>
-  _readingHistoriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.readingHistories,
-    aliasName: $_aliasNameGenerator(
-      db.chapters.id,
-      db.readingHistories.chapterId,
-    ),
+  static MultiTypedResultKey<$DbBookmarksTable, List<DbBookmark>>
+  _dbBookmarksRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.dbBookmarks,
+    aliasName: $_aliasNameGenerator(db.dbChapters.id, db.dbBookmarks.chapterId),
   );
 
-  $$ReadingHistoriesTableProcessedTableManager get readingHistoriesRefs {
-    final manager = $$ReadingHistoriesTableTableManager(
+  $$DbBookmarksTableProcessedTableManager get dbBookmarksRefs {
+    final manager = $$DbBookmarksTableTableManager(
       $_db,
-      $_db.readingHistories,
+      $_db.dbBookmarks,
+    ).filter((f) => f.chapterId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_dbBookmarksRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DbReadingHistorysTable, List<DbReadingHistory>>
+  _dbReadingHistorysRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.dbReadingHistorys,
+        aliasName: $_aliasNameGenerator(
+          db.dbChapters.id,
+          db.dbReadingHistorys.chapterId,
+        ),
+      );
+
+  $$DbReadingHistorysTableProcessedTableManager get dbReadingHistorysRefs {
+    final manager = $$DbReadingHistorysTableTableManager(
+      $_db,
+      $_db.dbReadingHistorys,
     ).filter((f) => f.chapterId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(
-      _readingHistoriesRefsTable($_db),
+      _dbReadingHistorysRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DbReadingProgresssTable, List<DbReadingProgress>>
+  _dbReadingProgresssRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.dbReadingProgresss,
+        aliasName: $_aliasNameGenerator(
+          db.dbChapters.id,
+          db.dbReadingProgresss.chapterId,
+        ),
+      );
+
+  $$DbReadingProgresssTableProcessedTableManager get dbReadingProgresssRefs {
+    final manager = $$DbReadingProgresssTableTableManager(
+      $_db,
+      $_db.dbReadingProgresss,
+    ).filter((f) => f.chapterId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _dbReadingProgresssRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DbLayoutCachesTable, List<DbLayoutCache>>
+  _dbLayoutCachesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.dbLayoutCaches,
+    aliasName: $_aliasNameGenerator(
+      db.dbChapters.id,
+      db.dbLayoutCaches.chapterId,
+    ),
+  );
+
+  $$DbLayoutCachesTableProcessedTableManager get dbLayoutCachesRefs {
+    final manager = $$DbLayoutCachesTableTableManager(
+      $_db,
+      $_db.dbLayoutCaches,
+    ).filter((f) => f.chapterId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_dbLayoutCachesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DbReadingSessionsTable, List<DbReadingSession>>
+  _dbReadingSessionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.dbReadingSessions,
+        aliasName: $_aliasNameGenerator(
+          db.dbChapters.id,
+          db.dbReadingSessions.chapterId,
+        ),
+      );
+
+  $$DbReadingSessionsTableProcessedTableManager get dbReadingSessionsRefs {
+    final manager = $$DbReadingSessionsTableTableManager(
+      $_db,
+      $_db.dbReadingSessions,
+    ).filter((f) => f.chapterId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _dbReadingSessionsRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -5688,9 +6157,9 @@ final class $$ChaptersTableReferences
   }
 }
 
-class $$ChaptersTableFilterComposer
-    extends Composer<_$AppDatabase, $ChaptersTable> {
-  $$ChaptersTableFilterComposer({
+class $$DbChaptersTableFilterComposer
+    extends Composer<_$AppDatabase, $DbChaptersTable> {
+  $$DbChaptersTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -5727,20 +6196,20 @@ class $$ChaptersTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  $$BooksTableFilterComposer get bookId {
-    final $$BooksTableFilterComposer composer = $composerBuilder(
+  $$DbBooksTableFilterComposer get bookId {
+    final $$DbBooksTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.bookId,
-      referencedTable: $db.books,
+      referencedTable: $db.dbBooks,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$BooksTableFilterComposer(
+          }) => $$DbBooksTableFilterComposer(
             $db: $db,
-            $table: $db.books,
+            $table: $db.dbBooks,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5750,22 +6219,122 @@ class $$ChaptersTableFilterComposer
     return composer;
   }
 
-  Expression<bool> readingHistoriesRefs(
-    Expression<bool> Function($$ReadingHistoriesTableFilterComposer f) f,
+  Expression<bool> dbBookmarksRefs(
+    Expression<bool> Function($$DbBookmarksTableFilterComposer f) f,
   ) {
-    final $$ReadingHistoriesTableFilterComposer composer = $composerBuilder(
+    final $$DbBookmarksTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
-      referencedTable: $db.readingHistories,
+      referencedTable: $db.dbBookmarks,
       getReferencedColumn: (t) => t.chapterId,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$ReadingHistoriesTableFilterComposer(
+          }) => $$DbBookmarksTableFilterComposer(
             $db: $db,
-            $table: $db.readingHistories,
+            $table: $db.dbBookmarks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> dbReadingHistorysRefs(
+    Expression<bool> Function($$DbReadingHistorysTableFilterComposer f) f,
+  ) {
+    final $$DbReadingHistorysTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.dbReadingHistorys,
+      getReferencedColumn: (t) => t.chapterId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbReadingHistorysTableFilterComposer(
+            $db: $db,
+            $table: $db.dbReadingHistorys,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> dbReadingProgresssRefs(
+    Expression<bool> Function($$DbReadingProgresssTableFilterComposer f) f,
+  ) {
+    final $$DbReadingProgresssTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.dbReadingProgresss,
+      getReferencedColumn: (t) => t.chapterId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbReadingProgresssTableFilterComposer(
+            $db: $db,
+            $table: $db.dbReadingProgresss,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> dbLayoutCachesRefs(
+    Expression<bool> Function($$DbLayoutCachesTableFilterComposer f) f,
+  ) {
+    final $$DbLayoutCachesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.dbLayoutCaches,
+      getReferencedColumn: (t) => t.chapterId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbLayoutCachesTableFilterComposer(
+            $db: $db,
+            $table: $db.dbLayoutCaches,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> dbReadingSessionsRefs(
+    Expression<bool> Function($$DbReadingSessionsTableFilterComposer f) f,
+  ) {
+    final $$DbReadingSessionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.dbReadingSessions,
+      getReferencedColumn: (t) => t.chapterId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbReadingSessionsTableFilterComposer(
+            $db: $db,
+            $table: $db.dbReadingSessions,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5776,9 +6345,9 @@ class $$ChaptersTableFilterComposer
   }
 }
 
-class $$ChaptersTableOrderingComposer
-    extends Composer<_$AppDatabase, $ChaptersTable> {
-  $$ChaptersTableOrderingComposer({
+class $$DbChaptersTableOrderingComposer
+    extends Composer<_$AppDatabase, $DbChaptersTable> {
+  $$DbChaptersTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -5815,20 +6384,20 @@ class $$ChaptersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  $$BooksTableOrderingComposer get bookId {
-    final $$BooksTableOrderingComposer composer = $composerBuilder(
+  $$DbBooksTableOrderingComposer get bookId {
+    final $$DbBooksTableOrderingComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.bookId,
-      referencedTable: $db.books,
+      referencedTable: $db.dbBooks,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$BooksTableOrderingComposer(
+          }) => $$DbBooksTableOrderingComposer(
             $db: $db,
-            $table: $db.books,
+            $table: $db.dbBooks,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5839,9 +6408,9 @@ class $$ChaptersTableOrderingComposer
   }
 }
 
-class $$ChaptersTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ChaptersTable> {
-  $$ChaptersTableAnnotationComposer({
+class $$DbChaptersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DbChaptersTable> {
+  $$DbChaptersTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -5870,20 +6439,20 @@ class $$ChaptersTableAnnotationComposer
   GeneratedColumn<DateTime> get cachedAt =>
       $composableBuilder(column: $table.cachedAt, builder: (column) => column);
 
-  $$BooksTableAnnotationComposer get bookId {
-    final $$BooksTableAnnotationComposer composer = $composerBuilder(
+  $$DbBooksTableAnnotationComposer get bookId {
+    final $$DbBooksTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.bookId,
-      referencedTable: $db.books,
+      referencedTable: $db.dbBooks,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$BooksTableAnnotationComposer(
+          }) => $$DbBooksTableAnnotationComposer(
             $db: $db,
-            $table: $db.books,
+            $table: $db.dbBooks,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5893,22 +6462,22 @@ class $$ChaptersTableAnnotationComposer
     return composer;
   }
 
-  Expression<T> readingHistoriesRefs<T extends Object>(
-    Expression<T> Function($$ReadingHistoriesTableAnnotationComposer a) f,
+  Expression<T> dbBookmarksRefs<T extends Object>(
+    Expression<T> Function($$DbBookmarksTableAnnotationComposer a) f,
   ) {
-    final $$ReadingHistoriesTableAnnotationComposer composer = $composerBuilder(
+    final $$DbBookmarksTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
-      referencedTable: $db.readingHistories,
+      referencedTable: $db.dbBookmarks,
       getReferencedColumn: (t) => t.chapterId,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$ReadingHistoriesTableAnnotationComposer(
+          }) => $$DbBookmarksTableAnnotationComposer(
             $db: $db,
-            $table: $db.readingHistories,
+            $table: $db.dbBookmarks,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5917,34 +6486,144 @@ class $$ChaptersTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> dbReadingHistorysRefs<T extends Object>(
+    Expression<T> Function($$DbReadingHistorysTableAnnotationComposer a) f,
+  ) {
+    final $$DbReadingHistorysTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.dbReadingHistorys,
+          getReferencedColumn: (t) => t.chapterId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$DbReadingHistorysTableAnnotationComposer(
+                $db: $db,
+                $table: $db.dbReadingHistorys,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> dbReadingProgresssRefs<T extends Object>(
+    Expression<T> Function($$DbReadingProgresssTableAnnotationComposer a) f,
+  ) {
+    final $$DbReadingProgresssTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.dbReadingProgresss,
+          getReferencedColumn: (t) => t.chapterId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$DbReadingProgresssTableAnnotationComposer(
+                $db: $db,
+                $table: $db.dbReadingProgresss,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> dbLayoutCachesRefs<T extends Object>(
+    Expression<T> Function($$DbLayoutCachesTableAnnotationComposer a) f,
+  ) {
+    final $$DbLayoutCachesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.dbLayoutCaches,
+      getReferencedColumn: (t) => t.chapterId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbLayoutCachesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.dbLayoutCaches,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> dbReadingSessionsRefs<T extends Object>(
+    Expression<T> Function($$DbReadingSessionsTableAnnotationComposer a) f,
+  ) {
+    final $$DbReadingSessionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.dbReadingSessions,
+          getReferencedColumn: (t) => t.chapterId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$DbReadingSessionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.dbReadingSessions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
-class $$ChaptersTableTableManager
+class $$DbChaptersTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $ChaptersTable,
-          Chapter,
-          $$ChaptersTableFilterComposer,
-          $$ChaptersTableOrderingComposer,
-          $$ChaptersTableAnnotationComposer,
-          $$ChaptersTableCreateCompanionBuilder,
-          $$ChaptersTableUpdateCompanionBuilder,
-          (Chapter, $$ChaptersTableReferences),
-          Chapter,
-          PrefetchHooks Function({bool bookId, bool readingHistoriesRefs})
+          $DbChaptersTable,
+          DbChapter,
+          $$DbChaptersTableFilterComposer,
+          $$DbChaptersTableOrderingComposer,
+          $$DbChaptersTableAnnotationComposer,
+          $$DbChaptersTableCreateCompanionBuilder,
+          $$DbChaptersTableUpdateCompanionBuilder,
+          (DbChapter, $$DbChaptersTableReferences),
+          DbChapter,
+          PrefetchHooks Function({
+            bool bookId,
+            bool dbBookmarksRefs,
+            bool dbReadingHistorysRefs,
+            bool dbReadingProgresssRefs,
+            bool dbLayoutCachesRefs,
+            bool dbReadingSessionsRefs,
+          })
         > {
-  $$ChaptersTableTableManager(_$AppDatabase db, $ChaptersTable table)
+  $$DbChaptersTableTableManager(_$AppDatabase db, $DbChaptersTable table)
     : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$ChaptersTableFilterComposer($db: db, $table: table),
+              $$DbChaptersTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$ChaptersTableOrderingComposer($db: db, $table: table),
+              $$DbChaptersTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$ChaptersTableAnnotationComposer($db: db, $table: table),
+              $$DbChaptersTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
@@ -5954,7 +6633,7 @@ class $$ChaptersTableTableManager
                 Value<int> chapterIndex = const Value.absent(),
                 Value<int> wordCount = const Value.absent(),
                 Value<DateTime> cachedAt = const Value.absent(),
-              }) => ChaptersCompanion(
+              }) => DbChaptersCompanion(
                 id: id,
                 bookId: bookId,
                 title: title,
@@ -5972,7 +6651,7 @@ class $$ChaptersTableTableManager
                 required int chapterIndex,
                 Value<int> wordCount = const Value.absent(),
                 Value<DateTime> cachedAt = const Value.absent(),
-              }) => ChaptersCompanion.insert(
+              }) => DbChaptersCompanion.insert(
                 id: id,
                 bookId: bookId,
                 title: title,
@@ -5985,16 +6664,27 @@ class $$ChaptersTableTableManager
               .map(
                 (e) => (
                   e.readTable(table),
-                  $$ChaptersTableReferences(db, table, e),
+                  $$DbChaptersTableReferences(db, table, e),
                 ),
               )
               .toList(),
           prefetchHooksCallback:
-              ({bookId = false, readingHistoriesRefs = false}) {
+              ({
+                bookId = false,
+                dbBookmarksRefs = false,
+                dbReadingHistorysRefs = false,
+                dbReadingProgresssRefs = false,
+                dbLayoutCachesRefs = false,
+                dbReadingSessionsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
-                    if (readingHistoriesRefs) db.readingHistories,
+                    if (dbBookmarksRefs) db.dbBookmarks,
+                    if (dbReadingHistorysRefs) db.dbReadingHistorys,
+                    if (dbReadingProgresssRefs) db.dbReadingProgresss,
+                    if (dbLayoutCachesRefs) db.dbLayoutCaches,
+                    if (dbReadingSessionsRefs) db.dbReadingSessions,
                   ],
                   addJoins:
                       <
@@ -6017,11 +6707,12 @@ class $$ChaptersTableTableManager
                               state.withJoin(
                                     currentTable: table,
                                     currentColumn: table.bookId,
-                                    referencedTable: $$ChaptersTableReferences
+                                    referencedTable: $$DbChaptersTableReferences
                                         ._bookIdTable(db),
-                                    referencedColumn: $$ChaptersTableReferences
-                                        ._bookIdTable(db)
-                                        .id,
+                                    referencedColumn:
+                                        $$DbChaptersTableReferences
+                                            ._bookIdTable(db)
+                                            .id,
                                   )
                                   as T;
                         }
@@ -6030,21 +6721,105 @@ class $$ChaptersTableTableManager
                       },
                   getPrefetchedDataCallback: (items) async {
                     return [
-                      if (readingHistoriesRefs)
+                      if (dbBookmarksRefs)
                         await $_getPrefetchedData<
-                          Chapter,
-                          $ChaptersTable,
-                          ReadingHistory
+                          DbChapter,
+                          $DbChaptersTable,
+                          DbBookmark
                         >(
                           currentTable: table,
-                          referencedTable: $$ChaptersTableReferences
-                              ._readingHistoriesRefsTable(db),
+                          referencedTable: $$DbChaptersTableReferences
+                              ._dbBookmarksRefsTable(db),
                           managerFromTypedResult: (p0) =>
-                              $$ChaptersTableReferences(
+                              $$DbChaptersTableReferences(
                                 db,
                                 table,
                                 p0,
-                              ).readingHistoriesRefs,
+                              ).dbBookmarksRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.chapterId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (dbReadingHistorysRefs)
+                        await $_getPrefetchedData<
+                          DbChapter,
+                          $DbChaptersTable,
+                          DbReadingHistory
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DbChaptersTableReferences
+                              ._dbReadingHistorysRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DbChaptersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).dbReadingHistorysRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.chapterId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (dbReadingProgresssRefs)
+                        await $_getPrefetchedData<
+                          DbChapter,
+                          $DbChaptersTable,
+                          DbReadingProgress
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DbChaptersTableReferences
+                              ._dbReadingProgresssRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DbChaptersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).dbReadingProgresssRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.chapterId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (dbLayoutCachesRefs)
+                        await $_getPrefetchedData<
+                          DbChapter,
+                          $DbChaptersTable,
+                          DbLayoutCache
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DbChaptersTableReferences
+                              ._dbLayoutCachesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DbChaptersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).dbLayoutCachesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.chapterId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (dbReadingSessionsRefs)
+                        await $_getPrefetchedData<
+                          DbChapter,
+                          $DbChaptersTable,
+                          DbReadingSession
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DbChaptersTableReferences
+                              ._dbReadingSessionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DbChaptersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).dbReadingSessionsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.chapterId == item.id,
@@ -6059,57 +6834,64 @@ class $$ChaptersTableTableManager
       );
 }
 
-typedef $$ChaptersTableProcessedTableManager =
+typedef $$DbChaptersTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $ChaptersTable,
-      Chapter,
-      $$ChaptersTableFilterComposer,
-      $$ChaptersTableOrderingComposer,
-      $$ChaptersTableAnnotationComposer,
-      $$ChaptersTableCreateCompanionBuilder,
-      $$ChaptersTableUpdateCompanionBuilder,
-      (Chapter, $$ChaptersTableReferences),
-      Chapter,
-      PrefetchHooks Function({bool bookId, bool readingHistoriesRefs})
+      $DbChaptersTable,
+      DbChapter,
+      $$DbChaptersTableFilterComposer,
+      $$DbChaptersTableOrderingComposer,
+      $$DbChaptersTableAnnotationComposer,
+      $$DbChaptersTableCreateCompanionBuilder,
+      $$DbChaptersTableUpdateCompanionBuilder,
+      (DbChapter, $$DbChaptersTableReferences),
+      DbChapter,
+      PrefetchHooks Function({
+        bool bookId,
+        bool dbBookmarksRefs,
+        bool dbReadingHistorysRefs,
+        bool dbReadingProgresssRefs,
+        bool dbLayoutCachesRefs,
+        bool dbReadingSessionsRefs,
+      })
     >;
-typedef $$BookmarksTableCreateCompanionBuilder =
-    BookmarksCompanion Function({
-      required String bookmarkId,
+typedef $$DbBookmarksTableCreateCompanionBuilder =
+    DbBookmarksCompanion Function({
+      Value<int> id,
       required int bookId,
       required int chapterId,
       required int pageIndex,
       required String title,
       required int createdTimestamp,
       Value<String?> note,
-      Value<int> rowid,
+      Value<int?> position,
     });
-typedef $$BookmarksTableUpdateCompanionBuilder =
-    BookmarksCompanion Function({
-      Value<String> bookmarkId,
+typedef $$DbBookmarksTableUpdateCompanionBuilder =
+    DbBookmarksCompanion Function({
+      Value<int> id,
       Value<int> bookId,
       Value<int> chapterId,
       Value<int> pageIndex,
       Value<String> title,
       Value<int> createdTimestamp,
       Value<String?> note,
-      Value<int> rowid,
+      Value<int?> position,
     });
 
-final class $$BookmarksTableReferences
-    extends BaseReferences<_$AppDatabase, $BookmarksTable, Bookmark> {
-  $$BookmarksTableReferences(super.$_db, super.$_table, super.$_typedResult);
+final class $$DbBookmarksTableReferences
+    extends BaseReferences<_$AppDatabase, $DbBookmarksTable, DbBookmark> {
+  $$DbBookmarksTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $BooksTable _bookIdTable(_$AppDatabase db) => db.books.createAlias(
-    $_aliasNameGenerator(db.bookmarks.bookId, db.books.id),
+  static $DbBooksTable _bookIdTable(_$AppDatabase db) => db.dbBooks.createAlias(
+    $_aliasNameGenerator(db.dbBookmarks.bookId, db.dbBooks.id),
   );
 
-  $$BooksTableProcessedTableManager get bookId {
+  $$DbBooksTableProcessedTableManager get bookId {
     final $_column = $_itemColumn<int>('book_id')!;
 
-    final manager = $$BooksTableTableManager(
+    final manager = $$DbBooksTableTableManager(
       $_db,
-      $_db.books,
+      $_db.dbBooks,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_bookIdTable($_db));
     if (item == null) return manager;
@@ -6117,24 +6899,38 @@ final class $$BookmarksTableReferences
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
+
+  static $DbChaptersTable _chapterIdTable(_$AppDatabase db) =>
+      db.dbChapters.createAlias(
+        $_aliasNameGenerator(db.dbBookmarks.chapterId, db.dbChapters.id),
+      );
+
+  $$DbChaptersTableProcessedTableManager get chapterId {
+    final $_column = $_itemColumn<int>('chapter_id')!;
+
+    final manager = $$DbChaptersTableTableManager(
+      $_db,
+      $_db.dbChapters,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_chapterIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 }
 
-class $$BookmarksTableFilterComposer
-    extends Composer<_$AppDatabase, $BookmarksTable> {
-  $$BookmarksTableFilterComposer({
+class $$DbBookmarksTableFilterComposer
+    extends Composer<_$AppDatabase, $DbBookmarksTable> {
+  $$DbBookmarksTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get bookmarkId => $composableBuilder(
-    column: $table.bookmarkId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get chapterId => $composableBuilder(
-    column: $table.chapterId,
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6158,20 +6954,48 @@ class $$BookmarksTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  $$BooksTableFilterComposer get bookId {
-    final $$BooksTableFilterComposer composer = $composerBuilder(
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$DbBooksTableFilterComposer get bookId {
+    final $$DbBooksTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.bookId,
-      referencedTable: $db.books,
+      referencedTable: $db.dbBooks,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$BooksTableFilterComposer(
+          }) => $$DbBooksTableFilterComposer(
             $db: $db,
-            $table: $db.books,
+            $table: $db.dbBooks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DbChaptersTableFilterComposer get chapterId {
+    final $$DbChaptersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterId,
+      referencedTable: $db.dbChapters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbChaptersTableFilterComposer(
+            $db: $db,
+            $table: $db.dbChapters,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6182,22 +7006,17 @@ class $$BookmarksTableFilterComposer
   }
 }
 
-class $$BookmarksTableOrderingComposer
-    extends Composer<_$AppDatabase, $BookmarksTable> {
-  $$BookmarksTableOrderingComposer({
+class $$DbBookmarksTableOrderingComposer
+    extends Composer<_$AppDatabase, $DbBookmarksTable> {
+  $$DbBookmarksTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get bookmarkId => $composableBuilder(
-    column: $table.bookmarkId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get chapterId => $composableBuilder(
-    column: $table.chapterId,
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -6221,20 +7040,48 @@ class $$BookmarksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  $$BooksTableOrderingComposer get bookId {
-    final $$BooksTableOrderingComposer composer = $composerBuilder(
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$DbBooksTableOrderingComposer get bookId {
+    final $$DbBooksTableOrderingComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.bookId,
-      referencedTable: $db.books,
+      referencedTable: $db.dbBooks,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$BooksTableOrderingComposer(
+          }) => $$DbBooksTableOrderingComposer(
             $db: $db,
-            $table: $db.books,
+            $table: $db.dbBooks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DbChaptersTableOrderingComposer get chapterId {
+    final $$DbChaptersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterId,
+      referencedTable: $db.dbChapters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbChaptersTableOrderingComposer(
+            $db: $db,
+            $table: $db.dbChapters,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6245,22 +7092,17 @@ class $$BookmarksTableOrderingComposer
   }
 }
 
-class $$BookmarksTableAnnotationComposer
-    extends Composer<_$AppDatabase, $BookmarksTable> {
-  $$BookmarksTableAnnotationComposer({
+class $$DbBookmarksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DbBookmarksTable> {
+  $$DbBookmarksTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get bookmarkId => $composableBuilder(
-    column: $table.bookmarkId,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get chapterId =>
-      $composableBuilder(column: $table.chapterId, builder: (column) => column);
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<int> get pageIndex =>
       $composableBuilder(column: $table.pageIndex, builder: (column) => column);
@@ -6276,20 +7118,46 @@ class $$BookmarksTableAnnotationComposer
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
 
-  $$BooksTableAnnotationComposer get bookId {
-    final $$BooksTableAnnotationComposer composer = $composerBuilder(
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  $$DbBooksTableAnnotationComposer get bookId {
+    final $$DbBooksTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.bookId,
-      referencedTable: $db.books,
+      referencedTable: $db.dbBooks,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$BooksTableAnnotationComposer(
+          }) => $$DbBooksTableAnnotationComposer(
             $db: $db,
-            $table: $db.books,
+            $table: $db.dbBooks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DbChaptersTableAnnotationComposer get chapterId {
+    final $$DbChaptersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterId,
+      referencedTable: $db.dbChapters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbChaptersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.dbChapters,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6300,83 +7168,81 @@ class $$BookmarksTableAnnotationComposer
   }
 }
 
-class $$BookmarksTableTableManager
+class $$DbBookmarksTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $BookmarksTable,
-          Bookmark,
-          $$BookmarksTableFilterComposer,
-          $$BookmarksTableOrderingComposer,
-          $$BookmarksTableAnnotationComposer,
-          $$BookmarksTableCreateCompanionBuilder,
-          $$BookmarksTableUpdateCompanionBuilder,
-          (Bookmark, $$BookmarksTableReferences),
-          Bookmark,
-          PrefetchHooks Function({bool bookId})
+          $DbBookmarksTable,
+          DbBookmark,
+          $$DbBookmarksTableFilterComposer,
+          $$DbBookmarksTableOrderingComposer,
+          $$DbBookmarksTableAnnotationComposer,
+          $$DbBookmarksTableCreateCompanionBuilder,
+          $$DbBookmarksTableUpdateCompanionBuilder,
+          (DbBookmark, $$DbBookmarksTableReferences),
+          DbBookmark,
+          PrefetchHooks Function({bool bookId, bool chapterId})
         > {
-  $$BookmarksTableTableManager(_$AppDatabase db, $BookmarksTable table)
+  $$DbBookmarksTableTableManager(_$AppDatabase db, $DbBookmarksTable table)
     : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$BookmarksTableFilterComposer($db: db, $table: table),
+              $$DbBookmarksTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$BookmarksTableOrderingComposer($db: db, $table: table),
+              $$DbBookmarksTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$BookmarksTableAnnotationComposer($db: db, $table: table),
+              $$DbBookmarksTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<String> bookmarkId = const Value.absent(),
+                Value<int> id = const Value.absent(),
                 Value<int> bookId = const Value.absent(),
                 Value<int> chapterId = const Value.absent(),
                 Value<int> pageIndex = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<int> createdTimestamp = const Value.absent(),
                 Value<String?> note = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => BookmarksCompanion(
-                bookmarkId: bookmarkId,
+                Value<int?> position = const Value.absent(),
+              }) => DbBookmarksCompanion(
+                id: id,
                 bookId: bookId,
                 chapterId: chapterId,
                 pageIndex: pageIndex,
                 title: title,
                 createdTimestamp: createdTimestamp,
                 note: note,
-                rowid: rowid,
+                position: position,
               ),
           createCompanionCallback:
               ({
-                required String bookmarkId,
+                Value<int> id = const Value.absent(),
                 required int bookId,
                 required int chapterId,
                 required int pageIndex,
                 required String title,
-                int position,
                 required int createdTimestamp,
                 Value<String?> note = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => BookmarksCompanion.insert(
-                bookmarkId: bookmarkId,
+                Value<int?> position = const Value.absent(),
+              }) => DbBookmarksCompanion.insert(
+                id: id,
                 bookId: bookId,
                 chapterId: chapterId,
                 pageIndex: pageIndex,
                 title: title,
                 createdTimestamp: createdTimestamp,
                 note: note,
-                rowid: rowid,
                 position: position,
               ),
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
                   e.readTable(table),
-                  $$BookmarksTableReferences(db, table, e),
+                  $$DbBookmarksTableReferences(db, table, e),
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({bookId = false}) {
+          prefetchHooksCallback: ({bookId = false, chapterId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -6401,10 +7267,23 @@ class $$BookmarksTableTableManager
                           state.withJoin(
                                 currentTable: table,
                                 currentColumn: table.bookId,
-                                referencedTable: $$BookmarksTableReferences
+                                referencedTable: $$DbBookmarksTableReferences
                                     ._bookIdTable(db),
-                                referencedColumn: $$BookmarksTableReferences
+                                referencedColumn: $$DbBookmarksTableReferences
                                     ._bookIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (chapterId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.chapterId,
+                                referencedTable: $$DbBookmarksTableReferences
+                                    ._chapterIdTable(db),
+                                referencedColumn: $$DbBookmarksTableReferences
+                                    ._chapterIdTable(db)
                                     .id,
                               )
                               as T;
@@ -6421,22 +7300,22 @@ class $$BookmarksTableTableManager
       );
 }
 
-typedef $$BookmarksTableProcessedTableManager =
+typedef $$DbBookmarksTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $BookmarksTable,
-      Bookmark,
-      $$BookmarksTableFilterComposer,
-      $$BookmarksTableOrderingComposer,
-      $$BookmarksTableAnnotationComposer,
-      $$BookmarksTableCreateCompanionBuilder,
-      $$BookmarksTableUpdateCompanionBuilder,
-      (Bookmark, $$BookmarksTableReferences),
-      Bookmark,
-      PrefetchHooks Function({bool bookId})
+      $DbBookmarksTable,
+      DbBookmark,
+      $$DbBookmarksTableFilterComposer,
+      $$DbBookmarksTableOrderingComposer,
+      $$DbBookmarksTableAnnotationComposer,
+      $$DbBookmarksTableCreateCompanionBuilder,
+      $$DbBookmarksTableUpdateCompanionBuilder,
+      (DbBookmark, $$DbBookmarksTableReferences),
+      DbBookmark,
+      PrefetchHooks Function({bool bookId, bool chapterId})
     >;
-typedef $$ReadingHistoriesTableCreateCompanionBuilder =
-    ReadingHistoriesCompanion Function({
+typedef $$DbReadingHistorysTableCreateCompanionBuilder =
+    DbReadingHistorysCompanion Function({
       Value<int> id,
       required int bookId,
       required int chapterId,
@@ -6444,8 +7323,8 @@ typedef $$ReadingHistoriesTableCreateCompanionBuilder =
       Value<DateTime> readTime,
       Value<int> duration,
     });
-typedef $$ReadingHistoriesTableUpdateCompanionBuilder =
-    ReadingHistoriesCompanion Function({
+typedef $$DbReadingHistorysTableUpdateCompanionBuilder =
+    DbReadingHistorysCompanion Function({
       Value<int> id,
       Value<int> bookId,
       Value<int> chapterId,
@@ -6454,25 +7333,29 @@ typedef $$ReadingHistoriesTableUpdateCompanionBuilder =
       Value<int> duration,
     });
 
-final class $$ReadingHistoriesTableReferences
+final class $$DbReadingHistorysTableReferences
     extends
-        BaseReferences<_$AppDatabase, $ReadingHistoriesTable, ReadingHistory> {
-  $$ReadingHistoriesTableReferences(
+        BaseReferences<
+          _$AppDatabase,
+          $DbReadingHistorysTable,
+          DbReadingHistory
+        > {
+  $$DbReadingHistorysTableReferences(
     super.$_db,
     super.$_table,
     super.$_typedResult,
   );
 
-  static $BooksTable _bookIdTable(_$AppDatabase db) => db.books.createAlias(
-    $_aliasNameGenerator(db.readingHistories.bookId, db.books.id),
+  static $DbBooksTable _bookIdTable(_$AppDatabase db) => db.dbBooks.createAlias(
+    $_aliasNameGenerator(db.dbReadingHistorys.bookId, db.dbBooks.id),
   );
 
-  $$BooksTableProcessedTableManager get bookId {
+  $$DbBooksTableProcessedTableManager get bookId {
     final $_column = $_itemColumn<int>('book_id')!;
 
-    final manager = $$BooksTableTableManager(
+    final manager = $$DbBooksTableTableManager(
       $_db,
-      $_db.books,
+      $_db.dbBooks,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_bookIdTable($_db));
     if (item == null) return manager;
@@ -6481,17 +7364,17 @@ final class $$ReadingHistoriesTableReferences
     );
   }
 
-  static $ChaptersTable _chapterIdTable(_$AppDatabase db) =>
-      db.chapters.createAlias(
-        $_aliasNameGenerator(db.readingHistories.chapterId, db.chapters.id),
+  static $DbChaptersTable _chapterIdTable(_$AppDatabase db) =>
+      db.dbChapters.createAlias(
+        $_aliasNameGenerator(db.dbReadingHistorys.chapterId, db.dbChapters.id),
       );
 
-  $$ChaptersTableProcessedTableManager get chapterId {
+  $$DbChaptersTableProcessedTableManager get chapterId {
     final $_column = $_itemColumn<int>('chapter_id')!;
 
-    final manager = $$ChaptersTableTableManager(
+    final manager = $$DbChaptersTableTableManager(
       $_db,
-      $_db.chapters,
+      $_db.dbChapters,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_chapterIdTable($_db));
     if (item == null) return manager;
@@ -6501,9 +7384,9 @@ final class $$ReadingHistoriesTableReferences
   }
 }
 
-class $$ReadingHistoriesTableFilterComposer
-    extends Composer<_$AppDatabase, $ReadingHistoriesTable> {
-  $$ReadingHistoriesTableFilterComposer({
+class $$DbReadingHistorysTableFilterComposer
+    extends Composer<_$AppDatabase, $DbReadingHistorysTable> {
+  $$DbReadingHistorysTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -6530,20 +7413,20 @@ class $$ReadingHistoriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  $$BooksTableFilterComposer get bookId {
-    final $$BooksTableFilterComposer composer = $composerBuilder(
+  $$DbBooksTableFilterComposer get bookId {
+    final $$DbBooksTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.bookId,
-      referencedTable: $db.books,
+      referencedTable: $db.dbBooks,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$BooksTableFilterComposer(
+          }) => $$DbBooksTableFilterComposer(
             $db: $db,
-            $table: $db.books,
+            $table: $db.dbBooks,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6553,20 +7436,20 @@ class $$ReadingHistoriesTableFilterComposer
     return composer;
   }
 
-  $$ChaptersTableFilterComposer get chapterId {
-    final $$ChaptersTableFilterComposer composer = $composerBuilder(
+  $$DbChaptersTableFilterComposer get chapterId {
+    final $$DbChaptersTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.chapterId,
-      referencedTable: $db.chapters,
+      referencedTable: $db.dbChapters,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$ChaptersTableFilterComposer(
+          }) => $$DbChaptersTableFilterComposer(
             $db: $db,
-            $table: $db.chapters,
+            $table: $db.dbChapters,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6577,9 +7460,9 @@ class $$ReadingHistoriesTableFilterComposer
   }
 }
 
-class $$ReadingHistoriesTableOrderingComposer
-    extends Composer<_$AppDatabase, $ReadingHistoriesTable> {
-  $$ReadingHistoriesTableOrderingComposer({
+class $$DbReadingHistorysTableOrderingComposer
+    extends Composer<_$AppDatabase, $DbReadingHistorysTable> {
+  $$DbReadingHistorysTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -6606,20 +7489,20 @@ class $$ReadingHistoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  $$BooksTableOrderingComposer get bookId {
-    final $$BooksTableOrderingComposer composer = $composerBuilder(
+  $$DbBooksTableOrderingComposer get bookId {
+    final $$DbBooksTableOrderingComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.bookId,
-      referencedTable: $db.books,
+      referencedTable: $db.dbBooks,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$BooksTableOrderingComposer(
+          }) => $$DbBooksTableOrderingComposer(
             $db: $db,
-            $table: $db.books,
+            $table: $db.dbBooks,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6629,20 +7512,20 @@ class $$ReadingHistoriesTableOrderingComposer
     return composer;
   }
 
-  $$ChaptersTableOrderingComposer get chapterId {
-    final $$ChaptersTableOrderingComposer composer = $composerBuilder(
+  $$DbChaptersTableOrderingComposer get chapterId {
+    final $$DbChaptersTableOrderingComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.chapterId,
-      referencedTable: $db.chapters,
+      referencedTable: $db.dbChapters,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$ChaptersTableOrderingComposer(
+          }) => $$DbChaptersTableOrderingComposer(
             $db: $db,
-            $table: $db.chapters,
+            $table: $db.dbChapters,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6653,9 +7536,9 @@ class $$ReadingHistoriesTableOrderingComposer
   }
 }
 
-class $$ReadingHistoriesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ReadingHistoriesTable> {
-  $$ReadingHistoriesTableAnnotationComposer({
+class $$DbReadingHistorysTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DbReadingHistorysTable> {
+  $$DbReadingHistorysTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -6674,20 +7557,20 @@ class $$ReadingHistoriesTableAnnotationComposer
   GeneratedColumn<int> get duration =>
       $composableBuilder(column: $table.duration, builder: (column) => column);
 
-  $$BooksTableAnnotationComposer get bookId {
-    final $$BooksTableAnnotationComposer composer = $composerBuilder(
+  $$DbBooksTableAnnotationComposer get bookId {
+    final $$DbBooksTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.bookId,
-      referencedTable: $db.books,
+      referencedTable: $db.dbBooks,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$BooksTableAnnotationComposer(
+          }) => $$DbBooksTableAnnotationComposer(
             $db: $db,
-            $table: $db.books,
+            $table: $db.dbBooks,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6697,20 +7580,20 @@ class $$ReadingHistoriesTableAnnotationComposer
     return composer;
   }
 
-  $$ChaptersTableAnnotationComposer get chapterId {
-    final $$ChaptersTableAnnotationComposer composer = $composerBuilder(
+  $$DbChaptersTableAnnotationComposer get chapterId {
+    final $$DbChaptersTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.chapterId,
-      referencedTable: $db.chapters,
+      referencedTable: $db.dbChapters,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$ChaptersTableAnnotationComposer(
+          }) => $$DbChaptersTableAnnotationComposer(
             $db: $db,
-            $table: $db.chapters,
+            $table: $db.dbChapters,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6721,34 +7604,37 @@ class $$ReadingHistoriesTableAnnotationComposer
   }
 }
 
-class $$ReadingHistoriesTableTableManager
+class $$DbReadingHistorysTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $ReadingHistoriesTable,
-          ReadingHistory,
-          $$ReadingHistoriesTableFilterComposer,
-          $$ReadingHistoriesTableOrderingComposer,
-          $$ReadingHistoriesTableAnnotationComposer,
-          $$ReadingHistoriesTableCreateCompanionBuilder,
-          $$ReadingHistoriesTableUpdateCompanionBuilder,
-          (ReadingHistory, $$ReadingHistoriesTableReferences),
-          ReadingHistory,
+          $DbReadingHistorysTable,
+          DbReadingHistory,
+          $$DbReadingHistorysTableFilterComposer,
+          $$DbReadingHistorysTableOrderingComposer,
+          $$DbReadingHistorysTableAnnotationComposer,
+          $$DbReadingHistorysTableCreateCompanionBuilder,
+          $$DbReadingHistorysTableUpdateCompanionBuilder,
+          (DbReadingHistory, $$DbReadingHistorysTableReferences),
+          DbReadingHistory,
           PrefetchHooks Function({bool bookId, bool chapterId})
         > {
-  $$ReadingHistoriesTableTableManager(
+  $$DbReadingHistorysTableTableManager(
     _$AppDatabase db,
-    $ReadingHistoriesTable table,
+    $DbReadingHistorysTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$ReadingHistoriesTableFilterComposer($db: db, $table: table),
+              $$DbReadingHistorysTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$ReadingHistoriesTableOrderingComposer($db: db, $table: table),
+              $$DbReadingHistorysTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$ReadingHistoriesTableAnnotationComposer($db: db, $table: table),
+              $$DbReadingHistorysTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
@@ -6757,7 +7643,7 @@ class $$ReadingHistoriesTableTableManager
                 Value<int> position = const Value.absent(),
                 Value<DateTime> readTime = const Value.absent(),
                 Value<int> duration = const Value.absent(),
-              }) => ReadingHistoriesCompanion(
+              }) => DbReadingHistorysCompanion(
                 id: id,
                 bookId: bookId,
                 chapterId: chapterId,
@@ -6773,7 +7659,7 @@ class $$ReadingHistoriesTableTableManager
                 required int position,
                 Value<DateTime> readTime = const Value.absent(),
                 Value<int> duration = const Value.absent(),
-              }) => ReadingHistoriesCompanion.insert(
+              }) => DbReadingHistorysCompanion.insert(
                 id: id,
                 bookId: bookId,
                 chapterId: chapterId,
@@ -6785,7 +7671,7 @@ class $$ReadingHistoriesTableTableManager
               .map(
                 (e) => (
                   e.readTable(table),
-                  $$ReadingHistoriesTableReferences(db, table, e),
+                  $$DbReadingHistorysTableReferences(db, table, e),
                 ),
               )
               .toList(),
@@ -6815,10 +7701,10 @@ class $$ReadingHistoriesTableTableManager
                                 currentTable: table,
                                 currentColumn: table.bookId,
                                 referencedTable:
-                                    $$ReadingHistoriesTableReferences
+                                    $$DbReadingHistorysTableReferences
                                         ._bookIdTable(db),
                                 referencedColumn:
-                                    $$ReadingHistoriesTableReferences
+                                    $$DbReadingHistorysTableReferences
                                         ._bookIdTable(db)
                                         .id,
                               )
@@ -6830,10 +7716,10 @@ class $$ReadingHistoriesTableTableManager
                                 currentTable: table,
                                 currentColumn: table.chapterId,
                                 referencedTable:
-                                    $$ReadingHistoriesTableReferences
+                                    $$DbReadingHistorysTableReferences
                                         ._chapterIdTable(db),
                                 referencedColumn:
-                                    $$ReadingHistoriesTableReferences
+                                    $$DbReadingHistorysTableReferences
                                         ._chapterIdTable(db)
                                         .id,
                               )
@@ -6851,62 +7737,101 @@ class $$ReadingHistoriesTableTableManager
       );
 }
 
-typedef $$ReadingHistoriesTableProcessedTableManager =
+typedef $$DbReadingHistorysTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $ReadingHistoriesTable,
-      ReadingHistory,
-      $$ReadingHistoriesTableFilterComposer,
-      $$ReadingHistoriesTableOrderingComposer,
-      $$ReadingHistoriesTableAnnotationComposer,
-      $$ReadingHistoriesTableCreateCompanionBuilder,
-      $$ReadingHistoriesTableUpdateCompanionBuilder,
-      (ReadingHistory, $$ReadingHistoriesTableReferences),
-      ReadingHistory,
+      $DbReadingHistorysTable,
+      DbReadingHistory,
+      $$DbReadingHistorysTableFilterComposer,
+      $$DbReadingHistorysTableOrderingComposer,
+      $$DbReadingHistorysTableAnnotationComposer,
+      $$DbReadingHistorysTableCreateCompanionBuilder,
+      $$DbReadingHistorysTableUpdateCompanionBuilder,
+      (DbReadingHistory, $$DbReadingHistorysTableReferences),
+      DbReadingHistory,
       PrefetchHooks Function({bool bookId, bool chapterId})
     >;
-typedef $$ReadingProgressesTableCreateCompanionBuilder =
-    ReadingProgressesCompanion Function({
-      required String bookId,
+typedef $$DbReadingProgresssTableCreateCompanionBuilder =
+    DbReadingProgresssCompanion Function({
+      Value<int> bookId,
       required int chapterId,
       required int pageIndex,
       required int totalPages,
       required double progress,
       Value<int> readingTimeSeconds,
       required int lastReadTimestamp,
-      Value<int> rowid,
     });
-typedef $$ReadingProgressesTableUpdateCompanionBuilder =
-    ReadingProgressesCompanion Function({
-      Value<String> bookId,
+typedef $$DbReadingProgresssTableUpdateCompanionBuilder =
+    DbReadingProgresssCompanion Function({
+      Value<int> bookId,
       Value<int> chapterId,
       Value<int> pageIndex,
       Value<int> totalPages,
       Value<double> progress,
       Value<int> readingTimeSeconds,
       Value<int> lastReadTimestamp,
-      Value<int> rowid,
     });
 
-class $$ReadingProgressesTableFilterComposer
-    extends Composer<_$AppDatabase, $ReadingProgressesTable> {
-  $$ReadingProgressesTableFilterComposer({
+final class $$DbReadingProgresssTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $DbReadingProgresssTable,
+          DbReadingProgress
+        > {
+  $$DbReadingProgresssTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $DbBooksTable _bookIdTable(_$AppDatabase db) => db.dbBooks.createAlias(
+    $_aliasNameGenerator(db.dbReadingProgresss.bookId, db.dbBooks.id),
+  );
+
+  $$DbBooksTableProcessedTableManager get bookId {
+    final $_column = $_itemColumn<int>('book_id')!;
+
+    final manager = $$DbBooksTableTableManager(
+      $_db,
+      $_db.dbBooks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_bookIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $DbChaptersTable _chapterIdTable(_$AppDatabase db) =>
+      db.dbChapters.createAlias(
+        $_aliasNameGenerator(db.dbReadingProgresss.chapterId, db.dbChapters.id),
+      );
+
+  $$DbChaptersTableProcessedTableManager get chapterId {
+    final $_column = $_itemColumn<int>('chapter_id')!;
+
+    final manager = $$DbChaptersTableTableManager(
+      $_db,
+      $_db.dbChapters,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_chapterIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DbReadingProgresssTableFilterComposer
+    extends Composer<_$AppDatabase, $DbReadingProgresssTable> {
+  $$DbReadingProgresssTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get bookId => $composableBuilder(
-    column: $table.bookId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get chapterId => $composableBuilder(
-    column: $table.chapterId,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<int> get pageIndex => $composableBuilder(
     column: $table.pageIndex,
     builder: (column) => ColumnFilters(column),
@@ -6931,27 +7856,63 @@ class $$ReadingProgressesTableFilterComposer
     column: $table.lastReadTimestamp,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$DbBooksTableFilterComposer get bookId {
+    final $$DbBooksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.dbBooks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbBooksTableFilterComposer(
+            $db: $db,
+            $table: $db.dbBooks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DbChaptersTableFilterComposer get chapterId {
+    final $$DbChaptersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterId,
+      referencedTable: $db.dbChapters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbChaptersTableFilterComposer(
+            $db: $db,
+            $table: $db.dbChapters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
-class $$ReadingProgressesTableOrderingComposer
-    extends Composer<_$AppDatabase, $ReadingProgressesTable> {
-  $$ReadingProgressesTableOrderingComposer({
+class $$DbReadingProgresssTableOrderingComposer
+    extends Composer<_$AppDatabase, $DbReadingProgresssTable> {
+  $$DbReadingProgresssTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get bookId => $composableBuilder(
-    column: $table.bookId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get chapterId => $composableBuilder(
-    column: $table.chapterId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<int> get pageIndex => $composableBuilder(
     column: $table.pageIndex,
     builder: (column) => ColumnOrderings(column),
@@ -6976,23 +7937,63 @@ class $$ReadingProgressesTableOrderingComposer
     column: $table.lastReadTimestamp,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$DbBooksTableOrderingComposer get bookId {
+    final $$DbBooksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.dbBooks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbBooksTableOrderingComposer(
+            $db: $db,
+            $table: $db.dbBooks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DbChaptersTableOrderingComposer get chapterId {
+    final $$DbChaptersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterId,
+      referencedTable: $db.dbChapters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbChaptersTableOrderingComposer(
+            $db: $db,
+            $table: $db.dbChapters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
-class $$ReadingProgressesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ReadingProgressesTable> {
-  $$ReadingProgressesTableAnnotationComposer({
+class $$DbReadingProgresssTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DbReadingProgresssTable> {
+  $$DbReadingProgresssTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get bookId =>
-      $composableBuilder(column: $table.bookId, builder: (column) => column);
-
-  GeneratedColumn<int> get chapterId =>
-      $composableBuilder(column: $table.chapterId, builder: (column) => column);
-
   GeneratedColumn<int> get pageIndex =>
       $composableBuilder(column: $table.pageIndex, builder: (column) => column);
 
@@ -7013,57 +8014,95 @@ class $$ReadingProgressesTableAnnotationComposer
     column: $table.lastReadTimestamp,
     builder: (column) => column,
   );
+
+  $$DbBooksTableAnnotationComposer get bookId {
+    final $$DbBooksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.dbBooks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbBooksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.dbBooks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DbChaptersTableAnnotationComposer get chapterId {
+    final $$DbChaptersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterId,
+      referencedTable: $db.dbChapters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbChaptersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.dbChapters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
-class $$ReadingProgressesTableTableManager
+class $$DbReadingProgresssTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $ReadingProgressesTable,
-          ReadingProgressItem,
-          $$ReadingProgressesTableFilterComposer,
-          $$ReadingProgressesTableOrderingComposer,
-          $$ReadingProgressesTableAnnotationComposer,
-          $$ReadingProgressesTableCreateCompanionBuilder,
-          $$ReadingProgressesTableUpdateCompanionBuilder,
-          (
-            ReadingProgressItem,
-            BaseReferences<
-              _$AppDatabase,
-              $ReadingProgressesTable,
-              ReadingProgressItem
-            >,
-          ),
-          ReadingProgressItem,
-          PrefetchHooks Function()
+          $DbReadingProgresssTable,
+          DbReadingProgress,
+          $$DbReadingProgresssTableFilterComposer,
+          $$DbReadingProgresssTableOrderingComposer,
+          $$DbReadingProgresssTableAnnotationComposer,
+          $$DbReadingProgresssTableCreateCompanionBuilder,
+          $$DbReadingProgresssTableUpdateCompanionBuilder,
+          (DbReadingProgress, $$DbReadingProgresssTableReferences),
+          DbReadingProgress,
+          PrefetchHooks Function({bool bookId, bool chapterId})
         > {
-  $$ReadingProgressesTableTableManager(
+  $$DbReadingProgresssTableTableManager(
     _$AppDatabase db,
-    $ReadingProgressesTable table,
+    $DbReadingProgresssTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$ReadingProgressesTableFilterComposer($db: db, $table: table),
+              $$DbReadingProgresssTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$ReadingProgressesTableOrderingComposer($db: db, $table: table),
+              $$DbReadingProgresssTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$ReadingProgressesTableAnnotationComposer(
+              $$DbReadingProgresssTableAnnotationComposer(
                 $db: db,
                 $table: table,
               ),
           updateCompanionCallback:
               ({
-                Value<String> bookId = const Value.absent(),
+                Value<int> bookId = const Value.absent(),
                 Value<int> chapterId = const Value.absent(),
                 Value<int> pageIndex = const Value.absent(),
                 Value<int> totalPages = const Value.absent(),
                 Value<double> progress = const Value.absent(),
                 Value<int> readingTimeSeconds = const Value.absent(),
                 Value<int> lastReadTimestamp = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ReadingProgressesCompanion(
+              }) => DbReadingProgresssCompanion(
                 bookId: bookId,
                 chapterId: chapterId,
                 pageIndex: pageIndex,
@@ -7071,19 +8110,17 @@ class $$ReadingProgressesTableTableManager
                 progress: progress,
                 readingTimeSeconds: readingTimeSeconds,
                 lastReadTimestamp: lastReadTimestamp,
-                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                required String bookId,
+                Value<int> bookId = const Value.absent(),
                 required int chapterId,
                 required int pageIndex,
                 required int totalPages,
                 required double progress,
                 Value<int> readingTimeSeconds = const Value.absent(),
                 required int lastReadTimestamp,
-                Value<int> rowid = const Value.absent(),
-              }) => ReadingProgressesCompanion.insert(
+              }) => DbReadingProgresssCompanion.insert(
                 bookId: bookId,
                 chapterId: chapterId,
                 pageIndex: pageIndex,
@@ -7091,51 +8128,105 @@ class $$ReadingProgressesTableTableManager
                 progress: progress,
                 readingTimeSeconds: readingTimeSeconds,
                 lastReadTimestamp: lastReadTimestamp,
-                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$DbReadingProgresssTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({bookId = false, chapterId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (bookId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.bookId,
+                                referencedTable:
+                                    $$DbReadingProgresssTableReferences
+                                        ._bookIdTable(db),
+                                referencedColumn:
+                                    $$DbReadingProgresssTableReferences
+                                        ._bookIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (chapterId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.chapterId,
+                                referencedTable:
+                                    $$DbReadingProgresssTableReferences
+                                        ._chapterIdTable(db),
+                                referencedColumn:
+                                    $$DbReadingProgresssTableReferences
+                                        ._chapterIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
         ),
       );
 }
 
-typedef $$ReadingProgressesTableProcessedTableManager =
+typedef $$DbReadingProgresssTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $ReadingProgressesTable,
-      ReadingProgressItem,
-      $$ReadingProgressesTableFilterComposer,
-      $$ReadingProgressesTableOrderingComposer,
-      $$ReadingProgressesTableAnnotationComposer,
-      $$ReadingProgressesTableCreateCompanionBuilder,
-      $$ReadingProgressesTableUpdateCompanionBuilder,
-      (
-        ReadingProgressItem,
-        BaseReferences<
-          _$AppDatabase,
-          $ReadingProgressesTable,
-          ReadingProgressItem
-        >,
-      ),
-      ReadingProgressItem,
-      PrefetchHooks Function()
+      $DbReadingProgresssTable,
+      DbReadingProgress,
+      $$DbReadingProgresssTableFilterComposer,
+      $$DbReadingProgresssTableOrderingComposer,
+      $$DbReadingProgresssTableAnnotationComposer,
+      $$DbReadingProgresssTableCreateCompanionBuilder,
+      $$DbReadingProgresssTableUpdateCompanionBuilder,
+      (DbReadingProgress, $$DbReadingProgresssTableReferences),
+      DbReadingProgress,
+      PrefetchHooks Function({bool bookId, bool chapterId})
     >;
-typedef $$LayoutCachesTableCreateCompanionBuilder =
-    LayoutCachesCompanion Function({
+typedef $$DbLayoutCachesTableCreateCompanionBuilder =
+    DbLayoutCachesCompanion Function({
       Value<int> id,
-      required String bookId,
+      required int bookId,
       required int chapterId,
       required String configHash,
       required String pageOffsets,
       required int totalPages,
       required int createdAt,
     });
-typedef $$LayoutCachesTableUpdateCompanionBuilder =
-    LayoutCachesCompanion Function({
+typedef $$DbLayoutCachesTableUpdateCompanionBuilder =
+    DbLayoutCachesCompanion Function({
       Value<int> id,
-      Value<String> bookId,
+      Value<int> bookId,
       Value<int> chapterId,
       Value<String> configHash,
       Value<String> pageOffsets,
@@ -7143,9 +8234,55 @@ typedef $$LayoutCachesTableUpdateCompanionBuilder =
       Value<int> createdAt,
     });
 
-class $$LayoutCachesTableFilterComposer
-    extends Composer<_$AppDatabase, $LayoutCachesTable> {
-  $$LayoutCachesTableFilterComposer({
+final class $$DbLayoutCachesTableReferences
+    extends BaseReferences<_$AppDatabase, $DbLayoutCachesTable, DbLayoutCache> {
+  $$DbLayoutCachesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $DbBooksTable _bookIdTable(_$AppDatabase db) => db.dbBooks.createAlias(
+    $_aliasNameGenerator(db.dbLayoutCaches.bookId, db.dbBooks.id),
+  );
+
+  $$DbBooksTableProcessedTableManager get bookId {
+    final $_column = $_itemColumn<int>('book_id')!;
+
+    final manager = $$DbBooksTableTableManager(
+      $_db,
+      $_db.dbBooks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_bookIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $DbChaptersTable _chapterIdTable(_$AppDatabase db) =>
+      db.dbChapters.createAlias(
+        $_aliasNameGenerator(db.dbLayoutCaches.chapterId, db.dbChapters.id),
+      );
+
+  $$DbChaptersTableProcessedTableManager get chapterId {
+    final $_column = $_itemColumn<int>('chapter_id')!;
+
+    final manager = $$DbChaptersTableTableManager(
+      $_db,
+      $_db.dbChapters,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_chapterIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DbLayoutCachesTableFilterComposer
+    extends Composer<_$AppDatabase, $DbLayoutCachesTable> {
+  $$DbLayoutCachesTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -7154,16 +8291,6 @@ class $$LayoutCachesTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get bookId => $composableBuilder(
-    column: $table.bookId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get chapterId => $composableBuilder(
-    column: $table.chapterId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7186,11 +8313,57 @@ class $$LayoutCachesTableFilterComposer
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$DbBooksTableFilterComposer get bookId {
+    final $$DbBooksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.dbBooks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbBooksTableFilterComposer(
+            $db: $db,
+            $table: $db.dbBooks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DbChaptersTableFilterComposer get chapterId {
+    final $$DbChaptersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterId,
+      referencedTable: $db.dbChapters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbChaptersTableFilterComposer(
+            $db: $db,
+            $table: $db.dbChapters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
-class $$LayoutCachesTableOrderingComposer
-    extends Composer<_$AppDatabase, $LayoutCachesTable> {
-  $$LayoutCachesTableOrderingComposer({
+class $$DbLayoutCachesTableOrderingComposer
+    extends Composer<_$AppDatabase, $DbLayoutCachesTable> {
+  $$DbLayoutCachesTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -7199,16 +8372,6 @@ class $$LayoutCachesTableOrderingComposer
   });
   ColumnOrderings<int> get id => $composableBuilder(
     column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get bookId => $composableBuilder(
-    column: $table.bookId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get chapterId => $composableBuilder(
-    column: $table.chapterId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -7231,11 +8394,57 @@ class $$LayoutCachesTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$DbBooksTableOrderingComposer get bookId {
+    final $$DbBooksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.dbBooks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbBooksTableOrderingComposer(
+            $db: $db,
+            $table: $db.dbBooks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DbChaptersTableOrderingComposer get chapterId {
+    final $$DbChaptersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterId,
+      referencedTable: $db.dbChapters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbChaptersTableOrderingComposer(
+            $db: $db,
+            $table: $db.dbChapters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
-class $$LayoutCachesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $LayoutCachesTable> {
-  $$LayoutCachesTableAnnotationComposer({
+class $$DbLayoutCachesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DbLayoutCachesTable> {
+  $$DbLayoutCachesTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -7244,12 +8453,6 @@ class $$LayoutCachesTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get bookId =>
-      $composableBuilder(column: $table.bookId, builder: (column) => column);
-
-  GeneratedColumn<int> get chapterId =>
-      $composableBuilder(column: $table.chapterId, builder: (column) => column);
 
   GeneratedColumn<String> get configHash => $composableBuilder(
     column: $table.configHash,
@@ -7268,47 +8471,92 @@ class $$LayoutCachesTableAnnotationComposer
 
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$DbBooksTableAnnotationComposer get bookId {
+    final $$DbBooksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.dbBooks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbBooksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.dbBooks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DbChaptersTableAnnotationComposer get chapterId {
+    final $$DbChaptersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterId,
+      referencedTable: $db.dbChapters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbChaptersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.dbChapters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
-class $$LayoutCachesTableTableManager
+class $$DbLayoutCachesTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $LayoutCachesTable,
-          LayoutCacheItem,
-          $$LayoutCachesTableFilterComposer,
-          $$LayoutCachesTableOrderingComposer,
-          $$LayoutCachesTableAnnotationComposer,
-          $$LayoutCachesTableCreateCompanionBuilder,
-          $$LayoutCachesTableUpdateCompanionBuilder,
-          (
-            LayoutCacheItem,
-            BaseReferences<_$AppDatabase, $LayoutCachesTable, LayoutCacheItem>,
-          ),
-          LayoutCacheItem,
-          PrefetchHooks Function()
+          $DbLayoutCachesTable,
+          DbLayoutCache,
+          $$DbLayoutCachesTableFilterComposer,
+          $$DbLayoutCachesTableOrderingComposer,
+          $$DbLayoutCachesTableAnnotationComposer,
+          $$DbLayoutCachesTableCreateCompanionBuilder,
+          $$DbLayoutCachesTableUpdateCompanionBuilder,
+          (DbLayoutCache, $$DbLayoutCachesTableReferences),
+          DbLayoutCache,
+          PrefetchHooks Function({bool bookId, bool chapterId})
         > {
-  $$LayoutCachesTableTableManager(_$AppDatabase db, $LayoutCachesTable table)
-    : super(
+  $$DbLayoutCachesTableTableManager(
+    _$AppDatabase db,
+    $DbLayoutCachesTable table,
+  ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$LayoutCachesTableFilterComposer($db: db, $table: table),
+              $$DbLayoutCachesTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$LayoutCachesTableOrderingComposer($db: db, $table: table),
+              $$DbLayoutCachesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$LayoutCachesTableAnnotationComposer($db: db, $table: table),
+              $$DbLayoutCachesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<String> bookId = const Value.absent(),
+                Value<int> bookId = const Value.absent(),
                 Value<int> chapterId = const Value.absent(),
                 Value<String> configHash = const Value.absent(),
                 Value<String> pageOffsets = const Value.absent(),
                 Value<int> totalPages = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
-              }) => LayoutCachesCompanion(
+              }) => DbLayoutCachesCompanion(
                 id: id,
                 bookId: bookId,
                 chapterId: chapterId,
@@ -7320,13 +8568,13 @@ class $$LayoutCachesTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                required String bookId,
+                required int bookId,
                 required int chapterId,
                 required String configHash,
                 required String pageOffsets,
                 required int totalPages,
                 required int createdAt,
-              }) => LayoutCachesCompanion.insert(
+              }) => DbLayoutCachesCompanion.insert(
                 id: id,
                 bookId: bookId,
                 chapterId: chapterId,
@@ -7336,32 +8584,89 @@ class $$LayoutCachesTableTableManager
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$DbLayoutCachesTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({bookId = false, chapterId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (bookId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.bookId,
+                                referencedTable: $$DbLayoutCachesTableReferences
+                                    ._bookIdTable(db),
+                                referencedColumn:
+                                    $$DbLayoutCachesTableReferences
+                                        ._bookIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (chapterId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.chapterId,
+                                referencedTable: $$DbLayoutCachesTableReferences
+                                    ._chapterIdTable(db),
+                                referencedColumn:
+                                    $$DbLayoutCachesTableReferences
+                                        ._chapterIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
         ),
       );
 }
 
-typedef $$LayoutCachesTableProcessedTableManager =
+typedef $$DbLayoutCachesTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $LayoutCachesTable,
-      LayoutCacheItem,
-      $$LayoutCachesTableFilterComposer,
-      $$LayoutCachesTableOrderingComposer,
-      $$LayoutCachesTableAnnotationComposer,
-      $$LayoutCachesTableCreateCompanionBuilder,
-      $$LayoutCachesTableUpdateCompanionBuilder,
-      (
-        LayoutCacheItem,
-        BaseReferences<_$AppDatabase, $LayoutCachesTable, LayoutCacheItem>,
-      ),
-      LayoutCacheItem,
-      PrefetchHooks Function()
+      $DbLayoutCachesTable,
+      DbLayoutCache,
+      $$DbLayoutCachesTableFilterComposer,
+      $$DbLayoutCachesTableOrderingComposer,
+      $$DbLayoutCachesTableAnnotationComposer,
+      $$DbLayoutCachesTableCreateCompanionBuilder,
+      $$DbLayoutCachesTableUpdateCompanionBuilder,
+      (DbLayoutCache, $$DbLayoutCachesTableReferences),
+      DbLayoutCache,
+      PrefetchHooks Function({bool bookId, bool chapterId})
     >;
-typedef $$ReadingStatsesTableCreateCompanionBuilder =
-    ReadingStatsesCompanion Function({
+typedef $$DbReadingStatssTableCreateCompanionBuilder =
+    DbReadingStatssCompanion Function({
       Value<int> id,
       Value<int> totalReadingTimeSeconds,
       Value<int> totalCharactersRead,
@@ -7371,8 +8676,8 @@ typedef $$ReadingStatsesTableCreateCompanionBuilder =
       Value<int> consecutiveReadingDays,
       Value<int> rowid,
     });
-typedef $$ReadingStatsesTableUpdateCompanionBuilder =
-    ReadingStatsesCompanion Function({
+typedef $$DbReadingStatssTableUpdateCompanionBuilder =
+    DbReadingStatssCompanion Function({
       Value<int> id,
       Value<int> totalReadingTimeSeconds,
       Value<int> totalCharactersRead,
@@ -7383,9 +8688,9 @@ typedef $$ReadingStatsesTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
-class $$ReadingStatsesTableFilterComposer
-    extends Composer<_$AppDatabase, $ReadingStatsesTable> {
-  $$ReadingStatsesTableFilterComposer({
+class $$DbReadingStatssTableFilterComposer
+    extends Composer<_$AppDatabase, $DbReadingStatssTable> {
+  $$DbReadingStatssTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -7428,9 +8733,9 @@ class $$ReadingStatsesTableFilterComposer
   );
 }
 
-class $$ReadingStatsesTableOrderingComposer
-    extends Composer<_$AppDatabase, $ReadingStatsesTable> {
-  $$ReadingStatsesTableOrderingComposer({
+class $$DbReadingStatssTableOrderingComposer
+    extends Composer<_$AppDatabase, $DbReadingStatssTable> {
+  $$DbReadingStatssTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -7473,9 +8778,9 @@ class $$ReadingStatsesTableOrderingComposer
   );
 }
 
-class $$ReadingStatsesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ReadingStatsesTable> {
-  $$ReadingStatsesTableAnnotationComposer({
+class $$DbReadingStatssTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DbReadingStatssTable> {
+  $$DbReadingStatssTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -7516,41 +8821,41 @@ class $$ReadingStatsesTableAnnotationComposer
   );
 }
 
-class $$ReadingStatsesTableTableManager
+class $$DbReadingStatssTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $ReadingStatsesTable,
-          ReadingStatsItem,
-          $$ReadingStatsesTableFilterComposer,
-          $$ReadingStatsesTableOrderingComposer,
-          $$ReadingStatsesTableAnnotationComposer,
-          $$ReadingStatsesTableCreateCompanionBuilder,
-          $$ReadingStatsesTableUpdateCompanionBuilder,
+          $DbReadingStatssTable,
+          DbReadingStats,
+          $$DbReadingStatssTableFilterComposer,
+          $$DbReadingStatssTableOrderingComposer,
+          $$DbReadingStatssTableAnnotationComposer,
+          $$DbReadingStatssTableCreateCompanionBuilder,
+          $$DbReadingStatssTableUpdateCompanionBuilder,
           (
-            ReadingStatsItem,
+            DbReadingStats,
             BaseReferences<
               _$AppDatabase,
-              $ReadingStatsesTable,
-              ReadingStatsItem
+              $DbReadingStatssTable,
+              DbReadingStats
             >,
           ),
-          ReadingStatsItem,
+          DbReadingStats,
           PrefetchHooks Function()
         > {
-  $$ReadingStatsesTableTableManager(
+  $$DbReadingStatssTableTableManager(
     _$AppDatabase db,
-    $ReadingStatsesTable table,
+    $DbReadingStatssTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$ReadingStatsesTableFilterComposer($db: db, $table: table),
+              $$DbReadingStatssTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$ReadingStatsesTableOrderingComposer($db: db, $table: table),
+              $$DbReadingStatssTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$ReadingStatsesTableAnnotationComposer($db: db, $table: table),
+              $$DbReadingStatssTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
@@ -7561,7 +8866,7 @@ class $$ReadingStatsesTableTableManager
                 Value<String?> lastReadDate = const Value.absent(),
                 Value<int> consecutiveReadingDays = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => ReadingStatsesCompanion(
+              }) => DbReadingStatssCompanion(
                 id: id,
                 totalReadingTimeSeconds: totalReadingTimeSeconds,
                 totalCharactersRead: totalCharactersRead,
@@ -7581,7 +8886,7 @@ class $$ReadingStatsesTableTableManager
                 Value<String?> lastReadDate = const Value.absent(),
                 Value<int> consecutiveReadingDays = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => ReadingStatsesCompanion.insert(
+              }) => DbReadingStatssCompanion.insert(
                 id: id,
                 totalReadingTimeSeconds: totalReadingTimeSeconds,
                 totalCharactersRead: totalCharactersRead,
@@ -7599,25 +8904,25 @@ class $$ReadingStatsesTableTableManager
       );
 }
 
-typedef $$ReadingStatsesTableProcessedTableManager =
+typedef $$DbReadingStatssTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $ReadingStatsesTable,
-      ReadingStatsItem,
-      $$ReadingStatsesTableFilterComposer,
-      $$ReadingStatsesTableOrderingComposer,
-      $$ReadingStatsesTableAnnotationComposer,
-      $$ReadingStatsesTableCreateCompanionBuilder,
-      $$ReadingStatsesTableUpdateCompanionBuilder,
+      $DbReadingStatssTable,
+      DbReadingStats,
+      $$DbReadingStatssTableFilterComposer,
+      $$DbReadingStatssTableOrderingComposer,
+      $$DbReadingStatssTableAnnotationComposer,
+      $$DbReadingStatssTableCreateCompanionBuilder,
+      $$DbReadingStatssTableUpdateCompanionBuilder,
       (
-        ReadingStatsItem,
-        BaseReferences<_$AppDatabase, $ReadingStatsesTable, ReadingStatsItem>,
+        DbReadingStats,
+        BaseReferences<_$AppDatabase, $DbReadingStatssTable, DbReadingStats>,
       ),
-      ReadingStatsItem,
+      DbReadingStats,
       PrefetchHooks Function()
     >;
-typedef $$DailyReadingRecordsTableCreateCompanionBuilder =
-    DailyReadingRecordsCompanion Function({
+typedef $$DbDailyReadingRecordsTableCreateCompanionBuilder =
+    DbDailyReadingRecordsCompanion Function({
       required String date,
       Value<int> readingTimeSeconds,
       Value<int> charactersRead,
@@ -7625,8 +8930,8 @@ typedef $$DailyReadingRecordsTableCreateCompanionBuilder =
       Value<int> pagesRead,
       Value<int> rowid,
     });
-typedef $$DailyReadingRecordsTableUpdateCompanionBuilder =
-    DailyReadingRecordsCompanion Function({
+typedef $$DbDailyReadingRecordsTableUpdateCompanionBuilder =
+    DbDailyReadingRecordsCompanion Function({
       Value<String> date,
       Value<int> readingTimeSeconds,
       Value<int> charactersRead,
@@ -7635,9 +8940,9 @@ typedef $$DailyReadingRecordsTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
-class $$DailyReadingRecordsTableFilterComposer
-    extends Composer<_$AppDatabase, $DailyReadingRecordsTable> {
-  $$DailyReadingRecordsTableFilterComposer({
+class $$DbDailyReadingRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $DbDailyReadingRecordsTable> {
+  $$DbDailyReadingRecordsTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -7670,9 +8975,9 @@ class $$DailyReadingRecordsTableFilterComposer
   );
 }
 
-class $$DailyReadingRecordsTableOrderingComposer
-    extends Composer<_$AppDatabase, $DailyReadingRecordsTable> {
-  $$DailyReadingRecordsTableOrderingComposer({
+class $$DbDailyReadingRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DbDailyReadingRecordsTable> {
+  $$DbDailyReadingRecordsTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -7705,9 +9010,9 @@ class $$DailyReadingRecordsTableOrderingComposer
   );
 }
 
-class $$DailyReadingRecordsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $DailyReadingRecordsTable> {
-  $$DailyReadingRecordsTableAnnotationComposer({
+class $$DbDailyReadingRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DbDailyReadingRecordsTable> {
+  $$DbDailyReadingRecordsTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -7736,44 +9041,47 @@ class $$DailyReadingRecordsTableAnnotationComposer
       $composableBuilder(column: $table.pagesRead, builder: (column) => column);
 }
 
-class $$DailyReadingRecordsTableTableManager
+class $$DbDailyReadingRecordsTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $DailyReadingRecordsTable,
-          DailyReadingRecordItem,
-          $$DailyReadingRecordsTableFilterComposer,
-          $$DailyReadingRecordsTableOrderingComposer,
-          $$DailyReadingRecordsTableAnnotationComposer,
-          $$DailyReadingRecordsTableCreateCompanionBuilder,
-          $$DailyReadingRecordsTableUpdateCompanionBuilder,
+          $DbDailyReadingRecordsTable,
+          DbDailyReadingRecord,
+          $$DbDailyReadingRecordsTableFilterComposer,
+          $$DbDailyReadingRecordsTableOrderingComposer,
+          $$DbDailyReadingRecordsTableAnnotationComposer,
+          $$DbDailyReadingRecordsTableCreateCompanionBuilder,
+          $$DbDailyReadingRecordsTableUpdateCompanionBuilder,
           (
-            DailyReadingRecordItem,
+            DbDailyReadingRecord,
             BaseReferences<
               _$AppDatabase,
-              $DailyReadingRecordsTable,
-              DailyReadingRecordItem
+              $DbDailyReadingRecordsTable,
+              DbDailyReadingRecord
             >,
           ),
-          DailyReadingRecordItem,
+          DbDailyReadingRecord,
           PrefetchHooks Function()
         > {
-  $$DailyReadingRecordsTableTableManager(
+  $$DbDailyReadingRecordsTableTableManager(
     _$AppDatabase db,
-    $DailyReadingRecordsTable table,
+    $DbDailyReadingRecordsTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$DailyReadingRecordsTableFilterComposer($db: db, $table: table),
+              $$DbDailyReadingRecordsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
           createOrderingComposer: () =>
-              $$DailyReadingRecordsTableOrderingComposer(
+              $$DbDailyReadingRecordsTableOrderingComposer(
                 $db: db,
                 $table: table,
               ),
           createComputedFieldComposer: () =>
-              $$DailyReadingRecordsTableAnnotationComposer(
+              $$DbDailyReadingRecordsTableAnnotationComposer(
                 $db: db,
                 $table: table,
               ),
@@ -7785,7 +9093,7 @@ class $$DailyReadingRecordsTableTableManager
                 Value<int> chaptersRead = const Value.absent(),
                 Value<int> pagesRead = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => DailyReadingRecordsCompanion(
+              }) => DbDailyReadingRecordsCompanion(
                 date: date,
                 readingTimeSeconds: readingTimeSeconds,
                 charactersRead: charactersRead,
@@ -7801,7 +9109,7 @@ class $$DailyReadingRecordsTableTableManager
                 Value<int> chaptersRead = const Value.absent(),
                 Value<int> pagesRead = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => DailyReadingRecordsCompanion.insert(
+              }) => DbDailyReadingRecordsCompanion.insert(
                 date: date,
                 readingTimeSeconds: readingTimeSeconds,
                 charactersRead: charactersRead,
@@ -7817,71 +9125,110 @@ class $$DailyReadingRecordsTableTableManager
       );
 }
 
-typedef $$DailyReadingRecordsTableProcessedTableManager =
+typedef $$DbDailyReadingRecordsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $DailyReadingRecordsTable,
-      DailyReadingRecordItem,
-      $$DailyReadingRecordsTableFilterComposer,
-      $$DailyReadingRecordsTableOrderingComposer,
-      $$DailyReadingRecordsTableAnnotationComposer,
-      $$DailyReadingRecordsTableCreateCompanionBuilder,
-      $$DailyReadingRecordsTableUpdateCompanionBuilder,
+      $DbDailyReadingRecordsTable,
+      DbDailyReadingRecord,
+      $$DbDailyReadingRecordsTableFilterComposer,
+      $$DbDailyReadingRecordsTableOrderingComposer,
+      $$DbDailyReadingRecordsTableAnnotationComposer,
+      $$DbDailyReadingRecordsTableCreateCompanionBuilder,
+      $$DbDailyReadingRecordsTableUpdateCompanionBuilder,
       (
-        DailyReadingRecordItem,
+        DbDailyReadingRecord,
         BaseReferences<
           _$AppDatabase,
-          $DailyReadingRecordsTable,
-          DailyReadingRecordItem
+          $DbDailyReadingRecordsTable,
+          DbDailyReadingRecord
         >,
       ),
-      DailyReadingRecordItem,
+      DbDailyReadingRecord,
       PrefetchHooks Function()
     >;
-typedef $$ReadingSessionsTableCreateCompanionBuilder =
-    ReadingSessionsCompanion Function({
-      required String sessionId,
-      required String bookId,
+typedef $$DbReadingSessionsTableCreateCompanionBuilder =
+    DbReadingSessionsCompanion Function({
+      Value<int> id,
+      required int bookId,
       required int chapterId,
       required int startTimestamp,
       required int endTimestamp,
       required int durationSeconds,
       Value<int> charactersRead,
-      Value<int> rowid,
     });
-typedef $$ReadingSessionsTableUpdateCompanionBuilder =
-    ReadingSessionsCompanion Function({
-      Value<String> sessionId,
-      Value<String> bookId,
+typedef $$DbReadingSessionsTableUpdateCompanionBuilder =
+    DbReadingSessionsCompanion Function({
+      Value<int> id,
+      Value<int> bookId,
       Value<int> chapterId,
       Value<int> startTimestamp,
       Value<int> endTimestamp,
       Value<int> durationSeconds,
       Value<int> charactersRead,
-      Value<int> rowid,
     });
 
-class $$ReadingSessionsTableFilterComposer
-    extends Composer<_$AppDatabase, $ReadingSessionsTable> {
-  $$ReadingSessionsTableFilterComposer({
+final class $$DbReadingSessionsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $DbReadingSessionsTable,
+          DbReadingSession
+        > {
+  $$DbReadingSessionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $DbBooksTable _bookIdTable(_$AppDatabase db) => db.dbBooks.createAlias(
+    $_aliasNameGenerator(db.dbReadingSessions.bookId, db.dbBooks.id),
+  );
+
+  $$DbBooksTableProcessedTableManager get bookId {
+    final $_column = $_itemColumn<int>('book_id')!;
+
+    final manager = $$DbBooksTableTableManager(
+      $_db,
+      $_db.dbBooks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_bookIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $DbChaptersTable _chapterIdTable(_$AppDatabase db) =>
+      db.dbChapters.createAlias(
+        $_aliasNameGenerator(db.dbReadingSessions.chapterId, db.dbChapters.id),
+      );
+
+  $$DbChaptersTableProcessedTableManager get chapterId {
+    final $_column = $_itemColumn<int>('chapter_id')!;
+
+    final manager = $$DbChaptersTableTableManager(
+      $_db,
+      $_db.dbChapters,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_chapterIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DbReadingSessionsTableFilterComposer
+    extends Composer<_$AppDatabase, $DbReadingSessionsTable> {
+  $$DbReadingSessionsTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get sessionId => $composableBuilder(
-    column: $table.sessionId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get bookId => $composableBuilder(
-    column: $table.bookId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get chapterId => $composableBuilder(
-    column: $table.chapterId,
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7904,29 +9251,65 @@ class $$ReadingSessionsTableFilterComposer
     column: $table.charactersRead,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$DbBooksTableFilterComposer get bookId {
+    final $$DbBooksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.dbBooks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbBooksTableFilterComposer(
+            $db: $db,
+            $table: $db.dbBooks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DbChaptersTableFilterComposer get chapterId {
+    final $$DbChaptersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterId,
+      referencedTable: $db.dbChapters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbChaptersTableFilterComposer(
+            $db: $db,
+            $table: $db.dbChapters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
-class $$ReadingSessionsTableOrderingComposer
-    extends Composer<_$AppDatabase, $ReadingSessionsTable> {
-  $$ReadingSessionsTableOrderingComposer({
+class $$DbReadingSessionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DbReadingSessionsTable> {
+  $$DbReadingSessionsTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get sessionId => $composableBuilder(
-    column: $table.sessionId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get bookId => $composableBuilder(
-    column: $table.bookId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get chapterId => $composableBuilder(
-    column: $table.chapterId,
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -7949,25 +9332,65 @@ class $$ReadingSessionsTableOrderingComposer
     column: $table.charactersRead,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$DbBooksTableOrderingComposer get bookId {
+    final $$DbBooksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.dbBooks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbBooksTableOrderingComposer(
+            $db: $db,
+            $table: $db.dbBooks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DbChaptersTableOrderingComposer get chapterId {
+    final $$DbChaptersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterId,
+      referencedTable: $db.dbChapters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbChaptersTableOrderingComposer(
+            $db: $db,
+            $table: $db.dbChapters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
-class $$ReadingSessionsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ReadingSessionsTable> {
-  $$ReadingSessionsTableAnnotationComposer({
+class $$DbReadingSessionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DbReadingSessionsTable> {
+  $$DbReadingSessionsTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get sessionId =>
-      $composableBuilder(column: $table.sessionId, builder: (column) => column);
-
-  GeneratedColumn<String> get bookId =>
-      $composableBuilder(column: $table.bookId, builder: (column) => column);
-
-  GeneratedColumn<int> get chapterId =>
-      $composableBuilder(column: $table.chapterId, builder: (column) => column);
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<int> get startTimestamp => $composableBuilder(
     column: $table.startTimestamp,
@@ -7988,132 +9411,225 @@ class $$ReadingSessionsTableAnnotationComposer
     column: $table.charactersRead,
     builder: (column) => column,
   );
+
+  $$DbBooksTableAnnotationComposer get bookId {
+    final $$DbBooksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.dbBooks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbBooksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.dbBooks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DbChaptersTableAnnotationComposer get chapterId {
+    final $$DbChaptersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterId,
+      referencedTable: $db.dbChapters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DbChaptersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.dbChapters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
-class $$ReadingSessionsTableTableManager
+class $$DbReadingSessionsTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $ReadingSessionsTable,
-          ReadingSessionItem,
-          $$ReadingSessionsTableFilterComposer,
-          $$ReadingSessionsTableOrderingComposer,
-          $$ReadingSessionsTableAnnotationComposer,
-          $$ReadingSessionsTableCreateCompanionBuilder,
-          $$ReadingSessionsTableUpdateCompanionBuilder,
-          (
-            ReadingSessionItem,
-            BaseReferences<
-              _$AppDatabase,
-              $ReadingSessionsTable,
-              ReadingSessionItem
-            >,
-          ),
-          ReadingSessionItem,
-          PrefetchHooks Function()
+          $DbReadingSessionsTable,
+          DbReadingSession,
+          $$DbReadingSessionsTableFilterComposer,
+          $$DbReadingSessionsTableOrderingComposer,
+          $$DbReadingSessionsTableAnnotationComposer,
+          $$DbReadingSessionsTableCreateCompanionBuilder,
+          $$DbReadingSessionsTableUpdateCompanionBuilder,
+          (DbReadingSession, $$DbReadingSessionsTableReferences),
+          DbReadingSession,
+          PrefetchHooks Function({bool bookId, bool chapterId})
         > {
-  $$ReadingSessionsTableTableManager(
+  $$DbReadingSessionsTableTableManager(
     _$AppDatabase db,
-    $ReadingSessionsTable table,
+    $DbReadingSessionsTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$ReadingSessionsTableFilterComposer($db: db, $table: table),
+              $$DbReadingSessionsTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$ReadingSessionsTableOrderingComposer($db: db, $table: table),
+              $$DbReadingSessionsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$ReadingSessionsTableAnnotationComposer($db: db, $table: table),
+              $$DbReadingSessionsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
           updateCompanionCallback:
               ({
-                Value<String> sessionId = const Value.absent(),
-                Value<String> bookId = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                Value<int> bookId = const Value.absent(),
                 Value<int> chapterId = const Value.absent(),
                 Value<int> startTimestamp = const Value.absent(),
                 Value<int> endTimestamp = const Value.absent(),
                 Value<int> durationSeconds = const Value.absent(),
                 Value<int> charactersRead = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ReadingSessionsCompanion(
-                sessionId: sessionId,
+              }) => DbReadingSessionsCompanion(
+                id: id,
                 bookId: bookId,
                 chapterId: chapterId,
                 startTimestamp: startTimestamp,
                 endTimestamp: endTimestamp,
                 durationSeconds: durationSeconds,
                 charactersRead: charactersRead,
-                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                required String sessionId,
-                required String bookId,
+                Value<int> id = const Value.absent(),
+                required int bookId,
                 required int chapterId,
                 required int startTimestamp,
                 required int endTimestamp,
                 required int durationSeconds,
                 Value<int> charactersRead = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ReadingSessionsCompanion.insert(
-                sessionId: sessionId,
+              }) => DbReadingSessionsCompanion.insert(
+                id: id,
                 bookId: bookId,
                 chapterId: chapterId,
                 startTimestamp: startTimestamp,
                 endTimestamp: endTimestamp,
                 durationSeconds: durationSeconds,
                 charactersRead: charactersRead,
-                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$DbReadingSessionsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({bookId = false, chapterId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (bookId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.bookId,
+                                referencedTable:
+                                    $$DbReadingSessionsTableReferences
+                                        ._bookIdTable(db),
+                                referencedColumn:
+                                    $$DbReadingSessionsTableReferences
+                                        ._bookIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (chapterId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.chapterId,
+                                referencedTable:
+                                    $$DbReadingSessionsTableReferences
+                                        ._chapterIdTable(db),
+                                referencedColumn:
+                                    $$DbReadingSessionsTableReferences
+                                        ._chapterIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
         ),
       );
 }
 
-typedef $$ReadingSessionsTableProcessedTableManager =
+typedef $$DbReadingSessionsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $ReadingSessionsTable,
-      ReadingSessionItem,
-      $$ReadingSessionsTableFilterComposer,
-      $$ReadingSessionsTableOrderingComposer,
-      $$ReadingSessionsTableAnnotationComposer,
-      $$ReadingSessionsTableCreateCompanionBuilder,
-      $$ReadingSessionsTableUpdateCompanionBuilder,
-      (
-        ReadingSessionItem,
-        BaseReferences<
-          _$AppDatabase,
-          $ReadingSessionsTable,
-          ReadingSessionItem
-        >,
-      ),
-      ReadingSessionItem,
-      PrefetchHooks Function()
+      $DbReadingSessionsTable,
+      DbReadingSession,
+      $$DbReadingSessionsTableFilterComposer,
+      $$DbReadingSessionsTableOrderingComposer,
+      $$DbReadingSessionsTableAnnotationComposer,
+      $$DbReadingSessionsTableCreateCompanionBuilder,
+      $$DbReadingSessionsTableUpdateCompanionBuilder,
+      (DbReadingSession, $$DbReadingSessionsTableReferences),
+      DbReadingSession,
+      PrefetchHooks Function({bool bookId, bool chapterId})
     >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
-  $$BooksTableTableManager get books =>
-      $$BooksTableTableManager(_db, _db.books);
-  $$ChaptersTableTableManager get chapters =>
-      $$ChaptersTableTableManager(_db, _db.chapters);
-  $$BookmarksTableTableManager get bookmarks =>
-      $$BookmarksTableTableManager(_db, _db.bookmarks);
-  $$ReadingHistoriesTableTableManager get readingHistories =>
-      $$ReadingHistoriesTableTableManager(_db, _db.readingHistories);
-  $$ReadingProgressesTableTableManager get readingProgresses =>
-      $$ReadingProgressesTableTableManager(_db, _db.readingProgresses);
-  $$LayoutCachesTableTableManager get layoutCaches =>
-      $$LayoutCachesTableTableManager(_db, _db.layoutCaches);
-  $$ReadingStatsesTableTableManager get readingStatses =>
-      $$ReadingStatsesTableTableManager(_db, _db.readingStatses);
-  $$DailyReadingRecordsTableTableManager get dailyReadingRecords =>
-      $$DailyReadingRecordsTableTableManager(_db, _db.dailyReadingRecords);
-  $$ReadingSessionsTableTableManager get readingSessions =>
-      $$ReadingSessionsTableTableManager(_db, _db.readingSessions);
+  $$DbBooksTableTableManager get dbBooks =>
+      $$DbBooksTableTableManager(_db, _db.dbBooks);
+  $$DbChaptersTableTableManager get dbChapters =>
+      $$DbChaptersTableTableManager(_db, _db.dbChapters);
+  $$DbBookmarksTableTableManager get dbBookmarks =>
+      $$DbBookmarksTableTableManager(_db, _db.dbBookmarks);
+  $$DbReadingHistorysTableTableManager get dbReadingHistorys =>
+      $$DbReadingHistorysTableTableManager(_db, _db.dbReadingHistorys);
+  $$DbReadingProgresssTableTableManager get dbReadingProgresss =>
+      $$DbReadingProgresssTableTableManager(_db, _db.dbReadingProgresss);
+  $$DbLayoutCachesTableTableManager get dbLayoutCaches =>
+      $$DbLayoutCachesTableTableManager(_db, _db.dbLayoutCaches);
+  $$DbReadingStatssTableTableManager get dbReadingStatss =>
+      $$DbReadingStatssTableTableManager(_db, _db.dbReadingStatss);
+  $$DbDailyReadingRecordsTableTableManager get dbDailyReadingRecords =>
+      $$DbDailyReadingRecordsTableTableManager(_db, _db.dbDailyReadingRecords);
+  $$DbReadingSessionsTableTableManager get dbReadingSessions =>
+      $$DbReadingSessionsTableTableManager(_db, _db.dbReadingSessions);
 }

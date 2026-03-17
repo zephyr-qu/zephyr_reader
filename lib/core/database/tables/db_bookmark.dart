@@ -1,18 +1,19 @@
 import 'package:drift/drift.dart';
-import 'package:zephyr_reader/core/database/tables/books.dart';
+import 'package:zephyr_reader/core/database/tables/db_book.dart';
+import 'package:zephyr_reader/core/database/tables/db_chapter.dart';
 
 /// 书签表
-@DataClassName('Bookmark')
-class Bookmarks extends Table {
+@DataClassName('DbBookmark')
+class DbBookmarks extends Table {
   /// 书签 ID（UUID，主键）
-  TextColumn get bookmarkId => text()();
+  IntColumn get id => integer().autoIncrement()();
 
   /// 关联的小说 ID
   IntColumn get bookId =>
-      integer().references(Books, #id, onDelete: KeyAction.cascade)();
+      integer().references(DbBooks, #id, onDelete: KeyAction.cascade)();
 
   /// 关联的章节 ID
-  IntColumn get chapterId => integer()();
+  IntColumn get chapterId => integer().references(DbChapters, #id, onDelete: KeyAction.cascade)();
 
   /// 书签位置（页码）
   IntColumn get pageIndex => integer()();
@@ -30,5 +31,5 @@ class Bookmarks extends Table {
   IntColumn get position => integer().nullable()();
 
   @override
-  Set<Column> get primaryKey => {bookmarkId};
+  Set<Column> get primaryKey => {id};
 }

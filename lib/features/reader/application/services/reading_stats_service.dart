@@ -9,7 +9,7 @@ library;
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:zephyr_reader/core/database/database.dart';
-import 'package:zephyr_reader/core/database/tables/reading_stats.dart';
+import 'package:zephyr_reader/core/database/tables/db_reading_stats.dart';
 import 'package:zephyr_reader/src/rust/ffi/types.dart';
 
 const _uuid = Uuid();
@@ -181,7 +181,7 @@ class ReadingStatsService {
   }
 
   /// 获取日期范围内的阅读记录
-  Future<List<DailyReadingRecordItem>> getDailyReadingRecordsInRange({
+  Future<List<DailyReadingRecord>> getDailyReadingRecordsInRange({
     required String startDate,
     required String endDate,
   }) async {
@@ -197,7 +197,7 @@ class ReadingStatsService {
   }
 
   /// 获取最近 N 天的阅读记录
-  Future<List<DailyReadingRecordItem>> getRecentReadingRecords(int days) async {
+  Future<List<DailyReadingRecord>> getRecentReadingRecords(int days) async {
     try {
       return await _db.getRecentReadingRecords(days);
     } catch (e) {

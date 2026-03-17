@@ -3,6 +3,7 @@
 /// 作为 Flutter 应用的核心数据模型，与 Rust 侧的 BookInfo 对齐
 library;
 
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'book.freezed.dart';
@@ -11,8 +12,8 @@ part 'book.freezed.dart';
 @freezed
 abstract class Book with _$Book {
   const factory Book({
-    /// 书籍唯一标识（与 Rust book_id 对齐，使用 UUID 字符串）
-    required String id,
+
+    required int id,
 
     /// 书籍标题
     required String title,
@@ -29,14 +30,14 @@ abstract class Book with _$Book {
     /// 本地文件路径
     required String filePath,
 
-    /// 文件类型（txt, epub, pdf）- 与 Rust file_type 对齐
+    /// 文件类型（txt, epub, pdf）
     required String fileType,
 
     /// 文件大小（字节）
     required int fileSize,
 
-    /// 总章节数 - 与 Rust chapter_count 对齐
-    required int chapterCount,
+    /// 总章节数
+    required int totalChapters,
 
     /// 总字符数
     required int totalCharacters,
@@ -72,7 +73,7 @@ abstract class Book with _$Book {
   /// 从数据库模型转换
   factory Book.fromDb(dynamic dbBook) {
     return Book(
-      id: dbBook.id.toString(),
+      id: dbBook.id,
       title: dbBook.title,
       author: dbBook.author,
       coverPath: dbBook.coverPath,
@@ -80,7 +81,7 @@ abstract class Book with _$Book {
       filePath: dbBook.filePath,
       fileType: dbBook.fileFormat,
       fileSize: dbBook.fileSize,
-      chapterCount: dbBook.totalChapters,
+      totalChapters: dbBook.totalChapters,
       totalCharacters: dbBook.totalCharacters,
       currentChapterId: dbBook.currentChapterId,
       currentPageIndex: dbBook.currentPageIndex,
@@ -94,37 +95,22 @@ abstract class Book with _$Book {
     );
   }
 
-  /// 从 Rust BookInfo 转换
-  factory Book.fromRust(dynamic rustBookInfo) {
-    return Book(
-      id: rustBookInfo.bookId,
-      title: rustBookInfo.title,
-      author: rustBookInfo.author,
-      coverPath: rustBookInfo.coverPath,
-      description: '',
-      filePath: rustBookInfo.filePath,
-      fileType: rustBookInfo.fileType,
-      fileSize: rustBookInfo.fileSize.toInt(),
-      chapterCount: rustBookInfo.chapterCount,
-      totalCharacters: rustBookInfo.totalCharacters.toInt(),
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-  }
+
 
   /// 空书籍（用于初始化）
   factory Book.empty() {
     return Book(
-      id: '',
+      id: 0,
       title: '',
       author: '',
       filePath: '',
       fileType: '',
       fileSize: 0,
-      chapterCount: 0,
+      totalChapters: 0,
       totalCharacters: 0,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
   }
 }
+

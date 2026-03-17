@@ -1,8 +1,8 @@
 import 'package:drift/drift.dart';
 
 /// 阅读统计表
-@DataClassName('ReadingStatsItem')
-class ReadingStatses extends Table {
+@DataClassName('DbReadingStats')
+class DbReadingStatss extends Table {
   /// 固定 ID = 1
   IntColumn get id => integer().withDefault(const Constant(1))();
 

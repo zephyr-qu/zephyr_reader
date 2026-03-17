@@ -1,16 +1,21 @@
 import 'package:drift/drift.dart';
 
+import 'db_book.dart';
+import 'db_chapter.dart';
+
 /// 排版缓存表
-@DataClassName('LayoutCacheItem')
-class LayoutCaches extends Table {
+@DataClassName('DbLayoutCache')
+class DbLayoutCaches extends Table {
   /// 自增主键
-  IntColumn get id => integer().autoIncrement()();
+   IntColumn get id => integer().autoIncrement()();
 
   /// 书籍 ID
-  TextColumn get bookId => text()();
+    IntColumn get bookId =>
+      integer().references(DbBooks, #id, onDelete: KeyAction.cascade)();
 
   /// 章节 ID
-  IntColumn get chapterId => integer()();
+   IntColumn get chapterId =>
+      integer().references(DbChapters, #id, onDelete: KeyAction.cascade)();
 
   /// 排版配置哈希
   TextColumn get configHash => text()();

@@ -2,8 +2,8 @@
 library;
 
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/domain/models/book.dart';
 
-import '../../../../core/database/database.dart';
 
 /// 书架视图模式
 enum BookshelfViewMode {
@@ -170,14 +170,14 @@ class BookshelfState {
   }
 
   /// 切换选择状
-  void toggleSelection(int bookId) {
-    final newSet = Set<int>.from(selectedBookIds.value);
+  void toggleSelection(String bookId) {
+    final newSet = Set<String>.from(selectedBookIds.value);
     if (newSet.contains(bookId)) {
       newSet.remove(bookId);
     } else {
       newSet.add(bookId);
     }
-    selectedBookIds.value = newSet;
+    selectedBookIds.value = newSet.cast<int>();
   }
 
   /// 清除选择

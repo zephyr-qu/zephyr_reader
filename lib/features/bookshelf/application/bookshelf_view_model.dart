@@ -1,6 +1,6 @@
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/core/database/database.dart';
+import 'package:zephyr_reader/domain/models/book.dart';
 
 import '../domain/bookshelf_repository.dart';
 import '../domain/models/book_category.dart';

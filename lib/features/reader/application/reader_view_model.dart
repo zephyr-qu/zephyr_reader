@@ -2,8 +2,9 @@ import 'dart:async';
 
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/domain/models/chapter.dart';
+import 'package:zephyr_reader/src/rust/ffi/types.dart';
 
-import '../../../core/database/database.dart';
 import '../../../core/reader/reader_config.dart';
 import '../domain/reader_repository.dart';
 

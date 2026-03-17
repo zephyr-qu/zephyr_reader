@@ -12,32 +12,32 @@ part of 'bookmark.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
-mixin _$BookmarkItem implements DiagnosticableTreeMixin {
+mixin _$Bookmark implements DiagnosticableTreeMixin {
 
 /// 书签唯一标识（UUID）
- String get id;/// 关联的书籍 ID
- String get bookId;/// 关联的章节 ID
+ int get id;/// 关联的书籍 ID
+ int get bookId;/// 关联的章节 ID
  int get chapterId;/// 书签位置（字符偏移量或页码）
  int get position;/// 书签备注
  String? get note;/// 创建时间
  DateTime get createdAt;
-/// Create a copy of BookmarkItem
+/// Create a copy of Bookmark
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$BookmarkItemCopyWith<BookmarkItem> get copyWith => _$BookmarkItemCopyWithImpl<BookmarkItem>(this as BookmarkItem, _$identity);
+$BookmarkCopyWith<Bookmark> get copyWith => _$BookmarkCopyWithImpl<Bookmark>(this as Bookmark, _$identity);
 
 
 @override
 void debugFillProperties(DiagnosticPropertiesBuilder properties) {
   properties
-    ..add(DiagnosticsProperty('type', 'BookmarkItem'))
+    ..add(DiagnosticsProperty('type', 'Bookmark'))
     ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('bookId', bookId))..add(DiagnosticsProperty('chapterId', chapterId))..add(DiagnosticsProperty('position', position))..add(DiagnosticsProperty('note', note))..add(DiagnosticsProperty('createdAt', createdAt));
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BookmarkItem&&(identical(other.id, id) || other.id == id)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.chapterId, chapterId) || other.chapterId == chapterId)&&(identical(other.position, position) || other.position == position)&&(identical(other.note, note) || other.note == note)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Bookmark&&(identical(other.id, id) || other.id == id)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.chapterId, chapterId) || other.chapterId == chapterId)&&(identical(other.position, position) || other.position == position)&&(identical(other.note, note) || other.note == note)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 
@@ -46,18 +46,18 @@ int get hashCode => Object.hash(runtimeType,id,bookId,chapterId,position,note,cr
 
 @override
 String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
-  return 'BookmarkItem(id: $id, bookId: $bookId, chapterId: $chapterId, position: $position, note: $note, createdAt: $createdAt)';
+  return 'Bookmark(id: $id, bookId: $bookId, chapterId: $chapterId, position: $position, note: $note, createdAt: $createdAt)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $BookmarkItemCopyWith<$Res>  {
-  factory $BookmarkItemCopyWith(BookmarkItem value, $Res Function(BookmarkItem) _then) = _$BookmarkItemCopyWithImpl;
+abstract mixin class $BookmarkCopyWith<$Res>  {
+  factory $BookmarkCopyWith(Bookmark value, $Res Function(Bookmark) _then) = _$BookmarkCopyWithImpl;
 @useResult
 $Res call({
- String id, String bookId, int chapterId, int position, String? note, DateTime createdAt
+ int id, int bookId, int chapterId, int position, String? note, DateTime createdAt
 });
 
 
@@ -65,20 +65,20 @@ $Res call({
 
 }
 /// @nodoc
-class _$BookmarkItemCopyWithImpl<$Res>
-    implements $BookmarkItemCopyWith<$Res> {
-  _$BookmarkItemCopyWithImpl(this._self, this._then);
+class _$BookmarkCopyWithImpl<$Res>
+    implements $BookmarkCopyWith<$Res> {
+  _$BookmarkCopyWithImpl(this._self, this._then);
 
-  final BookmarkItem _self;
-  final $Res Function(BookmarkItem) _then;
+  final Bookmark _self;
+  final $Res Function(Bookmark) _then;
 
-/// Create a copy of BookmarkItem
+/// Create a copy of Bookmark
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? bookId = null,Object? chapterId = null,Object? position = null,Object? note = freezed,Object? createdAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,bookId: null == bookId ? _self.bookId : bookId // ignore: cast_nullable_to_non_nullable
-as String,chapterId: null == chapterId ? _self.chapterId : chapterId // ignore: cast_nullable_to_non_nullable
+as int,bookId: null == bookId ? _self.bookId : bookId // ignore: cast_nullable_to_non_nullable
+as int,chapterId: null == chapterId ? _self.chapterId : chapterId // ignore: cast_nullable_to_non_nullable
 as int,position: null == position ? _self.position : position // ignore: cast_nullable_to_non_nullable
 as int,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
@@ -89,8 +89,8 @@ as DateTime,
 }
 
 
-/// Adds pattern-matching-related methods to [BookmarkItem].
-extension BookmarkItemPatterns on BookmarkItem {
+/// Adds pattern-matching-related methods to [Bookmark].
+extension BookmarkPatterns on Bookmark {
 /// A variant of `map` that fallback to returning `orElse`.
 ///
 /// It is equivalent to doing:
@@ -103,10 +103,10 @@ extension BookmarkItemPatterns on BookmarkItem {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _BookmarkItem value)?  $default,{required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _Bookmark value)?  $default,{required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _BookmarkItem() when $default != null:
+case _Bookmark() when $default != null:
 return $default(_that);case _:
   return orElse();
 
@@ -125,10 +125,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _BookmarkItem value)  $default,){
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _Bookmark value)  $default,){
 final _that = this;
 switch (_that) {
-case _BookmarkItem():
+case _Bookmark():
 return $default(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -146,10 +146,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _BookmarkItem value)?  $default,){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _Bookmark value)?  $default,){
 final _that = this;
 switch (_that) {
-case _BookmarkItem() when $default != null:
+case _Bookmark() when $default != null:
 return $default(_that);case _:
   return null;
 
@@ -167,9 +167,9 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String bookId,  int chapterId,  int position,  String? note,  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int bookId,  int chapterId,  int position,  String? note,  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _BookmarkItem() when $default != null:
+case _Bookmark() when $default != null:
 return $default(_that.id,_that.bookId,_that.chapterId,_that.position,_that.note,_that.createdAt);case _:
   return orElse();
 
@@ -188,9 +188,9 @@ return $default(_that.id,_that.bookId,_that.chapterId,_that.position,_that.note,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String bookId,  int chapterId,  int position,  String? note,  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int bookId,  int chapterId,  int position,  String? note,  DateTime createdAt)  $default,) {final _that = this;
 switch (_that) {
-case _BookmarkItem():
+case _Bookmark():
 return $default(_that.id,_that.bookId,_that.chapterId,_that.position,_that.note,_that.createdAt);case _:
   throw StateError('Unexpected subclass');
 
@@ -208,9 +208,9 @@ return $default(_that.id,_that.bookId,_that.chapterId,_that.position,_that.note,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String bookId,  int chapterId,  int position,  String? note,  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int bookId,  int chapterId,  int position,  String? note,  DateTime createdAt)?  $default,) {final _that = this;
 switch (_that) {
-case _BookmarkItem() when $default != null:
+case _Bookmark() when $default != null:
 return $default(_that.id,_that.bookId,_that.chapterId,_that.position,_that.note,_that.createdAt);case _:
   return null;
 
@@ -222,14 +222,14 @@ return $default(_that.id,_that.bookId,_that.chapterId,_that.position,_that.note,
 /// @nodoc
 
 
-class _BookmarkItem with DiagnosticableTreeMixin implements BookmarkItem {
-  const _BookmarkItem({required this.id, required this.bookId, required this.chapterId, required this.position, this.note, required this.createdAt});
+class _Bookmark with DiagnosticableTreeMixin implements Bookmark {
+  const _Bookmark({required this.id, required this.bookId, required this.chapterId, required this.position, this.note, required this.createdAt});
   
 
 /// 书签唯一标识（UUID）
-@override final  String id;
+@override final  int id;
 /// 关联的书籍 ID
-@override final  String bookId;
+@override final  int bookId;
 /// 关联的章节 ID
 @override final  int chapterId;
 /// 书签位置（字符偏移量或页码）
@@ -239,23 +239,23 @@ class _BookmarkItem with DiagnosticableTreeMixin implements BookmarkItem {
 /// 创建时间
 @override final  DateTime createdAt;
 
-/// Create a copy of BookmarkItem
+/// Create a copy of Bookmark
 /// with the given fields replaced by the non-null parameter values.
 @override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-_$BookmarkItemCopyWith<_BookmarkItem> get copyWith => __$BookmarkItemCopyWithImpl<_BookmarkItem>(this, _$identity);
+_$BookmarkCopyWith<_Bookmark> get copyWith => __$BookmarkCopyWithImpl<_Bookmark>(this, _$identity);
 
 
 @override
 void debugFillProperties(DiagnosticPropertiesBuilder properties) {
   properties
-    ..add(DiagnosticsProperty('type', 'BookmarkItem'))
+    ..add(DiagnosticsProperty('type', 'Bookmark'))
     ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('bookId', bookId))..add(DiagnosticsProperty('chapterId', chapterId))..add(DiagnosticsProperty('position', position))..add(DiagnosticsProperty('note', note))..add(DiagnosticsProperty('createdAt', createdAt));
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BookmarkItem&&(identical(other.id, id) || other.id == id)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.chapterId, chapterId) || other.chapterId == chapterId)&&(identical(other.position, position) || other.position == position)&&(identical(other.note, note) || other.note == note)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Bookmark&&(identical(other.id, id) || other.id == id)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.chapterId, chapterId) || other.chapterId == chapterId)&&(identical(other.position, position) || other.position == position)&&(identical(other.note, note) || other.note == note)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 
@@ -264,18 +264,18 @@ int get hashCode => Object.hash(runtimeType,id,bookId,chapterId,position,note,cr
 
 @override
 String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
-  return 'BookmarkItem(id: $id, bookId: $bookId, chapterId: $chapterId, position: $position, note: $note, createdAt: $createdAt)';
+  return 'Bookmark(id: $id, bookId: $bookId, chapterId: $chapterId, position: $position, note: $note, createdAt: $createdAt)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class _$BookmarkItemCopyWith<$Res> implements $BookmarkItemCopyWith<$Res> {
-  factory _$BookmarkItemCopyWith(_BookmarkItem value, $Res Function(_BookmarkItem) _then) = __$BookmarkItemCopyWithImpl;
+abstract mixin class _$BookmarkCopyWith<$Res> implements $BookmarkCopyWith<$Res> {
+  factory _$BookmarkCopyWith(_Bookmark value, $Res Function(_Bookmark) _then) = __$BookmarkCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String bookId, int chapterId, int position, String? note, DateTime createdAt
+ int id, int bookId, int chapterId, int position, String? note, DateTime createdAt
 });
 
 
@@ -283,20 +283,20 @@ $Res call({
 
 }
 /// @nodoc
-class __$BookmarkItemCopyWithImpl<$Res>
-    implements _$BookmarkItemCopyWith<$Res> {
-  __$BookmarkItemCopyWithImpl(this._self, this._then);
+class __$BookmarkCopyWithImpl<$Res>
+    implements _$BookmarkCopyWith<$Res> {
+  __$BookmarkCopyWithImpl(this._self, this._then);
 
-  final _BookmarkItem _self;
-  final $Res Function(_BookmarkItem) _then;
+  final _Bookmark _self;
+  final $Res Function(_Bookmark) _then;
 
-/// Create a copy of BookmarkItem
+/// Create a copy of Bookmark
 /// with the given fields replaced by the non-null parameter values.
 @override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? bookId = null,Object? chapterId = null,Object? position = null,Object? note = freezed,Object? createdAt = null,}) {
-  return _then(_BookmarkItem(
+  return _then(_Bookmark(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,bookId: null == bookId ? _self.bookId : bookId // ignore: cast_nullable_to_non_nullable
-as String,chapterId: null == chapterId ? _self.chapterId : chapterId // ignore: cast_nullable_to_non_nullable
+as int,bookId: null == bookId ? _self.bookId : bookId // ignore: cast_nullable_to_non_nullable
+as int,chapterId: null == chapterId ? _self.chapterId : chapterId // ignore: cast_nullable_to_non_nullable
 as int,position: null == position ? _self.position : position // ignore: cast_nullable_to_non_nullable
 as int,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
