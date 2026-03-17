@@ -4,6 +4,7 @@ library;
 import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+
 part 'chapter.freezed.dart';
 
 /// 章节领域模型
@@ -14,7 +15,7 @@ abstract class Chapter with _$Chapter {
     required int id,
 
     /// 关联的书籍 ID
-    required String bookId,
+    required int bookId,
 
     /// 章节标题
     required String title,
@@ -36,7 +37,7 @@ abstract class Chapter with _$Chapter {
   factory Chapter.fromDb(dynamic dbChapter) {
     return Chapter(
       id: dbChapter.id,
-      bookId: dbChapter.bookId.toString(),
+      bookId: dbChapter.bookId,
       title: dbChapter.title,
       contentFile: dbChapter.contentFile,
       chapterIndex: dbChapter.chapterIndex,
@@ -45,23 +46,11 @@ abstract class Chapter with _$Chapter {
     );
   }
 
-  /// 从 Rust ChapterInfo 转换
-  factory Chapter.fromRust(dynamic rustChapterInfo, String bookId) {
-    return Chapter(
-      id: rustChapterInfo.chapterId,
-      bookId: bookId,
-      title: rustChapterInfo.title,
-      contentFile: '',
-      chapterIndex: rustChapterInfo.index,
-      wordCount: rustChapterInfo.contentLength.toInt(),
-    );
-  }
-
   /// 空章节（用于初始化）
   factory Chapter.empty() {
     return Chapter(
       id: 0,
-      bookId: '',
+      bookId: 0,
       title: '',
       contentFile: '',
       chapterIndex: 0,
@@ -69,3 +58,5 @@ abstract class Chapter with _$Chapter {
     );
   }
 }
+
+/// 扩展方法

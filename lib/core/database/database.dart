@@ -4,31 +4,31 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-
-import 'tables/books.dart';
-import 'tables/bookmarks.dart';
-import 'tables/chapters.dart';
-import 'tables/reading_history.dart';
-import 'tables/reading_progress.dart';
-import 'tables/layout_cache.dart';
-import 'tables/reading_stats.dart';
-import 'tables/daily_reading_records.dart';
-import 'tables/reading_sessions.dart';
+import 'package:zephyr_reader/core/database/tables/db_book.dart';
+import 'package:zephyr_reader/core/database/tables/db_bookmark.dart'
+    show DbBookmark, DbBookmarks;
+import 'package:zephyr_reader/core/database/tables/db_chapter.dart';
+import 'package:zephyr_reader/core/database/tables/db_daily_reading_record.dart';
+import 'package:zephyr_reader/core/database/tables/db_layout_cache.dart';
+import 'package:zephyr_reader/core/database/tables/db_reading_history.dart';
+import 'package:zephyr_reader/core/database/tables/db_reading_progress.dart';
+import 'package:zephyr_reader/core/database/tables/db_reading_session.dart';
+import 'package:zephyr_reader/core/database/tables/db_reading_stats.dart';
 
 part 'database.g.dart';
 
 /// 应用数据库
 @DriftDatabase(
   tables: [
-    Books,
-    Chapters,
-    Bookmarks,
-    ReadingHistories,
-    ReadingProgresses,
-    LayoutCaches,
-    ReadingStatses,
-    DailyReadingRecords,
-    ReadingSessions,
+    DbBooks,
+    DbChapters,
+    DbBookmarks,
+    DbReadingHistorys,
+    DbReadingProgresss,
+    DbLayoutCaches,
+    DbReadingStatss,
+    DbDailyReadingRecords,
+    DbReadingSessions,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -37,70 +37,32 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 3;
 
-  @override
-  MigrationStrategy get migration {
-    return MigrationStrategy(
-      onCreate: (Migrator m) async {
-        await m.createAll();
-      },
-      onUpgrade: (Migrator m, int from, int to) async {
-        // 从版本 1 升级到版本 2：添加新表并迁移书签数据
-        if (from < 2) {
-          // 1. 创建新表
-          await m.create(readingProgresses);
-          await m.create(layoutCaches);
-          await m.create(readingStatses);
-          await m.create(dailyReadingRecords);
-          await m.create(readingSessions);
-
-          // 2. 书签表结构变更 - 保留数据
-          // 注意：由于表结构变化较大（字段名和类型都变了），无法直接迁移
-          // 2.1 删除旧表（数据会丢失，建议用户在升级前备份）
-          await m.drop(bookmarks);
-
-          // 2.2 创建新表
-          await m.create(bookmarks);
-
-          // 注意：书签数据无法自动迁移，因为：
-          // - 旧版使用自增 id，新版使用 UUID bookmarkId
-          // - 旧版 createdAt 是 DateTime，新版 createdTimestamp 是 Unix 秒
-          // - 旧版没有 title 字段，新版必须有
-          // 用户需要重新添加书签
-        }
-        // 从版本 2 升级到版本 3：添加 position 字段到书签表
-        if (from < 3) {
-          await m.addColumn(bookmarks, bookmarks.position);
-        }
-      },
-    );
-  }
-
   /// 查询所有小说
-  Future<List<Book>> getAllBooks() => select(books).get();
+  Future<List<DbBook>> getAllBooks() => select(dbBooks).get();
 
   /// 根据 ID 查询小说
-  Future<Book?> getBookById(int id) =>
-      (select(books)..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
+  Future<DbBook?> getBookById(int id) =>
+      (select(dbBooks)..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
 
   /// 搜索小说
-  Future<List<Book>> searchBooks(String keyword) {
-    return (select(books)..where(
+  Future<List<DbBook>> searchBooks(String keyword) {
+    return (select(dbBooks)..where(
           (tbl) => tbl.title.contains(keyword) | tbl.author.contains(keyword),
         ))
         .get();
   }
 
   /// 查询小说的所有章节
-  Future<List<Chapter>> getChaptersByBookId(int bookId) {
-    return (select(chapters)
+  Future<List<DbChapter>> getChaptersByBookId(int bookId) {
+    return (select(dbChapters)
           ..where((tbl) => tbl.bookId.equals(bookId))
           ..orderBy([(tbl) => OrderingTerm.asc(tbl.chapterIndex)]))
         .get();
   }
 
   /// 根据小说 ID 和章节索引查询章节
-  Future<Chapter?> getChapter(int bookId, int chapterIndex) {
-    return (select(chapters)..where(
+  Future<DbChapter?> getChapter(int bookId, int chapterIndex) {
+    return (select(dbChapters)..where(
           (tbl) =>
               tbl.bookId.equals(bookId) & tbl.chapterIndex.equals(chapterIndex),
         ))
@@ -108,16 +70,16 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// 获取阅读历史
-  Future<List<ReadingHistory>> getReadingHistory() {
+  Future<List<DbReadingHistory>> getReadingHistory() {
     return (select(
-      readingHistories,
+      dbReadingHistorys,
     )..orderBy([(tbl) => OrderingTerm.desc(tbl.readTime)])).get();
   }
 
   /// 获取小说的阅读历史
-  Future<ReadingHistory?> getBookReadingHistory(int bookId) {
+  Future<DbReadingHistory?> getBookReadingHistory(int bookId) {
     return (select(
-      readingHistories,
+      dbReadingHistorys,
     )..where((tbl) => tbl.bookId.equals(bookId))).getSingleOrNull();
   }
 
@@ -125,7 +87,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// 更新阅读进度
   Future<void> updateReadingProgress({
-    required String bookId,
+    required int bookId,
     required int chapterId,
     required int pageIndex,
     required int totalPages,
@@ -134,9 +96,9 @@ class AppDatabase extends _$AppDatabase {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final progress = pageIndex / totalPages;
 
-    await into(readingProgresses).insert(
-      ReadingProgressesCompanion.insert(
-        bookId: bookId,
+    await into(dbReadingProgresss).insert(
+      DbReadingProgresssCompanion.insert(
+        bookId: Value(bookId),
         chapterId: chapterId,
         pageIndex: pageIndex,
         totalPages: totalPages,
@@ -149,23 +111,23 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// 获取阅读进度
-  Future<ReadingProgressItem?> getReadingProgress(String bookId) {
+  Future<DbReadingProgress?> getReadingProgress(int bookId) {
     return (select(
-      readingProgresses,
+      dbReadingProgresss,
     )..where((tbl) => tbl.bookId.equals(bookId))).getSingleOrNull();
   }
 
   /// 清除阅读进度
-  Future<void> clearReadingProgress(String bookId) {
+  Future<void> clearReadingProgress(int bookId) {
     return (delete(
-      readingProgresses,
+      dbReadingProgresss,
     )..where((tbl) => tbl.bookId.equals(bookId))).go();
   }
 
   /// 获取所有阅读进度
-  Future<List<ReadingProgressItem>> getAllReadingProgress() {
+  Future<List<DbReadingProgress>> getAllReadingProgress() {
     return (select(
-      readingProgresses,
+      dbReadingProgresss,
     )..orderBy([(tbl) => OrderingTerm.desc(tbl.lastReadTimestamp)])).get();
   }
 
@@ -173,7 +135,6 @@ class AppDatabase extends _$AppDatabase {
 
   /// 添加书签
   Future<void> addBookmark({
-    required String bookmarkId,
     required int bookId,
     required int chapterId,
     required int pageIndex,
@@ -182,42 +143,45 @@ class AppDatabase extends _$AppDatabase {
     required int createdTimestamp,
     String? note,
   }) async {
-    await into(bookmarks).insert(
-      BookmarksCompanion.insert(
-        bookmarkId: bookmarkId,
+    await into(dbBookmarks).insert(
+      DbBookmarksCompanion.insert(
         bookId: bookId,
         chapterId: chapterId,
         pageIndex: pageIndex,
         title: title,
         createdTimestamp: createdTimestamp,
         note: Value(note),
-        position: position,
+        position: Value(position),
       ),
       mode: InsertMode.insertOrReplace,
     );
   }
 
   /// 获取书籍的所有书签
-  Future<List<Bookmark>> getBookmarks(int bookId) {
-    return (select(bookmarks)..where((tbl) => tbl.bookId.equals(bookId))).get();
+  Future<List<DbBookmark>> getBookmarks(int bookId) {
+    return (select(
+      dbBookmarks,
+    )..where((tbl) => tbl.bookId.equals(bookId))).get();
   }
 
   /// 删除书签
-  Future<void> removeBookmark(String bookmarkId) {
+  Future<void> removeBookmark(int bookmarkId) {
     return (delete(
-      bookmarks,
-    )..where((tbl) => tbl.bookmarkId.equals(bookmarkId))).go();
+      dbBookmarks,
+    )..where((tbl) => tbl.id.equals(bookmarkId))).go();
   }
 
   /// 清除书籍的所有书签
   Future<void> clearBookmarks(int bookId) {
-    return (delete(bookmarks)..where((tbl) => tbl.bookId.equals(bookId))).go();
+    return (delete(
+      dbBookmarks,
+    )..where((tbl) => tbl.bookId.equals(bookId))).go();
   }
 
   /// 获取所有书签
-  Future<List<Bookmark>> getAllBookmarks() {
+  Future<List<DbBookmark>> getAllBookmarks() {
     return (select(
-      bookmarks,
+      dbBookmarks,
     )..orderBy([(tbl) => OrderingTerm.desc(tbl.createdTimestamp)])).get();
   }
 
@@ -225,7 +189,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// 保存排版缓存
   Future<void> saveLayoutCache({
-    required String bookId,
+    required int bookId,
     required int chapterId,
     required String configHash,
     required String pageOffsets, // JSON 格式
@@ -233,8 +197,8 @@ class AppDatabase extends _$AppDatabase {
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-    await into(layoutCaches).insert(
-      LayoutCachesCompanion.insert(
+    await into(dbLayoutCaches).insert(
+      DbLayoutCachesCompanion.insert(
         bookId: bookId,
         chapterId: chapterId,
         configHash: configHash,
@@ -247,12 +211,12 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// 获取排版缓存
-  Future<LayoutCacheItem?> getLayoutCache({
-    required String bookId,
+  Future<DbLayoutCache?> getLayoutCache({
+    required int bookId,
     required int chapterId,
     required String configHash,
   }) {
-    return (select(layoutCaches)..where(
+    return (select(dbLayoutCaches)..where(
           (tbl) =>
               tbl.bookId.equals(bookId) &
               tbl.chapterId.equals(chapterId) &
@@ -262,40 +226,40 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// 清除书籍的所有排版缓存
-  Future<int> clearLayoutCache(String bookId) {
+  Future<int> clearLayoutCache(int bookId) {
     return (delete(
-      layoutCaches,
+      dbLayoutCaches,
     )..where((tbl) => tbl.bookId.equals(bookId))).go();
   }
 
   /// 清除指定章节的排版缓存
-  Future<int> clearChapterLayoutCache(String bookId, int chapterId) {
-    return (delete(layoutCaches)..where(
+  Future<int> clearChapterLayoutCache(int bookId, int chapterId) {
+    return (delete(dbLayoutCaches)..where(
           (tbl) => tbl.bookId.equals(bookId) & tbl.chapterId.equals(chapterId),
         ))
         .go();
   }
 
   /// 获取书籍的所有排版缓存
-  Future<List<LayoutCacheItem>> getAllLayoutCache(String bookId) {
+  Future<List<DbLayoutCache>> getAllLayoutCache(int bookId) {
     return (select(
-      layoutCaches,
+      dbLayoutCaches,
     )..where((tbl) => tbl.bookId.equals(bookId))).get();
   }
 
   // ==================== 阅读统计管理 ====================
 
   /// 获取阅读统计
-  Future<ReadingStatsItem?> getReadingStats() async {
+  Future<DbReadingStats?> getReadingStats() async {
     return (select(
-      readingStatses,
+      dbReadingStatss,
     )..where((tbl) => tbl.id.equals(1))).getSingleOrNull();
   }
 
   /// 初始化阅读统计
   Future<void> initReadingStats() async {
-    await into(readingStatses).insert(
-      ReadingStatsesCompanion.insert(id: Value(1)),
+    await into(dbReadingStatss).insert(
+      DbReadingStatssCompanion.insert(id: Value(1)),
       mode: InsertMode.insertOrIgnore,
     );
   }
@@ -309,8 +273,8 @@ class AppDatabase extends _$AppDatabase {
     required String? lastReadDate,
     required int consecutiveReadingDays,
   }) async {
-    await (update(readingStatses)..where((tbl) => tbl.id.equals(1))).write(
-      ReadingStatsesCompanion(
+    await (update(dbReadingStatss)..where((tbl) => tbl.id.equals(1))).write(
+      DbReadingStatssCompanion(
         totalReadingTimeSeconds: Value(totalReadingTimeSeconds),
         totalCharactersRead: Value(totalCharactersRead),
         booksReadCount: Value(booksReadCount),
@@ -323,17 +287,17 @@ class AppDatabase extends _$AppDatabase {
 
   /// 记录阅读会话
   Future<void> recordReadingSession({
-    required String sessionId,
-    required String bookId,
+    required int sessionId,
+    required int bookId,
     required int chapterId,
     required int startTimestamp,
     required int endTimestamp,
     required int durationSeconds,
     required int charactersRead,
   }) async {
-    await into(readingSessions).insert(
-      ReadingSessionsCompanion.insert(
-        sessionId: sessionId,
+    await into(dbReadingSessions).insert(
+      DbReadingSessionsCompanion.insert(
+        id: Value(sessionId),
         bookId: bookId,
         chapterId: chapterId,
         startTimestamp: startTimestamp,
@@ -350,8 +314,8 @@ class AppDatabase extends _$AppDatabase {
     required int readingTimeSeconds,
     required int charactersRead,
   }) async {
-    await into(dailyReadingRecords).insert(
-      DailyReadingRecordsCompanion.insert(
+    await into(dbDailyReadingRecords).insert(
+      DbDailyReadingRecordsCompanion.insert(
         date: date,
         readingTimeSeconds: Value(readingTimeSeconds),
         charactersRead: Value(charactersRead),
@@ -361,18 +325,18 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// 获取指定日期的阅读记录
-  Future<DailyReadingRecordItem?> getDailyReadingRecord(String date) {
+  Future<DbDailyReadingRecord?> getDailyReadingRecord(String date) {
     return (select(
-      dailyReadingRecords,
+      dbDailyReadingRecords,
     )..where((tbl) => tbl.date.equals(date))).getSingleOrNull();
   }
 
   /// 获取日期范围内的阅读记录
-  Future<List<DailyReadingRecordItem>> getDailyReadingRecordsInRange({
+  Future<List<DbDailyReadingRecord>> getDailyReadingRecordsInRange({
     required String startDate,
     required String endDate,
   }) {
-    return (select(dailyReadingRecords)
+    return (select(dbDailyReadingRecords)
           ..where(
             (tbl) =>
                 tbl.date.isBiggerOrEqualValue(startDate) &
@@ -383,7 +347,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// 获取最近 N 天的阅读记录
-  Future<List<DailyReadingRecordItem>> getRecentReadingRecords(int days) async {
+  Future<List<DbDailyReadingRecord>> getRecentReadingRecords(int days) async {
     final now = DateTime.now();
     final startDate = now.subtract(Duration(days: days - 1));
     final endDate = now;
@@ -419,8 +383,8 @@ class AppDatabase extends _$AppDatabase {
       await initReadingStats();
     }
 
-    await (update(readingStatses)..where((tbl) => tbl.id.equals(1))).write(
-      ReadingStatsesCompanion(
+    await (update(dbReadingStatss)..where((tbl) => tbl.id.equals(1))).write(
+      DbReadingStatssCompanion(
         booksReadCount: Value((stats?.booksReadCount ?? 0) + 1),
       ),
     );
@@ -433,8 +397,8 @@ class AppDatabase extends _$AppDatabase {
       await initReadingStats();
     }
 
-    await (update(readingStatses)..where((tbl) => tbl.id.equals(1))).write(
-      ReadingStatsesCompanion(
+    await (update(dbReadingStatss)..where((tbl) => tbl.id.equals(1))).write(
+      DbReadingStatssCompanion(
         booksCompletedCount: Value((stats?.booksCompletedCount ?? 0) + 1),
       ),
     );

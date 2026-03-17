@@ -70,7 +70,7 @@ final router = GoRouter(
       name: RouteNames.bookDetail,
       path: RoutePaths.bookDetail,
       builder: (_, state) {
-        final id = int.parse(state.pathParameters['id'] ?? '0');
+        final id =  int.parse(state.pathParameters['id'] ?? '0');
         return BookDetailPage(bookId: id);
       },
     ),

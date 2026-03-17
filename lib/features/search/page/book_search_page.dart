@@ -46,7 +46,13 @@ class BookSearchPage extends HookWidget {
           },
           onSubmitted: (value) {
             if (value.isNotEmpty) {
-              _performSearch(searchService, searchResults, isSearching, error);
+              _performSearch(
+                searchService,
+                searchResults,
+                isSearching,
+                error,
+                searchQuery,
+              );
             }
           },
         ),
@@ -60,6 +66,7 @@ class BookSearchPage extends HookWidget {
                   searchResults,
                   isSearching,
                   error,
+                  searchQuery,
                 );
               }
             },
@@ -112,6 +119,7 @@ class BookSearchPage extends HookWidget {
                           searchResults,
                           isSearching,
                           error,
+                          searchQuery,
                         );
                       }
                     },
@@ -182,6 +190,7 @@ class BookSearchPage extends HookWidget {
     Signal<List<SearchHit>> searchResults,
     Signal<bool> isSearching,
     Signal<String?> error,
+    Signal<String> searchQuery,
   ) async {
     isSearching.value = true;
     error.value = null;

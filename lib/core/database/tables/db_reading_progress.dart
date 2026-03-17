@@ -1,13 +1,20 @@
 import 'package:drift/drift.dart';
 
+import 'db_book.dart';
+import 'db_chapter.dart';
+
+
 /// 阅读进度表
-@DataClassName('ReadingProgressItem')
-class ReadingProgresses extends Table {
+@DataClassName('DbReadingProgress')
+class DbReadingProgresss extends Table {
   /// 书籍 ID（主键）
-  TextColumn get bookId => text()();
+  IntColumn get bookId =>
+      integer().references(DbBooks, #id, onDelete: KeyAction.cascade)();
 
   /// 当前章节 ID
-  IntColumn get chapterId => integer()();
+   /// 关联的章节 ID
+  IntColumn get chapterId =>
+      integer().references(DbChapters, #id, onDelete: KeyAction.cascade)();
 
   /// 当前页码
   IntColumn get pageIndex => integer()();

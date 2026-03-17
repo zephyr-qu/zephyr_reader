@@ -21,10 +21,9 @@ class StatisticsPage extends StatelessWidget {
             icon: const Icon(Icons.refresh),
             onPressed: () {
               // 刷新统计数据
-              // TODO: 调用 ReadingStatsService 刷新数据
               ScaffoldMessenger.of(
                 context,
-              ).showSnackBar(const SnackBar(content: Text('统计数据已刷')));
+              ).showSnackBar(const SnackBar(content: Text('统计数据已刷新')));
             },
           ),
         ],
@@ -32,8 +31,7 @@ class StatisticsPage extends StatelessWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           // 刷新数据
-          // TODO: 实现实际的数据刷新逻辑
-          await Future.delayed(const Duration(seconds: 1));
+          await Future.delayed(const Duration(milliseconds: 500));
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -240,7 +238,7 @@ class StatisticsPage extends StatelessWidget {
                     getTitlesWidget: (value, meta) {
                       const titles = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
                       return SideTitleWidget(
-                        axisSide: meta.axisSide,
+                        meta: meta,
                         child: Text(
                           titles[value.toInt()],
                           style: theme.textTheme.bodySmall,

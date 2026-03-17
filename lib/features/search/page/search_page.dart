@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/search/application/search_view_model.dart';
 import 'package:zephyr_reader/features/search/domain/search_repository.dart';
@@ -63,8 +62,9 @@ class _SearchPageState extends State<SearchPage> {
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: Watch.builder(
                   builder: (context) {
-                    if (vm.keyword.value.isEmpty)
+                    if (vm.keyword.value.isEmpty) {
                       return const SizedBox.shrink();
+                    }
                     return IconButton(
                       icon: const Icon(Icons.clear),
                       onPressed: () {

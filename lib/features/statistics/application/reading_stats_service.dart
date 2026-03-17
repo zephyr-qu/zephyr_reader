@@ -99,6 +99,19 @@ class ReadingSession {
       'charactersRead': charactersRead,
     };
   }
+
+  /// JSON 创建
+  factory ReadingSession.fromJson(Map<String, dynamic> json) {
+    return ReadingSession(
+      sessionId: json['sessionId'] as String,
+      bookId: json['bookId'] as int,
+      chapterId: json['chapterId'] as int,
+      startTime: DateTime.parse(json['startTime'] as String),
+      endTime: DateTime.parse(json['endTime'] as String),
+      durationSeconds: json['durationSeconds'] as int,
+      charactersRead: json['charactersRead'] as int,
+    );
+  }
 }
 
 /// 阅读统计数据

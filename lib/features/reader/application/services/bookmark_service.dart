@@ -9,8 +9,8 @@ library;
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:zephyr_reader/core/database/database.dart';
+import 'package:zephyr_reader/domain/models/bookmark.dart';
 
-const _uuid = Uuid();
 
 /// 书签服务
 class BookmarkService {
@@ -27,27 +27,26 @@ class BookmarkService {
     String? note,
   }) async {
     try {
-      final bookmarkId = _uuid.v4();
+
       final createdTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-      await _db.addBookmark(
-        bookmarkId: bookmarkId,
+     final id =  await _db.addBookmark(
         bookId: bookId,
         chapterId: chapterId,
         pageIndex: pageIndex,
         title: title,
         createdTimestamp: createdTimestamp,
         note: note,
+        position: 0,
       );
 
       return Bookmark(
-        bookmarkId: bookmarkId,
+        id: id,
         bookId: bookId,
         chapterId: chapterId,
-        pageIndex: pageIndex,
-        title: title,
-        createdTimestamp: createdTimestamp,
         note: note,
+        position: 0, createdAt: null,
+
       );
     } catch (e) {
       debugPrint('BookmarkService.addBookmark error: $e');
@@ -58,7 +57,8 @@ class BookmarkService {
   /// 获取书籍的所有书签
   Future<List<Bookmark>> getBookmarks(int bookId) async {
     try {
-      return await _db.getBookmarks(bookId);
+      final bookmarks = await _db.getBookmarks(bookId);
+      return bookmarks.map((e) => Bookmark.fromDb(e)).toList();
     } catch (e) {
       debugPrint('BookmarkService.getBookmarks error: $e');
       return [];
@@ -66,7 +66,7 @@ class BookmarkService {
   }
 
   /// 删除书签
-  Future<void> removeBookmark(String bookmarkId) async {
+  Future<void> removeBookmark(int bookmarkId) async {
     try {
       await _db.removeBookmark(bookmarkId);
     } catch (e) {

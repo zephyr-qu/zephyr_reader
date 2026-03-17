@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/database/database.dart';
-import 'package:zephyr_reader/core/database/tables/books.dart';
+import 'package:zephyr_reader/domain/models/book.dart';
 
 import '../domain/bookshelf_repository.dart';
 import '../domain/models/book_category.dart';
@@ -20,7 +20,8 @@ class BookshelfLocalDataSource implements BookshelfRepository {
 
   @override
   Future<List<Book>> getAllBooks() async {
-    return await _database.getAllBooks();
+    final books = await _database.getAllBooks();
+    return books.map(Book.fromDb).toList();
   }
 
   @override
@@ -28,27 +29,42 @@ class BookshelfLocalDataSource implements BookshelfRepository {
     if (category == BookCategory.all) {
       return await getAllBooks();
     }
-    return await (_database.select(
-      _database.books,
+    final books = await (_database.select(
+      _database.dbBooks,
     )..where((tbl) => tbl.status.equals(category.name))).get();
+    return books.map(Book.fromDb).toList();
   }
 
   @override
   Future<Book?> getBookById(int id) async {
-    return await _database.getBookById(id);
+    final book = await _database.getBookById(id);
+    return book != null ? Book.fromDb(book) : null;
   }
 
   @override
-  Future<int> addBook(BooksCompanion book) async {
-    return await _database.into(_database.books).insert(book);
+  Future<int> addBook(Book book) async {
+    return await _database
+        .into(_database.dbBooks)
+        .insert(
+          DbBooksCompanion(
+            title: Value(book.title),
+            author: Value(book.author),
+            coverPath: Value(book.coverPath),
+            description: Value(book.description),
+            totalChapters: Value(book.totalChapters),
+            status: Value(book.status),
+            updatedAt: Value(DateTime.now()),
+            createdAt: Value(DateTime.now()),
+          ),
+        );
   }
 
   @override
   Future<bool> updateBook(Book book) async {
     return await (_database.update(
-          _database.books,
+          _database.dbBooks,
         )..where((tbl) => tbl.id.equals(book.id))).write(
-          BooksCompanion(
+          DbBooksCompanion(
             title: Value(book.title),
             author: Value(book.author),
             coverPath: Value(book.coverPath),
@@ -64,13 +80,14 @@ class BookshelfLocalDataSource implements BookshelfRepository {
   @override
   Future<bool> deleteBook(int id) async {
     return await (_database.delete(
-          _database.books,
+          _database.dbBooks,
         )..where((tbl) => tbl.id.equals(id))).go() >
         0;
   }
 
   @override
   Future<List<Book>> searchBooks(String keyword) async {
-    return await _database.searchBooks(keyword);
+    final books = await _database.searchBooks(keyword);
+    return books.map(Book.fromDb).toList();
   }
 }

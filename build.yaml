@@ -26,7 +26,9 @@ targets:
           - lib/domain/**
           - lib/data/**
           - lib/core/**
+          - lib/core/database/**
 
       retrofit_generator:
         generate_for:
           - lib/features/**/api/**
+          - lib/features/**/data/**

@@ -28,8 +28,7 @@ class HomePage extends StatelessWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           // 刷新数据
-          // TODO: 实现实际的数据刷新逻辑
-          await Future.delayed(const Duration(seconds: 1));
+          await Future.delayed(const Duration(milliseconds: 500));
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),

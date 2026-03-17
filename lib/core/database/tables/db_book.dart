@@ -1,8 +1,9 @@
 import 'package:drift/drift.dart';
 
-@DataClassName('Book')
-class Books extends Table {
-  IntColumn get id => integer().autoIncrement()();
+@DataClassName('DbBook')
+class DbBooks extends Table {
+  /// 书籍 ID（UUID）
+   IntColumn get id => integer().autoIncrement()();
 
   TextColumn get title => text()();
 
@@ -14,7 +15,7 @@ class Books extends Table {
 
   TextColumn get filePath => text()();
 
-  TextColumn get fileFormat => text()();
+  TextColumn get fileType => text()();
 
   IntColumn get fileSize => integer().withDefault(const Constant(0))();
 

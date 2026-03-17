@@ -50,7 +50,7 @@ class ImportTask {
   String? error;
 
   /// 导入后的书籍 ID
-  int? bookId;
+  int bookId;
 
   /// 书籍标题（从 Rust 解析获取
   String? title;
@@ -74,7 +74,7 @@ class ImportTask {
     required this.fileSize,
     this.status = ImportTaskStatus.pending,
     this.error,
-    this.bookId,
+    required this.bookId,
     this.title,
     this.author,
     this.chapterCount,
@@ -181,6 +181,7 @@ class BookImportService {
       fileName: file.name,
       format: p.extension(file.name).toLowerCase().substring(1),
       fileSize: file.size,
+      bookId: 0, // 需要初始化为有效的 ID
     );
 
     try {
@@ -237,30 +238,28 @@ class BookImportService {
 
       // 解包 ApiResult 获取实际数据
       // 对于 Opaque 类型，使用 .value 属性访问实际数据
-      if (result is ApiResultLocalBookInfo) {
-        final bookInfo = (result as dynamic).value;
+      final bookInfo = (result as dynamic).value;
 
-        if (bookInfo != null) {
-          // 如果EPUB PDF，提取封面
-          String? coverPath;
-          if (format == 'epub' || format == 'pdf') {
-            coverPath = await _extractCover(filePath);
-          }
-
-          // 转换章节数据
-          final chapters = _convertChapters(bookInfo.chapters);
-
-          // 创建包含正确类型的数据对象
-          return {
-            'title': bookInfo.title,
-            'author': bookInfo.author,
-            'chapterCount': bookInfo.chapter_count,
-            'coverPath': coverPath ?? bookInfo.cover_path,
-            'chapters': chapters,
-          };
+      if (bookInfo != null) {
+        // 如果EPUB PDF，提取封面
+        String? coverPath;
+        if (format == 'epub' || format == 'pdf') {
+          coverPath = await _extractCover(filePath);
         }
+
+        // 转换章节数据
+        final chapters = _convertChapters(bookInfo.chapters);
+
+        // 创建包含正确类型的数据对象
+        return {
+          'title': bookInfo.title,
+          'author': bookInfo.author,
+          'chapterCount': bookInfo.chapter_count,
+          'coverPath': coverPath ?? bookInfo.cover_path,
+          'chapters': chapters,
+        };
       }
-      return null;
+          return null;
     } catch (e) {
       debugPrint('BookImportService._parseBook error: $e');
       return null;
@@ -269,7 +268,7 @@ class BookImportService {
 
   /// 将动态章节数据转换为 ChapterInfo 列表
   List<ChapterInfo> _convertChapters(dynamic chapters) {
-    if (chapters == null || !(chapters is List)) {
+    if (chapters == null || chapters is! List) {
       return [];
     }
 
@@ -305,16 +304,14 @@ class BookImportService {
       );
 
       // 解包 ApiResultString 获取路径
-      if (result is ApiResultString) {
-        final coverPath = (result as dynamic).value;
+      final coverPath = (result as dynamic).value;
 
-        if (coverPath != null && coverPath is String) {
-          // 复制封面到标准位置
-          final coverFile = File(coverPath);
-          if (await coverFile.exists()) {
-            final newCoverFile = await coverFile.copy(coverDestPath);
-            return newCoverFile.path;
-          }
+      if (coverPath != null && coverPath is String) {
+        // 复制封面到标准位置
+        final coverFile = File(coverPath);
+        if (await coverFile.exists()) {
+          final newCoverFile = await coverFile.copy(coverDestPath);
+          return newCoverFile.path;
         }
       }
 

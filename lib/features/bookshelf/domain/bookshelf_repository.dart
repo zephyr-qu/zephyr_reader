@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/core/database/database.dart';
+import 'package:zephyr_reader/domain/models/book.dart';
 
 import 'models/book_category.dart';
 
@@ -14,7 +14,7 @@ abstract class BookshelfRepository {
   Future<Book?> getBookById(int id);
 
   /// 添加书籍
-  Future<int> addBook(BooksCompanion book);
+  Future<int> addBook(Book book);
 
   /// 更新书籍
   Future<bool> updateBook(Book book);

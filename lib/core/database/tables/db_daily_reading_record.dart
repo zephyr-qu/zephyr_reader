@@ -1,8 +1,8 @@
 import 'package:drift/drift.dart';
 
 /// 每日阅读记录表
-@DataClassName('DailyReadingRecordItem')
-class DailyReadingRecords extends Table {
+@DataClassName('DbDailyReadingRecord')
+class DbDailyReadingRecords extends Table {
   /// 日期（YYYY-MM-DD 格式，主键）
   TextColumn get date => text()();
 

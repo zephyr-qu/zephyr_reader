@@ -370,7 +370,7 @@ class _AddBookDialogState extends State<AddBookDialog> {
       }
 
       // 创建书籍记录
-      final book = BooksCompanion(
+      final book = DbBooksCompanion(
         title: drift.Value(_bookTitle ?? '未知书籍'),
         author: drift.Value(_bookAuthor ?? '未知作'),
         coverPath: savedCoverPath != null

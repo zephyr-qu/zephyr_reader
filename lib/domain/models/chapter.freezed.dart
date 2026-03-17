@@ -16,7 +16,7 @@ mixin _$Chapter implements DiagnosticableTreeMixin {
 
 /// 章节唯一标识
  int get id;/// 关联的书籍 ID
- String get bookId;/// 章节标题
+ int get bookId;/// 章节标题
  String get title;/// 章节内容文件路径
  String get contentFile;/// 章节索引（从 1 开始）
  int get chapterIndex;/// 字数
@@ -58,7 +58,7 @@ abstract mixin class $ChapterCopyWith<$Res>  {
   factory $ChapterCopyWith(Chapter value, $Res Function(Chapter) _then) = _$ChapterCopyWithImpl;
 @useResult
 $Res call({
- int id, String bookId, String title, String contentFile, int chapterIndex, int wordCount, DateTime? cachedAt
+ int id, int bookId, String title, String contentFile, int chapterIndex, int wordCount, DateTime? cachedAt
 });
 
 
@@ -79,7 +79,7 @@ class _$ChapterCopyWithImpl<$Res>
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,bookId: null == bookId ? _self.bookId : bookId // ignore: cast_nullable_to_non_nullable
-as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as int,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,contentFile: null == contentFile ? _self.contentFile : contentFile // ignore: cast_nullable_to_non_nullable
 as String,chapterIndex: null == chapterIndex ? _self.chapterIndex : chapterIndex // ignore: cast_nullable_to_non_nullable
 as int,wordCount: null == wordCount ? _self.wordCount : wordCount // ignore: cast_nullable_to_non_nullable
@@ -169,7 +169,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String bookId,  String title,  String contentFile,  int chapterIndex,  int wordCount,  DateTime? cachedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int bookId,  String title,  String contentFile,  int chapterIndex,  int wordCount,  DateTime? cachedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Chapter() when $default != null:
 return $default(_that.id,_that.bookId,_that.title,_that.contentFile,_that.chapterIndex,_that.wordCount,_that.cachedAt);case _:
@@ -190,7 +190,7 @@ return $default(_that.id,_that.bookId,_that.title,_that.contentFile,_that.chapte
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String bookId,  String title,  String contentFile,  int chapterIndex,  int wordCount,  DateTime? cachedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int bookId,  String title,  String contentFile,  int chapterIndex,  int wordCount,  DateTime? cachedAt)  $default,) {final _that = this;
 switch (_that) {
 case _Chapter():
 return $default(_that.id,_that.bookId,_that.title,_that.contentFile,_that.chapterIndex,_that.wordCount,_that.cachedAt);case _:
@@ -210,7 +210,7 @@ return $default(_that.id,_that.bookId,_that.title,_that.contentFile,_that.chapte
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String bookId,  String title,  String contentFile,  int chapterIndex,  int wordCount,  DateTime? cachedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int bookId,  String title,  String contentFile,  int chapterIndex,  int wordCount,  DateTime? cachedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Chapter() when $default != null:
 return $default(_that.id,_that.bookId,_that.title,_that.contentFile,_that.chapterIndex,_that.wordCount,_that.cachedAt);case _:
@@ -231,7 +231,7 @@ class _Chapter with DiagnosticableTreeMixin implements Chapter {
 /// 章节唯一标识
 @override final  int id;
 /// 关联的书籍 ID
-@override final  String bookId;
+@override final  int bookId;
 /// 章节标题
 @override final  String title;
 /// 章节内容文件路径
@@ -279,7 +279,7 @@ abstract mixin class _$ChapterCopyWith<$Res> implements $ChapterCopyWith<$Res> {
   factory _$ChapterCopyWith(_Chapter value, $Res Function(_Chapter) _then) = __$ChapterCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String bookId, String title, String contentFile, int chapterIndex, int wordCount, DateTime? cachedAt
+ int id, int bookId, String title, String contentFile, int chapterIndex, int wordCount, DateTime? cachedAt
 });
 
 
@@ -300,7 +300,7 @@ class __$ChapterCopyWithImpl<$Res>
   return _then(_Chapter(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,bookId: null == bookId ? _self.bookId : bookId // ignore: cast_nullable_to_non_nullable
-as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as int,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,contentFile: null == contentFile ? _self.contentFile : contentFile // ignore: cast_nullable_to_non_nullable
 as String,chapterIndex: null == chapterIndex ? _self.chapterIndex : chapterIndex // ignore: cast_nullable_to_non_nullable
 as int,wordCount: null == wordCount ? _self.wordCount : wordCount // ignore: cast_nullable_to_non_nullable
