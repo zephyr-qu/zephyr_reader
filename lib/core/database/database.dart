@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/core/database/tables/db_book.dart';
 import 'package:zephyr_reader/core/database/tables/db_bookmark.dart'
-    show DbBookmark, DbBookmarks;
+    show DbBookmarks;
 import 'package:zephyr_reader/core/database/tables/db_chapter.dart';
 import 'package:zephyr_reader/core/database/tables/db_daily_reading_record.dart';
 import 'package:zephyr_reader/core/database/tables/db_layout_cache.dart';
