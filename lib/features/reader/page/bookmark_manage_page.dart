@@ -1,13 +1,12 @@
-/// 书签管理页面
+    /// 书签管理页面
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/domain/models/bookmark.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
 import 'package:zephyr_reader/src/rust/api.dart';
-
-import '../../../../core/database/database.dart';
 import '../../../../di/service_locator.dart';
 
 /// 书签管理页面
@@ -19,7 +18,7 @@ class BookmarkManagePage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final vm = useMemoized(() => getIt<ReaderViewModel>());
-    final bookmarks = useSignal(vm.bookmarks.value);
+    // final bookmarks = useSignal(vm.bookmarks.value);
 
     // 加载书签
     useEffect(() {
@@ -153,11 +152,11 @@ class BookmarkManagePage extends HookWidget {
     );
 
     if (confirmed == true) {
-      // 使用 Rust API 删除书签
-      removeBookmark(
-        bookId: 'Book_${vm.bookId.value}',
-        bookmarkId: bookmark.bookmarkId,
-      );
+
+      // removeBookmark(
+      //   bookId: 'Book_${vm.bookId.value}',
+      //   bookmarkId: bookmark.id,
+      // );
       await vm.loadBookmarks();
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -246,7 +245,7 @@ class _BookmarkTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            _formatDate(bookmark.createdTimestamp),
+            _formatDate(bookmark.createdAt),
             style: TextStyle(
               fontSize: 12,
               color: Theme.of(
@@ -267,8 +266,7 @@ class _BookmarkTile extends StatelessWidget {
     );
   }
 
-  String _formatDate(int timestamp) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+  String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
 
@@ -284,3 +282,5 @@ class _BookmarkTile extends StatelessWidget {
     }
   }
 }
+
+

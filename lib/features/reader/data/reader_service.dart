@@ -2,6 +2,9 @@ import 'package:drift/drift.dart';
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/database/database.dart';
 import 'package:zephyr_reader/core/local/file_storage.dart';
+import 'package:zephyr_reader/domain/models/bookmark.dart';
+import 'package:zephyr_reader/domain/models/chapter.dart';
+import 'package:zephyr_reader/domain/models/reading_history.dart';
 import 'package:zephyr_reader/shared/utils/logging.dart';
 
 import '../domain/reader_repository.dart';
@@ -26,17 +29,18 @@ class ReaderService implements ReaderRepository {
     final content = await _fileStorage.readString(chapter.contentFile);
     if (content == null) {
       Logging.warning('Chapter content not found: ${chapter.contentFile}');
-      return chapter;
+      return Chapter.fromDb(chapter);
     }
 
     // 这里可以创建一个包含内容的扩展类，或者直接返回内容
     // 为了简化，我们假设内容会通过其他方式传递
-    return chapter;
+    return Chapter.fromDb(chapter);
   }
 
   @override
   Future<List<Chapter>> getChapters(int bookId) async {
-    return await _database.getChaptersByBookId(bookId);
+    final chapters = await _database.getChaptersByBookId(bookId);
+    return chapters.map((chapter) => Chapter.fromDb(chapter)).toList();
   }
 
   @override
@@ -54,9 +58,9 @@ class ReaderService implements ReaderRepository {
     if (existing != null) {
       // 更新现有记录
       await (_database.update(
-        _database.readingHistories,
+        _database.dbReadingHistorys,
       )..where((tbl) => tbl.bookId.equals(bookId))).write(
-        ReadingHistoriesCompanion(
+        DbReadingHistorysCompanion(
           chapterId: Value(chapterId),
           position: Value(position),
           readTime: Value(now),
@@ -66,9 +70,9 @@ class ReaderService implements ReaderRepository {
     } else {
       // 创建新记录
       await _database
-          .into(_database.readingHistory)
+          .into(_database.dbReadingHistorys)
           .insert(
-            ReadingHistoryCompanion.insert(
+            DbReadingHistorysCompanion.insert(
               bookId: bookId,
               chapterId: chapterId,
               position: position,
@@ -81,7 +85,10 @@ class ReaderService implements ReaderRepository {
 
   @override
   Future<ReadingHistory?> getReadingHistory(int bookId) async {
-    return await _database.getBookReadingHistory(bookId);
+    final readingHistory = await _database.getBookReadingHistory(bookId);
+    return readingHistory != null
+        ? ReadingHistory.fromDb(readingHistory)
+        : null;
   }
 
   @override
@@ -92,14 +99,13 @@ class ReaderService implements ReaderRepository {
     String? note,
   ) async {
     return await _database
-        .into(_database.bookmarks)
+        .into(_database.dbBookmarks)
         .insert(
-          BookmarksCompanion.insert(
+          DbBookmarksCompanion.insert(
             bookId: bookId,
             chapterId: chapterId,
-            position: position,
+            position: Value(0),
             note: Value(note),
-            bookmarkId: '',
             pageIndex: 0,
             title: '',
             createdTimestamp: DateTime.now().millisecondsSinceEpoch,
@@ -109,14 +115,15 @@ class ReaderService implements ReaderRepository {
 
   @override
   Future<List<Bookmark>> getBookmarks(int bookId) async {
-    return await _database.getBookmarks(bookId);
+    final bookmarks = await _database.getBookmarks(bookId);
+    return bookmarks.map((bookmark) => Bookmark.fromDb(bookmark)).toList();
   }
 
   @override
-  Future<bool> deleteBookmark(String bookmarkId) async {
+  Future<bool> deleteBookmark(int bookmarkId) async {
     return await (_database.delete(
-          _database.bookmarks,
-        )..where((tbl) => tbl.bookmarkId.equals(bookmarkId))).go() >
+          _database.dbBookmarks,
+        )..where((tbl) => tbl.id.equals(bookmarkId))).go() >
         0;
   }
 

@@ -21,6 +21,7 @@ import '../application/services/reading_progress_service.dart';
 import 'widgets/reader_content.dart';
 import 'widgets/reader_toolbar.dart';
 import 'widgets/reader_bottom_toolbar.dart';
+import '../../../core/database/database.dart';
 
 /// 阅读模式
 enum ReadingMode {
@@ -78,8 +79,8 @@ class ReaderPageNew extends HookWidget {
 
     // 进度服务
     final progressService = useMemoized(() {
-      // 使用空的 SharedPreferences 实例
-      return ReadingProgressService(null);
+      // 使用 getDatabase() 获取 AppDatabase 实例
+      return ReadingProgressService(getDatabase());
     });
 
     // 加载书籍信息

@@ -287,7 +287,6 @@ class AppDatabase extends _$AppDatabase {
 
   /// 记录阅读会话
   Future<void> recordReadingSession({
-    required int sessionId,
     required int bookId,
     required int chapterId,
     required int startTimestamp,
@@ -297,7 +296,6 @@ class AppDatabase extends _$AppDatabase {
   }) async {
     await into(dbReadingSessions).insert(
       DbReadingSessionsCompanion.insert(
-        id: Value(sessionId),
         bookId: bookId,
         chapterId: chapterId,
         startTimestamp: startTimestamp,

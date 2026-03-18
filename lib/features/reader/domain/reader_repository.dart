@@ -1,4 +1,7 @@
-import 'package:zephyr_reader/core/database/database.dart';
+
+import 'package:zephyr_reader/domain/models/bookmark.dart';
+import 'package:zephyr_reader/domain/models/chapter.dart';
+import 'package:zephyr_reader/domain/models/reading_history.dart';
 
 /// 阅读器仓库接口
 abstract class ReaderRepository {
@@ -31,7 +34,7 @@ abstract class ReaderRepository {
   Future<List<Bookmark>> getBookmarks(int bookId);
 
   /// 删除书签
-  Future<bool> deleteBookmark(String bookmarkId);
+  Future<bool> deleteBookmark(int bookmarkId);
 
   /// 获取章节内容
   Future<String?> getChapterContent(String contentFile);

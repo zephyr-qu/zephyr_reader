@@ -2,6 +2,7 @@
 library;
 
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -252,7 +253,11 @@ class BookSearchService {
 
       for (final book in books) {
         final chapters = await _db.getChaptersByBookId(book.id);
-        await indexBook(book.id, book.filePath, chapters);
+        await indexBook(
+          book.id,
+          book.filePath,
+          chapters.map((c) => Chapter.fromDb(c)).toList(),
+        );
       }
 
       debugPrint('索引重建完成');

@@ -26,7 +26,7 @@ class ReadingProgressService {
   }) async {
     try {
       await _db.updateReadingProgress(
-        bookId: bookId.toString(),
+        bookId: bookId,
         chapterId: chapterId,
         pageIndex: pageIndex,
         totalPages: totalPages,
@@ -44,7 +44,8 @@ class ReadingProgressService {
   /// 加载阅读进度
   Future<ReadingProgress?> loadReadingProgress(int bookId) async {
     try {
-      return await _db.getReadingProgress(bookId);
+      final readingProgress = await _db.getReadingProgress(bookId);
+      return ReadingProgress.fromDb(readingProgress!);
     } catch (e) {
       debugPrint('ReadingProgressService.loadReadingProgress error: $e');
       return null;
@@ -63,7 +64,10 @@ class ReadingProgressService {
   /// 获取所有阅读进度
   Future<List<ReadingProgress>> getAllReadingProgress() async {
     try {
-      return await _db.getAllReadingProgress();
+      final progressList = await _db.getAllReadingProgress();
+      return progressList
+          .map((progress) => ReadingProgress.fromDb(progress))
+          .toList();
     } catch (e) {
       debugPrint('ReadingProgressService.getAllReadingProgress error: $e');
       return [];

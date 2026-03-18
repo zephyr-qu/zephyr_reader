@@ -10,7 +10,6 @@ import 'package:flutter/foundation.dart';
 import 'package:zephyr_reader/core/database/database.dart';
 import 'package:zephyr_reader/domain/models/bookmark.dart';
 
-
 /// 书签服务
 class BookmarkService {
   final AppDatabase _db;
@@ -18,7 +17,7 @@ class BookmarkService {
   BookmarkService(this._db);
 
   /// 添加书签
-  Future<Bookmark> addBookmark({
+  Future<void> addBookmark({
     required int bookId,
     required int chapterId,
     required int pageIndex,
@@ -26,10 +25,9 @@ class BookmarkService {
     String? note,
   }) async {
     try {
-
       final createdTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-     final id =  await _db.addBookmark(
+      await _db.addBookmark(
         bookId: bookId,
         chapterId: chapterId,
         pageIndex: pageIndex,
@@ -39,14 +37,7 @@ class BookmarkService {
         position: 0,
       );
 
-      return Bookmark(
-        id: id,
-        bookId: bookId,
-        chapterId: chapterId,
-        note: note,
-        position: 0, createdAt: null,
-
-      );
+      return;
     } catch (e) {
       debugPrint('BookmarkService.addBookmark error: $e');
       rethrow;
@@ -86,7 +77,8 @@ class BookmarkService {
   /// 获取所有书签
   Future<List<Bookmark>> getAllBookmarks() async {
     try {
-      return await _db.getAllBookmarks();
+      final bookmarks = await _db.getAllBookmarks();
+      return bookmarks.map((bookmark) => Bookmark.fromDb(bookmark)).toList();
     } catch (e) {
       debugPrint('BookmarkService.getAllBookmarks error: $e');
       return [];

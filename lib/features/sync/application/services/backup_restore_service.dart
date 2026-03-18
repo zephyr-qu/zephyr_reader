@@ -8,7 +8,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 /// 备份数据类型
@@ -33,12 +32,11 @@ class BackupInfo {
 
 /// 备份恢复服务
 class BackupRestoreService {
-  final SharedPreferences _prefs;
   final backups = signal<List<BackupInfo>>([]);
   final isBackingUp = signal(false);
   final isRestoring = signal(false);
 
-  BackupRestoreService(this._prefs) {
+  BackupRestoreService() {
     _loadBackups();
   }
 
