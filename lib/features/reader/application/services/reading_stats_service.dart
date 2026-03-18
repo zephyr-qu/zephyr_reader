@@ -7,12 +7,8 @@
 library;
 
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
 import 'package:zephyr_reader/core/database/database.dart';
-import 'package:zephyr_reader/core/database/tables/db_reading_stats.dart';
 import 'package:zephyr_reader/src/rust/ffi/types.dart';
-
-const _uuid = Uuid();
 
 /// 阅读统计服务
 class ReadingStatsService {
@@ -27,19 +23,17 @@ class ReadingStatsService {
 
   /// 记录阅读会话
   Future<void> recordReadingSession({
-    required String bookId,
+    required int bookId,
     required int chapterId,
     required int durationSeconds,
     required int charactersRead,
   }) async {
     try {
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      final sessionId = _uuid.v4();
       final today = DateTime.now().toString().split(' ')[0];
 
       // 记录会话
       await _db.recordReadingSession(
-        sessionId: sessionId,
         bookId: bookId,
         chapterId: chapterId,
         startTimestamp: now - durationSeconds,
@@ -171,9 +165,13 @@ class ReadingStatsService {
   }
 
   /// 获取指定日期的阅读记录
-  Future<DailyReadingRecordItem?> getDailyReadingRecord(String date) async {
+  Future<DailyReadingRecord?> getDailyReadingRecord(String date) async {
     try {
-      return await _db.getDailyReadingRecord(date);
+      final record = await _db.getDailyReadingRecord(date);
+      if (record == null) {
+        return null;
+      }
+      return DailyReadingRecord.fromDb(record);
     } catch (e) {
       debugPrint('ReadingStatsService.getDailyReadingRecord error: $e');
       return null;
@@ -186,10 +184,13 @@ class ReadingStatsService {
     required String endDate,
   }) async {
     try {
-      return await _db.getDailyReadingRecordsInRange(
+      final records = await _db.getDailyReadingRecordsInRange(
         startDate: startDate,
         endDate: endDate,
       );
+      return records
+          .map((record) => DailyReadingRecord.fromDb(record))
+          .toList();
     } catch (e) {
       debugPrint('ReadingStatsService.getDailyReadingRecordsInRange error: $e');
       return [];
@@ -199,7 +200,10 @@ class ReadingStatsService {
   /// 获取最近 N 天的阅读记录
   Future<List<DailyReadingRecord>> getRecentReadingRecords(int days) async {
     try {
-      return await _db.getRecentReadingRecords(days);
+      final records = await _db.getRecentReadingRecords(days);
+      return records
+          .map((record) => DailyReadingRecord.fromDb(record))
+          .toList();
     } catch (e) {
       debugPrint('ReadingStatsService.getRecentReadingRecords error: $e');
       return [];

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/domain/models/chapter.dart';
-import 'package:zephyr_reader/src/rust/ffi/types.dart';
+import 'package:zephyr_reader/domain/models/bookmark.dart';
 
 import '../../../core/reader/reader_config.dart';
 import '../domain/reader_repository.dart';
@@ -223,7 +223,7 @@ class ReaderViewModel {
   }
 
   /// 删除书签
-  Future<bool> deleteBookmark(String bookmarkId) async {
+  Future<bool> deleteBookmark(int bookmarkId) async {
     try {
       final success = await _repo.deleteBookmark(bookmarkId);
       if (success) {
@@ -247,7 +247,7 @@ class ReaderViewModel {
       // 加载对应章节
       await loadChapter(chapterIndex + 1); // 章节索引从1开始
       // 设置滚动位置，使用 pageIndex
-      scrollPosition.value = bookmark.pageIndex.toDouble();
+      scrollPosition.value = bookmark.position.toDouble();
     }
   }
 

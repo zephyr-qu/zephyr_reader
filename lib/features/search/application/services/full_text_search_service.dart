@@ -85,7 +85,7 @@ class FullTextSearchService {
         stmt.execute([bookId, chapterId, chapterTitle, chunk, position]);
       }
 
-      stmt.dispose();
+      stmt.close();
       debugPrint('章节索引完成bookId - $chapterId');
     } catch (e) {
       debugPrint('索引章节失败e');
@@ -128,7 +128,7 @@ class FullTextSearchService {
         );
       }
 
-      stmt.dispose();
+      stmt.close();
       return results;
     } catch (e) {
       debugPrint('搜索失败e');

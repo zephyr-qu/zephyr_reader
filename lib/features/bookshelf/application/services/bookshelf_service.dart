@@ -342,11 +342,11 @@ class BookshelfService {
       final index = books.indexWhere((b) => b.id == bookId);
       if (index != -1) {
         final updatedBook = books[index].copyWith(
-          currentChapterId: Value(chapterId),
+          currentChapterId: chapterId,
           currentPageIndex: currentPage,
           totalPages: totalPages,
           progress: progress,
-          lastReadAt: Value(DateTime.now()),
+          lastReadAt: DateTime.now(),
         );
         _state.updateBook(updatedBook);
       }

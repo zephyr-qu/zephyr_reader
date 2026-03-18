@@ -3,9 +3,12 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
-import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+import 'package:zephyr_reader/core/database/database.dart';
+
+import '../frb_generated.dart';
+
 part 'types.freezed.dart';
 
 /// 书签信息
@@ -153,6 +156,16 @@ class DailyReadingRecord {
           charactersRead == other.charactersRead &&
           chaptersRead == other.chaptersRead &&
           pagesRead == other.pagesRead;
+
+  factory DailyReadingRecord.fromDb(DbDailyReadingRecord db) {
+    return DailyReadingRecord(
+      date: db.date,
+      readingTimeSeconds: db.readingTimeSeconds,
+      charactersRead: db.charactersRead,
+      chaptersRead: db.chaptersRead,
+      pagesRead: db.pagesRead,
+    );
+  }
 }
 
 /// 文本语言类型
