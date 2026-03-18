@@ -66,9 +66,9 @@ class ReaderService implements ReaderRepository {
     } else {
       // 创建新记录
       await _database
-          .into(_database.readingHistories)
+          .into(_database.readingHistory)
           .insert(
-            ReadingHistoriesCompanion.insert(
+            ReadingHistoryCompanion.insert(
               bookId: bookId,
               chapterId: chapterId,
               position: position,

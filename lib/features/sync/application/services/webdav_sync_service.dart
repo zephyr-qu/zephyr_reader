@@ -1,30 +1,34 @@
 /// WebDAV 同步服务
 ///
-/// 提供WebDAV 服务器的数据同步功能
+/// 提供 WebDAV 服务器的数据同步功能
 ///
-/// 功能/// - 连接测试
+/// 功能特性:
+/// - 连接测试
 /// - 账号认证
 /// - 文件上传/下载
-/// - 数据同步（进度、书签、书架）
+/// - 数据同步（进度、书签、书架、设置）
 /// - 冲突解决
+/// - 进度回调
 library;
 
-import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-// ignore: depend_on_referenced_packages
-import 'package:http/http.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
+import 'webdav_client_service.dart';
+
 /// WebDAV 配置
+///
+/// 包含连接 WebDAV 服务器所需的所有信息
 class WebDavConfig {
   /// 服务器地址
   final String baseUrl;
 
-  /// 用户
+  /// 用户名
   final String username;
 
   /// 密码
@@ -40,13 +44,7 @@ class WebDavConfig {
     required this.remotePath,
   });
 
-  /// 获取基础认证
-  String get authHeader {
-    final credentials = base64Encode(utf8.encode('$username:$password'));
-    return 'Basic $credentials';
-  }
-
-  /// 复制并修改配
+  /// 复制并修改配置
   WebDavConfig copyWith({
     String? baseUrl,
     String? username,
@@ -61,21 +59,31 @@ class WebDavConfig {
     );
   }
 
-  /// 验证配置完整
+  /// 验证配置完整性
   bool get isValid {
     return baseUrl.isNotEmpty &&
         username.isNotEmpty &&
         password.isNotEmpty &&
         remotePath.isNotEmpty;
   }
+
+  /// 获取服务器显示名称
+  String get serverName {
+    try {
+      final uri = Uri.parse(baseUrl);
+      return uri.host;
+    } catch (e) {
+      return baseUrl;
+    }
+  }
 }
 
-/// 同步状
+/// 同步状态
 enum SyncStatus {
   /// 空闲
   idle,
 
-  /// 同步
+  /// 同步中
   syncing,
 
   /// 同步成功
@@ -84,38 +92,54 @@ enum SyncStatus {
   /// 同步失败
   failed,
 
-  /// 冲突需要解
+  /// 冲突需要解决
   conflict,
 }
 
 /// 同步数据类型
 enum SyncDataType {
   /// 阅读进度
-  readingProgress,
+  readingProgress('reading_progress.json'),
 
   /// 书签
-  bookmarks,
+  bookmarks('bookmarks.json'),
 
   /// 书架
-  bookshelf,
+  bookshelf('bookshelf.json'),
 
   /// 设置
-  settings,
+  settings('settings.json');
+
+  final String filename;
+
+  const SyncDataType(this.filename);
 }
 
 /// 同步方向
 enum SyncDirection {
-  /// 仅上
+  /// 仅上传
   upload,
 
-  /// 仅下
+  /// 仅下载
   download,
 
   /// 双向同步
   both,
 }
 
-/// 数据同步
+/// 冲突解决策略
+enum ConflictResolution {
+  /// 使用本地版本
+  useLocal,
+
+  /// 使用远程版本
+  useRemote,
+
+  /// 合并两个版本
+  merge,
+}
+
+/// 同步数据项
 class SyncDataItem {
   final SyncDataType type;
   final String filename;
@@ -132,522 +156,27 @@ class SyncDataItem {
     this.hasLocal = true,
     this.hasRemote = true,
   });
-}
 
-/// WebDAV 同步服务
-class WebDavSyncService {
-  WebDavConfig? _config;
-  final http.Client _client;
+  /// 是否需要同步
+  bool get needsSync =>
+      hasLocal != hasRemote || localModified != remoteModified;
 
-  /// 当前同步状
-  final syncStatus = signal<SyncStatus>(SyncStatus.idle);
-
-  /// 同步进度-100
-  final syncProgress = signal<double>(0.0);
-
-  /// 最后同步时
-  final lastSyncTime = signal<DateTime?>(null);
-
-  /// 错误信息
-  final errorMessage = signal<String?>(null);
-
-  /// 同步状态详
-  final syncMessage = signal<String>('');
-
-  WebDavSyncService({WebDavConfig? config, http.Client? client})
-    : _config = config,
-      _client = client ?? http.Client();
-
-  /// 设置配置
-  void setConfig(WebDavConfig config) {
-    _config = config;
-  }
-
-  /// 获取配置
-  WebDavConfig? get config => _config;
-
-  /// 测试连接
-  Future<bool> testConnection() async {
-    if (_config == null || !_config!.isValid) {
-      debugPrint('WebDAV 配置未设置或无效');
-      return false;
-    }
-
-    try {
-      final url = Uri.parse('${_config!.baseUrl}${_config!.remotePath}');
-      final response = await _client
-          .get(url, headers: {'Authorization': _config!.authHeader})
-          .timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200 ||
-          response.statusCode == 404 ||
-          response.statusCode == 207) {
-        debugPrint('WebDAV 连接测试成功');
-        return true;
-      } else if (response.statusCode == 401) {
-        debugPrint('WebDAV 认证失败：请检查用户名和密');
-        errorMessage.value = '认证失败：请检查用户名和密';
-        return false;
-      } else {
-        debugPrint('WebDAV 连接测试失败{response.statusCode}');
-        errorMessage.value = '连接失败{response.statusCode}';
-        return false;
-      }
-    } catch (e) {
-      debugPrint('WebDAV 连接测试异常e');
-      errorMessage.value = '连接异常e';
-      return false;
+  /// 获取冲突状态描述
+  String get conflictDescription {
+    if (!hasLocal && !hasRemote) {
+      return '本地和远程均无数据';
+    } else if (!hasLocal) {
+      return '仅远程有数据';
+    } else if (!hasRemote) {
+      return '仅本地有数据';
+    } else if (localModified.isAfter(remoteModified!)) {
+      return '本地版本更新';
+    } else if (remoteModified!.isAfter(localModified)) {
+      return '远程版本更新';
+    } else {
+      return '数据一致';
     }
   }
-
-  /// 同步所有数
-  Future<SyncResult> syncAll({
-    SyncDirection direction = SyncDirection.both,
-  }) async {
-    if (_config == null || !_config!.isValid) {
-      return SyncResult(success: false, error: 'WebDAV 配置未设');
-    }
-
-    syncStatus.value = SyncStatus.syncing;
-    syncProgress.value = 0.0;
-    syncMessage.value = '开始同..';
-
-    final result = SyncResult();
-
-    try {
-      // 确保远程目录存在
-      await _ensureRemoteDirectory();
-
-      // 同步阅读进度
-      syncMessage.value = '同步阅读进度...';
-      final progressResult = await _syncReadingProgress(direction);
-      result.uploadedCount += progressResult.uploadedCount;
-      result.downloadedCount += progressResult.downloadedCount;
-      result.conflictCount += progressResult.conflictCount;
-      syncProgress.value = 25.0;
-
-      // 同步书签
-      syncMessage.value = '同步书签...';
-      final bookmarkResult = await _syncBookmarks(direction);
-      result.uploadedCount += bookmarkResult.uploadedCount;
-      result.downloadedCount += bookmarkResult.downloadedCount;
-      result.conflictCount += bookmarkResult.conflictCount;
-      syncProgress.value = 50.0;
-
-      // 同步书架
-      syncMessage.value = '同步书架...';
-      final bookshelfResult = await _syncBookshelf(direction);
-      result.uploadedCount += bookshelfResult.uploadedCount;
-      result.downloadedCount += bookshelfResult.downloadedCount;
-      result.conflictCount += bookshelfResult.conflictCount;
-      syncProgress.value = 75.0;
-
-      // 同步设置
-      syncMessage.value = '同步设置...';
-      final settingsResult = await _syncSettings(direction);
-      result.uploadedCount += settingsResult.uploadedCount;
-      result.downloadedCount += settingsResult.downloadedCount;
-      result.conflictCount += settingsResult.conflictCount;
-      syncProgress.value = 100.0;
-
-      syncStatus.value = SyncStatus.success;
-      lastSyncTime.value = DateTime.now();
-      syncMessage.value = '同步完成';
-
-      result.success = result.conflictCount == 0;
-      return result;
-    } catch (e) {
-      debugPrint('同步异常e');
-      syncStatus.value = SyncStatus.failed;
-      errorMessage.value = '同步异常e';
-      syncMessage.value = '同步失败';
-      return SyncResult(success: false, error: e.toString());
-    }
-  }
-
-  /// 确保远程目录存在
-  Future<bool> _ensureRemoteDirectory() async {
-    try {
-      final url = Uri.parse('${_config!.baseUrl}${_config!.remotePath}');
-      final response = await _client.get(
-        url,
-        headers: {'Authorization': _config!.authHeader},
-      );
-
-      // 如果目录不存在（404），尝试创建
-      if (response.statusCode == 404) {
-        final createResponse = await _client.put(
-          url,
-          headers: {'Authorization': _config!.authHeader},
-        );
-
-        if (createResponse.statusCode == 200 ||
-            createResponse.statusCode == 201) {
-          debugPrint('远程目录创建成功');
-          return true;
-        } else {
-          debugPrint('远程目录创建失败{createResponse.statusCode}');
-          return false;
-        }
-      }
-
-      return response.statusCode == 200 || response.statusCode == 207;
-    } catch (e) {
-      debugPrint('检查远程目录异常：$e');
-      return false;
-    }
-  }
-
-  /// 同步阅读进度
-  Future<SyncResult> _syncReadingProgress(SyncDirection direction) async {
-    final result = SyncResult();
-    final appDir = await getApplicationDocumentsDirectory();
-    final localFile = File(
-      p.join(appDir.path, 'data', 'reading_progress.json'),
-    );
-
-    try {
-      if (direction == SyncDirection.upload ||
-          direction == SyncDirection.both) {
-        if (await localFile.exists()) {
-          final remoteName = 'reading_progress.json';
-          if (await uploadFile(
-            localPath: localFile.path,
-            remoteName: remoteName,
-          )) {
-            result.uploadedCount++;
-          }
-        }
-      }
-
-      if (direction == SyncDirection.download ||
-          direction == SyncDirection.both) {
-        final remoteName = 'reading_progress.json';
-        if (await downloadFile(
-          remoteName: remoteName,
-          localPath: localFile.path,
-        )) {
-          result.downloadedCount++;
-        }
-      }
-    } catch (e) {
-      debugPrint('同步阅读进度异常e');
-    }
-
-    return result;
-  }
-
-  /// 同步书签
-  Future<SyncResult> _syncBookmarks(SyncDirection direction) async {
-    final result = SyncResult();
-    final appDir = await getApplicationDocumentsDirectory();
-    final localFile = File(p.join(appDir.path, 'data', 'bookmarks.json'));
-
-    try {
-      if (direction == SyncDirection.upload ||
-          direction == SyncDirection.both) {
-        if (await localFile.exists()) {
-          final remoteName = 'bookmarks.json';
-          if (await uploadFile(
-            localPath: localFile.path,
-            remoteName: remoteName,
-          )) {
-            result.uploadedCount++;
-          }
-        }
-      }
-
-      if (direction == SyncDirection.download ||
-          direction == SyncDirection.both) {
-        final remoteName = 'bookmarks.json';
-        if (await downloadFile(
-          remoteName: remoteName,
-          localPath: localFile.path,
-        )) {
-          result.downloadedCount++;
-        }
-      }
-    } catch (e) {
-      debugPrint('同步书签异常e');
-    }
-
-    return result;
-  }
-
-  /// 同步书架
-  Future<SyncResult> _syncBookshelf(SyncDirection direction) async {
-    final result = SyncResult();
-    final appDir = await getApplicationDocumentsDirectory();
-    final localFile = File(p.join(appDir.path, 'data', 'bookshelf.json'));
-
-    try {
-      if (direction == SyncDirection.upload ||
-          direction == SyncDirection.both) {
-        if (await localFile.exists()) {
-          final remoteName = 'bookshelf.json';
-          if (await uploadFile(
-            localPath: localFile.path,
-            remoteName: remoteName,
-          )) {
-            result.uploadedCount++;
-          }
-        }
-      }
-
-      if (direction == SyncDirection.download ||
-          direction == SyncDirection.both) {
-        final remoteName = 'bookshelf.json';
-        if (await downloadFile(
-          remoteName: remoteName,
-          localPath: localFile.path,
-        )) {
-          result.downloadedCount++;
-        }
-      }
-    } catch (e) {
-      debugPrint('同步书架异常e');
-    }
-
-    return result;
-  }
-
-  /// 同步设置
-  Future<SyncResult> _syncSettings(SyncDirection direction) async {
-    final result = SyncResult();
-    final appDir = await getApplicationDocumentsDirectory();
-    final localFile = File(p.join(appDir.path, 'data', 'settings.json'));
-
-    try {
-      if (direction == SyncDirection.upload ||
-          direction == SyncDirection.both) {
-        if (await localFile.exists()) {
-          final remoteName = 'settings.json';
-          if (await uploadFile(
-            localPath: localFile.path,
-            remoteName: remoteName,
-          )) {
-            result.uploadedCount++;
-          }
-        }
-      }
-
-      if (direction == SyncDirection.download ||
-          direction == SyncDirection.both) {
-        final remoteName = 'settings.json';
-        if (await downloadFile(
-          remoteName: remoteName,
-          localPath: localFile.path,
-        )) {
-          result.downloadedCount++;
-        }
-      }
-    } catch (e) {
-      debugPrint('同步设置异常e');
-    }
-
-    return result;
-  }
-
-  /// 上传文件
-  Future<bool> uploadFile({
-    required String localPath,
-    required String remoteName,
-  }) async {
-    if (_config == null) {
-      debugPrint('WebDAV 配置未设');
-      return false;
-    }
-
-    try {
-      final file = File(localPath);
-      if (!await file.exists()) {
-        debugPrint('文件不存在：$localPath');
-        return false;
-      }
-
-      final fileBytes = await file.readAsBytes();
-      final url = Uri.parse(
-        '${_config!.baseUrl}${_config!.remotePath}/$remoteName',
-      );
-
-      final response = await _client.put(
-        url,
-        headers: {
-          'Authorization': _config!.authHeader,
-          'Content-Type': 'application/octet-stream',
-        },
-        body: fileBytes,
-      );
-
-      if (response.statusCode == 200 ||
-          response.statusCode == 201 ||
-          response.statusCode == 204) {
-        debugPrint('文件上传成功remoteName');
-        return true;
-      } else {
-        debugPrint('文件上传失败{response.statusCode}');
-        return false;
-      }
-    } catch (e) {
-      debugPrint('文件上传异常e');
-      return false;
-    }
-  }
-
-  /// 下载文件
-  Future<bool> downloadFile({
-    required String remoteName,
-    required String localPath,
-  }) async {
-    if (_config == null) {
-      debugPrint('WebDAV 配置未设');
-      return false;
-    }
-
-    try {
-      final url = Uri.parse(
-        '${_config!.baseUrl}${_config!.remotePath}/$remoteName',
-      );
-
-      final response = await _client.get(
-        url,
-        headers: {'Authorization': _config!.authHeader},
-      );
-
-      if (response.statusCode == 200) {
-        final file = File(localPath);
-        await file.parent.create(recursive: true);
-        await file.writeAsBytes(response.bodyBytes);
-
-        debugPrint('文件下载成功remoteName');
-        return true;
-      } else if (response.statusCode == 404) {
-        debugPrint('文件不存在于服务器：$remoteName');
-        return false;
-      } else {
-        debugPrint('文件下载失败{response.statusCode}');
-        return false;
-      }
-    } catch (e) {
-      debugPrint('文件下载异常e');
-      return false;
-    }
-  }
-
-  /// 列出远程文件
-  Future<List<RemoteFileInfo>> listRemoteFiles() async {
-    if (_config == null) {
-      debugPrint('WebDAV 配置未设');
-      return [];
-    }
-
-    try {
-      final url = Uri.parse('${_config!.baseUrl}${_config!.remotePath}');
-
-      final response = await _client.get(
-        url,
-        headers: {'Authorization': _config!.authHeader},
-      );
-
-      if (response.statusCode == 200) {
-        // 简单解析响
-        final files = <RemoteFileInfo>[];
-        // TODO: 解析 XML 响应获取文件列表
-        return files;
-      } else {
-        debugPrint('列出文件失败{response.statusCode}');
-        return [];
-      }
-    } catch (e) {
-      debugPrint('列出文件异常e');
-      return [];
-    }
-  }
-
-  /// 删除远程文件
-  Future<bool> deleteRemoteFile(String remoteName) async {
-    if (_config == null) {
-      return false;
-    }
-
-    try {
-      final url = Uri.parse(
-        '${_config!.baseUrl}${_config!.remotePath}/$remoteName',
-      );
-
-      final response = await _client.delete(
-        url,
-        headers: {'Authorization': _config!.authHeader},
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        debugPrint('文件删除成功remoteName');
-        return true;
-      } else {
-        debugPrint('文件删除失败{response.statusCode}');
-        return false;
-      }
-    } catch (e) {
-      debugPrint('文件删除异常e');
-      return false;
-    }
-  }
-
-  /// 解决冲突
-  Future<bool> resolveConflict({
-    required SyncDataType type,
-    required ConflictResolution resolution,
-  }) async {
-    try {
-      switch (resolution) {
-        case ConflictResolution.useLocal:
-          // 使用本地版本覆盖远程
-          await _uploadData(type);
-          break;
-        case ConflictResolution.useRemote:
-          // 使用远程版本覆盖本地
-          await _downloadData(type);
-          break;
-        case ConflictResolution.merge:
-          // 合并两个版本（需要实现合并逻辑
-          await _mergeData(type);
-          break;
-      }
-      return true;
-    } catch (e) {
-      debugPrint('解决冲突异常e');
-      return false;
-    }
-  }
-
-  Future<void> _uploadData(SyncDataType type) async {
-    // 实现数据上传逻辑
-  }
-
-  Future<void> _downloadData(SyncDataType type) async {
-    // 实现数据下载逻辑
-  }
-
-  Future<void> _mergeData(SyncDataType type) async {
-    // 实现数据合并逻辑
-  }
-
-  /// 释放资源
-  void dispose() {
-    _client.close();
-  }
-}
-
-/// 冲突解决策略
-enum ConflictResolution {
-  /// 使用本地版本
-  useLocal,
-
-  /// 使用远程版本
-  useRemote,
-
-  /// 合并两个版本
-  merge,
 }
 
 /// 远程文件信息
@@ -663,6 +192,27 @@ class RemoteFileInfo {
     required this.modified,
     this.isDirectory = false,
   });
+
+  /// 从 webdav.WebDavFile 创建
+  factory RemoteFileInfo.fromWebDavFile(dynamic file) {
+    return RemoteFileInfo(
+      name: file.name ?? p.basename(file.path ?? ''),
+      size: file.size ?? 0,
+      modified: file.modified ?? DateTime(1970),
+      isDirectory: file.type == 'directory',
+    );
+  }
+
+  /// 获取格式化后的大小
+  String get formattedSize {
+    if (size < 1024) {
+      return '$size B';
+    } else if (size < 1024 * 1024) {
+      return '${(size / 1024).toStringAsFixed(1)} KB';
+    } else {
+      return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+  }
 }
 
 /// 同步结果
@@ -682,13 +232,29 @@ class SyncResult {
   /// 错误信息
   String? error;
 
+  /// 详细结果
+  Map<SyncDataType, SyncOperationResult> details;
+
   SyncResult({
     this.success = false,
     this.uploadedCount = 0,
     this.downloadedCount = 0,
     this.conflictCount = 0,
     this.error,
-  });
+    Map<SyncDataType, SyncOperationResult>? details,
+  }) : details = details ?? {};
+
+  /// 获取同步摘要
+  String get summary {
+    if (!success) {
+      return '同步失败：$error';
+    }
+    final parts = <String>[];
+    if (uploadedCount > 0) parts.add('上传 $uploadedCount 项');
+    if (downloadedCount > 0) parts.add('下载 $downloadedCount 项');
+    if (conflictCount > 0) parts.add('冲突 $conflictCount 项');
+    return parts.isEmpty ? '同步完成，无需更新' : parts.join(', ');
+  }
 
   SyncResult copyWith({
     bool? success,
@@ -696,6 +262,7 @@ class SyncResult {
     int? downloadedCount,
     int? conflictCount,
     String? error,
+    Map<SyncDataType, SyncOperationResult>? details,
   }) {
     return SyncResult(
       success: success ?? this.success,
@@ -703,6 +270,485 @@ class SyncResult {
       downloadedCount: downloadedCount ?? this.downloadedCount,
       conflictCount: conflictCount ?? this.conflictCount,
       error: error ?? this.error,
+      details: details ?? this.details,
     );
   }
+}
+
+/// 单个同步操作的结果
+class SyncOperationResult {
+  final bool success;
+  final String? error;
+  final DateTime? timestamp;
+
+  SyncOperationResult({this.success = false, this.error, this.timestamp});
+
+  factory SyncOperationResult.success() {
+    return SyncOperationResult(success: true, timestamp: DateTime.now());
+  }
+
+  factory SyncOperationResult.failure(String error) {
+    return SyncOperationResult(success: false, error: error);
+  }
+}
+
+/// WebDAV 同步服务
+///
+/// 使用 WebDavClientService 进行数据同步
+class WebDavSyncService {
+  WebDavConfig? _config;
+  WebDavClientService? _client;
+
+  /// 当前同步状态
+  final syncStatus = signal<SyncStatus>(SyncStatus.idle);
+
+  /// 同步进度 (0.0 - 1.0)
+  final syncProgress = signal<double>(0.0);
+
+  /// 最后同步时间
+  final lastSyncTime = signal<DateTime?>(null);
+
+  /// 错误信息
+  final errorMessage = signal<String?>(null);
+
+  /// 同步状态详情
+  final syncMessage = signal<String>('');
+
+  /// 当前上传进度
+  final currentUploadProgress = signal<double>(0.0);
+
+  /// 当前下载进度
+  final currentDownloadProgress = signal<double>(0.0);
+
+  /// 取消令牌
+  dynamic _cancelToken;
+
+  /// 数据目录名称
+  static const String _dataDirName = 'data';
+
+  /// 同步子目录名称
+  static const String _syncSubDirName = 'zephyr_reader';
+
+  WebDavSyncService({WebDavConfig? config, WebDavClientService? client}) {
+    if (config != null) {
+      setConfig(config);
+    }
+    _client = client;
+  }
+
+  /// 设置配置
+  void setConfig(WebDavConfig config) {
+    _config = config;
+  }
+
+  /// 获取配置
+  WebDavConfig? get config => _config;
+
+  /// 初始化客户端
+  Future<void> _initClient() async {
+    if (_config == null || !_config!.isValid) {
+      throw WebDavConfigInvalidException();
+    }
+
+    if (_client == null || !_client!.isInitialized) {
+      _client = WebDavClientService();
+      await _client!.init(
+        baseUrl: _config!.baseUrl,
+        username: _config!.username,
+        password: _config!.password,
+        debug: kDebugMode,
+      );
+    }
+  }
+
+  /// 测试连接
+  ///
+  /// 返回 true 表示连接成功
+  Future<bool> testConnection() async {
+    if (_config == null || !_config!.isValid) {
+      debugPrint('WebDAV 配置未设置或无效');
+      return false;
+    }
+
+    try {
+      await _initClient();
+      final result = await _client!.ping();
+      if (result && kDebugMode) {
+        debugPrint('WebDAV 连接测试成功');
+      }
+      return result;
+    } catch (e) {
+      debugPrint('WebDAV 连接测试异常：$e');
+      errorMessage.value = '连接异常：$e';
+      return false;
+    }
+  }
+
+  /// 同步所有数据
+  ///
+  /// [direction] 同步方向
+  /// [onProgress] 进度回调
+  /// [cancelToken] 取消令牌，用于取消同步操作
+  Future<SyncResult> syncAll({
+    SyncDirection direction = SyncDirection.both,
+    void Function(double progress)? onProgress,
+    dynamic cancelToken,
+  }) async {
+    if (_config == null || !_config!.isValid) {
+      return SyncResult(success: false, error: 'WebDAV 配置未设置');
+    }
+    CancelToken cancel = CancelToken();
+    // 创建取消令牌
+    _cancelToken = cancelToken ?? cancel;
+    syncStatus.value = SyncStatus.syncing;
+    syncProgress.value = 0.0;
+    currentUploadProgress.value = 0.0;
+    currentDownloadProgress.value = 0.0;
+    syncMessage.value = '开始同步...';
+    errorMessage.value = null;
+
+    final result = SyncResult();
+
+    try {
+      await _initClient();
+
+      // 确保远程目录存在
+      syncMessage.value = '检查远程目录...';
+      await _ensureRemoteDirectory();
+      syncProgress.value = 5.0;
+
+      // 获取所有数据类型
+      final dataTypes = SyncDataType.values;
+      final totalSteps = dataTypes.length * 2; // 每个类型需要上传和下载两步
+      var completedSteps = 0;
+
+      for (final dataType in dataTypes) {
+        // 检查取消
+        if (_cancelToken!.isCancelled) {
+          throw WebDavSyncCancelledException();
+        }
+
+        // 同步当前数据类型
+        syncMessage.value = '同步${_getDataTypeName(dataType)}...';
+        final opResult = await _syncDataType(
+          dataType,
+          direction,
+          onProgress: (progress) {
+            final baseProgress = (completedSteps / totalSteps) * 100;
+            final stepProgress = (progress / 100) * (100 / totalSteps);
+            syncProgress.value = baseProgress + stepProgress;
+            onProgress?.call(syncProgress.value / 100);
+          },
+        );
+
+        result.details[dataType] = opResult;
+
+        if (opResult.success) {
+          if (direction == SyncDirection.upload ||
+              direction == SyncDirection.both) {
+            result.uploadedCount++;
+          }
+          if (direction == SyncDirection.download ||
+              direction == SyncDirection.both) {
+            result.downloadedCount++;
+          }
+        } else {
+          result.error = opResult.error;
+        }
+
+        completedSteps += 2;
+      }
+
+      syncProgress.value = 100.0;
+      syncStatus.value = SyncStatus.success;
+      lastSyncTime.value = DateTime.now();
+      syncMessage.value = '同步完成';
+
+      result.success = result.conflictCount == 0 && result.error == null;
+      return result;
+    } catch (e) {
+      debugPrint('同步异常：$e');
+      syncStatus.value = SyncStatus.failed;
+      errorMessage.value = '同步异常：$e';
+      syncMessage.value = '同步失败';
+      return SyncResult(success: false, error: e.toString());
+    }
+  }
+
+  /// 获取数据类型名称
+  String _getDataTypeName(SyncDataType type) {
+    switch (type) {
+      case SyncDataType.readingProgress:
+        return '阅读进度';
+      case SyncDataType.bookmarks:
+        return '书签';
+      case SyncDataType.bookshelf:
+        return '书架';
+      case SyncDataType.settings:
+        return '设置';
+    }
+  }
+
+  /// 同步指定数据类型
+  Future<SyncOperationResult> _syncDataType(
+    SyncDataType type,
+    SyncDirection direction, {
+    void Function(double progress)? onProgress,
+  }) async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final localFile = File(p.join(appDir.path, _dataDirName, type.filename));
+      final remotePath = p.join(
+        _config!.remotePath,
+        _syncSubDirName,
+        type.filename,
+      );
+
+      // 上传
+      if (direction == SyncDirection.upload ||
+          direction == SyncDirection.both) {
+        if (await localFile.exists()) {
+          final uploaded = await _uploadFile(
+            localFile: localFile,
+            remotePath: remotePath,
+            onProgress: (progress) {
+              currentUploadProgress.value = progress;
+              onProgress?.call(progress * 0.5); // 上传占 50%
+            },
+          );
+          if (!uploaded) {
+            return SyncOperationResult.failure('上传失败');
+          }
+        }
+      }
+
+      // 下载
+      if (direction == SyncDirection.download ||
+          direction == SyncDirection.both) {
+        final downloaded = await _downloadFile(
+          remotePath: remotePath,
+          localFile: localFile,
+          onProgress: (progress) {
+            currentDownloadProgress.value = progress;
+            onProgress?.call(progress * 0.5); // 下载占 50%
+          },
+        );
+        if (!downloaded && direction == SyncDirection.download) {
+          return SyncOperationResult.failure('下载失败');
+        }
+      }
+
+      return SyncOperationResult.success();
+    } catch (e) {
+      debugPrint('同步数据类型 ${type.name} 异常：$e');
+      return SyncOperationResult.failure(e.toString());
+    }
+  }
+
+  /// 确保远程目录存在
+  Future<bool> _ensureRemoteDirectory() async {
+    try {
+      final remoteDir = p.join(_config!.remotePath, _syncSubDirName);
+      await _client!.mkdirAll(remoteDir, cancelToken: _cancelToken);
+      if (kDebugMode) {
+        debugPrint('远程目录已创建：$remoteDir');
+      }
+      return true;
+    } catch (e) {
+      debugPrint('创建远程目录异常：$e');
+      return false;
+    }
+  }
+
+  /// 上传文件
+  Future<bool> _uploadFile({
+    required File localFile,
+    required String remotePath,
+    void Function(double progress)? onProgress,
+  }) async {
+    try {
+      if (!await localFile.exists()) {
+        debugPrint('文件不存在：${localFile.path}');
+        return false;
+      }
+
+      await _client!.writeFromFile(
+        localFile.path,
+        remotePath,
+        onProgress: (current, total) {
+          if (total > 0) {
+            onProgress?.call(current / total * 100);
+          }
+        },
+        cancelToken: _cancelToken,
+      );
+
+      if (kDebugMode) {
+        debugPrint('文件上传成功：$remotePath');
+      }
+      return true;
+    } catch (e) {
+      debugPrint('文件上传失败：$e');
+      return false;
+    }
+  }
+
+  /// 下载文件
+  Future<bool> _downloadFile({
+    required String remotePath,
+    required File localFile,
+    void Function(double progress)? onProgress,
+  }) async {
+    try {
+      await _client!.read2File(
+        remotePath,
+        localFile.path,
+        onProgress: (current, total) {
+          if (total > 0) {
+            onProgress?.call(current / total * 100);
+          }
+        },
+        cancelToken: _cancelToken,
+      );
+
+      if (kDebugMode) {
+        debugPrint('文件下载成功：$remotePath');
+      }
+      return true;
+    } catch (e) {
+      // 文件不存在于服务器，不是错误
+      if (kDebugMode) {
+        debugPrint('文件不存在于服务器：$remotePath');
+      }
+      return false;
+    }
+  }
+
+  /// 列出远程文件
+  Future<List<RemoteFileInfo>> listRemoteFiles() async {
+    if (_config == null) {
+      throw WebDavConfigInvalidException();
+    }
+
+    try {
+      await _initClient();
+      final remoteDir = p.join(_config!.remotePath, _syncSubDirName);
+      final files = await _client!.readDir(remoteDir);
+      return files
+          .where((f) => f['type'] != 'directory')
+          .map((f) => RemoteFileInfo.fromWebDavFile(f))
+          .toList();
+    } catch (e) {
+      debugPrint('列出远程文件失败：$e');
+      return [];
+    }
+  }
+
+  /// 删除远程文件
+  Future<bool> deleteRemoteFile(String remoteName) async {
+    if (_config == null) {
+      return false;
+    }
+
+    try {
+      await _initClient();
+      final remotePath = p.join(
+        _config!.remotePath,
+        _syncSubDirName,
+        remoteName,
+      );
+      await _client!.remove(remotePath, cancelToken: _cancelToken);
+      if (kDebugMode) {
+        debugPrint('文件删除成功：$remoteName');
+      }
+      return true;
+    } catch (e) {
+      debugPrint('文件删除失败：$e');
+      return false;
+    }
+  }
+
+  /// 解决冲突
+  Future<bool> resolveConflict({
+    required SyncDataType type,
+    required ConflictResolution resolution,
+  }) async {
+    try {
+      switch (resolution) {
+        case ConflictResolution.useLocal:
+          await _uploadData(type);
+          break;
+        case ConflictResolution.useRemote:
+          await _downloadData(type);
+          break;
+        case ConflictResolution.merge:
+          await _mergeData(type);
+          break;
+      }
+      return true;
+    } catch (e) {
+      debugPrint('解决冲突异常：$e');
+      return false;
+    }
+  }
+
+  Future<void> _uploadData(SyncDataType type) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final localFile = File(p.join(appDir.path, _dataDirName, type.filename));
+    final remotePath = p.join(
+      _config!.remotePath,
+      _syncSubDirName,
+      type.filename,
+    );
+
+    if (await localFile.exists()) {
+      await _uploadFile(localFile: localFile, remotePath: remotePath);
+    }
+  }
+
+  Future<void> _downloadData(SyncDataType type) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final localFile = File(p.join(appDir.path, _dataDirName, type.filename));
+    final remotePath = p.join(
+      _config!.remotePath,
+      _syncSubDirName,
+      type.filename,
+    );
+
+    await _downloadFile(remotePath: remotePath, localFile: localFile);
+  }
+
+  Future<void> _mergeData(SyncDataType type) async {
+    // TODO: 实现数据合并逻辑
+    // 目前简单使用本地版本覆盖
+    await _uploadData(type);
+  }
+
+  /// 取消当前同步
+  void cancelSync() {
+    if (_cancelToken != null && !_cancelToken!.isCancelled) {
+      _cancelToken!.cancel('用户取消同步');
+      syncMessage.value = '同步已取消';
+      syncStatus.value = SyncStatus.idle;
+    }
+  }
+
+  /// 释放资源
+  void dispose() {
+    cancelSync();
+    _client?.dispose();
+    _client = null;
+  }
+}
+
+/// WebDAV 配置无效异常
+class WebDavConfigInvalidException implements Exception {
+  @override
+  String toString() => 'WebDAV 配置无效或未设置';
+}
+
+/// WebDAV 同步取消异常
+class WebDavSyncCancelledException implements Exception {
+  @override
+  String toString() => '同步操作已被取消';
 }

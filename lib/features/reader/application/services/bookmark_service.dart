@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
 import 'package:zephyr_reader/core/database/database.dart';
 import 'package:zephyr_reader/domain/models/bookmark.dart';
 
