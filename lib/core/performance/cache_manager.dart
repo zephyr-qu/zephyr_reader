@@ -374,6 +374,25 @@ class ChapterContentCache {
     }
     debugPrint('缓存已修剪到 $maxSize 个条目');
   }
+
+  /// 清除所有布局缓存
+  ///
+  /// 用于在阅读器设置变化时（如字体大小、行间距变化）
+  /// 清除所有已缓存的布局信息
+  Future<void> clearLayoutCache() async {
+    await _ensureInitialized();
+
+    // 清除内存缓存
+    _cache.clear();
+
+    // 清除磁盘缓存
+    if (await _cacheDir.exists()) {
+      await _cacheDir.delete(recursive: true);
+      await _cacheDir.create(recursive: true);
+    }
+
+    debugPrint('所有布局缓存已清除');
+  }
 }
 
 /// 图片缓存

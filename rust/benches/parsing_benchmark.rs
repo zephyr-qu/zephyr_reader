@@ -93,8 +93,8 @@ fn bench_typesetting(c: &mut Criterion) {
         paragraph_spacing: 1.0,
         first_line_indent: 2,
         language: rust_lib_zephyr_reader::ffi::LanguageType::Auto,
-        enable_hyphenation: todo!(),
-        hyphenation_language: todo!(),
+        enable_hyphenation: false,
+        hyphenation_language: "en".to_string(),
     };
 
     for size in [1, 5, 10].iter() {
@@ -134,8 +134,8 @@ fn bench_pagination(c: &mut Criterion) {
         paragraph_spacing: 1.0,
         first_line_indent: 2,
         language: rust_lib_zephyr_reader::ffi::LanguageType::Auto,
-        enable_hyphenation: todo!(),
-        hyphenation_language: todo!(),
+        enable_hyphenation: false,
+        hyphenation_language: "en".to_string(),
     };
 
     for size in [1, 5, 10].iter() {

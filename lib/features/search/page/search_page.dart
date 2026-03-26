@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart';
 import 'package:zephyr_reader/features/search/application/search_view_model.dart';
 import 'package:zephyr_reader/features/search/domain/search_repository.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -320,12 +322,30 @@ class _SearchPageState extends State<SearchPage> {
             child: const Text('取消'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              // TODO: 实现添加到书架的逻辑
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('已添加 ${result.title} 到书架')),
+              
+              // 添加到书架
+              final bookshelfService = GetIt.I.get<BookshelfService>();
+              final book = await bookshelfService.addBook(
+                title: result.title,
+                author: result.author,
+                filePath: result.id, // 使用搜索 ID 作为临时文件路径
+                fileFormat: 'web', // 网络源
+                totalChapters: result.totalChapters,
+                description: result.description,
+                coverPath: result.coverUrl,
               );
+              
+              if (book != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('已添加 ${result.title} 到书架')),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('添加失败，书籍可能已存在')),
+                );
+              }
             },
             child: const Text('添加到书架'),
           ),

@@ -5,7 +5,11 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:get_it/get_it.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+
+import '../../../../core/database/database.dart';
+import '../../data/reader_service.dart';
 
 /// 阅读器内容组件
 class ReaderContent extends HookWidget {
@@ -159,13 +163,32 @@ class ReaderContent extends HookWidget {
       isLoading.value = true;
       error.value = null;
 
-      // TODO: 从数据库或 Rust 引擎加载章节内容
-      // 这里使用示例数据
-      await Future.delayed(const Duration(milliseconds: 500));
+      // 从数据库或 Rust 引擎加载章节内容
+      final readerService = GetIt.I.get<ReaderService>();
+      final database = GetIt.I.get<AppDatabase>();
+      
+      // 获取章节信息 - 使用 chapterId 作为 chapterIndex
+      // 注意：这里假设 chapterId 就是 chapterIndex，如果不是需要调整
+      final chapter = await database.getChapter(0, chapterId);
+      
+      if (chapter == null) {
+        throw Exception('章节不存在');
+      }
 
-      content.value = '这是第 $chapterId 章的示例内容。\n\n' * 100;
-      totalPages.value = 10;
-      onTotalPagesChanged?.call(10);
+      // 读取章节内容文件
+      final contentText = await readerService.getChapterContent(chapter.contentFile);
+      
+      if (contentText == null || contentText.isEmpty) {
+        throw Exception('章节内容为空');
+      }
+
+      content.value = contentText;
+      
+      // 根据内容长度估算页数（简化实现）
+      const int charsPerPage = 2000;
+      final estimatedPages = (contentText.length / charsPerPage).ceil();
+      totalPages.value = estimatedPages.clamp(1, 100);
+      onTotalPagesChanged?.call(totalPages.value);
 
       isLoading.value = false;
     } catch (e) {

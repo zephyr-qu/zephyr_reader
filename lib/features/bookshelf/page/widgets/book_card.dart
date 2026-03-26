@@ -4,9 +4,11 @@ library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:zephyr_reader/domain/models/book.dart';
 
+import '../../application/services/bookshelf_service.dart';
 import '../../application/states/bookshelf_state.dart';
 
 /// 书籍卡片
@@ -435,10 +437,14 @@ class BookCard extends StatelessWidget {
 
     if (confirmed == true && controller.text.isNotEmpty) {
       // 调用服务更新书名
-      // TODO: 调用 BookshelfService.updateBookTitle
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('书名已更')));
+      final bookshelfService = GetIt.I.get<BookshelfService>();
+      final updated = await bookshelfService.updateBookTitle(book.id, controller.text);
+      
+      if (updated) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('书名已更新')));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('更新失败')));
+      }
     }
   }
 
@@ -448,7 +454,7 @@ class BookCard extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('删除书籍'),
-        content: Text('确定要删${book.title}"吗？'),
+        content: Text('确定要删除"${book.title}"吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -467,10 +473,14 @@ class BookCard extends StatelessWidget {
 
     if (confirmed == true) {
       // 调用服务删除书籍
-      // TODO: 调用 BookshelfService.deleteBook
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('书籍已删')));
+      final bookshelfService = GetIt.I.get<BookshelfService>();
+      final deleted = await bookshelfService.deleteBook(book.id);
+      
+      if (deleted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('书籍已删除')));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('删除失败')));
+      }
     }
   }
 }
