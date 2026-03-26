@@ -13,6 +13,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
@@ -22,6 +23,7 @@ import 'widgets/reader_content.dart';
 import 'widgets/reader_toolbar.dart';
 import 'widgets/reader_bottom_toolbar.dart';
 import '../../../core/database/database.dart';
+import '../../bookshelf/application/services/bookshelf_service.dart';
 
 /// 阅读模式
 enum ReadingMode {
@@ -274,31 +276,36 @@ class ReaderPageNew extends HookWidget {
     Signal<String?> error,
   ) async {
     try {
-      // TODO: 调用 BookshelfService.getBookDetail(bookId) 获取书籍信息
+      // 调用 BookshelfService 获取书籍信息
+      final bookshelfService = GetIt.I.get<BookshelfService>();
+      final book = await bookshelfService.getBookDetail(bookId);
+      
+      if (book == null) {
+        throw Exception('书籍不存在');
+      }
+
       bookInfo.value = BookInfo(
-        bookId: bookId.toString(),
-        title: '示例书籍',
-        author: '作者',
-        chapterCount: 10,
-        totalCharacters: 100000,
-        filePath: '/path/to/book.txt',
-        fileType: 'txt',
-        coverPath: null,
+        bookId: book.id.toString(),
+        title: book.title,
+        author: book.author,
+        chapterCount: book.totalChapters,
+        totalCharacters: book.totalCharacters,
+        filePath: book.filePath,
+        fileType: book.fileType,
+        coverPath: book.coverPath,
       );
 
       // 加载章节列表
-      // TODO: 调用 BookshelfService.getBookChapters(bookId) 获取章节列表
-      chapters.value = List.generate(
-        10,
-        (index) => ChapterInfo(
-          chapterId: index,
-          title: '第 ${index + 1} 章',
-          startIndex: index * 10000,
-          endIndex: (index + 1) * 10000,
-          contentLength: 10000,
-          index: index,
-        ),
-      );
+      final chapterList = await bookshelfService.getBookChapters(bookId);
+      
+      chapters.value = chapterList.map((c) => ChapterInfo(
+        chapterId: c.id,
+        title: c.title,
+        startIndex: 0,
+        endIndex: 0,
+        contentLength: c.wordCount,
+        index: c.chapterIndex,
+      )).toList();
 
       isLoading.value = false;
     } catch (e) {

@@ -288,6 +288,33 @@ class BookshelfService {
     return deletedCount;
   }
 
+  /// 更新书籍标题
+  Future<bool> updateBookTitle(int bookId, String newTitle) async {
+    try {
+      await (_dataSource.database.update(
+        _dataSource.database.dbBooks,
+      )..where((tbl) => tbl.id.equals(bookId))).write(
+        DbBooksCompanion(
+          title: Value(newTitle),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+      // 更新状态
+      final books = _state.books.value;
+      final index = books.indexWhere((b) => b.id == bookId);
+      if (index != -1) {
+        final updatedBook = books[index].copyWith(title: newTitle);
+        _state.updateBook(updatedBook);
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('BookshelfService.updateBookTitle error: $e');
+      return false;
+    }
+  }
+
   /// 更新书籍阅读状
   Future<bool> updateBookStatus(int bookId, String status) async {
     try {

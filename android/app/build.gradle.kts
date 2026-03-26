@@ -20,8 +20,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.flutter_app"
+        // Application ID for Zephyr Reader
+        applicationId = "com.zephyr.reader"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -37,9 +37,21 @@ android {
             }
         }
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Signing configuration for release build
+            // Note: Replace with your own keystore and credentials for production
             signingConfig = signingConfigs.getByName("debug")
+            // TODO: Configure production signing
+            // signingConfig = signingConfigs.getByName("release")
+        }
+    }
+    
+    signingConfigs {
+        create("release") {
+            // Use debug signing for now, replace with production keystore
+            // storeFile = file("release-key.keystore")
+            // storePassword = "your-password"
+            // keyAlias = "your-alias"
+            // keyPassword = "your-key-password"
         }
     }
 }
