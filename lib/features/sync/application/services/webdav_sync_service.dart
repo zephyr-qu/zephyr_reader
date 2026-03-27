@@ -19,7 +19,15 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
+import '../../../../shared/utils/logging.dart';
 import 'webdav_client_service.dart';
+
+/// WebDAV 文件信息
+class WebDavFileInfo {
+  final DateTime modified;
+
+  WebDavFileInfo({required this.modified});
+}
 
 /// WebDAV 配置
 ///
@@ -719,9 +727,91 @@ class WebDavSyncService {
   }
 
   Future<void> _mergeData(SyncDataType type) async {
-    // TODO: 实现数据合并逻辑
-    // 目前简单使用本地版本覆盖
-    await _uploadData(type);
+    // 数据合并逻辑：比较本地和远程版本的时间戳
+    // 使用较新的版本覆盖较旧的版本
+    
+    final appDir = await getApplicationDocumentsDirectory();
+    final localFile = File(p.join(appDir.path, _dataDirName, type.filename));
+    final remotePath = p.join(
+      _config!.remotePath,
+      _syncSubDirName,
+      type.filename,
+    );
+
+    // 检查本地和远程文件是否存在
+    final localExists = await localFile.exists();
+    final remoteExists = await _fileExists(remotePath);
+
+    if (!localExists && !remoteExists) {
+      // 都不存在，无需合并
+      return;
+    }
+
+    if (!localExists) {
+      // 仅远程存在，下载
+      await _downloadFile(remotePath: remotePath, localFile: localFile);
+      return;
+    }
+
+    if (!remoteExists) {
+      // 仅本地存在，上传
+      await _uploadData(type);
+      return;
+    }
+
+    // 两个都存在，比较修改时间
+    final localStat = await localFile.stat();
+    final localModified = localStat.modified;
+
+    final remoteInfo = await _getFileInfo(remotePath);
+    final remoteModified = remoteInfo?.modified ?? DateTime(1970);
+
+    if (localModified.isAfter(remoteModified)) {
+      // 本地更新，上传
+      await _uploadData(type);
+    } else if (remoteModified.isAfter(localModified)) {
+      // 远程更新，下载
+      await _downloadFile(remotePath: remotePath, localFile: localFile);
+    }
+    // 时间相同，无需操作
+  }
+
+  /// 获取远程文件信息
+  Future<WebDavFileInfo?> _getFileInfo(String remotePath) async {
+    try {
+      if (_client == null) return null;
+      
+      // 使用 readDir 检查文件是否存在并获取信息
+      final parentDir = p.dirname(remotePath);
+      final fileName = p.basename(remotePath);
+      
+      final entries = await _client!.readDir(parentDir);
+      for (final entry in entries) {
+        if (entry.name == fileName) {
+          final modified = entry.modified ?? DateTime(1970);
+          return WebDavFileInfo(modified: modified);
+        }
+      }
+    } catch (e) {
+      Logging.debug('获取远程文件信息失败：$e');
+    }
+    return null;
+  }
+
+  /// 检查远程文件是否存在
+  Future<bool> _fileExists(String remotePath) async {
+    try {
+      if (_client == null) return false;
+      
+      // 使用 readDir 检查文件是否存在
+      final parentDir = p.dirname(remotePath);
+      final fileName = p.basename(remotePath);
+      
+      final entries = await _client!.readDir(parentDir);
+      return entries.any((entry) => entry.name == fileName);
+    } catch (e) {
+      return false;
+    }
   }
 
   /// 取消当前同步
