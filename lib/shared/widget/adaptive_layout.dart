@@ -3,28 +3,28 @@ import 'package:flutter/material.dart';
 /// 布局断点定义
 /// 参数参考自 Material Design 响应式布局规范
 class LayoutBreakpoints {
-  /// 手机-600dp
+  /// 手机：< 600dp
   static const double phoneMax = 600;
 
-  /// 平板00-840dp
+  /// 平板：600-840dp
   static const double tabletMin = 600;
   static const double tabletMax = 840;
 
-  /// 桌面 840dp
+  /// 桌面：> 840dp
   static const double desktopMin = 840;
 
-  /// 判断是否为手
+  /// 判断是否为手机
   static bool isPhone(BuildContext context) {
     return MediaQuery.of(context).size.width < phoneMax;
   }
 
-  /// 判断是否为平
+  /// 判断是否为平板
   static bool isTablet(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     return width >= tabletMin && width < desktopMin;
   }
 
-  /// 判断是否为桌大屏
+  /// 判断是否为桌面/大屏
   static bool isDesktop(BuildContext context) {
     return MediaQuery.of(context).size.width >= desktopMin;
   }
@@ -87,8 +87,7 @@ enum DeviceType { phone, tablet, desktop }
 
 /// 自适应布局助手
 class AdaptiveLayout {
-  /// 根据设备类型返回不同
-  /// Widget
+  /// 根据设备类型返回不同的 Widget
   static Widget buildForDevice({
     required BuildContext context,
     required Widget Function(BuildContext context, DeviceType type) builder,

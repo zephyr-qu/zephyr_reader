@@ -1,21 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:zephyr_reader/features/article/page/article_detail_page.dart';
 import 'package:zephyr_reader/features/article/page/article_list_page.dart';
 import 'package:zephyr_reader/features/auth/page/login_page.dart';
 import 'package:zephyr_reader/features/bookshelf/page/book_detail_page.dart';
 import 'package:zephyr_reader/features/bookshelf/page/bookshelf_page.dart';
-import 'package:zephyr_reader/features/home/page/main_page.dart';
+import 'package:zephyr_reader/features/home/page/home_page.dart';
+import 'package:zephyr_reader/features/home/page/splash_page.dart';
+import 'package:zephyr_reader/features/main_layout.dart';
 import 'package:zephyr_reader/features/profile/page/profile_page.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page_new.dart';
 import 'package:zephyr_reader/features/search/page/search_page.dart';
-import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/features/statistics/page/statistics_page.dart';
 
 final isAuthenticated = signal<bool>(false, autoDispose: true);
 void login() => isAuthenticated.value = true;
 void logout() => isAuthenticated.value = false;
 
-final _protectedPaths = {RoutePaths.home};
+final _protectedPaths = {
+  RoutePaths.home,
+  RoutePaths.bookshelf,
+  RoutePaths.statistics,
+  RoutePaths.profile,
+};
 
 final router = GoRouter(
   initialLocation: RoutePaths.splash,
@@ -24,10 +33,15 @@ final router = GoRouter(
 
   redirect: (context, state) {
     final location = state.uri.path;
-    final isLoggedIn = isAuthenticated.value;
+    // final isLoggedIn = isAuthenticated.value;
+    final isLoggedIn = true;
 
-    if (isLoggedIn && location == RoutePaths.login) return RoutePaths.home;
+    // 已登录时访问登录页，重定向到首页
+    if (isLoggedIn && location == RoutePaths.login) {
+      return RoutePaths.home;
+    }
 
+    // 未登录时访问受保护路径，重定向到登录页
     if (!isLoggedIn && _protectedPaths.contains(location)) {
       return RoutePaths.login;
     }
@@ -35,46 +49,71 @@ final router = GoRouter(
   },
 
   routes: [
+    // 登录页面（独立页面，不使用 MainLayout）
     GoRoute(
       name: RouteNames.login,
       path: RoutePaths.login,
       builder: (_, _) => const LoginPage(),
     ),
-    GoRoute(
-      name: RouteNames.home,
-      path: RoutePaths.home,
-      builder: (_, _) => MainPage(child: Container()),
+
+    // 使用 ShellRoute 包装主布局，实现底部导航栏/侧边导航栏
+    ShellRoute(
+      builder: (context, state, child) => MainLayout(child: child),
+      routes: [
+        // 首页路由
+        GoRoute(
+          name: RouteNames.home,
+          path: RoutePaths.home,
+          builder: (_, _) => const HomePage(),
+        ),
+
+        // 书架相关路由
+        GoRoute(
+          name: RouteNames.bookshelf,
+          path: RoutePaths.bookshelf,
+          builder: (_, _) => const BookshelfPage(),
+        ),
+        GoRoute(
+          name: RouteNames.bookDetail,
+          path: RoutePaths.bookDetail,
+          builder: (_, state) {
+            final id = int.parse(state.pathParameters['id'] ?? '0');
+            return BookDetailPage(bookId: id);
+          },
+        ),
+
+        // 统计页面路由
+        GoRoute(
+          name: RouteNames.statistics,
+          path: RoutePaths.statistics,
+          builder: (_, _) => const StatisticsPage(),
+        ),
+
+        // 个人中心路由
+        GoRoute(
+          name: RouteNames.profile,
+          path: RoutePaths.profile,
+          builder: (_, _) => ProfilePage(),
+        ),
+
+        // 文章列表路由
+        GoRoute(
+          name: RouteNames.articles,
+          path: RoutePaths.articles,
+          builder: (_, _) => ArticleListPage(),
+        ),
+        GoRoute(
+          name: RouteNames.articleDetail,
+          path: RoutePaths.articleDetail,
+          builder: (_, state) {
+            final id = int.parse(state.pathParameters['id'] ?? '0');
+            return ArticleDetailPage(articleId: id);
+          },
+        ),
+      ],
     ),
-    GoRoute(
-      name: RouteNames.splash,
-      path: RoutePaths.splash,
-      builder: (_, _) => MainPage(child: Container()),
-    ),
-    GoRoute(
-      name: RouteNames.profile,
-      path: RoutePaths.profile,
-      builder: (_, _) => ProfilePage(),
-    ),
-    GoRoute(
-      name: RouteNames.articles,
-      path: RoutePaths.articles,
-      builder: (_, _) => ArticleListPage(),
-    ),
-    // 书架相关路由
-    GoRoute(
-      name: RouteNames.bookshelf,
-      path: RoutePaths.bookshelf,
-      builder: (_, _) => const BookshelfPage(),
-    ),
-    GoRoute(
-      name: RouteNames.bookDetail,
-      path: RoutePaths.bookDetail,
-      builder: (_, state) {
-        final id =  int.parse(state.pathParameters['id'] ?? '0');
-        return BookDetailPage(bookId: id);
-      },
-    ),
-    // 阅读器路由
+
+    // 阅读器路由（独立页面，不使用 MainLayout）
     GoRoute(
       name: RouteNames.reader,
       path: RoutePaths.reader,
@@ -88,17 +127,26 @@ final router = GoRouter(
         );
       },
     ),
-    // 搜索路由
+
+    // 搜索路由（独立页面，不使用 MainLayout）
     GoRoute(
       name: RouteNames.search,
       path: RoutePaths.search,
       builder: (_, _) => const SearchPage(),
     ),
-    // 设置路由
+
+    // 设置路由（独立页面，不使用 MainLayout）
     GoRoute(
       name: RouteNames.settings,
       path: RoutePaths.settings,
       builder: (_, _) => const SettingsPage(),
+    ),
+
+    // Splash 页面（独立页面，不使用 MainLayout）
+    GoRoute(
+      name: RouteNames.splash,
+      path: RoutePaths.splash,
+      builder: (_, _) => const SplashPage(),
     ),
   ],
 
