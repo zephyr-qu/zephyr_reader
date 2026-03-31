@@ -12,6 +12,8 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/battery/battery_state_service.dart';
+import 'package:zephyr_reader/core/network/network_state_service.dart';
 
 import 'enhanced_webdav_sync_service.dart' hide SyncOperation;
 import 'webdav_client_service.dart';
@@ -775,15 +777,20 @@ class AdvancedWebDavSyncService {
 
     // 检查网络条件
     if (config.onlyOnWifi) {
-      // TODO: 检查是否为 WiFi 网络
-      // 这里需要 platform_channel 调用原生代码获取网络状态
-      return;
+      final isWifi = await NetworkStateService().isOnWifi();
+      if (!isWifi) {
+        debugPrint('定时同步跳过：非 WiFi 网络');
+        return;
+      }
     }
 
     // 检查充电状态
     if (config.requireCharging) {
-      // TODO: 检查是否正在充电
-      return;
+      final isCharging = await BatteryStateService().isCharging();
+      if (!isCharging) {
+        debugPrint('定时同步跳过：设备未充电');
+        return;
+      }
     }
 
     try {

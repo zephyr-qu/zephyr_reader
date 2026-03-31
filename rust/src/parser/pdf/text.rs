@@ -36,7 +36,7 @@ pub fn get_pdf_page_text(file_path: &str, page_index: usize) -> ApiResult<String
         )));
     }
 
-    let page = doc
+    let _page = doc
         .get_page(page_index as u32)
         .map_err(|e| ParserError::PageExtractError(format!("获取页面失败：{}", e)))?;
 
@@ -153,10 +153,8 @@ mod tests {
     fn test_get_pdf_page_text_file_not_found() {
         let result = get_pdf_page_text("non_existent.pdf", 0);
         assert!(result.is_err());
-        match result.unwrap_err() {
-            ParserError::FileNotFound { .. } => (),
-            _ => panic!("Expected FileNotFound error"),
-        }
+        let err = result.unwrap_err();
+        assert!(matches!(err, ParserError::FileNotFound { .. }), "Expected FileNotFound error, got: {:?}", err);
     }
 
     #[test]

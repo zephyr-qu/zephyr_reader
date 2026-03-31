@@ -234,19 +234,15 @@ mod tests {
     fn test_validate_file_path_with_context_not_found() {
         let result = validate_file_path_with_context("non_existent_file.txt");
         assert!(result.is_err());
-        match result.unwrap_err() {
-            ParserError::FileNotFound { .. } => (),
-            _ => panic!("Expected FileNotFound error"),
-        }
+        let err = result.unwrap_err();
+        assert!(matches!(err, ParserError::FileNotFound { .. }), "Expected FileNotFound error, got: {:?}", err);
     }
 
     #[test]
     fn test_read_file_with_context_not_found() {
         let result = read_file_with_context("non_existent_file.txt");
         assert!(result.is_err());
-        match result.unwrap_err() {
-            ParserError::FileReadError { .. } => (),
-            _ => panic!("Expected FileReadError"),
-        }
+        let err = result.unwrap_err();
+        assert!(matches!(err, ParserError::FileReadError { .. }), "Expected FileReadError, got: {:?}", err);
     }
 }

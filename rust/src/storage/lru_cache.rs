@@ -166,6 +166,7 @@ impl<K: Eq + Hash + Clone, V> LruCache<K, V> {
     }
 
     /// 更新条目的访问顺序（移到队尾）
+    #[allow(dead_code)]
     fn touch(&mut self, key: &K) {
         if let Some(pos) = self.order.iter().position(|k| k == key) {
             self.order.remove(pos);
@@ -213,6 +214,7 @@ pub struct CacheStats {
 /// 带过期时间的 LRU 缓存
 pub struct ExpiringLruCache<K, V> {
     inner: LruCache<K, V>,
+    #[allow(dead_code)]
     default_ttl: Duration,
 }
 

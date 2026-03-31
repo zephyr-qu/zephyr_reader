@@ -178,10 +178,8 @@ mod tests {
     fn test_parse_pdf_file_not_found() {
         let result = parse_pdf("non_existent.pdf".to_string());
         assert!(result.is_err());
-        match result.unwrap_err() {
-            ParserError::FileNotFound { .. } => (),
-            _ => panic!("Expected FileNotFound error"),
-        }
+        let err = result.unwrap_err();
+        assert!(matches!(err, ParserError::FileNotFound { .. }), "Expected FileNotFound error, got: {:?}", err);
     }
 
     #[test]

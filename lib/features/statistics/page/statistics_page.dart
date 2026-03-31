@@ -1,6 +1,5 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
 import 'package:zephyr_reader/shared/widget/ui_components.dart';
 
@@ -29,10 +28,10 @@ class StatisticsPage extends StatelessWidget {
                   // 刷新统计数据
                 },
                 tooltip: '刷新',
-              ).animate().fadeIn(delay: 200.ms, duration: 300.ms),
+              ),
               const SizedBox(width: 8),
             ],
-          ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0),
+          ),
           SliverToBoxAdapter(
             child: Padding(
               padding: pagePadding,
@@ -57,39 +56,22 @@ class StatisticsPage extends StatelessWidget {
   List<Widget> _buildPhoneLayout(BuildContext context, ThemeData theme) {
     return [
       // 总览卡片
-      _buildOverviewCard(
-        context,
-      ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
+      _buildOverviewCard(context),
       SizedBox(height: LayoutBreakpoints.getSpacing(context)),
       // 阅读时长趋势
-      _buildSectionHeader(
-        context,
-        '阅读时长趋势',
-      ).animate().fadeIn(delay: 100.ms, duration: 500.ms),
+      _buildSectionHeader(context, '阅读时长趋势'),
       SizedBox(height: LayoutBreakpoints.getSpacing(context) / 2),
-      _buildReadingTimeChart(
-        context,
-      ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+      _buildReadingTimeChart(context),
       SizedBox(height: LayoutBreakpoints.getSpacing(context)),
       // 书籍分类统计
-      _buildSectionHeader(
-        context,
-        '书籍分类',
-      ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
+      _buildSectionHeader(context, '书籍分类'),
       SizedBox(height: LayoutBreakpoints.getSpacing(context) / 2),
-      _buildCategoryStats(
-        context,
-      ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
+      _buildCategoryStats(context),
       SizedBox(height: LayoutBreakpoints.getSpacing(context)),
       // 详细统计
-      _buildSectionHeader(
-        context,
-        '详细统计',
-      ).animate().fadeIn(delay: 500.ms, duration: 500.ms),
+      _buildSectionHeader(context, '详细统计'),
       SizedBox(height: LayoutBreakpoints.getSpacing(context) / 2),
-      _buildDetailedStats(
-        context,
-      ).animate().fadeIn(delay: 600.ms, duration: 500.ms),
+      _buildDetailedStats(context),
     ];
   }
 
@@ -107,18 +89,11 @@ class StatisticsPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildOverviewCard(
-                  context,
-                ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
+                _buildOverviewCard(context),
                 SizedBox(height: spacing),
-                _buildSectionHeader(
-                  context,
-                  '阅读时长趋势',
-                ).animate().fadeIn(delay: 100.ms, duration: 500.ms),
+                _buildSectionHeader(context, '阅读时长趋势'),
                 SizedBox(height: spacing / 2),
-                _buildReadingTimeChart(
-                  context,
-                ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+                _buildReadingTimeChart(context),
               ],
             ),
           ),
@@ -129,18 +104,11 @@ class StatisticsPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildCategoryStats(
-                  context,
-                ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
+                _buildCategoryStats(context),
                 SizedBox(height: spacing),
-                _buildSectionHeader(
-                  context,
-                  '详细统计',
-                ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
+                _buildSectionHeader(context, '详细统计'),
                 SizedBox(height: spacing / 2),
-                _buildDetailedStats(
-                  context,
-                ).animate().fadeIn(delay: 500.ms, duration: 500.ms),
+                _buildDetailedStats(context),
               ],
             ),
           ),
@@ -351,7 +319,7 @@ class StatisticsPage extends StatelessWidget {
                     _buildBarGroup(6, 4, theme),
                   ],
                 ),
-              ).animate().fadeIn(duration: 800.ms).slideY(begin: 0.1, end: 0),
+              ),
             ),
           ],
         ),
@@ -403,28 +371,21 @@ class StatisticsPage extends StatelessWidget {
               child: Stack(
                 children: [
                   PieChart(
-                        PieChartData(
-                          sections: categories.asMap().entries.map((entry) {
-                            final category = entry.value;
-                            return PieChartSectionData(
-                              value: (category['count'] as int).toDouble(),
-                              title: '',
-                              color: category['color'] as Color,
-                              radius: pieRadius,
-                              titleStyle: const TextStyle(fontSize: 0),
-                            );
-                          }).toList(),
-                          sectionsSpace: 3,
-                          centerSpaceRadius: centerSpaceRadius,
-                        ),
-                      )
-                      .animate()
-                      .fadeIn(duration: 800.ms)
-                      .scale(
-                        begin: const Offset(0.8, 0.8),
-                        end: const Offset(1, 1),
-                        curve: Curves.easeOutBack,
-                      ),
+                    PieChartData(
+                      sections: categories.asMap().entries.map((entry) {
+                        final category = entry.value;
+                        return PieChartSectionData(
+                          value: (category['count'] as int).toDouble(),
+                          title: '',
+                          color: category['color'] as Color,
+                          radius: pieRadius,
+                          titleStyle: const TextStyle(fontSize: 0),
+                        );
+                      }).toList(),
+                      sectionsSpace: 3,
+                      centerSpaceRadius: centerSpaceRadius,
+                    ),
+                  ),
                   // 中心文字
                   Center(
                     child: Column(

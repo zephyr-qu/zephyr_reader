@@ -400,7 +400,7 @@ mod tests {
 
     #[test]
     fn test_incremental_parser_needs_reparse() {
-        let mut parser = IncrementalParser::new();
+        let parser = IncrementalParser::new();
 
         // 首次应该需要解析
         assert!(parser.needs_reparse("non_existent.txt"));
