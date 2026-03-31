@@ -19,12 +19,12 @@ final isAuthenticated = signal<bool>(false, autoDispose: true);
 void login() => isAuthenticated.value = true;
 void logout() => isAuthenticated.value = false;
 
-final _protectedPaths = {
-  RoutePaths.home,
-  RoutePaths.bookshelf,
-  RoutePaths.statistics,
-  RoutePaths.profile,
-};
+// final _protectedPaths = {
+//   RoutePaths.home,
+//   RoutePaths.bookshelf,
+//   RoutePaths.statistics,
+//   RoutePaths.profile,
+// };
 
 final router = GoRouter(
   initialLocation: RoutePaths.splash,
@@ -42,9 +42,9 @@ final router = GoRouter(
     }
 
     // 未登录时访问受保护路径，重定向到登录页
-    if (!isLoggedIn && _protectedPaths.contains(location)) {
-      return RoutePaths.login;
-    }
+    // if (!isLoggedIn && _protectedPaths.contains(location)) {
+    //   return RoutePaths.login;
+    // }
     return null;
   },
 

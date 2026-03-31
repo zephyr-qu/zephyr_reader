@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/features/bookshelf/page/bookshelf_page.dart';
@@ -12,28 +13,28 @@ enum BottomNavItem {
   home(
     label: '首页',
     icon: Icons.home_outlined,
-    activeIcon: Icons.home,
+    activeIcon: Icons.home_rounded,
     route: RoutePaths.home,
     routeName: RouteNames.home,
   ),
   bookshelf(
     label: '书籍',
     icon: Icons.book_outlined,
-    activeIcon: Icons.book,
+    activeIcon: Icons.book_rounded,
     route: RoutePaths.bookshelf,
     routeName: RouteNames.bookshelf,
   ),
   statistics(
     label: '统计',
     icon: Icons.bar_chart_outlined,
-    activeIcon: Icons.bar_chart,
+    activeIcon: Icons.bar_chart_rounded,
     route: RoutePaths.statistics,
     routeName: RouteNames.statistics,
   ),
   profile(
     label: '我的',
     icon: Icons.person_outline,
-    activeIcon: Icons.person,
+    activeIcon: Icons.person_rounded,
     route: RoutePaths.profile,
     routeName: RouteNames.profile,
   );
@@ -54,29 +55,24 @@ enum BottomNavItem {
 
   /// 检查路由是否匹配（支持子路由）
   bool matchesRoute(String currentRoute) {
-    // 移除查询参数
     final normalizedRoute = currentRoute.split('?').first;
 
     if (this == BottomNavItem.bookshelf) {
-      // 书籍详情页也高亮书籍标签
       return normalizedRoute == route || normalizedRoute.startsWith('/books/');
     }
     if (this == BottomNavItem.statistics) {
-      // 统计相关路由
-      return normalizedRoute == route || normalizedRoute.startsWith('/statistics/');
+      return normalizedRoute == route ||
+          normalizedRoute.startsWith('/statistics/');
     }
     if (this == BottomNavItem.profile) {
-      // 个人中心相关路由
-      return normalizedRoute == route || normalizedRoute.startsWith('/profile/');
+      return normalizedRoute == route ||
+          normalizedRoute.startsWith('/profile/');
     }
     return normalizedRoute == route;
   }
 }
 
 /// 带自适应导航栏的主布局
-/// - 手机：NavigationBar 底部导航
-/// - 平板：NavigationRail 左侧导航
-/// - 桌面：NavigationRail 扩展模式
 class MainLayout extends StatefulWidget {
   final Widget child;
 
@@ -95,133 +91,274 @@ class _MainLayoutState extends State<MainLayout> {
         deviceType == DeviceType.tablet || deviceType == DeviceType.desktop;
     final theme = Theme.of(context);
 
-    // 计算当前选中的索引（不存储状态，直接计算）
     final currentIndex = _calculateSelectedIndex(currentRoute);
 
     if (isTabletOrDesktop) {
-      // 平板/桌面：使用 NavigationRail 侧边栏布局
       return Scaffold(
         body: Row(
           children: [
-            NavigationRail(
-              extended: deviceType == DeviceType.desktop,
-              minWidth: 80,
-              selectedIndex: currentIndex,
-              groupAlignment: 0.0,
-              labelType: deviceType == DeviceType.desktop
-                  ? NavigationRailLabelType.all
-                  : NavigationRailLabelType.none,
-              onDestinationSelected: (index) {
-                final navItem = BottomNavItem.values[index];
-                context.go(navItem.route);
-              },
-              leading: _buildRailLeading(context, deviceType),
-              destinations: BottomNavItem.values.map((navItem) {
-                return NavigationRailDestination(
-                  icon: _buildNavIcon(
-                    icon: navItem.icon,
-                    activeIcon: navItem.activeIcon,
-                    isSelected: BottomNavItem.values.indexOf(navItem) == currentIndex,
-                    theme: theme,
-                  ),
-                  label: Text(navItem.label),
-                );
-              }).toList(),
-            ),
+            _buildSideBar(context, deviceType, currentIndex, theme),
             VerticalDivider(
               thickness: 1,
               width: 1,
-              color: theme.colorScheme.outlineVariant,
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
             ),
-            Expanded(child: widget.child),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: widget.child,
+              ),
+            ),
           ],
         ),
       );
     } else {
-      // 手机：使用 NavigationBar 底部导航
       return Scaffold(
-        body: widget.child,
+        body: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: widget.child,
+        ),
         extendBody: true,
-        bottomNavigationBar: _buildBottomNavigationBar(context, currentIndex, theme),
+        bottomNavigationBar: _buildBottomNavigationBar(
+          context,
+          currentIndex,
+          theme,
+        ),
       );
     }
   }
 
-  /// 计算当前选中的索引
-  int _calculateSelectedIndex(String currentRoute) {
-    for (var i = 0; i < BottomNavItem.values.length; i++) {
-      if (BottomNavItem.values[i].matchesRoute(currentRoute)) {
-        return i;
-      }
-    }
-    return 0; // 默认首页
+  Widget _buildSideBar(
+    BuildContext context,
+    DeviceType deviceType,
+    int currentIndex,
+    ThemeData theme,
+  ) {
+    final isExtended = deviceType == DeviceType.desktop;
+
+    return Container(
+      width: isExtended ? 220 : 80,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(2, 0),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            _buildLogo(context, deviceType, theme),
+            const SizedBox(height: 24),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: BottomNavItem.values.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final navItem = entry.value;
+                  return _buildRailDestination(
+                    context,
+                    navItem,
+                    index,
+                    currentIndex,
+                    theme,
+                    isExtended,
+                  );
+                }).toList(),
+              ),
+            ),
+            _buildBottomActions(context, theme, isExtended),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.05, end: 0);
   }
 
-  /// 构建 NavigationRail 的 Leading 区域
-  Widget _buildRailLeading(BuildContext context, DeviceType deviceType) {
-    final theme = Theme.of(context);
+  Widget _buildLogo(
+    BuildContext context,
+    DeviceType deviceType,
+    ThemeData theme,
+  ) {
+    final isExtended = deviceType == DeviceType.desktop;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              theme.colorScheme.primary,
-              theme.colorScheme.primary.withValues(alpha: 0.7),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.auto_stories,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primary,
+                  theme.colorScheme.secondary,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.auto_stories_rounded,
               color: Colors.white,
               size: 24,
             ),
-            if (deviceType == DeviceType.desktop) ...[
-              const SizedBox(width: 8),
+          ),
+          if (isExtended) ...[
+            const SizedBox(width: 12),
+            Text(
+              'Zephyr',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRailDestination(
+    BuildContext context,
+    BottomNavItem navItem,
+    int index,
+    int currentIndex,
+    ThemeData theme,
+    bool isExtended,
+  ) {
+    final isSelected = index == currentIndex;
+
+    return GestureDetector(
+      onTap: () => context.go(navItem.route),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: EdgeInsets.symmetric(
+          horizontal: isExtended ? 16 : 0,
+          vertical: 12,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? theme.colorScheme.primaryContainer
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            SizedBox(width: isExtended ? 0 : 28),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                isSelected ? navItem.activeIcon : navItem.icon,
+                color: isSelected
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurfaceVariant,
+                size: 22,
+              ),
+            ),
+            if (isExtended) ...[
+              const SizedBox(width: 12),
               Text(
-                'Zephyr',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  letterSpacing: -0.5,
+                navItem.label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: isSelected
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
             ],
+            if (isExtended) const Spacer(),
+            if (isExtended && isSelected)
+              Container(
+                width: 4,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  /// 构建导航图标
-  Widget _buildNavIcon({
-    required IconData icon,
-    required IconData activeIcon,
-    required bool isSelected,
-    required ThemeData theme,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: isSelected ? theme.colorScheme.primaryContainer : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Icon(
-        isSelected ? activeIcon : icon,
-        color: isSelected ? theme.colorScheme.primary : null,
+  Widget _buildBottomActions(
+    BuildContext context,
+    ThemeData theme,
+    bool isExtended,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('设置功能开发中')));
+              },
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.settings_outlined,
+                  color: theme.colorScheme.onSurfaceVariant,
+                  size: 22,
+                ),
+              ),
+            ),
+          ),
+          if (isExtended) const SizedBox(width: 12),
+          if (isExtended)
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('通知功能开发中')));
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.notifications_outlined,
+                    color: theme.colorScheme.onSurfaceVariant,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 
-  /// 构建底部导航栏
   Widget _buildBottomNavigationBar(
     BuildContext context,
     int currentIndex,
@@ -229,42 +366,83 @@ class _MainLayoutState extends State<MainLayout> {
   ) {
     return Container(
       decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
         ],
       ),
-      child: NavigationBar(
-        height: 72,
-        selectedIndex: currentIndex,
-        elevation: 0,
-        shadowColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-        onDestinationSelected: (index) {
-          final navItem = BottomNavItem.values[index];
-          context.go(navItem.route);
-        },
-        destinations: BottomNavItem.values.map((navItem) {
-          return NavigationDestination(
-            icon: _buildNavIcon(
-              icon: navItem.icon,
-              activeIcon: navItem.activeIcon,
-              isSelected: BottomNavItem.values.indexOf(navItem) == currentIndex,
-              theme: theme,
-            ),
-            selectedIcon: _buildNavIcon(
-              icon: navItem.icon,
-              activeIcon: navItem.activeIcon,
-              isSelected: true,
-              theme: theme,
-            ),
-            label: navItem.label,
-          );
-        }).toList(),
+      child: SafeArea(
+        child: NavigationBar(
+          height: 72,
+          selectedIndex: currentIndex,
+          elevation: 0,
+          indicatorColor: Colors.transparent,
+          indicatorShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          onDestinationSelected: (index) {
+            context.go(BottomNavItem.values[index].route);
+          },
+          destinations: BottomNavItem.values.map((navItem) {
+            return NavigationDestination(
+              icon: _buildNavIcon(
+                context,
+                navItem.icon,
+                navItem.activeIcon,
+                false,
+                theme,
+              ),
+              selectedIcon: _buildNavIcon(
+                context,
+                navItem.icon,
+                navItem.activeIcon,
+                true,
+                theme,
+              ),
+              label: navItem.label,
+            );
+          }).toList(),
+        ),
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
+  }
+
+  Widget _buildNavIcon(
+    BuildContext context,
+    IconData icon,
+    IconData activeIcon,
+    bool isSelected,
+    ThemeData theme,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? theme.colorScheme.primaryContainer
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(
+        isSelected ? activeIcon : icon,
+        color: isSelected
+            ? theme.colorScheme.primary
+            : theme.colorScheme.onSurfaceVariant,
+        size: 22,
       ),
     );
+  }
+
+  int _calculateSelectedIndex(String currentRoute) {
+    for (var i = 0; i < BottomNavItem.values.length; i++) {
+      if (BottomNavItem.values[i].matchesRoute(currentRoute)) {
+        return i;
+      }
+    }
+    return 0;
   }
 }
 
@@ -278,7 +456,6 @@ class MainContainerPage extends StatelessWidget {
       builder: (context, constraints) {
         final currentRoute = GoRouterState.of(context).uri.path;
 
-        // 根据当前路由返回对应的页面
         return switch (currentRoute) {
           RoutePaths.home => const HomePage(),
           RoutePaths.bookshelf => const BookshelfPage(),

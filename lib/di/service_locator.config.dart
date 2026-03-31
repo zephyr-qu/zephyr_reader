@@ -99,9 +99,7 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i790.BookshelfViewModel(gh<_i208.BookshelfRepository>()),
     );
     gh.factory<_i569.ArticleApi>(() => _i569.ArticleApi(gh<_i361.Dio>()));
-    gh.factory<_i60.AuthApi>(
-      () => _i60.AuthApi(gh<_i361.Dio>()),
-    );
+    gh.factory<_i60.AuthApi>(() => _i60.AuthApi(gh<_i361.Dio>()));
     gh.lazySingleton<_i304.AuthRepository>(
       () => _i738.AuthService(gh<_i60.AuthApi>()),
     );

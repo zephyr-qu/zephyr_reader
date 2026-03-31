@@ -3,7 +3,7 @@
 /// 作为 Flutter 应用的核心数据模型，与 Rust 侧的 BookInfo 对齐
 library;
 
-
+import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'book.freezed.dart';
@@ -12,7 +12,6 @@ part 'book.freezed.dart';
 @freezed
 abstract class Book with _$Book {
   const factory Book({
-
     required int id,
 
     /// 书籍标题
@@ -72,30 +71,35 @@ abstract class Book with _$Book {
 
   /// 从数据库模型转换
   factory Book.fromDb(dynamic dbBook) {
-    return Book(
-      id: dbBook.id,
-      title: dbBook.title,
-      author: dbBook.author,
-      coverPath: dbBook.coverPath,
-      description: dbBook.description,
-      filePath: dbBook.filePath,
-      fileType: dbBook.fileFormat,
-      fileSize: dbBook.fileSize,
-      totalChapters: dbBook.totalChapters,
-      totalCharacters: dbBook.totalCharacters,
-      currentChapterId: dbBook.currentChapterId,
-      currentPageIndex: dbBook.currentPageIndex,
-      totalPages: dbBook.totalPages,
-      progress: dbBook.progress,
-      status: dbBook.status,
-      isPinned: dbBook.isPinned,
-      createdAt: dbBook.createdAt,
-      updatedAt: dbBook.updatedAt,
-      lastReadAt: dbBook.lastReadAt,
-    );
+    try {
+      return Book(
+        id: dbBook.id ?? 0,
+        title: dbBook.title ?? '',
+        author: dbBook.author ?? '',
+        coverPath: dbBook.coverPath,
+        description: dbBook.description,
+        filePath: dbBook.filePath ?? '',
+        fileType: dbBook.fileType ?? '',
+        fileSize: dbBook.fileSize ?? 0,
+        totalChapters: dbBook.totalChapters ?? 0,
+        totalCharacters: dbBook.totalCharacters ?? 0,
+        currentChapterId: dbBook.currentChapterId,
+        currentPageIndex: dbBook.currentPageIndex ?? 0,
+        totalPages: dbBook.totalPages ?? 0,
+        progress: dbBook.progress ?? 0.0,
+        status: dbBook.status ?? 'reading',
+        isPinned: dbBook.isPinned ?? false,
+        createdAt: dbBook.createdAt ?? DateTime.now(),
+        updatedAt: dbBook.updatedAt ?? DateTime.now(),
+        lastReadAt: dbBook.lastReadAt,
+      );
+    } catch (e, stackTrace) {
+      debugPrint('Book.fromDb 转换失败：$e');
+      debugPrint('Stack trace: $stackTrace');
+      debugPrint('dbBook: $dbBook');
+      rethrow;
+    }
   }
-
-
 
   /// 空书籍（用于初始化）
   factory Book.empty() {
@@ -113,4 +117,3 @@ abstract class Book with _$Book {
     );
   }
 }
-

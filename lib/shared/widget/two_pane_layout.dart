@@ -1,5 +1,6 @@
 /// 平板双栏布局组件
 library;
+
 /// 用于平板横屏模式下的双栏显示（如：左侧目录，右侧内容library;
 
 import 'package:flutter/material.dart';

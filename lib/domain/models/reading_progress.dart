@@ -3,7 +3,6 @@
 /// 与数据库模型 DbReadingProgress 对齐
 library;
 
-
 import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:zephyr_reader/core/database/database.dart';
@@ -62,4 +61,3 @@ abstract class ReadingProgress with _$ReadingProgress {
     );
   }
 }
-

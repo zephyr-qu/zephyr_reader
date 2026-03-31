@@ -100,8 +100,7 @@ class LruCache<K, T> {
   int get length => _cache.length;
 
   /// 获取缓存占用
-  int get totalSize =>
-      _cache.values.fold(0, (sum, entry) => sum + entry.size);
+  int get totalSize => _cache.values.fold(0, (sum, entry) => sum + entry.size);
 
   /// 获取所有键
   Iterable<K> get keys => _cache.keys;

@@ -4,7 +4,6 @@ library;
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/domain/models/book.dart';
 
-
 /// 书架视图模式
 enum BookshelfViewMode {
   /// 网格视图

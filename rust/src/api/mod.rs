@@ -12,15 +12,18 @@
 //! - **EPUB 支持**: 封面提取、元数据获取
 //! - **零拷贝优化**: 使用 ZeroCopyBuffer 优化大数据传输
 
+pub mod security;
 pub mod simple;
 
 use crate::catch_panic;
 pub use crate::ffi::*;
+use crate::api::security::{validate_path_securely, validate_file_path};
 use crate::storage::{ProgressStorage, InMemoryStorage};
 use flutter_rust_bridge::{frb, ZeroCopyBuffer};
 use once_cell::sync::OnceCell;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
@@ -28,63 +31,54 @@ use uuid::Uuid;
 // 所有持久化操作已迁移到 Flutter 侧（使用 Drift）
 static STORAGE: std::sync::OnceLock<Arc<dyn ProgressStorage>> = std::sync::OnceLock::new();
 
-/// 验证文件路径是否安全
+/// 使用严格验证检查文件路径
 ///
-/// 检查路径是否包含危险的模式（如路径遍历），确保只能访问指定目录。
+/// 尝试使用 `validate_path_securely` 进行严格验证，如果 Flutter 侧未提供 allowed_base，
+/// 则降级使用 `validate_file_path` 进行基本验证。
 ///
-/// # 参数
+/// # 注意
 ///
-/// * `path` - 待检查的文件路径
-///
-/// # 返回值
-///
-/// * `true` - 路径安全
-/// * `false` - 路径存在安全风险
-fn is_safe_path(path: &str) -> bool {
-    // 检查路径遍历攻击模式
-    if path.contains("..\\") || path.contains("../") {
-        return false;
+/// 为了获得最佳安全性，建议 Flutter 侧在初始化时调用 `set_allowed_base_dir` 设置允许的基目录。
+fn validate_file_path_strict(file_path: &str) -> ApiResult<String> {
+    // 尝试从环境变量获取允许的基目录
+    if let Ok(allowed_base) = std::env::var("ZEPHYR_ALLOWED_BASE_DIR") {
+        let base_path: &Path = Path::new(&allowed_base);
+        match validate_path_securely(file_path, base_path) {
+            Ok(path) => Ok(path.to_string_lossy().to_string()),
+            Err(e) => Err(e),
+        }
+    } else {
+        // 降级使用基本验证
+        validate_file_path(file_path)
     }
-
-    // 检查绝对路径是否来自危险位置
-    let path_lower = path.to_lowercase();
-    if path_lower.starts_with("c:\\windows")
-        || path_lower.starts_with("/etc/")
-        || path_lower.starts_with("/proc/")
-        || path_lower.starts_with("/sys/")
-    {
-        return false;
-    }
-
-    // 检查是否包含空字节（路径截断攻击）
-    if path.contains('\0') {
-        return false;
-    }
-
-    true
 }
 
-/// 验证文件路径并返回规范化的路径
+/// 设置允许的基目录（用于严格路径验证）
 ///
 /// # 参数
 ///
-/// * `file_path` - 文件路径
+/// * `base_dir` - 允许的基目录路径
 ///
 /// # 返回值
 ///
-/// * `Ok(String)` - 验证通过的路径
-/// * `Err(ParserError)` - 路径不安全或无效
-fn validate_file_path(file_path: &str) -> ApiResult<String> {
-    if !is_safe_path(file_path) {
-        return Err(ParserError::Other(format!("文件路径不安全：{}", file_path)));
+/// * `Ok(())` - 设置成功
+/// * `Err(ParserError)` - 目录不存在或无效
+#[frb(sync)]
+pub fn set_allowed_base_dir(base_dir: String) -> ApiResult<()> {
+    let path = Path::new(&base_dir);
+    
+    if !path.exists() {
+        return Err(ParserError::ConfigError(format!("目录不存在：{}", base_dir)));
     }
-
-    // 检查文件是否存在
-    if !std::path::Path::new(file_path).exists() {
-        return Err(ParserError::file_not_found(file_path));
+    
+    if !path.is_dir() {
+        return Err(ParserError::ConfigError(format!("不是目录：{}", base_dir)));
     }
-
-    Ok(file_path.to_string())
+    
+    std::env::set_var("ZEPHYR_ALLOWED_BASE_DIR", &base_dir);
+    tracing::info!("设置允许的基目录：{}", base_dir);
+    
+    Ok(())
 }
 
 /// 初始化存储
@@ -219,8 +213,8 @@ pub fn test_connection() -> String {
 #[must_use = "解析结果必须被处理"]
 #[frb(dart_async)]
 pub async fn async_parse_txt_file(file_path: String) -> ApiResult<ParseResult> {
-    // 路径安全验证
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     // 在后台线程池中执行 CPU 密集型操作
     tokio::task::spawn_blocking(move || {
@@ -250,8 +244,8 @@ pub async fn async_parse_txt_file(file_path: String) -> ApiResult<ParseResult> {
 #[must_use = "解析结果必须被处理"]
 #[frb(dart_async)]
 pub async fn async_parse_epub_file(file_path: String) -> ApiResult<ParseResult> {
-    // 路径安全验证
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     // 在后台线程池中执行 CPU 密集型操作
     tokio::task::spawn_blocking(move || {
@@ -281,8 +275,8 @@ pub async fn async_parse_epub_file(file_path: String) -> ApiResult<ParseResult> 
 #[must_use = "解析结果必须被处理"]
 #[frb(dart_async)]
 pub async fn async_parse_pdf_file(file_path: String) -> ApiResult<ParseResult> {
-    // 路径安全验证
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     // 在后台线程池中执行 CPU 密集型操作
     tokio::task::spawn_blocking(move || {
@@ -311,8 +305,8 @@ pub async fn async_parse_pdf_file(file_path: String) -> ApiResult<ParseResult> {
 /// * `Err(ParserError)` - 解析失败
 #[frb(dart_async)]
 pub async fn async_parse_local_book(file_path: String) -> ApiResult<LocalBookInfo> {
-    // 路径安全验证
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     // 在后台线程池中执行 CPU 密集型操作
     tokio::task::spawn_blocking(move || {
@@ -375,8 +369,8 @@ pub async fn async_parse_local_book(file_path: String) -> ApiResult<LocalBookInf
 #[must_use = "解析结果必须被处理"]
 #[frb(sync)]
 pub fn parse_txt_file(file_path: String) -> ApiResult<ParseResult> {
-    // 路径安全验证
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     catch_panic! {
         {
@@ -405,8 +399,8 @@ pub fn parse_txt_file(file_path: String) -> ApiResult<ParseResult> {
 #[must_use = "解析结果必须被处理"]
 #[frb(sync)]
 pub fn parse_epub_file(file_path: String) -> ApiResult<ParseResult> {
-    // 路径安全验证
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     catch_panic! {
         {
@@ -822,8 +816,8 @@ pub fn clear_bookmarks(book_id: String) -> i32 {
 /// * `Err(ParserError)` - 解析失败
 #[frb(sync)]
 pub fn parse_local_book(file_path: String) -> ApiResult<LocalBookInfo> {
-    // 路径安全验证
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     // 获取文件扩展名
     let path = std::path::Path::new(&validated_path);
@@ -876,7 +870,8 @@ pub fn parse_local_book(file_path: String) -> ApiResult<LocalBookInfo> {
 /// * `Err(ParserError)` - 提取失败
 #[frb(sync)]
 pub fn extract_book_cover(file_path: String, output_dir: String) -> ApiResult<String> {
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     let path = std::path::Path::new(&validated_path);
     let extension = path
@@ -959,7 +954,8 @@ pub fn get_epub_cover_data(
     use epub::doc::EpubDoc;
     use flutter_rust_bridge::ZeroCopyBuffer;
 
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     let mut doc = EpubDoc::new(&validated_path)
         .map_err(|e| ParserError::EpubParseError(format!("EPUB 打开失败：{}", e)))?;
@@ -992,7 +988,8 @@ pub fn get_pdf_cover_data(
 ) -> ApiResult<flutter_rust_bridge::ZeroCopyBuffer<Vec<u8>>> {
     use flutter_rust_bridge::ZeroCopyBuffer;
 
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     // 调用 PDF 封面提取函数
     let cover_data = crate::parser::pdf::extract_pdf_cover_bytes(&validated_path)?;
@@ -1451,8 +1448,8 @@ pub fn get_all_layout_cache(book_id: String) -> Vec<CachedLayout> {
 pub fn get_epub_cover_image(file_path: String) -> Result<Vec<u8>, String> {
     use crate::parser::epub::unzip::EpubFile;
 
-    // 路径安全验证
-    let validated_path = validate_file_path(&file_path).map_err(|e| e.to_string())?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path).map_err(|e| e.to_string())?;
 
     let mut epub_file = EpubFile::open(&validated_path).map_err(|e| e.to_string())?;
 
@@ -1478,8 +1475,8 @@ pub fn get_epub_cover_image(file_path: String) -> Result<Vec<u8>, String> {
 pub fn get_epub_full_metadata(file_path: String) -> ApiResult<EpubMetadata> {
     use crate::parser::epub::unzip::EpubFile;
 
-    // 路径安全验证
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     let epub_file = EpubFile::open(&validated_path)?;
 
@@ -1528,8 +1525,8 @@ pub fn get_epub_images(file_path: String) -> ApiResult<EpubImageList> {
     use crate::parser::epub::unzip::EpubFile;
     use std::path::Path;
 
-    // 路径安全验证
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     let mut epub_file = EpubFile::open(&validated_path)?;
 
@@ -1599,8 +1596,8 @@ pub fn get_epub_images(file_path: String) -> ApiResult<EpubImageList> {
 pub fn get_epub_image_resource(file_path: String, image_href: String) -> Result<Vec<u8>, String> {
     use crate::parser::epub::unzip::EpubFile;
 
-    // 路径安全验证
-    let validated_path = validate_file_path(&file_path).map_err(|e| e.to_string())?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path).map_err(|e| e.to_string())?;
 
     let mut epub_file = EpubFile::open(&validated_path).map_err(|e| e.to_string())?;
 
@@ -1629,8 +1626,8 @@ pub fn get_epub_image_metadata(file_path: String, image_href: String) -> ApiResu
     use crate::parser::epub::unzip::EpubFile;
     use std::path::Path;
 
-    // 路径安全验证
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     let mut epub_file = EpubFile::open(&validated_path)?;
 
@@ -2107,7 +2104,8 @@ pub fn get_chapter_content_zero_copy(
     file_path: String,
     chapter_id: i32,
 ) -> ApiResult<ZeroCopyBuffer<Vec<u8>>> {
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     // 获取文件扩展名
     let path = std::path::Path::new(&validated_path);
@@ -2239,7 +2237,8 @@ pub fn search_books_zero_copy(
 /// * `Err(ParserError)` - 提取失败或 PDF 无封面
 #[frb(sync)]
 pub fn get_pdf_cover_data_zero_copy(file_path: String) -> ApiResult<ZeroCopyBuffer<Vec<u8>>> {
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     // 调用 PDF 封面提取函数
     let cover_data = crate::parser::pdf::extract_pdf_cover_bytes(&validated_path)?;
@@ -2264,7 +2263,8 @@ pub fn get_pdf_cover_data_zero_copy(file_path: String) -> ApiResult<ZeroCopyBuff
 pub fn get_epub_cover_data_zero_copy(file_path: String) -> ApiResult<ZeroCopyBuffer<Vec<u8>>> {
     use epub::doc::EpubDoc;
 
-    let validated_path = validate_file_path(&file_path)?;
+    // 路径安全验证（严格模式）
+    let validated_path = validate_file_path_strict(&file_path)?;
 
     let mut doc = EpubDoc::new(&validated_path)
         .map_err(|e| ParserError::EpubParseError(format!("EPUB 打开失败：{}", e)))?;

@@ -7,27 +7,27 @@ import 'db_chapter.dart';
 @DataClassName('DbLayoutCache')
 class DbLayoutCaches extends Table {
   /// 自增主键
-   IntColumn get id => integer().autoIncrement()();
+  late final id = integer().autoIncrement()();
 
   /// 书籍 ID
-    IntColumn get bookId =>
+  late final bookId =
       integer().references(DbBooks, #id, onDelete: KeyAction.cascade)();
 
   /// 章节 ID
-   IntColumn get chapterId =>
+  late final chapterId =
       integer().references(DbChapters, #id, onDelete: KeyAction.cascade)();
 
   /// 排版配置哈希
-  TextColumn get configHash => text()();
+  late final configHash = text()();
 
   /// 页面偏移量列表（JSON 格式）
-  TextColumn get pageOffsets => text()();
+  late final pageOffsets = text()();
 
   /// 总页数
-  IntColumn get totalPages => integer()();
+  late final totalPages = integer()();
 
   /// 创建时间戳（Unix 时间戳，秒）
-  IntColumn get createdAt => integer()();
+  late final createdAt = integer()();
 
   /// 唯一索引：book_id + chapter_id + config_hash
   @override

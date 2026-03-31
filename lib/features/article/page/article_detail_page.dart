@@ -48,20 +48,14 @@ class ArticleDetailPage extends StatelessWidget {
               children: [
                 CircleAvatar(
                   backgroundColor: theme.colorScheme.primaryContainer,
-                  child: Icon(
-                    Icons.person,
-                    color: theme.colorScheme.primary,
-                  ),
+                  child: Icon(Icons.person, color: theme.colorScheme.primary),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        article.author,
-                        style: theme.textTheme.titleSmall,
-                      ),
+                      Text(article.author, style: theme.textTheme.titleSmall),
                       Text(
                         article.publishedAt,
                         style: theme.textTheme.bodySmall?.copyWith(

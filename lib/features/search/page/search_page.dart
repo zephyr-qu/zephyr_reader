@@ -324,7 +324,7 @@ class _SearchPageState extends State<SearchPage> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              
+
               // 添加到书架
               final bookshelfService = GetIt.I.get<BookshelfService>();
               final book = await bookshelfService.addBook(
@@ -336,15 +336,15 @@ class _SearchPageState extends State<SearchPage> {
                 description: result.description,
                 coverPath: result.coverUrl,
               );
-              
+
               if (book != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('已添加 ${result.title} 到书架')),
                 );
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('添加失败，书籍可能已存在')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('添加失败，书籍可能已存在')));
               }
             },
             child: const Text('添加到书架'),

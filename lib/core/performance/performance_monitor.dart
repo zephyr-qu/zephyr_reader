@@ -206,8 +206,9 @@ class PerformanceOptimizer {
     // cached_network_image 会自动使用 Flutter 的 ImageCache
     // 可以通过 PaintingBinding.instance.imageCache 配置缓存大小
     PaintingBinding.instance.imageCache.maximumSize = 100; // 最多缓存 100 张图片
-    PaintingBinding.instance.imageCache.maximumSizeBytes = 100 * 1024 * 1024; // 100MB
-    
+    PaintingBinding.instance.imageCache.maximumSizeBytes =
+        100 * 1024 * 1024; // 100MB
+
     debugPrint('图片加载优化已启用，缓存配置完成');
   }
 
@@ -264,7 +265,7 @@ class PerformanceOptimizer {
     try {
       while (_imagePreloadQueue.isNotEmpty) {
         final task = _imagePreloadQueue.removeFirst();
-        
+
         if (_preloadedImages.contains(task.imageUrl)) {
           continue;
         }
@@ -280,10 +281,7 @@ class PerformanceOptimizer {
         // 创建一个假的 BuildContext 用于 precacheImage
         // 注意：这里使用一个简单的方式，直接加载图片到缓存
         final imageStream = imageProvider.resolve(
-          const ImageConfiguration(
-            size: Size(400, 400),
-            devicePixelRatio: 1,
-          ),
+          const ImageConfiguration(size: Size(400, 400), devicePixelRatio: 1),
         );
 
         ImageStreamListener? listener;
@@ -358,10 +356,10 @@ class PerformanceOptimizer {
     // 清理图片缓存
     PaintingBinding.instance.imageCache.clear();
     PaintingBinding.instance.imageCache.clearLiveImages();
-    
+
     _preloadedImages.clear();
     _imagePreloadQueue.clear();
-    
+
     debugPrint('内存使用优化完成，缓存已清理');
   }
 
@@ -371,10 +369,10 @@ class PerformanceOptimizer {
   static Future<void> clearCache() async {
     PaintingBinding.instance.imageCache.clear();
     PaintingBinding.instance.imageCache.clearLiveImages();
-    
+
     _preloadedImages.clear();
     _imagePreloadQueue.clear();
-    
+
     debugPrint('所有缓存已清理');
   }
 
@@ -536,7 +534,8 @@ class BuildPerformanceOptimizer {
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (context, url, error) => errorWidget ?? const Icon(Icons.error),
+        errorBuilder: (context, url, error) =>
+            errorWidget ?? const Icon(Icons.error),
       );
     }
 
@@ -545,15 +544,12 @@ class BuildPerformanceOptimizer {
       width: width,
       height: height,
       fit: fit,
-      imageBuilder: (context, imageProvider) => Image(
-        image: imageProvider,
-        width: width,
-        height: height,
-        fit: fit,
-      ),
-      placeholder: (context, url) => placeholder ??
-          const Center(child: CircularProgressIndicator()),
-      errorWidget: (context, url, error) => errorWidget ?? const Icon(Icons.error),
+      imageBuilder: (context, imageProvider) =>
+          Image(image: imageProvider, width: width, height: height, fit: fit),
+      placeholder: (context, url) =>
+          placeholder ?? const Center(child: CircularProgressIndicator()),
+      errorWidget: (context, url, error) =>
+          errorWidget ?? const Icon(Icons.error),
       cacheKey: maxWidth != null && maxHeight != null
           ? '${imageUrl}_${maxWidth}_$maxHeight'
           : null,
@@ -592,10 +588,7 @@ class CacheStats {
   /// 预加载队列长度
   final int queueLength;
 
-  CacheStats({
-    required this.cachedImageCount,
-    required this.queueLength,
-  });
+  CacheStats({required this.cachedImageCount, required this.queueLength});
 
   @override
   String toString() {

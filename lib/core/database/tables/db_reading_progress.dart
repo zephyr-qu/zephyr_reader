@@ -3,34 +3,33 @@ import 'package:drift/drift.dart';
 import 'db_book.dart';
 import 'db_chapter.dart';
 
-
 /// 阅读进度表
 @DataClassName('DbReadingProgress')
 class DbReadingProgresss extends Table {
   /// 书籍 ID（主键）
-  IntColumn get bookId =>
+  late final bookId =
       integer().references(DbBooks, #id, onDelete: KeyAction.cascade)();
 
   /// 当前章节 ID
-   /// 关联的章节 ID
-  IntColumn get chapterId =>
+  /// 关联的章节 ID
+  late final chapterId =
       integer().references(DbChapters, #id, onDelete: KeyAction.cascade)();
 
   /// 当前页码
-  IntColumn get pageIndex => integer()();
+  late final pageIndex = integer()();
 
   /// 总页数
-  IntColumn get totalPages => integer()();
+  late final totalPages = integer()();
 
   /// 进度百分比（0.0 - 1.0）
-  RealColumn get progress => real()();
+  late final progress = real()();
 
   /// 已阅读时间（秒）
-  IntColumn get readingTimeSeconds =>
+  late final readingTimeSeconds =
       integer().withDefault(const Constant(0))();
 
   /// 最后阅读时间戳（Unix 时间戳，秒）
-  IntColumn get lastReadTimestamp => integer()();
+  late final lastReadTimestamp = integer()();
 
   @override
   Set<Column> get primaryKey => {bookId};

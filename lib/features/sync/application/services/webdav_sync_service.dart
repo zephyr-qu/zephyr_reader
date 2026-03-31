@@ -135,6 +135,18 @@ enum SyncDirection {
   both,
 }
 
+/// 同步操作类型
+enum SyncOperation {
+  /// 创建
+  create,
+
+  /// 更新
+  update,
+
+  /// 删除
+  delete,
+}
+
 /// 冲突解决策略
 enum ConflictResolution {
   /// 使用本地版本
@@ -279,6 +291,28 @@ class SyncResult {
       conflictCount: conflictCount ?? this.conflictCount,
       error: error ?? this.error,
       details: details ?? this.details,
+    );
+  }
+
+  /// 转换为 JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'success': success,
+      'uploadedCount': uploadedCount,
+      'downloadedCount': downloadedCount,
+      'conflictCount': conflictCount,
+      'error': error,
+    };
+  }
+
+  /// 从 JSON 创建
+  factory SyncResult.fromJson(Map<String, dynamic> json) {
+    return SyncResult(
+      success: json['success'] as bool? ?? false,
+      uploadedCount: json['uploadedCount'] as int? ?? 0,
+      downloadedCount: json['downloadedCount'] as int? ?? 0,
+      conflictCount: json['conflictCount'] as int? ?? 0,
+      error: json['error'] as String?,
     );
   }
 }
@@ -729,7 +763,7 @@ class WebDavSyncService {
   Future<void> _mergeData(SyncDataType type) async {
     // 数据合并逻辑：比较本地和远程版本的时间戳
     // 使用较新的版本覆盖较旧的版本
-    
+
     final appDir = await getApplicationDocumentsDirectory();
     final localFile = File(p.join(appDir.path, _dataDirName, type.filename));
     final remotePath = p.join(
@@ -780,11 +814,11 @@ class WebDavSyncService {
   Future<WebDavFileInfo?> _getFileInfo(String remotePath) async {
     try {
       if (_client == null) return null;
-      
+
       // 使用 readDir 检查文件是否存在并获取信息
       final parentDir = p.dirname(remotePath);
       final fileName = p.basename(remotePath);
-      
+
       final entries = await _client!.readDir(parentDir);
       for (final entry in entries) {
         if (entry.name == fileName) {
@@ -802,11 +836,11 @@ class WebDavSyncService {
   Future<bool> _fileExists(String remotePath) async {
     try {
       if (_client == null) return false;
-      
+
       // 使用 readDir 检查文件是否存在
       final parentDir = p.dirname(remotePath);
       final fileName = p.basename(remotePath);
-      
+
       final entries = await _client!.readDir(parentDir);
       return entries.any((entry) => entry.name == fileName);
     } catch (e) {
