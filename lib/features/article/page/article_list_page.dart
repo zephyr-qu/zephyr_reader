@@ -23,15 +23,55 @@ class ArticleListPage extends StatelessWidget {
             builder: (context) {
               final async = vm.articles.value;
               if (async.isLoading) {
-                return const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
+                return SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('加载中...'),
+                      ],
+                    ),
+                  ),
                 );
               } else if (async.hasError) {
                 return SliverFillRemaining(
-                  child: Center(child: Text(async.error.toString())),
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48),
+                        const SizedBox(height: 16),
+                        Text('加载失败：${async.error}'),
+                        const SizedBox(height: 16),
+                        FilledButton(onPressed: vm.load, child: const Text('重试')),
+                      ],
+                    ),
+                  ),
                 );
               } else {
                 final list = async.value ?? [];
+                if (list.isEmpty) {
+                  return SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.article_outlined, size: 48),
+                          const SizedBox(height: 16),
+                          Text(
+                            '暂无文章',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
                 return SliverList(
                   delegate: SliverChildBuilderDelegate((context, index) {
                     final article = list[index];

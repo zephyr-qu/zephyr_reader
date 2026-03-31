@@ -1,73 +1,337 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
+import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
+import 'package:zephyr_reader/shared/widget/ui_components.dart';
 
+/// 个人中心页面 - 现代化设计
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final pagePadding = LayoutBreakpoints.getPagePadding(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Profile Header
-            Center(
+      body: CustomScrollView(
+        slivers: [
+          // 渐变头部
+          _buildSliverAppBar(context, theme),
+          SliverPadding(
+            padding: pagePadding,
+            sliver: SliverToBoxAdapter(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: theme.colorScheme.primary,
-                    child: Text(
-                      'JD',
-                      style: theme.textTheme.headlineLarge?.copyWith(
-                        color: theme.colorScheme.onPrimary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('John Doe', style: theme.textTheme.headlineMedium),
+                  // 用户信息卡片
+                  _buildProfileCard(context, theme)
+                      .animate()
+                      .fadeIn(duration: 500.ms)
+                      .slideY(begin: 0.1, end: 0),
+                  SizedBox(height: LayoutBreakpoints.getSpacing(context)),
+                  // 阅读统计
+                  _buildQuickStats(
+                    context,
+                    theme,
+                  ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+                  SizedBox(height: LayoutBreakpoints.getSpacing(context)),
+                  // 设置选项
+                  _buildSettingsSection(
+                    context,
+                    theme,
+                  ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
+                  SizedBox(height: LayoutBreakpoints.getSpacing(context)),
+                  // 其他功能
+                  _buildOtherFeatures(
+                    context,
+                    theme,
+                  ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
+                  SizedBox(height: LayoutBreakpoints.getSpacing(context)),
+                  // 退出登录
+                  _buildLogoutButton(
+                    context,
+                    theme,
+                  ).animate().fadeIn(delay: 500.ms, duration: 500.ms),
+                  SizedBox(height: LayoutBreakpoints.getSpacing(context)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSliverAppBar(BuildContext context, ThemeData theme) {
+    return SliverAppBar(
+      expandedHeight: 200,
+      pinned: true,
+      backgroundColor: theme.colorScheme.primary,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.primaryContainer,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: SafeArea(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 20),
                   Text(
-                    'UI/UX Designer',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    '个人中心',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 48),
-
-            // Settings Section
-            Text('Settings', style: theme.textTheme.titleLarge),
-            const SizedBox(height: 16),
-            _buildSettingItem(
+          ),
+        ),
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.settings_outlined, color: Colors.white),
+          onPressed: () => context.pushNamed(RouteNames.settings),
+          tooltip: '设置',
+        ).animate().fadeIn(delay: 300.ms, duration: 400.ms),
+        IconButton(
+          icon: const Icon(Icons.help_outline, color: Colors.white),
+          onPressed: () {
+            ScaffoldMessenger.of(
               context,
-              'Notifications',
-              Icons.notifications_outlined,
-            ),
-            _buildSettingItem(context, 'Privacy', Icons.lock_outline),
-            _buildSettingItem(context, 'Appearance', Icons.palette_outlined),
-            _buildSettingItem(context, 'Help & Support', Icons.help_outline),
+            ).showSnackBar(const SnackBar(content: Text('帮助功能开发中')));
+          },
+          tooltip: '帮助',
+        ).animate().fadeIn(delay: 400.ms, duration: 400.ms),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
 
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
-                  side: BorderSide(color: theme.colorScheme.error),
-                  foregroundColor: theme.colorScheme.error,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+  Widget _buildProfileCard(BuildContext context, ThemeData theme) {
+    return GradientCard(
+      gradientColors: [
+        theme.colorScheme.secondaryContainer,
+        theme.colorScheme.tertiaryContainer,
+      ],
+      padding: const EdgeInsets.all(24),
+      child: Row(
+        children: [
+          // 头像
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primary,
+                  theme.colorScheme.secondary,
+                ],
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Text(
+                '书',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
+          const SizedBox(width: 20),
+          // 用户信息
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '书友',
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                child: const Text('Log Out'),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '阅读达人',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _buildProfileStat(
+                      context,
+                      '阅读',
+                      '12 本',
+                      theme.colorScheme.primary,
+                    ),
+                    Container(
+                      width: 1,
+                      height: 30,
+                      color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                    ),
+                    _buildProfileStat(
+                      context,
+                      '天数',
+                      '89 天',
+                      theme.colorScheme.secondary,
+                    ),
+                    Container(
+                      width: 1,
+                      height: 30,
+                      color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                    ),
+                    _buildProfileStat(
+                      context,
+                      '笔记',
+                      '156 条',
+                      theme.colorScheme.tertiary,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // 编辑按钮
+          IconButton(
+            onPressed: () {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('编辑功能开发中')));
+            },
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
               ),
+              child: Icon(
+                Icons.edit_outlined,
+                color: theme.colorScheme.primary,
+                size: 20,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileStat(
+    BuildContext context,
+    String label,
+    String value,
+    Color color,
+  ) {
+    final theme = Theme.of(context);
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickStats(BuildContext context, ThemeData theme) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '阅读成就',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextButton(onPressed: () {}, child: const Text('查看全部')),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildAchievementItem(
+                    context,
+                    '连续阅读',
+                    '12 天',
+                    Icons.local_fire_department,
+                    Colors.orange,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildAchievementItem(
+                    context,
+                    '阅读时长',
+                    '156h',
+                    Icons.timer,
+                    theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildAchievementItem(
+                    context,
+                    '读书笔记',
+                    '89 条',
+                    Icons.note_alt,
+                    theme.colorScheme.tertiary,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -75,13 +339,240 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildSettingItem(BuildContext context, String title, IconData icon) {
+  Widget _buildAchievementItem(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsSection(BuildContext context, ThemeData theme) {
+    return Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text(
+              '设置',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          _buildSettingItem(
+            context,
+            '主题外观',
+            '跟随系统',
+            Icons.palette_outlined,
+            () => context.pushNamed(RouteNames.settings),
+          ),
+          _buildDivider(),
+          _buildSettingItem(
+            context,
+            '阅读设置',
+            '字体、翻页等',
+            Icons.menu_book,
+            () => context.pushNamed(RouteNames.settings),
+          ),
+          _buildDivider(),
+          _buildSettingItem(
+            context,
+            '通知设置',
+            '已开启',
+            Icons.notifications_outlined,
+            () => context.pushNamed(RouteNames.settings),
+          ),
+          _buildDivider(),
+          _buildSettingItem(
+            context,
+            '隐私与安全',
+            '密码、指纹',
+            Icons.security,
+            () => context.pushNamed(RouteNames.settings),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOtherFeatures(BuildContext context, ThemeData theme) {
+    return Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text(
+              '其他功能',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          _buildSettingItem(context, '数据同步', 'WebDAV 备份', Icons.cloud_sync, () {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('同步功能开发中')));
+          }),
+          _buildDivider(),
+          _buildSettingItem(
+            context,
+            '下载管理',
+            '离线阅读',
+            Icons.download_outlined,
+            () {},
+          ),
+          _buildDivider(),
+          _buildSettingItem(
+            context,
+            '意见反馈',
+            '帮助我们改进',
+            Icons.feedback_outlined,
+            () {},
+          ),
+          _buildDivider(),
+          _buildSettingItem(
+            context,
+            '关于我们',
+            '版本 1.0.0',
+            Icons.info_outline,
+            () {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('关于功能开发中')));
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingItem(
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
+    final theme = Theme.of(context);
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(vertical: 8),
-      leading: Icon(icon, color: Theme.of(context).colorScheme.onSurface),
-      title: Text(title),
-      trailing: const Icon(Icons.chevron_right, size: 20),
-      onTap: () {},
+      onTap: onTap,
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: theme.colorScheme.primary, size: 22),
+      ),
+      title: Text(
+        title,
+        style: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+        ),
+      ),
+      trailing: Icon(
+        Icons.chevron_right_rounded,
+        color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Divider(height: 1, indent: 72);
+  }
+
+  Widget _buildLogoutButton(BuildContext context, ThemeData theme) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: () {
+          _showLogoutDialog(context);
+        },
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.all(16),
+          side: BorderSide(color: theme.colorScheme.error, width: 1.5),
+          foregroundColor: theme.colorScheme.error,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.logout_rounded, size: 20),
+            const SizedBox(width: 8),
+            const Text('退出登录', style: TextStyle(fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('确认退出'),
+        content: const Text('确定要退出当前账号吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('已退出登录')));
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('退出'),
+          ),
+        ],
+      ),
     );
   }
 }

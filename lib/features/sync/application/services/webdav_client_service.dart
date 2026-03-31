@@ -259,7 +259,11 @@ class WebDavClientService {
   }) async {
     try {
       _checkInitialized();
-      return await _client!.read(path, onProgress: onProgress, cancelToken: cancelToken);
+      return await _client!.read(
+        path,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+      );
     } catch (e) {
       debugPrint('WebDAV read 失败：$e');
       rethrow;
@@ -291,7 +295,12 @@ class WebDavClientService {
   }) async {
     try {
       _checkInitialized();
-      await _client!.read2File(remotePath, localPath, onProgress: onProgress, cancelToken: cancelToken);
+      await _client!.read2File(
+        remotePath,
+        localPath,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+      );
     } catch (e) {
       debugPrint('WebDAV read2File 失败：$e');
       rethrow;
@@ -325,7 +334,12 @@ class WebDavClientService {
   }) async {
     try {
       _checkInitialized();
-      await _client!.writeFromFile(localPath, remotePath, onProgress: onProgress, cancelToken: cancelToken);
+      await _client!.writeFromFile(
+        localPath,
+        remotePath,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+      );
     } catch (e) {
       debugPrint('WebDAV writeFromFile 失败：$e');
       rethrow;
@@ -346,7 +360,12 @@ class WebDavClientService {
   }) async {
     try {
       _checkInitialized();
-      await _client!.write(remotePath, data, onProgress: onProgress, cancelToken: cancelToken);
+      await _client!.write(
+        remotePath,
+        data,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+      );
     } catch (e) {
       debugPrint('WebDAV write 失败：$e');
       rethrow;

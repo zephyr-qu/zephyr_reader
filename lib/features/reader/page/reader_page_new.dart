@@ -279,7 +279,7 @@ class ReaderPageNew extends HookWidget {
       // 调用 BookshelfService 获取书籍信息
       final bookshelfService = GetIt.I.get<BookshelfService>();
       final book = await bookshelfService.getBookDetail(bookId);
-      
+
       if (book == null) {
         throw Exception('书籍不存在');
       }
@@ -297,15 +297,19 @@ class ReaderPageNew extends HookWidget {
 
       // 加载章节列表
       final chapterList = await bookshelfService.getBookChapters(bookId);
-      
-      chapters.value = chapterList.map((c) => ChapterInfo(
-        chapterId: c.id,
-        title: c.title,
-        startIndex: 0,
-        endIndex: 0,
-        contentLength: c.wordCount,
-        index: c.chapterIndex,
-      )).toList();
+
+      chapters.value = chapterList
+          .map(
+            (c) => ChapterInfo(
+              chapterId: c.id,
+              title: c.title,
+              startIndex: 0,
+              endIndex: 0,
+              contentLength: c.wordCount,
+              index: c.chapterIndex,
+            ),
+          )
+          .toList();
 
       isLoading.value = false;
     } catch (e) {

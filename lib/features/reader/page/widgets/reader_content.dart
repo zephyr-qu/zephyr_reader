@@ -166,24 +166,26 @@ class ReaderContent extends HookWidget {
       // 从数据库或 Rust 引擎加载章节内容
       final readerService = GetIt.I.get<ReaderService>();
       final database = GetIt.I.get<AppDatabase>();
-      
+
       // 获取章节信息 - 使用 chapterId 作为 chapterIndex
       // 注意：这里假设 chapterId 就是 chapterIndex，如果不是需要调整
       final chapter = await database.getChapter(0, chapterId);
-      
+
       if (chapter == null) {
         throw Exception('章节不存在');
       }
 
       // 读取章节内容文件
-      final contentText = await readerService.getChapterContent(chapter.contentFile);
-      
+      final contentText = await readerService.getChapterContent(
+        chapter.contentFile,
+      );
+
       if (contentText == null || contentText.isEmpty) {
         throw Exception('章节内容为空');
       }
 
       content.value = contentText;
-      
+
       // 根据内容长度估算页数（简化实现）
       const int charsPerPage = 2000;
       final estimatedPages = (contentText.length / charsPerPage).ceil();

@@ -259,7 +259,7 @@ class BookImportService {
           'chapters': chapters,
         };
       }
-          return null;
+      return null;
     } catch (e) {
       debugPrint('BookImportService._parseBook error: $e');
       return null;

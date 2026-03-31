@@ -438,12 +438,19 @@ class BookCard extends StatelessWidget {
     if (confirmed == true && controller.text.isNotEmpty) {
       // 调用服务更新书名
       final bookshelfService = GetIt.I.get<BookshelfService>();
-      final updated = await bookshelfService.updateBookTitle(book.id, controller.text);
-      
+      final updated = await bookshelfService.updateBookTitle(
+        book.id,
+        controller.text,
+      );
+
       if (updated) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('书名已更新')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('书名已更新')));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('更新失败')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('更新失败')));
       }
     }
   }
@@ -475,11 +482,15 @@ class BookCard extends StatelessWidget {
       // 调用服务删除书籍
       final bookshelfService = GetIt.I.get<BookshelfService>();
       final deleted = await bookshelfService.deleteBook(book.id);
-      
+
       if (deleted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('书籍已删除')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('书籍已删除')));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('删除失败')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('删除失败')));
       }
     }
   }

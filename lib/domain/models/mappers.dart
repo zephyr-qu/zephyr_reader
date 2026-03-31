@@ -42,8 +42,6 @@ class ModelMapper {
     };
   }
 
-
-
   // ==================== Chapter 转换 ====================
 
   /// 数据库 Chapter -> 领域 Chapter
@@ -63,8 +61,6 @@ class ModelMapper {
       'cachedAt': chapter.cachedAt ?? DateTime.now(),
     };
   }
-
-
 
   // ==================== Bookmark 转换 ====================
 

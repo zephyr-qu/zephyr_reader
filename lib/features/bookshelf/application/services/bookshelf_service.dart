@@ -170,18 +170,17 @@ class BookshelfService {
                   contentFile: task.filePath, // 章节内容存储在原文件
                   chapterIndex: chapter.index,
                   wordCount: Value(chapter.contentLength.toInt()),
-
                 ),
               );
         }
       });
 
       // 更新书籍的总章节数
-      await (_dataSource.database.update(_dataSource.database.dbBooks)
-            ..where((tbl) => tbl.id.equals(bookId)))
-          .write(
-            DbBooksCompanion(totalChapters: Value(task.chapterCount ?? 0)),
-          );
+      await (_dataSource.database.update(
+        _dataSource.database.dbBooks,
+      )..where((tbl) => tbl.id.equals(bookId))).write(
+        DbBooksCompanion(totalChapters: Value(task.chapterCount ?? 0)),
+      );
     } catch (e) {
       debugPrint('BookshelfService._saveChapters error: $e');
     }
@@ -223,7 +222,6 @@ class BookshelfService {
         description: description != null
             ? Value(description)
             : const Value(null),
-
       );
 
       final id = await _dataSource.addBook(companion as Book);

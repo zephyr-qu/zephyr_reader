@@ -130,17 +130,15 @@ class LargeFileOptimizer {
     // 添加预加载任务到队列
     for (int i = startChunk; i < endChunk; i++) {
       final cacheKey = '$filePath:$i';
-      
+
       // 如果已缓存则跳过
       if (_chunkCache.containsKey(cacheKey)) {
         continue;
       }
 
-      _preloadQueue.add(_PreloadTask(
-        filePath: filePath,
-        chunkIndex: i,
-        cacheKey: cacheKey,
-      ));
+      _preloadQueue.add(
+        _PreloadTask(filePath: filePath, chunkIndex: i, cacheKey: cacheKey),
+      );
     }
 
     debugPrint('预加载任务已添加：$startChunk - $endChunk');
@@ -173,7 +171,10 @@ class LargeFileOptimizer {
 
           try {
             final start = task.chunkIndex * chunkSize;
-            final end = ((task.chunkIndex + 1) * chunkSize).clamp(0, await file.length());
+            final end = ((task.chunkIndex + 1) * chunkSize).clamp(
+              0,
+              await file.length(),
+            );
 
             await randomAccessFile.setPosition(start);
             final bytes = await randomAccessFile.read(end - start);

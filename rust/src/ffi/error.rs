@@ -41,6 +41,8 @@ pub enum ParserError {
     TextExtractError(String),
     /// 其他错误（通用错误消息）
     Other(String),
+    /// 安全错误（路径遍历攻击等）
+    SecurityError(String),
 }
 
 impl ParserError {
@@ -72,6 +74,7 @@ impl ParserError {
             Self::PageExtractError(_) => "PAGE_EXTRACT_ERROR",
             Self::TextExtractError(_) => "TEXT_EXTRACT_ERROR",
             Self::Other(_) => "OTHER_ERROR",
+            Self::SecurityError(_) => "SECURITY_ERROR",
         }
     }
 
@@ -135,6 +138,9 @@ impl ParserError {
             }
             Self::Other(msg) => {
                 format!("错误：{}", msg)
+            }
+            Self::SecurityError(msg) => {
+                format!("安全错误：{}", msg)
             }
         }
     }

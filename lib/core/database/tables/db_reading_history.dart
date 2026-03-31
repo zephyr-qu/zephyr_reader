@@ -6,22 +6,22 @@ import 'db_chapter.dart';
 /// 阅读历史表
 @DataClassName('DbReadingHistory')
 class DbReadingHistorys extends Table {
-  IntColumn get id => integer().autoIncrement()();
+  late final id = integer().autoIncrement()();
 
   /// 关联的小说ID
-    IntColumn get bookId =>
+  late final bookId =
       integer().references(DbBooks, #id, onDelete: KeyAction.cascade)();
 
   /// 关联的章节ID
-  IntColumn get chapterId =>
+  late final chapterId =
       integer().references(DbChapters, #id, onDelete: KeyAction.cascade)();
 
   /// 阅读位置（字符偏移量）
-  IntColumn get position => integer()();
+  late final position = integer()();
 
   /// 阅读时间
-  DateTimeColumn get readTime => dateTime().withDefault(currentDateAndTime)();
+   late final readTime = dateTime().withDefault(currentDateAndTime)();
 
   /// 阅读时长（秒）
-  IntColumn get duration => integer().withDefault(const Constant(0))();
+  late final duration = integer().withDefault(const Constant(0))();
 }

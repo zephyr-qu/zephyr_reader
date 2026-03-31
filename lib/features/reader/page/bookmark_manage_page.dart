@@ -1,4 +1,4 @@
-    /// 书签管理页面
+/// 书签管理页面
 library;
 
 import 'package:flutter/material.dart';
@@ -152,7 +152,6 @@ class BookmarkManagePage extends HookWidget {
     );
 
     if (confirmed == true) {
-
       // removeBookmark(
       //   bookId: 'Book_${vm.bookId.value}',
       //   bookmarkId: bookmark.id,
@@ -282,5 +281,3 @@ class _BookmarkTile extends StatelessWidget {
     }
   }
 }
-
-

@@ -3,41 +3,41 @@ import 'package:drift/drift.dart';
 @DataClassName('DbBook')
 class DbBooks extends Table {
   /// 书籍 ID（UUID）
-   IntColumn get id => integer().autoIncrement()();
+  late final id = integer().autoIncrement()();
 
-  TextColumn get title => text()();
+  late final title = text()();
 
-  TextColumn get author => text()();
+  late final author = text()();
 
-  TextColumn get coverPath => text().nullable()();
+  late final coverPath = text().nullable()();
 
-  TextColumn get description => text().nullable()();
+  late final description = text().nullable()();
 
-  TextColumn get filePath => text()();
+  late final filePath = text()();
 
-  TextColumn get fileType => text()();
+  late final fileType = text()();
 
-  IntColumn get fileSize => integer().withDefault(const Constant(0))();
+  late final fileSize = integer().withDefault(const Constant(0))();
 
-  IntColumn get totalChapters => integer().withDefault(const Constant(0))();
+  late final totalChapters = integer().withDefault(const Constant(0))();
 
-  IntColumn get totalCharacters => integer().withDefault(const Constant(0))();
+  late final totalCharacters = integer().withDefault(const Constant(0))();
 
-  IntColumn get currentChapterId => integer().nullable()();
+  late final currentChapterId = integer().nullable()();
 
-  IntColumn get currentPageIndex => integer().withDefault(const Constant(0))();
+  late final currentPageIndex = integer().withDefault(const Constant(0))();
 
-  IntColumn get totalPages => integer().withDefault(const Constant(0))();
+  late final totalPages = integer().withDefault(const Constant(0))();
 
-  RealColumn get progress => real().withDefault(const Constant(0.0))();
+  late final progress = real().withDefault(const Constant(0.0))();
 
-  TextColumn get status => text().withDefault(const Constant('reading'))();
+  late final status = text().withDefault(const Constant('reading'))();
 
-  BoolColumn get isPinned => boolean().withDefault(const Constant(false))();
+  late final isPinned = boolean().withDefault(const Constant(false))();
 
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  late final createdAt = dateTime().withDefault(currentDateAndTime)();
 
-  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  late final updatedAt = dateTime().withDefault(currentDateAndTime)();
 
-  DateTimeColumn get lastReadAt => dateTime().nullable()();
+  late final lastReadAt = dateTime().nullable()();
 }

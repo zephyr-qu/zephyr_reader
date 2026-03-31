@@ -3,7 +3,8 @@ enum BookCategory {
   all('全部'),
   reading('阅读中'),
   completed('已完结'),
-  dropped('已弃坑');
+  dropped('已弃坑'),
+  planned('计划阅读');
 
   final String displayName;
   const BookCategory(this.displayName);

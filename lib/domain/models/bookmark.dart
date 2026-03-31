@@ -1,7 +1,6 @@
 /// 书签统一领域模型
 library;
 
-
 import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -53,5 +52,3 @@ abstract class Bookmark with _$Bookmark {
     );
   }
 }
-
-

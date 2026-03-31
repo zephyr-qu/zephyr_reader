@@ -392,9 +392,11 @@ class FontDownloadService {
       }
 
       final files = fontDir.listSync().whereType<File>();
-      return files.any((f) =>
-          p.basenameWithoutExtension(f.path).toLowerCase() ==
-          fontName.toLowerCase());
+      return files.any(
+        (f) =>
+            p.basenameWithoutExtension(f.path).toLowerCase() ==
+            fontName.toLowerCase(),
+      );
     } catch (e) {
       debugPrint('检查字体下载状态失败：$e');
       return false;

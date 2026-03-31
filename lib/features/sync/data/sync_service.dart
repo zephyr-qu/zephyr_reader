@@ -73,7 +73,11 @@ class SyncService implements SyncRepository {
         hasError = true;
         task.status = SyncStatus.failed;
         task.errorMessage = e.toString();
-        Logging.error('Sync task failed: ${task.type}', exception: e, stackTrace: stackTrace);
+        Logging.error(
+          'Sync task failed: ${task.type}',
+          exception: e,
+          stackTrace: stackTrace,
+        );
       }
 
       await _saveTasks(tasks);
@@ -114,17 +118,14 @@ class SyncService implements SyncRepository {
     // 这里应该调用书架服务来更新本地数据库
     // 由于依赖注入循环问题，这里使用事件总线或者回调机制
     // 暂时将数据保存到文件存储
-    await _fileStorage.saveString(
-      'sync_bookshelf.json',
-      jsonEncode(books),
-    );
+    await _fileStorage.saveString('sync_bookshelf.json', jsonEncode(books));
   }
 
   /// 同步阅读进度
   Future<void> _syncReadingProgress(SyncTask task) async {
     final bookId = task.data['bookId'] as String?;
     final progress = task.data['progress'] as Map?;
-    
+
     if (bookId == null || progress == null) return;
 
     // 保存进度数据
@@ -142,7 +143,7 @@ class SyncService implements SyncRepository {
   Future<void> _syncBookmark(SyncTask task) async {
     final bookId = task.data['bookId'] as String?;
     final bookmarks = task.data['bookmarks'] as List?;
-    
+
     if (bookId == null || bookmarks == null) return;
 
     // 保存书签数据

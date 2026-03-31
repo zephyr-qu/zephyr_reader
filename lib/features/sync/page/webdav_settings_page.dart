@@ -6,8 +6,10 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../application/services/enhanced_webdav_sync_service.dart';
 import '../application/services/webdav_config_service.dart';
 import '../application/services/webdav_sync_service.dart';
+import 'conflict_resolution_page.dart';
 
 /// WebDAV 同步设置页面
 class WebDavSettingsPage extends HookWidget {
@@ -18,14 +20,14 @@ class WebDavSettingsPage extends HookWidget {
     final configService = useMemoized(
       () => WebDavConfigService(prefs: GetIt.I<SharedPreferences>()),
     );
-    final syncService = useMemoized(() => WebDavSyncService());
+    final syncService = useMemoized(() => EnhancedWebDavSyncService());
     final isConfigured = useState(false);
     final isTesting = useState(false);
     final testResult = useState<bool?>(null);
     final lastSyncTime = useState<DateTime?>(null);
-    final syncStatus = useState('未配');
+    final syncStatus = useState('未配置');
 
-    // 加载配置状
+    // 加载配置状态
     useEffect(() {
       _loadConfigStatus(configService, isConfigured, lastSyncTime, syncStatus);
       return null;
@@ -548,12 +550,13 @@ class WebDavSettingsPage extends HookWidget {
 
   Widget _buildSyncActionsCard(
     BuildContext context,
-    WebDavSyncService syncService,
+    EnhancedWebDavSyncService syncService,
     WebDavConfigService configService,
   ) {
     final isSyncing = useState(false);
     final syncMessage = useState('');
     final syncProgress = useState(0.0);
+    final conflicts = <ConflictInfo>[];
 
     Future<void> performSync(SyncDirection direction) async {
       final config = await configService.getConfig();
@@ -573,17 +576,47 @@ class WebDavSettingsPage extends HookWidget {
       isSyncing.value = true;
       syncMessage.value = '准备同步...';
       syncProgress.value = 0.0;
+      conflicts.clear();
 
       try {
-        final result = await syncService.syncAll(direction: direction);
+        // 监听同步事件
+        final subscription = syncService.eventStream.listen((event) {
+          syncMessage.value = event.message;
+          if (event.progress != null && event.total != null) {
+            syncProgress.value = event.progress! / event.total!;
+          }
+
+          // 处理冲突事件
+          if (event.type == SyncEventType.conflict &&
+              event.conflictInfo != null) {
+            conflicts.add(event.conflictInfo!);
+          }
+        });
+
+        final result = await syncService.syncAll(
+          direction: direction,
+          autoResolveConflicts: true,
+        );
+
+        await subscription.cancel();
 
         if (!context.mounted) return;
+
+        // 如果有冲突需要解决
+        if (conflicts.isNotEmpty) {
+          _showConflictsDialog(
+            context,
+            syncService,
+            conflicts.toList(),
+          );
+          return;
+        }
 
         if (result.success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                '同步完成！上传：${result.uploadedCount}, 下载{result.downloadedCount}',
+                '同步完成！上传：${result.uploadedCount}, 下载：${result.downloadedCount}',
               ),
               backgroundColor: Colors.green,
             ),
@@ -593,8 +626,8 @@ class WebDavSettingsPage extends HookWidget {
             SnackBar(
               content: Text(
                 result.conflictCount > 0
-                    ? '同步完成，但存在 ${result.conflictCount} 个冲'
-                    : '同步失败{result.error ?? "未知错误"}',
+                    ? '同步完成，但存在 ${result.conflictCount} 个冲突'
+                    : '同步失败：${result.error ?? "未知错误"}',
               ),
               backgroundColor: result.conflictCount > 0
                   ? Colors.orange
@@ -606,7 +639,7 @@ class WebDavSettingsPage extends HookWidget {
         if (!context.mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('同步异常e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('同步异常：$e'), backgroundColor: Colors.red),
         );
       } finally {
         isSyncing.value = false;
@@ -632,10 +665,37 @@ class WebDavSettingsPage extends HookWidget {
               Center(child: Text(syncMessage.value)),
               const SizedBox(height: 16),
             ],
+            if (conflicts.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber, color: Colors.orange.shade700),
+                    const SizedBox(width: 8),
+                    Text(
+                      '存在 ${conflicts.length} 个冲突需要解决',
+                      style: TextStyle(color: Colors.orange.shade900),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () =>
+                          _showConflictsDialog(context, syncService, conflicts),
+                      child: const Text('查看'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             ListTile(
               leading: const Icon(Icons.cloud_upload),
               title: const Text('立即上传'),
-              subtitle: const Text('将本地数据上传到服务'),
+              subtitle: const Text('将本地数据上传到服务器'),
               onTap: isSyncing.value
                   ? null
                   : () => performSync(SyncDirection.upload),
@@ -644,7 +704,7 @@ class WebDavSettingsPage extends HookWidget {
             ListTile(
               leading: const Icon(Icons.cloud_download),
               title: const Text('立即下载'),
-              subtitle: const Text('从服务器下载数据到本'),
+              subtitle: const Text('从服务器下载数据到本地'),
               onTap: isSyncing.value
                   ? null
                   : () => performSync(SyncDirection.download),
@@ -653,7 +713,7 @@ class WebDavSettingsPage extends HookWidget {
             ListTile(
               leading: const Icon(Icons.sync),
               title: const Text('双向同步'),
-              subtitle: const Text('同步本地和服务器的数'),
+              subtitle: const Text('同步本地和服务器的数据'),
               onTap: isSyncing.value
                   ? null
                   : () => performSync(SyncDirection.both),
@@ -663,6 +723,107 @@ class WebDavSettingsPage extends HookWidget {
         ),
       ),
     );
+  }
+
+  /// 显示冲突对话框
+  void _showConflictsDialog(
+    BuildContext context,
+    EnhancedWebDavSyncService syncService,
+    List<ConflictInfo> conflicts,
+  ) async {
+    final result = await showDialog<List<ConflictInfo>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber, color: Colors.orange.shade700),
+            const SizedBox(width: 8),
+            Text('需要同步冲突 (${conflicts.length})'),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: conflicts.length,
+            itemBuilder: (context, index) {
+              final conflict = conflicts[index];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  leading: Icon(
+                    Icons.warning,
+                    color: Colors.orange.shade700,
+                  ),
+                  title: Text(_getDataTypeName(conflict.dataType)),
+                  subtitle: Text(conflict.description),
+                  trailing: conflict.autoResolution != null
+                      ? Chip(
+                          label: Text(
+                            _getResolutionName(conflict.autoResolution!),
+                          ),
+                          backgroundColor: Colors.blue.shade50,
+                          labelStyle: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue.shade900,
+                          ),
+                        )
+                      : null,
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('稍后处理'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(conflicts),
+            child: const Text('解决冲突'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      // 打开冲突解决页面
+      for (final conflict in result) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ConflictResolutionPage(
+              syncService: syncService,
+              conflictInfo: conflict,
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  String _getDataTypeName(SyncDataType type) {
+    switch (type) {
+      case SyncDataType.readingProgress:
+        return '阅读进度';
+      case SyncDataType.bookmarks:
+        return '书签';
+      case SyncDataType.bookshelf:
+        return '书架';
+      case SyncDataType.settings:
+        return '设置';
+    }
+  }
+
+  String _getResolutionName(ConflictResolution resolution) {
+    switch (resolution) {
+      case ConflictResolution.useLocal:
+        return '使用本地';
+      case ConflictResolution.useRemote:
+        return '使用远程';
+      case ConflictResolution.merge:
+        return '合并';
+    }
   }
 
   Widget _buildHelpCard(BuildContext context) {

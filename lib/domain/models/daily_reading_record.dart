@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:zephyr_reader/core/database/database.dart';
 
-
 part 'daily_reading_record.freezed.dart';
 
 /// 每日阅读记录领域模型
@@ -50,6 +49,3 @@ abstract class DailyReadingRecord with _$DailyReadingRecord {
     );
   }
 }
-
-
-

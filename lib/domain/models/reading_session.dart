@@ -1,7 +1,6 @@
 /// 阅读会话领域模型
 library;
 
-
 import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:zephyr_reader/core/database/database.dart';
@@ -59,4 +58,3 @@ abstract class ReadingSession with _$ReadingSession {
     );
   }
 }
-

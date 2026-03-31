@@ -1,4 +1,3 @@
-
 import 'package:zephyr_reader/domain/models/bookmark.dart';
 import 'package:zephyr_reader/domain/models/chapter.dart';
 import 'package:zephyr_reader/domain/models/reading_history.dart';

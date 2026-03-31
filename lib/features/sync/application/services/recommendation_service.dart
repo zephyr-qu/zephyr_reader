@@ -7,7 +7,7 @@ library;
 class RecommendationService {
   // 本地书籍数据库（模拟）
   final List<BookInfo> _bookDatabase = [];
-  
+
   // 阅读统计（模拟）
   final Map<String, ReadingStats> _readingStats = {};
 
@@ -84,7 +84,7 @@ class RecommendationService {
 
     // 计算相似度分数
     final scoredBooks = <_ScoredBook>[];
-    
+
     for (final book in _bookDatabase) {
       if (book.id == bookId) continue; // 跳过当前书籍
 
@@ -107,7 +107,8 @@ class RecommendationService {
       }
 
       // 阅读人数相似度（受欢迎程度）
-      final readerSimilarity = 1.0 / (1 + (book.readCount - currentBook.readCount).abs());
+      final readerSimilarity =
+          1.0 / (1 + (book.readCount - currentBook.readCount).abs());
       score += readerSimilarity * 0.2;
 
       if (score > 0.3) {
@@ -122,11 +123,13 @@ class RecommendationService {
     return scoredBooks.take(limit).map((sb) {
       final book = sb.book;
       String reason = '';
-      
+
       if (book.author == currentBook.author) {
         reason = '同作者${book.author}的作品';
       } else if (book.genres.any((g) => currentBook.genres.contains(g))) {
-        final commonGenres = book.genres.where((g) => currentBook.genres.contains(g));
+        final commonGenres = book.genres.where(
+          (g) => currentBook.genres.contains(g),
+        );
         reason = '相似题材：${commonGenres.join(', ')}';
       } else {
         reason = '读者也喜欢的作品';
@@ -148,22 +151,25 @@ class RecommendationService {
   List<BookRecommendation> getPopularRecommendations({int limit = 10}) {
     // 基于本地阅读统计生成热门推荐
     // 计算每本书的热门分数：阅读人数 * 0.4 + 平均评分 * 0.3 + 最近阅读量 * 0.3
-    
+
     final scoredBooks = <_ScoredBook>[];
-    
+
     for (final book in _bookDatabase) {
-      final stats = _readingStats[book.id] ?? ReadingStats(readCount: 0, avgRating: 0, lastReadAt: DateTime(2000));
-      
+      final stats =
+          _readingStats[book.id] ??
+          ReadingStats(readCount: 0, avgRating: 0, lastReadAt: DateTime(2000));
+
       // 归一化分数
       final readScore = stats.readCount / 100.0; // 假设最多 100 次阅读
       final ratingScore = stats.avgRating / 5.0; // 5 分制
-      
+
       // 最近阅读时间分数（越近越高）
       final daysSinceRead = DateTime.now().difference(stats.lastReadAt).inDays;
       final recencyScore = 1.0 / (1 + daysSinceRead / 30.0); // 30 天内为高分
-      
-      final totalScore = readScore * 0.4 + ratingScore * 0.3 + recencyScore * 0.3;
-      
+
+      final totalScore =
+          readScore * 0.4 + ratingScore * 0.3 + recencyScore * 0.3;
+
       if (totalScore > 0.1) {
         scoredBooks.add(_ScoredBook(book: book, score: totalScore));
       }
@@ -176,7 +182,7 @@ class RecommendationService {
     return scoredBooks.take(limit).map((sb) {
       final book = sb.book;
       final stats = _readingStats[book.id];
-      
+
       String reason = '';
       if (stats != null && stats.readCount > 50) {
         reason = '本周热门：${stats.readCount}人在读';

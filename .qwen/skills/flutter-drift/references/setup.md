@@ -44,9 +44,9 @@ part 'database.g.dart';
 
 // Define tables
 class TodoItems extends Table {
-  IntColumn get id => integer().autoIncrement()();
-  TextColumn get title => text()();
-  DateTimeColumn get createdAt => dateTime().nullable()();
+  late final id = integer().autoIncrement()();
+  late final title = text()();
+  late final createdAt = dateTime().nullable()();
 }
 
 @DriftDatabase(tables: [TodoItems])
