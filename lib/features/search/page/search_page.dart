@@ -337,6 +337,8 @@ class _SearchPageState extends State<SearchPage> {
                 coverPath: result.coverUrl,
               );
 
+              if (!context.mounted) return;
+
               if (book != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('已添加 ${result.title} 到书架')),

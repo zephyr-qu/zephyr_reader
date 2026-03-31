@@ -443,6 +443,8 @@ class BookCard extends StatelessWidget {
         controller.text,
       );
 
+      if (!context.mounted) return;
+
       if (updated) {
         ScaffoldMessenger.of(
           context,
@@ -482,6 +484,8 @@ class BookCard extends StatelessWidget {
       // 调用服务删除书籍
       final bookshelfService = GetIt.I.get<BookshelfService>();
       final deleted = await bookshelfService.deleteBook(book.id);
+
+      if (!context.mounted) return;
 
       if (deleted) {
         ScaffoldMessenger.of(

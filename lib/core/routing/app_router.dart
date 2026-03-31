@@ -10,7 +10,10 @@ import 'package:zephyr_reader/features/bookshelf/page/bookshelf_page.dart';
 import 'package:zephyr_reader/features/home/page/home_page.dart';
 import 'package:zephyr_reader/features/home/page/splash_page.dart';
 import 'package:zephyr_reader/features/main_layout.dart';
+import 'package:zephyr_reader/features/profile/page/about_page.dart';
+import 'package:zephyr_reader/features/profile/page/app_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/profile_page.dart';
+import 'package:zephyr_reader/features/profile/page/reading_settings_page.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page_new.dart';
 import 'package:zephyr_reader/features/search/page/search_page.dart';
 import 'package:zephyr_reader/features/statistics/page/statistics_page.dart';
@@ -94,6 +97,23 @@ final router = GoRouter(
           name: RouteNames.profile,
           path: RoutePaths.profile,
           builder: (_, _) => ProfilePage(),
+        ),
+        
+        // 设置相关路由
+        GoRoute(
+          name: RouteNames.readingSettings,
+          path: RoutePaths.readingSettings,
+          builder: (_, _) => const ReadingSettingsPage(),
+        ),
+        GoRoute(
+          name: RouteNames.appSettings,
+          path: RoutePaths.appSettings,
+          builder: (_, _) => const AppSettingsPage(),
+        ),
+        GoRoute(
+          name: RouteNames.about,
+          path: RoutePaths.about,
+          builder: (_, _) => const AboutPage(),
         ),
 
         // 文章列表路由

@@ -32,12 +32,14 @@ abstract class Bookmark with _$Bookmark {
   /// 从数据库模型转换
   factory Bookmark.fromDb(dynamic dbBookmark) {
     return Bookmark(
-      id: dbBookmark.id,
-      bookId: dbBookmark.bookId,
-      chapterId: dbBookmark.chapterId,
-      position: dbBookmark.position,
+      id: dbBookmark.id ?? 0,
+      bookId: dbBookmark.bookId ?? 0,
+      chapterId: dbBookmark.chapterId ?? 0,
+      position: dbBookmark.position ?? 0,
       note: dbBookmark.note,
-      createdAt: dbBookmark.createdAt,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(
+        dbBookmark.createdTimestamp ?? DateTime.now().millisecondsSinceEpoch,
+      ),
     );
   }
 

@@ -790,6 +790,7 @@ class WebDavSettingsPage extends HookWidget {
     if (result != null && result.isNotEmpty) {
       // 打开冲突解决页面
       for (final conflict in result) {
+        if (!context.mounted) break;
         await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => ConflictResolutionPage(

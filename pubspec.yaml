@@ -36,7 +36,7 @@ dependencies:
   drift_flutter: ^0.3.0
   path: ^1.9.0
   webdav_client: ^1.2.2
-  # sqlite3: ^3.2.0
+  sqlite3: ^3.2.0
 
   # --- UI & Assets ---
   cached_network_image: ^3.4.1
@@ -55,6 +55,7 @@ dependencies:
   json_annotation: ^4.11.0
   freezed_annotation: ^3.1.0
   uuid: ^4.5.2
+  package_info_plus: ^8.3.0
 
   rust_lib_zephyr_reader:
     path: rust_builder
