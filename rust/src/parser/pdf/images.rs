@@ -220,20 +220,16 @@ mod tests {
     fn test_extract_pdf_cover_file_not_found() {
         let result = extract_pdf_cover("non_existent.pdf", "/tmp");
         assert!(result.is_err());
-        match result.unwrap_err() {
-            ParserError::FileNotFound { .. } => (),
-            _ => panic!("Expected FileNotFound error"),
-        }
+        let err = result.unwrap_err();
+        assert!(matches!(err, ParserError::FileNotFound { .. }), "Expected FileNotFound error, got: {:?}", err);
     }
 
     #[test]
     fn test_extract_pdf_cover_bytes_file_not_found() {
         let result = extract_pdf_cover_bytes("non_existent.pdf");
         assert!(result.is_err());
-        match result.unwrap_err() {
-            ParserError::FileNotFound { .. } => (),
-            _ => panic!("Expected FileNotFound error"),
-        }
+        let err = result.unwrap_err();
+        assert!(matches!(err, ParserError::FileNotFound { .. }), "Expected FileNotFound error, got: {:?}", err);
     }
 
     #[test]

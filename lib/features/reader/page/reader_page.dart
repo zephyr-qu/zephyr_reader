@@ -1,4 +1,4 @@
-/// 阅读器页面 - 新版本
+/// 阅读器页面
 ///
 /// 功能：
 /// - 支持上下滚动和左右翻页模式
@@ -35,7 +35,7 @@ enum ReadingMode {
 }
 
 /// 阅读器页面
-class ReaderPageNew extends HookWidget {
+class ReaderPage extends HookWidget {
   /// 书籍 ID
   final int bookId;
 
@@ -45,7 +45,7 @@ class ReaderPageNew extends HookWidget {
   /// 初始页码
   final int initialPageIndex;
 
-  const ReaderPageNew({
+  const ReaderPage({
     super.key,
     required this.bookId,
     required this.initialChapterId,

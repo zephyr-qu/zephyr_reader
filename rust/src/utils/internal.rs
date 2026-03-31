@@ -80,12 +80,13 @@ mod tests {
         let converted = result.context_with("操作失败");
 
         assert!(converted.is_err());
-        match converted.unwrap_err() {
+        let err = converted.unwrap_err();
+        match err {
             ParserError::InternalError(msg) => {
-                assert!(msg.contains("操作失败"));
-                assert!(msg.contains("内部错误"));
+                assert!(msg.contains("操作失败"), "Expected error message to contain '操作失败', got: {}", msg);
+                assert!(msg.contains("内部错误"), "Expected error message to contain '内部错误', got: {}", msg);
             }
-            _ => panic!("Expected InternalError"),
+            other => panic!("Expected InternalError, got: {:?}", other),
         }
     }
 }

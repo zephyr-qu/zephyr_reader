@@ -8,7 +8,9 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/database/database.dart';
 
 /// 备份数据类型
 enum BackupType { readingProgress, bookmarks, bookshelf, settings, all }
@@ -28,6 +30,23 @@ class BackupInfo {
     required this.types,
     this.note,
   });
+
+  /// 格式化文件大小
+  String get fileSizeFormatted {
+    if (fileSize < 1024) {
+      return '$fileSize B';
+    } else if (fileSize < 1024 * 1024) {
+      return '${(fileSize / 1024).toStringAsFixed(2)} KB';
+    } else {
+      return '${(fileSize / (1024 * 1024)).toStringAsFixed(2)} MB';
+    }
+  }
+
+  /// 格式化创建时间
+  String get createdAtFormatted {
+    return '${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')} '
+        '${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}';
+  }
 }
 
 /// 备份恢复服务
@@ -35,9 +54,17 @@ class BackupRestoreService {
   final backups = signal<List<BackupInfo>>([]);
   final isBackingUp = signal(false);
   final isRestoring = signal(false);
+  
+  AppDatabase? _db;
 
   BackupRestoreService() {
     _loadBackups();
+  }
+
+  /// 获取数据库实例
+  AppDatabase _getDatabase() {
+    _db ??= getDatabase();
+    return _db!;
   }
 
   static const String _backupDir = 'zephyr_reader/backups';
@@ -273,13 +300,137 @@ class BackupRestoreService {
     return true;
   }
 
-  Future<Map<String, dynamic>> _backupReadingProgress() async => {};
-  Future<Map<String, dynamic>> _backupBookmarks() async => {};
-  Future<Map<String, dynamic>> _backupBookshelf() async => {};
-  Future<Map<String, dynamic>> _backupSettings() async => {};
+  Future<Map<String, dynamic>> _backupReadingProgress() async {
+    try {
+      final db = _getDatabase();
+      final progressList = await db.getAllReadingProgress();
+      return {
+        'items': progressList.map((p) => p.toJson()).toList(),
+      };
+    } catch (e) {
+      debugPrint('备份阅读进度失败：$e');
+      return {};
+    }
+  }
 
-  Future<void> _restoreReadingProgress(Map<String, dynamic> data) async {}
-  Future<void> _restoreBookmarks(Map<String, dynamic> data) async {}
-  Future<void> _restoreBookshelf(Map<String, dynamic> data) async {}
-  Future<void> _restoreSettings(Map<String, dynamic> data) async {}
+  Future<Map<String, dynamic>> _backupBookmarks() async {
+    try {
+      final db = _getDatabase();
+      final bookmarks = await db.getAllBookmarks();
+      return {
+        'items': bookmarks.map((b) => b.toJson()).toList(),
+      };
+    } catch (e) {
+      debugPrint('备份书签失败：$e');
+      return {};
+    }
+  }
+
+  Future<Map<String, dynamic>> _backupBookshelf() async {
+    try {
+      final db = _getDatabase();
+      final books = await db.getAllBooks();
+      return {
+        'items': books.map((b) => b.toJson()).toList(),
+      };
+    } catch (e) {
+      debugPrint('备份书架失败：$e');
+      return {};
+    }
+  }
+
+  Future<Map<String, dynamic>> _backupSettings() async {
+    try {
+      // 使用 SharedPreferences 直接访问
+      final prefs = await SharedPreferences.getInstance();
+      return {
+        'themeMode': prefs.getInt('theme_mode') ?? 0,
+        'language': prefs.getInt('language') ?? 0,
+        'region': prefs.getString('region') ?? 'CN',
+        'autoSync': prefs.getBool('auto_sync') ?? false,
+        'syncInterval': prefs.getInt('sync_interval') ?? 0,
+        'storagePath': prefs.getString('storage_path') ?? '',
+      };
+    } catch (e) {
+      debugPrint('备份设置失败：$e');
+      return {};
+    }
+  }
+
+  Future<void> _restoreReadingProgress(Map<String, dynamic> data) async {
+    try {
+      if (!data.containsKey('items')) return;
+      
+      final db = _getDatabase();
+      final items = List<Map<String, dynamic>>.from(data['items']);
+      final progressList = items.map((item) => DbReadingProgress.fromJson(item)).toList();
+      
+      await db.insertReadingProgressList(progressList);
+      
+      debugPrint('恢复阅读进度成功');
+    } catch (e) {
+      debugPrint('恢复阅读进度失败：$e');
+    }
+  }
+
+  Future<void> _restoreBookmarks(Map<String, dynamic> data) async {
+    try {
+      if (!data.containsKey('items')) return;
+      
+      final db = _getDatabase();
+      final items = List<Map<String, dynamic>>.from(data['items']);
+      final bookmarkList = items.map((item) => DbBookmark.fromJson(item)).toList();
+      
+      await db.insertBookmarkList(bookmarkList);
+      
+      debugPrint('恢复书签成功');
+    } catch (e) {
+      debugPrint('恢复书签失败：$e');
+    }
+  }
+
+  Future<void> _restoreBookshelf(Map<String, dynamic> data) async {
+    try {
+      if (!data.containsKey('items')) return;
+      
+      final db = _getDatabase();
+      final items = List<Map<String, dynamic>>.from(data['items']);
+      final bookList = items.map((item) => DbBook.fromJson(item)).toList();
+      
+      await db.insertBookList(bookList);
+      
+      debugPrint('恢复书架成功');
+    } catch (e) {
+      debugPrint('恢复书架失败：$e');
+    }
+  }
+
+  Future<void> _restoreSettings(Map<String, dynamic> data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      if (data.containsKey('themeMode')) {
+        await prefs.setInt('theme_mode', data['themeMode']);
+      }
+      if (data.containsKey('language')) {
+        await prefs.setInt('language', data['language']);
+      }
+      if (data.containsKey('region')) {
+        await prefs.setString('region', data['region']);
+      }
+      if (data.containsKey('autoSync')) {
+        await prefs.setBool('auto_sync', data['autoSync']);
+      }
+      if (data.containsKey('syncInterval')) {
+        await prefs.setInt('sync_interval', data['syncInterval']);
+      }
+      if (data.containsKey('storagePath')) {
+        await prefs.setString('storage_path', data['storagePath']);
+      }
+      
+      debugPrint('恢复设置成功');
+    } catch (e) {
+      debugPrint('恢复设置失败：$e');
+    }
+  }
 }

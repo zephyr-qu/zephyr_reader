@@ -6,6 +6,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:zephyr_reader/features/profile/page/user_agreement_page.dart';
+import 'package:zephyr_reader/features/profile/page/privacy_policy_page.dart';
 
 /// 关于页面
 class AboutPage extends HookWidget {
@@ -167,9 +170,11 @@ class AboutPage extends HookWidget {
                 leading: const Icon(Icons.description),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  // TODO: 显示用户协议
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('功能开发中...')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const UserAgreementPage(),
+                    ),
                   );
                 },
               ),
@@ -179,9 +184,11 @@ class AboutPage extends HookWidget {
                 leading: const Icon(Icons.privacy_tip),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  // TODO: 显示隐私政策
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('功能开发中...')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PrivacyPolicyPage(),
+                    ),
                   );
                 },
               ),
@@ -199,24 +206,23 @@ class AboutPage extends HookWidget {
                   );
                 },
               ),
-            ],
-          ),
-          
-          // 联系方式
-          _buildSection(
-            context,
-            title: '联系方式',
-            children: [
+              const Divider(height: 1),
               ListTile(
                 title: const Text('问题反馈'),
-                subtitle: const Text('提交 Issue'),
+                subtitle: const Text('GitHub Issues'),
                 leading: const Icon(Icons.bug_report),
                 trailing: const Icon(Icons.open_in_new),
-                onTap: () {
-                  // TODO: 打开 GitHub Issues
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('功能开发中...')),
-                  );
+                onTap: () async {
+                  final uri = Uri.parse('https://github.com/zephyr-reader/zephyr_reader/issues');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('无法打开链接')),
+                      );
+                    }
+                  }
                 },
               ),
             ],

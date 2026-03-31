@@ -47,6 +47,7 @@ dependencies:
   flutter_svg: ^2.2.3
   fl_chart: ^1.2.0
   file_picker: ^10.3.10
+  url_launcher: ^6.3.1
 
   # --- Utils & Others ---
   logger: ^2.6.2
@@ -56,6 +57,7 @@ dependencies:
   freezed_annotation: ^3.1.0
   uuid: ^4.5.2
   package_info_plus: ^8.3.0
+  system_state: ^1.4.1
 
   rust_lib_zephyr_reader:
     path: rust_builder
@@ -85,6 +87,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
   assets:
     - .env

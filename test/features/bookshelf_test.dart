@@ -251,7 +251,7 @@ Book _createTestBook({
   String author = '测试作者',
   String? coverPath,
   String? description,
-  String filePath = '/test/path.txt',
+  String filePath = '/test/path/book.txt',
   String fileType = 'txt',
   int fileSize = 1024,
   int totalChapters = 10,

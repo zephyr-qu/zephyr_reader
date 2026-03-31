@@ -40,6 +40,23 @@ class AppDatabase extends _$AppDatabase {
   /// 查询所有小说
   Future<List<DbBook>> getAllBooks() => select(dbBooks).get();
 
+  /// 插入小说
+  Future<int> insertBook(DbBook book) async {
+    return into(dbBooks).insert(
+      book,
+      mode: InsertMode.insertOrReplace,
+    );
+  }
+
+  /// 批量插入小说
+  Future<void> insertBookList(List<DbBook> list) async {
+    await transaction(() async {
+      for (final item in list) {
+        await into(dbBooks).insert(item, mode: InsertMode.insertOrReplace);
+      }
+    });
+  }
+
   /// 根据 ID 查询小说
   Future<DbBook?> getBookById(int id) =>
       (select(dbBooks)..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
@@ -131,6 +148,23 @@ class AppDatabase extends _$AppDatabase {
     )..orderBy([(tbl) => OrderingTerm.desc(tbl.lastReadTimestamp)])).get();
   }
 
+  /// 插入阅读进度
+  Future<int> insertReadingProgress(DbReadingProgress progress) async {
+    return into(dbReadingProgresss).insert(
+      progress,
+      mode: InsertMode.insertOrReplace,
+    );
+  }
+
+  /// 批量插入阅读进度
+  Future<void> insertReadingProgressList(List<DbReadingProgress> list) async {
+    await transaction(() async {
+      for (final item in list) {
+        await into(dbReadingProgresss).insert(item, mode: InsertMode.insertOrReplace);
+      }
+    });
+  }
+
   // ==================== 书签管理 ====================
 
   /// 添加书签
@@ -183,6 +217,23 @@ class AppDatabase extends _$AppDatabase {
     return (select(
       dbBookmarks,
     )..orderBy([(tbl) => OrderingTerm.desc(tbl.createdTimestamp)])).get();
+  }
+
+  /// 插入书签
+  Future<int> insertBookmark(DbBookmark bookmark) async {
+    return into(dbBookmarks).insert(
+      bookmark,
+      mode: InsertMode.insertOrReplace,
+    );
+  }
+
+  /// 批量插入书签
+  Future<void> insertBookmarkList(List<DbBookmark> list) async {
+    await transaction(() async {
+      for (final item in list) {
+        await into(dbBookmarks).insert(item, mode: InsertMode.insertOrReplace);
+      }
+    });
   }
 
   // ==================== 排版缓存管理 ====================

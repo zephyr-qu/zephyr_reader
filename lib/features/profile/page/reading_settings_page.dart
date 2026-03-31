@@ -20,8 +20,8 @@ class ReadingSettingsPage extends StatefulHookWidget {
   State<ReadingSettingsPage> createState() => _ReadingSettingsPageState();
 }
 
-class _ReadingSettingsPageState extends State<ReadingSettingsPage> with SignalsMixin {
-
+class _ReadingSettingsPageState extends State<ReadingSettingsPage>
+    with SignalsMixin {
   @override
   Widget build(BuildContext context) {
     // 设置状态
@@ -34,9 +34,7 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> with SignalsM
     final clickZone = useSignal(3); // 1: 简化，2: 中等，3: 完整
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('阅读设置'),
-      ),
+      appBar: AppBar(title: const Text('阅读设置')),
       body: ListView(
         children: [
           // 字体设置
@@ -67,7 +65,7 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> with SignalsM
               ),
             ],
           ),
-          
+
           // 翻页设置
           _buildSection(
             context,
@@ -78,10 +76,7 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> with SignalsM
                 title: '翻页模式',
                 value: 0,
                 groupValue: 0,
-                items: const [
-                  ('上下滚动', 0),
-                  ('左右翻页', 1),
-                ],
+                items: const [('上下滚动', 0), ('左右翻页', 1)],
                 onChanged: (_) {},
               ),
               const Divider(height: 1),
@@ -90,15 +85,12 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> with SignalsM
                 title: '翻页动画',
                 value: enableAnimation.value ? 0 : 1,
                 groupValue: 0,
-                items: const [
-                  ('启用', 0),
-                  ('禁用', 1),
-                ],
+                items: const [('启用', 0), ('禁用', 1)],
                 onChanged: (v) => enableAnimation.value = v == 0,
               ),
             ],
           ),
-          
+
           // 屏幕设置
           _buildSection(
             context,
@@ -129,7 +121,7 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> with SignalsM
               ),
             ],
           ),
-          
+
           // 点击区域设置
           _buildSection(
             context,
@@ -140,18 +132,14 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> with SignalsM
                 title: '点击区域布局',
                 value: clickZone.value,
                 groupValue: clickZone.value,
-                items: const [
-                  ('完整区域 (推荐)', 3),
-                  ('中等区域', 2),
-                  ('简化区域', 1),
-                ],
+                items: const [('完整区域 (推荐)', 3), ('中等区域', 2), ('简化区域', 1)],
                 onChanged: (v) {
                   if (v != null) clickZone.value = v;
                 },
               ),
             ],
           ),
-          
+
           // 重置设置
           _buildSection(
             context,
@@ -171,30 +159,30 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> with SignalsM
                   showBattery.value = false;
                   showTime.value = true;
                   clickZone.value = 3;
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('已重置为默认设置')),
-                  );
+
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('已重置为默认设置')));
                 },
               ),
             ],
           ),
-          
+
           const SizedBox(height: 32),
         ],
       ),
     );
   }
-  
+
   Widget _buildSection(
     BuildContext context, {
     required String title,
     required List<Widget> children,
   }) {
     final theme = Theme.of(context);
-    
+
     if (children.isEmpty) return const SizedBox.shrink();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -211,13 +199,15 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> with SignalsM
           ),
         ],
         ColoredBox(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.3,
+          ),
           child: Column(children: children),
         ),
       ],
     );
   }
-  
+
   Widget _buildSliderSetting(
     BuildContext context, {
     required String title,
@@ -238,13 +228,10 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> with SignalsM
         label: suffix,
         onChanged: onChanged,
       ),
-      trailing: Text(
-        suffix,
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
+      trailing: Text(suffix, style: Theme.of(context).textTheme.bodySmall),
     );
   }
-  
+
   Widget _buildSwitchSetting(
     BuildContext context, {
     required String title,
@@ -259,7 +246,7 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> with SignalsM
       onChanged: onChanged,
     );
   }
-  
+
   Widget _buildRadioSetting(
     BuildContext context, {
     required String title,
@@ -272,15 +259,17 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage> with SignalsM
       title: Text(title),
       subtitle: Column(
         children: items.map((item) {
-          return RadioListTile<int>(
-            title: Text(item.$1),
-            value: item.$2,
+          return RadioGroup<int>(
             groupValue: groupValue,
             onChanged: (v) {
               onChanged(v);
             },
-            contentPadding: EdgeInsets.zero,
-            visualDensity: VisualDensity.compact,
+            child: RadioListTile<int>(
+              title: Text(item.$1),
+              value: item.$2,
+              contentPadding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+            ),
           );
         }).toList(),
       ),

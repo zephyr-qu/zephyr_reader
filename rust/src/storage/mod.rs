@@ -159,6 +159,7 @@ pub trait ProgressStorage: Send + Sync {
 ///
 /// 用于临时存储，数据在应用重启后丢失
 /// 所有持久化操作应使用 Flutter 侧的 Drift 数据库
+#[allow(dead_code)]
 pub struct InMemoryStorage {
     progress: Arc<RwLock<HashMap<String, ReadingProgress>>>,
     bookmarks: Arc<RwLock<HashMap<String, Vec<Bookmark>>>>,
@@ -297,7 +298,7 @@ impl ProgressStorage for InMemoryStorage {
         book_id: &str,
         chapter_id: i32,
         config_hash: &str,
-        page_offsets: &[PageOffset],
+        _page_offsets: &[PageOffset],
     ) -> StorageResult<()> {
         // 内存实现：仅记录日志，不实际存储
         tracing::debug!(

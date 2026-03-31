@@ -210,10 +210,8 @@ mod tests {
     fn test_epub_not_found() {
         let result = parse_epub("non_existent.epub".to_string());
         assert!(result.is_err());
-        match result.unwrap_err() {
-            ParserError::FileNotFound { .. } => (),
-            _ => panic!("Expected FileNotFound error"),
-        }
+        let err = result.unwrap_err();
+        assert!(matches!(err, ParserError::FileNotFound { .. }), "Expected FileNotFound error, got: {:?}", err);
     }
 
     #[test]
