@@ -59,12 +59,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
         SnackBar(
           content: Text('已清理 $sizeText 缓存'),
           behavior: SnackBarBehavior.floating,
-          action: SnackBarAction(
-            label: '撤销',
-            onPressed: () {
-              // TODO: 实现撤销操作
-            },
-          ),
         ),
       );
 
@@ -135,7 +129,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
         ).showSnackBar(const SnackBar(content: Text('暂无备份记录')));
       }
       return;
-
     }
 
     final selectedBackup = await showRestoreBackupDialog(context, backups);
@@ -291,9 +284,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
                     context,
                     icon: Icons.palette_rounded,
                     title: '主题与外观',
-                    children: [
-                      _buildThemeSelector(context, themeMode),
-                    ],
+                    children: [_buildThemeSelector(context, themeMode)],
                   ),
                   const SizedBox(height: 16),
 
@@ -454,10 +445,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
             onTap: () => themeMode.value = index,
             borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
                   Container(
@@ -483,15 +471,16 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
                       color: isSelected
                           ? theme.colorScheme.primary
                           : theme.colorScheme.onSurface,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                   ),
                   const Spacer(),
-                  Radio<int>(
-                    value: index,
+                  RadioGroup(
                     groupValue: themeMode.value,
                     onChanged: (v) => themeMode.value = v ?? 0,
+                    child: Radio<int>(value: index),
                   ),
                 ],
               ),
@@ -525,10 +514,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
             onTap: () => language.value = index,
             borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
                   Text(
@@ -542,15 +528,16 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
                       color: isSelected
                           ? theme.colorScheme.primary
                           : theme.colorScheme.onSurface,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                   ),
                   const Spacer(),
-                  Radio<int>(
-                    value: index,
+                  RadioGroup(
                     groupValue: language.value,
                     onChanged: (v) => language.value = v ?? 0,
+                    child: Radio<int>(value: index),
                   ),
                 ],
               ),
@@ -602,7 +589,10 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
                 itemBuilder: (context, index) {
                   final region = regions[index];
                   return ListTile(
-                    leading: Text(region['flag']!, style: const TextStyle(fontSize: 24)),
+                    leading: Text(
+                      region['flag']!,
+                      style: const TextStyle(fontSize: 24),
+                    ),
                     title: Text(region['name']!),
                     onTap: () => Navigator.pop(context, region),
                   );
@@ -799,9 +789,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
       ),
       title: Text(
         title,
-        style: theme.textTheme.bodyLarge?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
+        style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
       ),
       subtitle: Text(subtitle),
       trailing: isLoading
@@ -845,10 +833,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
           : null,
       title: Text(title),
       subtitle: subtitle != null ? Text(subtitle) : null,
-      trailing: Switch(
-        value: value,
-        onChanged: onChanged,
-      ),
+      trailing: Switch(value: value, onChanged: onChanged),
     );
   }
 }

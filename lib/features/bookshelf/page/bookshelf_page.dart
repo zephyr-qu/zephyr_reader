@@ -53,56 +53,103 @@ class BookshelfPage extends StatelessWidget {
       scrolledUnderElevation: 2,
       leading: Row(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: .center,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Container(
-          //   padding: const EdgeInsets.all(8),
-          //   decoration: BoxDecoration(
-          //     gradient: LinearGradient(
-          //       colors: [
-          //         theme.colorScheme.primary,
-          //         theme.colorScheme.secondary,
-          //         theme.colorScheme.tertiary,
-          //       ],
-          //       begin: Alignment.topLeft,
-          //       end: Alignment.bottomRight,
-          //     ),
-          //     borderRadius: BorderRadius.circular(10),
-          //     boxShadow: [
-          //       BoxShadow(
-          //         color: theme.colorScheme.primary.withValues(alpha: 0.3),
-          //         blurRadius: 8,
-          //         offset: const Offset(0, 2),
-          //       ),
-          //     ],
-          //   ),
-          //   child: const Icon(
-          //     Icons.book_rounded,
-          //     color: Colors.white,
-          //     size: 20,
-          //   ),
-          // ),
-          // const SizedBox(width: 12),
-          Text(
-            '书架',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
+          // 书架标题（可点击切换）
+          GestureDetector(
+            onTap: () {
+              // 当前已在书架页面，无需操作
+            },
+            child: Text(
+              '书架',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+          // 斜线分隔符
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              '/',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.outlineVariant,
+              ),
+            ),
+          ),
+          // 文章标题（可点击切换）
+          GestureDetector(
+            onTap: () => context.go('/articles'),
+            child: Text(
+              '文章',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.normal,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ],
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.upload_file_rounded),
-          onPressed: () => _showImportDialog(context),
-          tooltip: '导入',
-        ),
+        // 宫格视图切换按钮
         IconButton(
           icon: const Icon(Icons.grid_view_rounded),
           onPressed: () {
-            // 切换视图模式
+            // TODO: 切换网格/列表视图模式
           },
-          tooltip: '视图',
+          tooltip: '视图模式',
+        ),
+        // 更多选项菜单
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert_rounded),
+          tooltip: '更多',
+          onSelected: (value) {
+            switch (value) {
+              case 'import':
+                _showImportDialog(context);
+                break;
+              case 'refresh':
+                // TODO: 刷新书架
+                break;
+              case 'settings':
+                // TODO: 书架设置
+                break;
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'import',
+              child: Row(
+                children: [
+                  Icon(Icons.upload_file_rounded, size: 20),
+                  SizedBox(width: 12),
+                  Text('导入书籍'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'refresh',
+              child: Row(
+                children: [
+                  Icon(Icons.refresh_rounded, size: 20),
+                  SizedBox(width: 12),
+                  Text('刷新书架'),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem(
+              value: 'settings',
+              child: Row(
+                children: [
+                  Icon(Icons.settings_rounded, size: 20),
+                  SizedBox(width: 12),
+                  Text('书架设置'),
+                ],
+              ),
+            ),
+          ],
         ),
         SizedBox(width: deviceType == DeviceType.desktop ? 16 : 8),
       ],
