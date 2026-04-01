@@ -150,7 +150,6 @@ final router = GoRouter(
         return ReaderPage(
           bookId: bookId,
           initialChapterId: chapterId,
-          initialPageIndex: 0,
         );
       },
     ),

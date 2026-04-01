@@ -6,8 +6,11 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 /// 阅读器顶部工具栏组件
 class ReaderToolbar extends HookWidget {
-  /// 书籍标题
+  /// 书籍/章节标题
   final String title;
+
+  /// 进度文本
+  final String progress;
 
   /// 主题模式
   final ThemeMode themeMode;
@@ -19,7 +22,7 @@ class ReaderToolbar extends HookWidget {
   final VoidCallback? onToggleToolbar;
 
   /// 显示章节列表回调
-  final VoidCallback? onShowChapterList;
+  final VoidCallback? onShowCatalog;
 
   /// 显示书签列表回调
   final VoidCallback? onShowBookmarks;
@@ -27,10 +30,11 @@ class ReaderToolbar extends HookWidget {
   const ReaderToolbar({
     super.key,
     required this.title,
+    this.progress = '',
     required this.themeMode,
     this.onClose,
     this.onToggleToolbar,
-    this.onShowChapterList,
+    this.onShowCatalog,
     this.onShowBookmarks,
   });
 
@@ -55,23 +59,36 @@ class ReaderToolbar extends HookWidget {
               onPressed: onClose,
               tooltip: '关闭',
             ),
-            // 章节列表按钮
+            // 目录按钮
             IconButton(
               icon: Icon(Icons.list, color: textColor),
-              onPressed: onShowChapterList,
+              onPressed: onShowCatalog,
               tooltip: '目录',
             ),
-            // 标题
+            // 标题和进度
             Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (progress.isNotEmpty)
+                    Text(
+                      progress,
+                      style: TextStyle(
+                        color: textColor.withValues(alpha: 0.6),
+                        fontSize: 11,
+                      ),
+                    ),
+                ],
               ),
             ),
             // 书签按钮
@@ -79,12 +96,6 @@ class ReaderToolbar extends HookWidget {
               icon: Icon(Icons.bookmark_border, color: textColor),
               onPressed: onShowBookmarks,
               tooltip: '书签',
-            ),
-            // 更多按钮
-            IconButton(
-              icon: Icon(Icons.more_vert, color: textColor),
-              onPressed: onToggleToolbar,
-              tooltip: '更多',
             ),
           ],
         ),

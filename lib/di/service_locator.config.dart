@@ -56,6 +56,8 @@ import 'package:zephyr_reader/features/bookshelf/domain/repositories/chapter_rep
     as _i821;
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart'
     as _i335;
+import 'package:zephyr_reader/features/reader/application/services/chapter_content_service.dart'
+    as _i817;
 import 'package:zephyr_reader/features/reader/data/bookmark_service.dart'
     as _i874;
 import 'package:zephyr_reader/features/reader/data/custom_font_service.dart'
@@ -182,6 +184,9 @@ extension GetItInjectableX on _i174.GetIt {
       () async => _i335.ReaderViewModel(
         await getAsync<_i537.ReaderRepository>(),
         gh<_i849.ReaderConfig>(),
+        gh<_i817.ChapterContentService>(),
+        gh<_i189.ReadingProgressService>(),
+        gh<_i377.BookshelfService>(),
       ),
     );
     return this;
