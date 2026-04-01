@@ -17,7 +17,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
-import '../domain/models/book_Info.dart';
+import '../domain/models/book_info.dart';
 import '../domain/models/chapter_info.dart';
 import '../data/reading_progress_service.dart';
 import 'widgets/reader_content.dart';

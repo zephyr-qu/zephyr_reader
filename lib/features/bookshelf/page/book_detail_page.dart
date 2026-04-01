@@ -1,67 +1,127 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/domain/models/book.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
+import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
+import 'package:zephyr_reader/shared/widget/ui_components.dart';
 
+/// 书籍详情页面 - 响应式设计
 class BookDetailPage extends StatelessWidget {
   final int bookId;
-  final vm = getIt<BookshelfViewModel>();
 
-  BookDetailPage({super.key, required this.bookId});
+  const BookDetailPage({super.key, required this.bookId});
 
   @override
   Widget build(BuildContext context) {
+    // 在 build 中调用 getIt，确保每次 build 都获取最新的 ViewModel
+    final vm = getIt<BookshelfViewModel>();
+    final theme = Theme.of(context);
+    final deviceType = LayoutBreakpoints.getDeviceType(context);
+    final pagePadding = LayoutBreakpoints.getPagePadding(context);
+    final isDesktop = deviceType == DeviceType.desktop;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('书籍详情'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () => _showDeleteDialog(context),
-          ),
-        ],
-      ),
-      body: FutureBuilder<Book?>(
-        future: vm.getBookDetail(bookId),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: CustomScrollView(
+        slivers: [
+          // 顶部 AppBar
+          _buildAppBar(context, theme, deviceType),
+          // 内容区域
+          SliverPadding(
+            padding: pagePadding,
+            sliver: FutureBuilder<Book?>(
+              // 使用 key 确保 bookId 变化时重新创建 Future
+              key: ValueKey(bookId),
+              future: vm.getBookDetail(bookId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            '加载中...',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
 
-          if (snapshot.hasError) {
-            return Center(child: Text('加载失败: ${snapshot.error}'));
-          }
+                if (snapshot.hasError) {
+                  return SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: theme.colorScheme.error,
+                          ),
+                          const SizedBox(height: 16),
+                          Text('加载失败：${snapshot.error}'),
+                          const SizedBox(height: 24),
+                          FilledButton.icon(
+                            onPressed: () {
+                              // 重新加载数据
+                              _loadBookDetail(context, bookId);
+                            },
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: const Text('重试'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
 
-          final book = snapshot.data;
-          if (book == null) {
-            return const Center(child: Text('书籍不存在'));
-          }
+                final book = snapshot.data;
+                if (book == null) {
+                  return SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.book_outlined,
+                            size: 64,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            '书籍不存在',
+                            style: theme.textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 24),
+                          FilledButton.icon(
+                            onPressed: () => context.go('/bookshelf'),
+                            icon: const Icon(Icons.arrow_back_rounded),
+                            label: const Text('返回书架'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
 
-          return _buildContent(context, book);
-        },
-      ),
-    );
-  }
-
-  Widget _buildContent(BuildContext context, Book book) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(context, book),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildInfoSection(book),
-                const SizedBox(height: 24),
-                _buildDescriptionSection(book),
-                const SizedBox(height: 24),
-                _buildChaptersSection(context, book),
-              ],
+                return SliverToBoxAdapter(
+                  child: isDesktop
+                      ? _buildTabletLayout(context, book, theme)
+                      : _buildPhoneLayout(context, book, theme),
+                );
+              },
             ),
           ),
         ],
@@ -69,186 +129,522 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, Book book) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+  Widget _buildAppBar(
+    BuildContext context,
+    ThemeData theme,
+    DeviceType deviceType,
+  ) {
+    return SliverAppBar(
+      floating: true,
+      elevation: 0,
+      scrolledUnderElevation: 2,
+      leading: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          GestureDetector(
+            onTap: () => context.go('/bookshelf'),
+            child: Text(
+              '书架',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.normal,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              '/',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.outlineVariant,
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => context.go('/articles'),
+            child: Text(
+              '文章',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.normal,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.delete_outline_rounded),
+          onPressed: () => _showDeleteDialog(context),
+          tooltip: '删除',
+        ),
+        IconButton(
+          icon: const Icon(Icons.edit_rounded),
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('编辑功能开发中')),
+            );
+          },
+          tooltip: '编辑',
+        ),
+        SizedBox(width: deviceType == DeviceType.desktop ? 16 : 8),
+      ],
+    );
+  }
+
+  Widget _buildPhoneLayout(
+    BuildContext context,
+    Book book,
+    ThemeData theme,
+  ) {
+    final spacing = LayoutBreakpoints.getSpacing(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildHeroSection(context, book, theme),
+        SizedBox(height: spacing),
+        _buildInfoSection(book, theme),
+        SizedBox(height: spacing),
+        _buildDescriptionSection(book, theme),
+        SizedBox(height: spacing),
+        _buildChaptersSection(context, book, theme),
+        SizedBox(height: spacing),
+      ],
+    );
+  }
+
+  Widget _buildTabletLayout(
+    BuildContext context,
+    Book book,
+    ThemeData theme,
+  ) {
+    final spacing = LayoutBreakpoints.getSpacing(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeroSection(context, book, theme),
+                  SizedBox(height: spacing),
+                  _buildInfoSection(book, theme),
+                  SizedBox(height: spacing),
+                  _buildDescriptionSection(book, theme),
+                ],
+              ),
+            ),
+            SizedBox(width: spacing),
+            Expanded(
+              flex: 1,
+              child: _buildChaptersSection(context, book, theme),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeroSection(
+    BuildContext context,
+    Book book,
+    ThemeData theme,
+  ) {
+    final deviceType = LayoutBreakpoints.getDeviceType(context);
+    final isDesktop = deviceType == DeviceType.desktop;
+    final coverWidth = isDesktop ? 140.0 : 120.0;
+    final coverHeight = isDesktop ? 200.0 : 170.0;
+
+    return GradientCard(
+      padding: EdgeInsets.all(isDesktop ? 24 : 20),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             child: Container(
-              width: 100,
-              height: 140,
-              color: Colors.grey[300],
+              width: coverWidth,
+              height: coverHeight,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: book.coverPath != null
                   ? Image.network(
                       book.coverPath!,
                       fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
                       errorBuilder: (context, error, stackTrace) {
-                        return const Center(
-                          child: Icon(Icons.book, size: 48, color: Colors.grey),
+                        return _buildCoverPlaceholder(theme, coverWidth, coverHeight);
+                      },
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              theme.colorScheme.primary,
+                            ),
+                          ),
                         );
                       },
                     )
-                  : const Center(
-                      child: Icon(Icons.book, size: 48, color: Colors.grey),
-                    ),
+                  : _buildCoverPlaceholder(theme, coverWidth, coverHeight),
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: isDesktop ? 24 : 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   book.title,
-                  style: const TextStyle(
-                    fontSize: 18,
+                  style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  book.author,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.person_rounded,
+                      size: 16,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      book.author,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () => _startReading(context, book),
-                  icon: const Icon(Icons.menu_book),
-                  label: const Text('开始阅读'),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 40),
+                const Spacer(),
+                if (book.progress > 0) ...[
+                  Row(
+                    children: [
+                      Text(
+                        '已读 ${(book.progress * 100).toInt()}%',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${book.totalChapters} 章',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: book.progress,
+                      minHeight: 6,
+                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                FilledButton.icon(
+                  onPressed: () => _startReading(context, book),
+                  icon: const Icon(Icons.menu_book_rounded),
+                  label: const Text('开始阅读'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ).animate().scale(
+                      duration: 400.ms,
+                      curve: Curves.easeOutBack,
+                    ),
               ],
             ),
           ),
         ],
       ),
+    ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.05, end: 0);
+  }
+
+  Widget _buildCoverPlaceholder(
+    ThemeData theme,
+    double width,
+    double height,
+  ) {
+    return Center(
+      child: Icon(
+        Icons.book_rounded,
+        size: width * 0.4,
+        color: theme.colorScheme.primary.withValues(alpha: 0.5),
+      ),
     );
   }
 
-  Widget _buildInfoSection(Book book) {
+  Widget _buildInfoSection(Book book, ThemeData theme) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Wrap(
+          spacing: 24,
+          runSpacing: 16,
+          children: [
+            _buildInfoItem(
+              context: '总章节',
+              value: '${book.totalChapters} 章',
+              icon: Icons.chrome_reader_mode_rounded,
+              theme: theme,
+            ),
+            _buildInfoItem(
+              context: '状态',
+              value: _getStatusText(book.status),
+              icon: _getStatusIcon(book.status),
+              theme: theme,
+            ),
+            _buildInfoItem(
+              context: '添加时间',
+              value: _formatDate(book.createdAt),
+              icon: Icons.calendar_today_rounded,
+              theme: theme,
+            ),
+            if (book.lastReadAt != null)
+              _buildInfoItem(
+                context: '最后阅读',
+                value: _formatDate(book.lastReadAt!),
+                icon: Icons.access_time_rounded,
+                theme: theme,
+              ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 100.ms, duration: 500.ms);
+  }
+
+  Widget _buildInfoItem({
+    required String context,
+    required String value,
+    required IconData icon,
+    required ThemeData theme,
+  }) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _buildInfoItem('总章节', '${book.totalChapters}'),
-        const SizedBox(width: 24),
-        _buildInfoItem('状态', _getStatusText(book.status)),
-        const SizedBox(width: 24),
-        _buildInfoItem('添加时间', _formatDate(book.createdAt)),
-      ],
-    );
-  }
-
-  Widget _buildInfoItem(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildDescriptionSection(Book book) {
+  Widget _buildDescriptionSection(Book book, ThemeData theme) {
     if (book.description == null || book.description!.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '简介',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          book.description!,
-          style: TextStyle(fontSize: 14, height: 1.6, color: Colors.grey[800]),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildChaptersSection(BuildContext context, Book book) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '章节目录',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Icon(
+                  Icons.description_rounded,
+                  color: theme.colorScheme.secondary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '简介',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () {},
-              child: Text('全部 ${book.totalChapters} 章'),
+            const SizedBox(height: 12),
+            SelectableText(
+              book.description!,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                height: 1.8,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        ...List.generate(
-          book.totalChapters.clamp(0, 10),
-          (index) => ListTile(
-            dense: true,
-            title: Text('第 ${index + 1} 章'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _startReading(context, book, chapterIndex: index + 1),
+      ),
+    ).animate().fadeIn(delay: 200.ms, duration: 500.ms);
+  }
+
+  Widget _buildChaptersSection(
+    BuildContext context,
+    Book book,
+    ThemeData theme,
+  ) {
+    final deviceType = LayoutBreakpoints.getDeviceType(context);
+    final isDesktop = deviceType == DeviceType.desktop;
+
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(isDesktop ? 20 : 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.list_rounded,
+                      color: theme.colorScheme.tertiary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '章节目录',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('全部章节功能开发中')),
+                    );
+                  },
+                  child: Text('全部 ${book.totalChapters} 章'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...List.generate(
+              book.totalChapters.clamp(0, isDesktop ? 15 : 10),
+              (index) => _buildChapterItem(
+                context,
+                index,
+                book,
+                theme,
+                isDesktop,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 300.ms, duration: 500.ms);
+  }
+
+  Widget _buildChapterItem(
+    BuildContext context,
+    int index,
+    Book book,
+    ThemeData theme,
+    bool isDesktop,
+  ) {
+    return ListTile(
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? 12 : 8,
+        vertical: 4,
+      ),
+      dense: !isDesktop,
+      leading: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: Text(
+            '${index + 1}',
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.primary,
+            ),
           ),
         ),
-      ],
-    );
-  }
-
-  void _startReading(BuildContext context, Book book, {int? chapterIndex}) {
-    final targetChapter = chapterIndex ?? 1;
-    context.pushNamed(
-      RouteNames.reader,
-      pathParameters: {
-        'bookId': book.id.toString(),
-        'chapterId': targetChapter.toString(),
-      },
-    );
-  }
-
-  void _showDeleteDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('删除书籍'),
-        content: const Text('确定要删除这本书吗？此操作不可恢复。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final success = await vm.deleteBook(bookId);
-              if (success && context.mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('删除成功')));
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('删除'),
-          ),
-        ],
       ),
+      title: Text(
+        '第 ${index + 1} 章',
+        style: theme.textTheme.bodyMedium,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: Icon(
+        Icons.chevron_right_rounded,
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+      onTap: () => _startReading(context, book, chapterIndex: index + 1),
     );
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'reading':
+        return Icons.menu_book_rounded;
+      case 'completed':
+        return Icons.check_circle_rounded;
+      case 'dropped':
+        return Icons.pause_circle_rounded;
+      default:
+        return Icons.help_outline_rounded;
+    }
   }
 
   String _getStatusText(String status) {
@@ -266,5 +662,56 @@ class BookDetailPage extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  void _startReading(BuildContext context, Book book, {int? chapterIndex}) {
+    final targetChapter = chapterIndex ?? 1;
+    context.pushNamed(
+      RouteNames.reader,
+      pathParameters: {
+        'bookId': book.id.toString(),
+        'chapterId': targetChapter.toString(),
+      },
+    );
+  }
+
+  /// 重新加载书籍详情
+  void _loadBookDetail(BuildContext context, int bookId) {
+    // 通过刷新页面重新触发 Future
+    // 由于使用了 ValueKey，改变 key 会重新触发 FutureBuilder
+    // 这里使用简单的导航刷新方式
+    final currentRoute = GoRouterState.of(context).uri.toString();
+    context.go(currentRoute);
+  }
+
+  void _showDeleteDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除书籍'),
+        content: const Text('确定要删除这本书吗？此操作不可恢复。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final vm = getIt<BookshelfViewModel>();
+              final success = await vm.deleteBook(bookId);
+              if (success && context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('删除成功')));
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
   }
 }
