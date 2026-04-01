@@ -67,33 +67,33 @@ class AppDatabase extends _$AppDatabase {
     final defaultCategories = [
       DbBookCategoriesCompanion.insert(
         name: '全部',
-        color: Value('#FF5722'),
-        sortOrder: Value(0),
-        isSystem: Value(true),
+        color: const Value('#FF5722'),
+        sortOrder: const Value(0),
+        isSystem: const Value(true),
       ),
       DbBookCategoriesCompanion.insert(
         name: '阅读中',
-        color: Value('#2196F3'),
-        sortOrder: Value(1),
-        isSystem: Value(true),
+        color: const Value('#2196F3'),
+        sortOrder: const Value(1),
+        isSystem: const Value(true),
       ),
       DbBookCategoriesCompanion.insert(
         name: '已完结',
-        color: Value('#4CAF50'),
-        sortOrder: Value(2),
-        isSystem: Value(true),
+        color: const Value('#4CAF50'),
+        sortOrder: const Value(2),
+        isSystem: const Value(true),
       ),
       DbBookCategoriesCompanion.insert(
         name: '已弃坑',
-        color: Value('#9E9E9E'),
-        sortOrder: Value(3),
-        isSystem: Value(true),
+        color: const Value('#9E9E9E'),
+        sortOrder: const Value(3),
+        isSystem: const Value(true),
       ),
       DbBookCategoriesCompanion.insert(
         name: '计划阅读',
-        color: Value('#FF9800'),
-        sortOrder: Value(4),
-        isSystem: Value(true),
+        color: const Value('#FF9800'),
+        sortOrder: const Value(4),
+        isSystem: const Value(true),
       ),
     ];
 
@@ -124,7 +124,7 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateCategory(DbBookCategoriesCompanion category) async {
     // 从 Companion 中提取 id
     final id = category.id.value;
-    
+
     final result = await (update(dbBookCategories)..where((tbl) => tbl.id.equals(id)))
             .write(DbBookCategoriesCompanion(
           id: category.id,

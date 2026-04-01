@@ -55,6 +55,11 @@ class ReaderBottomToolbar extends HookWidget {
         ? const Color(0xFF1a1a1a)
         : const Color(0xFFF5F5DC);
 
+    final hasPreviousChapter = onPreviousChapter != null;
+    final hasNextChapter = onNextChapter != null;
+    final canPreviousPage = currentPageIndex > 0;
+    final canNextPage = currentPageIndex < totalPages - 1;
+
     return Container(
       color: backgroundColor,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -98,14 +103,14 @@ class ReaderBottomToolbar extends HookWidget {
                 _buildButton(
                   icon: Icons.skip_previous,
                   label: '上一章',
-                  onPressed: onPreviousChapter,
+                  onPressed: hasPreviousChapter ? onPreviousChapter : null,
                   textColor: textColor,
                 ),
                 // 上一页
                 _buildButton(
                   icon: Icons.arrow_back_ios,
                   label: '上一页',
-                  onPressed: currentPageIndex > 0 ? onPreviousPage : null,
+                  onPressed: canPreviousPage ? onPreviousPage : null,
                   textColor: textColor,
                 ),
                 // 设置
@@ -119,16 +124,14 @@ class ReaderBottomToolbar extends HookWidget {
                 _buildButton(
                   icon: Icons.arrow_forward_ios,
                   label: '下一页',
-                  onPressed: currentPageIndex < totalPages - 1
-                      ? onNextPage
-                      : null,
+                  onPressed: canNextPage ? onNextPage : null,
                   textColor: textColor,
                 ),
                 // 下一章
                 _buildButton(
                   icon: Icons.skip_next,
                   label: '下一章',
-                  onPressed: onNextChapter,
+                  onPressed: hasNextChapter ? onNextChapter : null,
                   textColor: textColor,
                 ),
               ],
