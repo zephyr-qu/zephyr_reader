@@ -48,7 +48,7 @@ abstract class LayoutCache with _$LayoutCache {
 
   /// 空缓存
   factory LayoutCache.empty() {
-    return LayoutCache(
+    return const LayoutCache(
       id: 0,
       bookId: 0,
       chapterId: 0,

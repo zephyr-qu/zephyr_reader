@@ -9,6 +9,8 @@ import 'dart:collection';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../utils/logging.dart';
+
 /// 性能监控
 class PerformanceMonitor {
   static final PerformanceMonitor _instance = PerformanceMonitor._internal();
@@ -46,7 +48,7 @@ class PerformanceMonitor {
     final duration = endTime - startTime;
 
     if (duration > slowOperationThreshold) {
-      debugPrint('⚠️ 慢操作警告：$operationName 耗时 ${duration}ms');
+      Logging.warning('⚠️ 慢操作警告：$operationName 耗时 ${duration}ms');
     }
 
     return duration;
@@ -234,7 +236,7 @@ class PerformanceOptimizer {
 
     // 触发预加载
     if (!_isPreloading) {
-      _processPreloadQueue(maxWidth: maxWidth, maxHeight: maxHeight);
+      _processPreloadQueue(maxWidth: maxWidth, maxHeight: maxHeight).ignore();
     }
   }
 
@@ -306,14 +308,14 @@ class PerformanceOptimizer {
         try {
           await completer.future.timeout(
             const Duration(seconds: 10),
-            onTimeout: () => debugPrint('图片预加载超时：${task.imageUrl}'),
+            onTimeout: () => Logging.warning('图片预加载超时：${task.imageUrl}'),
           );
         } finally {
           imageStream.removeListener(listener);
         }
 
         _preloadedImages.add(task.imageUrl);
-        debugPrint('图片预加载完成：${task.imageUrl}');
+        Logging.debug('图片预加载完成：${task.imageUrl}');
       }
     } finally {
       _isPreloading = false;
@@ -324,7 +326,7 @@ class PerformanceOptimizer {
   static void clearPreloadQueue() {
     _imagePreloadQueue.clear();
     _preloadedImages.clear();
-    debugPrint('预加载队列已清除');
+    Logging.debug('预加载队列已清除');
   }
 
   /// 从预加载缓存中移除图片
@@ -332,7 +334,7 @@ class PerformanceOptimizer {
     _preloadedImages.remove(imageUrl);
     final provider = CachedNetworkImageProvider(imageUrl);
     await provider.evict();
-    debugPrint('图片已从预加载缓存移除：$imageUrl');
+    Logging.debug('图片已从预加载缓存移除：$imageUrl');
   }
 
   /// 优化列表滚动
@@ -360,7 +362,7 @@ class PerformanceOptimizer {
     _preloadedImages.clear();
     _imagePreloadQueue.clear();
 
-    debugPrint('内存使用优化完成，缓存已清理');
+    Logging.debug('内存使用优化完成，缓存已清理');
   }
 
   /// 清理所有缓存
@@ -373,7 +375,7 @@ class PerformanceOptimizer {
     _preloadedImages.clear();
     _imagePreloadQueue.clear();
 
-    debugPrint('所有缓存已清理');
+    Logging.debug('所有缓存已清理');
   }
 
   /// 获取缓存统计信息
@@ -609,11 +611,11 @@ class PerformanceMiddleware {
     try {
       final result = await operation();
       final duration = _monitor.endOperation(operationName);
-      debugPrint('$operationName: ${duration}ms');
+      Logging.debug('$operationName: ${duration}ms');
       return result;
     } catch (e) {
       _monitor.endOperation(operationName);
-      debugPrint('$operationName failed: $e');
+      Logging.warning('$operationName failed: $e');
       rethrow;
     }
   }

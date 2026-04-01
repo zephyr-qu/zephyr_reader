@@ -1,18 +1,55 @@
-/// 书籍分类
-enum BookCategory {
-  all('全部'),
-  reading('阅读中'),
-  completed('已完结'),
-  dropped('已弃坑'),
-  planned('计划阅读');
+import 'package:flutter/material.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  final String displayName;
-  const BookCategory(this.displayName);
+part 'book_category.freezed.dart';
 
-  static BookCategory fromString(String value) {
-    return BookCategory.values.firstWhere(
-      (category) => category.name == value,
-      orElse: () => BookCategory.all,
+/// 书籍分类领域模型
+@freezed
+abstract class BookCategory with _$BookCategory {
+  const BookCategory._();
+
+  const factory BookCategory({
+    required int id,
+    required String name,
+    required String color,
+    required int sortOrder,
+    required bool isSystem,
+    required DateTime? createdAt,
+    required DateTime? updatedAt,
+  }) = _BookCategory;
+
+  /// 从数据库模型转换
+  factory BookCategory.fromDb(dynamic dbCategory) {
+    return BookCategory(
+      id: dbCategory.id ?? 0,
+      name: dbCategory.name ?? '',
+      color: dbCategory.color ?? '#FF5722',
+      sortOrder: dbCategory.sortOrder ?? 0,
+      isSystem: dbCategory.isSystem ?? false,
+      createdAt: dbCategory.createdAt,
+      updatedAt: dbCategory.updatedAt,
+    );
+  }
+
+  /// 获取颜色对象
+  Color get colorValue {
+    try {
+      return Color(int.parse(color.replaceFirst('#', '0xFF')));
+    } catch (e) {
+      return Colors.orange;
+    }
+  }
+
+  /// 空分类（用于初始化）
+  factory BookCategory.empty() {
+    return const BookCategory(
+      id: 0,
+      name: '',
+      color: '#FF5722',
+      sortOrder: 0,
+      isSystem: false,
+      createdAt: null,
+      updatedAt: null,
     );
   }
 }

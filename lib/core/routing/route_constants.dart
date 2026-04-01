@@ -11,6 +11,7 @@ abstract class RoutePaths {
   static const String articles = '/articles';
   static const String articleDetail = '/articles/:id';
   static const String statistics = '/statistics';
+  static const String categoryManagement = '/bookshelf/categories';
 
   // 设置相关
   static const String readingSettings = '/settings/reading';
@@ -32,6 +33,7 @@ abstract class RouteNames {
   static const String articles = 'articles';
   static const String articleDetail = 'articleDetail';
   static const String statistics = 'statistics';
+  static const String categoryManagement = 'categoryManagement';
 
   // 设置相关
   static const String readingSettings = 'readingSettings';

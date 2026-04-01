@@ -12,9 +12,7 @@ class PrivacyPolicyPage extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('隐私政策'),
-      ),
+      appBar: AppBar(title: const Text('隐私政策')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -92,11 +90,7 @@ class PrivacyPolicyPage extends StatelessWidget {
           _buildSection(
             theme,
             title: '7. 儿童隐私',
-            content: [
-              '本应用面向所有年龄段用户。',
-              '本应用不专门针对儿童设计。',
-              '儿童使用本应用时，建议由监护人指导。',
-            ],
+            content: ['本应用面向所有年龄段用户。', '本应用不专门针对儿童设计。', '儿童使用本应用时，建议由监护人指导。'],
           ),
           const SizedBox(height: 16),
           _buildSection(
@@ -150,13 +144,12 @@ class PrivacyPolicyPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            ...content.map((text) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                text,
-                style: theme.textTheme.bodyMedium,
+            ...content.map(
+              (text) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(text, style: theme.textTheme.bodyMedium),
               ),
-            )),
+            ),
           ],
         ),
       ),

@@ -12,9 +12,7 @@ class UserAgreementPage extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('用户协议'),
-      ),
+      appBar: AppBar(title: const Text('用户协议')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -142,13 +140,12 @@ class UserAgreementPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            ...content.map((text) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                text,
-                style: theme.textTheme.bodyMedium,
+            ...content.map(
+              (text) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(text, style: theme.textTheme.bodyMedium),
               ),
-            )),
+            ),
           ],
         ),
       ),

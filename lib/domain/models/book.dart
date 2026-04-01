@@ -3,8 +3,12 @@
 /// 作为 Flutter 应用的核心数据模型，与 Rust 侧的 BookInfo 对齐
 library;
 
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+
+import '../../core/utils/logging.dart';
 
 part 'book.freezed.dart';
 
@@ -59,6 +63,9 @@ abstract class Book with _$Book {
     /// 是否置顶
     @Default(false) bool isPinned,
 
+    /// 分类 ID 列表
+    @Default(<int>[]) List<int> categoryIds,
+
     /// 创建时间
     required DateTime createdAt,
 
@@ -72,6 +79,19 @@ abstract class Book with _$Book {
   /// 从数据库模型转换
   factory Book.fromDb(dynamic dbBook) {
     try {
+      // 解析分类 ID 列表（JSON 字符串）
+      List<int> categoryIds = [];
+      if (dbBook.categoryIds != null && dbBook.categoryIds is String) {
+        try {
+          final decoded = (dbBook.categoryIds as String).isNotEmpty
+              ? jsonDecode(dbBook.categoryIds) as List
+              : [];
+          categoryIds = decoded.cast<int>();
+        } catch (e) {
+          Logging.debug('解析 categoryIds 失败：$e');
+        }
+      }
+
       return Book(
         id: dbBook.id ?? 0,
         title: dbBook.title ?? '',
@@ -89,14 +109,15 @@ abstract class Book with _$Book {
         progress: dbBook.progress ?? 0.0,
         status: dbBook.status ?? 'reading',
         isPinned: dbBook.isPinned ?? false,
+        categoryIds: categoryIds,
         createdAt: dbBook.createdAt ?? DateTime.now(),
         updatedAt: dbBook.updatedAt ?? DateTime.now(),
         lastReadAt: dbBook.lastReadAt,
       );
     } catch (e, stackTrace) {
-      debugPrint('Book.fromDb 转换失败：$e');
-      debugPrint('Stack trace: $stackTrace');
-      debugPrint('dbBook: $dbBook');
+      Logging.debug('Book.fromDb 转换失败：$e');
+      Logging.debug('Stack trace: $stackTrace');
+      Logging.debug('dbBook: $dbBook');
       rethrow;
     }
   }

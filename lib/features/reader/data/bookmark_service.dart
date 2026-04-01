@@ -14,9 +14,9 @@ import 'package:zephyr_reader/domain/models/bookmark.dart';
 /// 书签服务
 @injectable
 class BookmarkService {
-  final AppDatabase _db;
 
   BookmarkService(this._db);
+  final AppDatabase _db;
 
   /// 添加书签
   Future<void> addBookmark({

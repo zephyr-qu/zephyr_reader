@@ -171,7 +171,8 @@ class ResponsiveBuilder extends StatelessWidget {
     BuildContext context,
     ScreenSize screenSize,
     BoxConstraints constraints,
-  ) builder;
+  )
+  builder;
 
   final ResponsiveConfig config;
 
@@ -444,9 +445,7 @@ class AdaptiveNavigation extends StatelessWidget {
         } else {
           // 小屏幕：使用抽屉式导航
           return Scaffold(
-            appBar: AppBar(
-              title: Text(appBarTitle ?? 'Zephyr Reader'),
-            ),
+            appBar: AppBar(title: Text(appBarTitle ?? 'Zephyr Reader')),
             drawer: Drawer(child: drawerContent),
             body: body,
             floatingActionButton: showFab ? fab : null,

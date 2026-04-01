@@ -14,10 +14,7 @@ import '../application/services/webdav_sync_service.dart';
 class SyncHistoryPage extends HookWidget {
   final AdvancedWebDavSyncService syncService;
 
-  const SyncHistoryPage({
-    super.key,
-    required this.syncService,
-  });
+  const SyncHistoryPage({super.key, required this.syncService});
 
   @override
   Widget build(BuildContext context) {
@@ -32,8 +29,12 @@ class SyncHistoryPage extends HookWidget {
     final filteredHistory = selectedFilter.value == null
         ? history.value
         : history.value
-            .where((h) => h.result.success == (selectedFilter.value == SyncStatus.success))
-            .toList();
+              .where(
+                (h) =>
+                    h.result.success ==
+                    (selectedFilter.value == SyncStatus.success),
+              )
+              .toList();
 
     final stats = _calculateStats(history.value);
 
@@ -70,7 +71,9 @@ class SyncHistoryPage extends HookWidget {
     );
   }
 
-  Future<void> _loadHistory(ValueNotifier<List<SyncHistoryRecord>> history) async {
+  Future<void> _loadHistory(
+    ValueNotifier<List<SyncHistoryRecord>> history,
+  ) async {
     final historyList = syncService.getHistory(limit: 100);
     history.value = historyList;
   }
@@ -134,10 +137,7 @@ class SyncHistoryPage extends HookWidget {
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
         ),
       ],
     );
@@ -185,18 +185,11 @@ class SyncHistoryPage extends HookWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.history,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
+          Icon(Icons.history, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
             '暂无同步历史',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
           ),
         ],
       ),
@@ -243,30 +236,18 @@ class SyncHistoryPage extends HookWidget {
                 ),
                 Text(
                   _formatDateTime(record.startTime),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                _buildInfoChip(
-                  Icons.access_time,
-                  record.formattedDuration,
-                ),
+                _buildInfoChip(Icons.access_time, record.formattedDuration),
                 const SizedBox(width: 8),
-                _buildInfoChip(
-                  Icons.upload_file,
-                  '${record.uploadedCount} 上传',
-                ),
+                _buildInfoChip(Icons.upload_file, '${record.uploadedCount} 上传'),
                 const SizedBox(width: 8),
-                _buildInfoChip(
-                  Icons.download,
-                  '${record.downloadedCount} 下载',
-                ),
+                _buildInfoChip(Icons.download, '${record.downloadedCount} 下载'),
               ],
             ),
             if (record.changedFiles.isNotEmpty) ...[
@@ -275,10 +256,12 @@ class SyncHistoryPage extends HookWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: record.changedFiles
-                    .map((file) => Chip(
-                          label: Text(file, style: const TextStyle(fontSize: 12)),
-                          backgroundColor: Colors.blue.shade50,
-                        ))
+                    .map(
+                      (file) => Chip(
+                        label: Text(file, style: const TextStyle(fontSize: 12)),
+                        backgroundColor: Colors.blue.shade50,
+                      ),
+                    )
                     .toList(),
               ),
             ],
@@ -331,10 +314,7 @@ class SyncHistoryPage extends HookWidget {
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade700,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
           ),
         ],
       ),
@@ -375,10 +355,7 @@ class SyncHistoryPage extends HookWidget {
     if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('历史记录已清除'),
-        backgroundColor: Colors.green,
-      ),
+      const SnackBar(content: Text('历史记录已清除'), backgroundColor: Colors.green),
     );
   }
 

@@ -24,4 +24,24 @@ abstract class BookRepository {
 
   /// 搜索书籍
   Future<List<Book>> searchBooks(String keyword);
+
+  // ==================== 分类管理 ====================
+
+  /// 获取所有分类
+  Future<List<BookCategory>> getAllCategories();
+
+  /// 根据 ID 获取分类
+  Future<BookCategory?> getCategoryById(int id);
+
+  /// 添加分类
+  Future<int> addCategory(BookCategory category);
+
+  /// 更新分类
+  Future<bool> updateCategory(BookCategory category);
+
+  /// 删除分类
+  Future<bool> deleteCategory(int id);
+
+  /// 更新书籍分类
+  Future<bool> updateBookCategories(int bookId, List<int> categoryIds);
 }

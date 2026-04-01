@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 
 /// 书架空状
 class EmptyState extends StatelessWidget {
+  const EmptyState({super.key, this.onImport});
+
   /// 导入回调
   final VoidCallback? onImport;
-
-  const EmptyState({super.key, this.onImport});
 
   @override
   Widget build(BuildContext context) {

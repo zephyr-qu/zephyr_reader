@@ -9,12 +9,18 @@ class DbBookmarks extends Table {
   late final id = integer().autoIncrement()();
 
   /// 关联的小说 ID
-  late final bookId =
-      integer().references(DbBooks, #id, onDelete: KeyAction.cascade)();
+  late final bookId = integer().references(
+    DbBooks,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
 
   /// 关联的章节 ID
-  late final chapterId =
-      integer().references(DbChapters, #id, onDelete: KeyAction.cascade)();
+  late final chapterId = integer().references(
+    DbChapters,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
 
   /// 书签位置（页码）
   late final pageIndex = integer()();

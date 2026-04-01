@@ -191,6 +191,18 @@ class $DbBooksTable extends DbBooks with TableInfo<$DbBooksTable, DbBook> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _categoryIdsMeta = const VerificationMeta(
+    'categoryIds',
+  );
+  @override
+  late final GeneratedColumn<String> categoryIds = GeneratedColumn<String>(
+    'category_ids',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -244,6 +256,7 @@ class $DbBooksTable extends DbBooks with TableInfo<$DbBooksTable, DbBook> {
     progress,
     status,
     isPinned,
+    categoryIds,
     createdAt,
     updatedAt,
     lastReadAt,
@@ -376,6 +389,15 @@ class $DbBooksTable extends DbBooks with TableInfo<$DbBooksTable, DbBook> {
         isPinned.isAcceptableOrUnknown(data['is_pinned']!, _isPinnedMeta),
       );
     }
+    if (data.containsKey('category_ids')) {
+      context.handle(
+        _categoryIdsMeta,
+        categoryIds.isAcceptableOrUnknown(
+          data['category_ids']!,
+          _categoryIdsMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -470,6 +492,10 @@ class $DbBooksTable extends DbBooks with TableInfo<$DbBooksTable, DbBook> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_pinned'],
       )!,
+      categoryIds: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_ids'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -509,6 +535,9 @@ class DbBook extends DataClass implements Insertable<DbBook> {
   final double progress;
   final String status;
   final bool isPinned;
+
+  /// 分类 ID 列表（JSON 格式存储）
+  final String categoryIds;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? lastReadAt;
@@ -529,6 +558,7 @@ class DbBook extends DataClass implements Insertable<DbBook> {
     required this.progress,
     required this.status,
     required this.isPinned,
+    required this.categoryIds,
     required this.createdAt,
     required this.updatedAt,
     this.lastReadAt,
@@ -558,6 +588,7 @@ class DbBook extends DataClass implements Insertable<DbBook> {
     map['progress'] = Variable<double>(progress);
     map['status'] = Variable<String>(status);
     map['is_pinned'] = Variable<bool>(isPinned);
+    map['category_ids'] = Variable<String>(categoryIds);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || lastReadAt != null) {
@@ -590,6 +621,7 @@ class DbBook extends DataClass implements Insertable<DbBook> {
       progress: Value(progress),
       status: Value(status),
       isPinned: Value(isPinned),
+      categoryIds: Value(categoryIds),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       lastReadAt: lastReadAt == null && nullToAbsent
@@ -620,6 +652,7 @@ class DbBook extends DataClass implements Insertable<DbBook> {
       progress: serializer.fromJson<double>(json['progress']),
       status: serializer.fromJson<String>(json['status']),
       isPinned: serializer.fromJson<bool>(json['isPinned']),
+      categoryIds: serializer.fromJson<String>(json['categoryIds']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       lastReadAt: serializer.fromJson<DateTime?>(json['lastReadAt']),
@@ -645,6 +678,7 @@ class DbBook extends DataClass implements Insertable<DbBook> {
       'progress': serializer.toJson<double>(progress),
       'status': serializer.toJson<String>(status),
       'isPinned': serializer.toJson<bool>(isPinned),
+      'categoryIds': serializer.toJson<String>(categoryIds),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'lastReadAt': serializer.toJson<DateTime?>(lastReadAt),
@@ -668,6 +702,7 @@ class DbBook extends DataClass implements Insertable<DbBook> {
     double? progress,
     String? status,
     bool? isPinned,
+    String? categoryIds,
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> lastReadAt = const Value.absent(),
@@ -690,6 +725,7 @@ class DbBook extends DataClass implements Insertable<DbBook> {
     progress: progress ?? this.progress,
     status: status ?? this.status,
     isPinned: isPinned ?? this.isPinned,
+    categoryIds: categoryIds ?? this.categoryIds,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     lastReadAt: lastReadAt.present ? lastReadAt.value : this.lastReadAt,
@@ -724,6 +760,9 @@ class DbBook extends DataClass implements Insertable<DbBook> {
       progress: data.progress.present ? data.progress.value : this.progress,
       status: data.status.present ? data.status.value : this.status,
       isPinned: data.isPinned.present ? data.isPinned.value : this.isPinned,
+      categoryIds: data.categoryIds.present
+          ? data.categoryIds.value
+          : this.categoryIds,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       lastReadAt: data.lastReadAt.present
@@ -751,6 +790,7 @@ class DbBook extends DataClass implements Insertable<DbBook> {
           ..write('progress: $progress, ')
           ..write('status: $status, ')
           ..write('isPinned: $isPinned, ')
+          ..write('categoryIds: $categoryIds, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('lastReadAt: $lastReadAt')
@@ -776,6 +816,7 @@ class DbBook extends DataClass implements Insertable<DbBook> {
     progress,
     status,
     isPinned,
+    categoryIds,
     createdAt,
     updatedAt,
     lastReadAt,
@@ -800,6 +841,7 @@ class DbBook extends DataClass implements Insertable<DbBook> {
           other.progress == this.progress &&
           other.status == this.status &&
           other.isPinned == this.isPinned &&
+          other.categoryIds == this.categoryIds &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.lastReadAt == this.lastReadAt);
@@ -822,6 +864,7 @@ class DbBooksCompanion extends UpdateCompanion<DbBook> {
   final Value<double> progress;
   final Value<String> status;
   final Value<bool> isPinned;
+  final Value<String> categoryIds;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> lastReadAt;
@@ -842,6 +885,7 @@ class DbBooksCompanion extends UpdateCompanion<DbBook> {
     this.progress = const Value.absent(),
     this.status = const Value.absent(),
     this.isPinned = const Value.absent(),
+    this.categoryIds = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.lastReadAt = const Value.absent(),
@@ -863,6 +907,7 @@ class DbBooksCompanion extends UpdateCompanion<DbBook> {
     this.progress = const Value.absent(),
     this.status = const Value.absent(),
     this.isPinned = const Value.absent(),
+    this.categoryIds = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.lastReadAt = const Value.absent(),
@@ -887,6 +932,7 @@ class DbBooksCompanion extends UpdateCompanion<DbBook> {
     Expression<double>? progress,
     Expression<String>? status,
     Expression<bool>? isPinned,
+    Expression<String>? categoryIds,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? lastReadAt,
@@ -908,6 +954,7 @@ class DbBooksCompanion extends UpdateCompanion<DbBook> {
       if (progress != null) 'progress': progress,
       if (status != null) 'status': status,
       if (isPinned != null) 'is_pinned': isPinned,
+      if (categoryIds != null) 'category_ids': categoryIds,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (lastReadAt != null) 'last_read_at': lastReadAt,
@@ -931,6 +978,7 @@ class DbBooksCompanion extends UpdateCompanion<DbBook> {
     Value<double>? progress,
     Value<String>? status,
     Value<bool>? isPinned,
+    Value<String>? categoryIds,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? lastReadAt,
@@ -952,6 +1000,7 @@ class DbBooksCompanion extends UpdateCompanion<DbBook> {
       progress: progress ?? this.progress,
       status: status ?? this.status,
       isPinned: isPinned ?? this.isPinned,
+      categoryIds: categoryIds ?? this.categoryIds,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       lastReadAt: lastReadAt ?? this.lastReadAt,
@@ -1009,6 +1058,9 @@ class DbBooksCompanion extends UpdateCompanion<DbBook> {
     if (isPinned.present) {
       map['is_pinned'] = Variable<bool>(isPinned.value);
     }
+    if (categoryIds.present) {
+      map['category_ids'] = Variable<String>(categoryIds.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1040,9 +1092,459 @@ class DbBooksCompanion extends UpdateCompanion<DbBook> {
           ..write('progress: $progress, ')
           ..write('status: $status, ')
           ..write('isPinned: $isPinned, ')
+          ..write('categoryIds: $categoryIds, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('lastReadAt: $lastReadAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DbBookCategoriesTable extends DbBookCategories
+    with TableInfo<$DbBookCategoriesTable, DbBookCategory> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DbBookCategoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('#FF5722'),
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _isSystemMeta = const VerificationMeta(
+    'isSystem',
+  );
+  @override
+  late final GeneratedColumn<bool> isSystem = GeneratedColumn<bool>(
+    'is_system',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_system" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    color,
+    sortOrder,
+    isSystem,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'db_book_categories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DbBookCategory> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('is_system')) {
+      context.handle(
+        _isSystemMeta,
+        isSystem.isAcceptableOrUnknown(data['is_system']!, _isSystemMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DbBookCategory map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DbBookCategory(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      isSystem: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_system'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $DbBookCategoriesTable createAlias(String alias) {
+    return $DbBookCategoriesTable(attachedDatabase, alias);
+  }
+}
+
+class DbBookCategory extends DataClass implements Insertable<DbBookCategory> {
+  /// 分类 ID
+  final int id;
+
+  /// 分类名称
+  final String name;
+
+  /// 分类颜色（16 进制字符串，如 #FF5722）
+  final String color;
+
+  /// 排序顺序（数字越小越靠前）
+  final int sortOrder;
+
+  /// 是否为系统默认分类（不可删除）
+  final bool isSystem;
+
+  /// 创建时间
+  final DateTime createdAt;
+
+  /// 更新时间
+  final DateTime updatedAt;
+  const DbBookCategory({
+    required this.id,
+    required this.name,
+    required this.color,
+    required this.sortOrder,
+    required this.isSystem,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['color'] = Variable<String>(color);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['is_system'] = Variable<bool>(isSystem);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  DbBookCategoriesCompanion toCompanion(bool nullToAbsent) {
+    return DbBookCategoriesCompanion(
+      id: Value(id),
+      name: Value(name),
+      color: Value(color),
+      sortOrder: Value(sortOrder),
+      isSystem: Value(isSystem),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory DbBookCategory.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DbBookCategory(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      color: serializer.fromJson<String>(json['color']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      isSystem: serializer.fromJson<bool>(json['isSystem']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'color': serializer.toJson<String>(color),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'isSystem': serializer.toJson<bool>(isSystem),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  DbBookCategory copyWith({
+    int? id,
+    String? name,
+    String? color,
+    int? sortOrder,
+    bool? isSystem,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => DbBookCategory(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    color: color ?? this.color,
+    sortOrder: sortOrder ?? this.sortOrder,
+    isSystem: isSystem ?? this.isSystem,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  DbBookCategory copyWithCompanion(DbBookCategoriesCompanion data) {
+    return DbBookCategory(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      color: data.color.present ? data.color.value : this.color,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      isSystem: data.isSystem.present ? data.isSystem.value : this.isSystem,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DbBookCategory(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('color: $color, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isSystem: $isSystem, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, name, color, sortOrder, isSystem, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DbBookCategory &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.color == this.color &&
+          other.sortOrder == this.sortOrder &&
+          other.isSystem == this.isSystem &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class DbBookCategoriesCompanion extends UpdateCompanion<DbBookCategory> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<String> color;
+  final Value<int> sortOrder;
+  final Value<bool> isSystem;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  const DbBookCategoriesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.color = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isSystem = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  DbBookCategoriesCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.color = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isSystem = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  }) : name = Value(name);
+  static Insertable<DbBookCategory> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<String>? color,
+    Expression<int>? sortOrder,
+    Expression<bool>? isSystem,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (color != null) 'color': color,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (isSystem != null) 'is_system': isSystem,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  DbBookCategoriesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<String>? color,
+    Value<int>? sortOrder,
+    Value<bool>? isSystem,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+  }) {
+    return DbBookCategoriesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      color: color ?? this.color,
+      sortOrder: sortOrder ?? this.sortOrder,
+      isSystem: isSystem ?? this.isSystem,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (isSystem.present) {
+      map['is_system'] = Variable<bool>(isSystem.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DbBookCategoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('color: $color, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isSystem: $isSystem, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
@@ -4819,6 +5321,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $DbBooksTable dbBooks = $DbBooksTable(this);
+  late final $DbBookCategoriesTable dbBookCategories = $DbBookCategoriesTable(
+    this,
+  );
   late final $DbChaptersTable dbChapters = $DbChaptersTable(this);
   late final $DbBookmarksTable dbBookmarks = $DbBookmarksTable(this);
   late final $DbReadingHistorysTable dbReadingHistorys =
@@ -4839,6 +5344,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     dbBooks,
+    dbBookCategories,
     dbChapters,
     dbBookmarks,
     dbReadingHistorys,
@@ -4948,6 +5454,7 @@ typedef $$DbBooksTableCreateCompanionBuilder =
       Value<double> progress,
       Value<String> status,
       Value<bool> isPinned,
+      Value<String> categoryIds,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> lastReadAt,
@@ -4970,6 +5477,7 @@ typedef $$DbBooksTableUpdateCompanionBuilder =
       Value<double> progress,
       Value<String> status,
       Value<bool> isPinned,
+      Value<String> categoryIds,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> lastReadAt,
@@ -5192,6 +5700,11 @@ class $$DbBooksTableFilterComposer
 
   ColumnFilters<bool> get isPinned => $composableBuilder(
     column: $table.isPinned,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryIds => $composableBuilder(
+    column: $table.categoryIds,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5450,6 +5963,11 @@ class $$DbBooksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get categoryIds => $composableBuilder(
+    column: $table.categoryIds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5534,6 +6052,11 @@ class $$DbBooksTableAnnotationComposer
 
   GeneratedColumn<bool> get isPinned =>
       $composableBuilder(column: $table.isPinned, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryIds => $composableBuilder(
+    column: $table.categoryIds,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -5751,6 +6274,7 @@ class $$DbBooksTableTableManager
                 Value<double> progress = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<bool> isPinned = const Value.absent(),
+                Value<String> categoryIds = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> lastReadAt = const Value.absent(),
@@ -5771,6 +6295,7 @@ class $$DbBooksTableTableManager
                 progress: progress,
                 status: status,
                 isPinned: isPinned,
+                categoryIds: categoryIds,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 lastReadAt: lastReadAt,
@@ -5793,6 +6318,7 @@ class $$DbBooksTableTableManager
                 Value<double> progress = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<bool> isPinned = const Value.absent(),
+                Value<String> categoryIds = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> lastReadAt = const Value.absent(),
@@ -5813,6 +6339,7 @@ class $$DbBooksTableTableManager
                 progress: progress,
                 status: status,
                 isPinned: isPinned,
+                categoryIds: categoryIds,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 lastReadAt: lastReadAt,
@@ -6001,6 +6528,244 @@ typedef $$DbBooksTableProcessedTableManager =
         bool dbLayoutCachesRefs,
         bool dbReadingSessionsRefs,
       })
+    >;
+typedef $$DbBookCategoriesTableCreateCompanionBuilder =
+    DbBookCategoriesCompanion Function({
+      Value<int> id,
+      required String name,
+      Value<String> color,
+      Value<int> sortOrder,
+      Value<bool> isSystem,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+typedef $$DbBookCategoriesTableUpdateCompanionBuilder =
+    DbBookCategoriesCompanion Function({
+      Value<int> id,
+      Value<String> name,
+      Value<String> color,
+      Value<int> sortOrder,
+      Value<bool> isSystem,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+
+class $$DbBookCategoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $DbBookCategoriesTable> {
+  $$DbBookCategoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSystem => $composableBuilder(
+    column: $table.isSystem,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DbBookCategoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $DbBookCategoriesTable> {
+  $$DbBookCategoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSystem => $composableBuilder(
+    column: $table.isSystem,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DbBookCategoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DbBookCategoriesTable> {
+  $$DbBookCategoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSystem =>
+      $composableBuilder(column: $table.isSystem, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$DbBookCategoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DbBookCategoriesTable,
+          DbBookCategory,
+          $$DbBookCategoriesTableFilterComposer,
+          $$DbBookCategoriesTableOrderingComposer,
+          $$DbBookCategoriesTableAnnotationComposer,
+          $$DbBookCategoriesTableCreateCompanionBuilder,
+          $$DbBookCategoriesTableUpdateCompanionBuilder,
+          (
+            DbBookCategory,
+            BaseReferences<
+              _$AppDatabase,
+              $DbBookCategoriesTable,
+              DbBookCategory
+            >,
+          ),
+          DbBookCategory,
+          PrefetchHooks Function()
+        > {
+  $$DbBookCategoriesTableTableManager(
+    _$AppDatabase db,
+    $DbBookCategoriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DbBookCategoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DbBookCategoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DbBookCategoriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> color = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<bool> isSystem = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => DbBookCategoriesCompanion(
+                id: id,
+                name: name,
+                color: color,
+                sortOrder: sortOrder,
+                isSystem: isSystem,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                Value<String> color = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<bool> isSystem = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => DbBookCategoriesCompanion.insert(
+                id: id,
+                name: name,
+                color: color,
+                sortOrder: sortOrder,
+                isSystem: isSystem,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DbBookCategoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DbBookCategoriesTable,
+      DbBookCategory,
+      $$DbBookCategoriesTableFilterComposer,
+      $$DbBookCategoriesTableOrderingComposer,
+      $$DbBookCategoriesTableAnnotationComposer,
+      $$DbBookCategoriesTableCreateCompanionBuilder,
+      $$DbBookCategoriesTableUpdateCompanionBuilder,
+      (
+        DbBookCategory,
+        BaseReferences<_$AppDatabase, $DbBookCategoriesTable, DbBookCategory>,
+      ),
+      DbBookCategory,
+      PrefetchHooks Function()
     >;
 typedef $$DbChaptersTableCreateCompanionBuilder =
     DbChaptersCompanion Function({
@@ -9616,6 +10381,8 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$DbBooksTableTableManager get dbBooks =>
       $$DbBooksTableTableManager(_db, _db.dbBooks);
+  $$DbBookCategoriesTableTableManager get dbBookCategories =>
+      $$DbBookCategoriesTableTableManager(_db, _db.dbBookCategories);
   $$DbChaptersTableTableManager get dbChapters =>
       $$DbChaptersTableTableManager(_db, _db.dbChapters);
   $$DbBookmarksTableTableManager get dbBookmarks =>

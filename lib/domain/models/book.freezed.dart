@@ -29,7 +29,8 @@ mixin _$Book implements DiagnosticableTreeMixin {
  int get totalPages;/// 阅读进度 (0.0 - 1.0)
  double get progress;/// 阅读状态：reading-阅读中，completed-已完结，dropped-已弃坑，planned-计划阅读
  String get status;/// 是否置顶
- bool get isPinned;/// 创建时间
+ bool get isPinned;/// 分类 ID 列表
+ List<int> get categoryIds;/// 创建时间
  DateTime get createdAt;/// 更新时间
  DateTime get updatedAt;/// 最后阅读时间
  DateTime? get lastReadAt;
@@ -44,21 +45,21 @@ $BookCopyWith<Book> get copyWith => _$BookCopyWithImpl<Book>(this as Book, _$ide
 void debugFillProperties(DiagnosticPropertiesBuilder properties) {
   properties
     ..add(DiagnosticsProperty('type', 'Book'))
-    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('title', title))..add(DiagnosticsProperty('author', author))..add(DiagnosticsProperty('coverPath', coverPath))..add(DiagnosticsProperty('description', description))..add(DiagnosticsProperty('filePath', filePath))..add(DiagnosticsProperty('fileType', fileType))..add(DiagnosticsProperty('fileSize', fileSize))..add(DiagnosticsProperty('totalChapters', totalChapters))..add(DiagnosticsProperty('totalCharacters', totalCharacters))..add(DiagnosticsProperty('currentChapterId', currentChapterId))..add(DiagnosticsProperty('currentPageIndex', currentPageIndex))..add(DiagnosticsProperty('totalPages', totalPages))..add(DiagnosticsProperty('progress', progress))..add(DiagnosticsProperty('status', status))..add(DiagnosticsProperty('isPinned', isPinned))..add(DiagnosticsProperty('createdAt', createdAt))..add(DiagnosticsProperty('updatedAt', updatedAt))..add(DiagnosticsProperty('lastReadAt', lastReadAt));
+    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('title', title))..add(DiagnosticsProperty('author', author))..add(DiagnosticsProperty('coverPath', coverPath))..add(DiagnosticsProperty('description', description))..add(DiagnosticsProperty('filePath', filePath))..add(DiagnosticsProperty('fileType', fileType))..add(DiagnosticsProperty('fileSize', fileSize))..add(DiagnosticsProperty('totalChapters', totalChapters))..add(DiagnosticsProperty('totalCharacters', totalCharacters))..add(DiagnosticsProperty('currentChapterId', currentChapterId))..add(DiagnosticsProperty('currentPageIndex', currentPageIndex))..add(DiagnosticsProperty('totalPages', totalPages))..add(DiagnosticsProperty('progress', progress))..add(DiagnosticsProperty('status', status))..add(DiagnosticsProperty('isPinned', isPinned))..add(DiagnosticsProperty('categoryIds', categoryIds))..add(DiagnosticsProperty('createdAt', createdAt))..add(DiagnosticsProperty('updatedAt', updatedAt))..add(DiagnosticsProperty('lastReadAt', lastReadAt));
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Book&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.author, author) || other.author == author)&&(identical(other.coverPath, coverPath) || other.coverPath == coverPath)&&(identical(other.description, description) || other.description == description)&&(identical(other.filePath, filePath) || other.filePath == filePath)&&(identical(other.fileType, fileType) || other.fileType == fileType)&&(identical(other.fileSize, fileSize) || other.fileSize == fileSize)&&(identical(other.totalChapters, totalChapters) || other.totalChapters == totalChapters)&&(identical(other.totalCharacters, totalCharacters) || other.totalCharacters == totalCharacters)&&(identical(other.currentChapterId, currentChapterId) || other.currentChapterId == currentChapterId)&&(identical(other.currentPageIndex, currentPageIndex) || other.currentPageIndex == currentPageIndex)&&(identical(other.totalPages, totalPages) || other.totalPages == totalPages)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.status, status) || other.status == status)&&(identical(other.isPinned, isPinned) || other.isPinned == isPinned)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.lastReadAt, lastReadAt) || other.lastReadAt == lastReadAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Book&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.author, author) || other.author == author)&&(identical(other.coverPath, coverPath) || other.coverPath == coverPath)&&(identical(other.description, description) || other.description == description)&&(identical(other.filePath, filePath) || other.filePath == filePath)&&(identical(other.fileType, fileType) || other.fileType == fileType)&&(identical(other.fileSize, fileSize) || other.fileSize == fileSize)&&(identical(other.totalChapters, totalChapters) || other.totalChapters == totalChapters)&&(identical(other.totalCharacters, totalCharacters) || other.totalCharacters == totalCharacters)&&(identical(other.currentChapterId, currentChapterId) || other.currentChapterId == currentChapterId)&&(identical(other.currentPageIndex, currentPageIndex) || other.currentPageIndex == currentPageIndex)&&(identical(other.totalPages, totalPages) || other.totalPages == totalPages)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.status, status) || other.status == status)&&(identical(other.isPinned, isPinned) || other.isPinned == isPinned)&&const DeepCollectionEquality().equals(other.categoryIds, categoryIds)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.lastReadAt, lastReadAt) || other.lastReadAt == lastReadAt));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,id,title,author,coverPath,description,filePath,fileType,fileSize,totalChapters,totalCharacters,currentChapterId,currentPageIndex,totalPages,progress,status,isPinned,createdAt,updatedAt,lastReadAt]);
+int get hashCode => Object.hashAll([runtimeType,id,title,author,coverPath,description,filePath,fileType,fileSize,totalChapters,totalCharacters,currentChapterId,currentPageIndex,totalPages,progress,status,isPinned,const DeepCollectionEquality().hash(categoryIds),createdAt,updatedAt,lastReadAt]);
 
 @override
 String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
-  return 'Book(id: $id, title: $title, author: $author, coverPath: $coverPath, description: $description, filePath: $filePath, fileType: $fileType, fileSize: $fileSize, totalChapters: $totalChapters, totalCharacters: $totalCharacters, currentChapterId: $currentChapterId, currentPageIndex: $currentPageIndex, totalPages: $totalPages, progress: $progress, status: $status, isPinned: $isPinned, createdAt: $createdAt, updatedAt: $updatedAt, lastReadAt: $lastReadAt)';
+  return 'Book(id: $id, title: $title, author: $author, coverPath: $coverPath, description: $description, filePath: $filePath, fileType: $fileType, fileSize: $fileSize, totalChapters: $totalChapters, totalCharacters: $totalCharacters, currentChapterId: $currentChapterId, currentPageIndex: $currentPageIndex, totalPages: $totalPages, progress: $progress, status: $status, isPinned: $isPinned, categoryIds: $categoryIds, createdAt: $createdAt, updatedAt: $updatedAt, lastReadAt: $lastReadAt)';
 }
 
 
@@ -69,7 +70,7 @@ abstract mixin class $BookCopyWith<$Res>  {
   factory $BookCopyWith(Book value, $Res Function(Book) _then) = _$BookCopyWithImpl;
 @useResult
 $Res call({
- int id, String title, String author, String? coverPath, String? description, String filePath, String fileType, int fileSize, int totalChapters, int totalCharacters, int? currentChapterId, int currentPageIndex, int totalPages, double progress, String status, bool isPinned, DateTime createdAt, DateTime updatedAt, DateTime? lastReadAt
+ int id, String title, String author, String? coverPath, String? description, String filePath, String fileType, int fileSize, int totalChapters, int totalCharacters, int? currentChapterId, int currentPageIndex, int totalPages, double progress, String status, bool isPinned, List<int> categoryIds, DateTime createdAt, DateTime updatedAt, DateTime? lastReadAt
 });
 
 
@@ -86,7 +87,7 @@ class _$BookCopyWithImpl<$Res>
 
 /// Create a copy of Book
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? author = null,Object? coverPath = freezed,Object? description = freezed,Object? filePath = null,Object? fileType = null,Object? fileSize = null,Object? totalChapters = null,Object? totalCharacters = null,Object? currentChapterId = freezed,Object? currentPageIndex = null,Object? totalPages = null,Object? progress = null,Object? status = null,Object? isPinned = null,Object? createdAt = null,Object? updatedAt = null,Object? lastReadAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? author = null,Object? coverPath = freezed,Object? description = freezed,Object? filePath = null,Object? fileType = null,Object? fileSize = null,Object? totalChapters = null,Object? totalCharacters = null,Object? currentChapterId = freezed,Object? currentPageIndex = null,Object? totalPages = null,Object? progress = null,Object? status = null,Object? isPinned = null,Object? categoryIds = null,Object? createdAt = null,Object? updatedAt = null,Object? lastReadAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -104,7 +105,8 @@ as int,totalPages: null == totalPages ? _self.totalPages : totalPages // ignore:
 as int,progress: null == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
 as double,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,isPinned: null == isPinned ? _self.isPinned : isPinned // ignore: cast_nullable_to_non_nullable
-as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as bool,categoryIds: null == categoryIds ? _self.categoryIds : categoryIds // ignore: cast_nullable_to_non_nullable
+as List<int>,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,lastReadAt: freezed == lastReadAt ? _self.lastReadAt : lastReadAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
@@ -192,10 +194,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String title,  String author,  String? coverPath,  String? description,  String filePath,  String fileType,  int fileSize,  int totalChapters,  int totalCharacters,  int? currentChapterId,  int currentPageIndex,  int totalPages,  double progress,  String status,  bool isPinned,  DateTime createdAt,  DateTime updatedAt,  DateTime? lastReadAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String title,  String author,  String? coverPath,  String? description,  String filePath,  String fileType,  int fileSize,  int totalChapters,  int totalCharacters,  int? currentChapterId,  int currentPageIndex,  int totalPages,  double progress,  String status,  bool isPinned,  List<int> categoryIds,  DateTime createdAt,  DateTime updatedAt,  DateTime? lastReadAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Book() when $default != null:
-return $default(_that.id,_that.title,_that.author,_that.coverPath,_that.description,_that.filePath,_that.fileType,_that.fileSize,_that.totalChapters,_that.totalCharacters,_that.currentChapterId,_that.currentPageIndex,_that.totalPages,_that.progress,_that.status,_that.isPinned,_that.createdAt,_that.updatedAt,_that.lastReadAt);case _:
+return $default(_that.id,_that.title,_that.author,_that.coverPath,_that.description,_that.filePath,_that.fileType,_that.fileSize,_that.totalChapters,_that.totalCharacters,_that.currentChapterId,_that.currentPageIndex,_that.totalPages,_that.progress,_that.status,_that.isPinned,_that.categoryIds,_that.createdAt,_that.updatedAt,_that.lastReadAt);case _:
   return orElse();
 
 }
@@ -213,10 +215,10 @@ return $default(_that.id,_that.title,_that.author,_that.coverPath,_that.descript
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String title,  String author,  String? coverPath,  String? description,  String filePath,  String fileType,  int fileSize,  int totalChapters,  int totalCharacters,  int? currentChapterId,  int currentPageIndex,  int totalPages,  double progress,  String status,  bool isPinned,  DateTime createdAt,  DateTime updatedAt,  DateTime? lastReadAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String title,  String author,  String? coverPath,  String? description,  String filePath,  String fileType,  int fileSize,  int totalChapters,  int totalCharacters,  int? currentChapterId,  int currentPageIndex,  int totalPages,  double progress,  String status,  bool isPinned,  List<int> categoryIds,  DateTime createdAt,  DateTime updatedAt,  DateTime? lastReadAt)  $default,) {final _that = this;
 switch (_that) {
 case _Book():
-return $default(_that.id,_that.title,_that.author,_that.coverPath,_that.description,_that.filePath,_that.fileType,_that.fileSize,_that.totalChapters,_that.totalCharacters,_that.currentChapterId,_that.currentPageIndex,_that.totalPages,_that.progress,_that.status,_that.isPinned,_that.createdAt,_that.updatedAt,_that.lastReadAt);case _:
+return $default(_that.id,_that.title,_that.author,_that.coverPath,_that.description,_that.filePath,_that.fileType,_that.fileSize,_that.totalChapters,_that.totalCharacters,_that.currentChapterId,_that.currentPageIndex,_that.totalPages,_that.progress,_that.status,_that.isPinned,_that.categoryIds,_that.createdAt,_that.updatedAt,_that.lastReadAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -233,10 +235,10 @@ return $default(_that.id,_that.title,_that.author,_that.coverPath,_that.descript
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String title,  String author,  String? coverPath,  String? description,  String filePath,  String fileType,  int fileSize,  int totalChapters,  int totalCharacters,  int? currentChapterId,  int currentPageIndex,  int totalPages,  double progress,  String status,  bool isPinned,  DateTime createdAt,  DateTime updatedAt,  DateTime? lastReadAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String title,  String author,  String? coverPath,  String? description,  String filePath,  String fileType,  int fileSize,  int totalChapters,  int totalCharacters,  int? currentChapterId,  int currentPageIndex,  int totalPages,  double progress,  String status,  bool isPinned,  List<int> categoryIds,  DateTime createdAt,  DateTime updatedAt,  DateTime? lastReadAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Book() when $default != null:
-return $default(_that.id,_that.title,_that.author,_that.coverPath,_that.description,_that.filePath,_that.fileType,_that.fileSize,_that.totalChapters,_that.totalCharacters,_that.currentChapterId,_that.currentPageIndex,_that.totalPages,_that.progress,_that.status,_that.isPinned,_that.createdAt,_that.updatedAt,_that.lastReadAt);case _:
+return $default(_that.id,_that.title,_that.author,_that.coverPath,_that.description,_that.filePath,_that.fileType,_that.fileSize,_that.totalChapters,_that.totalCharacters,_that.currentChapterId,_that.currentPageIndex,_that.totalPages,_that.progress,_that.status,_that.isPinned,_that.categoryIds,_that.createdAt,_that.updatedAt,_that.lastReadAt);case _:
   return null;
 
 }
@@ -248,7 +250,7 @@ return $default(_that.id,_that.title,_that.author,_that.coverPath,_that.descript
 
 
 class _Book with DiagnosticableTreeMixin implements Book {
-  const _Book({required this.id, required this.title, required this.author, this.coverPath, this.description, required this.filePath, required this.fileType, required this.fileSize, required this.totalChapters, required this.totalCharacters, this.currentChapterId, this.currentPageIndex = 0, this.totalPages = 0, this.progress = 0.0, this.status = 'reading', this.isPinned = false, required this.createdAt, required this.updatedAt, this.lastReadAt});
+  const _Book({required this.id, required this.title, required this.author, this.coverPath, this.description, required this.filePath, required this.fileType, required this.fileSize, required this.totalChapters, required this.totalCharacters, this.currentChapterId, this.currentPageIndex = 0, this.totalPages = 0, this.progress = 0.0, this.status = 'reading', this.isPinned = false, final  List<int> categoryIds = const <int>[], required this.createdAt, required this.updatedAt, this.lastReadAt}): _categoryIds = categoryIds;
   
 
 @override final  int id;
@@ -282,6 +284,15 @@ class _Book with DiagnosticableTreeMixin implements Book {
 @override@JsonKey() final  String status;
 /// 是否置顶
 @override@JsonKey() final  bool isPinned;
+/// 分类 ID 列表
+ final  List<int> _categoryIds;
+/// 分类 ID 列表
+@override@JsonKey() List<int> get categoryIds {
+  if (_categoryIds is EqualUnmodifiableListView) return _categoryIds;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_categoryIds);
+}
+
 /// 创建时间
 @override final  DateTime createdAt;
 /// 更新时间
@@ -300,21 +311,21 @@ _$BookCopyWith<_Book> get copyWith => __$BookCopyWithImpl<_Book>(this, _$identit
 void debugFillProperties(DiagnosticPropertiesBuilder properties) {
   properties
     ..add(DiagnosticsProperty('type', 'Book'))
-    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('title', title))..add(DiagnosticsProperty('author', author))..add(DiagnosticsProperty('coverPath', coverPath))..add(DiagnosticsProperty('description', description))..add(DiagnosticsProperty('filePath', filePath))..add(DiagnosticsProperty('fileType', fileType))..add(DiagnosticsProperty('fileSize', fileSize))..add(DiagnosticsProperty('totalChapters', totalChapters))..add(DiagnosticsProperty('totalCharacters', totalCharacters))..add(DiagnosticsProperty('currentChapterId', currentChapterId))..add(DiagnosticsProperty('currentPageIndex', currentPageIndex))..add(DiagnosticsProperty('totalPages', totalPages))..add(DiagnosticsProperty('progress', progress))..add(DiagnosticsProperty('status', status))..add(DiagnosticsProperty('isPinned', isPinned))..add(DiagnosticsProperty('createdAt', createdAt))..add(DiagnosticsProperty('updatedAt', updatedAt))..add(DiagnosticsProperty('lastReadAt', lastReadAt));
+    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('title', title))..add(DiagnosticsProperty('author', author))..add(DiagnosticsProperty('coverPath', coverPath))..add(DiagnosticsProperty('description', description))..add(DiagnosticsProperty('filePath', filePath))..add(DiagnosticsProperty('fileType', fileType))..add(DiagnosticsProperty('fileSize', fileSize))..add(DiagnosticsProperty('totalChapters', totalChapters))..add(DiagnosticsProperty('totalCharacters', totalCharacters))..add(DiagnosticsProperty('currentChapterId', currentChapterId))..add(DiagnosticsProperty('currentPageIndex', currentPageIndex))..add(DiagnosticsProperty('totalPages', totalPages))..add(DiagnosticsProperty('progress', progress))..add(DiagnosticsProperty('status', status))..add(DiagnosticsProperty('isPinned', isPinned))..add(DiagnosticsProperty('categoryIds', categoryIds))..add(DiagnosticsProperty('createdAt', createdAt))..add(DiagnosticsProperty('updatedAt', updatedAt))..add(DiagnosticsProperty('lastReadAt', lastReadAt));
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Book&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.author, author) || other.author == author)&&(identical(other.coverPath, coverPath) || other.coverPath == coverPath)&&(identical(other.description, description) || other.description == description)&&(identical(other.filePath, filePath) || other.filePath == filePath)&&(identical(other.fileType, fileType) || other.fileType == fileType)&&(identical(other.fileSize, fileSize) || other.fileSize == fileSize)&&(identical(other.totalChapters, totalChapters) || other.totalChapters == totalChapters)&&(identical(other.totalCharacters, totalCharacters) || other.totalCharacters == totalCharacters)&&(identical(other.currentChapterId, currentChapterId) || other.currentChapterId == currentChapterId)&&(identical(other.currentPageIndex, currentPageIndex) || other.currentPageIndex == currentPageIndex)&&(identical(other.totalPages, totalPages) || other.totalPages == totalPages)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.status, status) || other.status == status)&&(identical(other.isPinned, isPinned) || other.isPinned == isPinned)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.lastReadAt, lastReadAt) || other.lastReadAt == lastReadAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Book&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.author, author) || other.author == author)&&(identical(other.coverPath, coverPath) || other.coverPath == coverPath)&&(identical(other.description, description) || other.description == description)&&(identical(other.filePath, filePath) || other.filePath == filePath)&&(identical(other.fileType, fileType) || other.fileType == fileType)&&(identical(other.fileSize, fileSize) || other.fileSize == fileSize)&&(identical(other.totalChapters, totalChapters) || other.totalChapters == totalChapters)&&(identical(other.totalCharacters, totalCharacters) || other.totalCharacters == totalCharacters)&&(identical(other.currentChapterId, currentChapterId) || other.currentChapterId == currentChapterId)&&(identical(other.currentPageIndex, currentPageIndex) || other.currentPageIndex == currentPageIndex)&&(identical(other.totalPages, totalPages) || other.totalPages == totalPages)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.status, status) || other.status == status)&&(identical(other.isPinned, isPinned) || other.isPinned == isPinned)&&const DeepCollectionEquality().equals(other._categoryIds, _categoryIds)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.lastReadAt, lastReadAt) || other.lastReadAt == lastReadAt));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,id,title,author,coverPath,description,filePath,fileType,fileSize,totalChapters,totalCharacters,currentChapterId,currentPageIndex,totalPages,progress,status,isPinned,createdAt,updatedAt,lastReadAt]);
+int get hashCode => Object.hashAll([runtimeType,id,title,author,coverPath,description,filePath,fileType,fileSize,totalChapters,totalCharacters,currentChapterId,currentPageIndex,totalPages,progress,status,isPinned,const DeepCollectionEquality().hash(_categoryIds),createdAt,updatedAt,lastReadAt]);
 
 @override
 String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
-  return 'Book(id: $id, title: $title, author: $author, coverPath: $coverPath, description: $description, filePath: $filePath, fileType: $fileType, fileSize: $fileSize, totalChapters: $totalChapters, totalCharacters: $totalCharacters, currentChapterId: $currentChapterId, currentPageIndex: $currentPageIndex, totalPages: $totalPages, progress: $progress, status: $status, isPinned: $isPinned, createdAt: $createdAt, updatedAt: $updatedAt, lastReadAt: $lastReadAt)';
+  return 'Book(id: $id, title: $title, author: $author, coverPath: $coverPath, description: $description, filePath: $filePath, fileType: $fileType, fileSize: $fileSize, totalChapters: $totalChapters, totalCharacters: $totalCharacters, currentChapterId: $currentChapterId, currentPageIndex: $currentPageIndex, totalPages: $totalPages, progress: $progress, status: $status, isPinned: $isPinned, categoryIds: $categoryIds, createdAt: $createdAt, updatedAt: $updatedAt, lastReadAt: $lastReadAt)';
 }
 
 
@@ -325,7 +336,7 @@ abstract mixin class _$BookCopyWith<$Res> implements $BookCopyWith<$Res> {
   factory _$BookCopyWith(_Book value, $Res Function(_Book) _then) = __$BookCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String title, String author, String? coverPath, String? description, String filePath, String fileType, int fileSize, int totalChapters, int totalCharacters, int? currentChapterId, int currentPageIndex, int totalPages, double progress, String status, bool isPinned, DateTime createdAt, DateTime updatedAt, DateTime? lastReadAt
+ int id, String title, String author, String? coverPath, String? description, String filePath, String fileType, int fileSize, int totalChapters, int totalCharacters, int? currentChapterId, int currentPageIndex, int totalPages, double progress, String status, bool isPinned, List<int> categoryIds, DateTime createdAt, DateTime updatedAt, DateTime? lastReadAt
 });
 
 
@@ -342,7 +353,7 @@ class __$BookCopyWithImpl<$Res>
 
 /// Create a copy of Book
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? author = null,Object? coverPath = freezed,Object? description = freezed,Object? filePath = null,Object? fileType = null,Object? fileSize = null,Object? totalChapters = null,Object? totalCharacters = null,Object? currentChapterId = freezed,Object? currentPageIndex = null,Object? totalPages = null,Object? progress = null,Object? status = null,Object? isPinned = null,Object? createdAt = null,Object? updatedAt = null,Object? lastReadAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? author = null,Object? coverPath = freezed,Object? description = freezed,Object? filePath = null,Object? fileType = null,Object? fileSize = null,Object? totalChapters = null,Object? totalCharacters = null,Object? currentChapterId = freezed,Object? currentPageIndex = null,Object? totalPages = null,Object? progress = null,Object? status = null,Object? isPinned = null,Object? categoryIds = null,Object? createdAt = null,Object? updatedAt = null,Object? lastReadAt = freezed,}) {
   return _then(_Book(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -360,7 +371,8 @@ as int,totalPages: null == totalPages ? _self.totalPages : totalPages // ignore:
 as int,progress: null == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
 as double,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,isPinned: null == isPinned ? _self.isPinned : isPinned // ignore: cast_nullable_to_non_nullable
-as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as bool,categoryIds: null == categoryIds ? _self._categoryIds : categoryIds // ignore: cast_nullable_to_non_nullable
+as List<int>,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,lastReadAt: freezed == lastReadAt ? _self.lastReadAt : lastReadAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,

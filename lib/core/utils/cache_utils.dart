@@ -4,10 +4,10 @@
 library;
 
 import 'dart:io';
-
-import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+
+import './logging.dart';
 
 /// 缓存管理器
 class CacheUtils {
@@ -32,7 +32,7 @@ class CacheUtils {
         totalBytes += await _deleteDirectoryContents(logDir);
       }
     } catch (e) {
-      debugPrint('清理缓存失败：$e');
+      Logging.debug('清理缓存失败：$e');
     }
 
     return totalBytes;
@@ -59,7 +59,7 @@ class CacheUtils {
         totalBytes += await _calculateDirectorySize(logDir);
       }
     } catch (e) {
-      debugPrint('计算缓存大小失败：$e');
+      Logging.debug('计算缓存大小失败：$e');
     }
 
     return totalBytes;
@@ -87,7 +87,10 @@ class CacheUtils {
     }
 
     try {
-      await for (final entity in dir.list(recursive: true, followLinks: false)) {
+      await for (final entity in dir.list(
+        recursive: true,
+        followLinks: false,
+      )) {
         if (entity is File) {
           totalBytes += await entity.length();
           await entity.delete();
@@ -96,7 +99,7 @@ class CacheUtils {
         }
       }
     } catch (e) {
-      debugPrint('删除目录内容失败：$e');
+      Logging.debug('删除目录内容失败：$e');
     }
 
     return totalBytes;
@@ -111,13 +114,16 @@ class CacheUtils {
     }
 
     try {
-      await for (final entity in dir.list(recursive: true, followLinks: false)) {
+      await for (final entity in dir.list(
+        recursive: true,
+        followLinks: false,
+      )) {
         if (entity is File) {
           totalBytes += await entity.length();
         }
       }
     } catch (e) {
-      debugPrint('计算目录大小失败：$e');
+      Logging.debug('计算目录大小失败：$e');
     }
 
     return totalBytes;
@@ -132,7 +138,7 @@ class CacheUtils {
         return logDir;
       }
     } catch (e) {
-      debugPrint('获取日志目录失败：$e');
+      Logging.debug('获取日志目录失败：$e');
     }
     return null;
   }

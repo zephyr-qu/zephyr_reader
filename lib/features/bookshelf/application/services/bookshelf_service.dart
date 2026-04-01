@@ -4,16 +4,16 @@ library;
 import 'dart:io';
 
 import 'package:drift/drift.dart';
-import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/database/database.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/domain/models/book.dart';
 import 'package:zephyr_reader/domain/models/chapter.dart';
+import 'package:zephyr_reader/features/bookshelf/domain/models/bookshelf_filter.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/repositories/book_repository.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/repositories/chapter_repository.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/repositories/bookmark_repository.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/models/import_task.dart';
-
 import '../states/bookshelf_state.dart';
 
 /// 书架业务服务
@@ -30,7 +30,12 @@ class BookshelfService {
   final BookmarkRepository _bookmark;
   final BookshelfState _state;
 
-  BookshelfService(this._repository, this._state, this._chapter, this._bookmark);
+  BookshelfService(
+    this._repository,
+    this._state,
+    this._chapter,
+    this._bookmark,
+  );
 
   /// 加载书架书籍列表
   Future<void> loadBooks() async {
@@ -99,7 +104,7 @@ class BookshelfService {
       _state.setBooks(filteredBooks);
     } catch (e) {
       _state.error.value = '加载书架失败';
-      debugPrint('BookshelfService.loadBooks error: $e');
+      Logging.debug('BookshelfService.loadBooks error: $e');
     } finally {
       _state.isLoading.value = false;
     }
@@ -108,7 +113,7 @@ class BookshelfService {
   /// 添加书籍到书架（从导入任务）
   Future<Book?> addBookFromImportTask(ImportTask task) async {
     if (task.status != ImportTaskStatus.completed) {
-      debugPrint('任务未完成，无法添加书籍');
+      Logging.debug('任务未完成，无法添加书籍');
       return null;
     }
 
@@ -118,7 +123,7 @@ class BookshelfService {
       final exists = existing.any((b) => b.filePath == task.filePath);
 
       if (exists) {
-        debugPrint('书籍已存在：${task.filePath}');
+        Logging.debug('书籍已存在：${task.filePath}');
         return existing.firstWhere((b) => b.filePath == task.filePath);
       }
 
@@ -150,7 +155,7 @@ class BookshelfService {
 
       return newBook;
     } catch (e) {
-      debugPrint('BookshelfService.addBookFromImportTask error: $e');
+      Logging.debug('BookshelfService.addBookFromImportTask error: $e');
       return null;
     }
   }
@@ -183,7 +188,7 @@ class BookshelfService {
         );
       }
     } catch (e) {
-      debugPrint('BookshelfService._saveChapters error: $e');
+      Logging.debug('BookshelfService._saveChapters error: $e');
     }
   }
 
@@ -205,7 +210,7 @@ class BookshelfService {
       final exists = existing.any((b) => b.filePath == filePath);
 
       if (exists) {
-        debugPrint('书籍已存在：$filePath');
+        Logging.debug('书籍已存在：$filePath');
         return existing.firstWhere((b) => b.filePath == filePath);
       }
 
@@ -233,7 +238,7 @@ class BookshelfService {
 
       return newBook;
     } catch (e) {
-      debugPrint('BookshelfService.addBook error: $e');
+      Logging.debug('BookshelfService.addBook error: $e');
       return null;
     }
   }
@@ -257,14 +262,14 @@ class BookshelfService {
             await coverFile.delete();
           }
         } catch (e) {
-          debugPrint('删除封面文件失败：$e');
+          Logging.debug('删除封面文件失败：$e');
         }
       }
 
       _state.removeBook(bookId);
       return true;
     } catch (e) {
-      debugPrint('BookshelfService.deleteBook error: $e');
+      Logging.debug('BookshelfService.deleteBook error: $e');
       return false;
     }
   }
@@ -300,7 +305,7 @@ class BookshelfService {
 
       return true;
     } catch (e) {
-      debugPrint('BookshelfService.updateBookTitle error: $e');
+      Logging.debug('BookshelfService.updateBookTitle error: $e');
       return false;
     }
   }
@@ -323,7 +328,7 @@ class BookshelfService {
 
       return true;
     } catch (e) {
-      debugPrint('BookshelfService.updateBookStatus error: $e');
+      Logging.debug('BookshelfService.updateBookStatus error: $e');
       return false;
     }
   }
@@ -366,7 +371,7 @@ class BookshelfService {
 
       return true;
     } catch (e) {
-      debugPrint('BookshelfService.updateReadingProgress error: $e');
+      Logging.debug('BookshelfService.updateReadingProgress error: $e');
       return false;
     }
   }

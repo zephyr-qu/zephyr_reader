@@ -50,7 +50,7 @@ abstract class ReadingProgress with _$ReadingProgress {
 
   /// 空阅读进度（用于初始化）
   factory ReadingProgress.empty() {
-    return ReadingProgress(
+    return const ReadingProgress(
       bookId: 0,
       chapterId: 0,
       pageIndex: 0,

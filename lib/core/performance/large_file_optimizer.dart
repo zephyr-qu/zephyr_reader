@@ -9,6 +9,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import '../utils/logging.dart';
+
 /// 大文件加载优化器
 class LargeFileOptimizer {
   /// 大文件阈值（10MB）
@@ -53,7 +55,7 @@ class LargeFileOptimizer {
     final isLargeFile = fileSize > largeFileThreshold;
 
     if (isLargeFile) {
-      debugPrint('大文件检测：${fileSize ~/ 1024 ~/ 1024}MB，使用分块加载');
+      Logging.debug('大文件检测：${fileSize ~/ 1024 ~/ 1024}MB，使用分块加载');
       return _loadLargeFile(file, chunkSize, onProgress);
     } else {
       // 小文件直接加载
@@ -111,7 +113,7 @@ class LargeFileOptimizer {
   ) async {
     final file = File(filePath);
     if (!await file.exists()) {
-      debugPrint('文件不存在，跳过预加载：$filePath');
+      Logging.warning('文件不存在，跳过预加载：$filePath');
       return;
     }
 
@@ -123,7 +125,7 @@ class LargeFileOptimizer {
     final endChunk = (startChunk + chunksToPreload).clamp(0, totalChunks);
 
     if (startChunk >= totalChunks) {
-      debugPrint('已到文件末尾，无需预加载');
+      Logging.debug('已到文件末尾，无需预加载');
       return;
     }
 
@@ -141,11 +143,11 @@ class LargeFileOptimizer {
       );
     }
 
-    debugPrint('预加载任务已添加：$startChunk - $endChunk');
+    Logging.debug('预加载任务已添加：$startChunk - $endChunk');
 
     // 触发预加载
     if (!_isPreloading) {
-      _processPreloadQueue(file);
+      _processPreloadQueue(file).ignore();
     }
   }
 
@@ -192,9 +194,11 @@ class LargeFileOptimizer {
               _evictOldestChunk();
             }
 
-            debugPrint('预加载完成：${task.filePath} 块 ${task.chunkIndex}');
+            Logging.debug('预加载完成：${task.filePath} 块 ${task.chunkIndex}');
           } catch (e) {
-            debugPrint('预加载失败：${task.filePath} 块 ${task.chunkIndex}, 错误：$e');
+            Logging.warning(
+              '预加载失败：${task.filePath} 块 ${task.chunkIndex}, 错误：$e',
+            );
           }
 
           // 让出事件循环
@@ -227,7 +231,7 @@ class LargeFileOptimizer {
 
     if (oldestKey != null) {
       _chunkCache.remove(oldestKey);
-      debugPrint('清理缓存块：$oldestKey');
+      Logging.debug('清理缓存块：$oldestKey');
     }
   }
 
@@ -274,7 +278,7 @@ class LargeFileOptimizer {
     }
 
     // 触发 GC 提示
-    debugPrint('释放块完成：保留 $from - $to，已清空 ${chunksToRemove.length} 个块');
+    Logging.debug('释放块完成：保留 $from - $to，已清空 ${chunksToRemove.length} 个块');
   }
 
   /// 从缓存获取块
@@ -294,7 +298,7 @@ class LargeFileOptimizer {
   static void clearCache() {
     _chunkCache.clear();
     _preloadQueue.clear();
-    debugPrint('已清除所有缓存');
+    Logging.debug('已清除所有缓存');
   }
 
   /// 获取缓存统计信息

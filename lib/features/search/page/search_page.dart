@@ -22,7 +22,7 @@ class _SearchPageState extends State<SearchPage> {
   final vm = getIt<SearchViewModel>();
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
-  
+
   // 防止重复加载
   bool _isLoadingMore = false;
 
@@ -44,26 +44,29 @@ class _SearchPageState extends State<SearchPage> {
     try {
       // 检查是否可滚动
       if (!_scrollController.hasClients) return;
-      
+
       final position = _scrollController.position;
       if (!position.hasContentDimensions) return;
-      
+
       // 防止重复加载
       if (_isLoadingMore) return;
       if (!vm.hasMore.value) return;
-      
+
       final threshold = position.maxScrollExtent - 200;
       if (position.pixels >= threshold) {
         _isLoadingMore = true;
-        vm.loadMore().then((_) {
-          if (mounted) {
-            _isLoadingMore = false;
-          }
-        }).catchError((_) {
-          if (mounted) {
-            _isLoadingMore = false;
-          }
-        });
+        vm
+            .loadMore()
+            .then((_) {
+              if (mounted) {
+                _isLoadingMore = false;
+              }
+            })
+            .catchError((_) {
+              if (mounted) {
+                _isLoadingMore = false;
+              }
+            });
       }
     } catch (e) {
       debugPrint('Scroll error: $e');
@@ -139,9 +142,7 @@ class _SearchPageState extends State<SearchPage> {
           ),
         ],
       ),
-      actions: [
-        SizedBox(width: deviceType == DeviceType.desktop ? 16 : 8),
-      ],
+      actions: [SizedBox(width: deviceType == DeviceType.desktop ? 16 : 8)],
     );
   }
 
@@ -166,7 +167,9 @@ class _SearchPageState extends State<SearchPage> {
               decoration: InputDecoration(
                 hintText: '搜索小说名称或作者',
                 hintStyle: TextStyle(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.5,
+                  ),
                 ),
                 prefixIcon: Icon(
                   Icons.search_rounded,
@@ -222,10 +225,7 @@ class _SearchPageState extends State<SearchPage> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-          ).animate().scale(
-                duration: 300.ms,
-                curve: Curves.easeOutBack,
-              ),
+          ).animate().scale(duration: 300.ms, curve: Curves.easeOutBack),
         ],
       ),
     );
@@ -301,7 +301,9 @@ class _SearchPageState extends State<SearchPage> {
                     Icon(
                       Icons.search_off_rounded,
                       size: 80,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.3,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     Text(
@@ -410,7 +412,7 @@ class _SearchPageState extends State<SearchPage> {
                             child: CircularProgressIndicator(
                               value: loadingProgress.expectedTotalBytes != null
                                   ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
+                                        loadingProgress.expectedTotalBytes!
                                   : null,
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(
@@ -441,7 +443,10 @@ class _SearchPageState extends State<SearchPage> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(6),
@@ -468,7 +473,10 @@ class _SearchPageState extends State<SearchPage> {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.tertiaryContainer,
                           borderRadius: BorderRadius.circular(6),
@@ -509,7 +517,10 @@ class _SearchPageState extends State<SearchPage> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.secondaryContainer,
                           borderRadius: BorderRadius.circular(6),
@@ -715,11 +726,7 @@ class _SearchPageState extends State<SearchPage> {
               color: theme.colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: theme.colorScheme.primary,
-            ),
+            child: Icon(icon, size: 18, color: theme.colorScheme.primary),
           ),
           const SizedBox(width: 12),
           Column(

@@ -40,32 +40,34 @@ class BookmarkRepositoryImpl implements BookmarkRepository {
     String? note,
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final id = await _database.into(_database.dbBookmarks).insert(
-      DbBookmarksCompanion.insert(
-        bookId: bookId,
-        chapterId: chapterId,
-        pageIndex: pageIndex,
-        title: title,
-        createdTimestamp: now,
-        note: Value(note),
-        position: Value(position),
-      ),
-    );
+    final id = await _database
+        .into(_database.dbBookmarks)
+        .insert(
+          DbBookmarksCompanion.insert(
+            bookId: bookId,
+            chapterId: chapterId,
+            pageIndex: pageIndex,
+            title: title,
+            createdTimestamp: now,
+            note: Value(note),
+            position: Value(position),
+          ),
+        );
     return await getBookmarkById(id);
   }
 
   @override
   Future<bool> deleteBookmark(int bookmarkId) async {
-    final result = await (_database.delete(_database.dbBookmarks)
-          ..where((tbl) => tbl.id.equals(bookmarkId)))
-        .go();
+    final result = await (_database.delete(
+      _database.dbBookmarks,
+    )..where((tbl) => tbl.id.equals(bookmarkId))).go();
     return result > 0;
   }
 
   @override
   Future<int> deleteBookmarksByBookId(int bookId) async {
-    return await (_database.delete(_database.dbBookmarks)
-          ..where((tbl) => tbl.bookId.equals(bookId)))
-        .go();
+    return await (_database.delete(
+      _database.dbBookmarks,
+    )..where((tbl) => tbl.bookId.equals(bookId))).go();
   }
 }

@@ -36,12 +36,16 @@ Future<void> showCreateBackupDialog(BuildContext context) async {
                           selectedTypes.value = [BackupType.all];
                         } else {
                           selectedTypes.value = [
-                            ...selectedTypes.value.where((t) => t != BackupType.all),
+                            ...selectedTypes.value.where(
+                              (t) => t != BackupType.all,
+                            ),
                             type,
                           ];
                         }
                       } else {
-                        selectedTypes.value = selectedTypes.value.where((t) => t != type).toList();
+                        selectedTypes.value = selectedTypes.value
+                            .where((t) => t != type)
+                            .toList();
                       }
                       setDialogState(() {});
                     },
@@ -104,9 +108,9 @@ Future<BackupInfo?> showRestoreBackupDialog(
 ) async {
   if (backups.isEmpty) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('暂无备份记录')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('暂无备份记录')));
     }
     return null;
   }
@@ -183,9 +187,7 @@ Future<bool> showRestoreConfirmDialog(
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, true),
-          style: FilledButton.styleFrom(
-            backgroundColor: Colors.red,
-          ),
+          style: FilledButton.styleFrom(backgroundColor: Colors.red),
           child: const Text('恢复'),
         ),
       ],
@@ -196,7 +198,10 @@ Future<bool> showRestoreConfirmDialog(
 }
 
 /// 显示删除备份确认对话框
-Future<bool> showDeleteBackupDialog(BuildContext context, BackupInfo backup) async {
+Future<bool> showDeleteBackupDialog(
+  BuildContext context,
+  BackupInfo backup,
+) async {
   final result = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
@@ -209,9 +214,7 @@ Future<bool> showDeleteBackupDialog(BuildContext context, BackupInfo backup) asy
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, true),
-          style: FilledButton.styleFrom(
-            backgroundColor: Colors.red,
-          ),
+          style: FilledButton.styleFrom(backgroundColor: Colors.red),
           child: const Text('删除'),
         ),
       ],

@@ -10,12 +10,18 @@ class DbReadingSessions extends Table {
   late final id = integer().autoIncrement()();
 
   /// 书籍 ID
-  late final bookId =
-      integer().references(DbBooks, #id, onDelete: KeyAction.cascade)();
+  late final bookId = integer().references(
+    DbBooks,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
 
   /// 关联的章节 ID
-  late final chapterId =
-      integer().references(DbChapters, #id, onDelete: KeyAction.cascade)();
+  late final chapterId = integer().references(
+    DbChapters,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
 
   /// 开始时间戳（Unix 时间戳，秒）
   late final startTimestamp = integer()();

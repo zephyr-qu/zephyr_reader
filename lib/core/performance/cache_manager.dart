@@ -9,9 +9,10 @@ import 'dart:collection';
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+
+import '../utils/logging.dart';
 
 /// 缓存条目
 class CacheEntry<T> {
@@ -143,9 +144,9 @@ class ChapterContentCache {
         await _cacheDir.create(recursive: true);
       }
       _isInitialized = true;
-      debugPrint('章节缓存目录初始化完成：${_cacheDir.path}');
+      Logging.debug('章节缓存目录初始化完成：${_cacheDir.path}');
     } catch (e) {
-      debugPrint('章节缓存目录初始化失败：$e');
+      Logging.warning('章节缓存目录初始化失败：$e');
       _isInitialized = false;
     }
   }
@@ -175,21 +176,21 @@ class ChapterContentCache {
     // 先尝试内存缓存
     final cached = _cache.get(key);
     if (cached != null) {
-      debugPrint('章节内存缓存命中：$key');
+      Logging.debug('章节内存缓存命中：$key');
       return cached;
     }
 
     // 尝试磁盘缓存
     final cacheFile = File(p.join(_cacheDir.path, '$key.txt'));
     if (await cacheFile.exists()) {
-      debugPrint('章节磁盘缓存命中：$key');
+      Logging.debug('章节磁盘缓存命中：$key');
       try {
         final content = await cacheFile.readAsString();
         // 写入内存缓存
         _cache.put(key, content);
         return content;
       } catch (e) {
-        debugPrint('读取缓存文件失败：$e');
+        Logging.warning('读取缓存文件失败：$e');
         // 文件损坏，删除它
         await cacheFile.delete();
       }
@@ -216,9 +217,9 @@ class ChapterContentCache {
       final cacheFile = File(p.join(_cacheDir.path, '$key.txt'));
       await cacheFile.parent.create(recursive: true);
       await cacheFile.writeAsString(content);
-      debugPrint('章节缓存已写入：$key');
+      Logging.debug('章节缓存已写入：$key');
     } catch (e) {
-      debugPrint('写入缓存文件失败：$e');
+      Logging.warning('写入缓存文件失败：$e');
     }
   }
 
@@ -232,7 +233,7 @@ class ChapterContentCache {
     for (final entry in chapters.entries) {
       await put(bookId, entry.key, entry.value);
     }
-    debugPrint('批量缓存已写入：bookId=$bookId, count=${chapters.length}');
+    Logging.debug('批量缓存已写入：bookId=$bookId, count=${chapters.length}');
   }
 
   /// 移除章节缓存
@@ -251,7 +252,7 @@ class ChapterContentCache {
         await cacheFile.delete();
       }
     } catch (e) {
-      debugPrint('删除缓存文件失败：$e');
+      Logging.warning('删除缓存文件失败：$e');
     }
   }
 
@@ -284,10 +285,10 @@ class ChapterContentCache {
         }
       }
     } catch (e) {
-      debugPrint('删除磁盘缓存失败：$e');
+      Logging.warning('删除磁盘缓存失败：$e');
     }
 
-    debugPrint('书籍章节缓存已清除：bookId=$bookId');
+    Logging.debug('书籍章节缓存已清除：bookId=$bookId');
   }
 
   /// 清除所有缓存
@@ -301,9 +302,9 @@ class ChapterContentCache {
         await _cacheDir.delete(recursive: true);
       }
       await _cacheDir.create(recursive: true);
-      debugPrint('所有章节缓存已清除');
+      Logging.debug('所有章节缓存已清除');
     } catch (e) {
-      debugPrint('清除磁盘缓存失败：$e');
+      Logging.warning('清除磁盘缓存失败：$e');
     }
   }
 
@@ -354,7 +355,7 @@ class ChapterContentCache {
       }
       return totalSize;
     } catch (e) {
-      debugPrint('获取磁盘缓存大小失败：$e');
+      Logging.warning('获取磁盘缓存大小失败：$e');
       return 0;
     }
   }
@@ -371,7 +372,7 @@ class ChapterContentCache {
       final oldestKey = _cache._accessOrder.first;
       _cache.remove(oldestKey);
     }
-    debugPrint('缓存已修剪到 $maxSize 个条目');
+    Logging.debug('缓存已修剪到 $maxSize 个条目');
   }
 
   /// 清除所有布局缓存
@@ -390,7 +391,7 @@ class ChapterContentCache {
       await _cacheDir.create(recursive: true);
     }
 
-    debugPrint('所有布局缓存已清除');
+    Logging.debug('所有布局缓存已清除');
   }
 }
 
@@ -428,14 +429,14 @@ class ImageCache {
     // 先尝试内存缓存
     final cached = _memoryCache.get(key);
     if (cached != null) {
-      debugPrint('图片内存缓存命中：$imagePath');
+      Logging.debug('图片内存缓存命中：$imagePath');
       return cached;
     }
 
     // 尝试磁盘缓存
     final cacheFile = File(p.join(_cacheDir.path, '$key.png'));
     if (await cacheFile.exists()) {
-      debugPrint('图片磁盘缓存命中：$imagePath');
+      Logging.debug('图片磁盘缓存命中：$imagePath');
       final bytes = await cacheFile.readAsBytes();
       final codec = await ui.instantiateImageCodec(bytes);
       final frame = await codec.getNextFrame();
@@ -462,7 +463,7 @@ class ImageCache {
       await cacheFile.writeAsBytes(byteData.buffer.asUint8List());
     }
 
-    debugPrint('图片缓存已写入：$imagePath');
+    Logging.debug('图片缓存已写入：$imagePath');
   }
 
   /// 移除图片缓存
@@ -485,7 +486,7 @@ class ImageCache {
       await _cacheDir.create(recursive: true);
     }
 
-    debugPrint('所有图片缓存已清除');
+    Logging.debug('所有图片缓存已清除');
   }
 
   /// 获取图片缓存统计
@@ -541,7 +542,7 @@ class PrefetchManager {
       final chapterId = _prefetchQueue.removeAt(0);
       // 这里需要配合阅读器 ViewModel 获取章节内容
       // 由于依赖关系复杂，暂时不实现具体内容获取
-      debugPrint('预加载章节：$chapterId');
+      Logging.debug('预加载章节：$chapterId');
     }
 
     _isPrefetching = false;

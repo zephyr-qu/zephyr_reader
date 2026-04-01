@@ -68,21 +68,21 @@ class ThemeSettingsPage extends HookWidget {
                 themeMode.value = value;
               }
             },
-            child: Column(
+            child: const Column(
               children: [
                 RadioListTile<ThemeMode>(
-                  title: const Text('跟随系统'),
-                  subtitle: const Text('根据系统设置自动切换'),
+                  title: Text('跟随系统'),
+                  subtitle: Text('根据系统设置自动切换'),
                   value: ThemeMode.system,
                 ),
                 RadioListTile<ThemeMode>(
-                  title: const Text('浅色模式'),
-                  subtitle: const Text('始终使用浅色主题'),
+                  title: Text('浅色模式'),
+                  subtitle: Text('始终使用浅色主题'),
                   value: ThemeMode.light,
                 ),
                 RadioListTile<ThemeMode>(
-                  title: const Text('深色模式'),
-                  subtitle: const Text('始终使用深色主题'),
+                  title: Text('深色模式'),
+                  subtitle: Text('始终使用深色主题'),
                   value: ThemeMode.dark,
                 ),
               ],

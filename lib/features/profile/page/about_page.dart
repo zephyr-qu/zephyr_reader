@@ -17,15 +17,15 @@ class AboutPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final packageInfo = useFuture(useMemoized(() => PackageInfo.fromPlatform()));
-    
+    final packageInfo = useFuture(
+      useMemoized(() => PackageInfo.fromPlatform()),
+    );
+
     final version = packageInfo.data?.version ?? '未知';
     final buildNumber = packageInfo.data?.buildNumber ?? '';
-    
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('关于'),
-      ),
+      appBar: AppBar(title: const Text('关于')),
       body: ListView(
         children: [
           // 应用图标和名称
@@ -60,7 +60,7 @@ class AboutPage extends HookWidget {
               ],
             ),
           ),
-          
+
           // 应用介绍
           _buildSection(
             context,
@@ -76,7 +76,7 @@ class AboutPage extends HookWidget {
               ),
             ],
           ),
-          
+
           // 核心特性
           _buildSection(
             context,
@@ -125,18 +125,18 @@ class AboutPage extends HookWidget {
               ),
             ],
           ),
-          
+
           // 技术栈
           _buildSection(
             context,
             title: '技术栈',
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
+              const Padding(
+                padding: EdgeInsets.all(16),
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: const [
+                  children: [
                     Chip(label: Text('Flutter 3.22')),
                     Chip(label: Text('Rust 1.75')),
                     Chip(label: Text('Drift')),
@@ -148,7 +148,7 @@ class AboutPage extends HookWidget {
               ),
             ],
           ),
-          
+
           // 更多信息
           _buildSection(
             context,
@@ -159,9 +159,9 @@ class AboutPage extends HookWidget {
                 leading: const Icon(Icons.system_update),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('已是最新版本')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('已是最新版本')));
                 },
               ),
               const Divider(height: 1),
@@ -213,23 +213,25 @@ class AboutPage extends HookWidget {
                 leading: const Icon(Icons.bug_report),
                 trailing: const Icon(Icons.open_in_new),
                 onTap: () async {
-                  final uri = Uri.parse('https://github.com/zephyr-reader/zephyr_reader/issues');
+                  final uri = Uri.parse(
+                    'https://github.com/zephyr-reader/zephyr_reader/issues',
+                  );
                   if (await canLaunchUrl(uri)) {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   } else {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('无法打开链接')),
-                      );
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(const SnackBar(content: Text('无法打开链接')));
                     }
                   }
                 },
               ),
             ],
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           // 版权信息
           Center(
             child: Padding(
@@ -247,16 +249,16 @@ class AboutPage extends HookWidget {
       ),
     );
   }
-  
+
   Widget _buildSection(
     BuildContext context, {
     required String title,
     required List<Widget> children,
   }) {
     final theme = Theme.of(context);
-    
+
     if (children.isEmpty) return const SizedBox.shrink();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -271,13 +273,15 @@ class AboutPage extends HookWidget {
           ),
         ),
         ColoredBox(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.3,
+          ),
           child: Column(children: children),
         ),
       ],
     );
   }
-  
+
   Widget _buildFeatureItem(
     BuildContext context, {
     required IconData icon,
@@ -285,7 +289,7 @@ class AboutPage extends HookWidget {
     required String subtitle,
   }) {
     final theme = Theme.of(context);
-    
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -296,10 +300,7 @@ class AboutPage extends HookWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium,
-                ),
+                Text(title, style: theme.textTheme.titleMedium),
                 Text(
                   subtitle,
                   style: theme.textTheme.bodySmall?.copyWith(

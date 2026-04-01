@@ -4,16 +4,13 @@ library;
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/models/import_task.dart';
 import 'package:zephyr_reader/features/reader/domain/models/chapter_info.dart';
 import 'package:zephyr_reader/src/rust/api.dart' as rust_api;
-import 'package:zephyr_reader/src/rust/api.dart';
-
-
 
 
 /// 书籍导入服务
@@ -57,7 +54,7 @@ class BookImportService {
 
       return result?.files;
     } catch (e) {
-      debugPrint('BookImportService.selectFiles error: $e');
+      Logging.debug('BookImportService.selectFiles error: $e');
       return null;
     }
   }
@@ -68,7 +65,7 @@ class BookImportService {
       final folder = await FilePicker.platform.getDirectoryPath();
       return folder;
     } catch (e) {
-      debugPrint('BookImportService.selectFolder error: $e');
+      Logging.debug('BookImportService.selectFolder error: $e');
       return null;
     }
   }
@@ -81,7 +78,7 @@ class BookImportService {
     try {
       final dir = Directory(folderPath);
       if (!await dir.exists()) {
-        debugPrint('文件夹不存在folderPath');
+        Logging.debug('文件夹不存在folderPath');
         return files;
       }
 
@@ -100,7 +97,7 @@ class BookImportService {
         }
       }
     } catch (e) {
-      debugPrint('BookImportService.scanFolder error: $e');
+      Logging.debug('BookImportService.scanFolder error: $e');
     }
 
     return files;
@@ -157,7 +154,7 @@ class BookImportService {
     } catch (e) {
       task.status = ImportTaskStatus.failed;
       task.error = '导入失败e';
-      debugPrint('BookImportService.importFile error: $e');
+      Logging.debug('BookImportService.importFile error: $e');
       return task;
     }
   }
@@ -166,7 +163,7 @@ class BookImportService {
   Future<dynamic> _parseBook(String filePath, String format) async {
     try {
       // 调用 Rust 异步解析
-      final result = await asyncParseLocalBook(filePath: filePath);
+      final result = await rust_api.asyncParseLocalBook(filePath: filePath);
 
       // 解包 ApiResult 获取实际数据
       // 对于 Opaque 类型，使用 .value 属性访问实际数据
@@ -193,7 +190,7 @@ class BookImportService {
       }
       return null;
     } catch (e) {
-      debugPrint('BookImportService._parseBook error: $e');
+      Logging.debug('BookImportService._parseBook error: $e');
       return null;
     }
   }
@@ -249,7 +246,7 @@ class BookImportService {
 
       return null;
     } catch (e) {
-      debugPrint('BookImportService._extractCover error: $e');
+      Logging.debug('BookImportService._extractCover error: $e');
       return null;
     }
   }
@@ -309,7 +306,7 @@ class BookImportService {
         'size': await file.length(),
       };
     } catch (e) {
-      debugPrint('BookImportService.getFileInfo error: $e');
+      Logging.debug('BookImportService.getFileInfo error: $e');
       return null;
     }
   }

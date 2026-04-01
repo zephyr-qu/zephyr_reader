@@ -35,6 +35,9 @@ class DbBooks extends Table {
 
   late final isPinned = boolean().withDefault(const Constant(false))();
 
+  /// 分类 ID 列表（JSON 格式存储）
+  late final categoryIds = text().withDefault(const Constant('[]'))();
+
   late final createdAt = dateTime().withDefault(currentDateAndTime)();
 
   late final updatedAt = dateTime().withDefault(currentDateAndTime)();

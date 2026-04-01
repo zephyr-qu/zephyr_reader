@@ -16,7 +16,6 @@ class BookDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 在 build 中调用 getIt，确保每次 build 都获取最新的 ViewModel
     final vm = getIt<BookshelfViewModel>();
     final theme = Theme.of(context);
     final deviceType = LayoutBreakpoints.getDeviceType(context);
@@ -100,10 +99,7 @@ class BookDetailPage extends StatelessWidget {
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                           const SizedBox(height: 16),
-                          Text(
-                            '书籍不存在',
-                            style: theme.textTheme.titleMedium,
-                          ),
+                          Text('书籍不存在', style: theme.textTheme.titleMedium),
                           const SizedBox(height: 24),
                           FilledButton.icon(
                             onPressed: () => context.go('/bookshelf'),
@@ -182,9 +178,9 @@ class BookDetailPage extends StatelessWidget {
         IconButton(
           icon: const Icon(Icons.edit_rounded),
           onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('编辑功能开发中')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('编辑功能开发中')));
           },
           tooltip: '编辑',
         ),
@@ -193,11 +189,7 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPhoneLayout(
-    BuildContext context,
-    Book book,
-    ThemeData theme,
-  ) {
+  Widget _buildPhoneLayout(BuildContext context, Book book, ThemeData theme) {
     final spacing = LayoutBreakpoints.getSpacing(context);
 
     return Column(
@@ -215,11 +207,7 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTabletLayout(
-    BuildContext context,
-    Book book,
-    ThemeData theme,
-  ) {
+  Widget _buildTabletLayout(BuildContext context, Book book, ThemeData theme) {
     final spacing = LayoutBreakpoints.getSpacing(context);
 
     return Column(
@@ -252,11 +240,7 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroSection(
-    BuildContext context,
-    Book book,
-    ThemeData theme,
-  ) {
+  Widget _buildHeroSection(BuildContext context, Book book, ThemeData theme) {
     final deviceType = LayoutBreakpoints.getDeviceType(context);
     final isDesktop = deviceType == DeviceType.desktop;
     final coverWidth = isDesktop ? 140.0 : 120.0;
@@ -289,7 +273,11 @@ class BookDetailPage extends StatelessWidget {
                       width: double.infinity,
                       height: double.infinity,
                       errorBuilder: (context, error, stackTrace) {
-                        return _buildCoverPlaceholder(theme, coverWidth, coverHeight);
+                        return _buildCoverPlaceholder(
+                          theme,
+                          coverWidth,
+                          coverHeight,
+                        );
                       },
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
@@ -297,7 +285,7 @@ class BookDetailPage extends StatelessWidget {
                           child: CircularProgressIndicator(
                             value: loadingProgress.expectedTotalBytes != null
                                 ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
+                                      loadingProgress.expectedTotalBytes!
                                 : null,
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
@@ -363,7 +351,8 @@ class BookDetailPage extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: book.progress,
                       minHeight: 6,
-                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                      backgroundColor:
+                          theme.colorScheme.surfaceContainerHighest,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         theme.colorScheme.primary,
                       ),
@@ -382,10 +371,7 @@ class BookDetailPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                ).animate().scale(
-                      duration: 400.ms,
-                      curve: Curves.easeOutBack,
-                    ),
+                ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
               ],
             ),
           ),
@@ -394,11 +380,7 @@ class BookDetailPage extends StatelessWidget {
     ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.05, end: 0);
   }
 
-  Widget _buildCoverPlaceholder(
-    ThemeData theme,
-    double width,
-    double height,
-  ) {
+  Widget _buildCoverPlaceholder(ThemeData theme, double width, double height) {
     return Center(
       child: Icon(
         Icons.book_rounded,
@@ -462,11 +444,7 @@ class BookDetailPage extends StatelessWidget {
             color: theme.colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: theme.colorScheme.primary,
-          ),
+          child: Icon(icon, size: 20, color: theme.colorScheme.primary),
         ),
         const SizedBox(width: 12),
         Column(
@@ -550,10 +528,7 @@ class BookDetailPage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(
-                      Icons.list_rounded,
-                      color: theme.colorScheme.tertiary,
-                    ),
+                    Icon(Icons.list_rounded, color: theme.colorScheme.tertiary),
                     const SizedBox(width: 8),
                     Text(
                       '章节目录',
@@ -565,9 +540,9 @@ class BookDetailPage extends StatelessWidget {
                 ),
                 TextButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('全部章节功能开发中')),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('全部章节功能开发中')));
                   },
                   child: Text('全部 ${book.totalChapters} 章'),
                 ),
@@ -576,13 +551,8 @@ class BookDetailPage extends StatelessWidget {
             const SizedBox(height: 12),
             ...List.generate(
               book.totalChapters.clamp(0, isDesktop ? 15 : 10),
-              (index) => _buildChapterItem(
-                context,
-                index,
-                book,
-                theme,
-                isDesktop,
-              ),
+              (index) =>
+                  _buildChapterItem(context, index, book, theme, isDesktop),
             ),
           ],
         ),

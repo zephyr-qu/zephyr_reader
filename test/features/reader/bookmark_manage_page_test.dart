@@ -65,10 +65,10 @@ void main() {
 
         // 比较章节 ID
         expect(bookmark1.chapterId.compareTo(bookmark2.chapterId), lessThan(0));
-        
+
         // 比较位置
         expect(bookmark1.position.compareTo(bookmark2.position), lessThan(0));
-        
+
         // 比较时间
         expect(bookmark1.createdAt.compareTo(bookmark2.createdAt), lessThan(0));
       });
@@ -314,17 +314,17 @@ void main() {
     group('书签批量操作测试', () {
       test('选择多个书签', () {
         final selectedIds = <int>{};
-        
+
         // 选择书签 1
         selectedIds.add(1);
         expect(selectedIds.contains(1), isTrue);
         expect(selectedIds.length, equals(1));
-        
+
         // 选择书签 2
         selectedIds.add(2);
         expect(selectedIds.contains(2), isTrue);
         expect(selectedIds.length, equals(2));
-        
+
         // 选择书签 3
         selectedIds.add(3);
         expect(selectedIds.contains(3), isTrue);
@@ -333,12 +333,12 @@ void main() {
 
       test('取消选择书签', () {
         final selectedIds = <int>{1, 2, 3};
-        
+
         // 取消选择书签 2
         selectedIds.remove(2);
         expect(selectedIds.contains(2), isFalse);
         expect(selectedIds.length, equals(2));
-        
+
         // 取消选择书签 1
         selectedIds.remove(1);
         expect(selectedIds.contains(1), isFalse);
@@ -348,7 +348,7 @@ void main() {
       test('切换选择状态', () {
         final selectedIds = <int>{};
         final bookmarkId = 1;
-        
+
         // 第一次切换 - 选中
         if (selectedIds.contains(bookmarkId)) {
           selectedIds.remove(bookmarkId);
@@ -356,7 +356,7 @@ void main() {
           selectedIds.add(bookmarkId);
         }
         expect(selectedIds.contains(bookmarkId), isTrue);
-        
+
         // 第二次切换 - 取消选中
         if (selectedIds.contains(bookmarkId)) {
           selectedIds.remove(bookmarkId);

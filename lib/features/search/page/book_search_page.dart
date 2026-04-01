@@ -102,13 +102,9 @@ class BookSearchPage extends HookWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 48,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
                   const SizedBox(height: 16),
-                  Text('搜索失败{error.value}'),
+                  const Text('搜索失败'),
                   const SizedBox(height: 16),
                   FilledButton(
                     onPressed: () {

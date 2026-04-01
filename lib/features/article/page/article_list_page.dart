@@ -288,9 +288,10 @@ class ArticleListPage extends StatelessWidget {
                               if (loadingProgress == null) return child;
                               return Center(
                                 child: CircularProgressIndicator(
-                                  value: loadingProgress.expectedTotalBytes != null
+                                  value:
+                                      loadingProgress.expectedTotalBytes != null
                                       ? loadingProgress.cumulativeBytesLoaded /
-                                          loadingProgress.expectedTotalBytes!
+                                            loadingProgress.expectedTotalBytes!
                                       : null,
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation<Color>(
@@ -357,7 +358,8 @@ class ArticleListPage extends StatelessWidget {
                                   child: Text(
                                     article.author,
                                     style: theme.textTheme.labelSmall?.copyWith(
-                                      color: theme.colorScheme.onPrimaryContainer,
+                                      color:
+                                          theme.colorScheme.onPrimaryContainer,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -389,7 +391,8 @@ class ArticleListPage extends StatelessWidget {
                                 Text(
                                   '${article.readDuration}分钟',
                                   style: theme.textTheme.labelSmall?.copyWith(
-                                    color: theme.colorScheme.onTertiaryContainer,
+                                    color:
+                                        theme.colorScheme.onTertiaryContainer,
                                   ),
                                 ),
                               ],

@@ -50,16 +50,16 @@ class PureBlackTheme {
         outline: Color(0xFF334155),
         outlineVariant: Color(0xFF1E293B),
       ),
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: backgroundColor,
         foregroundColor: textPrimary,
         elevation: 0,
         scrolledUnderElevation: 1,
-        systemOverlayStyle: const SystemUiOverlayStyle(
+        systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
         ),
-        titleTextStyle: const TextStyle(
+        titleTextStyle: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: textPrimary,
@@ -116,7 +116,7 @@ class PureBlackTheme {
         ),
         hintStyle: const TextStyle(color: textSecondary),
       ),
-      listTileTheme: ListTileThemeData(
+      listTileTheme: const ListTileThemeData(
         textColor: textPrimary,
         iconColor: textSecondary,
       ),
@@ -140,28 +140,22 @@ class PureBlackTheme {
           return const TextStyle(fontSize: 12, color: textSecondary);
         }),
       ),
-      navigationRailTheme: NavigationRailThemeData(
+      navigationRailTheme: const NavigationRailThemeData(
         backgroundColor: backgroundColor,
         indicatorColor: surfaceColor,
-        selectedIconTheme: const IconThemeData(color: primary, size: 24),
-        unselectedIconTheme: const IconThemeData(
-          color: textSecondary,
-          size: 22,
-        ),
-        selectedLabelTextStyle: const TextStyle(
+        selectedIconTheme: IconThemeData(color: primary, size: 24),
+        unselectedIconTheme: IconThemeData(color: textSecondary, size: 22),
+        selectedLabelTextStyle: TextStyle(
           color: primary,
           fontWeight: FontWeight.w600,
           fontSize: 13,
         ),
-        unselectedLabelTextStyle: const TextStyle(
-          color: textSecondary,
-          fontSize: 13,
-        ),
+        unselectedLabelTextStyle: TextStyle(color: textSecondary, fontSize: 13),
       ),
     );
   }
 
-  /// ??��?����
+  /// 纯黑主题预览
   static Widget buildPreview() {
     return Container(
       color: backgroundColor,
@@ -169,15 +163,18 @@ class PureBlackTheme {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('?��', style: TextStyle(color: textPrimary, fontSize: 20)),
+          const Text(
+            '纯黑主题',
+            style: TextStyle(color: textPrimary, fontSize: 20),
+          ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),
             color: surfaceColor,
-            child: Text('?片?�', style: TextStyle(color: textSecondary)),
+            child: const Text('卡片背景', style: TextStyle(color: textSecondary)),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: () {}, child: const Text('?��')),
+          ElevatedButton(onPressed: () {}, child: const Text('按钮')),
         ],
       ),
     );

@@ -104,7 +104,7 @@ class ReaderRepositoryImpl implements ReaderRepository {
           DbBookmarksCompanion.insert(
             bookId: bookId,
             chapterId: chapterId,
-            position: Value(0),
+            position: const Value(0),
             note: Value(note),
             pageIndex: 0,
             title: '',

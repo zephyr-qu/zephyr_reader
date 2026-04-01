@@ -20,13 +20,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/reader/domain/models/font_info.dart';
 
-
-
 /// 自定义字体服务
 ///
 /// 管理阅读器自定义字体的加载、切换和持久化
 @injectable
 class CustomFontService {
+
+  CustomFontService(this._prefs) {
+    _initialize();
+  }
   final SharedPreferences _prefs;
 
   /// 当前字体
@@ -37,10 +39,6 @@ class CustomFontService {
 
   /// 字体加载完成标志
   final isLoaded = signal(false);
-
-  CustomFontService(this._prefs) {
-    _initialize();
-  }
 
   static const String _keyCurrentFont = 'custom_font.current';
 
@@ -386,10 +384,6 @@ class FontDownloadService {
 
 /// 字体推荐信息
 class FontRecommendation {
-  final String name;
-  final String url;
-  final String description;
-  final String family;
 
   FontRecommendation({
     required this.name,
@@ -397,6 +391,10 @@ class FontRecommendation {
     required this.description,
     required this.family,
   });
+  final String name;
+  final String url;
+  final String description;
+  final String family;
 
   /// 获取显示文本
   String get displayText => '$name - $description';

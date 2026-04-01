@@ -70,7 +70,7 @@ class LayoutCacheService {
       );
 
       if (cache == null) {
-        return LayoutCacheResult(hit: false, cachedLayout: null);
+        return const LayoutCacheResult(hit: false, cachedLayout: null);
       }
 
       // 将 JSON 字符串解析为 PageOffset 列表
@@ -95,7 +95,7 @@ class LayoutCacheService {
       return LayoutCacheResult(hit: true, cachedLayout: cachedLayout);
     } catch (e) {
       debugPrint('LayoutCacheService.getLayoutCache error: $e');
-      return LayoutCacheResult(hit: false, cachedLayout: null);
+      return const LayoutCacheResult(hit: false, cachedLayout: null);
     }
   }
 

@@ -2,22 +2,21 @@
 library;
 
 import 'package:flutter/material.dart';
-
-import '../../application/states/bookshelf_state.dart';
+import 'package:zephyr_reader/features/bookshelf/domain/models/bookshelf_filter.dart';
 
 /// 排序筛选栏
 class SortFilterBar extends StatelessWidget {
-  /// 当前筛选条
-  final BookshelfFilter filter;
-
-  /// 排序变化回调
-  final Function(BookshelfSortType sortType, bool ascending) onSortChange;
-
   const SortFilterBar({
     super.key,
     required this.filter,
     required this.onSortChange,
   });
+
+  /// 当前筛选条
+  final BookshelfFilter filter;
+
+  /// 排序变化回调
+  final Function(BookshelfSortType sortType, bool ascending) onSortChange;
 
   @override
   Widget build(BuildContext context) {

@@ -39,40 +39,40 @@ class EyeProtectionTheme {
       brightness: Brightness.light,
       scaffoldBackgroundColor: backgroundColor,
       cardColor: surfaceColor,
-      colorScheme: ColorScheme.light(
+      colorScheme: const ColorScheme.light(
         primary: primary,
         onPrimary: textPrimary,
         primaryContainer: primaryContainer,
         onPrimaryContainer: primaryDark,
-        secondary: const Color(0xFFFB7185),
+        secondary: Color(0xFFFB7185),
         onSecondary: Colors.white,
-        secondaryContainer: const Color(0xFFFFE4E6),
-        onSecondaryContainer: const Color(0xFF881337),
-        tertiary: const Color(0xFFA78BFA),
+        secondaryContainer: Color(0xFFFFE4E6),
+        onSecondaryContainer: Color(0xFF881337),
+        tertiary: Color(0xFFA78BFA),
         onTertiary: Colors.white,
-        tertiaryContainer: const Color(0xFFEDE9FE),
-        onTertiaryContainer: const Color(0xFF4C1D95),
-        error: const Color(0xFFEF4444),
+        tertiaryContainer: Color(0xFFEDE9FE),
+        onTertiaryContainer: Color(0xFF4C1D95),
+        error: Color(0xFFEF4444),
         onError: Colors.white,
-        errorContainer: const Color(0xFFFEE2E2),
-        onErrorContainer: const Color(0xFF991B1B),
+        errorContainer: Color(0xFFFEE2E2),
+        onErrorContainer: Color(0xFF991B1B),
         surface: surfaceColor,
         onSurface: textPrimary,
         surfaceContainerHighest: backgroundColor,
         onSurfaceVariant: textSecondary,
-        outline: const Color(0xFFCBD5E1),
-        outlineVariant: const Color(0xFFE2E8F0),
+        outline: Color(0xFFCBD5E1),
+        outlineVariant: Color(0xFFE2E8F0),
       ),
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: backgroundColor,
         foregroundColor: textPrimary,
         elevation: 0,
         scrolledUnderElevation: 2,
-        systemOverlayStyle: const SystemUiOverlayStyle(
+        systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.dark,
         ),
-        titleTextStyle: const TextStyle(
+        titleTextStyle: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: textPrimary,
@@ -126,7 +126,7 @@ class EyeProtectionTheme {
         ),
         hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
       ),
-      listTileTheme: ListTileThemeData(
+      listTileTheme: const ListTileThemeData(
         textColor: textPrimary,
         iconColor: textSecondary,
       ),
@@ -147,26 +147,20 @@ class EyeProtectionTheme {
               color: primaryDark,
             );
           }
-          return const TextStyle(fontSize: 12);
+          return const TextStyle(fontSize: 12, color: textSecondary);
         }),
       ),
-      navigationRailTheme: NavigationRailThemeData(
+      navigationRailTheme: const NavigationRailThemeData(
         backgroundColor: backgroundColor,
         indicatorColor: primaryContainer,
-        selectedIconTheme: const IconThemeData(color: primaryDark, size: 24),
-        unselectedIconTheme: const IconThemeData(
-          color: textSecondary,
-          size: 22,
-        ),
-        selectedLabelTextStyle: const TextStyle(
+        selectedIconTheme: IconThemeData(color: primaryDark, size: 24),
+        unselectedIconTheme: IconThemeData(color: textSecondary, size: 22),
+        selectedLabelTextStyle: TextStyle(
           color: primaryDark,
           fontWeight: FontWeight.w600,
           fontSize: 13,
         ),
-        unselectedLabelTextStyle: const TextStyle(
-          color: textSecondary,
-          fontSize: 13,
-        ),
+        unselectedLabelTextStyle: TextStyle(color: textSecondary, fontSize: 13),
       ),
     );
   }
@@ -187,7 +181,7 @@ class EyeProtectionTheme {
           Container(
             padding: const EdgeInsets.all(16),
             color: surfaceColor,
-            child: Text('卡片背景', style: TextStyle(color: textSecondary)),
+            child: const Text('卡片背景', style: TextStyle(color: textSecondary)),
           ),
           const SizedBox(height: 16),
           ElevatedButton(onPressed: () {}, child: const Text('按钮')),

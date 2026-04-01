@@ -43,8 +43,8 @@ class ChapterRepositoryImpl implements ChapterRepository {
 
   @override
   Future<int> deleteChaptersByBookId(int bookId) async {
-    return await (_database.delete(_database.dbChapters)
-          ..where((tbl) => tbl.bookId.equals(bookId)))
-        .go();
+    return await (_database.delete(
+      _database.dbChapters,
+    )..where((tbl) => tbl.bookId.equals(bookId))).go();
   }
 }

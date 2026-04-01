@@ -47,7 +47,7 @@ abstract class Chapter with _$Chapter {
 
   /// 空章节（用于初始化）
   factory Chapter.empty() {
-    return Chapter(
+    return const Chapter(
       id: 0,
       bookId: 0,
       title: '',

@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/domain/models/book.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/application/services/book_import_service.dart';
 import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart';
-import 'package:zephyr_reader/features/bookshelf/domain/models/book_category.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/models/import_task.dart';
 import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
 import 'package:zephyr_reader/shared/widget/ui_components.dart';
 
-/// 书架页面 - 现代化设计
+/// 书架页面
 class BookshelfPage extends StatelessWidget {
   const BookshelfPage({super.key});
 
@@ -53,12 +53,12 @@ class BookshelfPage extends StatelessWidget {
       scrolledUnderElevation: 2,
       leading: Row(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: .center,
         children: [
-          // 书架标题（可点击切换）
+          // 书架标题
           GestureDetector(
             onTap: () {
-              // 当前已在书架页面，无需操作
+              () => context.go('/articles');
             },
             child: Text(
               '书架',
@@ -68,27 +68,17 @@ class BookshelfPage extends StatelessWidget {
               ),
             ),
           ),
-          // 斜线分隔符
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              '/',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.outlineVariant,
-              ),
-            ),
-          ),
           // 文章标题（可点击切换）
-          GestureDetector(
-            onTap: () => context.go('/articles'),
-            child: Text(
-              '文章',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.normal,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
+          // GestureDetector(
+          //   onTap: () => context.go('/articles'),
+          //   child: Text(
+          //     '文章',
+          //     style: theme.textTheme.titleMedium?.copyWith(
+          //       fontWeight: FontWeight.normal,
+          //       color: theme.colorScheme.onSurfaceVariant,
+          //     ),
+          //   ),
+          // ),
         ],
       ),
       actions: [
@@ -111,6 +101,9 @@ class BookshelfPage extends StatelessWidget {
                 break;
               case 'refresh':
                 // TODO: 刷新书架
+                break;
+              case 'categoryManagement':
+                context.pushNamed(RouteNames.categoryManagement);
                 break;
               case 'settings':
                 // TODO: 书架设置
@@ -135,6 +128,16 @@ class BookshelfPage extends StatelessWidget {
                   Icon(Icons.refresh_rounded, size: 20),
                   SizedBox(width: 12),
                   Text('刷新书架'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'categoryManagement',
+              child: Row(
+                children: [
+                  Icon(Icons.label_outline, size: 20),
+                  SizedBox(width: 12),
+                  Text('标签管理'),
                 ],
               ),
             ),
@@ -250,7 +253,7 @@ class BookshelfPage extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: spacing, vertical: 16),
         child: Watch.builder(
           builder: (context) {
-            final categories = BookCategory.values;
+            final categories = vm.categories.value;
             final selected = vm.selectedCategory.value;
 
             return SizedBox(
@@ -262,14 +265,15 @@ class BookshelfPage extends StatelessWidget {
                 separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final category = categories[index];
-                  final isSelected = category == selected;
+                  final isSelected = selected != null && category.id == selected.id;
 
                   return _buildCategoryChip(
                     context,
-                    category.displayName,
+                    category.name,
                     isSelected,
                     () => vm.selectCategory(category),
-                    index,
+                    category.colorValue,
+                    category.isSystem,
                   );
                 },
               ),
@@ -285,39 +289,44 @@ class BookshelfPage extends StatelessWidget {
     String label,
     bool isSelected,
     VoidCallback onTap,
-    int index,
+    Color color,
+    bool isSystem,
   ) {
     final theme = Theme.of(context);
 
     return GestureDetector(
       onTap: onTap,
+      onLongPress: isSystem
+          ? null
+          : () {
+              // 长按编辑自定义分类
+              context.pushNamed(RouteNames.categoryManagement);
+            },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutBack,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
           gradient: isSelected
               ? LinearGradient(
                   colors: [
-                    theme.colorScheme.primary,
-                    theme.colorScheme.secondary,
+                    color,
+                    Color.lerp(color, Colors.white, 0.3) ?? color,
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
               : null,
           color: isSelected ? null : theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected
-                ? theme.colorScheme.primary
-                : theme.colorScheme.outline.withValues(alpha: 0.3),
+            color: isSelected ? color : theme.colorScheme.outline.withValues(alpha: 0.3),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                    color: color.withValues(alpha: 0.3),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -328,10 +337,10 @@ class BookshelfPage extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isSelected)
-              const Icon(
+              Icon(
                 Icons.check_circle_rounded,
-                size: 12,
-                color: Colors.white,
+                size: 14,
+                color: isSelected ? Colors.white : color,
               ),
             if (isSelected) const SizedBox(width: 6),
             Text(
@@ -443,8 +452,8 @@ class BookshelfPage extends StatelessWidget {
               );
             } catch (e, stackTrace) {
               // 捕获所有未预期的错误
-              debugPrint('Bookshelf build error: $e');
-              debugPrint('Stack trace: $stackTrace');
+              Logging.debug('Bookshelf build error: $e');
+              Logging.debug('Stack trace: $stackTrace');
               return Center(
                 child: Padding(
                   padding: EdgeInsets.all(
@@ -579,7 +588,7 @@ class BookshelfPage extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.bookmark_rounded,
                               size: 14,
                               color: Colors.white,

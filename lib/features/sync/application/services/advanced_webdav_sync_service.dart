@@ -21,15 +21,6 @@ import 'webdav_sync_service.dart';
 
 /// 同步记录
 class SyncHistoryRecord {
-  final String id;
-  final DateTime startTime;
-  final DateTime endTime;
-  final SyncDirection direction;
-  final SyncResult result;
-  final int uploadedBytes;
-  final int downloadedBytes;
-  final List<String> changedFiles;
-  final String? errorMessage;
 
   SyncHistoryRecord({
     required this.id,
@@ -42,6 +33,33 @@ class SyncHistoryRecord {
     this.changedFiles = const [],
     this.errorMessage,
   });
+
+  /// 从 JSON 创建
+  factory SyncHistoryRecord.fromJson(Map<String, dynamic> json) {
+    return SyncHistoryRecord(
+      id: json['id'] as String,
+      startTime: DateTime.parse(json['startTime'] as String),
+      endTime: DateTime.parse(json['endTime'] as String),
+      direction: SyncDirection.values.firstWhere(
+        (e) => e.name == json['direction'],
+        orElse: () => SyncDirection.both,
+      ),
+      result: SyncResult.fromJson(json['result'] as Map<String, dynamic>),
+      uploadedBytes: json['uploadedBytes'] as int? ?? 0,
+      downloadedBytes: json['downloadedBytes'] as int? ?? 0,
+      changedFiles: (json['changedFiles'] as List?)?.cast<String>() ?? [],
+      errorMessage: json['errorMessage'] as String?,
+    );
+  }
+  final String id;
+  final DateTime startTime;
+  final DateTime endTime;
+  final SyncDirection direction;
+  final SyncResult result;
+  final int uploadedBytes;
+  final int downloadedBytes;
+  final List<String> changedFiles;
+  final String? errorMessage;
 
   /// 获取上传项目数
   int get uploadedCount => result.uploadedCount;
@@ -75,24 +93,6 @@ class SyncHistoryRecord {
       'changedFiles': changedFiles,
       'errorMessage': errorMessage,
     };
-  }
-
-  /// 从 JSON 创建
-  factory SyncHistoryRecord.fromJson(Map<String, dynamic> json) {
-    return SyncHistoryRecord(
-      id: json['id'] as String,
-      startTime: DateTime.parse(json['startTime'] as String),
-      endTime: DateTime.parse(json['endTime'] as String),
-      direction: SyncDirection.values.firstWhere(
-        (e) => e.name == json['direction'],
-        orElse: () => SyncDirection.both,
-      ),
-      result: SyncResult.fromJson(json['result'] as Map<String, dynamic>),
-      uploadedBytes: json['uploadedBytes'] as int? ?? 0,
-      downloadedBytes: json['downloadedBytes'] as int? ?? 0,
-      changedFiles: (json['changedFiles'] as List?)?.cast<String>() ?? [],
-      errorMessage: json['errorMessage'] as String?,
-    );
   }
 }
 
@@ -139,12 +139,6 @@ class IncrementalChange {
 
 /// 备份信息
 class BackupInfo {
-  final String id;
-  final DateTime timestamp;
-  final String filePath;
-  final int fileSize;
-  final List<String> includedDataTypes;
-  final String? note;
 
   BackupInfo({
     required this.id,
@@ -154,6 +148,12 @@ class BackupInfo {
     required this.includedDataTypes,
     this.note,
   });
+  final String id;
+  final DateTime timestamp;
+  final String filePath;
+  final int fileSize;
+  final List<String> includedDataTypes;
+  final String? note;
 
   /// 获取格式化时间
   String get formattedTime {

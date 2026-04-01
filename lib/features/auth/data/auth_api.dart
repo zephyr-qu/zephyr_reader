@@ -12,7 +12,7 @@ abstract class AuthApi {
   factory AuthApi(Dio dio) = _AuthApi;
 
   @POST('/login')
-  Future<User> login(@Query("email") String email, @Query("pwd") String pwd);
+  Future<User> login(@Query('email') String email, @Query('pwd') String pwd);
   @GET('/logout')
   Future<void> logout();
 }
