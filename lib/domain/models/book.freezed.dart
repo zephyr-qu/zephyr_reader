@@ -12,7 +12,7 @@ part of 'book.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
-mixin _$Book {
+mixin _$Book implements DiagnosticableTreeMixin {
 
  int get id;/// 书籍标题
  String get title;/// 作者
@@ -40,6 +40,12 @@ mixin _$Book {
 $BookCopyWith<Book> get copyWith => _$BookCopyWithImpl<Book>(this as Book, _$identity);
 
 
+@override
+void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+  properties
+    ..add(DiagnosticsProperty('type', 'Book'))
+    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('title', title))..add(DiagnosticsProperty('author', author))..add(DiagnosticsProperty('coverPath', coverPath))..add(DiagnosticsProperty('description', description))..add(DiagnosticsProperty('filePath', filePath))..add(DiagnosticsProperty('fileType', fileType))..add(DiagnosticsProperty('fileSize', fileSize))..add(DiagnosticsProperty('totalChapters', totalChapters))..add(DiagnosticsProperty('totalCharacters', totalCharacters))..add(DiagnosticsProperty('currentChapterId', currentChapterId))..add(DiagnosticsProperty('currentPageIndex', currentPageIndex))..add(DiagnosticsProperty('totalPages', totalPages))..add(DiagnosticsProperty('progress', progress))..add(DiagnosticsProperty('status', status))..add(DiagnosticsProperty('isPinned', isPinned))..add(DiagnosticsProperty('createdAt', createdAt))..add(DiagnosticsProperty('updatedAt', updatedAt))..add(DiagnosticsProperty('lastReadAt', lastReadAt));
+}
 
 @override
 bool operator ==(Object other) {
@@ -51,7 +57,7 @@ bool operator ==(Object other) {
 int get hashCode => Object.hashAll([runtimeType,id,title,author,coverPath,description,filePath,fileType,fileSize,totalChapters,totalCharacters,currentChapterId,currentPageIndex,totalPages,progress,status,isPinned,createdAt,updatedAt,lastReadAt]);
 
 @override
-String toString() {
+String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
   return 'Book(id: $id, title: $title, author: $author, coverPath: $coverPath, description: $description, filePath: $filePath, fileType: $fileType, fileSize: $fileSize, totalChapters: $totalChapters, totalCharacters: $totalCharacters, currentChapterId: $currentChapterId, currentPageIndex: $currentPageIndex, totalPages: $totalPages, progress: $progress, status: $status, isPinned: $isPinned, createdAt: $createdAt, updatedAt: $updatedAt, lastReadAt: $lastReadAt)';
 }
 
@@ -241,7 +247,7 @@ return $default(_that.id,_that.title,_that.author,_that.coverPath,_that.descript
 /// @nodoc
 
 
-class _Book implements Book {
+class _Book with DiagnosticableTreeMixin implements Book {
   const _Book({required this.id, required this.title, required this.author, this.coverPath, this.description, required this.filePath, required this.fileType, required this.fileSize, required this.totalChapters, required this.totalCharacters, this.currentChapterId, this.currentPageIndex = 0, this.totalPages = 0, this.progress = 0.0, this.status = 'reading', this.isPinned = false, required this.createdAt, required this.updatedAt, this.lastReadAt});
   
 
@@ -290,6 +296,12 @@ class _Book implements Book {
 _$BookCopyWith<_Book> get copyWith => __$BookCopyWithImpl<_Book>(this, _$identity);
 
 
+@override
+void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+  properties
+    ..add(DiagnosticsProperty('type', 'Book'))
+    ..add(DiagnosticsProperty('id', id))..add(DiagnosticsProperty('title', title))..add(DiagnosticsProperty('author', author))..add(DiagnosticsProperty('coverPath', coverPath))..add(DiagnosticsProperty('description', description))..add(DiagnosticsProperty('filePath', filePath))..add(DiagnosticsProperty('fileType', fileType))..add(DiagnosticsProperty('fileSize', fileSize))..add(DiagnosticsProperty('totalChapters', totalChapters))..add(DiagnosticsProperty('totalCharacters', totalCharacters))..add(DiagnosticsProperty('currentChapterId', currentChapterId))..add(DiagnosticsProperty('currentPageIndex', currentPageIndex))..add(DiagnosticsProperty('totalPages', totalPages))..add(DiagnosticsProperty('progress', progress))..add(DiagnosticsProperty('status', status))..add(DiagnosticsProperty('isPinned', isPinned))..add(DiagnosticsProperty('createdAt', createdAt))..add(DiagnosticsProperty('updatedAt', updatedAt))..add(DiagnosticsProperty('lastReadAt', lastReadAt));
+}
 
 @override
 bool operator ==(Object other) {
@@ -301,7 +313,7 @@ bool operator ==(Object other) {
 int get hashCode => Object.hashAll([runtimeType,id,title,author,coverPath,description,filePath,fileType,fileSize,totalChapters,totalCharacters,currentChapterId,currentPageIndex,totalPages,progress,status,isPinned,createdAt,updatedAt,lastReadAt]);
 
 @override
-String toString() {
+String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
   return 'Book(id: $id, title: $title, author: $author, coverPath: $coverPath, description: $description, filePath: $filePath, fileType: $fileType, fileSize: $fileSize, totalChapters: $totalChapters, totalCharacters: $totalCharacters, currentChapterId: $currentChapterId, currentPageIndex: $currentPageIndex, totalPages: $totalPages, progress: $progress, status: $status, isPinned: $isPinned, createdAt: $createdAt, updatedAt: $updatedAt, lastReadAt: $lastReadAt)';
 }
 

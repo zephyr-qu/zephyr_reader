@@ -1,7 +1,7 @@
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
-import '../domain/sync_repository.dart';
+import '../domain/repositories/sync_repository.dart';
 
 /// 同步视图模型
 @injectable

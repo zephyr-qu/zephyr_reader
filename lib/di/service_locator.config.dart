@@ -24,39 +24,61 @@ import 'package:zephyr_reader/features/article/application/article_view_model.da
 import 'package:zephyr_reader/features/article/data/article_api.dart' as _i569;
 import 'package:zephyr_reader/features/article/data/article_service.dart'
     as _i582;
-import 'package:zephyr_reader/features/article/domain/article_repository.dart'
-    as _i523;
+import 'package:zephyr_reader/features/article/domain/repositories/article_repository.dart'
+    as _i29;
 import 'package:zephyr_reader/features/auth/application/auth_view_model.dart'
     as _i563;
 import 'package:zephyr_reader/features/auth/data/auth_api.dart' as _i60;
 import 'package:zephyr_reader/features/auth/data/auth_service.dart' as _i738;
-import 'package:zephyr_reader/features/auth/domain/auth_repository.dart'
-    as _i304;
+import 'package:zephyr_reader/features/auth/domain/repositories/auth_repository.dart'
+    as _i878;
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart'
     as _i790;
+import 'package:zephyr_reader/features/bookshelf/application/services/book_import_service.dart'
+    as _i715;
+import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart'
+    as _i377;
 import 'package:zephyr_reader/features/bookshelf/application/states/bookshelf_state.dart'
-    as _i999;
-import 'package:zephyr_reader/features/bookshelf/data/bookshelf_local_data_source.dart'
-    as _i888;
-import 'package:zephyr_reader/features/bookshelf/domain/bookshelf_repository.dart'
-    as _i208;
+    as _i895;
+import 'package:zephyr_reader/features/bookshelf/data/repositories/book_repository_impl.dart'
+    as _i183;
+import 'package:zephyr_reader/features/bookshelf/data/repositories/bookmark_repository_impl.dart'
+    as _i956;
+import 'package:zephyr_reader/features/bookshelf/data/repositories/chapter_repository_impl.dart'
+    as _i514;
+import 'package:zephyr_reader/features/bookshelf/domain/repositories/book_repository.dart'
+    as _i134;
+import 'package:zephyr_reader/features/bookshelf/domain/repositories/bookmark_repository.dart'
+    as _i1052;
+import 'package:zephyr_reader/features/bookshelf/domain/repositories/chapter_repository.dart'
+    as _i821;
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart'
     as _i335;
-import 'package:zephyr_reader/features/reader/data/reader_service.dart'
-    as _i299;
-import 'package:zephyr_reader/features/reader/domain/reader_repository.dart'
-    as _i972;
+import 'package:zephyr_reader/features/reader/data/bookmark_service.dart'
+    as _i874;
+import 'package:zephyr_reader/features/reader/data/custom_font_service.dart'
+    as _i601;
+import 'package:zephyr_reader/features/reader/data/layout_cache_service.dart'
+    as _i365;
+import 'package:zephyr_reader/features/reader/data/reading_progress_service.dart'
+    as _i189;
+import 'package:zephyr_reader/features/reader/data/reading_stats_service.dart'
+    as _i152;
+import 'package:zephyr_reader/features/reader/data/repositories/reader_repository_impl.dart'
+    as _i500;
+import 'package:zephyr_reader/features/reader/domain/repositories/reader_repository.dart'
+    as _i537;
 import 'package:zephyr_reader/features/search/application/search_view_model.dart'
     as _i1;
 import 'package:zephyr_reader/features/search/data/search_service.dart'
     as _i584;
-import 'package:zephyr_reader/features/search/domain/search_repository.dart'
-    as _i935;
+import 'package:zephyr_reader/features/search/domain/repositories/search_repository.dart'
+    as _i384;
 import 'package:zephyr_reader/features/sync/application/sync_view_model.dart'
     as _i988;
 import 'package:zephyr_reader/features/sync/data/sync_service.dart' as _i456;
-import 'package:zephyr_reader/features/sync/domain/sync_repository.dart'
-    as _i317;
+import 'package:zephyr_reader/features/sync/domain/repositories/sync_repository.dart'
+    as _i499;
 
 extension GetItInjectableX on _i174.GetIt {
   // initializes the registration of main-scope dependencies inside of GetIt
@@ -72,6 +94,8 @@ extension GetItInjectableX on _i174.GetIt {
       () => appModule.prefs,
       preResolve: true,
     );
+    gh.factory<_i715.BookImportService>(() => _i715.BookImportService());
+    gh.factory<_i895.BookshelfState>(() => _i895.BookshelfState());
     await gh.singletonAsync<_i731.AppDatabase>(
       () => databaseModule.database,
       preResolve: true,
@@ -81,54 +105,79 @@ extension GetItInjectableX on _i174.GetIt {
       return i.init().then((_) => i);
     });
     gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
-    gh.lazySingleton<_i999.BookshelfState>(() => _i999.BookshelfState());
-    gh.lazySingleton<_i888.BookshelfLocalDataSource>(
-      () => _i888.BookshelfLocalDataSource(gh<_i731.AppDatabase>()),
+    gh.lazySingleton<_i1052.BookmarkRepository>(
+      () => _i956.BookmarkRepositoryImpl(gh<_i731.AppDatabase>()),
     );
-    gh.lazySingleton<_i208.BookshelfRepository>(
-      () => gh<_i888.BookshelfLocalDataSource>(),
+    gh.lazySingleton<_i384.SearchRepository>(() => _i584.SearchService());
+    gh.factory<_i874.BookmarkService>(
+      () => _i874.BookmarkService(gh<_i731.AppDatabase>()),
     );
-    gh.lazySingleton<_i935.SearchRepository>(() => _i584.SearchService());
-    gh.lazySingletonAsync<_i972.ReaderRepository>(
-      () async => _i299.ReaderService(
+    gh.factory<_i365.LayoutCacheService>(
+      () => _i365.LayoutCacheService(gh<_i731.AppDatabase>()),
+    );
+    gh.factory<_i189.ReadingProgressService>(
+      () => _i189.ReadingProgressService(gh<_i731.AppDatabase>()),
+    );
+    gh.factory<_i152.ReadingStatsService>(
+      () => _i152.ReadingStatsService(gh<_i731.AppDatabase>()),
+    );
+    gh.lazySingletonAsync<_i537.ReaderRepository>(
+      () async => _i500.ReaderRepositoryImpl(
         gh<_i731.AppDatabase>(),
         await getAsync<_i772.FileStorage>(),
       ),
     );
-    gh.factory<_i790.BookshelfViewModel>(
-      () => _i790.BookshelfViewModel(gh<_i208.BookshelfRepository>()),
+    gh.factory<_i1.SearchViewModel>(
+      () => _i1.SearchViewModel(gh<_i384.SearchRepository>()),
     );
     gh.factory<_i569.ArticleApi>(() => _i569.ArticleApi(gh<_i361.Dio>()));
     gh.factory<_i60.AuthApi>(() => _i60.AuthApi(gh<_i361.Dio>()));
-    gh.lazySingleton<_i304.AuthRepository>(
+    gh.lazySingleton<_i134.BookRepository>(
+      () => _i183.BookRepositoryImpl(gh<_i731.AppDatabase>()),
+    );
+    gh.lazySingleton<_i29.ArticleRepository>(
+      () => _i582.ArticleService(gh<_i569.ArticleApi>()),
+    );
+    gh.lazySingleton<_i821.ChapterRepository>(
+      () => _i514.ChapterRepositoryImpl(gh<_i731.AppDatabase>()),
+    );
+    gh.factory<_i377.BookshelfService>(
+      () => _i377.BookshelfService(
+        gh<_i134.BookRepository>(),
+        gh<_i895.BookshelfState>(),
+        gh<_i821.ChapterRepository>(),
+        gh<_i1052.BookmarkRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i878.AuthRepository>(
       () => _i738.AuthService(gh<_i60.AuthApi>()),
     );
-    gh.lazySingletonAsync<_i317.SyncRepository>(
+    gh.factory<_i601.CustomFontService>(
+      () => _i601.CustomFontService(gh<_i460.SharedPreferences>()),
+    );
+    gh.factory<_i556.ArticleViewModel>(
+      () => _i556.ArticleViewModel(gh<_i29.ArticleRepository>()),
+    );
+    gh.factory<_i563.AuthViewModel>(
+      () => _i563.AuthViewModel(gh<_i878.AuthRepository>()),
+    );
+    gh.lazySingletonAsync<_i499.SyncRepository>(
       () async => _i456.SyncService(await getAsync<_i772.FileStorage>()),
     );
     gh.singleton<_i849.ReaderConfig>(
       () => _i849.ReaderConfig(gh<_i460.SharedPreferences>()),
     );
-    gh.factory<_i1.SearchViewModel>(
-      () => _i1.SearchViewModel(gh<_i935.SearchRepository>()),
-    );
     gh.factoryAsync<_i988.SyncViewModel>(
-      () async => _i988.SyncViewModel(await getAsync<_i317.SyncRepository>()),
+      () async => _i988.SyncViewModel(await getAsync<_i499.SyncRepository>()),
     );
-    gh.factory<_i563.AuthViewModel>(
-      () => _i563.AuthViewModel(gh<_i304.AuthRepository>()),
-    );
-    gh.lazySingleton<_i523.ArticleRepository>(
-      () => _i582.ArticleService(gh<_i569.ArticleApi>()),
+    gh.factory<_i790.BookshelfViewModel>(
+      () => _i790.BookshelfViewModel(gh<_i134.BookRepository>()),
     );
     gh.factoryAsync<_i335.ReaderViewModel>(
       () async => _i335.ReaderViewModel(
-        await getAsync<_i972.ReaderRepository>(),
+        await getAsync<_i537.ReaderRepository>(),
         gh<_i849.ReaderConfig>(),
       ),
-    );
-    gh.factory<_i556.ArticleViewModel>(
-      () => _i556.ArticleViewModel(gh<_i523.ArticleRepository>()),
     );
     return this;
   }

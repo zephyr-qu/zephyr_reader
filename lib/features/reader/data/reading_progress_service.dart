@@ -7,10 +7,12 @@
 library;
 
 import 'package:flutter/foundation.dart';
+import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/database/database.dart';
 import 'package:zephyr_reader/domain/models/reading_progress.dart';
 
 /// 阅读进度服务
+@injectable
 class ReadingProgressService {
   final AppDatabase _db;
 

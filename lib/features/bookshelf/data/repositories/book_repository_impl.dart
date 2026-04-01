@@ -3,20 +3,17 @@ import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/database/database.dart';
 import 'package:zephyr_reader/domain/models/book.dart';
 
-import '../domain/bookshelf_repository.dart';
-import '../domain/models/book_category.dart';
+import '../../domain/models/book_category.dart';
+import '../../domain/repositories/book_repository.dart';
 
-/// 书架本地数据源
+/// 书架仓库实现
 ///
 /// 负责直接与数据库交互，提供基础的 CRUD 操作
-@LazySingleton(as: BookshelfRepository)
-class BookshelfLocalDataSource implements BookshelfRepository {
+@LazySingleton(as: BookRepository)
+class BookRepositoryImpl implements BookRepository {
   final AppDatabase _database;
 
-  BookshelfLocalDataSource(this._database);
-
-  /// 获取数据库实例（供外部使用）
-  AppDatabase get database => _database;
+  BookRepositoryImpl(this._database);
 
   @override
   Future<List<Book>> getAllBooks() async {

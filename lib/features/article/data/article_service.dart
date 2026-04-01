@@ -1,7 +1,7 @@
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/features/article/data/article_api.dart';
 
-import '../domain/article_repository.dart';
+import '../domain/repositories/article_repository.dart';
 import '../domain/models/article.dart';
 
 @LazySingleton(as: ArticleRepository)

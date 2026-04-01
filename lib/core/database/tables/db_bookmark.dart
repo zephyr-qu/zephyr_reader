@@ -30,7 +30,4 @@ class DbBookmarks extends Table {
 
   /// 书签位置序号
   late final position = integer().nullable()();
-
-  @override
-  Set<Column> get primaryKey => {id};
 }

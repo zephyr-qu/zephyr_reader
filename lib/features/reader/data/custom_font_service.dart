@@ -13,39 +13,19 @@ library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/features/reader/domain/models/font_info.dart';
 
-/// 字体信息
-class FontInfo {
-  final String id;
-  final String name;
-  final String? path;
-  final bool isBuiltIn;
-  final bool isDownloaded;
-  final DateTime? createTime;
 
-  FontInfo({
-    required this.id,
-    required this.name,
-    this.path,
-    this.isBuiltIn = false,
-    this.isDownloaded = false,
-    this.createTime,
-  });
-
-  /// 是否为自定义字体
-  bool get isCustom => !isBuiltIn && !isDownloaded;
-
-  /// 获取显示名称
-  String get displayName => isBuiltIn ? name : p.basename(path ?? name);
-}
 
 /// 自定义字体服务
 ///
 /// 管理阅读器自定义字体的加载、切换和持久化
+@injectable
 class CustomFontService {
   final SharedPreferences _prefs;
 

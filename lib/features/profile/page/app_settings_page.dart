@@ -1,4 +1,4 @@
-/// 应用设置页面
+/// 应用设置页面 - 现代化设计
 ///
 /// 提供应用级别的设置选项：
 /// - 主题设置
@@ -8,14 +8,13 @@
 /// - 备份与恢复
 library;
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:zephyr_reader/core/cache/cache_manager.dart';
+import 'package:zephyr_reader/core/utils/cache_utils.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/backup_dialog.dart';
 import 'package:zephyr_reader/features/sync/application/services/backup_restore_service.dart';
+import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
 
 /// 应用设置页面
 class AppSettingsPage extends StatefulHookWidget {
@@ -41,8 +40,8 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
 
   Future<void> _loadCacheSize() async {
     try {
-      final bytes = await CacheManager.getCacheSize();
-      cacheSize.value = CacheManager.formatCacheSize(bytes);
+      final bytes = await CacheUtils.getCacheSize();
+      cacheSize.value = CacheUtils.formatCacheSize(bytes);
     } catch (e) {
       cacheSize.value = '未知';
     }
@@ -51,8 +50,8 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
   Future<void> _clearCache() async {
     isClearing.value = true;
     try {
-      final bytes = await CacheManager.clearCache();
-      final sizeText = CacheManager.formatCacheSize(bytes);
+      final bytes = await CacheUtils.clearCache();
+      final sizeText = CacheUtils.formatCacheSize(bytes);
 
       if (!mounted) return;
 
@@ -60,6 +59,12 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
         SnackBar(
           content: Text('已清理 $sizeText 缓存'),
           behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: '撤销',
+            onPressed: () {
+              // TODO: 实现撤销操作
+            },
+          ),
         ),
       );
 
@@ -130,6 +135,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
         ).showSnackBar(const SnackBar(content: Text('暂无备份记录')));
       }
       return;
+
     }
 
     final selectedBackup = await showRestoreBackupDialog(context, backups);
@@ -260,321 +266,558 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
     final language = useSignal(0); // 0: 跟随系统，1: 简体中文，2: English
     final autoSync = useSignal(false);
     final syncInterval = useSignal(0); // 0: 手动，1: 每天，2: 每周
+    final theme = Theme.of(context);
+    final pagePadding = LayoutBreakpoints.getPagePadding(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('应用设置')),
-      body: ListView(
-        children: [
-          // 主题设置
-          _buildSection(
-            context,
-            title: '主题与外观',
-            children: [
-              _buildRadioSetting(
-                context,
-                title: '主题模式',
-                value: themeMode.value,
-                groupValue: themeMode.value,
-                items: const [
-                  ('跟随系统', 0),
-                  ('浅色模式', 1),
-                  ('深色模式', 2),
-                  ('纯黑模式', 3),
+      body: CustomScrollView(
+        slivers: [
+          // AppBar
+          SliverAppBar(
+            floating: true,
+            title: const Text('应用设置'),
+            elevation: 0,
+            scrolledUnderElevation: 2,
+          ),
+
+          SliverPadding(
+            padding: pagePadding,
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 主题设置
+                  _buildSectionCard(
+                    context,
+                    icon: Icons.palette_rounded,
+                    title: '主题与外观',
+                    children: [
+                      _buildThemeSelector(context, themeMode),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 语言设置
+                  _buildSectionCard(
+                    context,
+                    icon: Icons.language_rounded,
+                    title: '语言与地区',
+                    children: [
+                      _buildLanguageSelector(context, language),
+                      _buildDivider(),
+                      _buildRegionSelector(context),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 同步设置
+                  _buildSectionCard(
+                    context,
+                    icon: Icons.sync_rounded,
+                    title: '同步设置',
+                    children: [
+                      _buildSwitchSetting(
+                        context,
+                        icon: Icons.auto_awesome_rounded,
+                        title: '自动同步',
+                        subtitle: '定期同步阅读进度和书架',
+                        value: autoSync.value,
+                        onChanged: (v) => autoSync.value = v,
+                      ),
+                      _buildDivider(),
+                      _buildSyncFrequencySelector(context, syncInterval),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 存储管理
+                  _buildSectionCard(
+                    context,
+                    icon: Icons.storage_rounded,
+                    title: '存储管理',
+                    children: [
+                      _buildCacheCleaner(context),
+                      _buildDivider(),
+                      _buildStorageLocationSelector(context),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 备份与恢复
+                  _buildSectionCard(
+                    context,
+                    icon: Icons.backup_rounded,
+                    title: '备份与恢复',
+                    children: [
+                      _buildBackupItem(
+                        context,
+                        icon: Icons.cloud_upload_rounded,
+                        iconColor: theme.colorScheme.primary,
+                        title: '备份数据',
+                        subtitle: '备份书架、阅读进度和设置',
+                        isLoading: isBackingUp.value,
+                        onTap: _createBackup,
+                      ),
+                      _buildDivider(),
+                      _buildBackupItem(
+                        context,
+                        icon: Icons.cloud_download_rounded,
+                        iconColor: theme.colorScheme.secondary,
+                        title: '恢复数据',
+                        subtitle: '从备份文件恢复数据',
+                        isLoading: isRestoring.value,
+                        onTap: _restoreBackup,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
                 ],
-                onChanged: (v) => themeMode.value = v ?? 0,
               ),
-            ],
+            ),
           ),
-
-          // 语言设置
-          _buildSection(
-            context,
-            title: '语言与地区',
-            children: [
-              _buildRadioSetting(
-                context,
-                title: '显示语言',
-                value: language.value,
-                groupValue: language.value,
-                items: const [('跟随系统', 0), ('简体中文', 1), ('English', 2)],
-                onChanged: (v) => language.value = v ?? 0,
-              ),
-              ListTile(
-                title: const Text('地区'),
-                subtitle: const Text('中国大陆'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () async {
-                  final regions = [
-                    {'code': 'CN', 'name': '中国大陆'},
-                    {'code': 'HK', 'name': '中国香港'},
-                    {'code': 'TW', 'name': '中国台湾'},
-                    {'code': 'US', 'name': '美国'},
-                    {'code': 'GB', 'name': '英国'},
-                    {'code': 'JP', 'name': '日本'},
-                    {'code': 'KR', 'name': '韩国'},
-                    {'code': 'SG', 'name': '新加坡'},
-                    {'code': 'MY', 'name': '马来西亚'},
-                  ];
-
-                  final selectedRegion = await showDialog<Map<String, String>>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('选择地区'),
-                      content: SizedBox(
-                        width: double.maxFinite,
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: regions.length,
-                          itemBuilder: (context, index) {
-                            final region = regions[index];
-                            return ListTile(
-                              title: Text(region['name']!),
-                              onTap: () => Navigator.pop(context, region),
-                            );
-                          },
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('取消'),
-                        ),
-                      ],
-                    ),
-                  );
-
-                  if (selectedRegion != null) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('地区已更改为：${selectedRegion['name']}'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
-
-          // 同步设置
-          _buildSection(
-            context,
-            title: '同步设置',
-            children: [
-              _buildSwitchSetting(
-                context,
-                title: '自动同步',
-                subtitle: '定期同步阅读进度和书架',
-                value: autoSync.value,
-                onChanged: (v) => autoSync.value = v,
-              ),
-              const Divider(height: 1),
-              ListTile(
-                title: const Text('同步频率'),
-                subtitle: Text(['手动同步', '每天一次', '每周一次'][syncInterval.value]),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () async {
-                  final result = await showModalBottomSheet<int>(
-                    context: context,
-                    builder: (context) => SafeArea(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ListTile(
-                            leading: const Icon(Icons.sync_disabled),
-                            title: const Text('手动同步'),
-                            onTap: () => Navigator.pop(context, 0),
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.sync),
-                            title: const Text('每天一次'),
-                            onTap: () => Navigator.pop(context, 1),
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.calendar_today),
-                            title: const Text('每周一次'),
-                            onTap: () => Navigator.pop(context, 2),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                  if (result != null) {
-                    syncInterval.value = result;
-                  }
-                },
-              ),
-            ],
-          ),
-
-          // 存储管理
-          _buildSection(
-            context,
-            title: '存储管理',
-            children: [
-              ListTile(
-                title: const Text('清理缓存'),
-                subtitle: Text(cacheSize.value),
-                leading: const Icon(Icons.cleaning_services),
-                trailing: isClearing.value
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.chevron_right),
-                onTap: isClearing.value ? null : _clearCache,
-              ),
-              const Divider(height: 1),
-              ListTile(
-                title: const Text('书籍存储位置'),
-                subtitle: const Text('内部存储/Documents/ZephyrReader/books'),
-                leading: const Icon(Icons.folder),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () async {
-                  // 显示存储位置选择对话框
-                  final result = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('书籍存储位置'),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('当前存储位置：'),
-                          const SizedBox(height: 8),
-                          const Text(
-                            '/storage/emulated/0/Documents/ZephyrReader/books',
-                            style: TextStyle(fontFamily: 'monospace'),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            '注意：更改存储位置需要重启应用才能生效。',
-                            style: TextStyle(color: Colors.orange),
-                          ),
-                        ],
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('取消'),
-                        ),
-                        FilledButton.icon(
-                          onPressed: () => Navigator.pop(context, true),
-                          icon: const Icon(Icons.folder_open),
-                          label: const Text('选择新位置'),
-                        ),
-                      ],
-                    ),
-                  );
-
-                  if (result == true) {
-                    if (!mounted) return;
-
-                    // 使用 file_picker 选择目录
-                    try {
-                      final directory = await FilePicker.platform
-                          .getDirectoryPath();
-
-                      if (directory != null && mounted) {
-                        // 保存新的存储路径
-                        final prefs = await SharedPreferences.getInstance();
-                        await prefs.setString('storage_path', directory);
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('存储位置已更改，请重启应用'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('选择失败：$e'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
-                    }
-                  }
-                },
-              ),
-            ],
-          ),
-
-          // 备份与恢复
-          _buildSection(
-            context,
-            title: '备份与恢复',
-            children: [
-              ListTile(
-                title: const Text('备份数据'),
-                subtitle: const Text('备份书架、阅读进度和设置'),
-                leading: const Icon(Icons.backup),
-                trailing: isBackingUp.value
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.chevron_right),
-                onTap: isBackingUp.value ? null : _createBackup,
-              ),
-              const Divider(height: 1),
-              ListTile(
-                title: const Text('恢复数据'),
-                subtitle: const Text('从备份文件恢复数据'),
-                leading: const Icon(Icons.restore),
-                trailing: isRestoring.value
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.chevron_right),
-                onTap: isRestoring.value ? null : _restoreBackup,
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 32),
         ],
       ),
     );
   }
 
-  Widget _buildSection(
+  Widget _buildSectionCard(
     BuildContext context, {
+    required IconData icon,
     required String title,
     required List<Widget> children,
   }) {
     final theme = Theme.of(context);
 
-    if (children.isEmpty) return const SizedBox.shrink();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.colorScheme.primary.withValues(alpha: 0.1),
+                        theme.colorScheme.secondary.withValues(alpha: 0.1),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: theme.colorScheme.primary, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return const Divider(height: 1);
+  }
+
+  Widget _buildThemeSelector(BuildContext context, Signal<int> themeMode) {
+    final theme = Theme.of(context);
+    final options = [
+      {'label': '跟随系统', 'icon': Icons.auto_mode_rounded},
+      {'label': '浅色模式', 'icon': Icons.light_mode_rounded},
+      {'label': '深色模式', 'icon': Icons.dark_mode_rounded},
+      {'label': '纯黑模式', 'icon': Icons.brightness_2_rounded},
+    ];
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text(
-            title,
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
+      children: options.asMap().entries.map((entry) {
+        final index = entry.key;
+        final option = entry.value;
+        final isSelected = themeMode.value == index;
+
+        return Material(
+          color: isSelected
+              ? theme.colorScheme.primaryContainer
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: () => themeMode.value = index,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? theme.colorScheme.primary.withValues(alpha: 0.2)
+                          : theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      option['icon'] as IconData,
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    option['label'] as String,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                  const Spacer(),
+                  Radio<int>(
+                    value: index,
+                    groupValue: themeMode.value,
+                    onChanged: (v) => themeMode.value = v ?? 0,
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        ColoredBox(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.3,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildLanguageSelector(BuildContext context, Signal<int> language) {
+    final theme = Theme.of(context);
+    final options = [
+      {'label': '跟随系统', 'flag': '🌐'},
+      {'label': '简体中文', 'flag': '🇨🇳'},
+      {'label': 'English', 'flag': '🇺🇸'},
+    ];
+
+    return Column(
+      children: options.asMap().entries.map((entry) {
+        final index = entry.key;
+        final option = entry.value;
+        final isSelected = language.value == index;
+
+        return Material(
+          color: isSelected
+              ? theme.colorScheme.primaryContainer
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: () => language.value = index,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    option['flag'] as String,
+                    style: const TextStyle(fontSize: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    option['label'] as String,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                  const Spacer(),
+                  Radio<int>(
+                    value: index,
+                    groupValue: language.value,
+                    onChanged: (v) => language.value = v ?? 0,
+                  ),
+                ],
+              ),
+            ),
           ),
-          child: Column(children: children),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildRegionSelector(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
         ),
-      ],
+        child: const Text('🇨🇳', style: TextStyle(fontSize: 20)),
+      ),
+      title: const Text('地区'),
+      subtitle: const Text('中国大陆'),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: () async {
+        final regions = [
+          {'code': 'CN', 'name': '中国大陆', 'flag': '🇨🇳'},
+          {'code': 'HK', 'name': '中国香港', 'flag': '🇭🇰'},
+          {'code': 'TW', 'name': '中国台湾', 'flag': '🇹🇼'},
+          {'code': 'US', 'name': '美国', 'flag': '🇺🇸'},
+          {'code': 'GB', 'name': '英国', 'flag': '🇬🇧'},
+          {'code': 'JP', 'name': '日本', 'flag': '🇯🇵'},
+          {'code': 'KR', 'name': '韩国', 'flag': '🇰🇷'},
+          {'code': 'SG', 'name': '新加坡', 'flag': '🇸🇬'},
+          {'code': 'MY', 'name': '马来西亚', 'flag': '🇲🇾'},
+        ];
+
+        final selectedRegion = await showDialog<Map<String, String>>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('选择地区'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: regions.length,
+                itemBuilder: (context, index) {
+                  final region = regions[index];
+                  return ListTile(
+                    leading: Text(region['flag']!, style: const TextStyle(fontSize: 24)),
+                    title: Text(region['name']!),
+                    onTap: () => Navigator.pop(context, region),
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('取消'),
+              ),
+            ],
+          ),
+        );
+
+        if (selectedRegion != null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('地区已更改为：${selectedRegion['name']}'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildSyncFrequencySelector(
+    BuildContext context,
+    Signal<int> syncInterval,
+  ) {
+    final theme = Theme.of(context);
+    final options = [
+      {'label': '手动同步', 'icon': Icons.sync_disabled_rounded},
+      {'label': '每天一次', 'icon': Icons.sync_rounded},
+      {'label': '每周一次', 'icon': Icons.calendar_today_rounded},
+    ];
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () async {
+          final result = await showModalBottomSheet<int>(
+            context: context,
+            builder: (context) => SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: options.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final option = entry.value;
+                  return ListTile(
+                    leading: Icon(
+                      option['icon'] as IconData,
+                      color: theme.colorScheme.primary,
+                    ),
+                    title: Text(option['label'] as String),
+                    onTap: () => Navigator.pop(context, index),
+                  );
+                }).toList(),
+              ),
+            ),
+          );
+          if (result != null) {
+            syncInterval.value = result;
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  options[syncInterval.value]['icon'] as IconData,
+                  color: theme.colorScheme.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                options[syncInterval.value]['label'] as String,
+                style: theme.textTheme.bodyLarge,
+              ),
+              const Spacer(),
+              const Icon(Icons.chevron_right_rounded),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCacheCleaner(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.primary.withValues(alpha: 0.1),
+              theme.colorScheme.secondary.withValues(alpha: 0.1),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          Icons.cleaning_services_rounded,
+          color: theme.colorScheme.primary,
+          size: 24,
+        ),
+      ),
+      title: const Text('清理缓存'),
+      subtitle: Text(cacheSize.value),
+      trailing: isClearing.value
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              Icons.chevron_right_rounded,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
+      onTap: isClearing.value ? null : _clearCache,
+    );
+  }
+
+  Widget _buildStorageLocationSelector(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          Icons.folder_rounded,
+          color: theme.colorScheme.primary,
+          size: 24,
+        ),
+      ),
+      title: const Text('书籍存储位置'),
+      subtitle: const Text('内部存储/Documents/ZephyrReader/books'),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: () async {
+        // TODO: 实现存储位置选择
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('存储位置选择功能开发中'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBackupItem(
+    BuildContext context, {
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required bool isLoading,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              iconColor.withValues(alpha: 0.1),
+              iconColor.withValues(alpha: 0.2),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: iconColor, size: 24),
+      ),
+      title: Text(
+        title,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      subtitle: Text(subtitle),
+      trailing: isLoading
+          ? SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(iconColor),
+              ),
+            )
+          : Icon(
+              Icons.chevron_right_rounded,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
+      onTap: isLoading ? null : onTap,
     );
   }
 
@@ -582,42 +825,29 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
     BuildContext context, {
     required String title,
     String? subtitle,
+    required IconData? icon,
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
-    return SwitchListTile(
+    final theme = Theme.of(context);
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: icon != null
+          ? Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: theme.colorScheme.primary, size: 24),
+            )
+          : null,
       title: Text(title),
       subtitle: subtitle != null ? Text(subtitle) : null,
-      value: value,
-      onChanged: onChanged,
-    );
-  }
-
-  Widget _buildRadioSetting(
-    BuildContext context, {
-    required String title,
-    required int value,
-    required int groupValue,
-    required List<(String, int)> items,
-    required ValueChanged<int?> onChanged,
-  }) {
-    return ListTile(
-      title: Text(title),
-      subtitle: Column(
-        children: items.map((item) {
-          return RadioGroup<int>(
-            groupValue: groupValue,
-            onChanged: (v) {
-              onChanged(v);
-            },
-            child: RadioListTile<int>(
-              title: Text(item.$1),
-              value: item.$2,
-              contentPadding: EdgeInsets.zero,
-              visualDensity: VisualDensity.compact,
-            ),
-          );
-        }).toList(),
+      trailing: Switch(
+        value: value,
+        onChanged: onChanged,
       ),
     );
   }

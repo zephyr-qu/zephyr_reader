@@ -1,6 +1,7 @@
 /// 书架状态管
 library;
 
+import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/domain/models/book.dart';
 
@@ -74,6 +75,7 @@ class BookshelfFilter {
 }
 
 /// 书架状态类
+@injectable
 class BookshelfState {
   /// 视图模式
   final viewMode = signal(BookshelfViewMode.grid);

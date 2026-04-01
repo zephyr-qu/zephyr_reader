@@ -36,7 +36,7 @@ dependencies:
   drift_flutter: ^0.3.0
   path: ^1.9.0
   webdav_client: ^1.2.2
-  sqlite3: ^3.2.0
+  # sqlite3: ^3.2.0
 
   # --- UI & Assets ---
   cached_network_image: ^3.4.1

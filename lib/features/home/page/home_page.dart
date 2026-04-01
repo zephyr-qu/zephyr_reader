@@ -144,16 +144,16 @@ class HomePage extends StatelessWidget {
         context,
       ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
       SizedBox(height: LayoutBreakpoints.getSpacing(context)),
-      _buildSectionHeader(
-        context,
-        title: '为你推荐',
-        actionLabel: '更多',
-        onActionPressed: () => context.pushNamed(RouteNames.search),
-      ).animate().fadeIn(delay: 500.ms, duration: 500.ms),
-      SizedBox(height: LayoutBreakpoints.getSpacing(context) / 2),
-      _buildRecommendations(
-        context,
-      ).animate().fadeIn(delay: 600.ms, duration: 500.ms),
+      // _buildSectionHeader(
+      //   context,
+      //   title: '为你推荐',
+      //   actionLabel: '更多',
+      //   onActionPressed: () => context.pushNamed(RouteNames.search),
+      // ).animate().fadeIn(delay: 500.ms, duration: 500.ms),
+      // SizedBox(height: LayoutBreakpoints.getSpacing(context) / 2),
+      // _buildRecommendations(
+      //   context,
+      // ).animate().fadeIn(delay: 600.ms, duration: 500.ms),
     ];
   }
 
@@ -198,17 +198,17 @@ class HomePage extends StatelessWidget {
                 _buildReadingStats(
                   context,
                 ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
-                SizedBox(height: spacing),
-                _buildSectionHeader(
-                  context,
-                  title: '为你推荐',
-                  actionLabel: '更多',
-                  onActionPressed: () => context.pushNamed(RouteNames.search),
-                ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
-                SizedBox(height: spacing / 2),
-                _buildRecommendations(
-                  context,
-                ).animate().fadeIn(delay: 500.ms, duration: 500.ms),
+                // SizedBox(height: spacing),
+                // _buildSectionHeader(
+                //   context,
+                //   title: '为你推荐',
+                //   actionLabel: '更多',
+                //   onActionPressed: () => context.pushNamed(RouteNames.search),
+                // ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
+                // SizedBox(height: spacing / 2),
+                // _buildRecommendations(
+                //   context,
+                // ).animate().fadeIn(delay: 500.ms, duration: 500.ms),
               ],
             ),
           ),
@@ -475,99 +475,99 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildRecommendations(BuildContext context) {
-    final theme = Theme.of(context);
+  // Widget _buildRecommendations(BuildContext context) {
+  //   final theme = Theme.of(context);
 
-    final recommendations = [
-      {'title': '百年孤独', 'author': '加西亚·马尔克斯'},
-      {'title': '1984', 'author': '乔治·奥威尔'},
-      {'title': '小王子', 'author': '圣埃克苏佩里'},
-    ];
+  //   final recommendations = [
+  //     {'title': '百年孤独', 'author': '加西亚·马尔克斯'},
+  //     {'title': '1984', 'author': '乔治·奥威尔'},
+  //     {'title': '小王子', 'author': '圣埃克苏佩里'},
+  //   ];
 
-    return SizedBox(
-      height: 260,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: recommendations.length,
-        separatorBuilder: (context, _) => const SizedBox(width: 16),
-        itemBuilder: (context, index) {
-          final book = recommendations[index];
-          return SizedBox(
-                width: 170,
-                child: Card(
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: () => context.pushNamed(RouteNames.search),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  theme.colorScheme.primaryContainer,
-                                  theme.colorScheme.tertiaryContainer,
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
-                            child: Center(
-                              child: Icon(
-                                Icons.auto_stories,
-                                size: 56,
-                                color: theme.colorScheme.primary.withValues(
-                                  alpha: 0.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                book['title'] as String,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                book['author'] as String,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(
-                                    alpha: 0.6,
-                                  ),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              )
-              .animate()
-              .fadeIn(delay: (100 * index).ms, duration: 400.ms)
-              .then()
-              .scale(
-                begin: const Offset(0.95, 0.95),
-                end: const Offset(1, 1),
-                curve: Curves.easeOutBack,
-              );
-        },
-      ),
-    );
-  }
+  //   return SizedBox(
+  //     height: 260,
+  //     child: ListView.separated(
+  //       scrollDirection: Axis.horizontal,
+  //       physics: const BouncingScrollPhysics(),
+  //       itemCount: recommendations.length,
+  //       separatorBuilder: (context, _) => const SizedBox(width: 16),
+  //       itemBuilder: (context, index) {
+  //         final book = recommendations[index];
+  //         return SizedBox(
+  //               width: 170,
+  //               child: Card(
+  //                 clipBehavior: Clip.antiAlias,
+  //                 child: InkWell(
+  //                   onTap: () => context.pushNamed(RouteNames.search),
+  //                   child: Column(
+  //                     crossAxisAlignment: CrossAxisAlignment.start,
+  //                     children: [
+  //                       Expanded(
+  //                         child: Container(
+  //                           width: double.infinity,
+  //                           decoration: BoxDecoration(
+  //                             gradient: LinearGradient(
+  //                               colors: [
+  //                                 theme.colorScheme.primaryContainer,
+  //                                 theme.colorScheme.tertiaryContainer,
+  //                               ],
+  //                               begin: Alignment.topLeft,
+  //                               end: Alignment.bottomRight,
+  //                             ),
+  //                           ),
+  //                           child: Center(
+  //                             child: Icon(
+  //                               Icons.auto_stories,
+  //                               size: 56,
+  //                               color: theme.colorScheme.primary.withValues(
+  //                                 alpha: 0.5,
+  //                               ),
+  //                             ),
+  //                           ),
+  //                         ),
+  //                       ),
+  //                       Padding(
+  //                         padding: const EdgeInsets.all(14),
+  //                         child: Column(
+  //                           crossAxisAlignment: CrossAxisAlignment.start,
+  //                           children: [
+  //                             Text(
+  //                               book['title'] as String,
+  //                               style: theme.textTheme.titleSmall?.copyWith(
+  //                                 fontWeight: FontWeight.w600,
+  //                               ),
+  //                               maxLines: 2,
+  //                               overflow: TextOverflow.ellipsis,
+  //                             ),
+  //                             const SizedBox(height: 4),
+  //                             Text(
+  //                               book['author'] as String,
+  //                               style: theme.textTheme.bodySmall?.copyWith(
+  //                                 color: theme.colorScheme.onSurface.withValues(
+  //                                   alpha: 0.6,
+  //                                 ),
+  //                               ),
+  //                               maxLines: 1,
+  //                               overflow: TextOverflow.ellipsis,
+  //                             ),
+  //                           ],
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 ),
+  //               ),
+  //             )
+  //             .animate()
+  //             .fadeIn(delay: (100 * index).ms, duration: 400.ms)
+  //             .then()
+  //             .scale(
+  //               begin: const Offset(0.95, 0.95),
+  //               end: const Offset(1, 1),
+  //               curve: Curves.easeOutBack,
+  //             );
+  //       },
+  //     ),
+  //   );
+  // }
 }

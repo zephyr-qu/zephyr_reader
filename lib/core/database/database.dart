@@ -86,6 +86,12 @@ class AppDatabase extends _$AppDatabase {
         .getSingleOrNull();
   }
 
+  /// 根据章节 ID 查询章节
+  Future<DbChapter?> getChapterById(int chapterId) {
+    return (select(dbChapters)..where((tbl) => tbl.id.equals(chapterId)))
+        .getSingleOrNull();
+  }
+
   /// 获取阅读历史
   Future<List<DbReadingHistory>> getReadingHistory() {
     return (select(
@@ -196,6 +202,18 @@ class AppDatabase extends _$AppDatabase {
     return (select(
       dbBookmarks,
     )..where((tbl) => tbl.bookId.equals(bookId))).get();
+  }
+
+  /// 根据 ID 获取书签
+  Future<DbBookmark?> getBookmarkById(int bookmarkId) {
+    return (select(dbBookmarks)..where((tbl) => tbl.id.equals(bookmarkId)))
+        .getSingleOrNull();
+  }
+
+  /// 根据章节 ID 获取书签
+  Future<List<DbBookmark>> getBookmarksByChapterId(int chapterId) {
+    return (select(dbBookmarks)..where((tbl) => tbl.chapterId.equals(chapterId)))
+        .get();
   }
 
   /// 删除书签

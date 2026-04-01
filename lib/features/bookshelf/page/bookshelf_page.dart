@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
@@ -9,10 +8,11 @@ import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_mode
 import 'package:zephyr_reader/features/bookshelf/application/services/book_import_service.dart';
 import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/models/book_category.dart';
+import 'package:zephyr_reader/features/bookshelf/domain/models/import_task.dart';
 import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
 import 'package:zephyr_reader/shared/widget/ui_components.dart';
 
-/// 书架页面 - 优化版
+/// 书架页面 - 现代化设计
 class BookshelfPage extends StatelessWidget {
   const BookshelfPage({super.key});
 
@@ -35,9 +35,9 @@ class BookshelfPage extends StatelessWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.pushNamed(RouteNames.search),
-        icon: const Icon(Icons.add),
-        label: const Text('添加书籍'),
+        onPressed: () => _showImportDialog(context),
+        icon: const Icon(Icons.upload_file_rounded),
+        label: const Text('导入书籍'),
       ),
     );
   }
@@ -49,28 +49,46 @@ class BookshelfPage extends StatelessWidget {
   ) {
     return SliverAppBar(
       floating: true,
-      title: Row(
+      elevation: 0,
+      scrolledUnderElevation: 2,
+      leading: Row(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: .center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  theme.colorScheme.primary,
-                  theme.colorScheme.secondary,
-                ],
-              ),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Icon(
-              Icons.book_rounded,
-              color: Colors.white,
-              size: 18,
+          // Container(
+          //   padding: const EdgeInsets.all(8),
+          //   decoration: BoxDecoration(
+          //     gradient: LinearGradient(
+          //       colors: [
+          //         theme.colorScheme.primary,
+          //         theme.colorScheme.secondary,
+          //         theme.colorScheme.tertiary,
+          //       ],
+          //       begin: Alignment.topLeft,
+          //       end: Alignment.bottomRight,
+          //     ),
+          //     borderRadius: BorderRadius.circular(10),
+          //     boxShadow: [
+          //       BoxShadow(
+          //         color: theme.colorScheme.primary.withValues(alpha: 0.3),
+          //         blurRadius: 8,
+          //         offset: const Offset(0, 2),
+          //       ),
+          //     ],
+          //   ),
+          //   child: const Icon(
+          //     Icons.book_rounded,
+          //     color: Colors.white,
+          //     size: 20,
+          //   ),
+          // ),
+          // const SizedBox(width: 12),
+          Text(
+            '书架',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(width: 10),
-          const Text('书架'),
         ],
       ),
       actions: [
@@ -91,21 +109,86 @@ class BookshelfPage extends StatelessWidget {
     );
   }
 
-  void _showImportDialog(BuildContext context) {
-    showDialog<Book>(
-      context: context,
-      builder: (context) => const _ImportDialog(),
-    ).then((book) {
-      if (book != null) {
-        // 导入成功后刷新书架
+  Future<void> _showImportDialog(BuildContext context) async {
+    final importService = getIt<BookImportService>();
+    final bookshelfService = getIt<BookshelfService>();
+
+    // 直接打开文件选择器
+    final files = await importService.selectFiles(
+      allowMultiple: false,
+      allowedExtensions: ['txt', 'epub', 'pdf'],
+    );
+
+    if (files == null || files.isEmpty || !context.mounted) return;
+
+    final file = files.first;
+    final filePath = file.path;
+    if (filePath == null) return;
+
+    // 显示加载提示
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 16),
+            Text('正在导入"${file.name}"...'),
+          ],
+        ),
+        duration: const Duration(seconds: 5),
+      ),
+    );
+
+    try {
+      // 导入文件并解析
+      final task = await importService.importFile(file);
+
+      if (task.status != ImportTaskStatus.completed) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('导入失败：${task.error ?? '未知错误'}'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+        return;
+      }
+
+      // 添加到书架
+      final book = await bookshelfService.addBookFromImportTask(task);
+
+      if (book != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('成功添加"${book.title}"到书架'),
             behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: '开始阅读',
+              onPressed: () {
+                context.pushNamed(
+                  RouteNames.reader,
+                  pathParameters: {'id': book.id.toString()},
+                );
+              },
+            ),
           ),
         );
       }
-    });
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('导入失败：$e'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
   }
 
   Widget _buildCategoryFilter(
@@ -117,14 +200,14 @@ class BookshelfPage extends StatelessWidget {
 
     return SliverToBoxAdapter(
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: spacing, vertical: 12),
+        padding: EdgeInsets.symmetric(horizontal: spacing, vertical: 16),
         child: Watch.builder(
           builder: (context) {
             final categories = BookCategory.values;
             final selected = vm.selectedCategory.value;
 
             return SizedBox(
-              height: 44,
+              height: 36,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
@@ -134,16 +217,84 @@ class BookshelfPage extends StatelessWidget {
                   final category = categories[index];
                   final isSelected = category == selected;
 
-                  return IconChoiceChip(
-                    label: category.displayName,
-                    selected: isSelected,
-                    onTap: () => vm.selectCategory(category),
-                    selectedColor: Theme.of(context).colorScheme.primary,
+                  return _buildCategoryChip(
+                    context,
+                    category.displayName,
+                    isSelected,
+                    () => vm.selectCategory(category),
+                    index,
                   );
                 },
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(
+    BuildContext context,
+    String label,
+    bool isSelected,
+    VoidCallback onTap,
+    int index,
+  ) {
+    final theme = Theme.of(context);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutBack,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [
+                    theme.colorScheme.primary,
+                    theme.colorScheme.secondary,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: isSelected ? null : theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline.withValues(alpha: 0.3),
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelected)
+              const Icon(
+                Icons.check_circle_rounded,
+                size: 12,
+                color: Colors.white,
+              ),
+            if (isSelected) const SizedBox(width: 6),
+            Text(
+              label,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -278,8 +429,9 @@ class BookshelfPage extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      elevation: isDesktop ? 4 : 2,
-      shadowColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+      elevation: isDesktop ? 6 : 3,
+      shadowColor: theme.colorScheme.primary.withValues(alpha: 0.2),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: () => context.pushNamed(
           RouteNames.bookDetail,
@@ -314,15 +466,7 @@ class BookshelfPage extends StatelessWidget {
                             width: double.infinity,
                             height: double.infinity,
                             errorBuilder: (context, error, stackTrace) {
-                              return Center(
-                                child: Icon(
-                                  Icons.book_rounded,
-                                  size: isDesktop ? 56 : 48,
-                                  color: theme.colorScheme.primary.withValues(
-                                    alpha: 0.5,
-                                  ),
-                                ),
-                              );
+                              return _buildPlaceholder(theme, isDesktop);
                             },
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
@@ -334,40 +478,63 @@ class BookshelfPage extends StatelessWidget {
                                             loadingProgress.expectedTotalBytes!
                                       : null,
                                   strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    theme.colorScheme.primary,
+                                  ),
                                 ),
                               );
                             },
                           )
-                        : Center(
-                            child: Icon(
-                              Icons.book_rounded,
-                              size: isDesktop ? 56 : 48,
-                              color: theme.colorScheme.primary.withValues(
-                                alpha: 0.5,
-                              ),
-                            ),
+                        : _buildPlaceholder(theme, isDesktop),
+                    // 渐变遮罩
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.black.withValues(alpha: 0.3),
+                              Colors.transparent,
+                              Colors.transparent,
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
                           ),
+                        ),
+                      ),
+                    ),
                     // 进度指示
                     Positioned(
-                      top: 8,
-                      right: 8,
+                      top: 10,
+                      right: 10,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                          horizontal: 10,
+                          vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.9,
+                          gradient: LinearGradient(
+                            colors: [
+                              theme.colorScheme.primary,
+                              theme.colorScheme.secondary,
+                            ],
                           ),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.4,
+                              ),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.bookmark_rounded,
-                              size: 12,
+                              size: 14,
                               color: Colors.white,
                             ),
                             const SizedBox(width: 4),
@@ -375,7 +542,7 @@ class BookshelfPage extends StatelessWidget {
                               '${(book.progress * 100).toInt()}%',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 10,
+                                fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -389,7 +556,7 @@ class BookshelfPage extends StatelessWidget {
             ),
             // 书籍信息
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -402,7 +569,7 @@ class BookshelfPage extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     book.author,
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -411,7 +578,7 @@ class BookshelfPage extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       _buildStatusChip(book.status, theme),
@@ -425,12 +592,12 @@ class BookshelfPage extends StatelessWidget {
                     ],
                   ),
                   // 阅读进度条
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: book.progress / 100,
-                      minHeight: 3,
+                      minHeight: 4,
                       backgroundColor: theme.colorScheme.outlineVariant,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         theme.colorScheme.primary,
@@ -442,6 +609,16 @@ class BookshelfPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(ThemeData theme, bool isDesktop) {
+    return Center(
+      child: Icon(
+        Icons.book_rounded,
+        size: isDesktop ? 56 : 48,
+        color: theme.colorScheme.primary.withValues(alpha: 0.5),
       ),
     );
   }
@@ -577,367 +754,5 @@ class BookshelfPage extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-/// 导入书籍对话框
-class _ImportDialog extends StatefulWidget {
-  const _ImportDialog();
-
-  @override
-  State<_ImportDialog> createState() => _ImportDialogState();
-}
-
-class _ImportDialogState extends State<_ImportDialog> {
-  final _importService = GetIt.I.get<BookImportService>();
-  final _bookshelfService = GetIt.I.get<BookshelfService>();
-
-  String? _selectedFilePath;
-  String? _bookTitle;
-  String? _bookAuthor;
-  int _chapterCount = 0;
-  String? _coverPath;
-  bool _isParsing = false;
-  String? _parseError;
-  bool _isImporting = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 500),
-        padding: const EdgeInsets.all(24),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 标题
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          theme.colorScheme.primary,
-                          theme.colorScheme.primary.withValues(alpha: 0.7),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.upload_file_rounded,
-                      color: theme.colorScheme.onPrimary,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '导入书籍',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          '支持 TXT、EPUB、PDF 格式',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // 文件选择区域
-              _buildFileSelector(theme),
-
-              if (_selectedFilePath != null) ...[
-                const SizedBox(height: 24),
-                const Divider(),
-                const SizedBox(height: 24),
-
-                // 书籍信息预览
-                if (_bookTitle != null)
-                  _buildInfoRow('书名', _bookTitle!, theme),
-                if (_bookAuthor != null)
-                  _buildInfoRow('作者', _bookAuthor!, theme),
-                if (_chapterCount > 0)
-                  _buildInfoRow('章节数', '$_chapterCount 章', theme),
-
-                const SizedBox(height: 24),
-              ],
-
-              // 错误信息
-              if (_parseError != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        color: theme.colorScheme.error,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _parseError!,
-                          style: TextStyle(color: theme.colorScheme.error),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // 按钮
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text('取消'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton(
-                      onPressed: (_selectedFilePath != null &&
-                              !_isParsing &&
-                              !_isImporting)
-                          ? _handleImport
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _isImporting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('导入到书架'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFileSelector(ThemeData theme) {
-    return InkWell(
-      onTap: _isParsing ? null : _pickFile,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: _selectedFilePath != null
-                ? theme.colorScheme.primary
-                : theme.colorScheme.outline,
-            width: 2,
-            style: _selectedFilePath != null
-                ? BorderStyle.solid
-                : BorderStyle.none,
-          ),
-          color: _selectedFilePath != null
-              ? theme.colorScheme.primaryContainer
-              : theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              _selectedFilePath != null
-                  ? Icons.check_circle
-                  : Icons.upload_file,
-              size: 48,
-              color: _selectedFilePath != null
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _selectedFilePath != null ? '已选择文件' : '点击选择书籍文件',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: _selectedFilePath != null
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurface,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            if (_selectedFilePath != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                _selectedFilePath!.split('/').last,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 60,
-            child: Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: theme.textTheme.bodyMedium,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _pickFile() async {
-    setState(() {
-      _isParsing = true;
-      _parseError = null;
-    });
-
-    try {
-      final result = await _importService.selectFiles(
-        allowMultiple: false,
-        allowedExtensions: ['txt', 'epub', 'pdf'],
-      );
-
-      if (result == null || result.isEmpty) {
-        setState(() {
-          _isParsing = false;
-        });
-        return;
-      }
-
-      final file = result.first;
-      final filePath = file.path;
-      if (filePath == null) {
-        setState(() {
-          _isParsing = false;
-          _parseError = '无法获取文件路径';
-        });
-        return;
-      }
-
-      // 导入文件并解析
-      final task = await _importService.importFile(file);
-
-      if (task.status != ImportTaskStatus.completed) {
-        setState(() {
-          _isParsing = false;
-          _parseError = task.error ?? '解析失败';
-        });
-        return;
-      }
-
-      setState(() {
-        _selectedFilePath = task.filePath;
-        _bookTitle = task.title;
-        _bookAuthor = task.author;
-        _chapterCount = task.chapterCount ?? 0;
-        _coverPath = task.coverPath;
-        _isParsing = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isParsing = false;
-        _parseError = '解析失败：$e';
-      });
-    }
-  }
-
-  Future<void> _handleImport() async {
-    if (_selectedFilePath == null) return;
-
-    setState(() {
-      _isImporting = true;
-    });
-
-    try {
-      // 创建临时 ImportTask 用于导入
-      final task = ImportTask(
-        filePath: _selectedFilePath!,
-        fileName: _selectedFilePath!.split('/').last,
-        format: _selectedFilePath!.split('.').last,
-        fileSize: 0,
-        bookId: 0,
-        title: _bookTitle,
-        author: _bookAuthor,
-        chapterCount: _chapterCount,
-        coverPath: _coverPath,
-      );
-
-      // 添加到书架
-      final book = await _bookshelfService.addBookFromImportTask(task);
-
-      if (book != null && mounted) {
-        Navigator.pop(context, book);
-      } else {
-        setState(() {
-          _isImporting = false;
-          _parseError = '导入失败';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isImporting = false;
-        _parseError = '导入失败：$e';
-      });
-    }
   }
 }

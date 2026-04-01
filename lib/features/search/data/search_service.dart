@@ -1,6 +1,6 @@
 import 'package:injectable/injectable.dart';
 
-import '../domain/search_repository.dart';
+import '../domain/repositories/search_repository.dart';
 
 /// 搜索服务实现（示例，实际需要对接具体的小说源）
 @LazySingleton(as: SearchRepository)

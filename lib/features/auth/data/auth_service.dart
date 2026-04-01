@@ -1,6 +1,6 @@
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/features/auth/data/auth_api.dart';
-import 'package:zephyr_reader/features/auth/domain/auth_repository.dart';
+import 'package:zephyr_reader/features/auth/domain/repositories/auth_repository.dart';
 import 'package:zephyr_reader/features/auth/domain/models/user.dart';
 
 @LazySingleton(as: AuthRepository)

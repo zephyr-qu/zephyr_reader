@@ -9,7 +9,7 @@ import 'package:get_it/get_it.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
 import '../../../../core/database/database.dart';
-import '../../data/reader_service.dart';
+import '../../data/repositories/reader_repository_impl.dart';
 
 /// 阅读器内容组件
 class ReaderContent extends HookWidget {
@@ -164,7 +164,7 @@ class ReaderContent extends HookWidget {
       error.value = null;
 
       // 从数据库或 Rust 引擎加载章节内容
-      final readerService = GetIt.I.get<ReaderService>();
+      final readerRepository = GetIt.I.get<ReaderRepositoryImpl>();
       final database = GetIt.I.get<AppDatabase>();
 
       // 获取章节信息 - 使用 chapterId 作为 chapterIndex
@@ -176,7 +176,7 @@ class ReaderContent extends HookWidget {
       }
 
       // 读取章节内容文件
-      final contentText = await readerService.getChapterContent(
+      final contentText = await readerRepository.getChapterContent(
         chapter.contentFile,
       );
 

@@ -3,7 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart';
 import 'package:zephyr_reader/features/search/application/search_view_model.dart';
-import 'package:zephyr_reader/features/search/domain/search_repository.dart';
+import 'package:zephyr_reader/features/search/domain/repositories/search_repository.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 class SearchPage extends StatefulWidget {
