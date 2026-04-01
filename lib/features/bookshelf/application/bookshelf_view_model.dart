@@ -2,13 +2,13 @@ import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/domain/models/book.dart';
 
-import '../domain/bookshelf_repository.dart';
+import '../domain/repositories/book_repository.dart';
 import '../domain/models/book_category.dart';
 
 /// 书架视图模型
 @injectable
 class BookshelfViewModel {
-  final BookshelfRepository _repo;
+  final BookRepository _repo;
 
   /// 所有书籍
   final books = asyncSignal<List<Book>>(AsyncState.loading());

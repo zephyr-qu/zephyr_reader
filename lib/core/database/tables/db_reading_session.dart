@@ -28,7 +28,4 @@ class DbReadingSessions extends Table {
 
   /// 阅读字数
   late final charactersRead = integer().withDefault(const Constant(0))();
-
-  @override
-  Set<Column> get primaryKey => {id};
 }

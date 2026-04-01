@@ -1,16 +1,16 @@
 import 'package:zephyr_reader/domain/models/book.dart';
 
-import 'models/book_category.dart';
+import '../models/book_category.dart';
 
 /// 书架仓库接口
-abstract class BookshelfRepository {
+abstract class BookRepository {
   /// 获取所有书籍
   Future<List<Book>> getAllBooks();
 
   /// 根据分类获取书籍
   Future<List<Book>> getBooksByCategory(BookCategory category);
 
-  /// 根据ID获取书籍
+  /// 根据 ID 获取书籍
   Future<Book?> getBookById(int id);
 
   /// 添加书籍

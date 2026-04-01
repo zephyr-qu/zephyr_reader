@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
@@ -26,34 +25,19 @@ class ProfilePage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 用户信息卡片
-                  _buildProfileCard(context, theme)
-                      .animate()
-                      .fadeIn(duration: 500.ms)
-                      .slideY(begin: 0.1, end: 0),
+                  _buildProfileCard(context, theme),
                   SizedBox(height: LayoutBreakpoints.getSpacing(context)),
                   // 阅读统计
-                  _buildQuickStats(
-                    context,
-                    theme,
-                  ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+                  _buildQuickStats(context, theme),
                   SizedBox(height: LayoutBreakpoints.getSpacing(context)),
                   // 设置选项
-                  _buildSettingsSection(
-                    context,
-                    theme,
-                  ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
+                  _buildSettingsSection(context, theme),
                   SizedBox(height: LayoutBreakpoints.getSpacing(context)),
                   // 其他功能
-                  _buildOtherFeatures(
-                    context,
-                    theme,
-                  ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
+                  _buildOtherFeatures(context, theme),
                   SizedBox(height: LayoutBreakpoints.getSpacing(context)),
                   // 退出登录
-                  _buildLogoutButton(
-                    context,
-                    theme,
-                  ).animate().fadeIn(delay: 500.ms, duration: 500.ms),
+                  _buildLogoutButton(context, theme),
                   SizedBox(height: LayoutBreakpoints.getSpacing(context)),
                 ],
               ),
@@ -66,8 +50,10 @@ class ProfilePage extends StatelessWidget {
 
   Widget _buildSliverAppBar(BuildContext context, ThemeData theme) {
     return SliverAppBar(
-      expandedHeight: 200,
+      expandedHeight: 180,
       pinned: true,
+      elevation: 0,
+      scrolledUnderElevation: 2,
       backgroundColor: theme.colorScheme.primary,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
@@ -76,6 +62,7 @@ class ProfilePage extends StatelessWidget {
               colors: [
                 theme.colorScheme.primary,
                 theme.colorScheme.primaryContainer,
+                theme.colorScheme.secondaryContainer,
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -92,6 +79,7 @@ class ProfilePage extends StatelessWidget {
                     style: theme.textTheme.headlineSmall?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
                     ),
                   ),
                 ],
@@ -105,7 +93,7 @@ class ProfilePage extends StatelessWidget {
           icon: const Icon(Icons.settings_outlined, color: Colors.white),
           onPressed: () => context.pushNamed(RouteNames.settings),
           tooltip: '设置',
-        ).animate().fadeIn(delay: 300.ms, duration: 400.ms),
+        ),
         IconButton(
           icon: const Icon(Icons.help_outline, color: Colors.white),
           onPressed: () {
@@ -114,7 +102,7 @@ class ProfilePage extends StatelessWidget {
             ).showSnackBar(const SnackBar(content: Text('帮助功能开发中')));
           },
           tooltip: '帮助',
-        ).animate().fadeIn(delay: 400.ms, duration: 400.ms),
+        ),
         const SizedBox(width: 8),
       ],
     );
@@ -125,26 +113,30 @@ class ProfilePage extends StatelessWidget {
       gradientColors: [
         theme.colorScheme.secondaryContainer,
         theme.colorScheme.tertiaryContainer,
+        theme.colorScheme.primaryContainer,
       ],
       padding: const EdgeInsets.all(24),
       child: Row(
         children: [
           // 头像
           Container(
-            width: 80,
-            height: 80,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
                   theme.colorScheme.primary,
                   theme.colorScheme.secondary,
+                  theme.colorScheme.tertiary,
                 ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
                   color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                  blurRadius: 15,
+                  blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
               ],
@@ -154,12 +146,12 @@ class ProfilePage extends StatelessWidget {
                 '书',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 32,
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-          ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
+          ),
           const SizedBox(width: 20),
           // 用户信息
           Expanded(
@@ -172,7 +164,7 @@ class ProfilePage extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -181,16 +173,31 @@ class ProfilePage extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '阅读达人',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w600,
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                      width: 1,
                     ),
                   ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.workspace_premium_rounded,
+                        size: 14,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '阅读达人',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Row(
                   children: [
                     _buildProfileStat(
@@ -290,13 +297,38 @@ class ProfilePage extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '阅读成就',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            theme.colorScheme.primary,
+                            theme.colorScheme.secondary,
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.emoji_events_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '阅读成就',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-                TextButton(onPressed: () {}, child: const Text('查看全部')),
+                TextButton(
+                  onPressed: () {},
+                  child: const Text('查看全部'),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -307,7 +339,7 @@ class ProfilePage extends StatelessWidget {
                     context,
                     '连续阅读',
                     '12 天',
-                    Icons.local_fire_department,
+                    Icons.local_fire_department_rounded,
                     Colors.orange,
                   ),
                 ),
@@ -317,7 +349,7 @@ class ProfilePage extends StatelessWidget {
                     context,
                     '阅读时长',
                     '156h',
-                    Icons.timer,
+                    Icons.timer_rounded,
                     theme.colorScheme.primary,
                   ),
                 ),
@@ -327,7 +359,7 @@ class ProfilePage extends StatelessWidget {
                     context,
                     '读书笔记',
                     '89 条',
-                    Icons.note_alt,
+                    Icons.note_alt_rounded,
                     theme.colorScheme.tertiary,
                   ),
                 ),
@@ -350,13 +382,24 @@ class ProfilePage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+          width: 1,
+        ),
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 10),
           Text(
             value,
             style: theme.textTheme.titleMedium?.copyWith(
@@ -481,11 +524,20 @@ class ProfilePage extends StatelessWidget {
     final theme = Theme.of(context);
     return ListTile(
       onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 4,
+      ),
       leading: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.primary.withValues(alpha: 0.1),
+              theme.colorScheme.secondary.withValues(alpha: 0.1),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(icon, color: theme.colorScheme.primary, size: 22),
       ),
@@ -501,9 +553,13 @@ class ProfilePage extends StatelessWidget {
           color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
         ),
       ),
-      trailing: Icon(
-        Icons.chevron_right_rounded,
-        color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+      trailing: Container(
+        padding: const EdgeInsets.all(4),
+        child: Icon(
+          Icons.chevron_right_rounded,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+          size: 24,
+        ),
       ),
     );
   }

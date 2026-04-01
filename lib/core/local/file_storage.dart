@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:injectable/injectable.dart';
 import 'package:path_provider/path_provider.dart';
 
-import '../../shared/utils/logging.dart';
+import '../utils/logging.dart';
 
 @LazySingleton()
 class FileStorage {

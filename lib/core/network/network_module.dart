@@ -5,8 +5,8 @@ import 'package:dio/dio.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/app_config.dart';
-import 'package:zephyr_reader/core/error/api_error.dart';
-import 'package:zephyr_reader/shared/utils/logging.dart';
+import 'package:zephyr_reader/core/network/network_error.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 @module

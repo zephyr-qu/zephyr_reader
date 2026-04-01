@@ -2,25 +2,19 @@
 targets:
   $default:
     builders:
-      # injectable 只扫描业务代码目录
+      # injectable 配置生成器
       injectable_generator:injectable_config_builder:
         generate_for:
-          - lib/core/**
-          - lib/features/**
-          - lib/domain/**
-          - lib/shared/**
-          - lib/data/**
-          # ❌ 不包含: lib/src/rust/**
+          - lib/**
+        options:
+          package_name: zephyr_reader
+          output_file: lib/di/service_locator.config.dart
 
       injectable_generator:injectable_builder:
         generate_for:
-          - lib/core/**
-          - lib/features/**
-          - lib/domain/**
-          - lib/shared/**
-          - lib/data/**
+          - lib/**
 
-      # 其他生成器同理（如果需要）
+      # 其他生成器
       drift_dev:
         generate_for:
           - lib/domain/**
@@ -32,3 +26,11 @@ targets:
         generate_for:
           - lib/features/**/api/**
           - lib/features/**/data/**
+
+      freezed:
+        generate_for:
+          - lib/**
+
+      json_serializable:
+        generate_for:
+          - lib/**

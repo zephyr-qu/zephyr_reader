@@ -9,10 +9,12 @@ library;
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/database/database.dart';
 import 'package:zephyr_reader/src/rust/ffi/types.dart';
 
 /// 排版缓存服务
+@injectable
 class LayoutCacheService {
   final AppDatabase _db;
 

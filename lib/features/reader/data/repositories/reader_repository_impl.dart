@@ -5,17 +5,17 @@ import 'package:zephyr_reader/core/local/file_storage.dart';
 import 'package:zephyr_reader/domain/models/bookmark.dart';
 import 'package:zephyr_reader/domain/models/chapter.dart';
 import 'package:zephyr_reader/domain/models/reading_history.dart';
-import 'package:zephyr_reader/shared/utils/logging.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 
-import '../domain/reader_repository.dart';
+import '../../domain/repositories/reader_repository.dart';
 
-/// 阅读器服务实现
+/// 阅读器仓库实现
 @LazySingleton(as: ReaderRepository)
-class ReaderService implements ReaderRepository {
+class ReaderRepositoryImpl implements ReaderRepository {
   final AppDatabase _database;
   final FileStorage _fileStorage;
 
-  ReaderService(this._database, this._fileStorage);
+  ReaderRepositoryImpl(this._database, this._fileStorage);
 
   @override
   Future<Chapter?> getChapter(int bookId, int chapterIndex) async {

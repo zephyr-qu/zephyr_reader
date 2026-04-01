@@ -7,10 +7,12 @@
 library;
 
 import 'package:flutter/foundation.dart';
+import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/database/database.dart';
 import 'package:zephyr_reader/src/rust/ffi/types.dart';
 
 /// 阅读统计服务
+@injectable
 class ReadingStatsService {
   final AppDatabase _db;
 

@@ -17,8 +17,9 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
-import '../domain/models.dart';
-import '../application/services/reading_progress_service.dart';
+import '../domain/models/book_Info.dart';
+import '../domain/models/chapter_info.dart';
+import '../data/reading_progress_service.dart';
 import 'widgets/reader_content.dart';
 import 'widgets/reader_toolbar.dart';
 import 'widgets/reader_bottom_toolbar.dart';
@@ -56,7 +57,7 @@ class ReaderPage extends HookWidget {
   Widget build(BuildContext context) {
     // 状态信号
     final bookInfo = useSignal<BookInfo?>(null);
-    final chapters = useSignal<List<ChapterInfo>>([]);
+    final chapters = useListSignal<ChapterInfo>([]);
     final currentChapterId = useSignal(initialChapterId);
     final currentPageIndex = useSignal(initialPageIndex);
     final totalPages = useSignal(0);
@@ -271,7 +272,7 @@ class ReaderPage extends HookWidget {
     BuildContext context,
     int bookId,
     Signal<BookInfo?> bookInfo,
-    Signal<List<ChapterInfo>> chapters,
+    ListSignal<ChapterInfo> chapters,
     Signal<bool> isLoading,
     Signal<String?> error,
   ) async {

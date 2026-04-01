@@ -6,7 +6,7 @@ import 'package:zephyr_reader/domain/models/chapter.dart';
 import 'package:zephyr_reader/domain/models/bookmark.dart';
 
 import '../../../core/reader/reader_config.dart';
-import '../domain/reader_repository.dart';
+import '../domain/repositories/reader_repository.dart';
 
 /// 阅读器视图模型
 @injectable

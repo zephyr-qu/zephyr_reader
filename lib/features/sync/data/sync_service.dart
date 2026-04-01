@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/local/file_storage.dart';
-import 'package:zephyr_reader/shared/utils/logging.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 
-import '../domain/sync_repository.dart';
+import '../domain/repositories/sync_repository.dart';
 
 /// 同步服务实现
 @LazySingleton(as: SyncRepository)

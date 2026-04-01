@@ -385,14 +385,10 @@ class EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-                  icon,
-                  size: iconSize ?? 64,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-                )
-                .animate()
-                .scale(duration: 500.ms, curve: Curves.easeOutBack)
-                .then()
-                .shimmer(duration: 1500.ms),
+              icon,
+              size: iconSize ?? 64,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
             const SizedBox(height: 16),
             Text(
               title,

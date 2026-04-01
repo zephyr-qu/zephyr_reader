@@ -18,7 +18,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
-import '../../../../shared/utils/logging.dart';
+import '../../../../core/utils/logging.dart';
 import 'webdav_client_service.dart';
 import 'webdav_sync_service.dart';
 

@@ -7,10 +7,12 @@
 library;
 
 import 'package:flutter/foundation.dart';
+import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/database/database.dart';
 import 'package:zephyr_reader/domain/models/bookmark.dart';
 
 /// 书签服务
+@injectable
 class BookmarkService {
   final AppDatabase _db;
 

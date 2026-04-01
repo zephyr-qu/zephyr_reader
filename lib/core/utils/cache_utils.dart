@@ -10,7 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 /// 缓存管理器
-class CacheManager {
+class CacheUtils {
   /// 清理缓存
   ///
   /// 返回清理的字节数
