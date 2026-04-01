@@ -6,11 +6,11 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/src/rust/api.dart';
 
+import '../../../../core/utils/logging.dart';
 import '../../../src/rust/ffi/types.dart';
 
 /// 每日阅读记录
@@ -216,7 +216,7 @@ class ReadingStatsService {
       charactersRead: 0,
     );
 
-    debugPrint('开始阅读会话：$sessionId, book=$bookId, chapter=$chapterId');
+    Logging.debug('开始阅读会话：$sessionId, book=$bookId, chapter=$chapterId');
   }
 
   /// 更新阅读会话
@@ -242,7 +242,7 @@ class ReadingStatsService {
   Future<void> endReadingSession() async {
     if (_currentSession == null) return;
 
-    debugPrint('结束阅读会话{_currentSession!.sessionId}');
+    Logging.debug('结束阅读会话{_currentSession!.sessionId}');
     _currentSession = null;
   }
 
@@ -332,7 +332,7 @@ class ReadingStatsService {
       final rustStats = getReadingStats();
       return ReadingStatistics.fromRust(rustStats);
     } catch (e) {
-      debugPrint('获取统计数据失败e');
+      Logging.debug('获取统计数据失败e');
       return ReadingStatistics.empty();
     }
   }
@@ -354,7 +354,7 @@ class ReadingStatsService {
       // 返回最N 天记
       return records.reversed.take(days).toList();
     } catch (e) {
-      debugPrint('获取每日记录失败e');
+      Logging.debug('获取每日记录失败e');
       return [];
     }
   }
@@ -374,7 +374,7 @@ class ReadingStatsService {
       // 返回最N 条记
       return sessions.reversed.take(limit).toList();
     } catch (e) {
-      debugPrint('获取会话历史失败e');
+      Logging.debug('获取会话历史失败e');
       return [];
     }
   }
@@ -385,7 +385,7 @@ class ReadingStatsService {
       await _dataDir.delete(recursive: true);
       await _dataDir.create(recursive: true);
     }
-    debugPrint('所有统计数据已清除');
+    Logging.debug('所有统计数据已清除');
   }
 }
 

@@ -52,11 +52,7 @@ class ConflictResolutionPage extends HookWidget {
             _buildConflictInfoCard(conflictInfo),
             const SizedBox(height: 24),
             // 解决策略选择
-            _buildResolutionOptions(
-              context,
-              selectedResolution,
-              conflictInfo,
-            ),
+            _buildResolutionOptions(context, selectedResolution, conflictInfo),
             const SizedBox(height: 24),
             // 数据对比
             _buildDataComparison(context, conflictInfo),
@@ -238,29 +234,19 @@ class ConflictResolutionPage extends HookWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                   ),
                 ],
               ),
             ),
-            if (isSelected)
-              Icon(
-                Icons.check_circle,
-                color: color,
-              ),
+            if (isSelected) Icon(Icons.check_circle, color: color),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDataComparison(
-    BuildContext context,
-    ConflictInfo conflictInfo,
-  ) {
+  Widget _buildDataComparison(BuildContext context, ConflictInfo conflictInfo) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -278,11 +264,11 @@ class ConflictResolutionPage extends HookWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      const Row(
                         children: [
                           Icon(Icons.phone_android, size: 18),
-                          const SizedBox(width: 8),
-                          const Text(
+                          SizedBox(width: 8),
+                          Text(
                             '本地数据',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
@@ -316,11 +302,11 @@ class ConflictResolutionPage extends HookWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      const Row(
                         children: [
                           Icon(Icons.cloud, size: 18),
-                          const SizedBox(width: 8),
-                          const Text(
+                          SizedBox(width: 8),
+                          Text(
                             '远程数据',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
@@ -425,17 +411,11 @@ class ConflictResolutionPage extends HookWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
               Text(
                 description,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
               ),
             ],
           ),
@@ -484,10 +464,7 @@ class ConflictResolutionPage extends HookWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('解决冲突异常：$e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('解决冲突异常：$e'), backgroundColor: Colors.red),
         );
       }
     } finally {

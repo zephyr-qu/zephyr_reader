@@ -252,7 +252,7 @@ class StatisticsPage extends StatelessWidget {
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
                         return BarTooltipItem(
                           '${rod.toY}h',
-                          TextStyle(
+                          const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),

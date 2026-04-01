@@ -244,10 +244,7 @@ class EnhancedWebDavSyncService {
     errorMessage.value = null;
     conflicts.value = [];
 
-    _emitEvent(SyncEvent(
-      type: SyncEventType.started,
-      message: '开始同步所有数据',
-    ));
+    _emitEvent(SyncEvent(type: SyncEventType.started, message: '开始同步所有数据'));
 
     final result = SyncResult();
     var retryCount = 0;
@@ -267,7 +264,9 @@ class EnhancedWebDavSyncService {
       for (final dataType in dataTypes) {
         // 检查取消
         if (_cancelToken!.isCancelled) {
-          _emitEvent(SyncEvent(type: SyncEventType.cancelled, message: '同步已取消'));
+          _emitEvent(
+            SyncEvent(type: SyncEventType.cancelled, message: '同步已取消'),
+          );
           throw WebDavSyncCancelledException();
         }
 
@@ -285,13 +284,16 @@ class EnhancedWebDavSyncService {
               syncProgress.value = baseProgress + stepProgress;
               onProgress?.call(syncProgress.value / 100);
 
-              _emitEvent(SyncEvent(
-                type: SyncEventType.progress,
-                message: '同步${_getDataTypeName(dataType)}: ${progress.toStringAsFixed(0)}%',
-                dataType: dataType,
-                progress: progress.toInt(),
-                total: 100,
-              ));
+              _emitEvent(
+                SyncEvent(
+                  type: SyncEventType.progress,
+                  message:
+                      '同步${_getDataTypeName(dataType)}: ${progress.toStringAsFixed(0)}%',
+                  dataType: dataType,
+                  progress: progress.toInt(),
+                  total: 100,
+                ),
+              );
             },
           );
 
@@ -314,11 +316,13 @@ class EnhancedWebDavSyncService {
             Logging.debug(
               '同步${_getDataTypeName(dataType)}失败，第 $retryCount 次重试...',
             );
-            _emitEvent(SyncEvent(
-              type: SyncEventType.recovered,
-              message: '同步失败，正在重试 ($retryCount/$maxRetries)',
-              dataType: dataType,
-            ));
+            _emitEvent(
+              SyncEvent(
+                type: SyncEventType.recovered,
+                message: '同步失败，正在重试 ($retryCount/$maxRetries)',
+                dataType: dataType,
+              ),
+            );
 
             await Future.delayed(retryDelay * retryCount);
             // 重试当前类型
@@ -358,10 +362,9 @@ class EnhancedWebDavSyncService {
       lastSyncTime.value = DateTime.now();
       syncMessage.value = '同步完成';
 
-      _emitEvent(SyncEvent(
-        type: SyncEventType.completed,
-        message: result.summary,
-      ));
+      _emitEvent(
+        SyncEvent(type: SyncEventType.completed, message: result.summary),
+      );
 
       result.success = result.conflictCount == 0 && result.error == null;
       return result;
@@ -371,10 +374,7 @@ class EnhancedWebDavSyncService {
       errorMessage.value = '同步异常：$e';
       syncMessage.value = '同步失败';
 
-      _emitEvent(SyncEvent(
-        type: SyncEventType.failed,
-        message: '同步失败：$e',
-      ));
+      _emitEvent(SyncEvent(type: SyncEventType.failed, message: '同步失败：$e'));
 
       return SyncResult(success: false, error: e.toString());
     }
@@ -403,21 +403,19 @@ class EnhancedWebDavSyncService {
 
       // 检测冲突
       if (localExists && remoteExists && direction == SyncDirection.both) {
-        final conflictInfo = await _checkConflict(
-          localFile,
-          remotePath,
-          type,
-        );
+        final conflictInfo = await _checkConflict(localFile, remotePath, type);
 
         if (conflictInfo != null) {
           if (autoResolveConflicts && conflictInfo.autoResolution != null) {
             // 自动解决冲突
-            _emitEvent(SyncEvent(
-              type: SyncEventType.conflictResolved,
-              message: '自动解决冲突：${type.name}',
-              dataType: type,
-              conflictInfo: conflictInfo,
-            ));
+            _emitEvent(
+              SyncEvent(
+                type: SyncEventType.conflictResolved,
+                message: '自动解决冲突：${type.name}',
+                dataType: type,
+                conflictInfo: conflictInfo,
+              ),
+            );
 
             return await _resolveConflict(
               type,
@@ -430,17 +428,17 @@ class EnhancedWebDavSyncService {
             // 需要手动解决冲突
             conflicts.value = [...conflicts.value, conflictInfo];
 
-            _emitEvent(SyncEvent(
-              type: SyncEventType.conflict,
-              message: '检测到冲突：${type.name}',
-              dataType: type,
-              conflictInfo: conflictInfo,
-            ));
+            _emitEvent(
+              SyncEvent(
+                type: SyncEventType.conflict,
+                message: '检测到冲突：${type.name}',
+                dataType: type,
+                conflictInfo: conflictInfo,
+              ),
+            );
 
             // 返回冲突信息，等待用户处理
-            return SyncOperationResult.failure(
-              '检测到冲突，需要手动解决',
-            );
+            return SyncOperationResult.failure('检测到冲突，需要手动解决');
           }
         }
       }
@@ -522,9 +520,7 @@ class EnhancedWebDavSyncService {
       return json.toString();
     } catch (e) {
       // 非 JSON 内容，返回文本预览
-      return content.length > 50
-          ? '${content.substring(0, 50)}...'
-          : content;
+      return content.length > 50 ? '${content.substring(0, 50)}...' : content;
     }
   }
 
@@ -696,10 +692,7 @@ class EnhancedWebDavSyncService {
       }
 
       // 保存合并后的数据到本地
-      await localFile.writeAsString(
-        jsonEncode(mergedData),
-        flush: true,
-      );
+      await localFile.writeAsString(jsonEncode(mergedData), flush: true);
 
       // 上传合并后的数据
       await _uploadFile(localFile: localFile, remotePath: remotePath);
@@ -927,10 +920,7 @@ class EnhancedWebDavSyncService {
       syncMessage.value = '同步已取消';
       syncStatus.value = SyncStatus.idle;
 
-      _emitEvent(SyncEvent(
-        type: SyncEventType.cancelled,
-        message: '用户取消同步',
-      ));
+      _emitEvent(SyncEvent(type: SyncEventType.cancelled, message: '用户取消同步'));
     }
   }
 
@@ -959,15 +949,18 @@ class EnhancedWebDavSyncService {
 
       if (result.success) {
         // 从冲突列表中移除
-        conflicts.value =
-            conflicts.value.where((c) => c != conflictInfo).toList();
+        conflicts.value = conflicts.value
+            .where((c) => c != conflictInfo)
+            .toList();
 
-        _emitEvent(SyncEvent(
-          type: SyncEventType.conflictResolved,
-          message: '冲突已解决：${conflictInfo.dataType.name}',
-          dataType: conflictInfo.dataType,
-          conflictInfo: conflictInfo,
-        ));
+        _emitEvent(
+          SyncEvent(
+            type: SyncEventType.conflictResolved,
+            message: '冲突已解决：${conflictInfo.dataType.name}',
+            dataType: conflictInfo.dataType,
+            conflictInfo: conflictInfo,
+          ),
+        );
       }
 
       return result.success;

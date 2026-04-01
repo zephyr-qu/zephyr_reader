@@ -10,12 +10,18 @@ class DbLayoutCaches extends Table {
   late final id = integer().autoIncrement()();
 
   /// 书籍 ID
-  late final bookId =
-      integer().references(DbBooks, #id, onDelete: KeyAction.cascade)();
+  late final bookId = integer().references(
+    DbBooks,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
 
   /// 章节 ID
-  late final chapterId =
-      integer().references(DbChapters, #id, onDelete: KeyAction.cascade)();
+  late final chapterId = integer().references(
+    DbChapters,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
 
   /// 排版配置哈希
   late final configHash = text()();

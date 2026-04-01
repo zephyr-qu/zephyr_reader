@@ -325,10 +325,7 @@ class ProfilePage extends StatelessWidget {
                     ),
                   ],
                 ),
-                TextButton(
-                  onPressed: () {},
-                  child: const Text('查看全部'),
-                ),
+                TextButton(onPressed: () {}, child: const Text('查看全部')),
               ],
             ),
             const SizedBox(height: 16),
@@ -384,10 +381,7 @@ class ProfilePage extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: color.withValues(alpha: 0.2),
-          width: 1,
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
       ),
       child: Column(
         children: [
@@ -524,10 +518,7 @@ class ProfilePage extends StatelessWidget {
     final theme = Theme.of(context);
     return ListTile(
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 4,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -565,7 +556,7 @@ class ProfilePage extends StatelessWidget {
   }
 
   Widget _buildDivider() {
-    return Divider(height: 1, indent: 72);
+    return const Divider(height: 1, indent: 72);
   }
 
   Widget _buildLogoutButton(BuildContext context, ThemeData theme) {
@@ -583,12 +574,12 @@ class ProfilePage extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: Row(
+        child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.logout_rounded, size: 20),
-            const SizedBox(width: 8),
-            const Text('退出登录', style: TextStyle(fontWeight: FontWeight.w600)),
+            SizedBox(width: 8),
+            Text('退出登录', style: TextStyle(fontWeight: FontWeight.w600)),
           ],
         ),
       ),

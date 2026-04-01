@@ -9,8 +9,7 @@ import 'package:system_state/system_state.dart';
 
 /// 网络状态服务单例
 class NetworkStateService {
-  static final NetworkStateService _instance =
-      NetworkStateService._internal();
+  static final NetworkStateService _instance = NetworkStateService._internal();
 
   factory NetworkStateService() => _instance;
 

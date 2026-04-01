@@ -7,6 +7,7 @@ import 'package:zephyr_reader/features/article/page/article_list_page.dart';
 import 'package:zephyr_reader/features/auth/page/login_page.dart';
 import 'package:zephyr_reader/features/bookshelf/page/book_detail_page.dart';
 import 'package:zephyr_reader/features/bookshelf/page/bookshelf_page.dart';
+import 'package:zephyr_reader/features/bookshelf/page/category_management_page.dart';
 import 'package:zephyr_reader/features/home/page/home_page.dart';
 import 'package:zephyr_reader/features/home/page/splash_page.dart';
 import 'package:zephyr_reader/features/main_layout.dart';
@@ -78,6 +79,11 @@ final router = GoRouter(
           builder: (_, _) => const BookshelfPage(),
         ),
         GoRoute(
+          name: RouteNames.categoryManagement,
+          path: RoutePaths.categoryManagement,
+          builder: (_, _) => const CategoryManagementPage(),
+        ),
+        GoRoute(
           name: RouteNames.bookDetail,
           path: RoutePaths.bookDetail,
           builder: (_, state) {
@@ -97,7 +103,7 @@ final router = GoRouter(
         GoRoute(
           name: RouteNames.profile,
           path: RoutePaths.profile,
-          builder: (_, _) => ProfilePage(),
+          builder: (_, _) => const ProfilePage(),
         ),
 
         // 设置相关路由
@@ -121,7 +127,7 @@ final router = GoRouter(
         GoRoute(
           name: RouteNames.articles,
           path: RoutePaths.articles,
-          builder: (_, _) => ArticleListPage(),
+          builder: (_, _) => const ArticleListPage(),
         ),
         GoRoute(
           name: RouteNames.articleDetail,
@@ -224,10 +230,7 @@ class SettingsPage extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('设置'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('设置'), elevation: 0),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 16),
         children: [

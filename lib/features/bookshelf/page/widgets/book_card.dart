@@ -7,12 +7,22 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:zephyr_reader/domain/models/book.dart';
+import 'package:zephyr_reader/features/bookshelf/domain/models/bookshelf_filter.dart';
 
 import '../../application/services/bookshelf_service.dart';
-import '../../application/states/bookshelf_state.dart';
 
 /// 书籍卡片
 class BookCard extends StatelessWidget {
+  const BookCard({
+    super.key,
+    required this.book,
+    required this.viewMode,
+    this.isSelected = false,
+    this.selectingMode = false,
+    this.onTap,
+    this.onLongPress,
+  });
+
   /// 书籍信息
   final Book book;
 
@@ -30,16 +40,6 @@ class BookCard extends StatelessWidget {
 
   /// 长按回调
   final VoidCallback? onLongPress;
-
-  const BookCard({
-    super.key,
-    required this.book,
-    required this.viewMode,
-    this.isSelected = false,
-    this.selectingMode = false,
-    this.onTap,
-    this.onLongPress,
-  });
 
   @override
   Widget build(BuildContext context) {

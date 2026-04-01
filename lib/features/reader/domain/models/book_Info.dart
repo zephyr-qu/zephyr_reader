@@ -1,4 +1,3 @@
-
 /// 书籍信息
 class BookInfo {
   /// 书籍 ID

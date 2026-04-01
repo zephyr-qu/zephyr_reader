@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/core/database/tables/db_book.dart';
+import 'package:zephyr_reader/core/database/tables/db_book_category.dart';
 import 'package:zephyr_reader/core/database/tables/db_bookmark.dart'
     show DbBookmarks;
 import 'package:zephyr_reader/core/database/tables/db_chapter.dart';
@@ -21,6 +22,7 @@ part 'database.g.dart';
 @DriftDatabase(
   tables: [
     DbBooks,
+    DbBookCategories,
     DbChapters,
     DbBookmarks,
     DbReadingHistorys,
@@ -35,17 +37,123 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (Migrator m) async {
+        await m.createAll();
+        // 初始化默认分类
+        await _insertDefaultCategories();
+      },
+      onUpgrade: (Migrator m, int from, int to) async {
+        if (from < 4) {
+          // 升级到版本 4：添加书籍分类表
+          await m.create(dbBookCategories);
+          await m.addColumn(
+            dbBooks,
+            dbBooks.categoryIds,
+          );
+          // 初始化默认分类
+          await _insertDefaultCategories();
+        }
+      },
+    );
+  }
+
+  /// 插入默认分类
+  Future<void> _insertDefaultCategories() async {
+    final defaultCategories = [
+      DbBookCategoriesCompanion.insert(
+        name: '全部',
+        color: Value('#FF5722'),
+        sortOrder: Value(0),
+        isSystem: Value(true),
+      ),
+      DbBookCategoriesCompanion.insert(
+        name: '阅读中',
+        color: Value('#2196F3'),
+        sortOrder: Value(1),
+        isSystem: Value(true),
+      ),
+      DbBookCategoriesCompanion.insert(
+        name: '已完结',
+        color: Value('#4CAF50'),
+        sortOrder: Value(2),
+        isSystem: Value(true),
+      ),
+      DbBookCategoriesCompanion.insert(
+        name: '已弃坑',
+        color: Value('#9E9E9E'),
+        sortOrder: Value(3),
+        isSystem: Value(true),
+      ),
+      DbBookCategoriesCompanion.insert(
+        name: '计划阅读',
+        color: Value('#FF9800'),
+        sortOrder: Value(4),
+        isSystem: Value(true),
+      ),
+    ];
+
+    for (final category in defaultCategories) {
+      await into(dbBookCategories).insert(category);
+    }
+  }
+
+  /// 查询所有书籍分类
+  Future<List<DbBookCategory>> getAllCategories() {
+    return (select(dbBookCategories)
+          ..orderBy([(tbl) => OrderingTerm.asc(tbl.sortOrder)]))
+        .get();
+  }
+
+  /// 根据 ID 获取分类
+  Future<DbBookCategory?> getCategoryById(int id) {
+    return (select(dbBookCategories)..where((tbl) => tbl.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  /// 添加分类
+  Future<int> addCategory(DbBookCategoriesCompanion category) async {
+    return into(dbBookCategories).insert(category);
+  }
+
+  /// 更新分类
+  Future<bool> updateCategory(DbBookCategoriesCompanion category) async {
+    // 从 Companion 中提取 id
+    final id = category.id.value;
+    
+    final result = await (update(dbBookCategories)..where((tbl) => tbl.id.equals(id)))
+            .write(DbBookCategoriesCompanion(
+          id: category.id,
+          name: category.name,
+          color: category.color,
+          sortOrder: category.sortOrder,
+          isSystem: category.isSystem,
+          createdAt: category.createdAt,
+          updatedAt: Value(DateTime.now()),
+        ));
+    return result > 0;
+  }
+
+  /// 删除分类
+  Future<bool> deleteCategory(int id) async {
+    final category = await getCategoryById(id);
+    if (category == null || category.isSystem) {
+      return false;
+    }
+    final result = await (delete(dbBookCategories)..where((tbl) => tbl.id.equals(id))).go();
+    return result > 0;
+  }
 
   /// 查询所有小说
   Future<List<DbBook>> getAllBooks() => select(dbBooks).get();
 
   /// 插入小说
   Future<int> insertBook(DbBook book) async {
-    return into(dbBooks).insert(
-      book,
-      mode: InsertMode.insertOrReplace,
-    );
+    return into(dbBooks).insert(book, mode: InsertMode.insertOrReplace);
   }
 
   /// 批量插入小说
@@ -88,8 +196,9 @@ class AppDatabase extends _$AppDatabase {
 
   /// 根据章节 ID 查询章节
   Future<DbChapter?> getChapterById(int chapterId) {
-    return (select(dbChapters)..where((tbl) => tbl.id.equals(chapterId)))
-        .getSingleOrNull();
+    return (select(
+      dbChapters,
+    )..where((tbl) => tbl.id.equals(chapterId))).getSingleOrNull();
   }
 
   /// 获取阅读历史
@@ -156,17 +265,18 @@ class AppDatabase extends _$AppDatabase {
 
   /// 插入阅读进度
   Future<int> insertReadingProgress(DbReadingProgress progress) async {
-    return into(dbReadingProgresss).insert(
-      progress,
-      mode: InsertMode.insertOrReplace,
-    );
+    return into(
+      dbReadingProgresss,
+    ).insert(progress, mode: InsertMode.insertOrReplace);
   }
 
   /// 批量插入阅读进度
   Future<void> insertReadingProgressList(List<DbReadingProgress> list) async {
     await transaction(() async {
       for (final item in list) {
-        await into(dbReadingProgresss).insert(item, mode: InsertMode.insertOrReplace);
+        await into(
+          dbReadingProgresss,
+        ).insert(item, mode: InsertMode.insertOrReplace);
       }
     });
   }
@@ -206,14 +316,16 @@ class AppDatabase extends _$AppDatabase {
 
   /// 根据 ID 获取书签
   Future<DbBookmark?> getBookmarkById(int bookmarkId) {
-    return (select(dbBookmarks)..where((tbl) => tbl.id.equals(bookmarkId)))
-        .getSingleOrNull();
+    return (select(
+      dbBookmarks,
+    )..where((tbl) => tbl.id.equals(bookmarkId))).getSingleOrNull();
   }
 
   /// 根据章节 ID 获取书签
   Future<List<DbBookmark>> getBookmarksByChapterId(int chapterId) {
-    return (select(dbBookmarks)..where((tbl) => tbl.chapterId.equals(chapterId)))
-        .get();
+    return (select(
+      dbBookmarks,
+    )..where((tbl) => tbl.chapterId.equals(chapterId))).get();
   }
 
   /// 删除书签
@@ -239,10 +351,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// 插入书签
   Future<int> insertBookmark(DbBookmark bookmark) async {
-    return into(dbBookmarks).insert(
-      bookmark,
-      mode: InsertMode.insertOrReplace,
-    );
+    return into(dbBookmarks).insert(bookmark, mode: InsertMode.insertOrReplace);
   }
 
   /// 批量插入书签
@@ -328,7 +437,7 @@ class AppDatabase extends _$AppDatabase {
   /// 初始化阅读统计
   Future<void> initReadingStats() async {
     await into(dbReadingStatss).insert(
-      DbReadingStatssCompanion.insert(id: Value(1)),
+      DbReadingStatssCompanion.insert(id: const Value(1)),
       mode: InsertMode.insertOrIgnore,
     );
   }

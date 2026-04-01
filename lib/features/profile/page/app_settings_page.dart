@@ -266,9 +266,9 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
       body: CustomScrollView(
         slivers: [
           // AppBar
-          SliverAppBar(
+          const SliverAppBar(
             floating: true,
-            title: const Text('应用设置'),
+            title: Text('应用设置'),
             elevation: 0,
             scrolledUnderElevation: 2,
           ),

@@ -111,7 +111,7 @@ class ReadingStatsService {
       final stats = await _db.getReadingStats();
 
       if (stats == null) {
-        return ReadingStats(
+        return const ReadingStats(
           totalReadingTimeSeconds: 0,
           totalCharactersRead: 0,
           booksReadCount: 0,
@@ -143,7 +143,7 @@ class ReadingStatsService {
       );
     } catch (e) {
       debugPrint('ReadingStatsService.getReadingStats error: $e');
-      return ReadingStats(
+      return const ReadingStats(
         totalReadingTimeSeconds: 0,
         totalCharactersRead: 0,
         booksReadCount: 0,

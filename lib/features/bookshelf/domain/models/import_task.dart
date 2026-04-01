@@ -1,4 +1,3 @@
-
 import 'package:zephyr_reader/features/reader/domain/models/chapter_info.dart';
 
 /// 单个导入任务
@@ -56,6 +55,7 @@ class ImportTask {
     this.chapters = chapters ?? [];
   }
 }
+
 /// 导入任务状
 enum ImportTaskStatus {
   /// 等待

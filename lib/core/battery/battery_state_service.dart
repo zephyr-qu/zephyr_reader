@@ -9,12 +9,10 @@ import 'package:system_state/system_state.dart';
 
 /// 电池状态服务单例
 class BatteryStateService {
-  static final BatteryStateService _instance =
-      BatteryStateService._internal();
+  BatteryStateService._internal();
 
   factory BatteryStateService() => _instance;
-
-  BatteryStateService._internal();
+  static final BatteryStateService _instance = BatteryStateService._internal();
 
   /// 检查是否正在充电
   Future<bool> isCharging() async {

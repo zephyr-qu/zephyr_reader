@@ -101,7 +101,8 @@ class BookmarkManagePage extends HookWidget {
                 label: Text('${selectedBookmarks.value.length}'),
                 child: const Icon(Icons.delete_outline),
               ),
-              onPressed: () => _batchDelete(context, vm, selectedBookmarks.value),
+              onPressed: () =>
+                  _batchDelete(context, vm, selectedBookmarks.value),
               tooltip: '批量删除',
             )
           else
@@ -179,22 +180,26 @@ class BookmarkManagePage extends HookWidget {
                   Icon(
                     Icons.bookmark_border_outlined,
                     size: 80,
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.3),
                   ),
                   const SizedBox(height: 24),
                   Text(
                     isSearchMode.value ? '未找到相关书签' : '暂无书签',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    isSearchMode.value
-                        ? '尝试其他搜索关键词'
-                        : '阅读时点击书签图标添加书签',
+                    isSearchMode.value ? '尝试其他搜索关键词' : '阅读时点击书签图标添加书签',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                   if (!isSearchMode.value) ...[
@@ -284,13 +289,13 @@ class BookmarkManagePage extends HookWidget {
       final success = await vm.deleteBookmark(bookmark.id);
       if (context.mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('书签已删除')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('书签已删除')));
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('删除失败')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('删除失败')));
         }
       }
     }
@@ -374,11 +379,9 @@ class BookmarkManagePage extends HookWidget {
       }
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('已清空 $successCount 个书签'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('已清空 $successCount 个书签')));
       }
     }
   }
@@ -415,7 +418,7 @@ class _BookmarkTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Dismissible(
       key: Key(bookmark.id.toString()),
       direction: DismissDirection.endToStart,
@@ -427,22 +430,23 @@ class _BookmarkTile extends StatelessWidget {
       ),
       confirmDismiss: (direction) async {
         return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('删除书签'),
-            content: const Text('确定要删除此书签吗？'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('取消'),
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('删除书签'),
+                content: const Text('确定要删除此书签吗？'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('取消'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('删除'),
+                  ),
+                ],
               ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('删除'),
-              ),
-            ],
-          ),
-        ) ?? false;
+            ) ??
+            false;
       },
       onDismissed: (_) => onDelete(),
       child: Card(
@@ -452,10 +456,7 @@ class _BookmarkTile extends StatelessWidget {
             : null,
         child: ListTile(
           leading: isSelected
-              ? Icon(
-                  Icons.check_circle,
-                  color: theme.colorScheme.primary,
-                )
+              ? Icon(Icons.check_circle, color: theme.colorScheme.primary)
               : Icon(
                   Icons.bookmark,
                   color: theme.colorScheme.primary.withValues(alpha: 0.7),

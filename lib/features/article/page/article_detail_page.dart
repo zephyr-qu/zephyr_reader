@@ -5,6 +5,7 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/article/application/article_view_model.dart';
 import 'package:zephyr_reader/features/article/domain/models/article.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
 
 /// 文章详情页面
@@ -20,7 +21,7 @@ class ArticleDetailPage extends StatefulWidget {
 class _ArticleDetailPageState extends State<ArticleDetailPage> {
   late final ArticleViewModel _vm;
   late final ScrollController _scrollController;
-  
+
   // 使用 ValueNotifier 代替 setState，避免不必要的重建
   final _scrollProgressNotifier = ValueNotifier<double>(0.0);
 
@@ -47,17 +48,19 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    
+
     try {
       final position = _scrollController.position;
       if (!position.hasContentDimensions) return;
-      
+
       final maxScroll = position.maxScrollExtent;
       final currentScroll = position.pixels;
       // 使用 ValueNotifier 更新，避免 setState 导致的重建
-      _scrollProgressNotifier.value = maxScroll > 0 ? currentScroll / maxScroll : 0;
+      _scrollProgressNotifier.value = maxScroll > 0
+          ? currentScroll / maxScroll
+          : 0;
     } catch (e) {
-      debugPrint('Scroll error: $e');
+      Logging.debug('Scroll error: $e');
     }
   }
 
@@ -70,9 +73,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
       body: NestedScrollView(
         controller: _scrollController,
         headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            _buildAppBar(context, theme, deviceType),
-          ];
+          return [_buildAppBar(context, theme, deviceType)];
         },
         body: Watch.builder(
           builder: (context) {
@@ -189,9 +190,9 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
         IconButton(
           icon: const Icon(Icons.share_rounded),
           onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('分享功能开发中')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('分享功能开发中')));
           },
           tooltip: '分享',
         ),
@@ -199,12 +200,12 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
           icon: const Icon(Icons.bookmark_border_rounded),
           onPressed: () {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+              const SnackBar(
                 content: Row(
                   children: [
-                    const Icon(Icons.check_circle, color: Colors.white),
-                    const SizedBox(width: 12),
-                    const Text('已收藏'),
+                    Icon(Icons.check_circle, color: Colors.white),
+                    SizedBox(width: 12),
+                    Text('已收藏'),
                   ],
                 ),
                 behavior: SnackBarBehavior.floating,
@@ -316,9 +317,11 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 作者信息卡片
-          _buildAuthorCard(context, article, theme).animate().fadeIn(
-                duration: 500.ms,
-              ).slideY(begin: 0.05, end: 0),
+          _buildAuthorCard(
+            context,
+            article,
+            theme,
+          ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.05, end: 0),
 
           const SizedBox(height: 24),
 
@@ -361,35 +364,38 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
           // 文章封面图
           if (article.coverUrl != null)
             ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.network(
-                article.coverUrl!,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return _buildImagePlaceholder(theme);
-                },
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.network(
+                    article.coverUrl!,
                     width: double.infinity,
-                    height: 200,
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                            : null,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          theme.colorScheme.primary,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return _buildImagePlaceholder(theme);
+                    },
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        width: double.infinity,
+                        height: 200,
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                : null,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              theme.colorScheme.primary,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ).animate().fadeIn(delay: 300.ms, duration: 600.ms).scale(
+                      );
+                    },
+                  ),
+                )
+                .animate()
+                .fadeIn(delay: 300.ms, duration: 600.ms)
+                .scale(
                   begin: const Offset(0.95, 0.95),
                   end: const Offset(1, 1),
                   curve: Curves.easeOutBack,
@@ -398,10 +404,11 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
           if (article.coverUrl != null) const SizedBox(height: 32),
 
           // 文章内容
-          _buildArticleContentText(context, article, theme).animate().fadeIn(
-                delay: 400.ms,
-                duration: 600.ms,
-              ),
+          _buildArticleContentText(
+            context,
+            article,
+            theme,
+          ).animate().fadeIn(delay: 400.ms, duration: 600.ms),
 
           const SizedBox(height: 48),
 
@@ -474,9 +481,9 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
             IconButton(
               icon: const Icon(Icons.follow_the_signs_rounded),
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('关注功能开发中')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('关注功能开发中')));
               },
               tooltip: '关注作者',
             ),
@@ -502,11 +509,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 14,
-            color: theme.colorScheme.primary,
-          ),
+          Icon(icon, size: 14, color: theme.colorScheme.primary),
           const SizedBox(width: 6),
           Text(
             label,
@@ -613,9 +616,9 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
         Expanded(
           child: OutlinedButton.icon(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('点赞功能开发中')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('点赞功能开发中')));
             },
             icon: const Icon(Icons.favorite_border_rounded),
             label: const Text('点赞'),
@@ -631,9 +634,9 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
         Expanded(
           child: OutlinedButton.icon(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('评论功能开发中')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('评论功能开发中')));
             },
             icon: const Icon(Icons.chat_bubble_outline_rounded),
             label: const Text('评论'),

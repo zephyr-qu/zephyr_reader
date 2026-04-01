@@ -23,13 +23,13 @@ class AppThemes {
       scaffoldBackgroundColor: DesignTokens.surface,
       cardColor: DesignTokens.surfaceVariant,
       // ===== AppBar（亚克力效果需在 Widget 层实现）=====
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         foregroundColor: DesignTokens.onSurface,
         elevation: 0,
         scrolledUnderElevation: 4,
         surfaceTintColor: Colors.transparent,
-        systemOverlayStyle: const SystemUiOverlayStyle(
+        systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.dark,
         ),
@@ -42,9 +42,9 @@ class AppThemes {
       ),
 
       // ===== TabBar =====
-      tabBarTheme: TabBarThemeData(
+      tabBarTheme: const TabBarThemeData(
         dividerHeight: 0,
-        indicator: const UnderlineTabIndicator(
+        indicator: UnderlineTabIndicator(
           borderSide: BorderSide(width: 2),
           insets: EdgeInsets.only(bottom: 2),
         ),
@@ -100,8 +100,15 @@ class AppThemes {
           borderRadius: BorderRadius.circular(
             DesignTokens.radius(RadiusSize.sm),
           ),
-          borderSide: BorderSide(color: DesignTokens.neutral300, width: 1),
+          borderSide: const BorderSide(
+            color: DesignTokens.neutral300,
+            width: 1,
+          ),
         ),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 8,
       ),
       listTileTheme: ListTileThemeData(
         minTileHeight: 48,
@@ -114,7 +121,10 @@ class AppThemes {
       iconTheme: const IconThemeData(size: 20, opacity: 0.8),
       chipTheme: ChipThemeData(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        labelStyle: TextStyle(fontSize: 12, color: DesignTokens.onSurface),
+        labelStyle: const TextStyle(
+          fontSize: 12,
+          color: DesignTokens.onSurface,
+        ),
         backgroundColor: DesignTokens.neutral200,
         elevation: 0.5,
         shadowColor: Colors.black.withValues(alpha: .06),
@@ -148,13 +158,13 @@ class AppThemes {
       scaffoldBackgroundColor: DesignTokens.surfaceDark,
       cardColor: DesignTokens.surfaceVariantDark,
 
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         foregroundColor: DesignTokens.onSurfaceDark,
         elevation: 0,
         scrolledUnderElevation: 4,
         surfaceTintColor: Colors.transparent,
-        systemOverlayStyle: const SystemUiOverlayStyle(
+        systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
         ),
@@ -165,9 +175,10 @@ class AppThemes {
           color: DesignTokens.onSurfaceDark,
         ),
       ),
-      tabBarTheme: TabBarThemeData(
+
+      tabBarTheme: const TabBarThemeData(
         dividerHeight: 0,
-        indicator: const UnderlineTabIndicator(
+        indicator: UnderlineTabIndicator(
           borderSide: BorderSide(width: 2),
           insets: EdgeInsets.only(bottom: 2),
         ),
@@ -184,6 +195,10 @@ class AppThemes {
             DesignTokens.radius(RadiusSize.md),
           ),
         ),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 8,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ButtonStyle(
@@ -219,7 +234,10 @@ class AppThemes {
           borderRadius: BorderRadius.circular(
             DesignTokens.radius(RadiusSize.sm),
           ),
-          borderSide: BorderSide(color: DesignTokens.neutral600, width: 1),
+          borderSide: const BorderSide(
+            color: DesignTokens.neutral600,
+            width: 1,
+          ),
         ),
       ),
       listTileTheme: ListTileThemeData(
@@ -234,7 +252,10 @@ class AppThemes {
       iconTheme: const IconThemeData(size: 20, opacity: 0.8),
       chipTheme: ChipThemeData(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        labelStyle: TextStyle(fontSize: 12, color: DesignTokens.onSurfaceDark),
+        labelStyle: const TextStyle(
+          fontSize: 12,
+          color: DesignTokens.onSurfaceDark,
+        ),
         backgroundColor: DesignTokens.neutral700,
         elevation: 0.5,
         shadowColor: Colors.black.withValues(alpha: .15),

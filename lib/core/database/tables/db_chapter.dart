@@ -7,8 +7,11 @@ class DbChapters extends Table {
   late final id = integer().autoIncrement()();
 
   /// 关联的小说ID
-  late final bookId =
-      integer().references(DbBooks, #id, onDelete: KeyAction.cascade)();
+  late final bookId = integer().references(
+    DbBooks,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
 
   /// 章节标题
   late final title = text()();
@@ -23,5 +26,5 @@ class DbChapters extends Table {
   late final wordCount = integer().withDefault(const Constant(0))();
 
   /// 缓存时间
-   late final cachedAt = dateTime().withDefault(currentDateAndTime)();
+  late final cachedAt = dateTime().withDefault(currentDateAndTime)();
 }

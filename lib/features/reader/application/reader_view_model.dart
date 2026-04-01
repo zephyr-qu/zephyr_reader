@@ -11,6 +11,17 @@ import '../domain/repositories/reader_repository.dart';
 /// 阅读器视图模型
 @injectable
 class ReaderViewModel {
+
+  ReaderViewModel(this._repo, this.config) {
+    // 监听自动滚动设置变化
+    effect(() {
+      if (config.autoScroll.value && isReading.value) {
+        _startAutoScroll();
+      } else {
+        _stopAutoScroll();
+      }
+    });
+  }
   final ReaderRepository _repo;
   final ReaderConfig config;
 
@@ -58,17 +69,6 @@ class ReaderViewModel {
 
   Timer? _readingTimer;
   Timer? _autoScrollTimer;
-
-  ReaderViewModel(this._repo, this.config) {
-    // 监听自动滚动设置变化
-    effect(() {
-      if (config.autoScroll.value && isReading.value) {
-        _startAutoScroll();
-      } else {
-        _stopAutoScroll();
-      }
-    });
-  }
 
   /// 加载书籍
   Future<void> loadBook(int bookId) async {

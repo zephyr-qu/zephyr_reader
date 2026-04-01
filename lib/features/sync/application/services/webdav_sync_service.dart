@@ -439,7 +439,7 @@ class WebDavSyncService {
     if (_config == null || !_config!.isValid) {
       return SyncResult(success: false, error: 'WebDAV 配置未设置');
     }
-    CancelToken cancel = CancelToken();
+    final CancelToken cancel = CancelToken();
     // 创建取消令牌
     _cancelToken = cancelToken ?? cancel;
     syncStatus.value = SyncStatus.syncing;

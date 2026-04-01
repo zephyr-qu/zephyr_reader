@@ -20,7 +20,7 @@ void main() {
     setUp(() async {
       // 初始化 Widget 绑定
       TestWidgetsFlutterBinding.ensureInitialized();
-      
+
       // 初始化测试用的 SharedPreferences
       SharedPreferences.setMockInitialValues({});
       prefs = await SharedPreferences.getInstance();
@@ -164,7 +164,10 @@ void main() {
         final loaded = await configService.getLastSyncTime();
 
         expect(loaded, isNotNull);
-        expect(loaded!.millisecondsSinceEpoch, equals(testTime.millisecondsSinceEpoch));
+        expect(
+          loaded!.millisecondsSinceEpoch,
+          equals(testTime.millisecondsSinceEpoch),
+        );
       });
 
       test('最后同步时间 - 更新', () async {
@@ -173,11 +176,17 @@ void main() {
 
         // 保存第一次同步时间
         await configService.setLastSyncTime(time1);
-        expect((await configService.getLastSyncTime())!.millisecondsSinceEpoch, equals(time1.millisecondsSinceEpoch));
+        expect(
+          (await configService.getLastSyncTime())!.millisecondsSinceEpoch,
+          equals(time1.millisecondsSinceEpoch),
+        );
 
         // 更新为第二次同步时间
         await configService.setLastSyncTime(time2);
-        expect((await configService.getLastSyncTime())!.millisecondsSinceEpoch, equals(time2.millisecondsSinceEpoch));
+        expect(
+          (await configService.getLastSyncTime())!.millisecondsSinceEpoch,
+          equals(time2.millisecondsSinceEpoch),
+        );
       });
 
       test('自动同步设置', () async {
@@ -248,10 +257,7 @@ void main() {
       });
 
       test('SyncResult 摘要信息 - 失败', () {
-        final result = SyncResult(
-          success: false,
-          error: '网络错误',
-        );
+        final result = SyncResult(success: false, error: '网络错误');
 
         expect(result.summary, contains('同步失败'));
         expect(result.summary, contains('网络错误'));
@@ -283,10 +289,7 @@ void main() {
           downloadedCount: 3,
         );
 
-        final copied = original.copyWith(
-          uploadedCount: 10,
-          conflictCount: 2,
-        );
+        final copied = original.copyWith(uploadedCount: 10, conflictCount: 2);
 
         expect(original.uploadedCount, equals(5));
         expect(copied.uploadedCount, equals(10));
@@ -337,12 +340,18 @@ void main() {
         // Unix 纪元时间
         final epochTime = DateTime(1970, 1, 1, 0, 0, 0);
         await configService.setLastSyncTime(epochTime);
-        expect((await configService.getLastSyncTime())!.millisecondsSinceEpoch, equals(epochTime.millisecondsSinceEpoch));
+        expect(
+          (await configService.getLastSyncTime())!.millisecondsSinceEpoch,
+          equals(epochTime.millisecondsSinceEpoch),
+        );
 
         // 未来时间
         final futureTime = DateTime(2099, 12, 31, 23, 59, 59);
         await configService.setLastSyncTime(futureTime);
-        expect((await configService.getLastSyncTime())!.millisecondsSinceEpoch, equals(futureTime.millisecondsSinceEpoch));
+        expect(
+          (await configService.getLastSyncTime())!.millisecondsSinceEpoch,
+          equals(futureTime.millisecondsSinceEpoch),
+        );
       });
 
       test('配置 - 带端点斜杠的 URL', () {

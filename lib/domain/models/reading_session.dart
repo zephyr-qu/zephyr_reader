@@ -48,7 +48,7 @@ abstract class ReadingSession with _$ReadingSession {
 
   /// 空会话
   factory ReadingSession.empty() {
-    return ReadingSession(
+    return const ReadingSession(
       id: 0,
       bookId: 0,
       chapterId: 0,

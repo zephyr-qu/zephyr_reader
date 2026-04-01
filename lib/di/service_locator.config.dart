@@ -38,6 +38,8 @@ import 'package:zephyr_reader/features/bookshelf/application/services/book_impor
     as _i715;
 import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart'
     as _i377;
+import 'package:zephyr_reader/features/bookshelf/application/services/category_cache_service.dart'
+    as _i702;
 import 'package:zephyr_reader/features/bookshelf/application/states/bookshelf_state.dart'
     as _i895;
 import 'package:zephyr_reader/features/bookshelf/data/repositories/book_repository_impl.dart'
@@ -171,7 +173,10 @@ extension GetItInjectableX on _i174.GetIt {
       () async => _i988.SyncViewModel(await getAsync<_i499.SyncRepository>()),
     );
     gh.factory<_i790.BookshelfViewModel>(
-      () => _i790.BookshelfViewModel(gh<_i134.BookRepository>()),
+      () => _i790.BookshelfViewModel(
+        gh<_i134.BookRepository>(),
+        gh<_i702.CategoryCacheService>(),
+      ),
     );
     gh.factoryAsync<_i335.ReaderViewModel>(
       () async => _i335.ReaderViewModel(

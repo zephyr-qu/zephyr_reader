@@ -6,6 +6,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
+import '../../../../core/utils/logging.dart';
 import '../application/services/advanced_webdav_sync_service.dart';
 
 /// 备份与恢复页面
@@ -66,7 +67,7 @@ class BackupRestorePage extends HookWidget {
       final backupList = syncService.getBackups();
       backups.value = backupList;
     } catch (e) {
-      debugPrint('加载备份列表失败：$e');
+      Logging.debug('加载备份列表失败：$e');
       backups.value = [];
     }
   }
@@ -336,7 +337,7 @@ class BackupRestorePage extends HookWidget {
       );
 
       // 刷新备份列表
-      _loadBackups(backups);
+      _loadBackups(backups).ignore();
     } catch (e) {
       if (!context.mounted) return;
 

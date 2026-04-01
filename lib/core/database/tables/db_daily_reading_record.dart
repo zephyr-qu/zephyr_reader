@@ -7,8 +7,7 @@ class DbDailyReadingRecords extends Table {
   late final date = text()();
 
   /// 阅读时长（秒）
-  late final readingTimeSeconds =
-      integer().withDefault(const Constant(0))();
+  late final readingTimeSeconds = integer().withDefault(const Constant(0))();
 
   /// 阅读字数
   late final charactersRead = integer().withDefault(const Constant(0))();

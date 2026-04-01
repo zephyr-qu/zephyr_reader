@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
+import '../utils/logging.dart';
+
 /// 自动主题切换服务
 class AutoThemeService {
   final SharedPreferences _prefs;
@@ -90,7 +92,7 @@ class AutoThemeService {
     }
 
     themeMode.value = isDarkMode ? ThemeMode.dark : ThemeMode.light;
-    debugPrint('自动主题切换{isDarkMode ? "深色" : "浅色"} 模式');
+    Logging.debug('自动主题切换{isDarkMode ? "深色" : "浅色"} 模式');
   }
 
   /// 开始自动切

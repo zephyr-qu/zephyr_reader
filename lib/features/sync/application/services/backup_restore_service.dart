@@ -54,7 +54,7 @@ class BackupRestoreService {
   final backups = signal<List<BackupInfo>>([]);
   final isBackingUp = signal(false);
   final isRestoring = signal(false);
-  
+
   AppDatabase? _db;
 
   BackupRestoreService() {
@@ -304,9 +304,7 @@ class BackupRestoreService {
     try {
       final db = _getDatabase();
       final progressList = await db.getAllReadingProgress();
-      return {
-        'items': progressList.map((p) => p.toJson()).toList(),
-      };
+      return {'items': progressList.map((p) => p.toJson()).toList()};
     } catch (e) {
       debugPrint('备份阅读进度失败：$e');
       return {};
@@ -317,9 +315,7 @@ class BackupRestoreService {
     try {
       final db = _getDatabase();
       final bookmarks = await db.getAllBookmarks();
-      return {
-        'items': bookmarks.map((b) => b.toJson()).toList(),
-      };
+      return {'items': bookmarks.map((b) => b.toJson()).toList()};
     } catch (e) {
       debugPrint('备份书签失败：$e');
       return {};
@@ -330,9 +326,7 @@ class BackupRestoreService {
     try {
       final db = _getDatabase();
       final books = await db.getAllBooks();
-      return {
-        'items': books.map((b) => b.toJson()).toList(),
-      };
+      return {'items': books.map((b) => b.toJson()).toList()};
     } catch (e) {
       debugPrint('备份书架失败：$e');
       return {};
@@ -360,13 +354,15 @@ class BackupRestoreService {
   Future<void> _restoreReadingProgress(Map<String, dynamic> data) async {
     try {
       if (!data.containsKey('items')) return;
-      
+
       final db = _getDatabase();
       final items = List<Map<String, dynamic>>.from(data['items']);
-      final progressList = items.map((item) => DbReadingProgress.fromJson(item)).toList();
-      
+      final progressList = items
+          .map((item) => DbReadingProgress.fromJson(item))
+          .toList();
+
       await db.insertReadingProgressList(progressList);
-      
+
       debugPrint('恢复阅读进度成功');
     } catch (e) {
       debugPrint('恢复阅读进度失败：$e');
@@ -376,13 +372,15 @@ class BackupRestoreService {
   Future<void> _restoreBookmarks(Map<String, dynamic> data) async {
     try {
       if (!data.containsKey('items')) return;
-      
+
       final db = _getDatabase();
       final items = List<Map<String, dynamic>>.from(data['items']);
-      final bookmarkList = items.map((item) => DbBookmark.fromJson(item)).toList();
-      
+      final bookmarkList = items
+          .map((item) => DbBookmark.fromJson(item))
+          .toList();
+
       await db.insertBookmarkList(bookmarkList);
-      
+
       debugPrint('恢复书签成功');
     } catch (e) {
       debugPrint('恢复书签失败：$e');
@@ -392,13 +390,13 @@ class BackupRestoreService {
   Future<void> _restoreBookshelf(Map<String, dynamic> data) async {
     try {
       if (!data.containsKey('items')) return;
-      
+
       final db = _getDatabase();
       final items = List<Map<String, dynamic>>.from(data['items']);
       final bookList = items.map((item) => DbBook.fromJson(item)).toList();
-      
+
       await db.insertBookList(bookList);
-      
+
       debugPrint('恢复书架成功');
     } catch (e) {
       debugPrint('恢复书架失败：$e');
@@ -408,7 +406,7 @@ class BackupRestoreService {
   Future<void> _restoreSettings(Map<String, dynamic> data) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       if (data.containsKey('themeMode')) {
         await prefs.setInt('theme_mode', data['themeMode']);
       }
@@ -427,7 +425,7 @@ class BackupRestoreService {
       if (data.containsKey('storagePath')) {
         await prefs.setString('storage_path', data['storagePath']);
       }
-      
+
       debugPrint('恢复设置成功');
     } catch (e) {
       debugPrint('恢复设置失败：$e');
