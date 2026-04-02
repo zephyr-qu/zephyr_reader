@@ -40,6 +40,12 @@ class ReaderPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = GetIt.I.get<ReaderViewModel>();
 
+    // 获取屏幕尺寸并设置到 ViewModel
+    final screenSize = MediaQuery.of(context).size;
+    final padding = MediaQuery.of(context).padding;
+    vm.pageWidth.value = screenSize.width - padding.horizontal;
+    vm.pageHeight.value = screenSize.height - padding.vertical;
+
     // 初始化
     WidgetsBinding.instance.addPostFrameCallback((_) {
       vm.initialize(bookId, initialChapterId: initialChapterId);
@@ -79,6 +85,7 @@ class ReaderPage extends StatelessWidget {
                         readingMode: vm.readingMode.value,
                         onPageChanged: vm.loadPage,
                         onTotalPagesChanged: (total) => vm.totalPages.value = total,
+                        autoScrollTick: vm.autoScrollTick.value,
                       ),
                     ),
                     // 顶部工具栏

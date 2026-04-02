@@ -8,6 +8,7 @@ import 'package:zephyr_reader/domain/models/book.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/application/services/book_import_service.dart';
 import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart';
+import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_settings_service.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/models/import_task.dart';
 import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
 import 'package:zephyr_reader/shared/widget/ui_components.dart';
@@ -27,7 +28,7 @@ class BookshelfPage extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         slivers: [
           // 顶部 AppBar
-          _buildAppBar(context, theme, deviceType),
+          _buildAppBar(context, vm, theme, deviceType),
           // 分类筛选
           _buildCategoryFilter(context, vm, deviceType),
           // 书籍列表
@@ -44,6 +45,7 @@ class BookshelfPage extends StatelessWidget {
 
   Widget _buildAppBar(
     BuildContext context,
+    BookshelfViewModel vm,
     ThemeData theme,
     DeviceType deviceType,
   ) {
@@ -82,13 +84,11 @@ class BookshelfPage extends StatelessWidget {
         ],
       ),
       actions: [
-        // 宫格视图切换按钮
-        IconButton(
-          icon: const Icon(Icons.grid_view_rounded),
-          onPressed: () {
-            // TODO: 切换网格/列表视图模式
-          },
-          tooltip: '视图模式',
+        // 宫格视图切换按钮（预留）
+        const IconButton(
+          icon: Icon(Icons.grid_view_rounded),
+          onPressed: null,
+          tooltip: '列表视图',
         ),
         // 更多选项菜单
         PopupMenuButton<String>(
@@ -100,13 +100,14 @@ class BookshelfPage extends StatelessWidget {
                 _showImportDialog(context);
                 break;
               case 'refresh':
-                // TODO: 刷新书架
+                // 刷新书架
+                vm.loadBooks();
                 break;
               case 'categoryManagement':
                 context.pushNamed(RouteNames.categoryManagement);
                 break;
               case 'settings':
-                // TODO: 书架设置
+                _showBookshelfSettingsDialog(context, vm);
                 break;
             }
           },
@@ -806,6 +807,85 @@ class BookshelfPage extends StatelessWidget {
               foregroundColor: Colors.white,
             ),
             child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBookshelfSettingsDialog(
+    BuildContext context,
+    BookshelfViewModel vm,
+  ) {
+    final settingsService = getIt<BookshelfSettingsService>();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('书架设置'),
+        content: Watch.builder(
+          builder: (context) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '显示选项',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('显示阅读进度'),
+                  trailing: Switch(
+                    value: settingsService.showReadingProgress.value,
+                    onChanged: (value) {
+                      settingsService.setShowReadingProgress(value);
+                    },
+                  ),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('显示最近阅读'),
+                  trailing: Switch(
+                    value: settingsService.showRecentReading.value,
+                    onChanged: (value) {
+                      settingsService.setShowRecentReading(value);
+                    },
+                  ),
+                ),
+                const Divider(),
+                Text(
+                  '排序选项',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('默认排序方式'),
+                  subtitle: Text(
+                    settingsService.defaultSortType.value.displayName,
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () async {
+                    final selectedType = await settingsService.showSortTypeDialog(context);
+                    if (selectedType != null) {
+                      await settingsService.setDefaultSortType(selectedType);
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('确定'),
           ),
         ],
       ),

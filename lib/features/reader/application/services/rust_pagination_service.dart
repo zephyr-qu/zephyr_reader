@@ -4,9 +4,8 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/src/rust/api.dart';
+import 'package:zephyr_reader/src/rust/api.dart' as rust_api;
 import 'package:zephyr_reader/src/rust/ffi/types.dart';
-import 'package:zephyr_reader/src/rust/frb_generated.dart';
 import 'package:zephyr_reader/src/rust/stream/page_stream.dart';
 
 /// 分页结果项
@@ -57,7 +56,7 @@ class RustPaginationService {
       );
 
       // 调用 Rust 引擎分页
-      final pages = RustLib.instance.api.crateApiPaginateAllContent(
+      final pages = rust_api.paginateAllContent(
         content: content,
         chapterId: chapterId,
         config: config,
@@ -102,7 +101,7 @@ class RustPaginationService {
       enableHyphenation: false,
     );
 
-    return RustLib.instance.api.crateApiCreatePageStreamer(
+    return rust_api.createPageStreamer(
       content: content,
       config: config,
     );

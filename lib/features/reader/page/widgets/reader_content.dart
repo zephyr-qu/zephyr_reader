@@ -45,6 +45,9 @@ class ReaderContent extends HookWidget {
   /// 内容加载完成回调
   final VoidCallback? onContentLoaded;
 
+  /// 自动滚动触发器（当值变化时触发滚动）
+  final int? autoScrollTick;
+
   const ReaderContent({
     super.key,
     required this.bookId,
@@ -57,6 +60,7 @@ class ReaderContent extends HookWidget {
     this.onPageChanged,
     this.onTotalPagesChanged,
     this.onContentLoaded,
+    this.autoScrollTick,
   });
 
   @override
@@ -115,6 +119,36 @@ class ReaderContent extends HookWidget {
       }
       return null;
     }, [isLoading.value, error.value]);
+
+    // 自动滚动处理
+    useEffect(() {
+      if (autoScrollTick == null) return null;
+
+      if (readingMode == ReadingMode.scroll && scrollController.hasClients) {
+        // 滚动模式：向下滚动一定距离（约3行）
+        final scrollAmount = fontSize * lineHeight * 3;
+        final newPosition = scrollController.offset + scrollAmount;
+        if (newPosition < scrollController.position.maxScrollExtent) {
+          scrollController.animateTo(
+            newPosition,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      } else if (readingMode == ReadingMode.pagination && pageController.hasClients) {
+        // 分页模式：翻页
+        final nextPage = pageIndex + 1;
+        if (nextPage < totalPages.value) {
+          pageController.animateToPage(
+            nextPage,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+          onPageChanged?.call(nextPage);
+        }
+      }
+      return null;
+    }, [autoScrollTick]);
 
     // 根据主题获取颜色
     final textColor = _getTextColor(themeMode);
