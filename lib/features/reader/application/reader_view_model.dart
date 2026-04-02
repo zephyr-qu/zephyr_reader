@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -89,6 +88,15 @@ class ReaderViewModel {
 
   /// 主题模式
   final themeMode = signal<ThemeMode>(ThemeMode.light);
+
+  /// 页面宽度
+  final pageWidth = signal<double>(400);
+
+  /// 页面高度
+  final pageHeight = signal<double>(600);
+
+  /// 自动滚动触发器
+  final autoScrollTick = signal<int>(0);
 
   // ==================== 阅读统计 ====================
 
@@ -233,8 +241,8 @@ class ReaderViewModel {
         chapterId: chapterId,
         fontSize: fontSize.value,
         lineHeight: lineHeight.value,
-        width: 400, // TODO: 从屏幕获取实际宽度
-        height: 600, // TODO: 从屏幕获取实际高度
+        width: pageWidth.value,
+        height: pageHeight.value,
         padding: 16,
       );
 
@@ -496,8 +504,7 @@ class ReaderViewModel {
     _autoScrollTimer = Timer.periodic(
       Duration(seconds: _config.autoScrollSpeed.value),
       (timer) {
-        // TODO: 触发 UI 滚动
-        nextPage();
+        autoScrollTick.value++;
       },
     );
   }

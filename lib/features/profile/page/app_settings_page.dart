@@ -135,44 +135,50 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
     if (selectedBackup == null) return;
 
     // 确认恢复
+    // ignore: use_build_context_synchronously
     final confirmed = await showRestoreConfirmDialog(context, selectedBackup);
+    await _handleRestoreConfirmation(confirmed, selectedBackup);
+  }
+
+  Future<void> _handleRestoreConfirmation(bool confirmed, selectedBackup) async {
     if (!confirmed) return;
+    if (!mounted) return;
 
     isRestoring.value = true;
-    try {
-      final success = await backupRestoreService.restoreBackup(
-        selectedBackup.id,
-      );
+      try {
+        final success = await backupRestoreService.restoreBackup(
+          selectedBackup.id,
+        );
 
-      if (mounted) {
-        if (success) {
+        if (mounted) {
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('数据恢复成功'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('数据恢复失败'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('数据恢复成功'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('数据恢复失败'),
+            SnackBar(
+              content: Text('数据恢复失败：$e'),
               behavior: SnackBarBehavior.floating,
             ),
           );
         }
+      } finally {
+        isRestoring.value = false;
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('数据恢复失败：$e'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } finally {
-      isRestoring.value = false;
-    }
   }
 
   Future<List<BackupType>?> _showBackupTypeDialog() async {
@@ -608,16 +614,24 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
           ),
         );
 
-        if (selectedRegion != null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('地区已更改为：${selectedRegion['name']}'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
+        await _handleRegionSelection(selectedRegion);
       },
     );
+  }
+
+  Future<void> _handleRegionSelection(
+    Map<String, String>? selectedRegion,
+  ) async {
+    if (selectedRegion == null) return;
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('地区已更改为：${selectedRegion['name']}'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Widget _buildSyncFrequencySelector(
@@ -748,16 +762,70 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
       title: const Text('书籍存储位置'),
       subtitle: const Text('内部存储/Documents/ZephyrReader/books'),
       trailing: const Icon(Icons.chevron_right_rounded),
-      onTap: () async {
-        // TODO: 实现存储位置选择
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('存储位置选择功能开发中'),
-            behavior: SnackBarBehavior.floating,
+      onTap: () => _showStorageLocationDialog(context),
+    );
+  }
+
+  Future<void> _showStorageLocationDialog(BuildContext context) async {
+    final theme = Theme.of(context);
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('书籍存储位置'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '当前存储路径',
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.folder_outlined, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '内部存储/Documents/ZephyrReader/books',
+                      style: TextStyle(fontFamily: 'monospace'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '说明',
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              '由于 Android 系统限制，应用只能访问其私有目录。'
+              '书籍文件存储在应用私有目录中，卸载应用时会被清除。'
+              '如需备份，请使用 WebDAV 同步功能。',
+              style: TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('确定'),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 

@@ -39,14 +39,13 @@ class _SplashPageState extends State<SplashPage>
   }
 
   Future<void> _navigateAfterInit() async {
-    // 模拟初始化耗时操作（如检查登录状态、加载配置等）
+    // 模拟初始化耗时操作（加载配置等）
     await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
 
-    // TODO: 实际应用中应检查登录状态
-    // 这里暂时跳转到登录页
-    context.go(RoutePaths.login);
+    // 纯离线应用，无需登录，直接进入主页
+    context.go(RoutePaths.home);
   }
 
   @override

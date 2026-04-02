@@ -12,6 +12,8 @@ library;
 
 import 'dart:io';
 
+import 'package:dio/dio.dart';
+
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
@@ -277,7 +279,13 @@ class CustomFontService {
 /// 字体下载服务
 ///
 /// 支持从 URL 下载字体文件并自动导入到自定义字体库
+@injectable
 class FontDownloadService {
+  final Dio _dio;
+  final CustomFontService _fontService;
+
+  FontDownloadService(this._dio, this._fontService);
+
   /// 下载字体
   ///
   /// 参数:
@@ -294,24 +302,50 @@ class FontDownloadService {
     try {
       debugPrint('开始下载字体：$name, URL: $url');
 
-      // TODO: 使用 dio 实现 HTTP 下载
-      // 示例代码:
-      // final dio = Dio();
-      // final dir = await getApplicationDocumentsDirectory();
-      // final fontDir = Directory('${dir.path}/fonts');
-      // if (!await fontDir.exists()) {
-      //   await fontDir.create(recursive: true);
-      // }
-      // final savePath = '${fontDir.path}/$name.ttf';
-      // await dio.download(
-      //   url,
-      //   savePath,
-      //   onReceiveProgress: (received, total) {
-      //     if (total != -1) {
-      //       onProgress?.call(received / total);
-      //     }
-      //   },
-      // );
+      final dir = await getApplicationDocumentsDirectory();
+      final fontDir = Directory('${dir.path}/fonts');
+      if (!await fontDir.exists()) {
+        await fontDir.create(recursive: true);
+      }
+
+      // 从 URL 提取文件扩展名
+      final extension = _getExtensionFromUrl(url);
+      final savePath = '${fontDir.path}/${name.replaceAll(' ', '_')}.$extension';
+
+      // 检查文件是否已存在
+      if (await File(savePath).exists()) {
+        debugPrint('字体文件已存在：$savePath');
+        return true;
+      }
+
+      // 使用 dio 下载字体
+      await _dio.download(
+        url,
+        savePath,
+        onReceiveProgress: (received, total) {
+          if (total != -1) {
+            onProgress?.call(received / total);
+          }
+        },
+      );
+
+      // 验证下载的文件
+      final downloadedFile = File(savePath);
+      if (!await downloadedFile.exists()) {
+        debugPrint('字体下载后文件不存在');
+        return false;
+      }
+
+      // 文件大小检查（字体文件通常至少 100KB）
+      final fileSize = await downloadedFile.length();
+      if (fileSize < 1024 * 100) {
+        debugPrint('字体文件大小异常：$fileSize bytes');
+        await downloadedFile.delete();
+        return false;
+      }
+
+      // 导入到字体库
+      await _fontService.importFont(downloadedFile);
 
       debugPrint('字体下载完成：$name');
       return true;
@@ -319,6 +353,24 @@ class FontDownloadService {
       debugPrint('字体下载失败：$e');
       return false;
     }
+  }
+
+  /// 从 URL 获取文件扩展名
+  String _getExtensionFromUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      final path = uri.path;
+      if (path.contains('.')) {
+        final ext = path.split('.').last.toLowerCase();
+        if (['ttf', 'otf', 'ttc'].contains(ext)) {
+          return ext;
+        }
+      }
+    } catch (_) {
+      // 忽略解析错误
+    }
+    // 默认返回 ttf
+    return 'ttf';
   }
 
   /// 获取推荐字体列表

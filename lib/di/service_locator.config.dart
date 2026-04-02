@@ -40,6 +40,8 @@ import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_
     as _i377;
 import 'package:zephyr_reader/features/bookshelf/application/services/category_cache_service.dart'
     as _i702;
+import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_settings_service.dart'
+    as _i703;
 import 'package:zephyr_reader/features/bookshelf/application/states/bookshelf_state.dart'
     as _i895;
 import 'package:zephyr_reader/features/bookshelf/data/repositories/book_repository_impl.dart'
@@ -159,6 +161,12 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i601.CustomFontService>(
       () => _i601.CustomFontService(gh<_i460.SharedPreferences>()),
     );
+    gh.factory<_i601.FontDownloadService>(
+      () => _i601.FontDownloadService(
+        gh<_i361.Dio>(),
+        gh<_i601.CustomFontService>(),
+      ),
+    );
     gh.factory<_i556.ArticleViewModel>(
       () => _i556.ArticleViewModel(gh<_i29.ArticleRepository>()),
     );
@@ -170,6 +178,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.singleton<_i849.ReaderConfig>(
       () => _i849.ReaderConfig(gh<_i460.SharedPreferences>()),
+    );
+    gh.singleton<_i703.BookshelfSettingsService>(
+      () => _i703.BookshelfSettingsService(gh<_i460.SharedPreferences>()),
     );
     gh.factoryAsync<_i988.SyncViewModel>(
       () async => _i988.SyncViewModel(await getAsync<_i499.SyncRepository>()),

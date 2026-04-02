@@ -17,26 +17,37 @@ import 'package:zephyr_reader/src/rust/api.dart' as rust_api;
 @injectable
 class BookImportService {
   /// 应用书籍存储目录
-  late final Directory _booksDir;
+  Directory? _booksDir;
 
   /// 应用封面存储目录
-  late final Directory _coversDir;
+  Directory? _coversDir;
+
+  /// 初始化 Future
+  Future<void>? _initFuture;
 
   BookImportService() {
-    _initDirectories();
+    _initFuture = _initDirectories();
   }
 
-  /// 初始化存储目
+  /// 初始化存储目录
   Future<void> _initDirectories() async {
     final appDir = await getApplicationDocumentsDirectory();
     _booksDir = Directory(p.join(appDir.path, 'books'));
     _coversDir = Directory(p.join(appDir.path, 'covers'));
 
-    if (!await _booksDir.exists()) {
-      await _booksDir.create(recursive: true);
+    if (!await _booksDir!.exists()) {
+      await _booksDir!.create(recursive: true);
     }
-    if (!await _coversDir.exists()) {
-      await _coversDir.create(recursive: true);
+    if (!await _coversDir!.exists()) {
+      await _coversDir!.create(recursive: true);
+    }
+  }
+
+  /// 确保目录已初始化
+  Future<void> _ensureInitialized() async {
+    if (_initFuture != null) {
+      await _initFuture;
+      _initFuture = null;
     }
   }
 
@@ -105,6 +116,9 @@ class BookImportService {
 
   /// 导入单个文件
   Future<ImportTask> importFile(PlatformFile file) async {
+    // 确保目录已初始化
+    await _ensureInitialized();
+
     final task = ImportTask(
       filePath: file.path!,
       fileName: file.name,
@@ -126,7 +140,7 @@ class BookImportService {
       // 复制文件到应用目
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = '${timestamp}_${file.name}';
-      final destPath = p.join(_booksDir.path, fileName);
+      final destPath = p.join(_booksDir!.path, fileName);
 
       // 复制文件
       final srcFile = File(file.path!);
@@ -222,14 +236,17 @@ class BookImportService {
   /// 提取书籍封面
   Future<String?> _extractCover(String filePath) async {
     try {
+      // 确保目录已初始化
+      await _ensureInitialized();
+
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final coverFilename = 'cover_$timestamp.jpg';
-      final coverDestPath = p.join(_coversDir.path, coverFilename);
+      final coverDestPath = p.join(_coversDir!.path, coverFilename);
 
       // 调用 Rust 提取封面（返回ApiResultString）
       final result = rust_api.extractBookCover(
         filePath: filePath,
-        outputDir: _coversDir.path,
+        outputDir: _coversDir!.path,
       );
 
       // 解包 ApiResultString 获取路径
@@ -271,12 +288,15 @@ class BookImportService {
 
   /// 检查文件是否为重复
   Future<bool> isDuplicate(String filePath) async {
+    // 确保目录已初始化
+    await _ensureInitialized();
+
     // 获取文件名（不含路径
     final fileName = p.basename(filePath);
 
     // 检查书籍目录中是否存在相同文件名的文件
-    if (await _booksDir.exists()) {
-      await for (final entity in _booksDir.list()) {
+    if (await _booksDir!.exists()) {
+      await for (final entity in _booksDir!.list()) {
         if (entity is File) {
           final existingName = p.basename(entity.path).substring(11); // 去掉时间戳前缀
           if (existingName == fileName) {
