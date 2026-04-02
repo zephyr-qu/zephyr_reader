@@ -214,9 +214,17 @@ class BookmarkWidget extends HookWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              onAddBookmark?.call(noteController.text.trim().isEmpty
+              final note = noteController.text.trim().isEmpty
                   ? null
-                  : noteController.text.trim());
+                  : noteController.text.trim();
+              onAddBookmark?.call(note);
+              // 显示成功提示
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('书签已添加'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
             },
             child: const Text('添加'),
           ),
@@ -242,6 +250,13 @@ class BookmarkWidget extends HookWidget {
             onPressed: () {
               Navigator.pop(context);
               onDeleteBookmark(bookmark.id);
+              // 显示成功提示
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('书签已删除'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

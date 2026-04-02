@@ -20,6 +20,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/error/app_error.dart';
 import 'package:zephyr_reader/features/reader/domain/models/font_info.dart';
 
 /// 自定义字体服务
@@ -46,12 +47,12 @@ class CustomFontService {
 
   /// 初始化字体服务
   Future<void> _initialize() async {
-    await _loadFonts();
+    await loadFonts();
     isLoaded.value = true;
   }
 
   /// 加载字体
-  Future<void> _loadFonts() async {
+  Future<void> loadFonts() async {
     final fonts = <FontInfo>[];
 
     // 系统字体
@@ -136,19 +137,23 @@ class CustomFontService {
   ///
   /// 支持从文件选择器导入字体文件
   /// 自动处理文件名冲突
-  Future<bool> importFont(File fontFile) async {
-    try {
+  Future<Result<FontInfo>> importFont(File fontFile) async {
+    return Result.guardAsync(() async {
       // 验证文件是否存在
       if (!await fontFile.exists()) {
-        debugPrint('字体文件不存在');
-        return false;
+        throw AppError.file(
+          message: '字体文件不存在',
+          path: fontFile.path,
+        );
       }
 
       // 验证文件扩展名
       final extension = p.extension(fontFile.path).toLowerCase();
       if (!['.ttf', '.otf', '.ttc'].contains(extension)) {
-        debugPrint('不支持的字体格式：$extension');
-        return false;
+        throw AppError.validation(
+          message: '不支持的字体格式：$extension',
+          detail: '仅支持 TTF、OTF、TTC 格式',
+        );
       }
 
       final dir = await getApplicationDocumentsDirectory();
@@ -166,14 +171,20 @@ class CustomFontService {
       await fontFile.copy(destPath);
 
       // 重新加载字体列表
-      await _loadFonts();
+      await loadFonts();
 
-      debugPrint('字体导入成功：${p.basename(destPath)}');
-      return true;
-    } catch (e) {
-      debugPrint('字体导入失败：$e');
-      return false;
-    }
+      // 返回导入的字体信息
+      final fontName = p.basename(destPath);
+      final fontId = 'custom_$destPath';
+
+      return FontInfo(
+        id: fontId,
+        name: fontName,
+        path: destPath,
+        isDownloaded: false,
+        createTime: DateTime.now(),
+      );
+    });
   }
 
   /// 生成唯一文件路径
@@ -193,13 +204,15 @@ class CustomFontService {
   ///
   /// 仅支持删除用户导入的字体，系统字体不可删除
   /// 删除成功后会自动切换回系统默认字体
-  Future<bool> deleteCustomFont(String fontId) async {
-    if (!fontId.startsWith('custom_')) {
-      debugPrint('仅支持删除自定义字体');
-      return false;
-    }
+  Future<Result<void>> deleteCustomFont(String fontId) async {
+    return Result.guardAsync(() async {
+      if (!fontId.startsWith('custom_')) {
+        throw AppError.validation(
+          message: '仅支持删除自定义字体',
+          detail: '系统字体无法删除',
+        );
+      }
 
-    try {
       final filePath = fontId.substring('custom_'.length);
       final file = File(filePath);
 
@@ -212,18 +225,14 @@ class CustomFontService {
         }
 
         // 重新加载字体列表
-        await _loadFonts();
-
-        debugPrint('字体删除成功：$filePath');
-        return true;
+        await loadFonts();
+      } else {
+        throw AppError.file(
+          message: '字体文件不存在',
+          path: filePath,
+        );
       }
-
-      debugPrint('字体文件不存在：$filePath');
-      return false;
-    } catch (e) {
-      debugPrint('字体删除失败：$e');
-      return false;
-    }
+    });
   }
 
   /// 获取字体文件路径
@@ -294,14 +303,12 @@ class FontDownloadService {
   ///   - onProgress: 下载进度回调 (0.0 - 1.0)
   ///
   /// 返回：是否下载成功
-  Future<bool> downloadFont({
+  Future<Result<FontInfo>> downloadFont({
     required String url,
     required String name,
     void Function(double progress)? onProgress,
   }) async {
-    try {
-      debugPrint('开始下载字体：$name, URL: $url');
-
+    return Result.guardAsync(() async {
       final dir = await getApplicationDocumentsDirectory();
       final fontDir = Directory('${dir.path}/fonts');
       if (!await fontDir.exists()) {
@@ -314,8 +321,19 @@ class FontDownloadService {
 
       // 检查文件是否已存在
       if (await File(savePath).exists()) {
-        debugPrint('字体文件已存在：$savePath');
-        return true;
+        // 重新加载字体列表以获取最新状态
+        await _fontService.loadFonts();
+        final existingFont = _fontService.availableFonts.value.firstWhere(
+          (f) => f.path == savePath,
+          orElse: () => FontInfo(
+            id: 'custom_$savePath',
+            name: name,
+            path: savePath,
+            isDownloaded: true,
+            createTime: DateTime.now(),
+          ),
+        );
+        return existingFont;
       }
 
       // 使用 dio 下载字体
@@ -332,27 +350,30 @@ class FontDownloadService {
       // 验证下载的文件
       final downloadedFile = File(savePath);
       if (!await downloadedFile.exists()) {
-        debugPrint('字体下载后文件不存在');
-        return false;
+        throw AppError.file(
+          message: '字体下载失败',
+          detail: '下载后文件不存在',
+        );
       }
 
       // 文件大小检查（字体文件通常至少 100KB）
       final fileSize = await downloadedFile.length();
       if (fileSize < 1024 * 100) {
-        debugPrint('字体文件大小异常：$fileSize bytes');
         await downloadedFile.delete();
-        return false;
+        throw AppError.validation(
+          message: '字体文件大小异常',
+          detail: '文件过小 (${fileSize ~/ 1024} KB)，可能不是有效的字体文件',
+        );
       }
 
       // 导入到字体库
-      await _fontService.importFont(downloadedFile);
+      final result = await _fontService.importFont(downloadedFile);
+      if (result.isFailure) {
+        throw result.error!;
+      }
 
-      debugPrint('字体下载完成：$name');
-      return true;
-    } catch (e) {
-      debugPrint('字体下载失败：$e');
-      return false;
-    }
+      return result.value!;
+    });
   }
 
   /// 从 URL 获取文件扩展名

@@ -206,18 +206,21 @@ class ReaderViewModel {
 
   /// 加载上次的阅读进度
   Future<void> _loadLastProgress() async {
-    final progress = await _progressService.loadReadingProgress(bookId.value);
-    if (progress != null) {
-      chapterId.value = progress.chapterId;
-      pageIndex.value = progress.pageIndex;
-      totalPages.value = progress.totalPages;
-      readingDuration.value = progress.readingTimeSeconds;
+    final result = await _progressService.loadReadingProgress(bookId.value);
+    if (result.isSuccess) {
+      final progress = result.value;
+      if (progress != null) {
+        chapterId.value = progress.chapterId;
+        pageIndex.value = progress.pageIndex;
+        totalPages.value = progress.totalPages;
+        readingDuration.value = progress.readingTimeSeconds;
 
-      // 找到对应的章节索引
-      final chapterList = chapters.value.value ?? [];
-      final index = chapterList.indexWhere((c) => c.id == progress.chapterId);
-      if (index != -1) {
-        chapterIndex.value = index;
+        // 找到对应的章节索引
+        final chapterList = chapters.value.value ?? [];
+        final index = chapterList.indexWhere((c) => c.id == progress.chapterId);
+        if (index != -1) {
+          chapterIndex.value = index;
+        }
       }
     }
   }
@@ -349,16 +352,15 @@ class ReaderViewModel {
 
   /// 保存阅读进度
   Future<void> _saveProgress() async {
-    try {
-      await _progressService.updateReadingProgress(
-        bookId: bookId.value,
-        chapterId: chapterId.value,
-        pageIndex: pageIndex.value,
-        totalPages: totalPages.value,
-        readingTimeSeconds: readingDuration.value,
-      );
-    } catch (e) {
-      debugPrint('ReaderViewModel._saveProgress error: $e');
+    final result = await _progressService.updateReadingProgress(
+      bookId: bookId.value,
+      chapterId: chapterId.value,
+      pageIndex: pageIndex.value,
+      totalPages: totalPages.value,
+      readingTimeSeconds: readingDuration.value,
+    );
+    if (result.isFailure) {
+      debugPrint('ReaderViewModel._saveProgress error: ${result.error}');
     }
   }
 
@@ -437,6 +439,36 @@ class ReaderViewModel {
     }
     pageIndex.value = bookmark.position;
     showBookmarks.value = false;
+  }
+
+  /// 检查当前位置是否已有书签
+  bool get hasBookmarkAtCurrentPosition {
+    final currentBookmarks = bookmarks.value.value ?? [];
+    return currentBookmarks.any(
+      (b) => b.chapterId == chapterId.value && b.position == pageIndex.value,
+    );
+  }
+
+  /// 获取当前位置的书签（如果有）
+  Bookmark? get currentBookmark {
+    final currentBookmarks = bookmarks.value.value ?? [];
+    try {
+      return currentBookmarks.firstWhere(
+        (b) => b.chapterId == chapterId.value && b.position == pageIndex.value,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 切换当前位置书签（有则删除，无则添加）
+  Future<bool> toggleBookmarkAtCurrentPosition({String? note}) async {
+    final existing = currentBookmark;
+    if (existing != null) {
+      return await deleteBookmark(existing.id);
+    } else {
+      return await addBookmark(note);
+    }
   }
 
   /// 更新字体大小

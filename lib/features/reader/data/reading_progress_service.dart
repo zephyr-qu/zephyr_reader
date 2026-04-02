@@ -6,9 +6,9 @@
 /// - 所有数据持久化到 Flutter 侧的 Drift 数据库
 library;
 
-import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/database/database.dart';
+import 'package:zephyr_reader/core/error/app_error.dart';
 import 'package:zephyr_reader/domain/models/reading_progress.dart';
 
 /// 阅读进度数据
@@ -61,14 +61,14 @@ class ReadingProgressService {
   ReadingProgressService(this._db);
 
   /// 更新阅读进度
-  Future<void> updateReadingProgress({
+  Future<Result<void>> updateReadingProgress({
     required int bookId,
     required int chapterId,
     required int pageIndex,
     required int totalPages,
     int readingTimeSeconds = 0,
   }) async {
-    try {
+    return Result.guardAsync(() async {
       await _db.updateReadingProgress(
         bookId: bookId,
         chapterId: chapterId,
@@ -86,22 +86,14 @@ class ReadingProgressService {
         readingTimeSeconds: readingTimeSeconds,
         lastReadAt: DateTime.now(),
       );
-
-      debugPrint(
-        '保存进度：book=$bookId, chapter=$chapterId, page=$pageIndex/$totalPages, time=${readingTimeSeconds}s',
-      );
-    } catch (e) {
-      debugPrint('ReadingProgressService.updateReadingProgress error: $e');
-      rethrow;
-    }
+    });
   }
 
   /// 加载阅读进度
-  Future<ReadingProgressData?> loadReadingProgress(int bookId) async {
-    try {
+  Future<Result<ReadingProgressData?>> loadReadingProgress(int bookId) async {
+    return Result.guardAsync(() async {
       // 先检查缓存
-      if (_currentProgress != null &&
-          _currentProgress!.bookId == bookId) {
+      if (_currentProgress != null && _currentProgress!.bookId == bookId) {
         return _currentProgress;
       }
 
@@ -123,30 +115,25 @@ class ReadingProgressService {
       );
 
       return _currentProgress;
-    } catch (e) {
-      debugPrint('ReadingProgressService.loadReadingProgress error: $e');
-      return null;
-    }
+    });
   }
 
   /// 获取当前缓存的进度
   ReadingProgressData? get currentProgress => _currentProgress;
 
   /// 清除阅读进度
-  Future<void> clearReadingProgress(int bookId) async {
-    try {
+  Future<Result<void>> clearReadingProgress(int bookId) async {
+    return Result.guardAsync(() async {
       await _db.clearReadingProgress(bookId);
       if (_currentProgress?.bookId == bookId) {
         _currentProgress = null;
       }
-    } catch (e) {
-      debugPrint('ReadingProgressService.clearReadingProgress error: $e');
-    }
+    });
   }
 
   /// 获取所有阅读进度
-  Future<List<ReadingProgressData>> getAllReadingProgress() async {
-    try {
+  Future<Result<List<ReadingProgressData>>> getAllReadingProgress() async {
+    return Result.guardAsync(() async {
       final progressList = await _db.getAllReadingProgress();
       return progressList
           .map((progress) {
@@ -163,10 +150,7 @@ class ReadingProgressService {
             );
           })
           .toList();
-    } catch (e) {
-      debugPrint('ReadingProgressService.getAllReadingProgress error: $e');
-      return [];
-    }
+    });
   }
 
   /// 清除所有缓存

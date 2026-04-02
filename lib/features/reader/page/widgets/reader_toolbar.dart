@@ -15,6 +15,9 @@ class ReaderToolbar extends HookWidget {
   /// 主题模式
   final ThemeMode themeMode;
 
+  /// 当前页面是否有书签
+  final bool hasBookmark;
+
   /// 关闭回调
   final VoidCallback? onClose;
 
@@ -27,15 +30,20 @@ class ReaderToolbar extends HookWidget {
   /// 显示书签列表回调
   final VoidCallback? onShowBookmarks;
 
+  /// 快速添加/删除书签回调
+  final VoidCallback? onToggleBookmark;
+
   const ReaderToolbar({
     super.key,
     required this.title,
     this.progress = '',
     required this.themeMode,
+    this.hasBookmark = false,
     this.onClose,
     this.onToggleToolbar,
     this.onShowCatalog,
     this.onShowBookmarks,
+    this.onToggleBookmark,
   });
 
   @override
@@ -92,10 +100,16 @@ class ReaderToolbar extends HookWidget {
               ),
             ),
             // 书签按钮
-            IconButton(
-              icon: Icon(Icons.bookmark_border, color: textColor),
-              onPressed: onShowBookmarks,
-              tooltip: '书签',
+            GestureDetector(
+              onLongPress: onToggleBookmark,
+              child: IconButton(
+                icon: Icon(
+                  hasBookmark ? Icons.bookmark : Icons.bookmark_border,
+                  color: hasBookmark ? Colors.blue : textColor,
+                ),
+                onPressed: onShowBookmarks,
+                tooltip: '书签（长按快速添加/删除）',
+              ),
             ),
           ],
         ),
