@@ -47,12 +47,12 @@ class ChapterContentService {
   static const int maxCacheSize = 10;
 
   ChapterContentService(this._database)
-      : _paginationService = RustPaginationService();
+    : _paginationService = RustPaginationService();
 
   /// 加载章节内容
   Future<String> loadChapterContent(int bookId, int chapterId) async {
     final cacheKey = bookId.toString();
-    
+
     // 检查缓存
     if (_cache.containsKey(cacheKey) &&
         _cache[cacheKey]!.containsKey(chapterId)) {
@@ -125,13 +125,16 @@ class ChapterContentService {
       final pageInfos = pages
           .asMap()
           .entries
-          .map((entry) => PageInfo(
-                pageIndex: entry.key,
-                content: entry.value.content,
-                startOffset: content.indexOf(entry.value.content),
-                endOffset: content.indexOf(entry.value.content) +
-                    entry.value.content.length,
-              ))
+          .map(
+            (entry) => PageInfo(
+              pageIndex: entry.key,
+              content: entry.value.content,
+              startOffset: content.indexOf(entry.value.content),
+              endOffset:
+                  content.indexOf(entry.value.content) +
+                  entry.value.content.length,
+            ),
+          )
           .toList();
 
       // 更新缓存
@@ -164,24 +167,28 @@ class ChapterContentService {
       final endOffset = (offset + charsPerPage).clamp(0, content.length);
       final pageContent = content.substring(offset, endOffset);
 
-      pages.add(PageInfo(
-        pageIndex: pageIndex,
-        content: pageContent,
-        startOffset: offset,
-        endOffset: endOffset,
-      ));
+      pages.add(
+        PageInfo(
+          pageIndex: pageIndex,
+          content: pageContent,
+          startOffset: offset,
+          endOffset: endOffset,
+        ),
+      );
 
       offset = endOffset;
       pageIndex++;
     }
 
     if (pages.isEmpty) {
-      pages.add(PageInfo(
-        pageIndex: 0,
-        content: content,
-        startOffset: 0,
-        endOffset: content.length,
-      ));
+      pages.add(
+        PageInfo(
+          pageIndex: 0,
+          content: content,
+          startOffset: 0,
+          endOffset: content.length,
+        ),
+      );
     }
 
     return pages;

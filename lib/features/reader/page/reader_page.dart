@@ -84,7 +84,8 @@ class ReaderPage extends StatelessWidget {
                         themeMode: themeMode,
                         readingMode: vm.readingMode.value,
                         onPageChanged: vm.loadPage,
-                        onTotalPagesChanged: (total) => vm.totalPages.value = total,
+                        onTotalPagesChanged: (total) =>
+                            vm.totalPages.value = total,
                         autoScrollTick: vm.autoScrollTick.value,
                       ),
                     ),
@@ -105,7 +106,8 @@ class ReaderPage extends StatelessWidget {
                           onToggleToolbar: vm.toggleToolbar,
                           onShowCatalog: vm.toggleCatalog,
                           onShowBookmarks: vm.toggleBookmarks,
-                          onToggleBookmark: () => vm.toggleBookmarkAtCurrentPosition(),
+                          onToggleBookmark: () =>
+                              vm.toggleBookmarkAtCurrentPosition(),
                         ),
                       ),
                     ),

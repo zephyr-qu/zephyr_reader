@@ -9,24 +9,35 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'parser/incremental.dart';
 import 'stream/page_stream.dart';
 
-// These functions are ignored because they are not marked as `pub`: `extract_epub_cover`, `get_incremental_parser`, `get_storage`, `is_safe_path`, `parse_jpeg_size`, `try_parse_image_size`, `validate_file_path`
+// These functions are ignored because they are not marked as `pub`: `extract_epub_cover`, `get_incremental_parser`, `get_storage`, `parse_jpeg_size`, `try_parse_image_size`, `validate_file_path_strict`
 
-/// 初始化存储
-///
-/// 在应用启动时调用，设置 SQLite 数据库路径。
-/// 如果未调用此函数，进度和书签将使用临时内存存储（不推荐）。
+/// 设置允许的基目录（用于严格路径验证）
 ///
 /// # 参数
 ///
-/// * `db_path` - SQLite 数据库文件路径（建议放在应用文档目录）
+/// * `base_dir` - 允许的基目录路径
 ///
-/// # 示例
+/// # 返回值
 ///
-/// Flutter 侧：
-/// ```dart
-/// final directory = await getApplicationDocumentsDirectory();
-/// await initStorage('${directory.path}/zephyr_reader.db');
-/// ```
+/// * `Ok(())` - 设置成功
+/// * `Err(ParserError)` - 目录不存在或无效
+ApiResult setAllowedBaseDir({required String baseDir}) =>
+    RustLib.instance.api.crateApiSetAllowedBaseDir(baseDir: baseDir);
+
+/// 初始化存储
+///
+/// **注意：此函数现在是 no-op，仅用于向后兼容。**
+///
+/// 所有持久化存储操作已迁移到 Flutter 侧（使用 Drift 数据库）。
+/// Rust 侧现在仅使用内存存储，数据不会持久化。
+///
+/// # 参数
+///
+/// * `_db_path` - 被忽略（仅用于向后兼容）
+///
+/// # 返回值
+///
+/// 始终返回 `Ok(())`
 ApiResult initStorage({required String dbPath}) =>
     RustLib.instance.api.crateApiInitStorage(dbPath: dbPath);
 
@@ -1138,36 +1149,144 @@ ApiResult clearIncrementalParserCache() =>
 CacheStats getIncrementalParserStats() =>
     RustLib.instance.api.crateApiGetIncrementalParserStats();
 
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < () >>>
+/// 解析本地书籍文件（简化版）
+///
+/// 解析本地书籍文件，提取书籍信息和章节列表。
+/// 这是 `parse_local_book` 的简化版本，自动解包 Result。
+///
+/// # 参数
+///
+/// * `file_path` - 本地书籍文件的完整路径
+///
+/// # 返回值
+///
+/// * `Some(LocalBookInfo)` - 解析成功
+/// * `None` - 解析失败
+LocalBookInfo? parseLocalBookSimple({required String filePath}) =>
+    RustLib.instance.api.crateApiParseLocalBookSimple(filePath: filePath);
+
+/// 获取文件大小（简化版）
+///
+/// 获取指定文件的大小（字节数）。
+/// 这是 `get_file_size` 的简化版本，失败时返回 -1。
+///
+/// # 参数
+///
+/// * `file_path` - 文件的完整路径
+///
+/// # 返回值
+///
+/// * 文件大小（字节），失败时返回 -1
+PlatformInt64 getFileSizeSimple({required String filePath}) =>
+    RustLib.instance.api.crateApiGetFileSizeSimple(filePath: filePath);
+
+/// 提取书籍封面（简化版）
+///
+/// 从 EPUB 或 PDF 文件中提取封面图片并保存到指定目录。
+/// 这是 `extract_book_cover` 的简化版本，失败时返回 null。
+///
+/// # 参数
+///
+/// * `file_path` - 文件路径（EPUB 或 PDF）
+/// * `output_dir` - 输出目录
+///
+/// # 返回值
+///
+/// * `Some(String)` - 封面图片保存路径
+/// * `None` - 提取失败
+String? extractCoverSimple({
+  required String filePath,
+  required String outputDir,
+}) => RustLib.instance.api.crateApiExtractCoverSimple(
+  filePath: filePath,
+  outputDir: outputDir,
+);
+
+/// 获取 PDF 页数（简化版）
+///
+/// 获取 PDF 文件的总页数。
+/// 这是 `get_pdf_page_count` 的简化版本，失败时返回 -1。
+///
+/// # 参数
+///
+/// * `file_path` - PDF 文件的完整路径
+///
+/// # 返回值
+///
+/// * 总页数，失败时返回 -1
+int getPdfPageCountSimple({required String filePath}) =>
+    RustLib.instance.api.crateApiGetPdfPageCountSimple(filePath: filePath);
+
+/// 获取 PDF 元数据（简化版）
+///
+/// 获取 PDF 文件的元数据信息。
+/// 这是 `get_pdf_metadata` 的简化版本，失败时返回 null。
+///
+/// # 参数
+///
+/// * `file_path` - PDF 文件的完整路径
+///
+/// # 返回值
+///
+/// * `Some(PdfMetadata)` - 元数据
+/// * `None` - 获取失败
+PdfMetadata? getPdfMetadataSimple({required String filePath}) =>
+    RustLib.instance.api.crateApiGetPdfMetadataSimple(filePath: filePath);
+
+/// 排版处理文本（简化版）
+///
+/// 对文本进行智能排版处理。
+/// 这是 `typeset_text` 的简化版本，失败时返回原始文本。
+///
+/// # 参数
+///
+/// * `content` - 待排版的原始文本
+/// * `language` - 语言类型（"auto"、"zh"、"en"、"mix"）
+/// * `config` - 排版配置
+///
+/// # 返回值
+///
+/// * 排版后的文本，失败时返回原始文本
+String typesetTextSimple({
+  required String content,
+  required String language,
+  required TypesetConfig config,
+}) => RustLib.instance.api.crateApiTypesetTextSimple(
+  content: content,
+  language: language,
+  config: config,
+);
+
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < () >>>
 abstract class ApiResult implements RustOpaqueInterface {}
 
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < EpubImageInfo >>>
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < EpubImageInfo >>>
 abstract class ApiResultEpubImageInfo implements RustOpaqueInterface {}
 
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < EpubImageList >>>
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < EpubImageList >>>
 abstract class ApiResultEpubImageList implements RustOpaqueInterface {}
 
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < EpubMetadata >>>
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < EpubMetadata >>>
 abstract class ApiResultEpubMetadata implements RustOpaqueInterface {}
 
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < LocalBookInfo >>>
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < LocalBookInfo >>>
 abstract class ApiResultLocalBookInfo implements RustOpaqueInterface {}
 
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < ParseResult >>>
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < ParseResult >>>
 abstract class ApiResultParseResult implements RustOpaqueInterface {}
 
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < RichChapterContent >>>
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < RichChapterContent >>>
 abstract class ApiResultRichChapterContent implements RustOpaqueInterface {}
 
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < String >>>
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < String >>>
 abstract class ApiResultString implements RustOpaqueInterface {}
 
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < ZeroCopyBuffer < Vec < SearchHit > > >>>
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < ZeroCopyBuffer < Vec < SearchHit > > >>>
 abstract class ApiResultZeroCopyBufferVecSearchHit
     implements RustOpaqueInterface {}
 
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < ZeroCopyBuffer < Vec < u8 > > >>>
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < ZeroCopyBuffer < Vec < u8 > > >>>
 abstract class ApiResultZeroCopyBufferVecU8 implements RustOpaqueInterface {}
 
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < i64 >>>
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < i64 >>>
 abstract class ApiResultI64 implements RustOpaqueInterface {}

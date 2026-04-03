@@ -18,10 +18,12 @@ late ChapterContentService chapterContentService;
 Future<void> configureDependencies() async {
   // 注册缓存服务
   getIt.registerLazySingleton<CategoryCacheService>(() => categoryCacheService);
-  
+
   // 注册章节内容服务（需要数据库实例）
   chapterContentService = ChapterContentService(getDatabase());
-  getIt.registerLazySingleton<ChapterContentService>(() => chapterContentService);
-  
+  getIt.registerLazySingleton<ChapterContentService>(
+    () => chapterContentService,
+  );
+
   await getIt.init();
 }

@@ -30,9 +30,7 @@ fn find_resource_by_href_or_path<'a>(
     href: &str,
 ) -> Option<(&'a String, &'a ResourceItem)> {
     // 首先尝试直接匹配 href
-    if let Some(item) = resources.get(href) {
-        // 返回 String 引用而不是 str 引用
-        let key = resources.keys().find(|k| k.as_str() == href).unwrap();
+    if let Some((key, item)) = resources.get_key_value(href) {
         return Some((key, item));
     }
 

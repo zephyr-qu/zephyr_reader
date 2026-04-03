@@ -37,7 +37,7 @@ pub fn validate_chapters_parallel(
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(actual_threads)
         .build()
-        .unwrap();
+        .expect("Failed to build rayon thread pool");
 
     pool.install(|| {
         chapters
@@ -141,7 +141,7 @@ where
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(actual_threads)
         .build()
-        .unwrap();
+        .expect("Failed to build rayon thread pool");
 
     pool.install(|| chapters.par_iter().filter_map(&processor).collect())
 }

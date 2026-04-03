@@ -113,9 +113,11 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
                         const SizedBox(width: 16),
                         _buildChoiceChip(
                           label: '分页',
-                          selected: widget.readingMode == ReadingMode.pagination,
-                          onTap: () =>
-                              widget.onReadingModeChanged(ReadingMode.pagination),
+                          selected:
+                              widget.readingMode == ReadingMode.pagination,
+                          onTap: () => widget.onReadingModeChanged(
+                            ReadingMode.pagination,
+                          ),
                           textColor: textColor,
                         ),
                       ],
@@ -198,10 +200,7 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
     );
   }
 
-  Widget _buildSettingSection({
-    required String title,
-    required Widget child,
-  }) {
+  Widget _buildSettingSection({required String title, required Widget child}) {
     final textColor = _getTextColor(widget.themeMode);
 
     return Column(
@@ -232,7 +231,9 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? textColor.withValues(alpha: 0.2) : Colors.transparent,
+          color: selected
+              ? textColor.withValues(alpha: 0.2)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: textColor, width: 1.5),
         ),

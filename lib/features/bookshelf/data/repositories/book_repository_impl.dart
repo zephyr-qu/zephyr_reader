@@ -133,25 +133,29 @@ class BookRepositoryImpl implements BookRepository {
 
   @override
   Future<int> addCategory(BookCategory category) async {
-    return await _database.addCategory(DbBookCategoriesCompanion.insert(
-      name: category.name,
-      color: Value(category.color),
-      sortOrder: Value(category.sortOrder),
-      isSystem: Value(category.isSystem),
-    ));
+    return await _database.addCategory(
+      DbBookCategoriesCompanion.insert(
+        name: category.name,
+        color: Value(category.color),
+        sortOrder: Value(category.sortOrder),
+        isSystem: Value(category.isSystem),
+      ),
+    );
   }
 
   @override
   Future<bool> updateCategory(BookCategory category) async {
-    return await _database.updateCategory(DbBookCategoriesCompanion(
-      id: Value(category.id),
-      name: Value(category.name),
-      color: Value(category.color),
-      sortOrder: Value(category.sortOrder),
-      isSystem: Value(category.isSystem),
-      createdAt: Value(category.createdAt ?? DateTime.now()),
-      updatedAt: Value(DateTime.now()),
-    ));
+    return await _database.updateCategory(
+      DbBookCategoriesCompanion(
+        id: Value(category.id),
+        name: Value(category.name),
+        color: Value(category.color),
+        sortOrder: Value(category.sortOrder),
+        isSystem: Value(category.isSystem),
+        createdAt: Value(category.createdAt ?? DateTime.now()),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 
   @override
@@ -163,12 +167,14 @@ class BookRepositoryImpl implements BookRepository {
   Future<bool> updateBookCategories(int bookId, List<int> categoryIds) async {
     // 将分类 ID 列表转换为 JSON 字符串存储
     final categoryIdsJson = jsonEncode(categoryIds);
-    return await (_database.update(_database.dbBooks)
-              ..where((tbl) => tbl.id.equals(bookId)))
-            .write(DbBooksCompanion(
-          categoryIds: Value(categoryIdsJson),
-          updatedAt: Value(DateTime.now()),
-        )) >
+    return await (_database.update(
+          _database.dbBooks,
+        )..where((tbl) => tbl.id.equals(bookId))).write(
+          DbBooksCompanion(
+            categoryIds: Value(categoryIdsJson),
+            updatedAt: Value(DateTime.now()),
+          ),
+        ) >
         0;
   }
 }

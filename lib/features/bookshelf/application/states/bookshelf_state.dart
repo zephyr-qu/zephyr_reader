@@ -6,10 +6,6 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/domain/models/book.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/models/bookshelf_filter.dart';
 
-
-
-
-
 /// 书架状态类
 @injectable
 class BookshelfState {

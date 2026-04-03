@@ -4,9 +4,11 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api.dart';
+import 'api/security.dart';
 import 'api/simple.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'ffi/error.dart';
 import 'ffi/types.dart';
 import 'frb_generated.dart';
 import 'frb_generated.io.dart'
@@ -70,7 +72,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -1285001436;
+  int get rustContentHash => -1665239802;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -137,6 +139,11 @@ abstract class RustLibApi extends BaseApi {
     required String outputDir,
   });
 
+  String? crateApiExtractCoverSimple({
+    required String filePath,
+    required String outputDir,
+  });
+
   List<Bookmark> crateApiGetAllBookmarks();
 
   List<CachedLayout> crateApiGetAllLayoutCache({required String bookId});
@@ -185,6 +192,8 @@ abstract class RustLibApi extends BaseApi {
 
   ApiResultI64 crateApiGetFileSize({required String filePath});
 
+  PlatformInt64 crateApiGetFileSizeSimple({required String filePath});
+
   CacheStats crateApiGetIncrementalParserStats();
 
   LayoutCacheResult crateApiGetLayoutCache({
@@ -200,6 +209,10 @@ abstract class RustLibApi extends BaseApi {
   ApiResultZeroCopyBufferVecU8 crateApiGetPdfCoverDataZeroCopy({
     required String filePath,
   });
+
+  PdfMetadata? crateApiGetPdfMetadataSimple({required String filePath});
+
+  int crateApiGetPdfPageCountSimple({required String filePath});
 
   ReadingProgress crateApiGetReadingProgress({required String bookId});
 
@@ -236,6 +249,8 @@ abstract class RustLibApi extends BaseApi {
 
   ApiResult crateApiInitStorage({required String dbPath});
 
+  Future<bool> crateApiSecurityIsSafePath({required String path});
+
   List<PageContent> crateApiPaginateAllContent({
     required String content,
     required int chapterId,
@@ -260,6 +275,8 @@ abstract class RustLibApi extends BaseApi {
   ApiResultLocalBookInfo crateApiParseLocalBookIncremental({
     required String filePath,
   });
+
+  LocalBookInfo? crateApiParseLocalBookSimple({required String filePath});
 
   ApiResultParseResult crateApiParseTxtFile({required String filePath});
 
@@ -304,9 +321,17 @@ abstract class RustLibApi extends BaseApi {
     required int limit,
   });
 
+  ApiResult crateApiSetAllowedBaseDir({required String baseDir});
+
   String crateApiTestConnection();
 
   ApiResultString crateApiTypesetText({
+    required String content,
+    required String language,
+    required TypesetConfig config,
+  });
+
+  String crateApiTypesetTextSimple({
     required String content,
     required String language,
     required TypesetConfig config,
@@ -325,6 +350,13 @@ abstract class RustLibApi extends BaseApi {
     required int pageIndex,
     required int totalPages,
     required PlatformInt64 sessionDuration,
+  });
+
+  Future<String> crateApiSecurityValidateFilePath({required String filePath});
+
+  Future<String> crateApiSecurityValidatePathSecurely({
+    required String filePath,
+    required String allowedBase,
   });
 
   RustArcIncrementStrongCountFnType
@@ -444,21 +476,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          var arg1 = cst_encode_i_32(chapterId);
-          var arg2 = cst_encode_i_32(pageIndex);
-          var arg3 = cst_encode_String(title);
-          var arg4 = cst_encode_opt_String(note);
-          return wire.wire__crate__api__add_bookmark(
-            arg0,
-            arg1,
-            arg2,
-            arg3,
-            arg4,
-          );
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          sse_encode_i_32(chapterId, serializer);
+          sse_encode_i_32(pageIndex, serializer);
+          sse_encode_String(title, serializer);
+          sse_encode_opt_String(note, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_bookmark,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bookmark,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiAddBookmarkConstMeta,
@@ -469,8 +496,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiAddBookmarkConstMeta => const TaskConstMeta(
-    debugName: "add_bookmark",
-    argNames: ["bookId", "chapterId", "pageIndex", "title", "note"],
+    debugName: 'add_bookmark',
+    argNames: ['bookId', 'chapterId', 'pageIndex', 'title', 'note'],
   );
 
   @override
@@ -480,12 +507,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__async_parse_epub_file(port_, arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiAsyncParseEpubFileConstMeta,
@@ -496,8 +529,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiAsyncParseEpubFileConstMeta => const TaskConstMeta(
-    debugName: "async_parse_epub_file",
-    argNames: ["filePath"],
+    debugName: 'async_parse_epub_file',
+    argNames: ['filePath'],
   );
 
   @override
@@ -507,12 +540,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__async_parse_local_book(port_, arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 3,
+            port: port_,
+          );
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiAsyncParseLocalBookConstMeta,
@@ -524,8 +563,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiAsyncParseLocalBookConstMeta =>
       const TaskConstMeta(
-        debugName: "async_parse_local_book",
-        argNames: ["filePath"],
+        debugName: 'async_parse_local_book',
+        argNames: ['filePath'],
       );
 
   @override
@@ -535,12 +574,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__async_parse_pdf_file(port_, arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 4,
+            port: port_,
+          );
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiAsyncParsePdfFileConstMeta,
@@ -551,8 +596,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiAsyncParsePdfFileConstMeta => const TaskConstMeta(
-    debugName: "async_parse_pdf_file",
-    argNames: ["filePath"],
+    debugName: 'async_parse_pdf_file',
+    argNames: ['filePath'],
   );
 
   @override
@@ -562,12 +607,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__async_parse_txt_file(port_, arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 5,
+            port: port_,
+          );
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiAsyncParseTxtFileConstMeta,
@@ -578,8 +629,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiAsyncParseTxtFileConstMeta => const TaskConstMeta(
-    debugName: "async_parse_txt_file",
-    argNames: ["filePath"],
+    debugName: 'async_parse_txt_file',
+    argNames: ['filePath'],
   );
 
   @override
@@ -587,11 +638,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(indexPath);
-          return wire.wire__crate__api__clear_all_search_index(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(indexPath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_bool,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiClearAllSearchIndexConstMeta,
@@ -603,8 +655,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiClearAllSearchIndexConstMeta =>
       const TaskConstMeta(
-        debugName: "clear_all_search_index",
-        argNames: ["indexPath"],
+        debugName: 'clear_all_search_index',
+        argNames: ['indexPath'],
       );
 
   @override
@@ -612,11 +664,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__clear_bookmarks(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 7)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_i_32,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_i_32,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiClearBookmarksConstMeta,
@@ -627,7 +680,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiClearBookmarksConstMeta =>
-      const TaskConstMeta(debugName: "clear_bookmarks", argNames: ["bookId"]);
+      const TaskConstMeta(debugName: 'clear_bookmarks', argNames: ['bookId']);
 
   @override
   int crateApiClearChapterLayoutCache({
@@ -637,12 +690,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          var arg1 = cst_encode_i_32(chapterId);
-          return wire.wire__crate__api__clear_chapter_layout_cache(arg0, arg1);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          sse_encode_i_32(chapterId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_i_32,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_i_32,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiClearChapterLayoutCacheConstMeta,
@@ -654,8 +708,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiClearChapterLayoutCacheConstMeta =>
       const TaskConstMeta(
-        debugName: "clear_chapter_layout_cache",
-        argNames: ["bookId", "chapterId"],
+        debugName: 'clear_chapter_layout_cache',
+        argNames: ['bookId', 'chapterId'],
       );
 
   @override
@@ -663,11 +717,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          return wire.wire__crate__api__clear_incremental_parser_cache();
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiClearIncrementalParserCacheConstMeta,
@@ -679,7 +734,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiClearIncrementalParserCacheConstMeta =>
       const TaskConstMeta(
-        debugName: "clear_incremental_parser_cache",
+        debugName: 'clear_incremental_parser_cache',
         argNames: [],
       );
 
@@ -688,11 +743,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__clear_layout_cache(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_i_32,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_i_32,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiClearLayoutCacheConstMeta,
@@ -703,8 +759,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiClearLayoutCacheConstMeta => const TaskConstMeta(
-    debugName: "clear_layout_cache",
-    argNames: ["bookId"],
+    debugName: 'clear_layout_cache',
+    argNames: ['bookId'],
   );
 
   @override
@@ -712,11 +768,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__clear_reading_progress(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 11)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_bool,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiClearReadingProgressConstMeta,
@@ -728,8 +785,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiClearReadingProgressConstMeta =>
       const TaskConstMeta(
-        debugName: "clear_reading_progress",
-        argNames: ["bookId"],
+        debugName: 'clear_reading_progress',
+        argNames: ['bookId'],
       );
 
   @override
@@ -737,11 +794,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_box_autoadd_typeset_config(config);
-          return wire.wire__crate__api__compute_config_hash(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_typeset_config(config, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_String,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiComputeConfigHashConstMeta,
@@ -752,8 +810,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiComputeConfigHashConstMeta => const TaskConstMeta(
-    debugName: "compute_config_hash",
-    argNames: ["config"],
+    debugName: 'compute_config_hash',
+    argNames: ['config'],
   );
 
   @override
@@ -764,12 +822,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(content);
-          var arg1 = cst_encode_box_autoadd_typeset_config(config);
-          return wire.wire__crate__api__create_page_streamer(arg0, arg1);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(content, serializer);
+          sse_encode_box_autoadd_typeset_config(config, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 13)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_page_streamer,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_page_streamer,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiCreatePageStreamerConstMeta,
@@ -780,8 +839,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiCreatePageStreamerConstMeta => const TaskConstMeta(
-    debugName: "create_page_streamer",
-    argNames: ["content", "config"],
+    debugName: 'create_page_streamer',
+    argNames: ['content', 'config'],
   );
 
   @override
@@ -792,12 +851,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          var arg1 = cst_encode_String(indexPath);
-          return wire.wire__crate__api__delete_search_index(arg0, arg1);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          sse_encode_String(indexPath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 14)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_bool,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiDeleteSearchIndexConstMeta,
@@ -808,8 +868,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiDeleteSearchIndexConstMeta => const TaskConstMeta(
-    debugName: "delete_search_index",
-    argNames: ["bookId", "indexPath"],
+    debugName: 'delete_search_index',
+    argNames: ['bookId', 'indexPath'],
   );
 
   @override
@@ -820,13 +880,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          var arg1 = cst_encode_String(outputDir);
-          return wire.wire__crate__api__extract_book_cover(arg0, arg1);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          sse_encode_String(outputDir, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 15)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiExtractBookCoverConstMeta,
@@ -837,8 +898,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiExtractBookCoverConstMeta => const TaskConstMeta(
-    debugName: "extract_book_cover",
-    argNames: ["filePath", "outputDir"],
+    debugName: 'extract_book_cover',
+    argNames: ['filePath', 'outputDir'],
+  );
+
+  @override
+  String? crateApiExtractCoverSimple({
+    required String filePath,
+    required String outputDir,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          sse_encode_String(outputDir, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiExtractCoverSimpleConstMeta,
+        argValues: [filePath, outputDir],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiExtractCoverSimpleConstMeta => const TaskConstMeta(
+    debugName: 'extract_cover_simple',
+    argNames: ['filePath', 'outputDir'],
   );
 
   @override
@@ -846,10 +936,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          return wire.wire__crate__api__get_all_bookmarks();
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 17)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_bookmark,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_bookmark,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetAllBookmarksConstMeta,
@@ -860,18 +951,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiGetAllBookmarksConstMeta =>
-      const TaskConstMeta(debugName: "get_all_bookmarks", argNames: []);
+      const TaskConstMeta(debugName: 'get_all_bookmarks', argNames: []);
 
   @override
   List<CachedLayout> crateApiGetAllLayoutCache({required String bookId}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__get_all_layout_cache(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 18)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_cached_layout,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_cached_layout,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetAllLayoutCacheConstMeta,
@@ -882,8 +974,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiGetAllLayoutCacheConstMeta => const TaskConstMeta(
-    debugName: "get_all_layout_cache",
-    argNames: ["bookId"],
+    debugName: 'get_all_layout_cache',
+    argNames: ['bookId'],
   );
 
   @override
@@ -891,10 +983,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          return wire.wire__crate__api__get_all_reading_progress();
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 19)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_reading_progress,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_reading_progress,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetAllReadingProgressConstMeta,
@@ -905,18 +998,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiGetAllReadingProgressConstMeta =>
-      const TaskConstMeta(debugName: "get_all_reading_progress", argNames: []);
+      const TaskConstMeta(debugName: 'get_all_reading_progress', argNames: []);
 
   @override
   List<Bookmark> crateApiGetBookmarks({required String bookId}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__get_bookmarks(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 20)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_bookmark,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_bookmark,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetBookmarksConstMeta,
@@ -927,7 +1021,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiGetBookmarksConstMeta =>
-      const TaskConstMeta(debugName: "get_bookmarks", argNames: ["bookId"]);
+      const TaskConstMeta(debugName: 'get_bookmarks', argNames: ['bookId']);
 
   @override
   ApiResultZeroCopyBufferVecU8 crateApiGetChapterContentZeroCopy({
@@ -937,16 +1031,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          var arg1 = cst_encode_i_32(chapterId);
-          return wire.wire__crate__api__get_chapter_content_zero_copy(
-            arg0,
-            arg1,
-          );
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          sse_encode_i_32(chapterId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 21)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetChapterContentZeroCopyConstMeta,
@@ -958,8 +1050,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiGetChapterContentZeroCopyConstMeta =>
       const TaskConstMeta(
-        debugName: "get_chapter_content_zero_copy",
-        argNames: ["filePath", "chapterId"],
+        debugName: 'get_chapter_content_zero_copy',
+        argNames: ['filePath', 'chapterId'],
       );
 
   @override
@@ -967,10 +1059,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          return wire.wire__crate__api__get_consecutive_reading_days();
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 22)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_i_32,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_i_32,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetConsecutiveReadingDaysConstMeta,
@@ -982,7 +1075,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiGetConsecutiveReadingDaysConstMeta =>
       const TaskConstMeta(
-        debugName: "get_consecutive_reading_days",
+        debugName: 'get_consecutive_reading_days',
         argNames: [],
       );
 
@@ -991,11 +1084,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(date);
-          return wire.wire__crate__api__get_daily_reading_record(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(date, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 23)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_daily_reading_record,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_daily_reading_record,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetDailyReadingRecordConstMeta,
@@ -1007,8 +1101,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiGetDailyReadingRecordConstMeta =>
       const TaskConstMeta(
-        debugName: "get_daily_reading_record",
-        argNames: ["date"],
+        debugName: 'get_daily_reading_record',
+        argNames: ['date'],
       );
 
   @override
@@ -1019,15 +1113,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(startDate);
-          var arg1 = cst_encode_String(endDate);
-          return wire.wire__crate__api__get_daily_reading_records_in_range(
-            arg0,
-            arg1,
-          );
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(startDate, serializer);
+          sse_encode_String(endDate, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_daily_reading_record,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_daily_reading_record,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetDailyReadingRecordsInRangeConstMeta,
@@ -1039,8 +1131,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiGetDailyReadingRecordsInRangeConstMeta =>
       const TaskConstMeta(
-        debugName: "get_daily_reading_records_in_range",
-        argNames: ["startDate", "endDate"],
+        debugName: 'get_daily_reading_records_in_range',
+        argNames: ['startDate', 'endDate'],
       );
 
   @override
@@ -1050,12 +1142,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__get_epub_cover_data(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetEpubCoverDataConstMeta,
@@ -1066,8 +1159,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiGetEpubCoverDataConstMeta => const TaskConstMeta(
-    debugName: "get_epub_cover_data",
-    argNames: ["filePath"],
+    debugName: 'get_epub_cover_data',
+    argNames: ['filePath'],
   );
 
   @override
@@ -1077,12 +1170,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__get_epub_cover_data_zero_copy(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetEpubCoverDataZeroCopyConstMeta,
@@ -1094,8 +1188,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiGetEpubCoverDataZeroCopyConstMeta =>
       const TaskConstMeta(
-        debugName: "get_epub_cover_data_zero_copy",
-        argNames: ["filePath"],
+        debugName: 'get_epub_cover_data_zero_copy',
+        argNames: ['filePath'],
       );
 
   @override
@@ -1103,12 +1197,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__get_epub_cover_image(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_prim_u_8_strict,
-          decodeErrorData: dco_decode_String,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_prim_u_8_strict,
+          decodeErrorData: sse_decode_String,
         ),
         constMeta: kCrateApiGetEpubCoverImageConstMeta,
         argValues: [filePath],
@@ -1118,8 +1213,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiGetEpubCoverImageConstMeta => const TaskConstMeta(
-    debugName: "get_epub_cover_image",
-    argNames: ["filePath"],
+    debugName: 'get_epub_cover_image',
+    argNames: ['filePath'],
   );
 
   @override
@@ -1129,12 +1224,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__get_epub_full_metadata(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 28)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetEpubFullMetadataConstMeta,
@@ -1146,8 +1242,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiGetEpubFullMetadataConstMeta =>
       const TaskConstMeta(
-        debugName: "get_epub_full_metadata",
-        argNames: ["filePath"],
+        debugName: 'get_epub_full_metadata',
+        argNames: ['filePath'],
       );
 
   @override
@@ -1158,13 +1254,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          var arg1 = cst_encode_String(imageHref);
-          return wire.wire__crate__api__get_epub_image_metadata(arg0, arg1);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          sse_encode_String(imageHref, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 29)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetEpubImageMetadataConstMeta,
@@ -1176,8 +1273,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiGetEpubImageMetadataConstMeta =>
       const TaskConstMeta(
-        debugName: "get_epub_image_metadata",
-        argNames: ["filePath", "imageHref"],
+        debugName: 'get_epub_image_metadata',
+        argNames: ['filePath', 'imageHref'],
       );
 
   @override
@@ -1188,13 +1285,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          var arg1 = cst_encode_String(imageHref);
-          return wire.wire__crate__api__get_epub_image_resource(arg0, arg1);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          sse_encode_String(imageHref, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 30)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_prim_u_8_strict,
-          decodeErrorData: dco_decode_String,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_prim_u_8_strict,
+          decodeErrorData: sse_decode_String,
         ),
         constMeta: kCrateApiGetEpubImageResourceConstMeta,
         argValues: [filePath, imageHref],
@@ -1205,8 +1303,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiGetEpubImageResourceConstMeta =>
       const TaskConstMeta(
-        debugName: "get_epub_image_resource",
-        argNames: ["filePath", "imageHref"],
+        debugName: 'get_epub_image_resource',
+        argNames: ['filePath', 'imageHref'],
       );
 
   @override
@@ -1214,12 +1312,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__get_epub_images(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 31)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetEpubImagesConstMeta,
@@ -1230,19 +1329,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiGetEpubImagesConstMeta =>
-      const TaskConstMeta(debugName: "get_epub_images", argNames: ["filePath"]);
+      const TaskConstMeta(debugName: 'get_epub_images', argNames: ['filePath']);
 
   @override
   ApiResultI64 crateApiGetFileSize({required String filePath}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__get_file_size(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 32)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetFileSizeConstMeta,
@@ -1253,17 +1353,43 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiGetFileSizeConstMeta =>
-      const TaskConstMeta(debugName: "get_file_size", argNames: ["filePath"]);
+      const TaskConstMeta(debugName: 'get_file_size', argNames: ['filePath']);
+
+  @override
+  PlatformInt64 crateApiGetFileSizeSimple({required String filePath}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 33)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_i_64,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiGetFileSizeSimpleConstMeta,
+        argValues: [filePath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiGetFileSizeSimpleConstMeta => const TaskConstMeta(
+    debugName: 'get_file_size_simple',
+    argNames: ['filePath'],
+  );
 
   @override
   CacheStats crateApiGetIncrementalParserStats() {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          return wire.wire__crate__api__get_incremental_parser_stats();
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 34)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_cache_stats,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_cache_stats,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetIncrementalParserStatsConstMeta,
@@ -1275,7 +1401,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiGetIncrementalParserStatsConstMeta =>
       const TaskConstMeta(
-        debugName: "get_incremental_parser_stats",
+        debugName: 'get_incremental_parser_stats',
         argNames: [],
       );
 
@@ -1288,13 +1414,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          var arg1 = cst_encode_i_32(chapterId);
-          var arg2 = cst_encode_box_autoadd_typeset_config(config);
-          return wire.wire__crate__api__get_layout_cache(arg0, arg1, arg2);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          sse_encode_i_32(chapterId, serializer);
+          sse_encode_box_autoadd_typeset_config(config, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 35)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_layout_cache_result,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_layout_cache_result,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetLayoutCacheConstMeta,
@@ -1305,8 +1432,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiGetLayoutCacheConstMeta => const TaskConstMeta(
-    debugName: "get_layout_cache",
-    argNames: ["bookId", "chapterId", "config"],
+    debugName: 'get_layout_cache',
+    argNames: ['bookId', 'chapterId', 'config'],
   );
 
   @override
@@ -1316,12 +1443,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__get_pdf_cover_data(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 36)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetPdfCoverDataConstMeta,
@@ -1332,8 +1460,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiGetPdfCoverDataConstMeta => const TaskConstMeta(
-    debugName: "get_pdf_cover_data",
-    argNames: ["filePath"],
+    debugName: 'get_pdf_cover_data',
+    argNames: ['filePath'],
   );
 
   @override
@@ -1343,12 +1471,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__get_pdf_cover_data_zero_copy(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 37)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetPdfCoverDataZeroCopyConstMeta,
@@ -1360,8 +1489,60 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiGetPdfCoverDataZeroCopyConstMeta =>
       const TaskConstMeta(
-        debugName: "get_pdf_cover_data_zero_copy",
-        argNames: ["filePath"],
+        debugName: 'get_pdf_cover_data_zero_copy',
+        argNames: ['filePath'],
+      );
+
+  @override
+  PdfMetadata? crateApiGetPdfMetadataSimple({required String filePath}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 38)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_pdf_metadata,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiGetPdfMetadataSimpleConstMeta,
+        argValues: [filePath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiGetPdfMetadataSimpleConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_pdf_metadata_simple',
+        argNames: ['filePath'],
+      );
+
+  @override
+  int crateApiGetPdfPageCountSimple({required String filePath}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 39)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_i_32,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiGetPdfPageCountSimpleConstMeta,
+        argValues: [filePath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiGetPdfPageCountSimpleConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_pdf_page_count_simple',
+        argNames: ['filePath'],
       );
 
   @override
@@ -1369,11 +1550,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__get_reading_progress(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 40)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_reading_progress,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_reading_progress,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetReadingProgressConstMeta,
@@ -1384,8 +1566,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiGetReadingProgressConstMeta => const TaskConstMeta(
-    debugName: "get_reading_progress",
-    argNames: ["bookId"],
+    debugName: 'get_reading_progress',
+    argNames: ['bookId'],
   );
 
   @override
@@ -1393,10 +1575,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          return wire.wire__crate__api__get_reading_speed();
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 41)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_f_32,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_f_32,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetReadingSpeedConstMeta,
@@ -1407,17 +1590,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiGetReadingSpeedConstMeta =>
-      const TaskConstMeta(debugName: "get_reading_speed", argNames: []);
+      const TaskConstMeta(debugName: 'get_reading_speed', argNames: []);
 
   @override
   ReadingStats crateApiGetReadingStats() {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          return wire.wire__crate__api__get_reading_stats();
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 42)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_reading_stats,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_reading_stats,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetReadingStatsConstMeta,
@@ -1428,7 +1612,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiGetReadingStatsConstMeta =>
-      const TaskConstMeta(debugName: "get_reading_stats", argNames: []);
+      const TaskConstMeta(debugName: 'get_reading_stats', argNames: []);
 
   @override
   List<DailyReadingRecord> crateApiGetRecentReadingRecords({
@@ -1437,11 +1621,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_i_32(days);
-          return wire.wire__crate__api__get_recent_reading_records(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_32(days, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 43)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_daily_reading_record,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_daily_reading_record,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetRecentReadingRecordsConstMeta,
@@ -1453,8 +1638,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiGetRecentReadingRecordsConstMeta =>
       const TaskConstMeta(
-        debugName: "get_recent_reading_records",
-        argNames: ["days"],
+        debugName: 'get_recent_reading_records',
+        argNames: ['days'],
       );
 
   @override
@@ -1462,10 +1647,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          return wire.wire__crate__api__get_today_reading_data();
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 44)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_record_i_64_i_64,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_record_i_64_i_64,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetTodayReadingDataConstMeta,
@@ -1476,18 +1662,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiGetTodayReadingDataConstMeta =>
-      const TaskConstMeta(debugName: "get_today_reading_data", argNames: []);
+      const TaskConstMeta(debugName: 'get_today_reading_data', argNames: []);
 
   @override
   String crateApiSimpleGreet({required String name}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(name);
-          return wire.wire__crate__api__simple__greet(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(name, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 45)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_String,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiSimpleGreetConstMeta,
@@ -1498,17 +1685,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiSimpleGreetConstMeta =>
-      const TaskConstMeta(debugName: "greet", argNames: ["name"]);
+      const TaskConstMeta(debugName: 'greet', argNames: ['name']);
 
   @override
   void crateApiIncrementBooksCompletedCount() {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          return wire.wire__crate__api__increment_books_completed_count();
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 46)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiIncrementBooksCompletedCountConstMeta,
@@ -1520,7 +1708,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiIncrementBooksCompletedCountConstMeta =>
       const TaskConstMeta(
-        debugName: "increment_books_completed_count",
+        debugName: 'increment_books_completed_count',
         argNames: [],
       );
 
@@ -1529,10 +1717,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          return wire.wire__crate__api__increment_books_read_count();
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 47)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiIncrementBooksReadCountConstMeta,
@@ -1544,7 +1733,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiIncrementBooksReadCountConstMeta =>
       const TaskConstMeta(
-        debugName: "increment_books_read_count",
+        debugName: 'increment_books_read_count',
         argNames: [],
       );
 
@@ -1559,22 +1748,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          var arg1 = cst_encode_String(indexPath);
-          var arg2 = cst_encode_i_32(chapterId);
-          var arg3 = cst_encode_String(chapterTitle);
-          var arg4 = cst_encode_String(content);
-          return wire.wire__crate__api__index_chapter_content(
-            arg0,
-            arg1,
-            arg2,
-            arg3,
-            arg4,
-          );
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          sse_encode_String(indexPath, serializer);
+          sse_encode_i_32(chapterId, serializer);
+          sse_encode_String(chapterTitle, serializer);
+          sse_encode_String(content, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 48)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiIndexChapterContentConstMeta,
@@ -1586,13 +1770,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiIndexChapterContentConstMeta =>
       const TaskConstMeta(
-        debugName: "index_chapter_content",
+        debugName: 'index_chapter_content',
         argNames: [
-          "bookId",
-          "indexPath",
-          "chapterId",
-          "chapterTitle",
-          "content",
+          'bookId',
+          'indexPath',
+          'chapterId',
+          'chapterTitle',
+          'content',
         ],
       );
 
@@ -1601,10 +1785,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          return wire.wire__crate__api__init_app(port_);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 49,
+            port: port_,
+          );
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiInitAppConstMeta,
@@ -1615,18 +1805,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiInitAppConstMeta =>
-      const TaskConstMeta(debugName: "init_app", argNames: []);
+      const TaskConstMeta(debugName: 'init_app', argNames: []);
 
   @override
   ApiResult crateApiInitIncrementalParser() {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          return wire.wire__crate__api__init_incremental_parser();
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 50)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiInitIncrementalParserConstMeta,
@@ -1637,7 +1828,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiInitIncrementalParserConstMeta =>
-      const TaskConstMeta(debugName: "init_incremental_parser", argNames: []);
+      const TaskConstMeta(debugName: 'init_incremental_parser', argNames: []);
 
   @override
   ApiResult crateApiInitSearchIndex({
@@ -1647,13 +1838,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          var arg1 = cst_encode_String(indexPath);
-          return wire.wire__crate__api__init_search_index(arg0, arg1);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          sse_encode_String(indexPath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 51)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiInitSearchIndexConstMeta,
@@ -1664,8 +1856,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiInitSearchIndexConstMeta => const TaskConstMeta(
-    debugName: "init_search_index",
-    argNames: ["bookId", "indexPath"],
+    debugName: 'init_search_index',
+    argNames: ['bookId', 'indexPath'],
   );
 
   @override
@@ -1673,12 +1865,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(dbPath);
-          return wire.wire__crate__api__init_storage(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(dbPath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 52)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiInitStorageConstMeta,
@@ -1689,7 +1882,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiInitStorageConstMeta =>
-      const TaskConstMeta(debugName: "init_storage", argNames: ["dbPath"]);
+      const TaskConstMeta(debugName: 'init_storage', argNames: ['dbPath']);
+
+  @override
+  Future<bool> crateApiSecurityIsSafePath({required String path}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(path, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 53,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiSecurityIsSafePathConstMeta,
+        argValues: [path],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSecurityIsSafePathConstMeta =>
+      const TaskConstMeta(debugName: 'is_safe_path', argNames: ['path']);
 
   @override
   List<PageContent> crateApiPaginateAllContent({
@@ -1700,13 +1921,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(content);
-          var arg1 = cst_encode_i_32(chapterId);
-          var arg2 = cst_encode_box_autoadd_typeset_config(config);
-          return wire.wire__crate__api__paginate_all_content(arg0, arg1, arg2);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(content, serializer);
+          sse_encode_i_32(chapterId, serializer);
+          sse_encode_box_autoadd_typeset_config(config, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 54)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_page_content,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_page_content,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiPaginateAllContentConstMeta,
@@ -1717,8 +1939,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiPaginateAllContentConstMeta => const TaskConstMeta(
-    debugName: "paginate_all_content",
-    argNames: ["content", "chapterId", "config"],
+    debugName: 'paginate_all_content',
+    argNames: ['content', 'chapterId', 'config'],
   );
 
   @override
@@ -1729,13 +1951,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          var arg1 = cst_encode_i_32(chapterIndex);
-          return wire.wire__crate__api__parse_epub_chapter_rich(arg0, arg1);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          sse_encode_i_32(chapterIndex, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 55)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiParseEpubChapterRichConstMeta,
@@ -1747,8 +1970,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiParseEpubChapterRichConstMeta =>
       const TaskConstMeta(
-        debugName: "parse_epub_chapter_rich",
-        argNames: ["filePath", "chapterIndex"],
+        debugName: 'parse_epub_chapter_rich',
+        argNames: ['filePath', 'chapterIndex'],
       );
 
   @override
@@ -1756,12 +1979,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__parse_epub_file(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 56)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiParseEpubFileConstMeta,
@@ -1772,18 +1996,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiParseEpubFileConstMeta =>
-      const TaskConstMeta(debugName: "parse_epub_file", argNames: ["filePath"]);
+      const TaskConstMeta(debugName: 'parse_epub_file', argNames: ['filePath']);
 
   @override
   RichChapterContent crateApiParseHtmlContent({required String htmlContent}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(htmlContent);
-          return wire.wire__crate__api__parse_html_content(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(htmlContent, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 57)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_rich_chapter_content,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_rich_chapter_content,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiParseHtmlContentConstMeta,
@@ -1794,8 +2019,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiParseHtmlContentConstMeta => const TaskConstMeta(
-    debugName: "parse_html_content",
-    argNames: ["htmlContent"],
+    debugName: 'parse_html_content',
+    argNames: ['htmlContent'],
   );
 
   @override
@@ -1805,11 +2030,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(htmlContent);
-          return wire.wire__crate__api__parse_html_content_simple(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(htmlContent, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 58)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_rich_paragraph,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_rich_paragraph,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiParseHtmlContentSimpleConstMeta,
@@ -1821,8 +2047,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiParseHtmlContentSimpleConstMeta =>
       const TaskConstMeta(
-        debugName: "parse_html_content_simple",
-        argNames: ["htmlContent"],
+        debugName: 'parse_html_content_simple',
+        argNames: ['htmlContent'],
       );
 
   @override
@@ -1830,12 +2056,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__parse_local_book(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 59)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiParseLocalBookConstMeta,
@@ -1846,8 +2073,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiParseLocalBookConstMeta => const TaskConstMeta(
-    debugName: "parse_local_book",
-    argNames: ["filePath"],
+    debugName: 'parse_local_book',
+    argNames: ['filePath'],
   );
 
   @override
@@ -1857,12 +2084,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__parse_local_book_incremental(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 60)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiParseLocalBookIncrementalConstMeta,
@@ -1874,8 +2102,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiParseLocalBookIncrementalConstMeta =>
       const TaskConstMeta(
-        debugName: "parse_local_book_incremental",
-        argNames: ["filePath"],
+        debugName: 'parse_local_book_incremental',
+        argNames: ['filePath'],
+      );
+
+  @override
+  LocalBookInfo? crateApiParseLocalBookSimple({required String filePath}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 61)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_local_book_info,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiParseLocalBookSimpleConstMeta,
+        argValues: [filePath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiParseLocalBookSimpleConstMeta =>
+      const TaskConstMeta(
+        debugName: 'parse_local_book_simple',
+        argNames: ['filePath'],
       );
 
   @override
@@ -1883,12 +2137,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__parse_txt_file(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 62)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiParseTxtFileConstMeta,
@@ -1899,7 +2154,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiParseTxtFileConstMeta =>
-      const TaskConstMeta(debugName: "parse_txt_file", argNames: ["filePath"]);
+      const TaskConstMeta(debugName: 'parse_txt_file', argNames: ['filePath']);
 
   @override
   ApiResultString crateApiReadFileChunk({
@@ -1910,14 +2165,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(filePath);
-          var arg1 = cst_encode_i_64(startPos);
-          var arg2 = cst_encode_i_64(chunkSize);
-          return wire.wire__crate__api__read_file_chunk(arg0, arg1, arg2);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          sse_encode_i_64(startPos, serializer);
+          sse_encode_i_64(chunkSize, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 63)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiReadFileChunkConstMeta,
@@ -1928,8 +2184,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiReadFileChunkConstMeta => const TaskConstMeta(
-    debugName: "read_file_chunk",
-    argNames: ["filePath", "startPos", "chunkSize"],
+    debugName: 'read_file_chunk',
+    argNames: ['filePath', 'startPos', 'chunkSize'],
   );
 
   @override
@@ -1942,19 +2198,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          var arg1 = cst_encode_i_32(chapterId);
-          var arg2 = cst_encode_i_64(durationSeconds);
-          var arg3 = cst_encode_i_64(charactersRead);
-          return wire.wire__crate__api__record_reading_session(
-            arg0,
-            arg1,
-            arg2,
-            arg3,
-          );
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          sse_encode_i_32(chapterId, serializer);
+          sse_encode_i_64(durationSeconds, serializer);
+          sse_encode_i_64(charactersRead, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 64)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiRecordReadingSessionConstMeta,
@@ -1966,8 +2218,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiRecordReadingSessionConstMeta =>
       const TaskConstMeta(
-        debugName: "record_reading_session",
-        argNames: ["bookId", "chapterId", "durationSeconds", "charactersRead"],
+        debugName: 'record_reading_session',
+        argNames: ['bookId', 'chapterId', 'durationSeconds', 'charactersRead'],
       );
 
   @override
@@ -1978,12 +2230,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          var arg1 = cst_encode_String(bookmarkId);
-          return wire.wire__crate__api__remove_bookmark(arg0, arg1);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          sse_encode_String(bookmarkId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 65)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_bool,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiRemoveBookmarkConstMeta,
@@ -1994,8 +2247,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiRemoveBookmarkConstMeta => const TaskConstMeta(
-    debugName: "remove_bookmark",
-    argNames: ["bookId", "bookmarkId"],
+    debugName: 'remove_bookmark',
+    argNames: ['bookId', 'bookmarkId'],
   );
 
   @override
@@ -2003,11 +2256,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_box_autoadd_rich_chapter_content(richContent);
-          return wire.wire__crate__api__rich_text_to_plain(arg0);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_rich_chapter_content(richContent, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 66)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_String,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiRichTextToPlainConstMeta,
@@ -2018,8 +2272,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiRichTextToPlainConstMeta => const TaskConstMeta(
-    debugName: "rich_text_to_plain",
-    argNames: ["richContent"],
+    debugName: 'rich_text_to_plain',
+    argNames: ['richContent'],
   );
 
   @override
@@ -2032,20 +2286,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          var arg1 = cst_encode_i_32(chapterId);
-          var arg2 = cst_encode_box_autoadd_typeset_config(config);
-          var arg3 = cst_encode_list_page_offset(pageOffsets);
-          return wire.wire__crate__api__save_layout_cache(
-            arg0,
-            arg1,
-            arg2,
-            arg3,
-          );
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          sse_encode_i_32(chapterId, serializer);
+          sse_encode_box_autoadd_typeset_config(config, serializer);
+          sse_encode_list_page_offset(pageOffsets, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 67)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiSaveLayoutCacheConstMeta,
@@ -2056,8 +2306,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiSaveLayoutCacheConstMeta => const TaskConstMeta(
-    debugName: "save_layout_cache",
-    argNames: ["bookId", "chapterId", "config", "pageOffsets"],
+    debugName: 'save_layout_cache',
+    argNames: ['bookId', 'chapterId', 'config', 'pageOffsets'],
   );
 
   @override
@@ -2070,20 +2320,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          var arg1 = cst_encode_String(query);
-          var arg2 = cst_encode_i_32(limit);
-          var arg3 = cst_encode_String(indexPath);
-          return wire.wire__crate__api__search_books_zero_copy(
-            arg0,
-            arg1,
-            arg2,
-            arg3,
-          );
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          sse_encode_String(query, serializer);
+          sse_encode_i_32(limit, serializer);
+          sse_encode_String(indexPath, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 68)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiSearchBooksZeroCopyConstMeta,
@@ -2095,8 +2341,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiSearchBooksZeroCopyConstMeta =>
       const TaskConstMeta(
-        debugName: "search_books_zero_copy",
-        argNames: ["bookId", "query", "limit", "indexPath"],
+        debugName: 'search_books_zero_copy',
+        argNames: ['bookId', 'query', 'limit', 'indexPath'],
       );
 
   @override
@@ -2109,14 +2355,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          var arg1 = cst_encode_String(indexPath);
-          var arg2 = cst_encode_String(query);
-          var arg3 = cst_encode_i_32(limit);
-          return wire.wire__crate__api__search_in_book(arg0, arg1, arg2, arg3);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          sse_encode_String(indexPath, serializer);
+          sse_encode_String(query, serializer);
+          sse_encode_i_32(limit, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 69)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_search_results,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_search_results,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiSearchInBookConstMeta,
@@ -2127,8 +2374,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiSearchInBookConstMeta => const TaskConstMeta(
-    debugName: "search_in_book",
-    argNames: ["bookId", "indexPath", "query", "limit"],
+    debugName: 'search_in_book',
+    argNames: ['bookId', 'indexPath', 'query', 'limit'],
+  );
+
+  @override
+  ApiResult crateApiSetAllowedBaseDir({required String baseDir}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(baseDir, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 70)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiSetAllowedBaseDirConstMeta,
+        argValues: [baseDir],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSetAllowedBaseDirConstMeta => const TaskConstMeta(
+    debugName: 'set_allowed_base_dir',
+    argNames: ['baseDir'],
   );
 
   @override
@@ -2136,10 +2409,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          return wire.wire__crate__api__test_connection();
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 71)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_String,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiTestConnectionConstMeta,
@@ -2150,7 +2424,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiTestConnectionConstMeta =>
-      const TaskConstMeta(debugName: "test_connection", argNames: []);
+      const TaskConstMeta(debugName: 'test_connection', argNames: []);
 
   @override
   ApiResultString crateApiTypesetText({
@@ -2161,14 +2435,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(content);
-          var arg1 = cst_encode_String(language);
-          var arg2 = cst_encode_box_autoadd_typeset_config(config);
-          return wire.wire__crate__api__typeset_text(arg0, arg1, arg2);
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(content, serializer);
+          sse_encode_String(language, serializer);
+          sse_encode_box_autoadd_typeset_config(config, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 72)!;
         },
-        codec: DcoCodec(
+        codec: SseCodec(
           decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiTypesetTextConstMeta,
@@ -2179,8 +2454,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiTypesetTextConstMeta => const TaskConstMeta(
-    debugName: "typeset_text",
-    argNames: ["content", "language", "config"],
+    debugName: 'typeset_text',
+    argNames: ['content', 'language', 'config'],
+  );
+
+  @override
+  String crateApiTypesetTextSimple({
+    required String content,
+    required String language,
+    required TypesetConfig config,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(content, serializer);
+          sse_encode_String(language, serializer);
+          sse_encode_box_autoadd_typeset_config(config, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 73)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiTypesetTextSimpleConstMeta,
+        argValues: [content, language, config],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiTypesetTextSimpleConstMeta => const TaskConstMeta(
+    debugName: 'typeset_text_simple',
+    argNames: ['content', 'language', 'config'],
   );
 
   @override
@@ -2193,19 +2499,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          var arg1 = cst_encode_i_32(chapterId);
-          var arg2 = cst_encode_i_32(pageIndex);
-          var arg3 = cst_encode_i_32(totalPages);
-          return wire.wire__crate__api__update_reading_progress(
-            arg0,
-            arg1,
-            arg2,
-            arg3,
-          );
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          sse_encode_i_32(chapterId, serializer);
+          sse_encode_i_32(pageIndex, serializer);
+          sse_encode_i_32(totalPages, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 74)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_reading_progress,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_reading_progress,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiUpdateReadingProgressConstMeta,
@@ -2217,8 +2519,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiUpdateReadingProgressConstMeta =>
       const TaskConstMeta(
-        debugName: "update_reading_progress",
-        argNames: ["bookId", "chapterId", "pageIndex", "totalPages"],
+        debugName: 'update_reading_progress',
+        argNames: ['bookId', 'chapterId', 'pageIndex', 'totalPages'],
       );
 
   @override
@@ -2232,21 +2534,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          var arg0 = cst_encode_String(bookId);
-          var arg1 = cst_encode_i_32(chapterId);
-          var arg2 = cst_encode_i_32(pageIndex);
-          var arg3 = cst_encode_i_32(totalPages);
-          var arg4 = cst_encode_i_64(sessionDuration);
-          return wire.wire__crate__api__update_reading_progress_with_duration(
-            arg0,
-            arg1,
-            arg2,
-            arg3,
-            arg4,
-          );
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(bookId, serializer);
+          sse_encode_i_32(chapterId, serializer);
+          sse_encode_i_32(pageIndex, serializer);
+          sse_encode_i_32(totalPages, serializer);
+          sse_encode_i_64(sessionDuration, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 75)!;
         },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_reading_progress,
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_reading_progress,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiUpdateReadingProgressWithDurationConstMeta,
@@ -2258,14 +2555,80 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiUpdateReadingProgressWithDurationConstMeta =>
       const TaskConstMeta(
-        debugName: "update_reading_progress_with_duration",
+        debugName: 'update_reading_progress_with_duration',
         argNames: [
-          "bookId",
-          "chapterId",
-          "pageIndex",
-          "totalPages",
-          "sessionDuration",
+          'bookId',
+          'chapterId',
+          'pageIndex',
+          'totalPages',
+          'sessionDuration',
         ],
+      );
+
+  @override
+  Future<String> crateApiSecurityValidateFilePath({required String filePath}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 76,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_parser_error,
+        ),
+        constMeta: kCrateApiSecurityValidateFilePathConstMeta,
+        argValues: [filePath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSecurityValidateFilePathConstMeta =>
+      const TaskConstMeta(
+        debugName: 'validate_file_path',
+        argNames: ['filePath'],
+      );
+
+  @override
+  Future<String> crateApiSecurityValidatePathSecurely({
+    required String filePath,
+    required String allowedBase,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          sse_encode_String(allowedBase, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 77,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_parser_error,
+        ),
+        constMeta: kCrateApiSecurityValidatePathSecurelyConstMeta,
+        argValues: [filePath, allowedBase],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSecurityValidatePathSecurelyConstMeta =>
+      const TaskConstMeta(
+        debugName: 'validate_path_securely',
+        argNames: ['filePath', 'allowedBase'],
       );
 
   RustArcIncrementStrongCountFnType
@@ -2614,6 +2977,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  LocalBookInfo dco_decode_box_autoadd_local_book_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_local_book_info(raw);
+  }
+
+  @protected
+  PdfMetadata dco_decode_box_autoadd_pdf_metadata(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_pdf_metadata(raw);
+  }
+
+  @protected
   RichChapterContent dco_decode_box_autoadd_rich_chapter_content(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_rich_chapter_content(raw);
@@ -2650,6 +3025,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       pageOffsets: dco_decode_list_page_offset(arr[2]),
       totalPages: dco_decode_i_32(arr[3]),
       createdAt: dco_decode_i_64(arr[4]),
+    );
+  }
+
+  @protected
+  ChapterInfo dco_decode_chapter_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return ChapterInfo(
+      chapterId: dco_decode_i_32(arr[0]),
+      title: dco_decode_String(arr[1]),
+      startIndex: dco_decode_i_64(arr[2]),
+      endIndex: dco_decode_i_64(arr[3]),
+      contentLength: dco_decode_i_64(arr[4]),
+      index: dco_decode_i_32(arr[5]),
     );
   }
 
@@ -2723,6 +3114,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<ChapterInfo> dco_decode_list_chapter_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_chapter_info).toList();
+  }
+
+  @protected
   List<DailyReadingRecord> dco_decode_list_daily_reading_record(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_daily_reading_record).toList();
@@ -2777,6 +3174,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  LocalBookInfo dco_decode_local_book_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return LocalBookInfo(
+      filePath: dco_decode_String(arr[0]),
+      fileSize: dco_decode_i_64(arr[1]),
+      title: dco_decode_String(arr[2]),
+      author: dco_decode_String(arr[3]),
+      description: dco_decode_String(arr[4]),
+      coverPath: dco_decode_opt_String(arr[5]),
+      chapterCount: dco_decode_i_32(arr[6]),
+      chapters: dco_decode_list_chapter_info(arr[7]),
+    );
+  }
+
+  @protected
   String? dco_decode_opt_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_String(raw);
@@ -2786,6 +3201,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   CachedLayout? dco_decode_opt_box_autoadd_cached_layout(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_cached_layout(raw);
+  }
+
+  @protected
+  LocalBookInfo? dco_decode_opt_box_autoadd_local_book_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_local_book_info(raw);
+  }
+
+  @protected
+  PdfMetadata? dco_decode_opt_box_autoadd_pdf_metadata(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_pdf_metadata(raw);
   }
 
   @protected
@@ -2825,6 +3252,70 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       currentPage: dco_decode_usize(arr[1]),
       linesPerPage: dco_decode_usize(arr[2]),
       lineOffsets: dco_decode_list_record_usize_usize(arr[3]),
+    );
+  }
+
+  @protected
+  ParserError dco_decode_parser_error(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return ParserError_FileNotFound(
+          path: dco_decode_String(raw[1]),
+          reason: dco_decode_String(raw[2]),
+        );
+      case 1:
+        return ParserError_FileReadError(
+          path: dco_decode_String(raw[1]),
+          message: dco_decode_String(raw[2]),
+        );
+      case 2:
+        return ParserError_EncodingError(dco_decode_String(raw[1]));
+      case 3:
+        return ParserError_EpubParseError(dco_decode_String(raw[1]));
+      case 4:
+        return ParserError_PdfParseError(dco_decode_String(raw[1]));
+      case 5:
+        return ParserError_TxtParseError(dco_decode_String(raw[1]));
+      case 6:
+        return ParserError_ChapterExtractError(dco_decode_String(raw[1]));
+      case 7:
+        return ParserError_Typeset(dco_decode_String(raw[1]));
+      case 8:
+        return ParserError_StreamError(dco_decode_String(raw[1]));
+      case 9:
+        return ParserError_UnsupportedFormat(dco_decode_String(raw[1]));
+      case 10:
+        return ParserError_FileWriteError(dco_decode_String(raw[1]));
+      case 11:
+        return ParserError_InternalError(dco_decode_String(raw[1]));
+      case 12:
+        return ParserError_ConfigError(dco_decode_String(raw[1]));
+      case 13:
+        return ParserError_PageExtractError(dco_decode_String(raw[1]));
+      case 14:
+        return ParserError_TextExtractError(dco_decode_String(raw[1]));
+      case 15:
+        return ParserError_Other(dco_decode_String(raw[1]));
+      case 16:
+        return ParserError_SecurityError(dco_decode_String(raw[1]));
+      default:
+        throw Exception('unreachable');
+    }
+  }
+
+  @protected
+  PdfMetadata dco_decode_pdf_metadata(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return PdfMetadata(
+      title: dco_decode_opt_String(arr[0]),
+      author: dco_decode_opt_String(arr[1]),
+      subject: dco_decode_opt_String(arr[2]),
+      creator: dco_decode_opt_String(arr[3]),
+      pageCount: dco_decode_i_32(arr[4]),
     );
   }
 
@@ -2934,7 +3425,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           url: dco_decode_String(raw[2]),
         );
       default:
-        throw Exception("unreachable");
+        throw Exception('unreachable');
     }
   }
 
@@ -3271,20 +3762,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   String sse_decode_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var inner = sse_decode_list_prim_u_8_strict(deserializer);
+    final inner = sse_decode_list_prim_u_8_strict(deserializer);
     return utf8.decoder.convert(inner);
   }
 
   @protected
   Bookmark sse_decode_bookmark(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_bookmarkId = sse_decode_String(deserializer);
-    var var_bookId = sse_decode_String(deserializer);
-    var var_chapterId = sse_decode_i_32(deserializer);
-    var var_pageIndex = sse_decode_i_32(deserializer);
-    var var_title = sse_decode_String(deserializer);
-    var var_createdTimestamp = sse_decode_i_64(deserializer);
-    var var_note = sse_decode_opt_String(deserializer);
+    final var_bookmarkId = sse_decode_String(deserializer);
+    final var_bookId = sse_decode_String(deserializer);
+    final var_chapterId = sse_decode_i_32(deserializer);
+    final var_pageIndex = sse_decode_i_32(deserializer);
+    final var_title = sse_decode_String(deserializer);
+    final var_createdTimestamp = sse_decode_i_64(deserializer);
+    final var_note = sse_decode_opt_String(deserializer);
     return Bookmark(
       bookmarkId: var_bookmarkId,
       bookId: var_bookId,
@@ -3311,6 +3802,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  LocalBookInfo sse_decode_box_autoadd_local_book_info(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_local_book_info(deserializer));
+  }
+
+  @protected
+  PdfMetadata sse_decode_box_autoadd_pdf_metadata(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_pdf_metadata(deserializer));
+  }
+
+  @protected
   RichChapterContent sse_decode_box_autoadd_rich_chapter_content(
     SseDeserializer deserializer,
   ) {
@@ -3329,9 +3836,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   CacheStats sse_decode_cache_stats(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_fileCount = sse_decode_usize(deserializer);
-    var var_chapterCount = sse_decode_usize(deserializer);
-    var var_totalMemoryEstimate = sse_decode_usize(deserializer);
+    final var_fileCount = sse_decode_usize(deserializer);
+    final var_chapterCount = sse_decode_usize(deserializer);
+    final var_totalMemoryEstimate = sse_decode_usize(deserializer);
     return CacheStats(
       fileCount: var_fileCount,
       chapterCount: var_chapterCount,
@@ -3342,11 +3849,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   CachedLayout sse_decode_cached_layout(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_chapterId = sse_decode_i_32(deserializer);
-    var var_configHash = sse_decode_String(deserializer);
-    var var_pageOffsets = sse_decode_list_page_offset(deserializer);
-    var var_totalPages = sse_decode_i_32(deserializer);
-    var var_createdAt = sse_decode_i_64(deserializer);
+    final var_chapterId = sse_decode_i_32(deserializer);
+    final var_configHash = sse_decode_String(deserializer);
+    final var_pageOffsets = sse_decode_list_page_offset(deserializer);
+    final var_totalPages = sse_decode_i_32(deserializer);
+    final var_createdAt = sse_decode_i_64(deserializer);
     return CachedLayout(
       chapterId: var_chapterId,
       configHash: var_configHash,
@@ -3357,15 +3864,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChapterInfo sse_decode_chapter_info(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_chapterId = sse_decode_i_32(deserializer);
+    final var_title = sse_decode_String(deserializer);
+    final var_startIndex = sse_decode_i_64(deserializer);
+    final var_endIndex = sse_decode_i_64(deserializer);
+    final var_contentLength = sse_decode_i_64(deserializer);
+    final var_index = sse_decode_i_32(deserializer);
+    return ChapterInfo(
+      chapterId: var_chapterId,
+      title: var_title,
+      startIndex: var_startIndex,
+      endIndex: var_endIndex,
+      contentLength: var_contentLength,
+      index: var_index,
+    );
+  }
+
+  @protected
   DailyReadingRecord sse_decode_daily_reading_record(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_date = sse_decode_String(deserializer);
-    var var_readingTimeSeconds = sse_decode_i_64(deserializer);
-    var var_charactersRead = sse_decode_i_64(deserializer);
-    var var_chaptersRead = sse_decode_i_32(deserializer);
-    var var_pagesRead = sse_decode_i_32(deserializer);
+    final var_date = sse_decode_String(deserializer);
+    final var_readingTimeSeconds = sse_decode_i_64(deserializer);
+    final var_charactersRead = sse_decode_i_64(deserializer);
+    final var_chaptersRead = sse_decode_i_32(deserializer);
+    final var_pagesRead = sse_decode_i_32(deserializer);
     return DailyReadingRecord(
       date: var_date,
       readingTimeSeconds: var_readingTimeSeconds,
@@ -3396,7 +3922,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   LanguageType sse_decode_language_type(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var inner = sse_decode_i_32(deserializer);
+    final inner = sse_decode_i_32(deserializer);
     return LanguageType.values[inner];
   }
 
@@ -3405,8 +3931,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_hit = sse_decode_bool(deserializer);
-    var var_cachedLayout = sse_decode_opt_box_autoadd_cached_layout(
+    final var_hit = sse_decode_bool(deserializer);
+    final var_cachedLayout = sse_decode_opt_box_autoadd_cached_layout(
       deserializer,
     );
     return LayoutCacheResult(hit: var_hit, cachedLayout: var_cachedLayout);
@@ -3416,8 +3942,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<String> sse_decode_list_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <String>[];
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <String>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_String(deserializer));
     }
@@ -3428,8 +3954,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<Bookmark> sse_decode_list_bookmark(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <Bookmark>[];
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <Bookmark>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_bookmark(deserializer));
     }
@@ -3442,10 +3968,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <CachedLayout>[];
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <CachedLayout>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_cached_layout(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<ChapterInfo> sse_decode_list_chapter_info(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <ChapterInfo>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_chapter_info(deserializer));
     }
     return ans_;
   }
@@ -3456,8 +3994,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <DailyReadingRecord>[];
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <DailyReadingRecord>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_daily_reading_record(deserializer));
     }
@@ -3468,8 +4006,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<PageContent> sse_decode_list_page_content(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <PageContent>[];
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <PageContent>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_page_content(deserializer));
     }
@@ -3480,8 +4018,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<PageOffset> sse_decode_list_page_offset(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <PageOffset>[];
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <PageOffset>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_page_offset(deserializer));
     }
@@ -3491,7 +4029,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var len_ = sse_decode_i_32(deserializer);
+    final len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
   }
 
@@ -3501,8 +4039,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <ReadingProgress>[];
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <ReadingProgress>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_reading_progress(deserializer));
     }
@@ -3515,8 +4053,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <(BigInt, BigInt)>[];
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <(BigInt, BigInt)>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_record_usize_usize(deserializer));
     }
@@ -3529,8 +4067,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <RichParagraph>[];
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <RichParagraph>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_rich_paragraph(deserializer));
     }
@@ -3543,8 +4081,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <RichTextSpan>[];
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <RichTextSpan>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_rich_text_span(deserializer));
     }
@@ -3555,12 +4093,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<SearchHit> sse_decode_list_search_hit(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <SearchHit>[];
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <SearchHit>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_search_hit(deserializer));
     }
     return ans_;
+  }
+
+  @protected
+  LocalBookInfo sse_decode_local_book_info(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_filePath = sse_decode_String(deserializer);
+    final var_fileSize = sse_decode_i_64(deserializer);
+    final var_title = sse_decode_String(deserializer);
+    final var_author = sse_decode_String(deserializer);
+    final var_description = sse_decode_String(deserializer);
+    final var_coverPath = sse_decode_opt_String(deserializer);
+    final var_chapterCount = sse_decode_i_32(deserializer);
+    final var_chapters = sse_decode_list_chapter_info(deserializer);
+    return LocalBookInfo(
+      filePath: var_filePath,
+      fileSize: var_fileSize,
+      title: var_title,
+      author: var_author,
+      description: var_description,
+      coverPath: var_coverPath,
+      chapterCount: var_chapterCount,
+      chapters: var_chapters,
+    );
   }
 
   @protected
@@ -3588,12 +4149,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  LocalBookInfo? sse_decode_opt_box_autoadd_local_book_info(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_local_book_info(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  PdfMetadata? sse_decode_opt_box_autoadd_pdf_metadata(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_pdf_metadata(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   PageContent sse_decode_page_content(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_chapterId = sse_decode_i_32(deserializer);
-    var var_pageIndex = sse_decode_i_32(deserializer);
-    var var_content = sse_decode_String(deserializer);
-    var var_isLastPage = sse_decode_bool(deserializer);
+    final var_chapterId = sse_decode_i_32(deserializer);
+    final var_pageIndex = sse_decode_i_32(deserializer);
+    final var_content = sse_decode_String(deserializer);
+    final var_isLastPage = sse_decode_bool(deserializer);
     return PageContent(
       chapterId: var_chapterId,
       pageIndex: var_pageIndex,
@@ -3605,18 +4192,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   PageOffset sse_decode_page_offset(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_offset = sse_decode_i_64(deserializer);
-    var var_length = sse_decode_i_64(deserializer);
+    final var_offset = sse_decode_i_64(deserializer);
+    final var_length = sse_decode_i_64(deserializer);
     return PageOffset(offset: var_offset, length: var_length);
   }
 
   @protected
   PageStreamer sse_decode_page_streamer(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_lines = sse_decode_list_String(deserializer);
-    var var_currentPage = sse_decode_usize(deserializer);
-    var var_linesPerPage = sse_decode_usize(deserializer);
-    var var_lineOffsets = sse_decode_list_record_usize_usize(deserializer);
+    final var_lines = sse_decode_list_String(deserializer);
+    final var_currentPage = sse_decode_usize(deserializer);
+    final var_linesPerPage = sse_decode_usize(deserializer);
+    final var_lineOffsets = sse_decode_list_record_usize_usize(deserializer);
     return PageStreamer(
       lines: var_lines,
       currentPage: var_currentPage,
@@ -3626,14 +4213,95 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ParserError sse_decode_parser_error(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    final tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        final var_path = sse_decode_String(deserializer);
+        final var_reason = sse_decode_String(deserializer);
+        return ParserError_FileNotFound(path: var_path, reason: var_reason);
+      case 1:
+        final var_path = sse_decode_String(deserializer);
+        final var_message = sse_decode_String(deserializer);
+        return ParserError_FileReadError(path: var_path, message: var_message);
+      case 2:
+        final var_field0 = sse_decode_String(deserializer);
+        return ParserError_EncodingError(var_field0);
+      case 3:
+        final var_field0 = sse_decode_String(deserializer);
+        return ParserError_EpubParseError(var_field0);
+      case 4:
+        final var_field0 = sse_decode_String(deserializer);
+        return ParserError_PdfParseError(var_field0);
+      case 5:
+        final var_field0 = sse_decode_String(deserializer);
+        return ParserError_TxtParseError(var_field0);
+      case 6:
+        final var_field0 = sse_decode_String(deserializer);
+        return ParserError_ChapterExtractError(var_field0);
+      case 7:
+        final var_field0 = sse_decode_String(deserializer);
+        return ParserError_Typeset(var_field0);
+      case 8:
+        final var_field0 = sse_decode_String(deserializer);
+        return ParserError_StreamError(var_field0);
+      case 9:
+        final var_field0 = sse_decode_String(deserializer);
+        return ParserError_UnsupportedFormat(var_field0);
+      case 10:
+        final var_field0 = sse_decode_String(deserializer);
+        return ParserError_FileWriteError(var_field0);
+      case 11:
+        final var_field0 = sse_decode_String(deserializer);
+        return ParserError_InternalError(var_field0);
+      case 12:
+        final var_field0 = sse_decode_String(deserializer);
+        return ParserError_ConfigError(var_field0);
+      case 13:
+        final var_field0 = sse_decode_String(deserializer);
+        return ParserError_PageExtractError(var_field0);
+      case 14:
+        final var_field0 = sse_decode_String(deserializer);
+        return ParserError_TextExtractError(var_field0);
+      case 15:
+        final var_field0 = sse_decode_String(deserializer);
+        return ParserError_Other(var_field0);
+      case 16:
+        final var_field0 = sse_decode_String(deserializer);
+        return ParserError_SecurityError(var_field0);
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
+  PdfMetadata sse_decode_pdf_metadata(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_title = sse_decode_opt_String(deserializer);
+    final var_author = sse_decode_opt_String(deserializer);
+    final var_subject = sse_decode_opt_String(deserializer);
+    final var_creator = sse_decode_opt_String(deserializer);
+    final var_pageCount = sse_decode_i_32(deserializer);
+    return PdfMetadata(
+      title: var_title,
+      author: var_author,
+      subject: var_subject,
+      creator: var_creator,
+      pageCount: var_pageCount,
+    );
+  }
+
+  @protected
   ReadingProgress sse_decode_reading_progress(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_chapterId = sse_decode_i_32(deserializer);
-    var var_pageIndex = sse_decode_i_32(deserializer);
-    var var_totalPages = sse_decode_i_32(deserializer);
-    var var_progress = sse_decode_f_32(deserializer);
-    var var_readingTimeSeconds = sse_decode_i_64(deserializer);
-    var var_lastReadTimestamp = sse_decode_i_64(deserializer);
+    final var_chapterId = sse_decode_i_32(deserializer);
+    final var_pageIndex = sse_decode_i_32(deserializer);
+    final var_totalPages = sse_decode_i_32(deserializer);
+    final var_progress = sse_decode_f_32(deserializer);
+    final var_readingTimeSeconds = sse_decode_i_64(deserializer);
+    final var_lastReadTimestamp = sse_decode_i_64(deserializer);
     return ReadingProgress(
       chapterId: var_chapterId,
       pageIndex: var_pageIndex,
@@ -3647,14 +4315,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   ReadingStats sse_decode_reading_stats(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_totalReadingTimeSeconds = sse_decode_i_64(deserializer);
-    var var_totalCharactersRead = sse_decode_i_64(deserializer);
-    var var_booksReadCount = sse_decode_i_32(deserializer);
-    var var_booksCompletedCount = sse_decode_i_32(deserializer);
-    var var_consecutiveReadingDays = sse_decode_i_32(deserializer);
-    var var_todayReadingTimeSeconds = sse_decode_i_64(deserializer);
-    var var_todayCharactersRead = sse_decode_i_64(deserializer);
-    var var_averageReadingSpeed = sse_decode_f_32(deserializer);
+    final var_totalReadingTimeSeconds = sse_decode_i_64(deserializer);
+    final var_totalCharactersRead = sse_decode_i_64(deserializer);
+    final var_booksReadCount = sse_decode_i_32(deserializer);
+    final var_booksCompletedCount = sse_decode_i_32(deserializer);
+    final var_consecutiveReadingDays = sse_decode_i_32(deserializer);
+    final var_todayReadingTimeSeconds = sse_decode_i_64(deserializer);
+    final var_todayCharactersRead = sse_decode_i_64(deserializer);
+    final var_averageReadingSpeed = sse_decode_f_32(deserializer);
     return ReadingStats(
       totalReadingTimeSeconds: var_totalReadingTimeSeconds,
       totalCharactersRead: var_totalCharactersRead,
@@ -3672,16 +4340,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_field0 = sse_decode_i_64(deserializer);
-    var var_field1 = sse_decode_i_64(deserializer);
+    final var_field0 = sse_decode_i_64(deserializer);
+    final var_field1 = sse_decode_i_64(deserializer);
     return (var_field0, var_field1);
   }
 
   @protected
   (BigInt, BigInt) sse_decode_record_usize_usize(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_field0 = sse_decode_usize(deserializer);
-    var var_field1 = sse_decode_usize(deserializer);
+    final var_field0 = sse_decode_usize(deserializer);
+    final var_field1 = sse_decode_usize(deserializer);
     return (var_field0, var_field1);
   }
 
@@ -3690,9 +4358,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_chapterId = sse_decode_i_32(deserializer);
-    var var_paragraphs = sse_decode_list_rich_paragraph(deserializer);
-    var var_totalCharacters = sse_decode_i_64(deserializer);
+    final var_chapterId = sse_decode_i_32(deserializer);
+    final var_paragraphs = sse_decode_list_rich_paragraph(deserializer);
+    final var_totalCharacters = sse_decode_i_64(deserializer);
     return RichChapterContent(
       chapterId: var_chapterId,
       paragraphs: var_paragraphs,
@@ -3703,11 +4371,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   RichParagraph sse_decode_rich_paragraph(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_spans = sse_decode_list_rich_text_span(deserializer);
-    var var_indent = sse_decode_u_8(deserializer);
-    var var_isHeading = sse_decode_bool(deserializer);
-    var var_headingLevel = sse_decode_u_8(deserializer);
-    var var_className = sse_decode_opt_String(deserializer);
+    final var_spans = sse_decode_list_rich_text_span(deserializer);
+    final var_indent = sse_decode_u_8(deserializer);
+    final var_isHeading = sse_decode_bool(deserializer);
+    final var_headingLevel = sse_decode_u_8(deserializer);
+    final var_className = sse_decode_opt_String(deserializer);
     return RichParagraph(
       spans: var_spans,
       indent: var_indent,
@@ -3721,32 +4389,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RichTextSpan sse_decode_rich_text_span(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    var tag_ = sse_decode_i_32(deserializer);
+    final tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        var var_text = sse_decode_String(deserializer);
+        final var_text = sse_decode_String(deserializer);
         return RichTextSpan_Plain(text: var_text);
       case 1:
-        var var_text = sse_decode_String(deserializer);
+        final var_text = sse_decode_String(deserializer);
         return RichTextSpan_Bold(text: var_text);
       case 2:
-        var var_text = sse_decode_String(deserializer);
+        final var_text = sse_decode_String(deserializer);
         return RichTextSpan_Italic(text: var_text);
       case 3:
-        var var_text = sse_decode_String(deserializer);
+        final var_text = sse_decode_String(deserializer);
         return RichTextSpan_BoldItalic(text: var_text);
       case 4:
-        var var_text = sse_decode_String(deserializer);
+        final var_text = sse_decode_String(deserializer);
         return RichTextSpan_Underline(text: var_text);
       case 5:
-        var var_text = sse_decode_String(deserializer);
+        final var_text = sse_decode_String(deserializer);
         return RichTextSpan_Strikethrough(text: var_text);
       case 6:
-        var var_text = sse_decode_String(deserializer);
+        final var_text = sse_decode_String(deserializer);
         return RichTextSpan_Code(text: var_text);
       case 7:
-        var var_text = sse_decode_String(deserializer);
-        var var_url = sse_decode_String(deserializer);
+        final var_text = sse_decode_String(deserializer);
+        final var_url = sse_decode_String(deserializer);
         return RichTextSpan_Link(text: var_text, url: var_url);
       default:
         throw UnimplementedError('');
@@ -3756,11 +4424,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   SearchHit sse_decode_search_hit(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_chapterId = sse_decode_i_32(deserializer);
-    var var_chapterTitle = sse_decode_String(deserializer);
-    var var_snippet = sse_decode_String(deserializer);
-    var var_position = sse_decode_i_64(deserializer);
-    var var_score = sse_decode_f_32(deserializer);
+    final var_chapterId = sse_decode_i_32(deserializer);
+    final var_chapterTitle = sse_decode_String(deserializer);
+    final var_snippet = sse_decode_String(deserializer);
+    final var_position = sse_decode_i_64(deserializer);
+    final var_score = sse_decode_f_32(deserializer);
     return SearchHit(
       chapterId: var_chapterId,
       chapterTitle: var_chapterTitle,
@@ -3773,9 +4441,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   SearchResults sse_decode_search_results(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_totalHits = sse_decode_i_32(deserializer);
-    var var_hits = sse_decode_list_search_hit(deserializer);
-    var var_elapsedMs = sse_decode_i_64(deserializer);
+    final var_totalHits = sse_decode_i_32(deserializer);
+    final var_hits = sse_decode_list_search_hit(deserializer);
+    final var_elapsedMs = sse_decode_i_64(deserializer);
     return SearchResults(
       totalHits: var_totalHits,
       hits: var_hits,
@@ -3786,16 +4454,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   TypesetConfig sse_decode_typeset_config(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_pageWidth = sse_decode_i_32(deserializer);
-    var var_pageHeight = sse_decode_i_32(deserializer);
-    var var_fontSize = sse_decode_i_32(deserializer);
-    var var_lineSpacing = sse_decode_f_32(deserializer);
-    var var_letterSpacing = sse_decode_f_32(deserializer);
-    var var_paragraphSpacing = sse_decode_f_32(deserializer);
-    var var_firstLineIndent = sse_decode_u_8(deserializer);
-    var var_language = sse_decode_language_type(deserializer);
-    var var_enableHyphenation = sse_decode_bool(deserializer);
-    var var_hyphenationLanguage = sse_decode_opt_String(deserializer);
+    final var_pageWidth = sse_decode_i_32(deserializer);
+    final var_pageHeight = sse_decode_i_32(deserializer);
+    final var_fontSize = sse_decode_i_32(deserializer);
+    final var_lineSpacing = sse_decode_f_32(deserializer);
+    final var_letterSpacing = sse_decode_f_32(deserializer);
+    final var_paragraphSpacing = sse_decode_f_32(deserializer);
+    final var_firstLineIndent = sse_decode_u_8(deserializer);
+    final var_language = sse_decode_language_type(deserializer);
+    final var_enableHyphenation = sse_decode_bool(deserializer);
+    final var_hyphenationLanguage = sse_decode_opt_String(deserializer);
     return TypesetConfig(
       pageWidth: var_pageWidth,
       pageHeight: var_pageHeight,
@@ -3825,268 +4493,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BigInt sse_decode_usize(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getBigUint64();
-  }
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
-    ApiResult raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultImpl).frbInternalCstEncode(move: true);
-  }
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
-    ApiResultEpubImageInfo raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultEpubImageInfoImpl).frbInternalCstEncode(move: true);
-  }
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
-    ApiResultEpubImageList raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultEpubImageListImpl).frbInternalCstEncode(move: true);
-  }
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-    ApiResultEpubMetadata raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultEpubMetadataImpl).frbInternalCstEncode(move: true);
-  }
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-    ApiResultLocalBookInfo raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultLocalBookInfoImpl).frbInternalCstEncode(move: true);
-  }
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-    ApiResultParseResult raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultParseResultImpl).frbInternalCstEncode(move: true);
-  }
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-    ApiResultRichChapterContent raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultRichChapterContentImpl).frbInternalCstEncode(
-      move: true,
-    );
-  }
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-    ApiResultString raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultStringImpl).frbInternalCstEncode(move: true);
-  }
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
-    ApiResultZeroCopyBufferVecSearchHit raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultZeroCopyBufferVecSearchHitImpl)
-        .frbInternalCstEncode(move: true);
-  }
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
-    ApiResultZeroCopyBufferVecU8 raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultZeroCopyBufferVecU8Impl).frbInternalCstEncode(
-      move: true,
-    );
-  }
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-    ApiResultI64 raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultI64Impl).frbInternalCstEncode(move: true);
-  }
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
-    ApiResult raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultImpl).frbInternalCstEncode();
-  }
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
-    ApiResultEpubImageInfo raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultEpubImageInfoImpl).frbInternalCstEncode();
-  }
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
-    ApiResultEpubImageList raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultEpubImageListImpl).frbInternalCstEncode();
-  }
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-    ApiResultEpubMetadata raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultEpubMetadataImpl).frbInternalCstEncode();
-  }
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-    ApiResultLocalBookInfo raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultLocalBookInfoImpl).frbInternalCstEncode();
-  }
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-    ApiResultParseResult raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultParseResultImpl).frbInternalCstEncode();
-  }
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-    ApiResultRichChapterContent raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultRichChapterContentImpl).frbInternalCstEncode();
-  }
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-    ApiResultString raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultStringImpl).frbInternalCstEncode();
-  }
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
-    ApiResultZeroCopyBufferVecSearchHit raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultZeroCopyBufferVecSearchHitImpl)
-        .frbInternalCstEncode();
-  }
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
-    ApiResultZeroCopyBufferVecU8 raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultZeroCopyBufferVecU8Impl).frbInternalCstEncode();
-  }
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-    ApiResultI64 raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as ApiResultI64Impl).frbInternalCstEncode();
-  }
-
-  @protected
-  bool cst_encode_bool(bool raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw;
-  }
-
-  @protected
-  double cst_encode_f_32(double raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw;
-  }
-
-  @protected
-  int cst_encode_i_32(int raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw;
-  }
-
-  @protected
-  int cst_encode_language_type(LanguageType raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_i_32(raw.index);
-  }
-
-  @protected
-  int cst_encode_u_8(int raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw;
-  }
-
-  @protected
-  void cst_encode_unit(void raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw;
   }
 
   @protected
@@ -4421,6 +4827,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_local_book_info(
+    LocalBookInfo self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_local_book_info(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_pdf_metadata(
+    PdfMetadata self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_pdf_metadata(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_rich_chapter_content(
     RichChapterContent self,
     SseSerializer serializer,
@@ -4454,6 +4878,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_list_page_offset(self.pageOffsets, serializer);
     sse_encode_i_32(self.totalPages, serializer);
     sse_encode_i_64(self.createdAt, serializer);
+  }
+
+  @protected
+  void sse_encode_chapter_info(ChapterInfo self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.chapterId, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_i_64(self.startIndex, serializer);
+    sse_encode_i_64(self.endIndex, serializer);
+    sse_encode_i_64(self.contentLength, serializer);
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected
@@ -4530,6 +4965,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_cached_layout(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_chapter_info(
+    List<ChapterInfo> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_chapter_info(item, serializer);
     }
   }
 
@@ -4640,6 +5087,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_local_book_info(
+    LocalBookInfo self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.filePath, serializer);
+    sse_encode_i_64(self.fileSize, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.author, serializer);
+    sse_encode_String(self.description, serializer);
+    sse_encode_opt_String(self.coverPath, serializer);
+    sse_encode_i_32(self.chapterCount, serializer);
+    sse_encode_list_chapter_info(self.chapters, serializer);
+  }
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -4659,6 +5122,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_cached_layout(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_local_book_info(
+    LocalBookInfo? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_local_book_info(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_pdf_metadata(
+    PdfMetadata? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_pdf_metadata(self, serializer);
     }
   }
 
@@ -4685,6 +5174,76 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_usize(self.currentPage, serializer);
     sse_encode_usize(self.linesPerPage, serializer);
     sse_encode_list_record_usize_usize(self.lineOffsets, serializer);
+  }
+
+  @protected
+  void sse_encode_parser_error(ParserError self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case ParserError_FileNotFound(path: final path, reason: final reason):
+        sse_encode_i_32(0, serializer);
+        sse_encode_String(path, serializer);
+        sse_encode_String(reason, serializer);
+      case ParserError_FileReadError(path: final path, message: final message):
+        sse_encode_i_32(1, serializer);
+        sse_encode_String(path, serializer);
+        sse_encode_String(message, serializer);
+      case ParserError_EncodingError(field0: final field0):
+        sse_encode_i_32(2, serializer);
+        sse_encode_String(field0, serializer);
+      case ParserError_EpubParseError(field0: final field0):
+        sse_encode_i_32(3, serializer);
+        sse_encode_String(field0, serializer);
+      case ParserError_PdfParseError(field0: final field0):
+        sse_encode_i_32(4, serializer);
+        sse_encode_String(field0, serializer);
+      case ParserError_TxtParseError(field0: final field0):
+        sse_encode_i_32(5, serializer);
+        sse_encode_String(field0, serializer);
+      case ParserError_ChapterExtractError(field0: final field0):
+        sse_encode_i_32(6, serializer);
+        sse_encode_String(field0, serializer);
+      case ParserError_Typeset(field0: final field0):
+        sse_encode_i_32(7, serializer);
+        sse_encode_String(field0, serializer);
+      case ParserError_StreamError(field0: final field0):
+        sse_encode_i_32(8, serializer);
+        sse_encode_String(field0, serializer);
+      case ParserError_UnsupportedFormat(field0: final field0):
+        sse_encode_i_32(9, serializer);
+        sse_encode_String(field0, serializer);
+      case ParserError_FileWriteError(field0: final field0):
+        sse_encode_i_32(10, serializer);
+        sse_encode_String(field0, serializer);
+      case ParserError_InternalError(field0: final field0):
+        sse_encode_i_32(11, serializer);
+        sse_encode_String(field0, serializer);
+      case ParserError_ConfigError(field0: final field0):
+        sse_encode_i_32(12, serializer);
+        sse_encode_String(field0, serializer);
+      case ParserError_PageExtractError(field0: final field0):
+        sse_encode_i_32(13, serializer);
+        sse_encode_String(field0, serializer);
+      case ParserError_TextExtractError(field0: final field0):
+        sse_encode_i_32(14, serializer);
+        sse_encode_String(field0, serializer);
+      case ParserError_Other(field0: final field0):
+        sse_encode_i_32(15, serializer);
+        sse_encode_String(field0, serializer);
+      case ParserError_SecurityError(field0: final field0):
+        sse_encode_i_32(16, serializer);
+        sse_encode_String(field0, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_pdf_metadata(PdfMetadata self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.title, serializer);
+    sse_encode_opt_String(self.author, serializer);
+    sse_encode_opt_String(self.subject, serializer);
+    sse_encode_opt_String(self.creator, serializer);
+    sse_encode_i_32(self.pageCount, serializer);
   }
 
   @protected

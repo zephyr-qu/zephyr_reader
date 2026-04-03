@@ -19,8 +19,9 @@ pub fn extract_pdf_cover(file_path: &str, output_dir: &str) -> ApiResult<String>
         return Err(ParserError::file_not_found(file_path));
     }
 
-    std::fs::create_dir_all(output_dir)
-        .map_err(|e| ParserError::file_write_error(output_dir, format!("创建输出目录失败：{}", e)))?;
+    std::fs::create_dir_all(output_dir).map_err(|e| {
+        ParserError::file_write_error(output_dir, format!("创建输出目录失败：{}", e))
+    })?;
 
     // 生成输出文件名
     let book_filename = Path::new(file_path)
@@ -51,8 +52,12 @@ pub fn extract_pdf_cover(file_path: &str, output_dir: &str) -> ApiResult<String>
         Err(e) => {
             tracing::warn!("PDF 封面提取失败：{}, 返回占位路径", e);
             // 失败时创建空文件作为占位
-            std::fs::write(&cover_output_path, b"")
-                .map_err(|e| ParserError::file_write_error(&cover_output_path, format!("写入封面文件失败：{}", e)))?;
+            std::fs::write(&cover_output_path, b"").map_err(|e| {
+                ParserError::file_write_error(
+                    &cover_output_path,
+                    format!("写入封面文件失败：{}", e),
+                )
+            })?;
             Ok(cover_output_path)
         }
     }
@@ -86,7 +91,7 @@ fn extract_cover_from_pdf(file_path: &str, output_path: &str) -> ApiResult<()> {
     // 设置渲染配置 - 使用更高的质量
     // 对于封面，我们使用较高的分辨率以保证质量
     let render_config = PdfRenderConfig::new()
-        .set_target_width(1200)  // 提高宽度到 1200px
+        .set_target_width(1200) // 提高宽度到 1200px
         .set_maximum_height(1800) // 提高高度到 1800px
         .clear_before_rendering(true); // 渲染前清除缓存
 
@@ -100,11 +105,14 @@ fn extract_cover_from_pdf(file_path: &str, output_path: &str) -> ApiResult<()> {
         .as_image()
         .into_rgb8()
         .save_with_format(output_path, image::ImageFormat::Jpeg)
-        .map_err(|e| ParserError::file_write_error(output_path, format!("保存封面文件失败：{}", e)))?;
+        .map_err(|e| {
+            ParserError::file_write_error(output_path, format!("保存封面文件失败：{}", e))
+        })?;
 
     // 验证保存的文件
-    let metadata = std::fs::metadata(output_path)
-        .map_err(|e| ParserError::file_read_error(output_path, format!("无法读取封面文件元数据：{}", e)))?;
+    let metadata = std::fs::metadata(output_path).map_err(|e| {
+        ParserError::file_read_error(output_path, format!("无法读取封面文件元数据：{}", e))
+    })?;
 
     if metadata.len() == 0 {
         return Err(ParserError::file_write_error(
@@ -173,10 +181,9 @@ pub fn extract_pdf_cover_bytes(file_path: &str) -> ApiResult<Vec<u8>> {
         .as_image()
         .into_rgb8()
         .write_to(&mut jpeg_data, image::ImageFormat::Jpeg)
-        .map_err(|e| ParserError::file_write_error(
-            file_path,
-            format!("编码 JPEG 图像失败：{}", e),
-        ))?;
+        .map_err(|e| {
+            ParserError::file_write_error(file_path, format!("编码 JPEG 图像失败：{}", e))
+        })?;
 
     let data = jpeg_data.into_inner();
 
@@ -221,7 +228,11 @@ mod tests {
         let result = extract_pdf_cover("non_existent.pdf", "/tmp");
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(matches!(err, ParserError::FileNotFound { .. }), "Expected FileNotFound error, got: {:?}", err);
+        assert!(
+            matches!(err, ParserError::FileNotFound { .. }),
+            "Expected FileNotFound error, got: {:?}",
+            err
+        );
     }
 
     #[test]
@@ -229,7 +240,11 @@ mod tests {
         let result = extract_pdf_cover_bytes("non_existent.pdf");
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(matches!(err, ParserError::FileNotFound { .. }), "Expected FileNotFound error, got: {:?}", err);
+        assert!(
+            matches!(err, ParserError::FileNotFound { .. }),
+            "Expected FileNotFound error, got: {:?}",
+            err
+        );
     }
 
     #[test]
@@ -252,7 +267,10 @@ mod tests {
         // 写入无效的 PDF 内容
         std::fs::write(&file_path, b"%PDF-1.4\ninvalid content").unwrap();
 
-        let result = extract_pdf_cover(file_path.to_str().unwrap(), temp_dir.path().to_str().unwrap());
+        let result = extract_pdf_cover(
+            file_path.to_str().unwrap(),
+            temp_dir.path().to_str().unwrap(),
+        );
         // 即使解析失败，也会返回占位文件路径
         assert!(result.is_ok());
     }
@@ -268,10 +286,7 @@ mod tests {
         std::fs::write(&file_path, b"%PDF-1.4\n").unwrap();
 
         // 输出目录不存在，应该自动创建
-        let result = extract_pdf_cover(
-            file_path.to_str().unwrap(),
-            nested_dir.to_str().unwrap(),
-        );
+        let result = extract_pdf_cover(file_path.to_str().unwrap(), nested_dir.to_str().unwrap());
 
         // 即使 PDF 解析失败，也应该返回占位文件路径
         assert!(result.is_ok());
@@ -286,7 +301,7 @@ mod tests {
         let test_cases = vec![
             ("test_book.pdf", "test_book"),
             ("My Book.pdf", "My_Book"),
-            ("文件 123.pdf", "文件_123"),  // 注意：空格会被替换为下划线
+            ("文件 123.pdf", "文件_123"), // 注意：空格会被替换为下划线
         ];
 
         for (input, expected_stem) in test_cases {
@@ -301,8 +316,12 @@ mod tests {
             // 验证文件名格式
             assert!(cover_filename.ends_with("_cover.jpg"));
             // 验证包含原文件名（去除空格后）
-            assert!(cover_filename.contains(expected_stem),
-                "封面文件名 '{}' 应该包含 '{}'", cover_filename, expected_stem);
+            assert!(
+                cover_filename.contains(expected_stem),
+                "封面文件名 '{}' 应该包含 '{}'",
+                cover_filename,
+                expected_stem
+            );
         }
     }
 
@@ -310,9 +329,9 @@ mod tests {
     fn test_cover_filename_edge_cases() {
         // 测试边界情况
         let edge_cases = vec![
-            ("", "cover"),  // 空文件名
+            ("", "cover"), // 空文件名
             ("no_extension", "no_extension"),
-            ("  spaces  .pdf", "spaces"),  // 多余空格
+            ("  spaces  .pdf", "spaces"), // 多余空格
         ];
 
         for (input, _expected_stemm) in edge_cases {

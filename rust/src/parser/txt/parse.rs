@@ -110,6 +110,9 @@ pub fn parse_txt_with_config(file_path: String, config: ParseConfig) -> ApiResul
         elapsed
     );
 
+    // 记录性能指标
+    crate::utils::metrics::METRICS.record_parse(elapsed.as_millis() as u64);
+
     Ok(ParseResult {
         book_info,
         chapters,
@@ -262,7 +265,11 @@ mod tests {
         let result = parse_txt("non_existent_file.txt".to_string());
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(matches!(err, ParserError::FileNotFound { .. }), "Expected FileNotFound error, got: {:?}", err);
+        assert!(
+            matches!(err, ParserError::FileNotFound { .. }),
+            "Expected FileNotFound error, got: {:?}",
+            err
+        );
     }
 
     #[test]
@@ -300,5 +307,85 @@ mod tests {
         let chapters = extract_chapters(content);
         assert_eq!(chapters.len(), 1);
         assert_eq!(chapters[0].title, "全文");
+    }
+
+    #[test]
+    fn test_extract_chapters_with_special_chars() {
+        // 测试包含特殊字符的章节标题
+        let content = r#"第零章 序章
+这是序章内容。
+
+第一〇一章 特殊数字
+这是第101章内容。
+
+第一千零一章 大结局
+这是最终章。"#;
+
+        let chapters = extract_chapters(content);
+        assert_eq!(chapters.len(), 3);
+        assert_eq!(chapters[0].title, "第零章 序章");
+        assert_eq!(chapters[1].title, "第一〇一章 特殊数字");
+    }
+
+    #[test]
+    fn test_simple_paginate_basic() {
+        let content = "Line 1\nLine 2\nLine 3\nLine 4\nLine 5";
+        let pages = simple_paginate(content, 1, 2);
+
+        assert_eq!(pages.len(), 3);
+        assert_eq!(pages[0].page_index, 0);
+        assert!(!pages[0].is_last_page);
+        assert_eq!(pages[2].page_index, 2);
+        assert!(pages[2].is_last_page);
+    }
+
+    #[test]
+    fn test_simple_paginate_empty_content() {
+        let pages = simple_paginate("", 1, 10);
+
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].page_index, 0);
+        assert!(pages[0].is_last_page);
+        assert_eq!(pages[0].content, "");
+    }
+
+    #[test]
+    fn test_simple_paginate_single_page() {
+        let content = "Single line";
+        let pages = simple_paginate(content, 1, 10);
+
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0].content, "Single line");
+        assert!(pages[0].is_last_page);
+    }
+
+    #[test]
+    fn test_parse_txt_with_long_content() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("long.txt");
+
+        // 创建包含多个章节的长文本
+        let mut content = String::new();
+        for i in 1..=10 {
+            content.push_str(&format!("第{}章 章节{}\n\n这是第{}章的内容。\n\n", i, i, i));
+        }
+        fs::write(&file_path, &content).unwrap();
+
+        let result = parse_txt(file_path.to_str().unwrap().to_string());
+        assert!(result.is_ok());
+        let parse_result = result.unwrap();
+        // 章节检测可能无法识别所有格式，但至少应该有章节
+        assert!(!parse_result.chapters.is_empty());
+    }
+
+    #[test]
+    fn test_parse_txt_with_chinese_punctuation() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("chinese.txt");
+        let content = "第一章：开始\n这是中文标点符号的测试。\n";
+        fs::write(&file_path, content).unwrap();
+
+        let result = parse_txt(file_path.to_str().unwrap().to_string());
+        assert!(result.is_ok());
     }
 }

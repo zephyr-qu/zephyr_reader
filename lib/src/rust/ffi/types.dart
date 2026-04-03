@@ -3,12 +3,9 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
-import 'package:zephyr_reader/core/database/database.dart';
-
-import '../frb_generated.dart';
-
 part 'types.freezed.dart';
 
 /// 书签信息
@@ -113,6 +110,57 @@ class CachedLayout {
           createdAt == other.createdAt;
 }
 
+/// 章节信息结构体
+class ChapterInfo {
+  /// 章节唯一标识
+  final int chapterId;
+
+  /// 章节标题
+  final String title;
+
+  /// 章节在文件中的起始位置
+  final PlatformInt64 startIndex;
+
+  /// 章节在文件中的结束位置
+  final PlatformInt64 endIndex;
+
+  /// 章节内容长度
+  final PlatformInt64 contentLength;
+
+  /// 章节序号
+  final int index;
+
+  const ChapterInfo({
+    required this.chapterId,
+    required this.title,
+    required this.startIndex,
+    required this.endIndex,
+    required this.contentLength,
+    required this.index,
+  });
+
+  @override
+  int get hashCode =>
+      chapterId.hashCode ^
+      title.hashCode ^
+      startIndex.hashCode ^
+      endIndex.hashCode ^
+      contentLength.hashCode ^
+      index.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ChapterInfo &&
+          runtimeType == other.runtimeType &&
+          chapterId == other.chapterId &&
+          title == other.title &&
+          startIndex == other.startIndex &&
+          endIndex == other.endIndex &&
+          contentLength == other.contentLength &&
+          index == other.index;
+}
+
 /// 每日阅读记录
 class DailyReadingRecord {
   /// 日期（YYYY-MM-DD 格式）
@@ -156,16 +204,6 @@ class DailyReadingRecord {
           charactersRead == other.charactersRead &&
           chaptersRead == other.chaptersRead &&
           pagesRead == other.pagesRead;
-
-  factory DailyReadingRecord.fromDb(DbDailyReadingRecord db) {
-    return DailyReadingRecord(
-      date: db.date,
-      readingTimeSeconds: db.readingTimeSeconds,
-      charactersRead: db.charactersRead,
-      chaptersRead: db.chaptersRead,
-      pagesRead: db.pagesRead,
-    );
-  }
 }
 
 /// 文本语言类型
@@ -203,6 +241,69 @@ class LayoutCacheResult {
           runtimeType == other.runtimeType &&
           hit == other.hit &&
           cachedLayout == other.cachedLayout;
+}
+
+/// 本地书籍信息（用于文件选择后展示）
+class LocalBookInfo {
+  /// 文件路径
+  final String filePath;
+
+  /// 文件大小（字节）
+  final PlatformInt64 fileSize;
+
+  /// 书籍标题
+  final String title;
+
+  /// 作者
+  final String author;
+
+  /// 描述/简介
+  final String description;
+
+  /// 封面路径
+  final String? coverPath;
+
+  /// 章节数量
+  final int chapterCount;
+
+  /// 章节列表
+  final List<ChapterInfo> chapters;
+
+  const LocalBookInfo({
+    required this.filePath,
+    required this.fileSize,
+    required this.title,
+    required this.author,
+    required this.description,
+    this.coverPath,
+    required this.chapterCount,
+    required this.chapters,
+  });
+
+  @override
+  int get hashCode =>
+      filePath.hashCode ^
+      fileSize.hashCode ^
+      title.hashCode ^
+      author.hashCode ^
+      description.hashCode ^
+      coverPath.hashCode ^
+      chapterCount.hashCode ^
+      chapters.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LocalBookInfo &&
+          runtimeType == other.runtimeType &&
+          filePath == other.filePath &&
+          fileSize == other.fileSize &&
+          title == other.title &&
+          author == other.author &&
+          description == other.description &&
+          coverPath == other.coverPath &&
+          chapterCount == other.chapterCount &&
+          chapters == other.chapters;
 }
 
 /// 分页内容结构体
@@ -264,6 +365,51 @@ class PageOffset {
           runtimeType == other.runtimeType &&
           offset == other.offset &&
           length == other.length;
+}
+
+/// PDF 元数据
+class PdfMetadata {
+  /// 文档标题
+  final String? title;
+
+  /// 文档作者
+  final String? author;
+
+  /// 文档主题
+  final String? subject;
+
+  /// 创建者（生成 PDF 的软件）
+  final String? creator;
+
+  /// 页数
+  final int pageCount;
+
+  const PdfMetadata({
+    this.title,
+    this.author,
+    this.subject,
+    this.creator,
+    required this.pageCount,
+  });
+
+  @override
+  int get hashCode =>
+      title.hashCode ^
+      author.hashCode ^
+      subject.hashCode ^
+      creator.hashCode ^
+      pageCount.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PdfMetadata &&
+          runtimeType == other.runtimeType &&
+          title == other.title &&
+          author == other.author &&
+          subject == other.subject &&
+          creator == other.creator &&
+          pageCount == other.pageCount;
 }
 
 /// 阅读进度信息

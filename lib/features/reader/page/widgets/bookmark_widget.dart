@@ -141,16 +141,10 @@ class BookmarkWidget extends HookWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListTile(
-        leading: const Icon(
-          Icons.bookmark,
-          color: Colors.blue,
-        ),
+        leading: const Icon(Icons.bookmark, color: Colors.blue),
         title: Text(
           bookmark.note?.isNotEmpty == true ? bookmark.note! : '书签',
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,19 +162,13 @@ class BookmarkWidget extends HookWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(
-                Icons.navigation,
-                color: Colors.blue,
-              ),
+              icon: const Icon(Icons.navigation, color: Colors.blue),
               onPressed: () => onBookmarkSelected(bookmark),
               tooltip: '跳转',
             ),
             Builder(
               builder: (context) => IconButton(
-                icon: const Icon(
-                  Icons.delete_outline,
-                  color: Colors.red,
-                ),
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
                 onPressed: () => _showDeleteConfirm(context, bookmark),
                 tooltip: '删除',
               ),

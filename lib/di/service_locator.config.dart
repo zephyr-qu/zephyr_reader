@@ -36,12 +36,14 @@ import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_mode
     as _i790;
 import 'package:zephyr_reader/features/bookshelf/application/services/book_import_service.dart'
     as _i715;
+import 'package:zephyr_reader/features/bookshelf/application/services/book_import_service_v2.dart'
+    as _i39;
 import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart'
     as _i377;
+import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_settings_service.dart'
+    as _i265;
 import 'package:zephyr_reader/features/bookshelf/application/services/category_cache_service.dart'
     as _i702;
-import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_settings_service.dart'
-    as _i703;
 import 'package:zephyr_reader/features/bookshelf/application/states/bookshelf_state.dart'
     as _i895;
 import 'package:zephyr_reader/features/bookshelf/data/repositories/book_repository_impl.dart'
@@ -101,6 +103,7 @@ extension GetItInjectableX on _i174.GetIt {
       preResolve: true,
     );
     gh.factory<_i715.BookImportService>(() => _i715.BookImportService());
+    gh.factory<_i39.BookImportServiceV2>(() => _i39.BookImportServiceV2());
     gh.factory<_i895.BookshelfState>(() => _i895.BookshelfState());
     await gh.singletonAsync<_i731.AppDatabase>(
       () => databaseModule.database,
@@ -158,14 +161,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i878.AuthRepository>(
       () => _i738.AuthService(gh<_i60.AuthApi>()),
     );
+    gh.singleton<_i265.BookshelfSettingsService>(
+      () => _i265.BookshelfSettingsService(gh<_i460.SharedPreferences>()),
+    );
     gh.factory<_i601.CustomFontService>(
       () => _i601.CustomFontService(gh<_i460.SharedPreferences>()),
-    );
-    gh.factory<_i601.FontDownloadService>(
-      () => _i601.FontDownloadService(
-        gh<_i361.Dio>(),
-        gh<_i601.CustomFontService>(),
-      ),
     );
     gh.factory<_i556.ArticleViewModel>(
       () => _i556.ArticleViewModel(gh<_i29.ArticleRepository>()),
@@ -179,11 +179,14 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i849.ReaderConfig>(
       () => _i849.ReaderConfig(gh<_i460.SharedPreferences>()),
     );
-    gh.singleton<_i703.BookshelfSettingsService>(
-      () => _i703.BookshelfSettingsService(gh<_i460.SharedPreferences>()),
-    );
     gh.factoryAsync<_i988.SyncViewModel>(
       () async => _i988.SyncViewModel(await getAsync<_i499.SyncRepository>()),
+    );
+    gh.factory<_i601.FontDownloadService>(
+      () => _i601.FontDownloadService(
+        gh<_i361.Dio>(),
+        gh<_i601.CustomFontService>(),
+      ),
     );
     gh.factory<_i790.BookshelfViewModel>(
       () => _i790.BookshelfViewModel(

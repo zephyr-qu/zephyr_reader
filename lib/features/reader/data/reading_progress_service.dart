@@ -135,21 +135,19 @@ class ReadingProgressService {
   Future<Result<List<ReadingProgressData>>> getAllReadingProgress() async {
     return Result.guardAsync(() async {
       final progressList = await _db.getAllReadingProgress();
-      return progressList
-          .map((progress) {
-            final dbProgress = ReadingProgress.fromDb(progress);
-            return ReadingProgressData(
-              bookId: dbProgress.bookId,
-              chapterId: dbProgress.chapterId,
-              pageIndex: dbProgress.pageIndex,
-              totalPages: dbProgress.totalPages,
-              readingTimeSeconds: dbProgress.readingTimeSeconds,
-              lastReadAt: DateTime.fromMillisecondsSinceEpoch(
-                progress.lastReadTimestamp * 1000,
-              ),
-            );
-          })
-          .toList();
+      return progressList.map((progress) {
+        final dbProgress = ReadingProgress.fromDb(progress);
+        return ReadingProgressData(
+          bookId: dbProgress.bookId,
+          chapterId: dbProgress.chapterId,
+          pageIndex: dbProgress.pageIndex,
+          totalPages: dbProgress.totalPages,
+          readingTimeSeconds: dbProgress.readingTimeSeconds,
+          lastReadAt: DateTime.fromMillisecondsSinceEpoch(
+            progress.lastReadTimestamp * 1000,
+          ),
+        );
+      }).toList();
     });
   }
 

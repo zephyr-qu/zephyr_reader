@@ -13,7 +13,10 @@
 //! - 排版缓存：`LayoutCacheService` (Flutter)
 //! - 阅读统计：`ReadingStatsService` (Flutter)
 
-use crate::ffi::{Bookmark, CachedLayout, DailyReadingRecord, LayoutCacheResult, PageOffset, ReadingProgress, ReadingStats};
+use crate::ffi::{
+    Bookmark, CachedLayout, DailyReadingRecord, LayoutCacheResult, PageOffset, ReadingProgress,
+    ReadingStats,
+};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
@@ -28,9 +31,11 @@ pub struct LayoutCacheEntry {
 }
 
 /// 存储结果类型
+#[deprecated(since = "0.1.0", note = "所有持久化操作已迁移到 Flutter 侧。此类型将在未来版本中移除。")]
 pub type StorageResult<T> = Result<T, StorageError>;
 
 /// 存储错误类型
+#[deprecated(since = "0.1.0", note = "所有持久化操作已迁移到 Flutter 侧。此类型将在未来版本中移除。")]
 #[derive(Debug, Clone)]
 pub enum StorageError {
     /// 文件操作失败
@@ -65,9 +70,10 @@ impl std::error::Error for StorageError {}
 /// 存储后端 trait
 ///
 /// 定义存储进度和书签的接口
-/// 
+///
 /// **注意**: 所有持久化操作已迁移到 Flutter 侧。
 /// 此 trait 的方法现在仅用于临时内存存储，数据不会持久化。
+#[deprecated(since = "0.1.0", note = "所有持久化操作已迁移到 Flutter 侧。此 trait 将在未来版本中移除。")]
 pub trait ProgressStorage: Send + Sync {
     /// 保存阅读进度
     fn save_progress(&self, book_id: &str, progress: &ReadingProgress) -> StorageResult<()>;
@@ -159,6 +165,7 @@ pub trait ProgressStorage: Send + Sync {
 ///
 /// 用于临时存储，数据在应用重启后丢失
 /// 所有持久化操作应使用 Flutter 侧的 Drift 数据库
+#[deprecated(since = "0.1.0", note = "所有持久化操作已迁移到 Flutter 侧。请使用 Flutter 侧的 Drift 数据库。此结构将在未来版本中移除。")]
 #[allow(dead_code)]
 pub struct InMemoryStorage {
     progress: Arc<RwLock<HashMap<String, ReadingProgress>>>,
@@ -191,41 +198,62 @@ impl Default for InMemoryStorage {
 
 impl ProgressStorage for InMemoryStorage {
     fn save_progress(&self, book_id: &str, progress: &ReadingProgress) -> StorageResult<()> {
-        let mut map = self.progress.write().map_err(|e| StorageError::LockError(e.to_string()))?;
+        let mut map = self
+            .progress
+            .write()
+            .map_err(|e| StorageError::LockError(e.to_string()))?;
         map.insert(book_id.to_string(), progress.clone());
         Ok(())
     }
 
     fn load_progress(&self, book_id: &str) -> StorageResult<Option<ReadingProgress>> {
-        let map = self.progress.read().map_err(|e| StorageError::LockError(e.to_string()))?;
+        let map = self
+            .progress
+            .read()
+            .map_err(|e| StorageError::LockError(e.to_string()))?;
         Ok(map.get(book_id).cloned())
     }
 
     fn delete_progress(&self, book_id: &str) -> StorageResult<()> {
-        let mut map = self.progress.write().map_err(|e| StorageError::LockError(e.to_string()))?;
+        let mut map = self
+            .progress
+            .write()
+            .map_err(|e| StorageError::LockError(e.to_string()))?;
         map.remove(book_id);
         Ok(())
     }
 
     fn get_all_progress(&self) -> StorageResult<Vec<(String, ReadingProgress)>> {
-        let map = self.progress.read().map_err(|e| StorageError::LockError(e.to_string()))?;
+        let map = self
+            .progress
+            .read()
+            .map_err(|e| StorageError::LockError(e.to_string()))?;
         Ok(map.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
     }
 
     fn save_bookmark(&self, book_id: &str, bookmark: &Bookmark) -> StorageResult<()> {
-        let mut map = self.bookmarks.write().map_err(|e| StorageError::LockError(e.to_string()))?;
+        let mut map = self
+            .bookmarks
+            .write()
+            .map_err(|e| StorageError::LockError(e.to_string()))?;
         let bookmarks = map.entry(book_id.to_string()).or_insert_with(Vec::new);
         bookmarks.push(bookmark.clone());
         Ok(())
     }
 
     fn load_bookmarks(&self, book_id: &str) -> StorageResult<Vec<Bookmark>> {
-        let map = self.bookmarks.read().map_err(|e| StorageError::LockError(e.to_string()))?;
+        let map = self
+            .bookmarks
+            .read()
+            .map_err(|e| StorageError::LockError(e.to_string()))?;
         Ok(map.get(book_id).cloned().unwrap_or_default())
     }
 
     fn delete_bookmark(&self, book_id: &str, bookmark_id: &str) -> StorageResult<bool> {
-        let mut map = self.bookmarks.write().map_err(|e| StorageError::LockError(e.to_string()))?;
+        let mut map = self
+            .bookmarks
+            .write()
+            .map_err(|e| StorageError::LockError(e.to_string()))?;
         if let Some(bookmarks) = map.get_mut(book_id) {
             let len = bookmarks.len();
             bookmarks.retain(|b| b.bookmark_id != bookmark_id);
@@ -236,12 +264,18 @@ impl ProgressStorage for InMemoryStorage {
     }
 
     fn clear_bookmarks(&self, book_id: &str) -> StorageResult<usize> {
-        let mut map = self.bookmarks.write().map_err(|e| StorageError::LockError(e.to_string()))?;
+        let mut map = self
+            .bookmarks
+            .write()
+            .map_err(|e| StorageError::LockError(e.to_string()))?;
         Ok(map.remove(book_id).map(|v| v.len()).unwrap_or(0))
     }
 
     fn get_all_bookmarks(&self) -> StorageResult<Vec<Bookmark>> {
-        let map = self.bookmarks.read().map_err(|e| StorageError::LockError(e.to_string()))?;
+        let map = self
+            .bookmarks
+            .read()
+            .map_err(|e| StorageError::LockError(e.to_string()))?;
         Ok(map.values().flatten().cloned().collect())
     }
 
@@ -261,7 +295,10 @@ impl ProgressStorage for InMemoryStorage {
 
     fn get_reading_stats(&self) -> StorageResult<ReadingStats> {
         // 内存实现：返回默认统计
-        let stats = self.reading_stats.read().map_err(|e| StorageError::LockError(e.to_string()))?;
+        let stats = self
+            .reading_stats
+            .read()
+            .map_err(|e| StorageError::LockError(e.to_string()))?;
         Ok(stats.clone())
     }
 
@@ -343,6 +380,7 @@ impl ProgressStorage for InMemoryStorage {
 ///
 /// **注意：此函数返回的是内存存储，数据不会持久化。**
 /// 所有持久化操作应使用 Flutter 侧的 Drift 数据库。
+#[deprecated(since = "0.1.0", note = "所有持久化操作已迁移到 Flutter 侧。此函数将在未来版本中移除。")]
 pub fn get_storage_instance() -> Result<Arc<dyn ProgressStorage>, StorageError> {
     lazy_static::lazy_static! {
         static ref STORAGE: Arc<dyn ProgressStorage> = Arc::new(InMemoryStorage::new());

@@ -15,10 +15,11 @@
 pub mod security;
 pub mod simple;
 
+use crate::api::security::{validate_file_path, validate_path_securely};
 use crate::catch_panic;
 pub use crate::ffi::*;
-use crate::api::security::{validate_path_securely, validate_file_path};
-use crate::storage::{ProgressStorage, InMemoryStorage};
+use crate::parser::pdf::{get_pdf_metadata, get_pdf_page_count};
+use crate::storage::{InMemoryStorage, ProgressStorage};
 use flutter_rust_bridge::{frb, ZeroCopyBuffer};
 use once_cell::sync::OnceCell;
 use std::collections::hash_map::DefaultHasher;
@@ -42,9 +43,8 @@ static STORAGE: std::sync::OnceLock<Arc<dyn ProgressStorage>> = std::sync::OnceL
 fn validate_file_path_strict(file_path: &str) -> ApiResult<String> {
     // 尝试从环境变量获取允许的基目录
     if let Ok(allowed_base) = std::env::var("ZEPHYR_ALLOWED_BASE_DIR") {
-        let base_path: &Path = Path::new(&allowed_base);
-        match validate_path_securely(file_path, base_path) {
-            Ok(path) => Ok(path.to_string_lossy().to_string()),
+        match validate_path_securely(file_path, &allowed_base) {
+            Ok(path) => Ok(path),
             Err(e) => Err(e),
         }
     } else {
@@ -66,18 +66,21 @@ fn validate_file_path_strict(file_path: &str) -> ApiResult<String> {
 #[frb(sync)]
 pub fn set_allowed_base_dir(base_dir: String) -> ApiResult<()> {
     let path = Path::new(&base_dir);
-    
+
     if !path.exists() {
-        return Err(ParserError::ConfigError(format!("目录不存在：{}", base_dir)));
+        return Err(ParserError::ConfigError(format!(
+            "目录不存在：{}",
+            base_dir
+        )));
     }
-    
+
     if !path.is_dir() {
         return Err(ParserError::ConfigError(format!("不是目录：{}", base_dir)));
     }
-    
+
     std::env::set_var("ZEPHYR_ALLOWED_BASE_DIR", &base_dir);
     tracing::info!("设置允许的基目录：{}", base_dir);
-    
+
     Ok(())
 }
 
@@ -2375,5 +2378,153 @@ pub fn get_incremental_parser_stats() -> crate::parser::CacheStats {
             chapter_count: 0,
             total_memory_estimate: 0,
         },
+    }
+}
+
+/// 解析本地书籍文件（简化版）
+///
+/// 解析本地书籍文件，提取书籍信息和章节列表。
+/// 这是 `parse_local_book` 的简化版本，自动解包 Result。
+///
+/// # 参数
+///
+/// * `file_path` - 本地书籍文件的完整路径
+///
+/// # 返回值
+///
+/// * `Some(LocalBookInfo)` - 解析成功
+/// * `None` - 解析失败
+#[frb(sync)]
+pub fn parse_local_book_simple(file_path: String) -> Option<LocalBookInfo> {
+    match parse_local_book(file_path) {
+        Ok(info) => Some(info),
+        Err(e) => {
+            tracing::error!("解析书籍失败: {}", e);
+            None
+        }
+    }
+}
+
+/// 获取文件大小（简化版）
+///
+/// 获取指定文件的大小（字节数）。
+/// 这是 `get_file_size` 的简化版本，失败时返回 -1。
+///
+/// # 参数
+///
+/// * `file_path` - 文件的完整路径
+///
+/// # 返回值
+///
+/// * 文件大小（字节），失败时返回 -1
+#[frb(sync)]
+pub fn get_file_size_simple(file_path: String) -> i64 {
+    match get_file_size(file_path) {
+        Ok(size) => size,
+        Err(e) => {
+            tracing::warn!("获取文件大小失败: {}", e);
+            -1
+        }
+    }
+}
+
+/// 提取书籍封面（简化版）
+///
+/// 从 EPUB 或 PDF 文件中提取封面图片并保存到指定目录。
+/// 这是 `extract_book_cover` 的简化版本，失败时返回 null。
+///
+/// # 参数
+///
+/// * `file_path` - 文件路径（EPUB 或 PDF）
+/// * `output_dir` - 输出目录
+///
+/// # 返回值
+///
+/// * `Some(String)` - 封面图片保存路径
+/// * `None` - 提取失败
+#[frb(sync)]
+pub fn extract_cover_simple(file_path: String, output_dir: String) -> Option<String> {
+    match extract_book_cover(file_path, output_dir) {
+        Ok(path) => Some(path),
+        Err(e) => {
+            tracing::warn!("提取封面失败: {}", e);
+            None
+        }
+    }
+}
+
+/// 获取 PDF 页数（简化版）
+///
+/// 获取 PDF 文件的总页数。
+/// 这是 `get_pdf_page_count` 的简化版本，失败时返回 -1。
+///
+/// # 参数
+///
+/// * `file_path` - PDF 文件的完整路径
+///
+/// # 返回值
+///
+/// * 总页数，失败时返回 -1
+#[frb(sync)]
+pub fn get_pdf_page_count_simple(file_path: String) -> i32 {
+    match get_pdf_page_count(file_path) {
+        Ok(count) => count,
+        Err(e) => {
+            tracing::warn!("获取 PDF 页数失败: {}", e);
+            -1
+        }
+    }
+}
+
+/// 获取 PDF 元数据（简化版）
+///
+/// 获取 PDF 文件的元数据信息。
+/// 这是 `get_pdf_metadata` 的简化版本，失败时返回 null。
+///
+/// # 参数
+///
+/// * `file_path` - PDF 文件的完整路径
+///
+/// # 返回值
+///
+/// * `Some(PdfMetadata)` - 元数据
+/// * `None` - 获取失败
+#[frb(sync)]
+pub fn get_pdf_metadata_simple(file_path: String) -> Option<PdfMetadata> {
+    match get_pdf_metadata(file_path) {
+        Ok(metadata) => Some(metadata),
+        Err(e) => {
+            tracing::warn!("获取 PDF 元数据失败: {}", e);
+            None
+        }
+    }
+}
+
+/// 排版处理文本（简化版）
+///
+/// 对文本进行智能排版处理。
+/// 这是 `typeset_text` 的简化版本，失败时返回原始文本。
+///
+/// # 参数
+///
+/// * `content` - 待排版的原始文本
+/// * `language` - 语言类型（"auto"、"zh"、"en"、"mix"）
+/// * `config` - 排版配置
+///
+/// # 返回值
+///
+/// * 排版后的文本，失败时返回原始文本
+#[frb(sync)]
+pub fn typeset_text_simple(
+    content: String,
+    language: String,
+    config: TypesetConfig,
+) -> String {
+    match typeset_text(content.clone(), language, config) {
+        Ok(result) => result,
+        Err(e) => {
+            tracing::warn!("排版处理失败: {}", e);
+            content
+        }
     }
 }

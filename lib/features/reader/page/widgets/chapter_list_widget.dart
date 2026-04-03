@@ -92,7 +92,9 @@ class ChapterListWidget extends StatelessWidget {
                       chapter.title,
                       style: TextStyle(
                         color: isCurrent ? Colors.blue : textColor,
-                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isCurrent
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                         fontSize: 15,
                       ),
                       maxLines: 2,

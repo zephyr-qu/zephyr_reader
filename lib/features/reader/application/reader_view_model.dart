@@ -150,7 +150,7 @@ class ReaderViewModel {
         return ThemeMode.dark;
       case ReaderTheme.sepia:
       case ReaderTheme.light:
-      return ThemeMode.light;
+        return ThemeMode.light;
     }
   }
 
