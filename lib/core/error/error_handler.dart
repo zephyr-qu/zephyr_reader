@@ -75,9 +75,13 @@ class ErrorHandler {
   /// 记录错误日志
   void _logError(AppError error) {
     final buffer = StringBuffer();
-    buffer.writeln('╔═══════════════════════════════════════════════════════════');
+    buffer.writeln(
+      '╔═══════════════════════════════════════════════════════════',
+    );
     buffer.writeln('║ ERROR: ${error.type.displayName}');
-    buffer.writeln('╠═══════════════════════════════════════════════════════════');
+    buffer.writeln(
+      '╠═══════════════════════════════════════════════════════════',
+    );
     buffer.writeln('║ Message: ${error.message}');
     if (error.detail != null) {
       buffer.writeln('║ Detail: ${error.detail}');
@@ -92,11 +96,15 @@ class ErrorHandler {
       buffer.writeln('║ Original: ${error.originalError}');
     }
     if (error.stackTrace != null) {
-      buffer.writeln('╠═══════════════════════════════════════════════════════════');
+      buffer.writeln(
+        '╠═══════════════════════════════════════════════════════════',
+      );
       buffer.writeln('║ Stack Trace:');
       buffer.writeln('${error.stackTrace}');
     }
-    buffer.writeln('╚═══════════════════════════════════════════════════════════');
+    buffer.writeln(
+      '╚═══════════════════════════════════════════════════════════',
+    );
 
     Logging.error(buffer.toString());
   }
@@ -122,9 +130,7 @@ class ErrorHandler {
             Expanded(
               child: Text(
                 error.message,
-                style: TextStyle(
-                  color: colorScheme.onErrorContainer,
-                ),
+                style: TextStyle(color: colorScheme.onErrorContainer),
               ),
             ),
           ],
@@ -237,11 +243,7 @@ extension ResultErrorHandler<T> on Result<T> {
   }) {
     if (isSuccess) return value as T;
 
-    ErrorHandler().handleError(
-      error!,
-      context: context,
-      onRetry: onRetry,
-    );
+    ErrorHandler().handleError(error!, context: context, onRetry: onRetry);
 
     return defaultValue as T;
   }
@@ -276,11 +278,7 @@ extension FutureErrorHandler<T> on Future<T> {
       return await this;
     } catch (e, stack) {
       final error = AppError.fromException(e, stackTrace: stack);
-      ErrorHandler().handleError(
-        error,
-        context: context,
-        onRetry: onRetry,
-      );
+      ErrorHandler().handleError(error, context: context, onRetry: onRetry);
       return defaultValue;
     }
   }

@@ -2,46 +2,80 @@
 //! 统一错误处理，向 Flutter 侧暴露标准化错误
 
 use flutter_rust_bridge::frb;
+use thiserror::Error;
 
 /// 解析器错误类型
 ///
 /// 每个错误变体都有对应的错误码，便于 Flutter 侧分类处理
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Error)]
 #[frb]
 pub enum ParserError {
     /// 文件不存在
+    #[error("文件不存在：{path} ({reason})")]
     FileNotFound { path: String, reason: String },
+
     /// 文件读取失败
+    #[error("读取文件失败 [{path}]：{message}")]
     FileReadError { path: String, message: String },
+
     /// 编码检测失败
+    #[error("编码检测失败：{0}")]
     EncodingError(String),
+
     /// EPUB 解析失败
+    #[error("EPUB 解析失败：{0}")]
     EpubParseError(String),
+
     /// PDF 解析失败
+    #[error("PDF 解析失败：{0}")]
     PdfParseError(String),
+
     /// TXT 解析失败
+    #[error("TXT 解析失败：{0}")]
     TxtParseError(String),
+
     /// 章节提取失败
+    #[error("章节提取失败：{0}")]
     ChapterExtractError(String),
+
     /// 排版处理失败
+    #[error("排版处理失败：{0}")]
     Typeset(String),
+
     /// 流式加载失败
+    #[error("流式加载失败：{0}")]
     StreamError(String),
+
     /// 不支持的文件格式
+    #[error("不支持的文件格式：{0}")]
     UnsupportedFormat(String),
+
     /// 文件写入失败
+    #[error("文件写入失败：{0}")]
     FileWriteError(String),
+
     /// 内部错误
+    #[error("内部错误：{0}")]
     InternalError(String),
+
     /// 配置错误
+    #[error("配置错误：{0}")]
     ConfigError(String),
+
     /// 页面提取失败
+    #[error("页面提取失败：{0}")]
     PageExtractError(String),
+
     /// 文本提取失败
+    #[error("文本提取失败：{0}")]
     TextExtractError(String),
+
     /// 其他错误（通用错误消息）
+    #[error("错误：{0}")]
     Other(String),
+
     /// 安全错误（路径遍历攻击等）
+    #[error("安全错误：{0}")]
     SecurityError(String),
 }
 
@@ -78,71 +112,9 @@ impl ParserError {
         }
     }
 
-    /// 获取用户友好的错误消息
-    ///
-    /// # 示例
-    ///
-    /// ```rust
-    /// use rust_lib_zephyr_reader::ffi::ParserError;
-    ///
-    /// let error = ParserError::file_not_found("test.txt");
-    /// let msg = error.user_message();
-    /// assert!(msg.contains("文件不存在"));
-    /// ```
+    /// 获取用户友好的错误消息（中文）
     pub fn user_message(&self) -> String {
-        match self {
-            Self::FileNotFound { path, reason } => {
-                format!("文件不存在：{} ({})", path, reason)
-            }
-            Self::FileReadError { path, message } => {
-                format!("读取文件失败 [{}]：{}", path, message)
-            }
-            Self::EncodingError(msg) => {
-                format!("编码检测失败：{}", msg)
-            }
-            Self::EpubParseError(msg) => {
-                format!("EPUB 解析失败：{}", msg)
-            }
-            Self::PdfParseError(msg) => {
-                format!("PDF 解析失败：{}", msg)
-            }
-            Self::TxtParseError(msg) => {
-                format!("TXT 解析失败：{}", msg)
-            }
-            Self::ChapterExtractError(msg) => {
-                format!("章节提取失败：{}", msg)
-            }
-            Self::Typeset(msg) => {
-                format!("排版处理失败：{}", msg)
-            }
-            Self::StreamError(msg) => {
-                format!("流式加载失败：{}", msg)
-            }
-            Self::UnsupportedFormat(msg) => {
-                format!("不支持的文件格式：{}", msg)
-            }
-            Self::FileWriteError(msg) => {
-                format!("文件写入失败：{}", msg)
-            }
-            Self::InternalError(msg) => {
-                format!("内部错误：{}", msg)
-            }
-            Self::ConfigError(msg) => {
-                format!("配置错误：{}", msg)
-            }
-            Self::PageExtractError(msg) => {
-                format!("页面提取失败：{}", msg)
-            }
-            Self::TextExtractError(msg) => {
-                format!("文本提取失败：{}", msg)
-            }
-            Self::Other(msg) => {
-                format!("错误：{}", msg)
-            }
-            Self::SecurityError(msg) => {
-                format!("安全错误：{}", msg)
-            }
-        }
+        self.to_string()
     }
 
     /// 创建文件不存在错误
@@ -227,12 +199,6 @@ impl From<std::io::Error> for ParserError {
     }
 }
 
-impl std::fmt::Display for ParserError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.user_message())
-    }
-}
-
 // EPUB 错误转换
 impl From<String> for ParserError {
     fn from(err: String) -> Self {
@@ -241,31 +207,80 @@ impl From<String> for ParserError {
 }
 
 /// 排版错误类型
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Error)]
 #[frb]
 pub enum TypesetError {
     /// 无效的排版参数
+    #[error("无效的排版参数：{0}")]
     InvalidParameter(String),
     /// 文本处理失败
+    #[error("文本处理失败：{0}")]
     TextProcessError(String),
 }
 
 /// 排版配置错误类型
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Error)]
 #[frb]
 pub enum TypesetConfigError {
     /// 无效的参数
+    #[error("排版配置错误：{0}")]
     InvalidParameter(String),
-}
-
-impl std::fmt::Display for TypesetConfigError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InvalidParameter(msg) => write!(f, "排版配置错误：{}", msg),
-        }
-    }
 }
 
 /// 结果类型别名
 /// 在函数返回类型中使用 Result<T, ParserError> 的简写
 pub type ApiResult<T> = std::result::Result<T, ParserError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parser_error_error_code() {
+        let error = ParserError::file_not_found("test.txt");
+        assert_eq!(error.error_code(), "FILE_NOT_FOUND");
+
+        let error = ParserError::EncodingError("UTF-8".to_string());
+        assert_eq!(error.error_code(), "ENCODING_ERROR");
+
+        let error = ParserError::UnsupportedFormat("xyz".to_string());
+        assert_eq!(error.error_code(), "UNSUPPORTED_FORMAT");
+    }
+
+    #[test]
+    fn test_parser_error_user_message() {
+        let error = ParserError::file_not_found("test.txt");
+        let msg = error.user_message();
+        assert!(msg.contains("文件不存在"));
+        assert!(msg.contains("test.txt"));
+
+        let error = ParserError::SecurityError("路径遍历".to_string());
+        let msg = error.user_message();
+        assert!(msg.contains("安全错误"));
+    }
+
+    #[test]
+    fn test_io_error_conversion() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
+        let parser_err: ParserError = io_err.into();
+        assert_eq!(parser_err.error_code(), "FILE_NOT_FOUND");
+
+        let io_err = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "access denied");
+        let parser_err: ParserError = io_err.into();
+        assert_eq!(parser_err.error_code(), "FILE_READ_ERROR");
+    }
+
+    #[test]
+    fn test_display_impl() {
+        let error = ParserError::InternalError("test".to_string());
+        let display_str = format!("{}", error);
+        assert!(display_str.contains("内部错误"));
+    }
+
+    #[test]
+    fn test_io_error_with_context() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "not found");
+        let error = io_error("/path/to/file.txt", io_err);
+        assert_eq!(error.error_code(), "FILE_NOT_FOUND");
+    }
+}

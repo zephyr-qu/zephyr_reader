@@ -2,8 +2,8 @@
 //!
 //! 提供严格的路径验证逻辑，防止路径遍历攻击、符号链接攻击等安全漏洞。
 
-use std::path::{Path, PathBuf};
 use crate::ffi::ParserError;
+use std::path::{Path, PathBuf};
 
 /// 验证文件路径是否安全
 ///
@@ -12,16 +12,18 @@ use crate::ffi::ParserError;
 /// # 参数
 ///
 /// * `file_path` - 待验证的文件路径
-/// * `allowed_base` - 允许的基目录（如应用文档目录）
+/// * `allowed_base` - 允许的基目录路径（字符串）
 ///
 /// # 返回值
 ///
-/// * `Ok(PathBuf)` - 验证通过的规范化路径
+/// * `Ok(String)` - 验证通过的规范化路径
 /// * `Err(ParserError)` - 路径不安全或无效
 pub fn validate_path_securely(
     file_path: &str,
-    allowed_base: &Path,
-) -> Result<PathBuf, ParserError> {
+    allowed_base: &str,
+) -> Result<String, ParserError> {
+    let allowed_base_path = Path::new(allowed_base);
+
     // 1. 检查空字节（路径截断攻击）
     if file_path.contains('\0') {
         return Err(ParserError::SecurityError(
@@ -34,7 +36,7 @@ pub fn validate_path_securely(
 
     // 处理相对路径
     if path_buf.is_relative() {
-        path_buf = allowed_base.join(path_buf);
+        path_buf = allowed_base_path.join(path_buf);
     }
 
     // 3. 获取规范路径（解析符号链接）
@@ -46,18 +48,16 @@ pub fn validate_path_securely(
         })?;
 
     // 4. 获取规范的基目录
-    let canonical_base = allowed_base
+    let canonical_base = allowed_base_path
         .canonicalize()
         .map_err(|_| ParserError::ConfigError("基础目录无效".to_string()))?;
 
     // 5. 验证路径是否在允许的目录内
     if !canonical_path.starts_with(&canonical_base) {
-        return Err(ParserError::SecurityError(
-            format!(
-                "路径遍历攻击检测：文件路径必须在 {} 目录内",
-                canonical_base.display(),
-            ),
-        ));
+        return Err(ParserError::SecurityError(format!(
+            "路径遍历攻击检测：文件路径必须在 {} 目录内",
+            canonical_base.display(),
+        )));
     }
 
     // 6. 额外检查：Windows 系统检查危险路径
@@ -89,7 +89,7 @@ pub fn validate_path_securely(
         }
     }
 
-    Ok(canonical_path)
+    Ok(canonical_path.to_string_lossy().to_string())
 }
 
 /// 检查是否为安全路径（简化版，向后兼容）
@@ -128,7 +128,10 @@ pub fn is_safe_path(path: &str) -> bool {
 /// 此函数使用简化的安全检查，建议使用 `validate_path_securely` 进行严格验证。
 pub fn validate_file_path(file_path: &str) -> Result<String, ParserError> {
     if !is_safe_path(file_path) {
-        return Err(ParserError::SecurityError(format!("文件路径不安全：{}", file_path)));
+        return Err(ParserError::SecurityError(format!(
+            "文件路径不安全：{}",
+            file_path
+        )));
     }
 
     // 检查文件是否存在
@@ -152,7 +155,7 @@ mod tests {
 
         let result = validate_path_securely(
             test_file.to_str().unwrap(),
-            temp_dir.path(),
+            temp_dir.path().to_str().unwrap(),
         );
 
         assert!(result.is_ok());
@@ -161,17 +164,26 @@ mod tests {
     #[test]
     fn test_validate_path_securely_with_path_traversal() {
         let temp_dir = TempDir::new().unwrap();
-        
-        // 使用路径遍历攻击尝试访问父目录
-        let malicious_path = format!("{}\\..\\..\\windows\\system32\\config\\sam", temp_dir.path().display());
 
-        let result = validate_path_securely(&malicious_path, temp_dir.path());
+        // 使用路径遍历攻击尝试访问父目录
+        let malicious_path = format!(
+            "{}\\..\\..\\windows\\system32\\config\\sam",
+            temp_dir.path().display()
+        );
+
+        let result = validate_path_securely(
+            &malicious_path,
+            temp_dir.path().to_str().unwrap(),
+        );
 
         // 在 Windows 上应该检测到路径遍历攻击或者文件不存在
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(
-            matches!(err, ParserError::SecurityError(_) | ParserError::FileNotFound { .. }),
+            matches!(
+                err,
+                ParserError::SecurityError(_) | ParserError::FileNotFound { .. }
+            ),
             "Expected SecurityError or FileNotFound, got: {:?}",
             err
         );
@@ -182,7 +194,10 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let malicious_path = format!("{}/../../../etc/passwd\0", temp_dir.path().display());
 
-        let result = validate_path_securely(&malicious_path, temp_dir.path());
+        let result = validate_path_securely(
+            &malicious_path,
+            temp_dir.path().to_str().unwrap(),
+        );
 
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), ParserError::SecurityError(_)));
@@ -196,7 +211,7 @@ mod tests {
         assert!(!is_safe_path("/etc/passwd"));
         assert!(!is_safe_path("/proc/self"));
         assert!(!is_safe_path("test\0file.txt"));
-        
+
         // 安全路径
         assert!(is_safe_path("/documents/book.txt"));
         assert!(is_safe_path("C:\\Users\\Documents\\book.txt"));

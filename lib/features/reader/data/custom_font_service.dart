@@ -28,7 +28,6 @@ import 'package:zephyr_reader/features/reader/domain/models/font_info.dart';
 /// 管理阅读器自定义字体的加载、切换和持久化
 @injectable
 class CustomFontService {
-
   CustomFontService(this._prefs) {
     _initialize();
   }
@@ -141,10 +140,7 @@ class CustomFontService {
     return Result.guardAsync(() async {
       // 验证文件是否存在
       if (!await fontFile.exists()) {
-        throw AppError.file(
-          message: '字体文件不存在',
-          path: fontFile.path,
-        );
+        throw AppError.file(message: '字体文件不存在', path: fontFile.path);
       }
 
       // 验证文件扩展名
@@ -207,10 +203,7 @@ class CustomFontService {
   Future<Result<void>> deleteCustomFont(String fontId) async {
     return Result.guardAsync(() async {
       if (!fontId.startsWith('custom_')) {
-        throw AppError.validation(
-          message: '仅支持删除自定义字体',
-          detail: '系统字体无法删除',
-        );
+        throw AppError.validation(message: '仅支持删除自定义字体', detail: '系统字体无法删除');
       }
 
       final filePath = fontId.substring('custom_'.length);
@@ -227,10 +220,7 @@ class CustomFontService {
         // 重新加载字体列表
         await loadFonts();
       } else {
-        throw AppError.file(
-          message: '字体文件不存在',
-          path: filePath,
-        );
+        throw AppError.file(message: '字体文件不存在', path: filePath);
       }
     });
   }
@@ -317,7 +307,8 @@ class FontDownloadService {
 
       // 从 URL 提取文件扩展名
       final extension = _getExtensionFromUrl(url);
-      final savePath = '${fontDir.path}/${name.replaceAll(' ', '_')}.$extension';
+      final savePath =
+          '${fontDir.path}/${name.replaceAll(' ', '_')}.$extension';
 
       // 检查文件是否已存在
       if (await File(savePath).exists()) {
@@ -350,10 +341,7 @@ class FontDownloadService {
       // 验证下载的文件
       final downloadedFile = File(savePath);
       if (!await downloadedFile.exists()) {
-        throw AppError.file(
-          message: '字体下载失败',
-          detail: '下载后文件不存在',
-        );
+        throw AppError.file(message: '字体下载失败', detail: '下载后文件不存在');
       }
 
       // 文件大小检查（字体文件通常至少 100KB）
@@ -457,7 +445,6 @@ class FontDownloadService {
 
 /// 字体推荐信息
 class FontRecommendation {
-
   FontRecommendation({
     required this.name,
     required this.url,

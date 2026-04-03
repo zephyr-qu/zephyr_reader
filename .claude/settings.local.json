@@ -2,7 +2,21 @@
   "permissions": {
     "allow": [
       "Bash(flutter analyze:*)",
-      "Bash(dart run:*)"
+      "Bash(dart run:*)",
+      "Bash(flutter pub:*)",
+      "Bash(xargs cat:*)",
+      "Bash(flutter run:*)",
+      "Bash(flutter_rust_bridge_codegen generate:*)",
+      "Bash(cargo check:*)",
+      "Bash(dart analyze:*)",
+      "Bash(wc -l src/**/*.rs)",
+      "Bash(find src:*)",
+      "Bash(cloc --quiet src/)",
+      "Bash(find:*)",
+      "Bash(grep -r \"^///\" rust/src --include=\"*.rs\")",
+      "Bash(cargo test:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)"
     ]
   }
 }

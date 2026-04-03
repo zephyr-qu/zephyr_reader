@@ -9,9 +9,9 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/models/import_task.dart';
-import 'package:zephyr_reader/features/reader/domain/models/chapter_info.dart';
+import 'package:zephyr_reader/features/reader/domain/models/chapter_info.dart' as reader;
 import 'package:zephyr_reader/src/rust/api.dart' as rust_api;
-
+import 'package:zephyr_reader/src/rust/ffi/types.dart' as ffi;
 
 /// 书籍导入服务
 @injectable
@@ -176,12 +176,8 @@ class BookImportService {
   /// 使用 Rust 引擎解析书籍
   Future<dynamic> _parseBook(String filePath, String format) async {
     try {
-      // 调用 Rust 异步解析
-      final result = await rust_api.asyncParseLocalBook(filePath: filePath);
-
-      // 解包 ApiResult 获取实际数据
-      // 对于 Opaque 类型，使用 .value 属性访问实际数据
-      final bookInfo = (result as dynamic).value;
+      // 调用 Rust 解析（简化版，自动解包 Result）
+      final bookInfo = rust_api.parseLocalBookSimple(filePath: filePath);
 
       if (bookInfo != null) {
         // 如果EPUB PDF，提取封面
@@ -197,8 +193,8 @@ class BookImportService {
         return {
           'title': bookInfo.title,
           'author': bookInfo.author,
-          'chapterCount': bookInfo.chapter_count,
-          'coverPath': coverPath ?? bookInfo.cover_path,
+          'chapterCount': bookInfo.chapterCount,
+          'coverPath': coverPath ?? bookInfo.coverPath,
           'chapters': chapters,
         };
       }
@@ -209,28 +205,18 @@ class BookImportService {
     }
   }
 
-  /// 将动态章节数据转换为 ChapterInfo 列表
-  List<ChapterInfo> _convertChapters(dynamic chapters) {
-    if (chapters == null || chapters is! List) {
-      return [];
-    }
-
-    final List<ChapterInfo> result = [];
-    for (final chapter in chapters) {
-      if (chapter != null) {
-        result.add(
-          ChapterInfo(
-            chapterId: chapter.chapter_id ?? 0,
-            title: chapter.title ?? '',
-            startIndex: (chapter.start_index ?? 0).toInt(),
-            endIndex: (chapter.end_index ?? 0).toInt(),
-            contentLength: (chapter.content_length ?? 0).toInt(),
-            index: chapter.index ?? 0,
-          ),
-        );
-      }
-    }
-    return result;
+  /// 将 ChapterInfo 列表转换为应用层 ChapterInfo 列表
+  List<reader.ChapterInfo> _convertChapters(List<ffi.ChapterInfo> chapters) {
+    return chapters.map((chapter) {
+      return reader.ChapterInfo(
+        chapterId: chapter.chapterId,
+        title: chapter.title,
+        startIndex: chapter.startIndex.toInt(),
+        endIndex: chapter.endIndex.toInt(),
+        contentLength: chapter.contentLength.toInt(),
+        index: chapter.index,
+      );
+    }).toList();
   }
 
   /// 提取书籍封面

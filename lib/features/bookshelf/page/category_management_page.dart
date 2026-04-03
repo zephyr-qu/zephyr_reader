@@ -9,8 +9,7 @@ class CategoryManagementPage extends StatefulWidget {
   const CategoryManagementPage({super.key});
 
   @override
-  State<CategoryManagementPage> createState() =>
-      _CategoryManagementPageState();
+  State<CategoryManagementPage> createState() => _CategoryManagementPageState();
 }
 
 class _CategoryManagementPageState extends State<CategoryManagementPage> {
@@ -114,10 +113,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     );
   }
 
-  Widget _buildCategoryTile(
-    BookCategory category,
-    ThemeData theme,
-  ) {
+  Widget _buildCategoryTile(BookCategory category, ThemeData theme) {
     return Card(
       key: ValueKey(category.id),
       margin: const EdgeInsets.only(bottom: 8),
@@ -134,10 +130,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
             color: Colors.white,
           ),
         ),
-        title: Text(
-          category.name,
-          style: theme.textTheme.titleMedium,
-        ),
+        title: Text(category.name, style: theme.textTheme.titleMedium),
         subtitle: Text(
           category.isSystem ? '系统标签（不可删除）' : '自定义标签',
           style: theme.textTheme.bodySmall?.copyWith(
@@ -239,8 +232,9 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: theme.colorScheme.primary
-                                      .withValues(alpha: 0.3),
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.3,
+                                  ),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
@@ -269,9 +263,9 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
               onPressed: () async {
                 final name = _nameController.text.trim();
                 if (name.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('请输入标签名称')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('请输入标签名称')));
                   return;
                 }
 
@@ -285,13 +279,13 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                 Navigator.pop(context);
 
                 if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('添加成功')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('添加成功')));
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('添加失败')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('添加失败')));
                 }
               },
               child: const Text('添加'),
@@ -352,8 +346,9 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: theme.colorScheme.primary
-                                      .withValues(alpha: 0.3),
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.3,
+                                  ),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
@@ -382,9 +377,9 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
               onPressed: () async {
                 final name = _nameController.text.trim();
                 if (name.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('请输入标签名称')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('请输入标签名称')));
                   return;
                 }
 
@@ -399,13 +394,13 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                 Navigator.pop(context);
 
                 if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('保存成功')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('保存成功')));
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('保存失败')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('保存失败')));
                 }
               },
               child: const Text('保存'),
@@ -435,13 +430,13 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
               if (!context.mounted) return;
 
               if (success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('删除成功')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('删除成功')));
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('删除失败')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('删除失败')));
               }
             },
             style: ElevatedButton.styleFrom(

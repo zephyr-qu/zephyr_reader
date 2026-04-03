@@ -21,7 +21,6 @@ import 'webdav_sync_service.dart';
 
 /// 同步记录
 class SyncHistoryRecord {
-
   SyncHistoryRecord({
     required this.id,
     required this.startTime,
@@ -139,7 +138,6 @@ class IncrementalChange {
 
 /// 备份信息
 class BackupInfo {
-
   BackupInfo({
     required this.id,
     required this.timestamp,

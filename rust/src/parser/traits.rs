@@ -284,8 +284,10 @@ impl ThreadSafeParserRegistry {
 
     /// 检查是否支持指定格式
     pub fn supports_format(&self, format: &str) -> bool {
-        let registry = self.inner.read().ok().unwrap();
-        registry.supports_format(format)
+        match self.inner.read() {
+            Ok(registry) => registry.supports_format(format),
+            Err(_) => false,
+        }
     }
 }
 

@@ -97,11 +97,13 @@ class StatisticsPage extends HookWidget {
         ),
       );
 
-      data.add(ChartData(
-        day: weekdays[weekdayIndex],
-        hours: record.readingTimeSeconds / 3600,
-        characters: record.charactersRead,
-      ));
+      data.add(
+        ChartData(
+          day: weekdays[weekdayIndex],
+          hours: record.readingTimeSeconds / 3600,
+          characters: record.charactersRead,
+        ),
+      );
     }
 
     return data;
@@ -278,10 +280,7 @@ class StatisticsPage extends HookWidget {
     final chartHeight = isTabletOrDesktop ? 250.0 : 200.0;
 
     // 计算总阅读时长
-    final totalHours = data.fold<double>(
-      0,
-      (sum, item) => sum + item.hours,
-    );
+    final totalHours = data.fold<double>(0, (sum, item) => sum + item.hours);
 
     // 计算最大值用于图表缩放
     final maxHours = data.isNotEmpty
@@ -403,8 +402,9 @@ class StatisticsPage extends HookWidget {
                           horizontalInterval: maxHours > 0 ? maxHours / 5 : 2,
                           getDrawingHorizontalLine: (value) {
                             return FlLine(
-                              color: theme.colorScheme.outline
-                                  .withValues(alpha: 0.1),
+                              color: theme.colorScheme.outline.withValues(
+                                alpha: 0.1,
+                              ),
                               strokeWidth: 1,
                             );
                           },
@@ -422,8 +422,9 @@ class StatisticsPage extends HookWidget {
                                     gradient: LinearGradient(
                                       colors: [
                                         theme.colorScheme.primary,
-                                        theme.colorScheme.primary
-                                            .withValues(alpha: 0.6),
+                                        theme.colorScheme.primary.withValues(
+                                          alpha: 0.6,
+                                        ),
                                       ],
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
@@ -559,7 +560,8 @@ class StatisticsPage extends HookWidget {
         : 0.0;
     final readingSpeed = stats?.averageReadingSpeed ?? 0;
     final completedBooks = stats?.booksCompletedCount ?? 0;
-    final totalChars = ((stats?.totalCharactersRead ?? 0) / 10000).toStringAsFixed(1);
+    final totalChars = ((stats?.totalCharactersRead ?? 0) / 10000)
+        .toStringAsFixed(1);
 
     final statsList = [
       {
@@ -588,7 +590,8 @@ class StatisticsPage extends HookWidget {
       },
       {
         'label': '本周阅读',
-        'value': '${((stats?.todayReadingTimeSeconds ?? 0) / 3600).toStringAsFixed(1)}h',
+        'value':
+            '${((stats?.todayReadingTimeSeconds ?? 0) / 3600).toStringAsFixed(1)}h',
         'icon': Icons.today,
         'color': theme.colorScheme.primary,
       },
@@ -670,9 +673,5 @@ class ChartData {
   final double hours;
   final int characters;
 
-  ChartData({
-    required this.day,
-    required this.hours,
-    required this.characters,
-  });
+  ChartData({required this.day, required this.hours, required this.characters});
 }

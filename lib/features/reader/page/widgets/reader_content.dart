@@ -78,7 +78,9 @@ class ReaderContent extends HookWidget {
     final scrollController = useScrollController();
 
     // 获取服务
-    final contentService = useMemoized(() => GetIt.I.get<ChapterContentService>());
+    final contentService = useMemoized(
+      () => GetIt.I.get<ChapterContentService>(),
+    );
 
     // 加载章节内容
     useEffect(() {
@@ -135,7 +137,8 @@ class ReaderContent extends HookWidget {
             curve: Curves.easeInOut,
           );
         }
-      } else if (readingMode == ReadingMode.pagination && pageController.hasClients) {
+      } else if (readingMode == ReadingMode.pagination &&
+          pageController.hasClients) {
         // 分页模式：翻页
         final nextPage = pageIndex + 1;
         if (nextPage < totalPages.value) {
@@ -181,9 +184,7 @@ class ReaderContent extends HookWidget {
   ) {
     // 加载状态
     if (isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     // 错误状态
@@ -192,11 +193,7 @@ class ReaderContent extends HookWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red[300],
-            ),
+            Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
             const SizedBox(height: 16),
             Text(
               error,
@@ -333,9 +330,7 @@ class ReaderContent extends HookWidget {
     final pages = _paginateContent(content, charsPerPage);
 
     if (pages.isEmpty) {
-      return const Center(
-        child: Text('内容为空'),
-      );
+      return const Center(child: Text('内容为空'));
     }
 
     return PageView.builder(
@@ -394,7 +389,7 @@ class ReaderContent extends HookWidget {
 
     while (offset < totalChars) {
       final endOffset = (offset + charsPerPage).clamp(0, totalChars);
-      
+
       // 尝试在段落或句子边界处断页
       var actualEndOffset = endOffset;
       if (endOffset < totalChars) {

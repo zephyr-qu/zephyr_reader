@@ -83,8 +83,16 @@ mod tests {
         let err = converted.unwrap_err();
         match err {
             ParserError::InternalError(msg) => {
-                assert!(msg.contains("操作失败"), "Expected error message to contain '操作失败', got: {}", msg);
-                assert!(msg.contains("内部错误"), "Expected error message to contain '内部错误', got: {}", msg);
+                assert!(
+                    msg.contains("操作失败"),
+                    "Expected error message to contain '操作失败', got: {}",
+                    msg
+                );
+                assert!(
+                    msg.contains("内部错误"),
+                    "Expected error message to contain '内部错误', got: {}",
+                    msg
+                );
             }
             other => panic!("Expected InternalError, got: {:?}", other),
         }

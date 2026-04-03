@@ -43,7 +43,8 @@ class BookshelfSettingsService {
   /// 默认排序方式
   final defaultSortType = signal<BookshelfSortType>(BookshelfSortType.lastRead);
 
-  static const String _keyShowReadingProgress = 'bookshelf.show_reading_progress';
+  static const String _keyShowReadingProgress =
+      'bookshelf.show_reading_progress';
   static const String _keyShowRecentReading = 'bookshelf.show_recent_reading';
   static const String _keyDefaultSortType = 'bookshelf.default_sort_type';
 

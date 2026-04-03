@@ -51,10 +51,7 @@ class AppDatabase extends _$AppDatabase {
         if (from < 4) {
           // 升级到版本 4：添加书籍分类表
           await m.create(dbBookCategories);
-          await m.addColumn(
-            dbBooks,
-            dbBooks.categoryIds,
-          );
+          await m.addColumn(dbBooks, dbBooks.categoryIds);
           // 初始化默认分类
           await _insertDefaultCategories();
         }
@@ -104,15 +101,16 @@ class AppDatabase extends _$AppDatabase {
 
   /// 查询所有书籍分类
   Future<List<DbBookCategory>> getAllCategories() {
-    return (select(dbBookCategories)
-          ..orderBy([(tbl) => OrderingTerm.asc(tbl.sortOrder)]))
-        .get();
+    return (select(
+      dbBookCategories,
+    )..orderBy([(tbl) => OrderingTerm.asc(tbl.sortOrder)])).get();
   }
 
   /// 根据 ID 获取分类
   Future<DbBookCategory?> getCategoryById(int id) {
-    return (select(dbBookCategories)..where((tbl) => tbl.id.equals(id)))
-        .getSingleOrNull();
+    return (select(
+      dbBookCategories,
+    )..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
   }
 
   /// 添加分类
@@ -125,16 +123,20 @@ class AppDatabase extends _$AppDatabase {
     // 从 Companion 中提取 id
     final id = category.id.value;
 
-    final result = await (update(dbBookCategories)..where((tbl) => tbl.id.equals(id)))
-            .write(DbBookCategoriesCompanion(
-          id: category.id,
-          name: category.name,
-          color: category.color,
-          sortOrder: category.sortOrder,
-          isSystem: category.isSystem,
-          createdAt: category.createdAt,
-          updatedAt: Value(DateTime.now()),
-        ));
+    final result =
+        await (update(
+          dbBookCategories,
+        )..where((tbl) => tbl.id.equals(id))).write(
+          DbBookCategoriesCompanion(
+            id: category.id,
+            name: category.name,
+            color: category.color,
+            sortOrder: category.sortOrder,
+            isSystem: category.isSystem,
+            createdAt: category.createdAt,
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
     return result > 0;
   }
 
@@ -144,7 +146,9 @@ class AppDatabase extends _$AppDatabase {
     if (category == null || category.isSystem) {
       return false;
     }
-    final result = await (delete(dbBookCategories)..where((tbl) => tbl.id.equals(id))).go();
+    final result = await (delete(
+      dbBookCategories,
+    )..where((tbl) => tbl.id.equals(id))).go();
     return result > 0;
   }
 

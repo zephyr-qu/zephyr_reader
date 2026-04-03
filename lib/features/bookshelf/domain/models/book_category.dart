@@ -20,10 +20,14 @@ abstract class BookCategory with _$BookCategory {
 
   /// 从数据库模型转换
   factory BookCategory.fromDb(dynamic dbCategory) {
+    final colorValue = dbCategory.color;
+    final validColor = (colorValue == null || colorValue.toString().isEmpty)
+        ? '#FF5722'
+        : colorValue.toString();
     return BookCategory(
       id: dbCategory.id ?? 0,
       name: dbCategory.name ?? '',
-      color: dbCategory.color ?? '#FF5722',
+      color: validColor,
       sortOrder: dbCategory.sortOrder ?? 0,
       isSystem: dbCategory.isSystem ?? false,
       createdAt: dbCategory.createdAt,
@@ -34,7 +38,19 @@ abstract class BookCategory with _$BookCategory {
   /// 获取颜色对象
   Color get colorValue {
     try {
-      return Color(int.parse(color.replaceFirst('#', '0xFF')));
+      if (color.isEmpty) {
+        return Colors.orange;
+      }
+      // 处理带 # 前缀的颜色值（如 #FF5722）
+      if (color.startsWith('#')) {
+        return Color(int.parse('FF${color.substring(1)}', radix: 16));
+      }
+      // 处理已经是 0xFF 格式的颜色值
+      if (color.startsWith('0x')) {
+        return Color(int.parse(color.substring(2), radix: 16));
+      }
+      // 尝试直接解析
+      return Color(int.parse(color, radix: 16));
     } catch (e) {
       return Colors.orange;
     }

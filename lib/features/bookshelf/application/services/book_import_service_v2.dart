@@ -20,11 +20,7 @@ class ImportResult {
   final ImportTask? task;
   final AppError? error;
 
-  const ImportResult._({
-    required this.success,
-    this.task,
-    this.error,
-  });
+  const ImportResult._({required this.success, this.task, this.error});
 
   factory ImportResult.success(ImportTask task) =>
       ImportResult._(success: true, task: task);
@@ -152,10 +148,7 @@ class BookImportServiceV2 {
   Future<Result<String>> _copyFileToAppDirectory(PlatformFile file) async {
     return Result.guardAsync(() async {
       if (_booksDir == null) {
-        throw AppError.file(
-          message: '存储目录未初始化',
-          detail: '_booksDir is null',
-        );
+        throw AppError.file(message: '存储目录未初始化', detail: '_booksDir is null');
       }
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -164,10 +157,7 @@ class BookImportServiceV2 {
 
       final srcFile = File(file.path!);
       if (!await srcFile.exists()) {
-        throw AppError.file(
-          message: '源文件不存在',
-          detail: 'Path: ${file.path}',
-        );
+        throw AppError.file(message: '源文件不存在', detail: 'Path: ${file.path}');
       }
 
       await srcFile.copy(destPath);

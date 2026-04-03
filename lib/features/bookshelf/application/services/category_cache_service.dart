@@ -60,23 +60,22 @@ class CategoryCacheService {
   ];
 
   /// 获取缓存的分类
-  List<BookCategory> get categories =>
-      _isInitialized && _categories.isNotEmpty
-          ? _categories
-          : _defaultCategories;
+  List<BookCategory> get categories => _isInitialized && _categories.isNotEmpty
+      ? _categories
+      : _defaultCategories;
 
   /// 获取缓存的分类（根据 ID）
   BookCategory? getCategoryById(int id) {
     if (_categories.isEmpty) {
       return _defaultCategories.cast<BookCategory?>().firstWhere(
-            (c) => c?.id == id,
-            orElse: () => null,
-          );
+        (c) => c?.id == id,
+        orElse: () => null,
+      );
     }
     return _categories.cast<BookCategory?>().firstWhere(
-          (c) => c?.id == id,
-          orElse: () => null,
-        );
+      (c) => c?.id == id,
+      orElse: () => null,
+    );
   }
 
   /// 更新缓存

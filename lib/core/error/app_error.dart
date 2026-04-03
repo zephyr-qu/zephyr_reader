@@ -132,10 +132,7 @@ class AppError implements Exception {
   );
 
   /// 创建取消错误
-  factory AppError.cancelled({
-    String? message,
-    String? detail,
-  }) => AppError(
+  factory AppError.cancelled({String? message, String? detail}) => AppError(
     type: ErrorType.cancelled,
     message: message ?? ErrorType.cancelled.defaultMessage,
     detail: detail,

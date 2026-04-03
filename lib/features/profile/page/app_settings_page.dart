@@ -140,45 +140,48 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
     await _handleRestoreConfirmation(confirmed, selectedBackup);
   }
 
-  Future<void> _handleRestoreConfirmation(bool confirmed, selectedBackup) async {
+  Future<void> _handleRestoreConfirmation(
+    bool confirmed,
+    selectedBackup,
+  ) async {
     if (!confirmed) return;
     if (!mounted) return;
 
     isRestoring.value = true;
-      try {
-        final success = await backupRestoreService.restoreBackup(
-          selectedBackup.id,
-        );
+    try {
+      final success = await backupRestoreService.restoreBackup(
+        selectedBackup.id,
+      );
 
-        if (mounted) {
-          if (success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('数据恢复成功'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('数据恢复失败'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-        }
-      } catch (e) {
-        if (mounted) {
+      if (mounted) {
+        if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('数据恢复失败：$e'),
+            const SnackBar(
+              content: Text('数据恢复成功'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('数据恢复失败'),
               behavior: SnackBarBehavior.floating,
             ),
           );
         }
-      } finally {
-        isRestoring.value = false;
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('数据恢复失败：$e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      isRestoring.value = false;
+    }
   }
 
   Future<List<BackupType>?> _showBackupTypeDialog() async {

@@ -66,11 +66,13 @@ class RustPaginationService {
       return pages
           .asMap()
           .entries
-          .map((entry) => PageItem(
-                pageIndex: entry.value.pageIndex,
-                content: entry.value.content,
-                isLastPage: entry.value.isLastPage,
-              ))
+          .map(
+            (entry) => PageItem(
+              pageIndex: entry.value.pageIndex,
+              content: entry.value.content,
+              isLastPage: entry.value.isLastPage,
+            ),
+          )
           .toList();
     } catch (e) {
       debugPrint('RustPaginationService.paginateContent error: $e');
@@ -101,9 +103,6 @@ class RustPaginationService {
       enableHyphenation: false,
     );
 
-    return rust_api.createPageStreamer(
-      content: content,
-      config: config,
-    );
+    return rust_api.createPageStreamer(content: content, config: config);
   }
 }

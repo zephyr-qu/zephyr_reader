@@ -147,10 +147,7 @@ final router = GoRouter(
       builder: (_, state) {
         final bookId = int.parse(state.pathParameters['bookId'] ?? '0');
         final chapterId = int.parse(state.pathParameters['chapterId'] ?? '1');
-        return ReaderPage(
-          bookId: bookId,
-          initialChapterId: chapterId,
-        );
+        return ReaderPage(bookId: bookId, initialChapterId: chapterId);
       },
     ),
 

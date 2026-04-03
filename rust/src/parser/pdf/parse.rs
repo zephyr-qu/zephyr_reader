@@ -179,7 +179,11 @@ mod tests {
         let result = parse_pdf("non_existent.pdf".to_string());
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(matches!(err, ParserError::FileNotFound { .. }), "Expected FileNotFound error, got: {:?}", err);
+        assert!(
+            matches!(err, ParserError::FileNotFound { .. }),
+            "Expected FileNotFound error, got: {:?}",
+            err
+        );
     }
 
     #[test]

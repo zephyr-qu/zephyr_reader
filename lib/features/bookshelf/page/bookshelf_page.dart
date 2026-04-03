@@ -266,7 +266,8 @@ class BookshelfPage extends StatelessWidget {
                 separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final category = categories[index];
-                  final isSelected = selected != null && category.id == selected.id;
+                  final isSelected =
+                      selected != null && category.id == selected.id;
 
                   return _buildCategoryChip(
                     context,
@@ -303,9 +304,7 @@ class BookshelfPage extends StatelessWidget {
               // 长按编辑自定义分类
               context.pushNamed(RouteNames.categoryManagement);
             },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOutBack,
+      child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
           gradient: isSelected
@@ -321,7 +320,9 @@ class BookshelfPage extends StatelessWidget {
           color: isSelected ? null : theme.colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? color : theme.colorScheme.outline.withValues(alpha: 0.3),
+            color: isSelected
+                ? color
+                : theme.colorScheme.outline.withValues(alpha: 0.3),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
@@ -872,7 +873,8 @@ class BookshelfPage extends StatelessWidget {
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () async {
-                    final selectedType = await settingsService.showSortTypeDialog(context);
+                    final selectedType = await settingsService
+                        .showSortTypeDialog(context);
                     if (selectedType != null) {
                       await settingsService.setDefaultSortType(selectedType);
                     }

@@ -3,7 +3,7 @@ import 'package:zephyr_reader/domain/models/chapter.dart';
 import 'package:zephyr_reader/domain/models/reading_history.dart';
 
 /// 阅读器仓库接口
-/// 
+///
 abstract class ReaderRepository {
   /// 获取章节
   Future<Chapter?> getChapter(int bookId, int chapterIndex);
