@@ -19,18 +19,14 @@ use crate::api::security::{validate_file_path, validate_path_securely};
 use crate::catch_panic;
 pub use crate::ffi::*;
 use crate::parser::pdf::{get_pdf_metadata, get_pdf_page_count};
-use crate::storage::{InMemoryStorage, ProgressStorage};
 use flutter_rust_bridge::{frb, ZeroCopyBuffer};
 use once_cell::sync::OnceCell;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use uuid::Uuid;
 
-// 全局存储实例（内存实现，不持久化）
-// 所有持久化操作已迁移到 Flutter 侧（使用 Drift）
-static STORAGE: std::sync::OnceLock<Arc<dyn ProgressStorage>> = std::sync::OnceLock::new();
 
 /// 使用严格验证检查文件路径
 ///
@@ -100,23 +96,10 @@ pub fn set_allowed_base_dir(base_dir: String) -> ApiResult<()> {
 /// 始终返回 `Ok(())`
 #[frb(sync)]
 pub fn init_storage(_db_path: String) -> ApiResult<()> {
-    // 初始化内存存储（不持久化）
-    let storage = Arc::new(InMemoryStorage::new());
-
-    STORAGE
-        .set(storage)
-        .map_err(|_| ParserError::Other("存储已经初始化".to_string()))?;
-
-    tracing::info!("内存存储已初始化（不持久化，所有数据已迁移到 Flutter 侧）");
+    // 此函数现在是 no-op，仅用于向后兼容
+    // 所有持久化存储操作已迁移到 Flutter 侧（使用 Drift 数据库）
+    tracing::info!("init_storage 被调用（已弃用，所有存储已迁移到 Flutter 侧）");
     Ok(())
-}
-
-/// 获取存储实例
-fn get_storage() -> Result<Arc<dyn ProgressStorage>, ParserError> {
-    STORAGE
-        .get()
-        .cloned()
-        .ok_or_else(|| ParserError::Other("存储未初始化，请先调用 init_storage".to_string()))
 }
 
 /// 初始化应用
@@ -567,14 +550,7 @@ pub fn update_reading_progress_with_duration(
         .as_secs() as i64;
 
     // 从数据库读取现有进度，累加阅读时间
-    let existing_time = match get_storage() {
-        Ok(storage) => storage
-            .load_progress(&book_id)
-            .unwrap_or(None)
-            .map(|p| p.reading_time_seconds)
-            .unwrap_or(0),
-        Err(_) => 0,
-    };
+    let existing_time = 0;
 
     let progress = ReadingProgress {
         chapter_id,
@@ -589,11 +565,7 @@ pub fn update_reading_progress_with_duration(
         last_read_timestamp: now,
     };
 
-    if let Ok(storage) = get_storage() {
-        if let Err(e) = storage.save_progress(&book_id, &progress) {
-            tracing::error!("保存进度失败: {}", e);
-        }
-    }
+    
 
     progress
 }
@@ -645,13 +617,7 @@ pub fn update_reading_progress(
 /// 返回 `ReadingProgress` 进度信息，如果没有找到则返回默认进度
 #[frb(sync)]
 pub fn get_reading_progress(book_id: String) -> ReadingProgress {
-    match get_storage() {
-        Ok(storage) => storage
-            .load_progress(&book_id)
-            .unwrap_or(None)
-            .unwrap_or_default(),
-        Err(_) => ReadingProgress::default(),
-    }
+    ReadingProgress::default()
 }
 
 /// 清除阅读进度
@@ -668,16 +634,7 @@ pub fn get_reading_progress(book_id: String) -> ReadingProgress {
 /// * `false` - 该书籍没有进度记录或存储未初始化
 #[frb(sync)]
 pub fn clear_reading_progress(book_id: String) -> bool {
-    match get_storage() {
-        Ok(storage) => {
-            let existed = storage.load_progress(&book_id).unwrap_or(None).is_some();
-            if let Err(e) = storage.delete_progress(&book_id) {
-                tracing::error!("删除进度失败: {}", e);
-            }
-            existed
-        }
-        Err(_) => false,
-    }
+    false
 }
 
 /// 获取所有书籍的阅读进度
@@ -687,13 +644,7 @@ pub fn clear_reading_progress(book_id: String) -> bool {
 /// 返回所有书籍的进度列表，按最后阅读时间降序排列
 #[frb(sync)]
 pub fn get_all_reading_progress() -> Vec<ReadingProgress> {
-    match get_storage() {
-        Ok(storage) => storage
-            .get_all_progress()
-            .map(|list| list.into_iter().map(|(_, p)| p).collect())
-            .unwrap_or_default(),
-        Err(_) => vec![],
-    }
+    return vec![];
 }
 
 // ==================== 书签管理 ====================
@@ -736,11 +687,6 @@ pub fn add_bookmark(
         note,
     };
 
-    if let Ok(storage) = get_storage() {
-        if let Err(e) = storage.save_bookmark(&book_id, &bookmark) {
-            tracing::error!("保存书签失败: {}", e);
-        }
-    }
 
     bookmark
 }
@@ -760,10 +706,7 @@ pub fn add_bookmark(
 /// 如果存储未初始化，返回错误
 #[frb(sync)]
 pub fn get_bookmarks(book_id: String) -> Vec<Bookmark> {
-    match get_storage() {
-        Ok(storage) => storage.load_bookmarks(&book_id).unwrap_or_default(),
-        Err(_) => vec![],
-    }
+    return vec![];
 }
 
 /// 删除书签
@@ -779,12 +722,7 @@ pub fn get_bookmarks(book_id: String) -> Vec<Bookmark> {
 /// * `false` - 书签不存在或存储未初始化
 #[frb(sync)]
 pub fn remove_bookmark(book_id: String, bookmark_id: String) -> bool {
-    match get_storage() {
-        Ok(storage) => storage
-            .delete_bookmark(&book_id, &bookmark_id)
-            .unwrap_or(false),
-        Err(_) => false,
-    }
+    return false;
 }
 
 /// 清除书籍的所有书签
@@ -798,10 +736,7 @@ pub fn remove_bookmark(book_id: String, bookmark_id: String) -> bool {
 /// 返回删除的书签数量
 #[frb(sync)]
 pub fn clear_bookmarks(book_id: String) -> i32 {
-    match get_storage() {
-        Ok(storage) => storage.clear_bookmarks(&book_id).unwrap_or(0) as i32,
-        Err(_) => 0,
-    }
+    return 0;
 }
 
 /// 解析本地书籍文件
@@ -1005,10 +940,7 @@ pub fn get_pdf_cover_data(
 /// 返回所有书籍的所有书签列表，按创建时间降序排列
 #[frb(sync)]
 pub fn get_all_bookmarks() -> Vec<Bookmark> {
-    match get_storage() {
-        Ok(storage) => storage.get_all_bookmarks().unwrap_or_default(),
-        Err(_) => vec![],
-    }
+    return vec![];
 }
 
 // ==================== 阅读统计 ====================
@@ -1038,21 +970,7 @@ pub fn record_reading_session(
     duration_seconds: i64,
     characters_read: i64,
 ) {
-    match get_storage() {
-        Ok(storage) => {
-            if let Err(e) = storage.record_reading_session(
-                &book_id,
-                chapter_id,
-                duration_seconds,
-                characters_read,
-            ) {
-                tracing::error!("记录阅读会话失败: {}", e);
-            }
-        }
-        Err(_) => {
-            tracing::error!("存储未初始化，无法记录阅读会话");
-        }
-    }
+    return;
 }
 
 /// 获取阅读统计
@@ -1064,10 +982,7 @@ pub fn record_reading_session(
 /// 返回 `ReadingStats` 统计信息
 #[frb(sync)]
 pub fn get_reading_stats() -> ReadingStats {
-    match get_storage() {
-        Ok(storage) => storage.get_reading_stats().unwrap_or_default(),
-        Err(_) => ReadingStats::default(),
-    }
+    return ReadingStats::default();
 }
 
 /// 获取今日阅读数据
@@ -1079,15 +994,7 @@ pub fn get_reading_stats() -> ReadingStats {
 /// 返回 `(reading_time_seconds, characters_read)` 元组
 #[frb(sync)]
 pub fn get_today_reading_data() -> (i64, i64) {
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-
-    match get_storage() {
-        Ok(storage) => match storage.get_daily_record(&today) {
-            Ok(Some(record)) => (record.reading_time_seconds, record.characters_read),
-            _ => (0, 0),
-        },
-        Err(_) => (0, 0),
-    }
+    return (0, 0);
 }
 
 /// 获取指定日期的阅读记录
@@ -1100,26 +1007,14 @@ pub fn get_today_reading_data() -> (i64, i64) {
 ///
 /// 返回 `DailyReadingRecord`，如果没有记录返回默认结构
 #[frb(sync)]
-pub fn get_daily_reading_record(date: String) -> DailyReadingRecord {
-    match get_storage() {
-        Ok(storage) => match storage.get_daily_record(&date) {
-            Ok(Some(record)) => record,
-            _ => DailyReadingRecord {
-                date,
-                reading_time_seconds: 0,
-                characters_read: 0,
-                chapters_read: 0,
-                pages_read: 0,
-            },
-        },
-        Err(_) => DailyReadingRecord {
-            date,
-            reading_time_seconds: 0,
-            characters_read: 0,
-            chapters_read: 0,
-            pages_read: 0,
-        },
-    }
+pub fn get_daily_reading_record(_date: String) -> DailyReadingRecord {
+    return DailyReadingRecord {
+        date: _date,
+        reading_time_seconds: 0,
+        characters_read: 0,
+        chapters_read: 0,
+        pages_read: 0,
+    };
 }
 
 /// 获取日期范围内的阅读记录
@@ -1137,12 +1032,7 @@ pub fn get_daily_reading_records_in_range(
     start_date: String,
     end_date: String,
 ) -> Vec<DailyReadingRecord> {
-    match get_storage() {
-        Ok(storage) => storage
-            .get_daily_records_in_range(&start_date, &end_date)
-            .unwrap_or_default(),
-        Err(_) => vec![],
-    }
+    return vec![];
 }
 
 /// 获取最近 N 天的阅读记录
@@ -1172,13 +1062,7 @@ pub fn get_recent_reading_records(days: i32) -> Vec<DailyReadingRecord> {
 /// 返回连续阅读天数
 #[frb(sync)]
 pub fn get_consecutive_reading_days() -> i32 {
-    match get_storage() {
-        Ok(storage) => match storage.get_reading_stats() {
-            Ok(stats) => stats.consecutive_reading_days,
-            _ => 0,
-        },
-        Err(_) => 0,
-    }
+    return 0;
 }
 
 /// 获取阅读速度（字/分钟）
@@ -1190,13 +1074,7 @@ pub fn get_consecutive_reading_days() -> i32 {
 /// 返回平均阅读速度（字/分钟）
 #[frb(sync)]
 pub fn get_reading_speed() -> f32 {
-    match get_storage() {
-        Ok(storage) => match storage.get_reading_stats() {
-            Ok(stats) => stats.average_reading_speed,
-            _ => 0.0,
-        },
-        Err(_) => 0.0,
-    }
+    return 0.0;
 }
 
 /// 更新书籍阅读计数
@@ -1204,14 +1082,7 @@ pub fn get_reading_speed() -> f32 {
 /// 当开始阅读一本新书时调用。
 #[frb(sync)]
 pub fn increment_books_read_count() {
-    match get_storage() {
-        Ok(storage) => {
-            if let Err(e) = storage.increment_books_read_count() {
-                tracing::error!("更新书籍计数失败: {}", e);
-            }
-        }
-        Err(_) => {}
-    }
+    return {};
 }
 
 /// 更新完成阅读书籍计数
@@ -1219,14 +1090,7 @@ pub fn increment_books_read_count() {
 /// 当完成阅读一本书时调用。
 #[frb(sync)]
 pub fn increment_books_completed_count() {
-    match get_storage() {
-        Ok(storage) => {
-            if let Err(e) = storage.increment_books_completed_count() {
-                tracing::error!("更新完成书籍计数失败: {}", e);
-            }
-        }
-        Err(_) => {}
-    }
+    return {};
 }
 
 // ==================== 排版缓存管理 ====================
@@ -1274,24 +1138,10 @@ pub fn save_layout_cache(
     config: TypesetConfig,
     page_offsets: Vec<PageOffset>,
 ) -> ApiResult<()> {
-    let config_hash = compute_config_hash(config.clone());
+    let _config_hash = compute_config_hash(config.clone());
+    let _ = page_offsets;
 
-    match get_storage() {
-        Ok(storage) => storage
-            .save_layout_cache(&book_id, chapter_id, &config_hash, &page_offsets)
-            .map_err(|e| ParserError::Other(format!("保存排版缓存失败：{}", e)))?,
-        Err(e) => return Err(ParserError::Other(e.to_string())),
-    }
-
-    tracing::info!(
-        "排版缓存已保存：book={}, chapter={}, hash={}, pages={}",
-        book_id,
-        chapter_id,
-        config_hash,
-        page_offsets.len()
-    );
-
-    Ok(())
+    return Err(ParserError::Other("排版缓存已迁移到 Flutter 侧".to_string()));
 }
 
 /// 获取排版缓存
@@ -1315,34 +1165,12 @@ pub fn get_layout_cache(
     chapter_id: i32,
     config: TypesetConfig,
 ) -> LayoutCacheResult {
-    let config_hash = compute_config_hash(config.clone());
+    let _config_hash = compute_config_hash(config.clone());
 
-    match get_storage() {
-        Ok(storage) => match storage.get_layout_cache(&book_id, chapter_id, &config_hash) {
-            Ok(result) => {
-                if result.hit {
-                    tracing::debug!(
-                        "排版缓存命中：book={}, chapter={}, hash={}",
-                        book_id,
-                        chapter_id,
-                        config_hash
-                    );
-                }
-                result
-            }
-            Err(e) => {
-                tracing::error!("获取排版缓存失败：{}", e);
-                LayoutCacheResult {
-                    hit: false,
-                    cached_layout: None,
-                }
-            }
-        },
-        Err(_) => LayoutCacheResult {
-            hit: false,
-            cached_layout: None,
-        },
-    }
+    return LayoutCacheResult {
+        hit: false,
+        cached_layout: None,
+    };
 }
 
 /// 清除书籍的所有排版缓存
@@ -1358,19 +1186,7 @@ pub fn get_layout_cache(
 /// 返回删除的缓存数量
 #[frb(sync)]
 pub fn clear_layout_cache(book_id: String) -> i32 {
-    match get_storage() {
-        Ok(storage) => match storage.clear_layout_cache(&book_id) {
-            Ok(count) => {
-                tracing::info!("清除排版缓存：book={}, count={}", book_id, count);
-                count as i32
-            }
-            Err(e) => {
-                tracing::error!("清除排版缓存失败：{}", e);
-                0
-            }
-        },
-        Err(_) => 0,
-    }
+    return 0;
 }
 
 /// 清除指定章节的排版缓存
@@ -1387,24 +1203,7 @@ pub fn clear_layout_cache(book_id: String) -> i32 {
 /// 返回删除的缓存数量
 #[frb(sync)]
 pub fn clear_chapter_layout_cache(book_id: String, chapter_id: i32) -> i32 {
-    match get_storage() {
-        Ok(storage) => match storage.clear_chapter_layout_cache(&book_id, chapter_id) {
-            Ok(count) => {
-                tracing::debug!(
-                    "清除章节排版缓存：book={}, chapter={}, count={}",
-                    book_id,
-                    chapter_id,
-                    count
-                );
-                count as i32
-            }
-            Err(e) => {
-                tracing::error!("清除章节排版缓存失败：{}", e);
-                0
-            }
-        },
-        Err(_) => 0,
-    }
+    return 0;
 }
 
 /// 获取书籍的所有排版缓存信息
@@ -1420,16 +1219,7 @@ pub fn clear_chapter_layout_cache(book_id: String, chapter_id: i32) -> i32 {
 /// 返回所有缓存的列表，包含章节 ID、配置哈希、页数等信息
 #[frb(sync)]
 pub fn get_all_layout_cache(book_id: String) -> Vec<CachedLayout> {
-    match get_storage() {
-        Ok(storage) => match storage.get_all_layout_cache(&book_id) {
-            Ok(caches) => caches,
-            Err(e) => {
-                tracing::error!("获取排版缓存列表失败：{}", e);
-                vec![]
-            }
-        },
-        Err(_) => vec![],
-    }
+    return vec![];
 }
 
 // ==================== EPUB 图片支持 ====================
@@ -2467,13 +2257,7 @@ pub fn extract_cover_simple(file_path: String, output_dir: String) -> Option<Str
 /// * 总页数，失败时返回 -1
 #[frb(sync)]
 pub fn get_pdf_page_count_simple(file_path: String) -> i32 {
-    match get_pdf_page_count(file_path) {
-        Ok(count) => count,
-        Err(e) => {
-            tracing::warn!("获取 PDF 页数失败: {}", e);
-            -1
-        }
-    }
+    get_pdf_page_count(file_path)
 }
 
 /// 获取 PDF 元数据（简化版）
@@ -2491,13 +2275,7 @@ pub fn get_pdf_page_count_simple(file_path: String) -> i32 {
 /// * `None` - 获取失败
 #[frb(sync)]
 pub fn get_pdf_metadata_simple(file_path: String) -> Option<PdfMetadata> {
-    match get_pdf_metadata(file_path) {
-        Ok(metadata) => Some(metadata),
-        Err(e) => {
-            tracing::warn!("获取 PDF 元数据失败: {}", e);
-            None
-        }
-    }
+    Some(get_pdf_metadata(file_path))
 }
 
 /// 排版处理文本（简化版）
