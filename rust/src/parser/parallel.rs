@@ -5,16 +5,22 @@
 use rayon::prelude::*;
 
 use crate::ffi::{ApiResult, ChapterInfo, ParserError};
+use crate::text_process::constants::MIN_CHAPTER_LENGTH;
 
 /// 并行验证章节内容
 ///
-/// 使用 rayon 并行处理所有章节，过滤掉无效章节。
+/// 使用 rayon 全局线程池并行处理章节列表，过滤掉无效章节。
+///
+/// # 性能优化
+///
+/// 预先构建字符索引映射（O(n)），避免每次章节验证时重复遍历（O(N × 文件大小)）。
+/// 对于 10MB 文件 + 1000 章节，优化前需遍历 10GB 数据，优化后仅需 10MB + O(1) 查询。
 ///
 /// # 参数
 ///
 /// * `chapters` - 章节列表
 /// * `content` - 完整文件内容
-/// * `num_threads` - 并行线程数（0 表示使用 CPU 核心数）
+/// * `_num_threads` - 保留参数，实际使用全局线程池配置
 ///
 /// # 返回值
 ///
@@ -22,60 +28,77 @@ use crate::ffi::{ApiResult, ChapterInfo, ParserError};
 pub fn validate_chapters_parallel(
     chapters: Vec<ChapterInfo>,
     content: &str,
-    num_threads: usize,
+    _num_threads: usize,
 ) -> Vec<ChapterInfo> {
-    let actual_threads = if num_threads == 0 {
-        std::thread::available_parallelism()
-            .map(|p| p.get())
-            .unwrap_or(4)
-    } else {
-        num_threads.clamp(1, 16)
-    };
+    tracing::debug!("开始并行验证章节，数量：{}", chapters.len());
 
-    tracing::debug!("开始并行验证章节，线程数：{}", actual_threads);
+    // ✅ 预先构建字符索引映射（一次 O(n) 遍历）
+    // 存储每个字符索引对应的字节偏移
+    let byte_positions: Vec<usize> = content.char_indices().map(|(i, _)| i).collect();
+    let char_count = byte_positions.len();
 
-    let pool = rayon::ThreadPoolBuilder::new()
-        .num_threads(actual_threads)
-        .build()
-        .expect("Failed to build rayon thread pool");
-
-    pool.install(|| {
-        chapters
-            .par_iter()
-            .filter_map(|chapter| match validate_chapter_content(content, chapter) {
-                Ok(_) => Some(chapter.clone()),
+    // ✅ 并行验证，每个章节的字节索引查询都是 O(1)
+    chapters
+        .into_par_iter()
+        .filter(|chapter| {
+            match validate_chapter_content_with_positions(
+                content,
+                chapter,
+                &byte_positions,
+                char_count,
+            ) {
+                Ok(_) => true,
                 Err(e) => {
                     tracing::warn!("章节验证失败 {}: {}", chapter.title, e);
-                    None
+                    false
                 }
-            })
-            .collect()
-    })
+            }
+        })
+        .collect()
 }
 
-/// 验证单个章节内容
+/// 验证单个章节内容（使用预计算的字符索引映射）
 ///
 /// 检查章节内容是否有效（非空、包含有效文本等）。
+/// 使用预计算的 byte_positions 映射实现 O(1) 字节边界查询。
 ///
 /// # 参数
 ///
 /// * `content` - 完整文件内容
 /// * `chapter` - 章节信息
+/// * `byte_positions` - 预计算的字符索引到字节偏移的映射
+/// * `char_count` - 总字符数
 ///
 /// # 返回值
 ///
 /// * `Ok(())` - 章节有效
 /// * `Err(ParserError)` - 章节无效
-fn validate_chapter_content(content: &str, chapter: &ChapterInfo) -> ApiResult<()> {
+fn validate_chapter_content_with_positions(
+    content: &str,
+    chapter: &ChapterInfo,
+    byte_positions: &[usize],
+    char_count: usize,
+) -> ApiResult<()> {
+    // 检查索引是否为负数
+    if chapter.start_index < 0 || chapter.end_index < 0 {
+        return Err(ParserError::ChapterExtractError(
+            "章节索引不能为负数".to_string(),
+        ));
+    }
+
+    // 安全转换为 usize
     let start = chapter.start_index as usize;
     let end = chapter.end_index as usize;
 
-    // 使用 char 边界检查，避免截断多字节字符
-    let chars: Vec<char> = content.chars().collect();
-    if start >= chars.len() {
+    // ✅ O(1) 查询字节边界（而非 O(n) 的 char_indices().nth()）
+    let start_byte = byte_positions.get(start).copied().unwrap_or(content.len());
+    let end_byte = byte_positions.get(end).copied().unwrap_or(content.len());
+
+    // 检查溢出
+    if start > char_count {
         return Err(ParserError::ChapterExtractError(format!(
-            "章节起始位置超出范围：{}",
-            start
+            "章节起始位置超出范围：{} > {}",
+            start, char_count
         )));
     }
 
@@ -86,7 +109,7 @@ fn validate_chapter_content(content: &str, chapter: &ChapterInfo) -> ApiResult<(
         )));
     }
 
-    let chapter_content: String = chars[start..end.min(chars.len())].iter().collect();
+    let chapter_content = &content[start_byte..end_byte];
 
     // 检查章节内容是否为空
     if chapter_content.trim().is_empty() {
@@ -96,8 +119,8 @@ fn validate_chapter_content(content: &str, chapter: &ChapterInfo) -> ApiResult<(
         )));
     }
 
-    // 检查章节内容是否过短（少于 10 个字符）
-    if chapter_content.chars().count() < 10 {
+    // 检查章节内容是否过短（少于 MIN_CHAPTER_LENGTH 个字符）
+    if chapter_content.chars().count() < MIN_CHAPTER_LENGTH {
         return Err(ParserError::ChapterExtractError(format!(
             "章节内容过短：{} ({} 字符)",
             chapter.title,
@@ -110,13 +133,13 @@ fn validate_chapter_content(content: &str, chapter: &ChapterInfo) -> ApiResult<(
 
 /// 并行处理章节数据
 ///
-/// 使用 rayon 并行处理章节列表，适用于需要批量处理的场景。
+/// 使用 rayon 全局线程池并行处理章节列表，适用于需要批量处理的场景。
 ///
 /// # 参数
 ///
 /// * `chapters` - 章节列表
 /// * `processor` - 处理函数
-/// * `num_threads` - 并行线程数
+/// * `_num_threads` - 保留参数，实际使用全局线程池配置
 ///
 /// # 返回值
 ///
@@ -124,26 +147,17 @@ fn validate_chapter_content(content: &str, chapter: &ChapterInfo) -> ApiResult<(
 pub fn process_chapters_parallel<T, F>(
     chapters: Vec<ChapterInfo>,
     processor: F,
-    num_threads: usize,
+    _num_threads: usize,
 ) -> Vec<T>
 where
     T: Send + Sync,
     F: Fn(&ChapterInfo) -> Option<T> + Send + Sync,
 {
-    let actual_threads = if num_threads == 0 {
-        std::thread::available_parallelism()
-            .map(|p| p.get())
-            .unwrap_or(4)
-    } else {
-        num_threads.clamp(1, 16)
-    };
-
-    let pool = rayon::ThreadPoolBuilder::new()
-        .num_threads(actual_threads)
-        .build()
-        .expect("Failed to build rayon thread pool");
-
-    pool.install(|| chapters.par_iter().filter_map(&processor).collect())
+    // ✅ 直接使用全局线程池，避免重复创建
+    chapters
+        .into_par_iter()
+        .filter_map(|chapter| processor(&chapter))
+        .collect()
 }
 
 #[cfg(test)]
@@ -152,7 +166,7 @@ mod tests {
 
     fn create_test_chapter(id: i32, start: i64, end: i64, title: &str) -> ChapterInfo {
         ChapterInfo {
-            chapter_id: id,
+            chapter_id: format!("uuid-{}", id),
             title: title.to_string(),
             start_index: start,
             end_index: end,
@@ -206,12 +220,12 @@ mod tests {
             create_test_chapter(2, 20, 30, "第三章"),
         ];
 
-        let results: Vec<i32> =
-            process_chapters_parallel(chapters, |chapter| Some(chapter.chapter_id), 2);
+        let results: Vec<String> =
+            process_chapters_parallel(chapters, |chapter| Some(chapter.chapter_id.clone()), 2);
 
         assert_eq!(results.len(), 3);
-        assert!(results.contains(&0));
-        assert!(results.contains(&1));
-        assert!(results.contains(&2));
+        assert!(results.iter().any(|id| id == "uuid-0"));
+        assert!(results.iter().any(|id| id == "uuid-1"));
+        assert!(results.iter().any(|id| id == "uuid-2"));
     }
 }

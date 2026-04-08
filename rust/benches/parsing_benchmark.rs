@@ -48,7 +48,7 @@ fn bench_txt_parsing(c: &mut Criterion) {
             &file_path,
             |b, path| {
                 b.iter(|| {
-                    let _ = api::parse_txt_file(black_box(path.to_string_lossy().to_string()));
+                    let _ = api::parse_book(black_box(path.to_string_lossy().to_string()));
                 })
             },
         );
@@ -67,7 +67,7 @@ fn bench_txt_parsing(c: &mut Criterion) {
             &file_path,
             |b, path| {
                 b.iter(|| {
-                    let _ = api::parse_txt_file(black_box(path.to_string_lossy().to_string()));
+                    let _ = api::parse_book(black_box(path.to_string_lossy().to_string()));
                 })
             },
         );

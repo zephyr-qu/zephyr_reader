@@ -32,8 +32,7 @@ dependencies:
   shared_preferences: ^2.5.3
   flutter_secure_storage: ^10.0.0
   path_provider: ^2.1.3
-  drift: ^2.32.0
-  drift_flutter: ^0.3.0
+  # Drift removed - database operations handled by Rust engine
   sqlite3: ^3.2.0
   path: ^1.9.0
   webdav_client: ^1.2.2
@@ -79,7 +78,7 @@ dev_dependencies:
   injectable_generator: ^2.12.0
   flutter_gen_runner: ^5.12.0
   retrofit_generator: ^10.2.3
-  drift_dev: ^2.23.0
+  # Drift removed - database operations handled by Rust engine
   integration_test:
     sdk: flutter
   freezed: ^3.2.5

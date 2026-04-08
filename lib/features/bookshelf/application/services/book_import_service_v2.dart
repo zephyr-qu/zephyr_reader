@@ -12,7 +12,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/core/error/app_error.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/models/import_task.dart';
 import 'package:zephyr_reader/features/reader/domain/models/chapter_info.dart';
-import 'package:zephyr_reader/src/rust/api.dart' as rust_api;
+import 'package:zephyr_reader/src/rust/api/core.dart' as rust_api;
+import 'package:zephyr_reader/src/rust/api/cover.dart' as rust_cover;
 
 /// 导入结果
 class ImportResult {
@@ -171,8 +172,12 @@ class BookImportServiceV2 {
     String format,
   ) async {
     return Result.guardAsync(() async {
-      final result = await rust_api.asyncParseLocalBook(filePath: filePath);
-      final bookInfo = (result as dynamic).value;
+      final result = rust_api.parseBook(filePath: filePath);
+      final parseResult = (result as dynamic);
+
+      // Access book info and chapters from the parse result
+      final bookInfo = parseResult.bookInfo ?? parseResult.book_info;
+      final chapters = parseResult.chapters ?? bookInfo?.chapters;
 
       if (bookInfo == null) {
         throw AppError.parse(
@@ -194,9 +199,9 @@ class BookImportServiceV2 {
       return {
         'title': bookInfo.title,
         'author': bookInfo.author,
-        'chapterCount': bookInfo.chapter_count,
-        'coverPath': coverPath ?? bookInfo.cover_path,
-        'chapters': _convertChapters(bookInfo.chapters),
+        'chapterCount': bookInfo.chapterCount ?? bookInfo.chapter_count,
+        'coverPath': coverPath ?? bookInfo.coverPath ?? bookInfo.cover_path,
+        'chapters': _convertChapters(chapters),
       };
     });
   }
@@ -210,12 +215,12 @@ class BookImportServiceV2 {
       final coverFilename = 'cover_$timestamp.jpg';
       final coverDestPath = p.join(_coversDir!.path, coverFilename);
 
-      final result = rust_api.extractBookCover(
+      final result = rust_cover.extractBookCover(
         filePath: filePath,
         outputDir: _coversDir!.path,
       );
 
-      final coverPath = (result as dynamic).value;
+      final coverPath = (result as dynamic).value as String?;
       if (coverPath == null) return null;
 
       final coverFile = File(coverPath);
@@ -230,13 +235,17 @@ class BookImportServiceV2 {
     if (chapters == null || chapters is! List) return [];
 
     return chapters.map((chapter) {
+      // Rust ChapterInfo fields: chapterId (String/UUID), title, startIndex (i64), endIndex (i64), contentLength (i64), index (i32)
+      final chapterIdVal = chapter.chapterId ?? chapter.chapter_id;
+      final chapterIndex = chapter.index ?? chapter.chapterIndex ?? 0;
       return ChapterInfo(
-        chapterId: chapter.chapter_id ?? 0,
+        chapterId: chapterIdVal is String ? chapterIdVal : chapterIndex.toString(),
         title: chapter.title ?? '',
-        startIndex: (chapter.start_index ?? 0).toInt(),
-        endIndex: (chapter.end_index ?? 0).toInt(),
-        contentLength: (chapter.content_length ?? 0).toInt(),
-        index: chapter.index ?? 0,
+        startIndex: (chapter.startIndex ?? chapter.start_index ?? 0).toInt(),
+        endIndex: (chapter.endIndex ?? chapter.end_index ?? 0).toInt(),
+        contentLength:
+            (chapter.contentLength ?? chapter.content_length ?? 0).toInt(),
+        index: chapterIndex,
       );
     }).toList();
   }

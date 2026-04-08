@@ -18,15 +18,14 @@ serde_json = "1.0"
 # EPUB parsing (2.x API changed significantly)
 epub = "2.1.5"
 
-# PDF parsing
-pdf = "0.9"
+# PDF parsing (使用 pdfium-render 替代过旧的 pdf crate)
 pdfium-render = "0.8"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 
 # HTML parsing for rich text support
 # 使用统一版本避免冲突：html5ever 0.38 + markup5ever_rcdom 0.38
 html5ever = "0.38"
-markup5ever_rcdom = "0.38.0+unofficial"
+markup5ever_rcdom = "0.38.0"
 
 # Encoding detection and conversion
 encoding_rs = "0.8.35"
@@ -41,25 +40,31 @@ thiserror = "2.0.18"
 anyhow = "1.0"
 
 # Logging
-log = "0.4.29"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 # UUID
 uuid = { version = "1.22.0", features = ["v4"] }
 
+# MD5 for stable hash
+md5 = "0.7"
+
 # Date and time
-chrono = "0.4.44"
+chrono = { version = "0.4.44", features = ["serde"] }
 
 # Lazy initialization
 lazy_static = "1.5.0"
 once_cell = "1.21"
+lru = "0.12"
 
 # Regex
 regex = "1.12.3"
 
 # Parallel processing
 rayon = "1.11.0"
+
+# Efficient synchronization primitives
+parking_lot = "0.12"
 
 # Async runtime
 tokio = { version = "1.50.0", features = ["full"] }
@@ -73,9 +78,14 @@ hyphenation = { version = "0.8.4", features = ["embed_en-us"] }
 # Chinese text segmentation (used in search module)
 jieba-rs = "0.8.1"
 
-# SQLite for full-text search (仅用于搜索索引，可重建的临时数据)
-# 如果不需要搜索功能，可以注释掉
+# SQLite for data storage
 rusqlite = { version = "0.31", features = ["bundled"] }
+
+# KV storage for layout cache
+sled = "0.34"
+
+# Binary serialization
+bincode = "1.3"
 
 # Configuration
 toml = "0.8"

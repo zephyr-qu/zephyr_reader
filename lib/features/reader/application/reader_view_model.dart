@@ -3,8 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/domain/models/bookmark.dart';
-import 'package:zephyr_reader/domain/models/chapter.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/features/reader/application/services/chapter_content_service.dart';
 import 'package:zephyr_reader/features/reader/data/reading_progress_service.dart';
 import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart';
@@ -35,7 +34,7 @@ class ReaderViewModel {
   // ==================== 书籍状态 ====================
 
   /// 当前书籍 ID
-  final bookId = signal<int>(0);
+  final bookId = signal<String>('0');
 
   /// 当前章节 ID
   final chapterId = signal<int>(0);
@@ -44,7 +43,7 @@ class ReaderViewModel {
   final chapterIndex = signal<int>(0);
 
   /// 章节列表
-  final chapters = asyncSignal<List<Chapter>>(AsyncState.data([]));
+  final chapters = asyncSignal<List<DbChapter>>(AsyncState.data([]));
 
   /// 当前章节内容
   final chapterContent = asyncSignal<String>(AsyncState.data(''));
@@ -109,7 +108,7 @@ class ReaderViewModel {
   // ==================== 书签 ====================
 
   /// 书签列表
-  final bookmarks = asyncSignal<List<Bookmark>>(AsyncState.data([]));
+  final bookmarks = asyncSignal<List<DbBookmark>>(AsyncState.data([]));
 
   // ==================== 定时器 ====================
 
@@ -155,7 +154,7 @@ class ReaderViewModel {
   }
 
   /// 初始化阅读器
-  Future<void> initialize(int bookId, {int initialChapterId = 0}) async {
+  Future<void> initialize(String bookId, {int initialChapterId = 0}) async {
     this.bookId.value = bookId;
 
     isLoading.value = true;
@@ -169,10 +168,11 @@ class ReaderViewModel {
       await _loadLastProgress();
 
       // 加载初始章节
-      if (chapters.value.value != null && chapters.value.value!.isNotEmpty) {
+      final chaptersList = chapters.value.value;
+      if (chaptersList != null && chaptersList.isNotEmpty) {
         final targetChapterId = initialChapterId > 0
             ? initialChapterId
-            : chapters.value.value!.first.id;
+            : int.tryParse(chaptersList.first.id) ?? 0;
         await loadChapter(targetChapterId);
       }
 
@@ -210,17 +210,13 @@ class ReaderViewModel {
     if (result.isSuccess) {
       final progress = result.value;
       if (progress != null) {
-        chapterId.value = progress.chapterId;
+        chapterIndex.value = progress.chapterIndex;
         pageIndex.value = progress.pageIndex;
         totalPages.value = progress.totalPages;
-        readingDuration.value = progress.readingTimeSeconds;
+        readingDuration.value = progress.readingTimeSeconds.toInt();
 
-        // 找到对应的章节索引
-        final chapterList = chapters.value.value ?? [];
-        final index = chapterList.indexWhere((c) => c.id == progress.chapterId);
-        if (index != -1) {
-          chapterIndex.value = index;
-        }
+        // 更新章节 ID 信号（兼容旧代码）
+        chapterId.value = progress.chapterIndex;
       }
     }
   }
@@ -253,11 +249,7 @@ class ReaderViewModel {
       totalPages.value = pages.length;
 
       // 更新章节索引
-      final chapterList = chapters.value.value ?? [];
-      final index = chapterList.indexWhere((c) => c.id == chapterId);
-      if (index != -1) {
-        chapterIndex.value = index;
-      }
+      chapterIndex.value = chapterId;
 
       // 保存阅读历史
       await _repo.saveReadingHistory(bookId.value, chapterId, 0, 0);
@@ -283,9 +275,8 @@ class ReaderViewModel {
   /// 上一章
   Future<void> previousChapter() async {
     if (chapterIndex.value > 0) {
-      final chapterList = chapters.value.value ?? [];
-      final newChapter = chapterList[chapterIndex.value - 1];
-      await loadChapter(newChapter.id);
+      final newChapterIndex = chapterIndex.value - 1;
+      await loadChapter(newChapterIndex);
       pageIndex.value = 0;
     }
   }
@@ -294,15 +285,15 @@ class ReaderViewModel {
   Future<void> nextChapter() async {
     final chapterList = chapters.value.value ?? [];
     if (chapterIndex.value < chapterList.length - 1) {
-      final newChapter = chapterList[chapterIndex.value + 1];
-      await loadChapter(newChapter.id);
+      final newChapterIndex = chapterIndex.value + 1;
+      await loadChapter(newChapterIndex);
       pageIndex.value = 0;
     }
   }
 
   /// 跳转到指定章节
-  Future<void> jumpToChapter(int chapterId) async {
-    await loadChapter(chapterId);
+  Future<void> jumpToChapter(int chapterIndex) async {
+    await loadChapter(chapterIndex);
     pageIndex.value = 0;
     showCatalog.value = false;
   }
@@ -402,13 +393,12 @@ class ReaderViewModel {
   }
 
   /// 添加书签
-  Future<bool> addBookmark(String? note) async {
+  Future<bool> addBookmark() async {
     try {
       await _repo.addBookmark(
         bookId.value,
         chapterId.value,
         pageIndex.value,
-        note,
       );
       await loadBookmarks();
       return true;
@@ -433,11 +423,10 @@ class ReaderViewModel {
   }
 
   /// 跳转到书签位置
-  Future<void> jumpToBookmark(Bookmark bookmark) async {
-    if (bookmark.chapterId != chapterId.value) {
-      await loadChapter(bookmark.chapterId);
+  Future<void> jumpToBookmark(DbBookmark bookmark) async {
+    if (bookmark.chapterIndex != chapterId.value) {
+      await loadChapter(bookmark.chapterIndex);
     }
-    pageIndex.value = bookmark.position;
     showBookmarks.value = false;
   }
 
@@ -445,16 +434,16 @@ class ReaderViewModel {
   bool get hasBookmarkAtCurrentPosition {
     final currentBookmarks = bookmarks.value.value ?? [];
     return currentBookmarks.any(
-      (b) => b.chapterId == chapterId.value && b.position == pageIndex.value,
+      (b) => b.chapterIndex == chapterId.value,
     );
   }
 
   /// 获取当前位置的书签（如果有）
-  Bookmark? get currentBookmark {
+  DbBookmark? get currentBookmark {
     final currentBookmarks = bookmarks.value.value ?? [];
     try {
       return currentBookmarks.firstWhere(
-        (b) => b.chapterId == chapterId.value && b.position == pageIndex.value,
+        (b) => b.chapterIndex == chapterId.value,
       );
     } catch (_) {
       return null;
@@ -462,12 +451,12 @@ class ReaderViewModel {
   }
 
   /// 切换当前位置书签（有则删除，无则添加）
-  Future<bool> toggleBookmarkAtCurrentPosition({String? note}) async {
+  Future<bool> toggleBookmarkAtCurrentPosition() async {
     final existing = currentBookmark;
     if (existing != null) {
-      return await deleteBookmark(existing.id);
+      return await deleteBookmark(existing.id.hashCode);
     } else {
-      return await addBookmark(note);
+      return await addBookmark();
     }
   }
 
@@ -476,7 +465,7 @@ class ReaderViewModel {
     fontSize.value = size;
     await _config.setFontSize(ReaderFontSize.fromSize(size));
     // 重新计算分页
-    await loadChapter(chapterId.value);
+    await loadChapter(chapterIndex.value);
   }
 
   /// 更新行间距
@@ -484,7 +473,7 @@ class ReaderViewModel {
     lineHeight.value = height;
     await _config.setLineHeight(height);
     // 重新计算分页
-    await loadChapter(chapterId.value);
+    await loadChapter(chapterIndex.value);
   }
 
   /// 更新主题

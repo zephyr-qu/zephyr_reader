@@ -2,25 +2,24 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:zephyr_reader/domain/models/bookmark.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 书签管理组件
-class BookmarkWidget extends HookWidget {
+class BookmarkWidget extends StatelessWidget {
   /// 书签列表
-  final List<Bookmark> bookmarks;
+  final List<DbBookmark> bookmarks;
 
   /// 主题模式
   final ThemeMode themeMode;
 
   /// 书签选中回调
-  final ValueChanged<Bookmark> onBookmarkSelected;
+  final ValueChanged<DbBookmark> onBookmarkSelected;
 
   /// 添加书签回调
-  final ValueChanged<String?>? onAddBookmark;
+  final VoidCallback? onAddBookmark;
 
   /// 删除书签回调
-  final ValueChanged<int> onDeleteBookmark;
+  final ValueChanged<String> onDeleteBookmark;
 
   /// 关闭回调
   final VoidCallback onClose;
@@ -137,20 +136,27 @@ class BookmarkWidget extends HookWidget {
     );
   }
 
-  Widget _buildBookmarkItem(Bookmark bookmark, Color textColor) {
+  Widget _buildBookmarkItem(DbBookmark bookmark, Color textColor) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListTile(
         leading: const Icon(Icons.bookmark, color: Colors.blue),
         title: Text(
-          bookmark.note?.isNotEmpty == true ? bookmark.note! : '书签',
+          bookmark.title.isNotEmpty ? bookmark.title : '书签',
           style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '第 ${bookmark.position + 1} 页',
+              '章节 ${bookmark.chapterIndex + 1}',
+              style: TextStyle(
+                color: textColor.withValues(alpha: 0.4),
+                fontSize: 12,
+              ),
+            ),
+            Text(
+              '偏移: ${bookmark.charOffset}',
               style: TextStyle(
                 color: textColor.withValues(alpha: 0.4),
                 fontSize: 12,
@@ -180,20 +186,11 @@ class BookmarkWidget extends HookWidget {
   }
 
   void _showAddBookmarkDialog(BuildContext context, Color textColor) {
-    final noteController = useTextEditingController();
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('添加书签', style: TextStyle(color: textColor)),
-        content: TextField(
-          controller: noteController,
-          decoration: const InputDecoration(
-            labelText: '备注（可选）',
-            hintText: '输入书签备注',
-          ),
-          maxLines: 3,
-        ),
+        title: const Text('添加书签'),
+        content: const Text('确定要在这里添加书签吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -202,10 +199,7 @@ class BookmarkWidget extends HookWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              final note = noteController.text.trim().isEmpty
-                  ? null
-                  : noteController.text.trim();
-              onAddBookmark?.call(note);
+              onAddBookmark?.call();
               // 显示成功提示
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -221,7 +215,7 @@ class BookmarkWidget extends HookWidget {
     );
   }
 
-  void _showDeleteConfirm(BuildContext context, Bookmark bookmark) {
+  void _showDeleteConfirm(BuildContext context, DbBookmark bookmark) {
     final textColor = _getTextColor(themeMode);
 
     showDialog(

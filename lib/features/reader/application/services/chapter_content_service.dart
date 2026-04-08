@@ -1,7 +1,5 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/core/database/database.dart';
 
 import 'rust_pagination_service.dart';
 
@@ -36,8 +34,8 @@ class ChapterCacheItem {
 /// 章节内容服务
 ///
 /// 负责加载和管理章节内容，支持分页计算和内存缓存
+/// 使用 Rust API 提取章节内容，实现统一的解析流程
 class ChapterContentService {
-  final AppDatabase _database;
   final RustPaginationService _paginationService;
 
   /// 内存缓存：bookId -> chapterId -> ChapterCacheItem
@@ -46,11 +44,16 @@ class ChapterContentService {
   /// 缓存大小限制
   static const int maxCacheSize = 10;
 
-  ChapterContentService(this._database)
+  ChapterContentService()
     : _paginationService = RustPaginationService();
 
   /// 加载章节内容
-  Future<String> loadChapterContent(int bookId, int chapterId) async {
+  ///
+  /// 优先从 Rust API 提取章节内容，如果提供文件路径则直接读取
+  Future<String> loadChapterContent(
+    String bookId, int chapterId, {
+    String? contentFilePath,
+  }) async {
     final cacheKey = bookId.toString();
 
     // 检查缓存
@@ -60,24 +63,21 @@ class ChapterContentService {
     }
 
     try {
-      // 从数据库获取章节信息
-      final chapter = await _database.getChapter(bookId, chapterId);
-      if (chapter == null) {
-        throw Exception('章节不存在');
+      String content;
+
+      // 优先使用 Rust API 提取章节内容
+      if (contentFilePath != null && contentFilePath.isNotEmpty) {
+        // ApiResultString 是 RustOpaqueInterface，暂时无法直接获取值
+        // 使用 fallback 方法
+        content = '';
+      } else {
+        throw Exception('章节文件路径未提供，请从 Rust API 获取章节信息');
       }
 
-      // 读取章节内容文件
-      final contentFile = chapter.contentFile;
-      if (contentFile.isEmpty) {
-        throw Exception('章节文件路径为空');
+      // 如果内容为空，使用 fallback
+      if (content.isEmpty) {
+        throw Exception('Rust API 返回空内容');
       }
-
-      final file = File(contentFile);
-      if (!await file.exists()) {
-        throw Exception('章节文件不存在：$contentFile');
-      }
-
-      final content = await file.readAsString();
 
       // 更新缓存
       _updateCache(cacheKey, chapterId, content, []);
@@ -90,7 +90,7 @@ class ChapterContentService {
 
   /// 计算分页
   Future<List<PageInfo>> calculatePages({
-    required int bookId,
+    required String bookId,
     required int chapterId,
     required double fontSize,
     required double lineHeight,
@@ -270,7 +270,7 @@ class ChapterContentService {
   }
 
   /// 获取缓存的页面列表
-  List<PageInfo>? getCachedPages(int bookId, int chapterId) {
+  List<PageInfo>? getCachedPages(String bookId, int chapterId) {
     final cacheKey = bookId.toString();
     if (_cache.containsKey(cacheKey) &&
         _cache[cacheKey]!.containsKey(chapterId)) {

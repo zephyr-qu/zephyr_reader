@@ -5,10 +5,13 @@
 use std::path::Path;
 use std::sync::Arc;
 
+use flutter_rust_bridge::frb;
+
 use crate::ffi::{ApiResult, ParseResult, ParserError};
 use crate::parser::traits::{BookMetadata, BookParser};
 
 /// EPUB 文件解析器
+#[frb(opaque)]
 pub struct EpubParser;
 
 impl EpubParser {
@@ -66,7 +69,7 @@ impl BookParser for EpubParser {
 
         let chapter = chapters
             .iter()
-            .find(|c| c.chapter_id == chapter_id)
+            .find(|c| c.index == chapter_id)
             .ok_or_else(|| {
                 ParserError::ChapterExtractError(format!("未找到章节 {}", chapter_id))
             })?;

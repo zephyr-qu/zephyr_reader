@@ -6,11 +6,17 @@ use hyphenation::Load;
 use once_cell::sync::Lazy;
 use unicode_segmentation::UnicodeSegmentation;
 
-// 加载英文连字符字典
-static ENGLISH_DICTIONARY: Lazy<hyphenation::Standard> = Lazy::new(|| {
-    hyphenation::Standard::from_embedded(hyphenation::Language::EnglishUS)
-        .expect("Failed to load English dictionary")
-});
+// 加载英文连字符字典（优雅降级：加载失败时返回 None）
+static ENGLISH_DICTIONARY: Lazy<Option<hyphenation::Standard>> =
+    Lazy::new(
+        || match hyphenation::Standard::from_embedded(hyphenation::Language::EnglishUS) {
+            Ok(dict) => Some(dict),
+            Err(e) => {
+                tracing::warn!("Failed to load English hyphenation dictionary: {}", e);
+                None
+            }
+        },
+    );
 
 /// 检测文本语言类型
 pub fn detect_language(text: &str) -> LanguageType {
@@ -58,11 +64,11 @@ pub fn smart_break_line(text: &str, max_width: usize) -> Vec<String> {
 
     if is_cjk {
         // CJK 模式：按字符断行，但尽量不拆分连续的英文单词
-        let mut words = text.split_word_bounds().peekable();
+        let words = text.split_word_bounds().peekable();
         let mut line = String::new();
         let mut line_width = 0;
 
-        while let Some(word) = words.next() {
+        for word in words {
             let word_width = word.chars().count();
 
             if line_width + word_width > max_width {
@@ -130,23 +136,18 @@ pub fn break_english_line(text: &str, max_width: usize) -> Vec<String> {
                     continue;
                 }
 
-                // 尝试断词
-                let hyphenated = ENGLISH_DICTIONARY.hyphenate(word);
+                // 尝试断词（如果字典加载成功）
                 let mut best_break = None;
+                if let Some(ref dict) = *ENGLISH_DICTIONARY {
+                    let hyphenated = dict.hyphenate(word);
 
-                for break_idx in hyphenated.breaks {
-                    // break_idx 是字节索引，需要小心处理
-                    // 这里假设是 ASCII/UTF-8，对于纯英文应该没问题
-                    // 实际上最好转为字符索引
-                    if break_idx >= word.len() {
-                        continue;
-                    }
-
-                    // 简单的字节长度检查（近似字符数）
-                    if break_idx <= remaining_space {
-                        best_break = Some(break_idx);
-                    } else {
-                        break;
+                    for break_idx in hyphenated.breaks {
+                        // 简单的字节长度检查（近似字符数）
+                        if break_idx <= remaining_space {
+                            best_break = Some(break_idx);
+                        } else {
+                            break;
+                        }
                     }
                 }
 

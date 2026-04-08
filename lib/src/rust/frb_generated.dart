@@ -3,9 +3,13 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
-import 'api.dart';
+import 'api/core.dart';
+import 'api/cover.dart';
+import 'api/epub.dart';
+import 'api/incremental.dart';
+import 'api/search.dart';
 import 'api/security.dart';
-import 'api/simple.dart';
+import 'api/storage.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'ffi/error.dart';
@@ -15,6 +19,7 @@ import 'frb_generated.io.dart'
     if (dart.library.js_interop) 'frb_generated.web.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'parser/incremental.dart';
+import 'storage/models.dart';
 import 'stream/page_stream.dart';
 
 /// Main entrypoint of the Rust API
@@ -61,7 +66,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 
   @override
   Future<void> executeRustInitializers() async {
-    await api.crateApiInitApp();
+    await api.crateApiCoreInitApp();
   }
 
   @override
@@ -72,7 +77,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -1665239802;
+  int get rustContentHash => 1676518216;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -83,273 +88,417 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
-  Bookmark crateApiAddBookmark({
+  Future<ApiResult> crateApiStorageAssignCategoryToBook({
     required String bookId,
-    required int chapterId,
-    required int pageIndex,
-    required String title,
-    String? note,
+    required String categoryId,
   });
 
-  Future<ApiResultParseResult> crateApiAsyncParseEpubFile({
-    required String filePath,
+  Future<ApiResultUsize> crateApiStorageCleanupExpiredLayoutCache({
+    required PlatformInt64 maxAgeDays,
   });
 
-  Future<ApiResultLocalBookInfo> crateApiAsyncParseLocalBook({
-    required String filePath,
-  });
+  Future<ApiResult> crateApiSearchClearAllSearchIndex();
 
-  Future<ApiResultParseResult> crateApiAsyncParsePdfFile({
-    required String filePath,
-  });
+  Future<ApiResult> crateApiStorageClearAllSyncRecords();
 
-  Future<ApiResultParseResult> crateApiAsyncParseTxtFile({
-    required String filePath,
-  });
-
-  bool crateApiClearAllSearchIndex({required String indexPath});
-
-  int crateApiClearBookmarks({required String bookId});
-
-  int crateApiClearChapterLayoutCache({
+  Future<ApiResult> crateApiStorageClearCategoriesForBook({
     required String bookId,
-    required int chapterId,
   });
 
-  ApiResult crateApiClearIncrementalParserCache();
+  ApiResult crateApiIncrementalClearIncrementalParserCache();
 
-  int crateApiClearLayoutCache({required String bookId});
+  Future<ApiResult> crateApiStorageClearLayoutCache({required String bookId});
 
-  bool crateApiClearReadingProgress({required String bookId});
+  Future<ApiResult> crateApiStorageClearReadingProgress({
+    required String bookId,
+  });
 
-  String crateApiComputeConfigHash({required TypesetConfig config});
+  Future<ApiResult> crateApiStorageClearSyncConflicts({required String bookId});
 
-  PageStreamer crateApiCreatePageStreamer({
+  Future<ApiResultDbBookmark> crateApiStorageCreateBookmark({
+    required String bookId,
+    required int chapterIndex,
+    required PlatformInt64 charOffset,
+    String? title,
+  });
+
+  Future<ApiResultDbNote> crateApiStorageCreateNote({
+    required String bookId,
+    required int chapterIndex,
+    required PlatformInt64 charOffset,
+    required PlatformInt64 length,
+    required DbNoteType noteType,
+    required String content,
+    String? selectedText,
+    int? highlightColor,
+  });
+
+  PageStreamer crateApiCoreCreatePageStreamer({
     required String content,
     required TypesetConfig config,
   });
 
-  bool crateApiDeleteSearchIndex({
+  Future<ApiResult> crateApiStorageDeleteBook({required String bookId});
+
+  Future<ApiResult> crateApiStorageDeleteBookmark({required String bookmarkId});
+
+  Future<ApiResult> crateApiStorageDeleteBookmarksByBook({
     required String bookId,
-    required String indexPath,
   });
 
-  ApiResultString crateApiExtractBookCover({
+  Future<ApiResult> crateApiStorageDeleteCategory({required String categoryId});
+
+  Future<ApiResult> crateApiStorageDeleteChaptersByBook({
+    required String bookId,
+  });
+
+  Future<ApiResult> crateApiStorageDeleteNote({required String noteId});
+
+  Future<ApiResult> crateApiStorageDeleteSearchIndex({required String bookId});
+
+  Future<ApiResult> crateApiStorageDeleteSessionsByBook({
+    required String bookId,
+  });
+
+  Future<ApiResult> crateApiStorageDeleteSyncRecord({required String recordId});
+
+  Future<ApiResultVecDbBookmark> crateApiStorageExportBookmarks({
+    required String bookId,
+  });
+
+  ApiResultString crateApiCoverExtractBookCover({
     required String filePath,
     required String outputDir,
   });
 
-  String? crateApiExtractCoverSimple({
-    required String filePath,
-    required String outputDir,
-  });
-
-  List<Bookmark> crateApiGetAllBookmarks();
-
-  List<CachedLayout> crateApiGetAllLayoutCache({required String bookId});
-
-  List<ReadingProgress> crateApiGetAllReadingProgress();
-
-  List<Bookmark> crateApiGetBookmarks({required String bookId});
-
-  ApiResultZeroCopyBufferVecU8 crateApiGetChapterContentZeroCopy({
+  ApiResultString crateApiCoreExtractChapter({
     required String filePath,
     required int chapterId,
   });
 
-  int crateApiGetConsecutiveReadingDays();
+  ApiResultBookMetadata crateApiCoreExtractMetadata({required String filePath});
 
-  DailyReadingRecord crateApiGetDailyReadingRecord({required String date});
+  Future<ApiResultVecDbBookRecord> crateApiStorageGetAllBooks();
 
-  List<DailyReadingRecord> crateApiGetDailyReadingRecordsInRange({
-    required String startDate,
-    required String endDate,
-  });
+  Future<ApiResultVecDbBookCategory> crateApiStorageGetAllCategories();
 
-  ApiResultZeroCopyBufferVecU8 crateApiGetEpubCoverData({
-    required String filePath,
-  });
-
-  ApiResultZeroCopyBufferVecU8 crateApiGetEpubCoverDataZeroCopy({
-    required String filePath,
-  });
-
-  Uint8List crateApiGetEpubCoverImage({required String filePath});
-
-  ApiResultEpubMetadata crateApiGetEpubFullMetadata({required String filePath});
-
-  ApiResultEpubImageInfo crateApiGetEpubImageMetadata({
-    required String filePath,
-    required String imageHref,
-  });
-
-  Uint8List crateApiGetEpubImageResource({
-    required String filePath,
-    required String imageHref,
-  });
-
-  ApiResultEpubImageList crateApiGetEpubImages({required String filePath});
-
-  ApiResultI64 crateApiGetFileSize({required String filePath});
-
-  PlatformInt64 crateApiGetFileSizeSimple({required String filePath});
-
-  CacheStats crateApiGetIncrementalParserStats();
-
-  LayoutCacheResult crateApiGetLayoutCache({
+  Future<ApiResultOptionDbBookRecord> crateApiStorageGetBook({
     required String bookId,
+  });
+
+  Future<ApiResultOptionDbBookmark> crateApiStorageGetBookmark({
+    required String bookmarkId,
+  });
+
+  Future<ApiResultBookmarkStats> crateApiStorageGetBookmarkStats({
+    required String bookId,
+  });
+
+  Future<ApiResultVecDbBookmark> crateApiStorageGetBookmarks({
+    required String bookId,
+  });
+
+  Future<ApiResultVecDbBookRecord> crateApiStorageGetBooksByStatus({
+    required DbBookStatus status,
+  });
+
+  Future<ApiResultVecDbBookCategory> crateApiStorageGetCategoriesForBook({
+    required String bookId,
+  });
+
+  Future<ApiResultOptionDbBookCategory> crateApiStorageGetCategory({
+    required String categoryId,
+  });
+
+  Future<ApiResultOptionDbChapter> crateApiStorageGetChapterByIndex({
+    required String bookId,
+    required int chapterIndex,
+  });
+
+  Future<ApiResultVecDbChapter> crateApiStorageGetChaptersByBook({
+    required String bookId,
+  });
+
+  ApiResultVecPageContent crateApiEpubGetEpubChapterContent({
+    required String filePath,
     required int chapterId,
     required TypesetConfig config,
   });
 
-  ApiResultZeroCopyBufferVecU8 crateApiGetPdfCoverData({
+  ApiResultVecRichParagraph crateApiEpubGetEpubChapterRichContent({
     required String filePath,
+    required int chapterId,
+    required TypesetConfig config,
   });
 
-  ApiResultZeroCopyBufferVecU8 crateApiGetPdfCoverDataZeroCopy({
-    required String filePath,
-  });
+  ApiResultEpubMetadata crateApiEpubGetEpubMetadata({required String filePath});
 
-  PdfMetadata? crateApiGetPdfMetadataSimple({required String filePath});
+  ApiResultI64 crateApiCoreGetFileSize({required String filePath});
 
-  int crateApiGetPdfPageCountSimple({required String filePath});
+  Future<ApiResultDbGlobalStats> crateApiStorageGetGlobalReadingStats();
 
-  ReadingProgress crateApiGetReadingProgress({required String bookId});
+  CacheStats crateApiIncrementalGetIncrementalParserStats();
 
-  double crateApiGetReadingSpeed();
-
-  ReadingStats crateApiGetReadingStats();
-
-  List<DailyReadingRecord> crateApiGetRecentReadingRecords({required int days});
-
-  (PlatformInt64, PlatformInt64) crateApiGetTodayReadingData();
-
-  String crateApiSimpleGreet({required String name});
-
-  void crateApiIncrementBooksCompletedCount();
-
-  void crateApiIncrementBooksReadCount();
-
-  ApiResult crateApiIndexChapterContent({
+  Future<ApiResultOptionDbLayoutCache> crateApiStorageGetLayoutCache({
     required String bookId,
-    required String indexPath,
+    required int chapterIndex,
+    required String configHash,
+  });
+
+  Future<ApiResultVecDbNote> crateApiStorageGetNotes({
+    required String bookId,
+    DbNoteType? noteType,
+  });
+
+  Future<ApiResultVecDbSyncRecord> crateApiStorageGetPendingSyncRecords({
+    required String bookId,
+  });
+
+  Future<ApiResultVecDbBookRecord> crateApiStorageGetPinnedBooks();
+
+  Future<ApiResultOptionDbReadingProgress> crateApiStorageGetReadingProgress({
+    required String bookId,
+  });
+
+  Future<ApiResultVecDbReadingSession> crateApiStorageGetReadingSessions({
+    required String bookId,
+    required BigInt limit,
+  });
+
+  Future<ApiResultVecDbDailyReadingStats> crateApiStorageGetReadingStatsRange({
+    required String startDate,
+    required String endDate,
+  });
+
+  Future<ApiResultVecDbReadingSession> crateApiStorageGetRecentSessions({
+    required BigInt limit,
+  });
+
+  Future<ApiResultVecDbBookRecord> crateApiStorageGetRecentlyReadBooks({
+    required BigInt limit,
+  });
+
+  Future<ApiResultVecDbReadingSession> crateApiStorageGetSessionsByDateRange({
+    required String bookId,
+    required String startDate,
+    required String endDate,
+  });
+
+  List<String> crateApiCoreGetSupportedFormats();
+
+  Future<ApiResultVecDbSyncRecord> crateApiStorageGetSyncConflicts({
+    required String bookId,
+  });
+
+  Future<ApiResultDbDailyReadingStats> crateApiStorageGetTodayReadingStats();
+
+  ApiResultVecPageContent crateApiCoreGetTxtChapterContent({
+    required String filePath,
+    required int chapterIndex,
+    required TypesetConfig config,
+  });
+
+  Future<ApiResult> crateApiStorageImportBookmarks({
+    required List<DbBookmark> bookmarks,
+  });
+
+  Future<ApiResult> crateApiSearchIndexChapterContent({
+    required String bookId,
     required int chapterId,
     required String chapterTitle,
     required String content,
   });
 
-  Future<void> crateApiInitApp();
-
-  ApiResult crateApiInitIncrementalParser();
-
-  ApiResult crateApiInitSearchIndex({
+  Future<ApiResult> crateApiStorageIndexChapterContent({
     required String bookId,
-    required String indexPath,
+    required int chapterIndex,
+    required String content,
   });
 
-  ApiResult crateApiInitStorage({required String dbPath});
+  Future<void> crateApiCoreInitApp();
 
-  Future<bool> crateApiSecurityIsSafePath({required String path});
+  ApiResult crateApiIncrementalInitIncrementalParser();
 
-  List<PageContent> crateApiPaginateAllContent({
+  Future<ApiResult> crateApiSearchInitSearchEngine({required String dbPath});
+
+  bool crateApiEpubIsEpubFile({required String filePath});
+
+  List<PageContent> crateApiCorePaginateAllContent({
     required String content,
     required int chapterId,
     required TypesetConfig config,
   });
 
-  ApiResultRichChapterContent crateApiParseEpubChapterRich({
+  List<PageContent> crateApiEpubPaginateEpubRichContent({
+    required List<RichParagraph> paragraphs,
+    required int chapterIndex,
+    required TypesetConfig config,
+  });
+
+  ApiResultParseResult crateApiCoreParseBook({required String filePath});
+
+  ApiResultRichChapterContent crateApiEpubParseEpubChapterRich({
     required String filePath,
     required int chapterIndex,
   });
 
-  ApiResultParseResult crateApiParseEpubFile({required String filePath});
-
-  RichChapterContent crateApiParseHtmlContent({required String htmlContent});
-
-  List<RichParagraph> crateApiParseHtmlContentSimple({
-    required String htmlContent,
-  });
-
-  ApiResultLocalBookInfo crateApiParseLocalBook({required String filePath});
-
-  ApiResultLocalBookInfo crateApiParseLocalBookIncremental({
+  ApiResultLocalBookInfo crateApiIncrementalParseLocalBookIncremental({
     required String filePath,
   });
 
-  LocalBookInfo? crateApiParseLocalBookSimple({required String filePath});
-
-  ApiResultParseResult crateApiParseTxtFile({required String filePath});
-
-  ApiResultString crateApiReadFileChunk({
+  ApiResultString crateApiCoreReadFileChunk({
     required String filePath,
     required PlatformInt64 startPos,
     required PlatformInt64 chunkSize,
   });
 
-  void crateApiRecordReadingSession({
+  Future<ApiResult> crateApiStorageReceiveGlobalStats({
+    required DbGlobalStats stats,
+  });
+
+  Future<ApiResult> crateApiStorageRecordReadingSession({
     required String bookId,
-    required int chapterId,
+    required int chapterIndex,
+    required PlatformInt64 startOffset,
+    required PlatformInt64 endOffset,
     required PlatformInt64 durationSeconds,
     required PlatformInt64 charactersRead,
   });
 
-  bool crateApiRemoveBookmark({
+  Future<ApiResult> crateApiStorageRemoveCategoryFromBook({
     required String bookId,
+    required String categoryId,
+  });
+
+  Future<ApiResult> crateApiStorageSaveBook({required DbBookRecord book});
+
+  Future<ApiResult> crateApiStorageSaveBookmark({required DbBookmark bookmark});
+
+  Future<ApiResult> crateApiStorageSaveBookmarksBatch({
+    required List<DbBookmark> bookmarks,
+  });
+
+  Future<ApiResult> crateApiStorageSaveCategory({
+    required DbBookCategory category,
+  });
+
+  Future<ApiResult> crateApiStorageSaveChapters({
+    required String bookId,
+    required List<DbChapter> chapters,
+  });
+
+  Future<ApiResult> crateApiStorageSaveLayoutCache({
+    required String bookId,
+    required int chapterIndex,
+    required String configHash,
+    required List<(PlatformInt64, PlatformInt64)> pageOffsets,
+    required int totalPages,
+  });
+
+  Future<ApiResult> crateApiStorageSaveLayoutCacheFull({
+    required String bookId,
+    required int chapterIndex,
+    required String configHash,
+    required DbLayoutCache cache,
+  });
+
+  Future<ApiResult> crateApiStorageSaveReadingProgress({
+    required String bookId,
+    required int chapterIndex,
+    required PlatformInt64 charOffset,
+    required int pageIndex,
+    required int totalPages,
+    required PlatformInt64 readingTimeSeconds,
+  });
+
+  Future<ApiResult> crateApiStorageSaveReadingSession({
+    required DbReadingSession session,
+  });
+
+  Future<ApiResult> crateApiStorageSaveSyncRecord({
+    required String bookId,
+    required String dataType,
+    required String dataId,
+    required int localVersion,
+    int? remoteVersion,
+    required DbSyncStatus status,
+  });
+
+  Future<ApiResult> crateApiStorageSaveSyncRecordFull({
+    required DbSyncRecord record,
+  });
+
+  Future<ApiResultVecDbBookRecord> crateApiStorageSearchBooks({
+    required String keyword,
+  });
+
+  Future<ApiResultVecDbSearchResult> crateApiStorageSearchContent({
+    required String query,
+    String? bookId,
+  });
+
+  Future<ApiResultVecSearchResult> crateApiSearchSearchInBook({
+    required String bookId,
+    required String query,
+    required int limit,
+  });
+
+  ApiResult crateApiCoreSetAllowedBaseDir({required String baseDir});
+
+  Future<ApiResult> crateApiStorageSetCategoriesForBook({
+    required String bookId,
+    required List<String> categoryIds,
+  });
+
+  bool crateApiCoverSupportsCoverExtraction({required String filePath});
+
+  bool crateApiCoreSupportsFormat({required String format});
+
+  Future<ApiResultVecDbBookmark> crateApiStorageSyncBookmarks({
+    required List<DbBookmark> localBookmarks,
+    required List<DbBookmark> remoteBookmarks,
+  });
+
+  String crateApiCoreTestConnection();
+
+  ApiResultString crateApiCoreTypesetText({
+    required String content,
+    required String language,
+    required TypesetConfig config,
+  });
+
+  Future<ApiResultDbBookmark> crateApiStorageUpdateBookmark({
     required String bookmarkId,
+    required String title,
   });
 
-  String crateApiRichTextToPlain({required RichChapterContent richContent});
+  Future<ApiResult> crateApiStorageUpdateDailyStats({
+    required DbDailyReadingStats stats,
+  });
 
-  ApiResult crateApiSaveLayoutCache({
+  Future<ApiResultDbNote> crateApiStorageUpdateNote({
+    required String noteId,
+    String? content,
+    int? highlightColor,
+  });
+
+  Future<ApiResult> crateApiStorageUpdateReadingProgress({
+    required DbReadingProgress progress,
+  });
+
+  Future<ApiResult> crateApiStorageUpdateReadingProgressPartial({
     required String bookId,
-    required int chapterId,
-    required TypesetConfig config,
-    required List<PageOffset> pageOffsets,
-  });
-
-  ApiResultZeroCopyBufferVecSearchHit crateApiSearchBooksZeroCopy({
-    required String bookId,
-    required String query,
-    required int limit,
-    required String indexPath,
-  });
-
-  SearchResults crateApiSearchInBook({
-    required String bookId,
-    required String indexPath,
-    required String query,
-    required int limit,
-  });
-
-  ApiResult crateApiSetAllowedBaseDir({required String baseDir});
-
-  String crateApiTestConnection();
-
-  ApiResultString crateApiTypesetText({
-    required String content,
-    required String language,
-    required TypesetConfig config,
-  });
-
-  String crateApiTypesetTextSimple({
-    required String content,
-    required String language,
-    required TypesetConfig config,
-  });
-
-  ReadingProgress crateApiUpdateReadingProgress({
-    required String bookId,
-    required int chapterId,
+    required int chapterIndex,
+    required PlatformInt64 charOffset,
     required int pageIndex,
     required int totalPages,
+    required PlatformInt64 readingTimeSeconds,
   });
 
-  ReadingProgress crateApiUpdateReadingProgressWithDuration({
-    required String bookId,
-    required int chapterId,
-    required int pageIndex,
-    required int totalPages,
-    required PlatformInt64 sessionDuration,
+  Future<ApiResult> crateApiStorageUpdateSyncStatus({
+    required String recordId,
+    required DbSyncStatus status,
+    int? remoteVersion,
   });
 
   Future<String> crateApiSecurityValidateFilePath({required String filePath});
@@ -368,22 +517,58 @@ abstract class RustLibApi extends BaseApi {
   CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_ApiResultPtr;
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_ApiResultEpubImageInfo;
+  get rust_arc_increment_strong_count_ApiResultBookMetadata;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_ApiResultEpubImageInfo;
+  get rust_arc_decrement_strong_count_ApiResultBookMetadata;
 
   CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultEpubImageInfoPtr;
+  get rust_arc_decrement_strong_count_ApiResultBookMetadataPtr;
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_ApiResultEpubImageList;
+  get rust_arc_increment_strong_count_ApiResultBookmarkStats;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_ApiResultEpubImageList;
+  get rust_arc_decrement_strong_count_ApiResultBookmarkStats;
 
   CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultEpubImageListPtr;
+  get rust_arc_decrement_strong_count_ApiResultBookmarkStatsPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultDbBookmark;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultDbBookmark;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultDbBookmarkPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultDbDailyReadingStats;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultDbDailyReadingStats;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultDbDailyReadingStatsPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultDbGlobalStats;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultDbGlobalStats;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultDbGlobalStatsPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultDbNote;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultDbNote;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultDbNotePtr;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_ApiResultEpubMetadata;
@@ -402,6 +587,60 @@ abstract class RustLibApi extends BaseApi {
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_ApiResultLocalBookInfoPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultOptionDbBookCategory;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultOptionDbBookCategory;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultOptionDbBookCategoryPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultOptionDbBookRecord;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultOptionDbBookRecord;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultOptionDbBookRecordPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultOptionDbBookmark;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultOptionDbBookmark;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultOptionDbBookmarkPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultOptionDbChapter;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultOptionDbChapter;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultOptionDbChapterPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultOptionDbLayoutCache;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultOptionDbLayoutCache;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultOptionDbLayoutCachePtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultOptionDbReadingProgress;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultOptionDbReadingProgress;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultOptionDbReadingProgressPtr;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_ApiResultParseResult;
@@ -431,22 +670,112 @@ abstract class RustLibApi extends BaseApi {
   get rust_arc_decrement_strong_count_ApiResultStringPtr;
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_ApiResultZeroCopyBufferVecSearchHit;
+  get rust_arc_increment_strong_count_ApiResultVecDbBookCategory;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_ApiResultZeroCopyBufferVecSearchHit;
+  get rust_arc_decrement_strong_count_ApiResultVecDbBookCategory;
 
   CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultZeroCopyBufferVecSearchHitPtr;
+  get rust_arc_decrement_strong_count_ApiResultVecDbBookCategoryPtr;
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_ApiResultZeroCopyBufferVecU8;
+  get rust_arc_increment_strong_count_ApiResultVecDbBookRecord;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_ApiResultZeroCopyBufferVecU8;
+  get rust_arc_decrement_strong_count_ApiResultVecDbBookRecord;
 
   CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultZeroCopyBufferVecU8Ptr;
+  get rust_arc_decrement_strong_count_ApiResultVecDbBookRecordPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecDbBookmark;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecDbBookmark;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecDbBookmarkPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecDbChapter;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecDbChapter;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecDbChapterPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecDbDailyReadingStats;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecDbDailyReadingStats;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecDbDailyReadingStatsPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecDbNote;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecDbNote;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecDbNotePtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecDbReadingSession;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecDbReadingSession;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecDbReadingSessionPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecDbSearchResult;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecDbSearchResult;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecDbSearchResultPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecDbSyncRecord;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecDbSyncRecord;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecDbSyncRecordPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecPageContent;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecPageContent;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecPageContentPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecRichParagraph;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecRichParagraph;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecRichParagraphPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecSearchResult;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecSearchResult;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecSearchResultPtr;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_ApiResultI64;
@@ -455,6 +784,15 @@ abstract class RustLibApi extends BaseApi {
   get rust_arc_decrement_strong_count_ApiResultI64;
 
   CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_ApiResultI64Ptr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultUsize;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultUsize;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultUsizePtr;
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -466,1454 +804,1866 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
-  Bookmark crateApiAddBookmark({
+  Future<ApiResult> crateApiStorageAssignCategoryToBook({
     required String bookId,
-    required int chapterId,
-    required int pageIndex,
-    required String title,
-    String? note,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          sse_encode_i_32(chapterId, serializer);
-          sse_encode_i_32(pageIndex, serializer);
-          sse_encode_String(title, serializer);
-          sse_encode_opt_String(note, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bookmark,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiAddBookmarkConstMeta,
-        argValues: [bookId, chapterId, pageIndex, title, note],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiAddBookmarkConstMeta => const TaskConstMeta(
-    debugName: 'add_bookmark',
-    argNames: ['bookId', 'chapterId', 'pageIndex', 'title', 'note'],
-  );
-
-  @override
-  Future<ApiResultParseResult> crateApiAsyncParseEpubFile({
-    required String filePath,
+    required String categoryId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 2,
-            port: port_,
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_String(categoryId);
+          return wire.wire__crate__api__storage__assign_category_to_book(
+            port_,
+            arg0,
+            arg1,
           );
         },
-        codec: SseCodec(
+        codec: DcoCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiAsyncParseEpubFileConstMeta,
-        argValues: [filePath],
+        constMeta: kCrateApiStorageAssignCategoryToBookConstMeta,
+        argValues: [bookId, categoryId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiAsyncParseEpubFileConstMeta => const TaskConstMeta(
-    debugName: 'async_parse_epub_file',
-    argNames: ['filePath'],
-  );
-
-  @override
-  Future<ApiResultLocalBookInfo> crateApiAsyncParseLocalBook({
-    required String filePath,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 3,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiAsyncParseLocalBookConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiAsyncParseLocalBookConstMeta =>
+  TaskConstMeta get kCrateApiStorageAssignCategoryToBookConstMeta =>
       const TaskConstMeta(
-        debugName: 'async_parse_local_book',
-        argNames: ['filePath'],
+        debugName: 'assign_category_to_book',
+        argNames: ['bookId', 'categoryId'],
       );
 
   @override
-  Future<ApiResultParseResult> crateApiAsyncParsePdfFile({
-    required String filePath,
+  Future<ApiResultUsize> crateApiStorageCleanupExpiredLayoutCache({
+    required PlatformInt64 maxAgeDays,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 4,
-            port: port_,
+          final arg0 = cst_encode_i_64(maxAgeDays);
+          return wire.wire__crate__api__storage__cleanup_expired_layout_cache(
+            port_,
+            arg0,
           );
         },
-        codec: SseCodec(
+        codec: DcoCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiAsyncParsePdfFileConstMeta,
-        argValues: [filePath],
+        constMeta: kCrateApiStorageCleanupExpiredLayoutCacheConstMeta,
+        argValues: [maxAgeDays],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiAsyncParsePdfFileConstMeta => const TaskConstMeta(
-    debugName: 'async_parse_pdf_file',
-    argNames: ['filePath'],
-  );
+  TaskConstMeta get kCrateApiStorageCleanupExpiredLayoutCacheConstMeta =>
+      const TaskConstMeta(
+        debugName: 'cleanup_expired_layout_cache',
+        argNames: ['maxAgeDays'],
+      );
 
   @override
-  Future<ApiResultParseResult> crateApiAsyncParseTxtFile({
-    required String filePath,
-  }) {
+  Future<ApiResult> crateApiSearchClearAllSearchIndex() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 5,
-            port: port_,
-          );
+          return wire.wire__crate__api__search__clear_all_search_index(port_);
         },
-        codec: SseCodec(
+        codec: DcoCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiAsyncParseTxtFileConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiAsyncParseTxtFileConstMeta => const TaskConstMeta(
-    debugName: 'async_parse_txt_file',
-    argNames: ['filePath'],
-  );
-
-  @override
-  bool crateApiClearAllSearchIndex({required String indexPath}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(indexPath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiClearAllSearchIndexConstMeta,
-        argValues: [indexPath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiClearAllSearchIndexConstMeta =>
-      const TaskConstMeta(
-        debugName: 'clear_all_search_index',
-        argNames: ['indexPath'],
-      );
-
-  @override
-  int crateApiClearBookmarks({required String bookId}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 7)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_i_32,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiClearBookmarksConstMeta,
-        argValues: [bookId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiClearBookmarksConstMeta =>
-      const TaskConstMeta(debugName: 'clear_bookmarks', argNames: ['bookId']);
-
-  @override
-  int crateApiClearChapterLayoutCache({
-    required String bookId,
-    required int chapterId,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          sse_encode_i_32(chapterId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_i_32,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiClearChapterLayoutCacheConstMeta,
-        argValues: [bookId, chapterId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiClearChapterLayoutCacheConstMeta =>
-      const TaskConstMeta(
-        debugName: 'clear_chapter_layout_cache',
-        argNames: ['bookId', 'chapterId'],
-      );
-
-  @override
-  ApiResult crateApiClearIncrementalParserCache() {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiClearIncrementalParserCacheConstMeta,
+        constMeta: kCrateApiSearchClearAllSearchIndexConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiClearIncrementalParserCacheConstMeta =>
+  TaskConstMeta get kCrateApiSearchClearAllSearchIndexConstMeta =>
+      const TaskConstMeta(debugName: 'clear_all_search_index', argNames: []);
+
+  @override
+  Future<ApiResult> crateApiStorageClearAllSyncRecords() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__storage__clear_all_sync_records(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageClearAllSyncRecordsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageClearAllSyncRecordsConstMeta =>
+      const TaskConstMeta(debugName: 'clear_all_sync_records', argNames: []);
+
+  @override
+  Future<ApiResult> crateApiStorageClearCategoriesForBook({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__clear_categories_for_book(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageClearCategoriesForBookConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageClearCategoriesForBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'clear_categories_for_book',
+        argNames: ['bookId'],
+      );
+
+  @override
+  ApiResult crateApiIncrementalClearIncrementalParserCache() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          return wire
+              .wire__crate__api__incremental__clear_incremental_parser_cache();
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiIncrementalClearIncrementalParserCacheConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiIncrementalClearIncrementalParserCacheConstMeta =>
       const TaskConstMeta(
         debugName: 'clear_incremental_parser_cache',
         argNames: [],
       );
 
   @override
-  int crateApiClearLayoutCache({required String bookId}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10)!;
+  Future<ApiResult> crateApiStorageClearLayoutCache({required String bookId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__clear_layout_cache(
+            port_,
+            arg0,
+          );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_i_32,
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiClearLayoutCacheConstMeta,
+        constMeta: kCrateApiStorageClearLayoutCacheConstMeta,
         argValues: [bookId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiClearLayoutCacheConstMeta => const TaskConstMeta(
-    debugName: 'clear_layout_cache',
-    argNames: ['bookId'],
-  );
+  TaskConstMeta get kCrateApiStorageClearLayoutCacheConstMeta =>
+      const TaskConstMeta(
+        debugName: 'clear_layout_cache',
+        argNames: ['bookId'],
+      );
 
   @override
-  bool crateApiClearReadingProgress({required String bookId}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 11)!;
+  Future<ApiResult> crateApiStorageClearReadingProgress({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__clear_reading_progress(
+            port_,
+            arg0,
+          );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiClearReadingProgressConstMeta,
+        constMeta: kCrateApiStorageClearReadingProgressConstMeta,
         argValues: [bookId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiClearReadingProgressConstMeta =>
+  TaskConstMeta get kCrateApiStorageClearReadingProgressConstMeta =>
       const TaskConstMeta(
         debugName: 'clear_reading_progress',
         argNames: ['bookId'],
       );
 
   @override
-  String crateApiComputeConfigHash({required TypesetConfig config}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_box_autoadd_typeset_config(config, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12)!;
+  Future<ApiResult> crateApiStorageClearSyncConflicts({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__clear_sync_conflicts(
+            port_,
+            arg0,
+          );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiComputeConfigHashConstMeta,
-        argValues: [config],
+        constMeta: kCrateApiStorageClearSyncConflictsConstMeta,
+        argValues: [bookId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiComputeConfigHashConstMeta => const TaskConstMeta(
-    debugName: 'compute_config_hash',
-    argNames: ['config'],
+  TaskConstMeta get kCrateApiStorageClearSyncConflictsConstMeta =>
+      const TaskConstMeta(
+        debugName: 'clear_sync_conflicts',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<ApiResultDbBookmark> crateApiStorageCreateBookmark({
+    required String bookId,
+    required int chapterIndex,
+    required PlatformInt64 charOffset,
+    String? title,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_i_64(charOffset);
+          final arg3 = cst_encode_opt_String(title);
+          return wire.wire__crate__api__storage__create_bookmark(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageCreateBookmarkConstMeta,
+        argValues: [bookId, chapterIndex, charOffset, title],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageCreateBookmarkConstMeta =>
+      const TaskConstMeta(
+        debugName: 'create_bookmark',
+        argNames: ['bookId', 'chapterIndex', 'charOffset', 'title'],
+      );
+
+  @override
+  Future<ApiResultDbNote> crateApiStorageCreateNote({
+    required String bookId,
+    required int chapterIndex,
+    required PlatformInt64 charOffset,
+    required PlatformInt64 length,
+    required DbNoteType noteType,
+    required String content,
+    String? selectedText,
+    int? highlightColor,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_i_64(charOffset);
+          final arg3 = cst_encode_i_64(length);
+          final arg4 = cst_encode_db_note_type(noteType);
+          final arg5 = cst_encode_String(content);
+          final arg6 = cst_encode_opt_String(selectedText);
+          final arg7 = cst_encode_opt_box_autoadd_i_32(highlightColor);
+          return wire.wire__crate__api__storage__create_note(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+            arg4,
+            arg5,
+            arg6,
+            arg7,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageCreateNoteConstMeta,
+        argValues: [
+          bookId,
+          chapterIndex,
+          charOffset,
+          length,
+          noteType,
+          content,
+          selectedText,
+          highlightColor,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageCreateNoteConstMeta => const TaskConstMeta(
+    debugName: 'create_note',
+    argNames: [
+      'bookId',
+      'chapterIndex',
+      'charOffset',
+      'length',
+      'noteType',
+      'content',
+      'selectedText',
+      'highlightColor',
+    ],
   );
 
   @override
-  PageStreamer crateApiCreatePageStreamer({
+  PageStreamer crateApiCoreCreatePageStreamer({
     required String content,
     required TypesetConfig config,
   }) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(content, serializer);
-          sse_encode_box_autoadd_typeset_config(config, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 13)!;
+          final arg0 = cst_encode_String(content);
+          final arg1 = cst_encode_box_autoadd_typeset_config(config);
+          return wire.wire__crate__api__core__create_page_streamer(arg0, arg1);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_page_streamer,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_page_streamer,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiCreatePageStreamerConstMeta,
+        constMeta: kCrateApiCoreCreatePageStreamerConstMeta,
         argValues: [content, config],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiCreatePageStreamerConstMeta => const TaskConstMeta(
-    debugName: 'create_page_streamer',
-    argNames: ['content', 'config'],
-  );
+  TaskConstMeta get kCrateApiCoreCreatePageStreamerConstMeta =>
+      const TaskConstMeta(
+        debugName: 'create_page_streamer',
+        argNames: ['content', 'config'],
+      );
 
   @override
-  bool crateApiDeleteSearchIndex({
-    required String bookId,
-    required String indexPath,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          sse_encode_String(indexPath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 14)!;
+  Future<ApiResult> crateApiStorageDeleteBook({required String bookId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__delete_book(port_, arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiDeleteSearchIndexConstMeta,
-        argValues: [bookId, indexPath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiDeleteSearchIndexConstMeta => const TaskConstMeta(
-    debugName: 'delete_search_index',
-    argNames: ['bookId', 'indexPath'],
-  );
-
-  @override
-  ApiResultString crateApiExtractBookCover({
-    required String filePath,
-    required String outputDir,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          sse_encode_String(outputDir, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 15)!;
-        },
-        codec: SseCodec(
+        codec: DcoCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString,
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiExtractBookCoverConstMeta,
-        argValues: [filePath, outputDir],
+        constMeta: kCrateApiStorageDeleteBookConstMeta,
+        argValues: [bookId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiExtractBookCoverConstMeta => const TaskConstMeta(
-    debugName: 'extract_book_cover',
-    argNames: ['filePath', 'outputDir'],
-  );
+  TaskConstMeta get kCrateApiStorageDeleteBookConstMeta =>
+      const TaskConstMeta(debugName: 'delete_book', argNames: ['bookId']);
 
   @override
-  String? crateApiExtractCoverSimple({
+  Future<ApiResult> crateApiStorageDeleteBookmark({
+    required String bookmarkId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookmarkId);
+          return wire.wire__crate__api__storage__delete_bookmark(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageDeleteBookmarkConstMeta,
+        argValues: [bookmarkId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageDeleteBookmarkConstMeta =>
+      const TaskConstMeta(
+        debugName: 'delete_bookmark',
+        argNames: ['bookmarkId'],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageDeleteBookmarksByBook({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__delete_bookmarks_by_book(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageDeleteBookmarksByBookConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageDeleteBookmarksByBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'delete_bookmarks_by_book',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageDeleteCategory({
+    required String categoryId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(categoryId);
+          return wire.wire__crate__api__storage__delete_category(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageDeleteCategoryConstMeta,
+        argValues: [categoryId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageDeleteCategoryConstMeta =>
+      const TaskConstMeta(
+        debugName: 'delete_category',
+        argNames: ['categoryId'],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageDeleteChaptersByBook({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__delete_chapters_by_book(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageDeleteChaptersByBookConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageDeleteChaptersByBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'delete_chapters_by_book',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageDeleteNote({required String noteId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(noteId);
+          return wire.wire__crate__api__storage__delete_note(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageDeleteNoteConstMeta,
+        argValues: [noteId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageDeleteNoteConstMeta =>
+      const TaskConstMeta(debugName: 'delete_note', argNames: ['noteId']);
+
+  @override
+  Future<ApiResult> crateApiStorageDeleteSearchIndex({required String bookId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__delete_search_index(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageDeleteSearchIndexConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageDeleteSearchIndexConstMeta =>
+      const TaskConstMeta(
+        debugName: 'delete_search_index',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageDeleteSessionsByBook({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__delete_sessions_by_book(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageDeleteSessionsByBookConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageDeleteSessionsByBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'delete_sessions_by_book',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageDeleteSyncRecord({
+    required String recordId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(recordId);
+          return wire.wire__crate__api__storage__delete_sync_record(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageDeleteSyncRecordConstMeta,
+        argValues: [recordId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageDeleteSyncRecordConstMeta =>
+      const TaskConstMeta(
+        debugName: 'delete_sync_record',
+        argNames: ['recordId'],
+      );
+
+  @override
+  Future<ApiResultVecDbBookmark> crateApiStorageExportBookmarks({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__export_bookmarks(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageExportBookmarksConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageExportBookmarksConstMeta =>
+      const TaskConstMeta(debugName: 'export_bookmarks', argNames: ['bookId']);
+
+  @override
+  ApiResultString crateApiCoverExtractBookCover({
     required String filePath,
     required String outputDir,
   }) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          sse_encode_String(outputDir, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16)!;
+          final arg0 = cst_encode_String(filePath);
+          final arg1 = cst_encode_String(outputDir);
+          return wire.wire__crate__api__cover__extract_book_cover(arg0, arg1);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_opt_String,
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiExtractCoverSimpleConstMeta,
+        constMeta: kCrateApiCoverExtractBookCoverConstMeta,
         argValues: [filePath, outputDir],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiExtractCoverSimpleConstMeta => const TaskConstMeta(
-    debugName: 'extract_cover_simple',
-    argNames: ['filePath', 'outputDir'],
-  );
+  TaskConstMeta get kCrateApiCoverExtractBookCoverConstMeta =>
+      const TaskConstMeta(
+        debugName: 'extract_book_cover',
+        argNames: ['filePath', 'outputDir'],
+      );
 
   @override
-  List<Bookmark> crateApiGetAllBookmarks() {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 17)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_bookmark,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetAllBookmarksConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetAllBookmarksConstMeta =>
-      const TaskConstMeta(debugName: 'get_all_bookmarks', argNames: []);
-
-  @override
-  List<CachedLayout> crateApiGetAllLayoutCache({required String bookId}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 18)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_cached_layout,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetAllLayoutCacheConstMeta,
-        argValues: [bookId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetAllLayoutCacheConstMeta => const TaskConstMeta(
-    debugName: 'get_all_layout_cache',
-    argNames: ['bookId'],
-  );
-
-  @override
-  List<ReadingProgress> crateApiGetAllReadingProgress() {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 19)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_reading_progress,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetAllReadingProgressConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetAllReadingProgressConstMeta =>
-      const TaskConstMeta(debugName: 'get_all_reading_progress', argNames: []);
-
-  @override
-  List<Bookmark> crateApiGetBookmarks({required String bookId}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 20)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_bookmark,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetBookmarksConstMeta,
-        argValues: [bookId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetBookmarksConstMeta =>
-      const TaskConstMeta(debugName: 'get_bookmarks', argNames: ['bookId']);
-
-  @override
-  ApiResultZeroCopyBufferVecU8 crateApiGetChapterContentZeroCopy({
+  ApiResultString crateApiCoreExtractChapter({
     required String filePath,
     required int chapterId,
   }) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          sse_encode_i_32(chapterId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 21)!;
+          final arg0 = cst_encode_String(filePath);
+          final arg1 = cst_encode_i_32(chapterId);
+          return wire.wire__crate__api__core__extract_chapter(arg0, arg1);
         },
-        codec: SseCodec(
+        codec: DcoCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8,
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiGetChapterContentZeroCopyConstMeta,
+        constMeta: kCrateApiCoreExtractChapterConstMeta,
         argValues: [filePath, chapterId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiGetChapterContentZeroCopyConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_chapter_content_zero_copy',
-        argNames: ['filePath', 'chapterId'],
-      );
+  TaskConstMeta get kCrateApiCoreExtractChapterConstMeta => const TaskConstMeta(
+    debugName: 'extract_chapter',
+    argNames: ['filePath', 'chapterId'],
+  );
 
   @override
-  int crateApiGetConsecutiveReadingDays() {
+  ApiResultBookMetadata crateApiCoreExtractMetadata({
+    required String filePath,
+  }) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 22)!;
+          final arg0 = cst_encode_String(filePath);
+          return wire.wire__crate__api__core__extract_metadata(arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_i_32,
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiGetConsecutiveReadingDaysConstMeta,
+        constMeta: kCrateApiCoreExtractMetadataConstMeta,
+        argValues: [filePath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreExtractMetadataConstMeta =>
+      const TaskConstMeta(
+        debugName: 'extract_metadata',
+        argNames: ['filePath'],
+      );
+
+  @override
+  Future<ApiResultVecDbBookRecord> crateApiStorageGetAllBooks() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__storage__get_all_books(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetAllBooksConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiGetConsecutiveReadingDaysConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_consecutive_reading_days',
-        argNames: [],
-      );
+  TaskConstMeta get kCrateApiStorageGetAllBooksConstMeta =>
+      const TaskConstMeta(debugName: 'get_all_books', argNames: []);
 
   @override
-  DailyReadingRecord crateApiGetDailyReadingRecord({required String date}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(date, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 23)!;
+  Future<ApiResultVecDbBookCategory> crateApiStorageGetAllCategories() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__storage__get_all_categories(port_);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_daily_reading_record,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetDailyReadingRecordConstMeta,
-        argValues: [date],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetDailyReadingRecordConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_daily_reading_record',
-        argNames: ['date'],
-      );
-
-  @override
-  List<DailyReadingRecord> crateApiGetDailyReadingRecordsInRange({
-    required String startDate,
-    required String endDate,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(startDate, serializer);
-          sse_encode_String(endDate, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_daily_reading_record,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetDailyReadingRecordsInRangeConstMeta,
-        argValues: [startDate, endDate],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetDailyReadingRecordsInRangeConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_daily_reading_records_in_range',
-        argNames: ['startDate', 'endDate'],
-      );
-
-  @override
-  ApiResultZeroCopyBufferVecU8 crateApiGetEpubCoverData({
-    required String filePath,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25)!;
-        },
-        codec: SseCodec(
+        codec: DcoCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8,
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiGetEpubCoverDataConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetEpubCoverDataConstMeta => const TaskConstMeta(
-    debugName: 'get_epub_cover_data',
-    argNames: ['filePath'],
-  );
-
-  @override
-  ApiResultZeroCopyBufferVecU8 crateApiGetEpubCoverDataZeroCopy({
-    required String filePath,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetEpubCoverDataZeroCopyConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetEpubCoverDataZeroCopyConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_epub_cover_data_zero_copy',
-        argNames: ['filePath'],
-      );
-
-  @override
-  Uint8List crateApiGetEpubCoverImage({required String filePath}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_prim_u_8_strict,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiGetEpubCoverImageConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetEpubCoverImageConstMeta => const TaskConstMeta(
-    debugName: 'get_epub_cover_image',
-    argNames: ['filePath'],
-  );
-
-  @override
-  ApiResultEpubMetadata crateApiGetEpubFullMetadata({
-    required String filePath,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 28)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetEpubFullMetadataConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetEpubFullMetadataConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_epub_full_metadata',
-        argNames: ['filePath'],
-      );
-
-  @override
-  ApiResultEpubImageInfo crateApiGetEpubImageMetadata({
-    required String filePath,
-    required String imageHref,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          sse_encode_String(imageHref, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 29)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetEpubImageMetadataConstMeta,
-        argValues: [filePath, imageHref],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetEpubImageMetadataConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_epub_image_metadata',
-        argNames: ['filePath', 'imageHref'],
-      );
-
-  @override
-  Uint8List crateApiGetEpubImageResource({
-    required String filePath,
-    required String imageHref,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          sse_encode_String(imageHref, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 30)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_prim_u_8_strict,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiGetEpubImageResourceConstMeta,
-        argValues: [filePath, imageHref],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetEpubImageResourceConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_epub_image_resource',
-        argNames: ['filePath', 'imageHref'],
-      );
-
-  @override
-  ApiResultEpubImageList crateApiGetEpubImages({required String filePath}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 31)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetEpubImagesConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetEpubImagesConstMeta =>
-      const TaskConstMeta(debugName: 'get_epub_images', argNames: ['filePath']);
-
-  @override
-  ApiResultI64 crateApiGetFileSize({required String filePath}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 32)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetFileSizeConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetFileSizeConstMeta =>
-      const TaskConstMeta(debugName: 'get_file_size', argNames: ['filePath']);
-
-  @override
-  PlatformInt64 crateApiGetFileSizeSimple({required String filePath}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 33)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_i_64,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetFileSizeSimpleConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetFileSizeSimpleConstMeta => const TaskConstMeta(
-    debugName: 'get_file_size_simple',
-    argNames: ['filePath'],
-  );
-
-  @override
-  CacheStats crateApiGetIncrementalParserStats() {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 34)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_cache_stats,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetIncrementalParserStatsConstMeta,
+        constMeta: kCrateApiStorageGetAllCategoriesConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiGetIncrementalParserStatsConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_incremental_parser_stats',
-        argNames: [],
-      );
+  TaskConstMeta get kCrateApiStorageGetAllCategoriesConstMeta =>
+      const TaskConstMeta(debugName: 'get_all_categories', argNames: []);
 
   @override
-  LayoutCacheResult crateApiGetLayoutCache({
+  Future<ApiResultOptionDbBookRecord> crateApiStorageGetBook({
     required String bookId,
-    required int chapterId,
-    required TypesetConfig config,
   }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          sse_encode_i_32(chapterId, serializer);
-          sse_encode_box_autoadd_typeset_config(config, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 35)!;
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__get_book(port_, arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_layout_cache_result,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetLayoutCacheConstMeta,
-        argValues: [bookId, chapterId, config],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetLayoutCacheConstMeta => const TaskConstMeta(
-    debugName: 'get_layout_cache',
-    argNames: ['bookId', 'chapterId', 'config'],
-  );
-
-  @override
-  ApiResultZeroCopyBufferVecU8 crateApiGetPdfCoverData({
-    required String filePath,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 36)!;
-        },
-        codec: SseCodec(
+        codec: DcoCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8,
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiGetPdfCoverDataConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetPdfCoverDataConstMeta => const TaskConstMeta(
-    debugName: 'get_pdf_cover_data',
-    argNames: ['filePath'],
-  );
-
-  @override
-  ApiResultZeroCopyBufferVecU8 crateApiGetPdfCoverDataZeroCopy({
-    required String filePath,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 37)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetPdfCoverDataZeroCopyConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetPdfCoverDataZeroCopyConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_pdf_cover_data_zero_copy',
-        argNames: ['filePath'],
-      );
-
-  @override
-  PdfMetadata? crateApiGetPdfMetadataSimple({required String filePath}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 38)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_opt_box_autoadd_pdf_metadata,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetPdfMetadataSimpleConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetPdfMetadataSimpleConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_pdf_metadata_simple',
-        argNames: ['filePath'],
-      );
-
-  @override
-  int crateApiGetPdfPageCountSimple({required String filePath}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 39)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_i_32,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetPdfPageCountSimpleConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGetPdfPageCountSimpleConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_pdf_page_count_simple',
-        argNames: ['filePath'],
-      );
-
-  @override
-  ReadingProgress crateApiGetReadingProgress({required String bookId}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 40)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_reading_progress,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGetReadingProgressConstMeta,
+        constMeta: kCrateApiStorageGetBookConstMeta,
         argValues: [bookId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiGetReadingProgressConstMeta => const TaskConstMeta(
-    debugName: 'get_reading_progress',
-    argNames: ['bookId'],
-  );
+  TaskConstMeta get kCrateApiStorageGetBookConstMeta =>
+      const TaskConstMeta(debugName: 'get_book', argNames: ['bookId']);
 
   @override
-  double crateApiGetReadingSpeed() {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 41)!;
+  Future<ApiResultOptionDbBookmark> crateApiStorageGetBookmark({
+    required String bookmarkId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookmarkId);
+          return wire.wire__crate__api__storage__get_bookmark(port_, arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_f_32,
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiGetReadingSpeedConstMeta,
-        argValues: [],
+        constMeta: kCrateApiStorageGetBookmarkConstMeta,
+        argValues: [bookmarkId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiGetReadingSpeedConstMeta =>
-      const TaskConstMeta(debugName: 'get_reading_speed', argNames: []);
+  TaskConstMeta get kCrateApiStorageGetBookmarkConstMeta =>
+      const TaskConstMeta(debugName: 'get_bookmark', argNames: ['bookmarkId']);
 
   @override
-  ReadingStats crateApiGetReadingStats() {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 42)!;
+  Future<ApiResultBookmarkStats> crateApiStorageGetBookmarkStats({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__get_bookmark_stats(
+            port_,
+            arg0,
+          );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_reading_stats,
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiGetReadingStatsConstMeta,
-        argValues: [],
+        constMeta: kCrateApiStorageGetBookmarkStatsConstMeta,
+        argValues: [bookId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiGetReadingStatsConstMeta =>
-      const TaskConstMeta(debugName: 'get_reading_stats', argNames: []);
+  TaskConstMeta get kCrateApiStorageGetBookmarkStatsConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_bookmark_stats',
+        argNames: ['bookId'],
+      );
 
   @override
-  List<DailyReadingRecord> crateApiGetRecentReadingRecords({
-    required int days,
+  Future<ApiResultVecDbBookmark> crateApiStorageGetBookmarks({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__get_bookmarks(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetBookmarksConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetBookmarksConstMeta =>
+      const TaskConstMeta(debugName: 'get_bookmarks', argNames: ['bookId']);
+
+  @override
+  Future<ApiResultVecDbBookRecord> crateApiStorageGetBooksByStatus({
+    required DbBookStatus status,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_db_book_status(status);
+          return wire.wire__crate__api__storage__get_books_by_status(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetBooksByStatusConstMeta,
+        argValues: [status],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetBooksByStatusConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_books_by_status',
+        argNames: ['status'],
+      );
+
+  @override
+  Future<ApiResultVecDbBookCategory> crateApiStorageGetCategoriesForBook({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__get_categories_for_book(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetCategoriesForBookConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetCategoriesForBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_categories_for_book',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<ApiResultOptionDbBookCategory> crateApiStorageGetCategory({
+    required String categoryId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(categoryId);
+          return wire.wire__crate__api__storage__get_category(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetCategoryConstMeta,
+        argValues: [categoryId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetCategoryConstMeta =>
+      const TaskConstMeta(debugName: 'get_category', argNames: ['categoryId']);
+
+  @override
+  Future<ApiResultOptionDbChapter> crateApiStorageGetChapterByIndex({
+    required String bookId,
+    required int chapterIndex,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          return wire.wire__crate__api__storage__get_chapter_by_index(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetChapterByIndexConstMeta,
+        argValues: [bookId, chapterIndex],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetChapterByIndexConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_chapter_by_index',
+        argNames: ['bookId', 'chapterIndex'],
+      );
+
+  @override
+  Future<ApiResultVecDbChapter> crateApiStorageGetChaptersByBook({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__get_chapters_by_book(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetChaptersByBookConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetChaptersByBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_chapters_by_book',
+        argNames: ['bookId'],
+      );
+
+  @override
+  ApiResultVecPageContent crateApiEpubGetEpubChapterContent({
+    required String filePath,
+    required int chapterId,
+    required TypesetConfig config,
   }) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_i_32(days, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 43)!;
+          final arg0 = cst_encode_String(filePath);
+          final arg1 = cst_encode_i_32(chapterId);
+          final arg2 = cst_encode_box_autoadd_typeset_config(config);
+          return wire.wire__crate__api__epub__get_epub_chapter_content(
+            arg0,
+            arg1,
+            arg2,
+          );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_daily_reading_record,
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiGetRecentReadingRecordsConstMeta,
-        argValues: [days],
+        constMeta: kCrateApiEpubGetEpubChapterContentConstMeta,
+        argValues: [filePath, chapterId, config],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiGetRecentReadingRecordsConstMeta =>
+  TaskConstMeta get kCrateApiEpubGetEpubChapterContentConstMeta =>
       const TaskConstMeta(
-        debugName: 'get_recent_reading_records',
-        argNames: ['days'],
+        debugName: 'get_epub_chapter_content',
+        argNames: ['filePath', 'chapterId', 'config'],
       );
 
   @override
-  (PlatformInt64, PlatformInt64) crateApiGetTodayReadingData() {
+  ApiResultVecRichParagraph crateApiEpubGetEpubChapterRichContent({
+    required String filePath,
+    required int chapterId,
+    required TypesetConfig config,
+  }) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 44)!;
+          final arg0 = cst_encode_String(filePath);
+          final arg1 = cst_encode_i_32(chapterId);
+          final arg2 = cst_encode_box_autoadd_typeset_config(config);
+          return wire.wire__crate__api__epub__get_epub_chapter_rich_content(
+            arg0,
+            arg1,
+            arg2,
+          );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_record_i_64_i_64,
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiGetTodayReadingDataConstMeta,
-        argValues: [],
+        constMeta: kCrateApiEpubGetEpubChapterRichContentConstMeta,
+        argValues: [filePath, chapterId, config],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiGetTodayReadingDataConstMeta =>
-      const TaskConstMeta(debugName: 'get_today_reading_data', argNames: []);
-
-  @override
-  String crateApiSimpleGreet({required String name}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 45)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiSimpleGreetConstMeta,
-        argValues: [name],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiSimpleGreetConstMeta =>
-      const TaskConstMeta(debugName: 'greet', argNames: ['name']);
-
-  @override
-  void crateApiIncrementBooksCompletedCount() {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 46)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiIncrementBooksCompletedCountConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiIncrementBooksCompletedCountConstMeta =>
+  TaskConstMeta get kCrateApiEpubGetEpubChapterRichContentConstMeta =>
       const TaskConstMeta(
-        debugName: 'increment_books_completed_count',
+        debugName: 'get_epub_chapter_rich_content',
+        argNames: ['filePath', 'chapterId', 'config'],
+      );
+
+  @override
+  ApiResultEpubMetadata crateApiEpubGetEpubMetadata({
+    required String filePath,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final arg0 = cst_encode_String(filePath);
+          return wire.wire__crate__api__epub__get_epub_metadata(arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiEpubGetEpubMetadataConstMeta,
+        argValues: [filePath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEpubGetEpubMetadataConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_epub_metadata',
+        argNames: ['filePath'],
+      );
+
+  @override
+  ApiResultI64 crateApiCoreGetFileSize({required String filePath}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final arg0 = cst_encode_String(filePath);
+          return wire.wire__crate__api__core__get_file_size(arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreGetFileSizeConstMeta,
+        argValues: [filePath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreGetFileSizeConstMeta =>
+      const TaskConstMeta(debugName: 'get_file_size', argNames: ['filePath']);
+
+  @override
+  Future<ApiResultDbGlobalStats> crateApiStorageGetGlobalReadingStats() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__storage__get_global_reading_stats(
+            port_,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetGlobalReadingStatsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetGlobalReadingStatsConstMeta =>
+      const TaskConstMeta(debugName: 'get_global_reading_stats', argNames: []);
+
+  @override
+  CacheStats crateApiIncrementalGetIncrementalParserStats() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          return wire
+              .wire__crate__api__incremental__get_incremental_parser_stats();
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_cache_stats,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiIncrementalGetIncrementalParserStatsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiIncrementalGetIncrementalParserStatsConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_incremental_parser_stats',
         argNames: [],
       );
 
   @override
-  void crateApiIncrementBooksReadCount() {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 47)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiIncrementBooksReadCountConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiIncrementBooksReadCountConstMeta =>
-      const TaskConstMeta(
-        debugName: 'increment_books_read_count',
-        argNames: [],
-      );
-
-  @override
-  ApiResult crateApiIndexChapterContent({
+  Future<ApiResultOptionDbLayoutCache> crateApiStorageGetLayoutCache({
     required String bookId,
-    required String indexPath,
+    required int chapterIndex,
+    required String configHash,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_String(configHash);
+          return wire.wire__crate__api__storage__get_layout_cache(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetLayoutCacheConstMeta,
+        argValues: [bookId, chapterIndex, configHash],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetLayoutCacheConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_layout_cache',
+        argNames: ['bookId', 'chapterIndex', 'configHash'],
+      );
+
+  @override
+  Future<ApiResultVecDbNote> crateApiStorageGetNotes({
+    required String bookId,
+    DbNoteType? noteType,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_opt_box_autoadd_db_note_type(noteType);
+          return wire.wire__crate__api__storage__get_notes(port_, arg0, arg1);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetNotesConstMeta,
+        argValues: [bookId, noteType],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetNotesConstMeta => const TaskConstMeta(
+    debugName: 'get_notes',
+    argNames: ['bookId', 'noteType'],
+  );
+
+  @override
+  Future<ApiResultVecDbSyncRecord> crateApiStorageGetPendingSyncRecords({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__get_pending_sync_records(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetPendingSyncRecordsConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetPendingSyncRecordsConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_pending_sync_records',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<ApiResultVecDbBookRecord> crateApiStorageGetPinnedBooks() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__storage__get_pinned_books(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetPinnedBooksConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetPinnedBooksConstMeta =>
+      const TaskConstMeta(debugName: 'get_pinned_books', argNames: []);
+
+  @override
+  Future<ApiResultOptionDbReadingProgress> crateApiStorageGetReadingProgress({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__get_reading_progress(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetReadingProgressConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetReadingProgressConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_reading_progress',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<ApiResultVecDbReadingSession> crateApiStorageGetReadingSessions({
+    required String bookId,
+    required BigInt limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_usize(limit);
+          return wire.wire__crate__api__storage__get_reading_sessions(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetReadingSessionsConstMeta,
+        argValues: [bookId, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetReadingSessionsConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_reading_sessions',
+        argNames: ['bookId', 'limit'],
+      );
+
+  @override
+  Future<ApiResultVecDbDailyReadingStats> crateApiStorageGetReadingStatsRange({
+    required String startDate,
+    required String endDate,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(startDate);
+          final arg1 = cst_encode_String(endDate);
+          return wire.wire__crate__api__storage__get_reading_stats_range(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetReadingStatsRangeConstMeta,
+        argValues: [startDate, endDate],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetReadingStatsRangeConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_reading_stats_range',
+        argNames: ['startDate', 'endDate'],
+      );
+
+  @override
+  Future<ApiResultVecDbReadingSession> crateApiStorageGetRecentSessions({
+    required BigInt limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_usize(limit);
+          return wire.wire__crate__api__storage__get_recent_sessions(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetRecentSessionsConstMeta,
+        argValues: [limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetRecentSessionsConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_recent_sessions',
+        argNames: ['limit'],
+      );
+
+  @override
+  Future<ApiResultVecDbBookRecord> crateApiStorageGetRecentlyReadBooks({
+    required BigInt limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_usize(limit);
+          return wire.wire__crate__api__storage__get_recently_read_books(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetRecentlyReadBooksConstMeta,
+        argValues: [limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetRecentlyReadBooksConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_recently_read_books',
+        argNames: ['limit'],
+      );
+
+  @override
+  Future<ApiResultVecDbReadingSession> crateApiStorageGetSessionsByDateRange({
+    required String bookId,
+    required String startDate,
+    required String endDate,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_String(startDate);
+          final arg2 = cst_encode_String(endDate);
+          return wire.wire__crate__api__storage__get_sessions_by_date_range(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetSessionsByDateRangeConstMeta,
+        argValues: [bookId, startDate, endDate],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetSessionsByDateRangeConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_sessions_by_date_range',
+        argNames: ['bookId', 'startDate', 'endDate'],
+      );
+
+  @override
+  List<String> crateApiCoreGetSupportedFormats() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          return wire.wire__crate__api__core__get_supported_formats();
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreGetSupportedFormatsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreGetSupportedFormatsConstMeta =>
+      const TaskConstMeta(debugName: 'get_supported_formats', argNames: []);
+
+  @override
+  Future<ApiResultVecDbSyncRecord> crateApiStorageGetSyncConflicts({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__storage__get_sync_conflicts(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetSyncConflictsConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetSyncConflictsConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_sync_conflicts',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<ApiResultDbDailyReadingStats> crateApiStorageGetTodayReadingStats() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__storage__get_today_reading_stats(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageGetTodayReadingStatsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetTodayReadingStatsConstMeta =>
+      const TaskConstMeta(debugName: 'get_today_reading_stats', argNames: []);
+
+  @override
+  ApiResultVecPageContent crateApiCoreGetTxtChapterContent({
+    required String filePath,
+    required int chapterIndex,
+    required TypesetConfig config,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final arg0 = cst_encode_String(filePath);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_box_autoadd_typeset_config(config);
+          return wire.wire__crate__api__core__get_txt_chapter_content(
+            arg0,
+            arg1,
+            arg2,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreGetTxtChapterContentConstMeta,
+        argValues: [filePath, chapterIndex, config],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreGetTxtChapterContentConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_txt_chapter_content',
+        argNames: ['filePath', 'chapterIndex', 'config'],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageImportBookmarks({
+    required List<DbBookmark> bookmarks,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_list_db_bookmark(bookmarks);
+          return wire.wire__crate__api__storage__import_bookmarks(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageImportBookmarksConstMeta,
+        argValues: [bookmarks],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageImportBookmarksConstMeta =>
+      const TaskConstMeta(
+        debugName: 'import_bookmarks',
+        argNames: ['bookmarks'],
+      );
+
+  @override
+  Future<ApiResult> crateApiSearchIndexChapterContent({
+    required String bookId,
     required int chapterId,
     required String chapterTitle,
     required String content,
   }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          sse_encode_String(indexPath, serializer);
-          sse_encode_i_32(chapterId, serializer);
-          sse_encode_String(chapterTitle, serializer);
-          sse_encode_String(content, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 48)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiIndexChapterContentConstMeta,
-        argValues: [bookId, indexPath, chapterId, chapterTitle, content],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiIndexChapterContentConstMeta =>
-      const TaskConstMeta(
-        debugName: 'index_chapter_content',
-        argNames: [
-          'bookId',
-          'indexPath',
-          'chapterId',
-          'chapterTitle',
-          'content',
-        ],
-      );
-
-  @override
-  Future<void> crateApiInitApp() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 49,
-            port: port_,
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterId);
+          final arg2 = cst_encode_String(chapterTitle);
+          final arg3 = cst_encode_String(content);
+          return wire.wire__crate__api__search__index_chapter_content(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
           );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiInitAppConstMeta,
+        constMeta: kCrateApiSearchIndexChapterContentConstMeta,
+        argValues: [bookId, chapterId, chapterTitle, content],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSearchIndexChapterContentConstMeta =>
+      const TaskConstMeta(
+        debugName: 'index_chapter_content',
+        argNames: ['bookId', 'chapterId', 'chapterTitle', 'content'],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageIndexChapterContent({
+    required String bookId,
+    required int chapterIndex,
+    required String content,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_String(content);
+          return wire.wire__crate__api__storage__index_chapter_content(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageIndexChapterContentConstMeta,
+        argValues: [bookId, chapterIndex, content],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageIndexChapterContentConstMeta =>
+      const TaskConstMeta(
+        debugName: 'index_chapter_content',
+        argNames: ['bookId', 'chapterIndex', 'content'],
+      );
+
+  @override
+  Future<void> crateApiCoreInitApp() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__core__init_app(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreInitAppConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiInitAppConstMeta =>
+  TaskConstMeta get kCrateApiCoreInitAppConstMeta =>
       const TaskConstMeta(debugName: 'init_app', argNames: []);
 
   @override
-  ApiResult crateApiInitIncrementalParser() {
+  ApiResult crateApiIncrementalInitIncrementalParser() {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 50)!;
+          return wire.wire__crate__api__incremental__init_incremental_parser();
         },
-        codec: SseCodec(
+        codec: DcoCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiInitIncrementalParserConstMeta,
+        constMeta: kCrateApiIncrementalInitIncrementalParserConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiInitIncrementalParserConstMeta =>
+  TaskConstMeta get kCrateApiIncrementalInitIncrementalParserConstMeta =>
       const TaskConstMeta(debugName: 'init_incremental_parser', argNames: []);
 
   @override
-  ApiResult crateApiInitSearchIndex({
-    required String bookId,
-    required String indexPath,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          sse_encode_String(indexPath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 51)!;
+  Future<ApiResult> crateApiSearchInitSearchEngine({required String dbPath}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(dbPath);
+          return wire.wire__crate__api__search__init_search_engine(port_, arg0);
         },
-        codec: SseCodec(
+        codec: DcoCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiInitSearchIndexConstMeta,
-        argValues: [bookId, indexPath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiInitSearchIndexConstMeta => const TaskConstMeta(
-    debugName: 'init_search_index',
-    argNames: ['bookId', 'indexPath'],
-  );
-
-  @override
-  ApiResult crateApiInitStorage({required String dbPath}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(dbPath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 52)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiInitStorageConstMeta,
+        constMeta: kCrateApiSearchInitSearchEngineConstMeta,
         argValues: [dbPath],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiInitStorageConstMeta =>
-      const TaskConstMeta(debugName: 'init_storage', argNames: ['dbPath']);
+  TaskConstMeta get kCrateApiSearchInitSearchEngineConstMeta =>
+      const TaskConstMeta(
+        debugName: 'init_search_engine',
+        argNames: ['dbPath'],
+      );
 
   @override
-  Future<bool> crateApiSecurityIsSafePath({required String path}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(path, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 53,
-            port: port_,
-          );
+  bool crateApiEpubIsEpubFile({required String filePath}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final arg0 = cst_encode_String(filePath);
+          return wire.wire__crate__api__epub__is_epub_file(arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_bool,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiSecurityIsSafePathConstMeta,
-        argValues: [path],
+        constMeta: kCrateApiEpubIsEpubFileConstMeta,
+        argValues: [filePath],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSecurityIsSafePathConstMeta =>
-      const TaskConstMeta(debugName: 'is_safe_path', argNames: ['path']);
+  TaskConstMeta get kCrateApiEpubIsEpubFileConstMeta =>
+      const TaskConstMeta(debugName: 'is_epub_file', argNames: ['filePath']);
 
   @override
-  List<PageContent> crateApiPaginateAllContent({
+  List<PageContent> crateApiCorePaginateAllContent({
     required String content,
     required int chapterId,
     required TypesetConfig config,
@@ -1921,243 +2671,156 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(content, serializer);
-          sse_encode_i_32(chapterId, serializer);
-          sse_encode_box_autoadd_typeset_config(config, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 54)!;
+          final arg0 = cst_encode_String(content);
+          final arg1 = cst_encode_i_32(chapterId);
+          final arg2 = cst_encode_box_autoadd_typeset_config(config);
+          return wire.wire__crate__api__core__paginate_all_content(
+            arg0,
+            arg1,
+            arg2,
+          );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_page_content,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_page_content,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiPaginateAllContentConstMeta,
+        constMeta: kCrateApiCorePaginateAllContentConstMeta,
         argValues: [content, chapterId, config],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiPaginateAllContentConstMeta => const TaskConstMeta(
-    debugName: 'paginate_all_content',
-    argNames: ['content', 'chapterId', 'config'],
-  );
+  TaskConstMeta get kCrateApiCorePaginateAllContentConstMeta =>
+      const TaskConstMeta(
+        debugName: 'paginate_all_content',
+        argNames: ['content', 'chapterId', 'config'],
+      );
 
   @override
-  ApiResultRichChapterContent crateApiParseEpubChapterRich({
+  List<PageContent> crateApiEpubPaginateEpubRichContent({
+    required List<RichParagraph> paragraphs,
+    required int chapterIndex,
+    required TypesetConfig config,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final arg0 = cst_encode_list_rich_paragraph(paragraphs);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_box_autoadd_typeset_config(config);
+          return wire.wire__crate__api__epub__paginate_epub_rich_content(
+            arg0,
+            arg1,
+            arg2,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_page_content,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiEpubPaginateEpubRichContentConstMeta,
+        argValues: [paragraphs, chapterIndex, config],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEpubPaginateEpubRichContentConstMeta =>
+      const TaskConstMeta(
+        debugName: 'paginate_epub_rich_content',
+        argNames: ['paragraphs', 'chapterIndex', 'config'],
+      );
+
+  @override
+  ApiResultParseResult crateApiCoreParseBook({required String filePath}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final arg0 = cst_encode_String(filePath);
+          return wire.wire__crate__api__core__parse_book(arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreParseBookConstMeta,
+        argValues: [filePath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreParseBookConstMeta =>
+      const TaskConstMeta(debugName: 'parse_book', argNames: ['filePath']);
+
+  @override
+  ApiResultRichChapterContent crateApiEpubParseEpubChapterRich({
     required String filePath,
     required int chapterIndex,
   }) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          sse_encode_i_32(chapterIndex, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 55)!;
+          final arg0 = cst_encode_String(filePath);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          return wire.wire__crate__api__epub__parse_epub_chapter_rich(
+            arg0,
+            arg1,
+          );
         },
-        codec: SseCodec(
+        codec: DcoCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent,
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiParseEpubChapterRichConstMeta,
+        constMeta: kCrateApiEpubParseEpubChapterRichConstMeta,
         argValues: [filePath, chapterIndex],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiParseEpubChapterRichConstMeta =>
+  TaskConstMeta get kCrateApiEpubParseEpubChapterRichConstMeta =>
       const TaskConstMeta(
         debugName: 'parse_epub_chapter_rich',
         argNames: ['filePath', 'chapterIndex'],
       );
 
   @override
-  ApiResultParseResult crateApiParseEpubFile({required String filePath}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 56)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiParseEpubFileConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiParseEpubFileConstMeta =>
-      const TaskConstMeta(debugName: 'parse_epub_file', argNames: ['filePath']);
-
-  @override
-  RichChapterContent crateApiParseHtmlContent({required String htmlContent}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(htmlContent, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 57)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_rich_chapter_content,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiParseHtmlContentConstMeta,
-        argValues: [htmlContent],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiParseHtmlContentConstMeta => const TaskConstMeta(
-    debugName: 'parse_html_content',
-    argNames: ['htmlContent'],
-  );
-
-  @override
-  List<RichParagraph> crateApiParseHtmlContentSimple({
-    required String htmlContent,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(htmlContent, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 58)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_rich_paragraph,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiParseHtmlContentSimpleConstMeta,
-        argValues: [htmlContent],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiParseHtmlContentSimpleConstMeta =>
-      const TaskConstMeta(
-        debugName: 'parse_html_content_simple',
-        argNames: ['htmlContent'],
-      );
-
-  @override
-  ApiResultLocalBookInfo crateApiParseLocalBook({required String filePath}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 59)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiParseLocalBookConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiParseLocalBookConstMeta => const TaskConstMeta(
-    debugName: 'parse_local_book',
-    argNames: ['filePath'],
-  );
-
-  @override
-  ApiResultLocalBookInfo crateApiParseLocalBookIncremental({
+  ApiResultLocalBookInfo crateApiIncrementalParseLocalBookIncremental({
     required String filePath,
   }) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 60)!;
+          final arg0 = cst_encode_String(filePath);
+          return wire
+              .wire__crate__api__incremental__parse_local_book_incremental(
+                arg0,
+              );
         },
-        codec: SseCodec(
+        codec: DcoCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo,
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiParseLocalBookIncrementalConstMeta,
+        constMeta: kCrateApiIncrementalParseLocalBookIncrementalConstMeta,
         argValues: [filePath],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiParseLocalBookIncrementalConstMeta =>
+  TaskConstMeta get kCrateApiIncrementalParseLocalBookIncrementalConstMeta =>
       const TaskConstMeta(
         debugName: 'parse_local_book_incremental',
         argNames: ['filePath'],
       );
 
   @override
-  LocalBookInfo? crateApiParseLocalBookSimple({required String filePath}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 61)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_opt_box_autoadd_local_book_info,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiParseLocalBookSimpleConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiParseLocalBookSimpleConstMeta =>
-      const TaskConstMeta(
-        debugName: 'parse_local_book_simple',
-        argNames: ['filePath'],
-      );
-
-  @override
-  ApiResultParseResult crateApiParseTxtFile({required String filePath}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 62)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiParseTxtFileConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiParseTxtFileConstMeta =>
-      const TaskConstMeta(debugName: 'parse_txt_file', argNames: ['filePath']);
-
-  @override
-  ApiResultString crateApiReadFileChunk({
+  ApiResultString crateApiCoreReadFileChunk({
     required String filePath,
     required PlatformInt64 startPos,
     required PlatformInt64 chunkSize,
@@ -2165,269 +2828,821 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          sse_encode_i_64(startPos, serializer);
-          sse_encode_i_64(chunkSize, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 63)!;
+          final arg0 = cst_encode_String(filePath);
+          final arg1 = cst_encode_i_64(startPos);
+          final arg2 = cst_encode_i_64(chunkSize);
+          return wire.wire__crate__api__core__read_file_chunk(arg0, arg1, arg2);
         },
-        codec: SseCodec(
+        codec: DcoCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString,
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiReadFileChunkConstMeta,
+        constMeta: kCrateApiCoreReadFileChunkConstMeta,
         argValues: [filePath, startPos, chunkSize],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiReadFileChunkConstMeta => const TaskConstMeta(
+  TaskConstMeta get kCrateApiCoreReadFileChunkConstMeta => const TaskConstMeta(
     debugName: 'read_file_chunk',
     argNames: ['filePath', 'startPos', 'chunkSize'],
   );
 
   @override
-  void crateApiRecordReadingSession({
+  Future<ApiResult> crateApiStorageReceiveGlobalStats({
+    required DbGlobalStats stats,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_box_autoadd_db_global_stats(stats);
+          return wire.wire__crate__api__storage__receive_global_stats(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageReceiveGlobalStatsConstMeta,
+        argValues: [stats],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageReceiveGlobalStatsConstMeta =>
+      const TaskConstMeta(
+        debugName: 'receive_global_stats',
+        argNames: ['stats'],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageRecordReadingSession({
     required String bookId,
-    required int chapterId,
+    required int chapterIndex,
+    required PlatformInt64 startOffset,
+    required PlatformInt64 endOffset,
     required PlatformInt64 durationSeconds,
     required PlatformInt64 charactersRead,
   }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          sse_encode_i_32(chapterId, serializer);
-          sse_encode_i_64(durationSeconds, serializer);
-          sse_encode_i_64(charactersRead, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 64)!;
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_i_64(startOffset);
+          final arg3 = cst_encode_i_64(endOffset);
+          final arg4 = cst_encode_i_64(durationSeconds);
+          final arg5 = cst_encode_i_64(charactersRead);
+          return wire.wire__crate__api__storage__record_reading_session(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+            arg4,
+            arg5,
+          );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiRecordReadingSessionConstMeta,
-        argValues: [bookId, chapterId, durationSeconds, charactersRead],
+        constMeta: kCrateApiStorageRecordReadingSessionConstMeta,
+        argValues: [
+          bookId,
+          chapterIndex,
+          startOffset,
+          endOffset,
+          durationSeconds,
+          charactersRead,
+        ],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiRecordReadingSessionConstMeta =>
+  TaskConstMeta get kCrateApiStorageRecordReadingSessionConstMeta =>
       const TaskConstMeta(
         debugName: 'record_reading_session',
-        argNames: ['bookId', 'chapterId', 'durationSeconds', 'charactersRead'],
+        argNames: [
+          'bookId',
+          'chapterIndex',
+          'startOffset',
+          'endOffset',
+          'durationSeconds',
+          'charactersRead',
+        ],
       );
 
   @override
-  bool crateApiRemoveBookmark({
+  Future<ApiResult> crateApiStorageRemoveCategoryFromBook({
     required String bookId,
-    required String bookmarkId,
+    required String categoryId,
   }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          sse_encode_String(bookmarkId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 65)!;
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_String(categoryId);
+          return wire.wire__crate__api__storage__remove_category_from_book(
+            port_,
+            arg0,
+            arg1,
+          );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiRemoveBookmarkConstMeta,
-        argValues: [bookId, bookmarkId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiRemoveBookmarkConstMeta => const TaskConstMeta(
-    debugName: 'remove_bookmark',
-    argNames: ['bookId', 'bookmarkId'],
-  );
-
-  @override
-  String crateApiRichTextToPlain({required RichChapterContent richContent}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_box_autoadd_rich_chapter_content(richContent, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 66)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiRichTextToPlainConstMeta,
-        argValues: [richContent],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiRichTextToPlainConstMeta => const TaskConstMeta(
-    debugName: 'rich_text_to_plain',
-    argNames: ['richContent'],
-  );
-
-  @override
-  ApiResult crateApiSaveLayoutCache({
-    required String bookId,
-    required int chapterId,
-    required TypesetConfig config,
-    required List<PageOffset> pageOffsets,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          sse_encode_i_32(chapterId, serializer);
-          sse_encode_box_autoadd_typeset_config(config, serializer);
-          sse_encode_list_page_offset(pageOffsets, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 67)!;
-        },
-        codec: SseCodec(
+        codec: DcoCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiSaveLayoutCacheConstMeta,
-        argValues: [bookId, chapterId, config, pageOffsets],
+        constMeta: kCrateApiStorageRemoveCategoryFromBookConstMeta,
+        argValues: [bookId, categoryId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSaveLayoutCacheConstMeta => const TaskConstMeta(
-    debugName: 'save_layout_cache',
-    argNames: ['bookId', 'chapterId', 'config', 'pageOffsets'],
-  );
-
-  @override
-  ApiResultZeroCopyBufferVecSearchHit crateApiSearchBooksZeroCopy({
-    required String bookId,
-    required String query,
-    required int limit,
-    required String indexPath,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          sse_encode_String(query, serializer);
-          sse_encode_i_32(limit, serializer);
-          sse_encode_String(indexPath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 68)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiSearchBooksZeroCopyConstMeta,
-        argValues: [bookId, query, limit, indexPath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiSearchBooksZeroCopyConstMeta =>
+  TaskConstMeta get kCrateApiStorageRemoveCategoryFromBookConstMeta =>
       const TaskConstMeta(
-        debugName: 'search_books_zero_copy',
-        argNames: ['bookId', 'query', 'limit', 'indexPath'],
+        debugName: 'remove_category_from_book',
+        argNames: ['bookId', 'categoryId'],
       );
 
   @override
-  SearchResults crateApiSearchInBook({
-    required String bookId,
-    required String indexPath,
-    required String query,
-    required int limit,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          sse_encode_String(indexPath, serializer);
-          sse_encode_String(query, serializer);
-          sse_encode_i_32(limit, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 69)!;
+  Future<ApiResult> crateApiStorageSaveBook({required DbBookRecord book}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_box_autoadd_db_book_record(book);
+          return wire.wire__crate__api__storage__save_book(port_, arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_search_results,
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiSearchInBookConstMeta,
-        argValues: [bookId, indexPath, query, limit],
+        constMeta: kCrateApiStorageSaveBookConstMeta,
+        argValues: [book],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSearchInBookConstMeta => const TaskConstMeta(
+  TaskConstMeta get kCrateApiStorageSaveBookConstMeta =>
+      const TaskConstMeta(debugName: 'save_book', argNames: ['book']);
+
+  @override
+  Future<ApiResult> crateApiStorageSaveBookmark({
+    required DbBookmark bookmark,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_box_autoadd_db_bookmark(bookmark);
+          return wire.wire__crate__api__storage__save_bookmark(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSaveBookmarkConstMeta,
+        argValues: [bookmark],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageSaveBookmarkConstMeta =>
+      const TaskConstMeta(debugName: 'save_bookmark', argNames: ['bookmark']);
+
+  @override
+  Future<ApiResult> crateApiStorageSaveBookmarksBatch({
+    required List<DbBookmark> bookmarks,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_list_db_bookmark(bookmarks);
+          return wire.wire__crate__api__storage__save_bookmarks_batch(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSaveBookmarksBatchConstMeta,
+        argValues: [bookmarks],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageSaveBookmarksBatchConstMeta =>
+      const TaskConstMeta(
+        debugName: 'save_bookmarks_batch',
+        argNames: ['bookmarks'],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageSaveCategory({
+    required DbBookCategory category,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_box_autoadd_db_book_category(category);
+          return wire.wire__crate__api__storage__save_category(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSaveCategoryConstMeta,
+        argValues: [category],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageSaveCategoryConstMeta =>
+      const TaskConstMeta(debugName: 'save_category', argNames: ['category']);
+
+  @override
+  Future<ApiResult> crateApiStorageSaveChapters({
+    required String bookId,
+    required List<DbChapter> chapters,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_list_db_chapter(chapters);
+          return wire.wire__crate__api__storage__save_chapters(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSaveChaptersConstMeta,
+        argValues: [bookId, chapters],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageSaveChaptersConstMeta =>
+      const TaskConstMeta(
+        debugName: 'save_chapters',
+        argNames: ['bookId', 'chapters'],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageSaveLayoutCache({
+    required String bookId,
+    required int chapterIndex,
+    required String configHash,
+    required List<(PlatformInt64, PlatformInt64)> pageOffsets,
+    required int totalPages,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_String(configHash);
+          final arg3 = cst_encode_list_record_i_64_i_64(pageOffsets);
+          final arg4 = cst_encode_i_32(totalPages);
+          return wire.wire__crate__api__storage__save_layout_cache(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+            arg4,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSaveLayoutCacheConstMeta,
+        argValues: [bookId, chapterIndex, configHash, pageOffsets, totalPages],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageSaveLayoutCacheConstMeta =>
+      const TaskConstMeta(
+        debugName: 'save_layout_cache',
+        argNames: [
+          'bookId',
+          'chapterIndex',
+          'configHash',
+          'pageOffsets',
+          'totalPages',
+        ],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageSaveLayoutCacheFull({
+    required String bookId,
+    required int chapterIndex,
+    required String configHash,
+    required DbLayoutCache cache,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_String(configHash);
+          final arg3 = cst_encode_box_autoadd_db_layout_cache(cache);
+          return wire.wire__crate__api__storage__save_layout_cache_full(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSaveLayoutCacheFullConstMeta,
+        argValues: [bookId, chapterIndex, configHash, cache],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageSaveLayoutCacheFullConstMeta =>
+      const TaskConstMeta(
+        debugName: 'save_layout_cache_full',
+        argNames: ['bookId', 'chapterIndex', 'configHash', 'cache'],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageSaveReadingProgress({
+    required String bookId,
+    required int chapterIndex,
+    required PlatformInt64 charOffset,
+    required int pageIndex,
+    required int totalPages,
+    required PlatformInt64 readingTimeSeconds,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_i_64(charOffset);
+          final arg3 = cst_encode_i_32(pageIndex);
+          final arg4 = cst_encode_i_32(totalPages);
+          final arg5 = cst_encode_i_64(readingTimeSeconds);
+          return wire.wire__crate__api__storage__save_reading_progress(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+            arg4,
+            arg5,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSaveReadingProgressConstMeta,
+        argValues: [
+          bookId,
+          chapterIndex,
+          charOffset,
+          pageIndex,
+          totalPages,
+          readingTimeSeconds,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageSaveReadingProgressConstMeta =>
+      const TaskConstMeta(
+        debugName: 'save_reading_progress',
+        argNames: [
+          'bookId',
+          'chapterIndex',
+          'charOffset',
+          'pageIndex',
+          'totalPages',
+          'readingTimeSeconds',
+        ],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageSaveReadingSession({
+    required DbReadingSession session,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_box_autoadd_db_reading_session(session);
+          return wire.wire__crate__api__storage__save_reading_session(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSaveReadingSessionConstMeta,
+        argValues: [session],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageSaveReadingSessionConstMeta =>
+      const TaskConstMeta(
+        debugName: 'save_reading_session',
+        argNames: ['session'],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageSaveSyncRecord({
+    required String bookId,
+    required String dataType,
+    required String dataId,
+    required int localVersion,
+    int? remoteVersion,
+    required DbSyncStatus status,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_String(dataType);
+          final arg2 = cst_encode_String(dataId);
+          final arg3 = cst_encode_i_32(localVersion);
+          final arg4 = cst_encode_opt_box_autoadd_i_32(remoteVersion);
+          final arg5 = cst_encode_db_sync_status(status);
+          return wire.wire__crate__api__storage__save_sync_record(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+            arg4,
+            arg5,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSaveSyncRecordConstMeta,
+        argValues: [
+          bookId,
+          dataType,
+          dataId,
+          localVersion,
+          remoteVersion,
+          status,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageSaveSyncRecordConstMeta =>
+      const TaskConstMeta(
+        debugName: 'save_sync_record',
+        argNames: [
+          'bookId',
+          'dataType',
+          'dataId',
+          'localVersion',
+          'remoteVersion',
+          'status',
+        ],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageSaveSyncRecordFull({
+    required DbSyncRecord record,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_box_autoadd_db_sync_record(record);
+          return wire.wire__crate__api__storage__save_sync_record_full(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSaveSyncRecordFullConstMeta,
+        argValues: [record],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageSaveSyncRecordFullConstMeta =>
+      const TaskConstMeta(
+        debugName: 'save_sync_record_full',
+        argNames: ['record'],
+      );
+
+  @override
+  Future<ApiResultVecDbBookRecord> crateApiStorageSearchBooks({
+    required String keyword,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(keyword);
+          return wire.wire__crate__api__storage__search_books(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSearchBooksConstMeta,
+        argValues: [keyword],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageSearchBooksConstMeta =>
+      const TaskConstMeta(debugName: 'search_books', argNames: ['keyword']);
+
+  @override
+  Future<ApiResultVecDbSearchResult> crateApiStorageSearchContent({
+    required String query,
+    String? bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(query);
+          final arg1 = cst_encode_opt_String(bookId);
+          return wire.wire__crate__api__storage__search_content(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSearchContentConstMeta,
+        argValues: [query, bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageSearchContentConstMeta =>
+      const TaskConstMeta(
+        debugName: 'search_content',
+        argNames: ['query', 'bookId'],
+      );
+
+  @override
+  Future<ApiResultVecSearchResult> crateApiSearchSearchInBook({
+    required String bookId,
+    required String query,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_String(query);
+          final arg2 = cst_encode_i_32(limit);
+          return wire.wire__crate__api__search__search_in_book(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiSearchSearchInBookConstMeta,
+        argValues: [bookId, query, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSearchSearchInBookConstMeta => const TaskConstMeta(
     debugName: 'search_in_book',
-    argNames: ['bookId', 'indexPath', 'query', 'limit'],
+    argNames: ['bookId', 'query', 'limit'],
   );
 
   @override
-  ApiResult crateApiSetAllowedBaseDir({required String baseDir}) {
+  ApiResult crateApiCoreSetAllowedBaseDir({required String baseDir}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(baseDir, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 70)!;
+          final arg0 = cst_encode_String(baseDir);
+          return wire.wire__crate__api__core__set_allowed_base_dir(arg0);
         },
-        codec: SseCodec(
+        codec: DcoCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiSetAllowedBaseDirConstMeta,
+        constMeta: kCrateApiCoreSetAllowedBaseDirConstMeta,
         argValues: [baseDir],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSetAllowedBaseDirConstMeta => const TaskConstMeta(
-    debugName: 'set_allowed_base_dir',
-    argNames: ['baseDir'],
-  );
+  TaskConstMeta get kCrateApiCoreSetAllowedBaseDirConstMeta =>
+      const TaskConstMeta(
+        debugName: 'set_allowed_base_dir',
+        argNames: ['baseDir'],
+      );
 
   @override
-  String crateApiTestConnection() {
+  Future<ApiResult> crateApiStorageSetCategoriesForBook({
+    required String bookId,
+    required List<String> categoryIds,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_list_String(categoryIds);
+          return wire.wire__crate__api__storage__set_categories_for_book(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSetCategoriesForBookConstMeta,
+        argValues: [bookId, categoryIds],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageSetCategoriesForBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'set_categories_for_book',
+        argNames: ['bookId', 'categoryIds'],
+      );
+
+  @override
+  bool crateApiCoverSupportsCoverExtraction({required String filePath}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 71)!;
+          final arg0 = cst_encode_String(filePath);
+          return wire.wire__crate__api__cover__supports_cover_extraction(arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_bool,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiTestConnectionConstMeta,
+        constMeta: kCrateApiCoverSupportsCoverExtractionConstMeta,
+        argValues: [filePath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoverSupportsCoverExtractionConstMeta =>
+      const TaskConstMeta(
+        debugName: 'supports_cover_extraction',
+        argNames: ['filePath'],
+      );
+
+  @override
+  bool crateApiCoreSupportsFormat({required String format}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final arg0 = cst_encode_String(format);
+          return wire.wire__crate__api__core__supports_format(arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreSupportsFormatConstMeta,
+        argValues: [format],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreSupportsFormatConstMeta =>
+      const TaskConstMeta(debugName: 'supports_format', argNames: ['format']);
+
+  @override
+  Future<ApiResultVecDbBookmark> crateApiStorageSyncBookmarks({
+    required List<DbBookmark> localBookmarks,
+    required List<DbBookmark> remoteBookmarks,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_list_db_bookmark(localBookmarks);
+          final arg1 = cst_encode_list_db_bookmark(remoteBookmarks);
+          return wire.wire__crate__api__storage__sync_bookmarks(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSyncBookmarksConstMeta,
+        argValues: [localBookmarks, remoteBookmarks],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageSyncBookmarksConstMeta =>
+      const TaskConstMeta(
+        debugName: 'sync_bookmarks',
+        argNames: ['localBookmarks', 'remoteBookmarks'],
+      );
+
+  @override
+  String crateApiCoreTestConnection() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          return wire.wire__crate__api__core__test_connection();
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreTestConnectionConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiTestConnectionConstMeta =>
+  TaskConstMeta get kCrateApiCoreTestConnectionConstMeta =>
       const TaskConstMeta(debugName: 'test_connection', argNames: []);
 
   @override
-  ApiResultString crateApiTypesetText({
+  ApiResultString crateApiCoreTypesetText({
     required String content,
     required String language,
     required TypesetConfig config,
@@ -2435,134 +3650,253 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(content, serializer);
-          sse_encode_String(language, serializer);
-          sse_encode_box_autoadd_typeset_config(config, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 72)!;
+          final arg0 = cst_encode_String(content);
+          final arg1 = cst_encode_String(language);
+          final arg2 = cst_encode_box_autoadd_typeset_config(config);
+          return wire.wire__crate__api__core__typeset_text(arg0, arg1, arg2);
         },
-        codec: SseCodec(
+        codec: DcoCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString,
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiTypesetTextConstMeta,
+        constMeta: kCrateApiCoreTypesetTextConstMeta,
         argValues: [content, language, config],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiTypesetTextConstMeta => const TaskConstMeta(
+  TaskConstMeta get kCrateApiCoreTypesetTextConstMeta => const TaskConstMeta(
     debugName: 'typeset_text',
     argNames: ['content', 'language', 'config'],
   );
 
   @override
-  String crateApiTypesetTextSimple({
-    required String content,
-    required String language,
-    required TypesetConfig config,
+  Future<ApiResultDbBookmark> crateApiStorageUpdateBookmark({
+    required String bookmarkId,
+    required String title,
   }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(content, serializer);
-          sse_encode_String(language, serializer);
-          sse_encode_box_autoadd_typeset_config(config, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 73)!;
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookmarkId);
+          final arg1 = cst_encode_String(title);
+          return wire.wire__crate__api__storage__update_bookmark(
+            port_,
+            arg0,
+            arg1,
+          );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiTypesetTextSimpleConstMeta,
-        argValues: [content, language, config],
+        constMeta: kCrateApiStorageUpdateBookmarkConstMeta,
+        argValues: [bookmarkId, title],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiTypesetTextSimpleConstMeta => const TaskConstMeta(
-    debugName: 'typeset_text_simple',
-    argNames: ['content', 'language', 'config'],
-  );
-
-  @override
-  ReadingProgress crateApiUpdateReadingProgress({
-    required String bookId,
-    required int chapterId,
-    required int pageIndex,
-    required int totalPages,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          sse_encode_i_32(chapterId, serializer);
-          sse_encode_i_32(pageIndex, serializer);
-          sse_encode_i_32(totalPages, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 74)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_reading_progress,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiUpdateReadingProgressConstMeta,
-        argValues: [bookId, chapterId, pageIndex, totalPages],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiUpdateReadingProgressConstMeta =>
+  TaskConstMeta get kCrateApiStorageUpdateBookmarkConstMeta =>
       const TaskConstMeta(
-        debugName: 'update_reading_progress',
-        argNames: ['bookId', 'chapterId', 'pageIndex', 'totalPages'],
+        debugName: 'update_bookmark',
+        argNames: ['bookmarkId', 'title'],
       );
 
   @override
-  ReadingProgress crateApiUpdateReadingProgressWithDuration({
-    required String bookId,
-    required int chapterId,
-    required int pageIndex,
-    required int totalPages,
-    required PlatformInt64 sessionDuration,
+  Future<ApiResult> crateApiStorageUpdateDailyStats({
+    required DbDailyReadingStats stats,
   }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(bookId, serializer);
-          sse_encode_i_32(chapterId, serializer);
-          sse_encode_i_32(pageIndex, serializer);
-          sse_encode_i_32(totalPages, serializer);
-          sse_encode_i_64(sessionDuration, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 75)!;
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_box_autoadd_db_daily_reading_stats(stats);
+          return wire.wire__crate__api__storage__update_daily_stats(
+            port_,
+            arg0,
+          );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_reading_progress,
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiUpdateReadingProgressWithDurationConstMeta,
-        argValues: [bookId, chapterId, pageIndex, totalPages, sessionDuration],
+        constMeta: kCrateApiStorageUpdateDailyStatsConstMeta,
+        argValues: [stats],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiUpdateReadingProgressWithDurationConstMeta =>
+  TaskConstMeta get kCrateApiStorageUpdateDailyStatsConstMeta =>
+      const TaskConstMeta(debugName: 'update_daily_stats', argNames: ['stats']);
+
+  @override
+  Future<ApiResultDbNote> crateApiStorageUpdateNote({
+    required String noteId,
+    String? content,
+    int? highlightColor,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(noteId);
+          final arg1 = cst_encode_opt_String(content);
+          final arg2 = cst_encode_opt_box_autoadd_i_32(highlightColor);
+          return wire.wire__crate__api__storage__update_note(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageUpdateNoteConstMeta,
+        argValues: [noteId, content, highlightColor],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageUpdateNoteConstMeta => const TaskConstMeta(
+    debugName: 'update_note',
+    argNames: ['noteId', 'content', 'highlightColor'],
+  );
+
+  @override
+  Future<ApiResult> crateApiStorageUpdateReadingProgress({
+    required DbReadingProgress progress,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_box_autoadd_db_reading_progress(progress);
+          return wire.wire__crate__api__storage__update_reading_progress(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageUpdateReadingProgressConstMeta,
+        argValues: [progress],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageUpdateReadingProgressConstMeta =>
       const TaskConstMeta(
-        debugName: 'update_reading_progress_with_duration',
+        debugName: 'update_reading_progress',
+        argNames: ['progress'],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageUpdateReadingProgressPartial({
+    required String bookId,
+    required int chapterIndex,
+    required PlatformInt64 charOffset,
+    required int pageIndex,
+    required int totalPages,
+    required PlatformInt64 readingTimeSeconds,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_i_64(charOffset);
+          final arg3 = cst_encode_i_32(pageIndex);
+          final arg4 = cst_encode_i_32(totalPages);
+          final arg5 = cst_encode_i_64(readingTimeSeconds);
+          return wire
+              .wire__crate__api__storage__update_reading_progress_partial(
+                port_,
+                arg0,
+                arg1,
+                arg2,
+                arg3,
+                arg4,
+                arg5,
+              );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageUpdateReadingProgressPartialConstMeta,
+        argValues: [
+          bookId,
+          chapterIndex,
+          charOffset,
+          pageIndex,
+          totalPages,
+          readingTimeSeconds,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageUpdateReadingProgressPartialConstMeta =>
+      const TaskConstMeta(
+        debugName: 'update_reading_progress_partial',
         argNames: [
           'bookId',
-          'chapterId',
+          'chapterIndex',
+          'charOffset',
           'pageIndex',
           'totalPages',
-          'sessionDuration',
+          'readingTimeSeconds',
         ],
+      );
+
+  @override
+  Future<ApiResult> crateApiStorageUpdateSyncStatus({
+    required String recordId,
+    required DbSyncStatus status,
+    int? remoteVersion,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(recordId);
+          final arg1 = cst_encode_db_sync_status(status);
+          final arg2 = cst_encode_opt_box_autoadd_i_32(remoteVersion);
+          return wire.wire__crate__api__storage__update_sync_status(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData:
+              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageUpdateSyncStatusConstMeta,
+        argValues: [recordId, status, remoteVersion],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageUpdateSyncStatusConstMeta =>
+      const TaskConstMeta(
+        debugName: 'update_sync_status',
+        argNames: ['recordId', 'status', 'remoteVersion'],
       );
 
   @override
@@ -2570,18 +3904,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 76,
-            port: port_,
+          final arg0 = cst_encode_String(filePath);
+          return wire.wire__crate__api__security__validate_file_path(
+            port_,
+            arg0,
           );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: sse_decode_parser_error,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
+          decodeErrorData: dco_decode_parser_error,
         ),
         constMeta: kCrateApiSecurityValidateFilePathConstMeta,
         argValues: [filePath],
@@ -2604,19 +3935,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(filePath, serializer);
-          sse_encode_String(allowedBase, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 77,
-            port: port_,
+          final arg0 = cst_encode_String(filePath);
+          final arg1 = cst_encode_String(allowedBase);
+          return wire.wire__crate__api__security__validate_path_securely(
+            port_,
+            arg0,
+            arg1,
           );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: sse_decode_parser_error,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
+          decodeErrorData: dco_decode_parser_error,
         ),
         constMeta: kCrateApiSecurityValidatePathSecurelyConstMeta,
         argValues: [filePath, allowedBase],
@@ -2640,20 +3969,52 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult;
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_ApiResultEpubImageInfo => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo;
+  get rust_arc_increment_strong_count_ApiResultBookMetadata => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_ApiResultEpubImageInfo => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo;
+  get rust_arc_decrement_strong_count_ApiResultBookMetadata => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata;
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_ApiResultEpubImageList => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList;
+  get rust_arc_increment_strong_count_ApiResultBookmarkStats => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_ApiResultEpubImageList => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList;
+  get rust_arc_decrement_strong_count_ApiResultBookmarkStats => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultDbBookmark => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultDbBookmark => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultDbDailyReadingStats => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultDbDailyReadingStats => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultDbGlobalStats => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultDbGlobalStats => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultDbNote => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultDbNote => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_ApiResultEpubMetadata => wire
@@ -2670,6 +4031,54 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RustArcDecrementStrongCountFnType
   get rust_arc_decrement_strong_count_ApiResultLocalBookInfo => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultOptionDbBookCategory => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultOptionDbBookCategory => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultOptionDbBookRecord => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultOptionDbBookRecord => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultOptionDbBookmark => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultOptionDbBookmark => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultOptionDbChapter => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultOptionDbChapter => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultOptionDbLayoutCache => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultOptionDbLayoutCache => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultOptionDbReadingProgress => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultOptionDbReadingProgress => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_ApiResultParseResult => wire
@@ -2696,20 +4105,100 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString;
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_ApiResultZeroCopyBufferVecSearchHit => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit;
+  get rust_arc_increment_strong_count_ApiResultVecDbBookCategory => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_ApiResultZeroCopyBufferVecSearchHit => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit;
+  get rust_arc_decrement_strong_count_ApiResultVecDbBookCategory => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory;
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_ApiResultZeroCopyBufferVecU8 => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8;
+  get rust_arc_increment_strong_count_ApiResultVecDbBookRecord => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_ApiResultZeroCopyBufferVecU8 => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8;
+  get rust_arc_decrement_strong_count_ApiResultVecDbBookRecord => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecDbBookmark => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecDbBookmark => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecDbChapter => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecDbChapter => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecDbDailyReadingStats => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecDbDailyReadingStats => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecDbNote => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecDbNote => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecDbReadingSession => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecDbReadingSession => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecDbSearchResult => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecDbSearchResult => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecDbSyncRecord => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecDbSyncRecord => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecPageContent => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecPageContent => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecRichParagraph => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecRichParagraph => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultVecSearchResult => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultVecSearchResult => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_ApiResultI64 => wire
@@ -2718,6 +4207,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RustArcDecrementStrongCountFnType
   get rust_arc_decrement_strong_count_ApiResultI64 => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ApiResultUsize => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ApiResultUsize => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize;
 
   @protected
   ApiResult
@@ -2729,25 +4226,63 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ApiResultEpubImageInfo
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
+  ApiResultBookMetadata
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return ApiResultEpubImageInfoImpl.frbInternalDcoDecode(
+    return ApiResultBookMetadataImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  ApiResultBookmarkStats
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultBookmarkStatsImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
   }
 
   @protected
-  ApiResultEpubImageList
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
+  ApiResultDbBookmark
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return ApiResultEpubImageListImpl.frbInternalDcoDecode(
+    return ApiResultDbBookmarkImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  ApiResultDbDailyReadingStats
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultDbDailyReadingStatsImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
+  }
+
+  @protected
+  ApiResultDbGlobalStats
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultDbGlobalStatsImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultDbNote
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultDbNoteImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
@@ -2766,6 +4301,72 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return ApiResultLocalBookInfoImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultOptionDbBookCategory
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultOptionDbBookCategoryImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultOptionDbBookRecord
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultOptionDbBookRecordImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultOptionDbBookmark
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultOptionDbBookmarkImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultOptionDbChapter
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultOptionDbChapterImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultOptionDbLayoutCache
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultOptionDbLayoutCacheImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultOptionDbReadingProgress
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultOptionDbReadingProgressImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
   }
@@ -2800,23 +4401,129 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ApiResultZeroCopyBufferVecSearchHit
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
+  ApiResultVecDbBookCategory
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return ApiResultZeroCopyBufferVecSearchHitImpl.frbInternalDcoDecode(
+    return ApiResultVecDbBookCategoryImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
   }
 
   @protected
-  ApiResultZeroCopyBufferVecU8
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
+  ApiResultVecDbBookRecord
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return ApiResultZeroCopyBufferVecU8Impl.frbInternalDcoDecode(
+    return ApiResultVecDbBookRecordImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecDbBookmark
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecDbBookmarkImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecDbChapter
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecDbChapterImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  ApiResultVecDbDailyReadingStats
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecDbDailyReadingStatsImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecDbNote
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecDbNoteImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  ApiResultVecDbReadingSession
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecDbReadingSessionImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecDbSearchResult
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecDbSearchResultImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecDbSyncRecord
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecDbSyncRecordImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecPageContent
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecPageContentImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecRichParagraph
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecRichParagraphImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecSearchResult
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecSearchResultImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
   }
@@ -2831,6 +4538,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ApiResultUsize
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultUsizeImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  DateTime dco_decode_Chrono_Utc(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeTimestamp(ts: dco_decode_i_64(raw).toInt(), isUtc: true);
+  }
+
+  @protected
   ApiResult
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
     dynamic raw,
@@ -2840,25 +4562,63 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ApiResultEpubImageInfo
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
+  ApiResultBookMetadata
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return ApiResultEpubImageInfoImpl.frbInternalDcoDecode(
+    return ApiResultBookMetadataImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  ApiResultBookmarkStats
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultBookmarkStatsImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
   }
 
   @protected
-  ApiResultEpubImageList
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
+  ApiResultDbBookmark
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return ApiResultEpubImageListImpl.frbInternalDcoDecode(
+    return ApiResultDbBookmarkImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  ApiResultDbDailyReadingStats
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultDbDailyReadingStatsImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
+  }
+
+  @protected
+  ApiResultDbGlobalStats
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultDbGlobalStatsImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultDbNote
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultDbNoteImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
@@ -2877,6 +4637,72 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return ApiResultLocalBookInfoImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultOptionDbBookCategory
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultOptionDbBookCategoryImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultOptionDbBookRecord
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultOptionDbBookRecordImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultOptionDbBookmark
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultOptionDbBookmarkImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultOptionDbChapter
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultOptionDbChapterImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultOptionDbLayoutCache
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultOptionDbLayoutCacheImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultOptionDbReadingProgress
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultOptionDbReadingProgressImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
   }
@@ -2911,23 +4737,129 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ApiResultZeroCopyBufferVecSearchHit
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
+  ApiResultVecDbBookCategory
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return ApiResultZeroCopyBufferVecSearchHitImpl.frbInternalDcoDecode(
+    return ApiResultVecDbBookCategoryImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
   }
 
   @protected
-  ApiResultZeroCopyBufferVecU8
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
+  ApiResultVecDbBookRecord
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return ApiResultZeroCopyBufferVecU8Impl.frbInternalDcoDecode(
+    return ApiResultVecDbBookRecordImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecDbBookmark
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecDbBookmarkImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecDbChapter
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecDbChapterImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  ApiResultVecDbDailyReadingStats
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecDbDailyReadingStatsImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecDbNote
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecDbNoteImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  ApiResultVecDbReadingSession
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecDbReadingSessionImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecDbSearchResult
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecDbSearchResultImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecDbSyncRecord
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecDbSyncRecordImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecPageContent
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecPageContentImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecRichParagraph
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecRichParagraphImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ApiResultVecSearchResult
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ApiResultVecSearchResultImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
   }
@@ -2942,26 +4874,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  String dco_decode_String(dynamic raw) {
+  ApiResultUsize
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    dynamic raw,
+  ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw as String;
+    return ApiResultUsizeImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
-  Bookmark dco_decode_bookmark(dynamic raw) {
+  String dco_decode_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 7)
-      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
-    return Bookmark(
-      bookmarkId: dco_decode_String(arr[0]),
-      bookId: dco_decode_String(arr[1]),
-      chapterId: dco_decode_i_32(arr[2]),
-      pageIndex: dco_decode_i_32(arr[3]),
-      title: dco_decode_String(arr[4]),
-      createdTimestamp: dco_decode_i_64(arr[5]),
-      note: dco_decode_opt_String(arr[6]),
-    );
+    return raw as String;
   }
 
   @protected
@@ -2971,27 +4895,77 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CachedLayout dco_decode_box_autoadd_cached_layout(dynamic raw) {
+  DateTime dco_decode_box_autoadd_Chrono_Utc(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_cached_layout(raw);
+    return dco_decode_Chrono_Utc(raw);
   }
 
   @protected
-  LocalBookInfo dco_decode_box_autoadd_local_book_info(dynamic raw) {
+  DbBookCategory dco_decode_box_autoadd_db_book_category(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_local_book_info(raw);
+    return dco_decode_db_book_category(raw);
   }
 
   @protected
-  PdfMetadata dco_decode_box_autoadd_pdf_metadata(dynamic raw) {
+  DbBookRecord dco_decode_box_autoadd_db_book_record(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_pdf_metadata(raw);
+    return dco_decode_db_book_record(raw);
   }
 
   @protected
-  RichChapterContent dco_decode_box_autoadd_rich_chapter_content(dynamic raw) {
+  DbBookmark dco_decode_box_autoadd_db_bookmark(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_rich_chapter_content(raw);
+    return dco_decode_db_bookmark(raw);
+  }
+
+  @protected
+  DbDailyReadingStats dco_decode_box_autoadd_db_daily_reading_stats(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_db_daily_reading_stats(raw);
+  }
+
+  @protected
+  DbGlobalStats dco_decode_box_autoadd_db_global_stats(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_db_global_stats(raw);
+  }
+
+  @protected
+  DbLayoutCache dco_decode_box_autoadd_db_layout_cache(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_db_layout_cache(raw);
+  }
+
+  @protected
+  DbNoteType dco_decode_box_autoadd_db_note_type(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_db_note_type(raw);
+  }
+
+  @protected
+  DbReadingProgress dco_decode_box_autoadd_db_reading_progress(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_db_reading_progress(raw);
+  }
+
+  @protected
+  DbReadingSession dco_decode_box_autoadd_db_reading_session(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_db_reading_session(raw);
+  }
+
+  @protected
+  DbSyncRecord dco_decode_box_autoadd_db_sync_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_db_sync_record(raw);
+  }
+
+  @protected
+  int dco_decode_box_autoadd_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
   }
 
   @protected
@@ -3014,49 +4988,208 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CachedLayout dco_decode_cached_layout(dynamic raw) {
+  DbBookCategory dco_decode_db_book_category(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
-    return CachedLayout(
-      chapterId: dco_decode_i_32(arr[0]),
-      configHash: dco_decode_String(arr[1]),
-      pageOffsets: dco_decode_list_page_offset(arr[2]),
-      totalPages: dco_decode_i_32(arr[3]),
-      createdAt: dco_decode_i_64(arr[4]),
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return DbBookCategory(
+      id: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      color: dco_decode_String(arr[2]),
+      sortOrder: dco_decode_i_32(arr[3]),
+      isSystem: dco_decode_bool(arr[4]),
+      createdAt: dco_decode_Chrono_Utc(arr[5]),
+      updatedAt: dco_decode_Chrono_Utc(arr[6]),
     );
   }
 
   @protected
-  ChapterInfo dco_decode_chapter_info(dynamic raw) {
+  DbBookFormat dco_decode_db_book_format(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return DbBookFormat.values[raw as int];
+  }
+
+  @protected
+  DbBookRecord dco_decode_db_book_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 16)
+      throw Exception('unexpected arr length: expect 16 but see ${arr.length}');
+    return DbBookRecord(
+      bookId: dco_decode_String(arr[0]),
+      filePath: dco_decode_String(arr[1]),
+      fileSize: dco_decode_i_64(arr[2]),
+      title: dco_decode_String(arr[3]),
+      author: dco_decode_String(arr[4]),
+      description: dco_decode_opt_String(arr[5]),
+      coverPath: dco_decode_opt_String(arr[6]),
+      chapterCount: dco_decode_i_32(arr[7]),
+      totalCharacters: dco_decode_i_64(arr[8]),
+      format: dco_decode_db_book_format(arr[9]),
+      addedAt: dco_decode_Chrono_Utc(arr[10]),
+      lastOpenedAt: dco_decode_opt_box_autoadd_Chrono_Utc(arr[11]),
+      status: dco_decode_db_book_status(arr[12]),
+      isPinned: dco_decode_bool(arr[13]),
+      categoryIds: dco_decode_list_String(arr[14]),
+      lastReadAt: dco_decode_opt_box_autoadd_Chrono_Utc(arr[15]),
+    );
+  }
+
+  @protected
+  DbBookStatus dco_decode_db_book_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return DbBookStatus.values[raw as int];
+  }
+
+  @protected
+  DbBookmark dco_decode_db_bookmark(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
     if (arr.length != 6)
       throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
-    return ChapterInfo(
-      chapterId: dco_decode_i_32(arr[0]),
-      title: dco_decode_String(arr[1]),
-      startIndex: dco_decode_i_64(arr[2]),
-      endIndex: dco_decode_i_64(arr[3]),
-      contentLength: dco_decode_i_64(arr[4]),
-      index: dco_decode_i_32(arr[5]),
+    return DbBookmark(
+      id: dco_decode_String(arr[0]),
+      bookId: dco_decode_String(arr[1]),
+      chapterIndex: dco_decode_i_32(arr[2]),
+      charOffset: dco_decode_i_64(arr[3]),
+      title: dco_decode_String(arr[4]),
+      createdAt: dco_decode_Chrono_Utc(arr[5]),
     );
   }
 
   @protected
-  DailyReadingRecord dco_decode_daily_reading_record(dynamic raw) {
+  DbChapter dco_decode_db_chapter(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
-    return DailyReadingRecord(
-      date: dco_decode_String(arr[0]),
-      readingTimeSeconds: dco_decode_i_64(arr[1]),
-      charactersRead: dco_decode_i_64(arr[2]),
-      chaptersRead: dco_decode_i_32(arr[3]),
-      pagesRead: dco_decode_i_32(arr[4]),
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return DbChapter(
+      id: dco_decode_String(arr[0]),
+      bookId: dco_decode_String(arr[1]),
+      title: dco_decode_String(arr[2]),
+      contentFile: dco_decode_String(arr[3]),
+      chapterIndex: dco_decode_i_32(arr[4]),
+      wordCount: dco_decode_i_64(arr[5]),
+      cachedAt: dco_decode_Chrono_Utc(arr[6]),
     );
+  }
+
+  @protected
+  DbDailyReadingStats dco_decode_db_daily_reading_stats(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return DbDailyReadingStats(
+      date: dco_decode_String(arr[0]),
+      totalReadingTimeSeconds: dco_decode_i_64(arr[1]),
+      totalCharactersRead: dco_decode_i_64(arr[2]),
+      booksRead: dco_decode_list_String(arr[3]),
+      sessionCount: dco_decode_i_32(arr[4]),
+      chaptersRead: dco_decode_i_32(arr[5]),
+      pagesRead: dco_decode_i_32(arr[6]),
+    );
+  }
+
+  @protected
+  DbGlobalStats dco_decode_db_global_stats(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return DbGlobalStats(
+      totalReadingTimeSeconds: dco_decode_i_64(arr[0]),
+      totalCharactersRead: dco_decode_i_64(arr[1]),
+      booksReadCount: dco_decode_i_32(arr[2]),
+      booksCompletedCount: dco_decode_i_32(arr[3]),
+      consecutiveReadingDays: dco_decode_i_32(arr[4]),
+      todayReadingTimeSeconds: dco_decode_i_64(arr[5]),
+      todayCharactersRead: dco_decode_i_64(arr[6]),
+      averageReadingSpeed: dco_decode_f_32(arr[7]),
+    );
+  }
+
+  @protected
+  DbLayoutCache dco_decode_db_layout_cache(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return DbLayoutCache(
+      pageOffsets: dco_decode_list_record_i_64_i_64(arr[0]),
+      totalPages: dco_decode_i_32(arr[1]),
+      createdAt: dco_decode_Chrono_Utc(arr[2]),
+    );
+  }
+
+  @protected
+  DbNoteType dco_decode_db_note_type(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return DbNoteType.values[raw as int];
+  }
+
+  @protected
+  DbReadingProgress dco_decode_db_reading_progress(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return DbReadingProgress(
+      bookId: dco_decode_String(arr[0]),
+      chapterIndex: dco_decode_i_32(arr[1]),
+      charOffset: dco_decode_i_64(arr[2]),
+      pageIndex: dco_decode_i_32(arr[3]),
+      totalPages: dco_decode_i_32(arr[4]),
+      progress: dco_decode_f_32(arr[5]),
+      readingTimeSeconds: dco_decode_i_64(arr[6]),
+      lastReadAt: dco_decode_Chrono_Utc(arr[7]),
+      isCompleted: dco_decode_bool(arr[8]),
+    );
+  }
+
+  @protected
+  DbReadingSession dco_decode_db_reading_session(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return DbReadingSession(
+      id: dco_decode_String(arr[0]),
+      bookId: dco_decode_String(arr[1]),
+      chapterIndex: dco_decode_i_32(arr[2]),
+      startCharOffset: dco_decode_i_64(arr[3]),
+      endCharOffset: dco_decode_i_64(arr[4]),
+      startedAt: dco_decode_Chrono_Utc(arr[5]),
+      endedAt: dco_decode_Chrono_Utc(arr[6]),
+      durationSeconds: dco_decode_i_64(arr[7]),
+      charactersRead: dco_decode_i_64(arr[8]),
+    );
+  }
+
+  @protected
+  DbSyncRecord dco_decode_db_sync_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return DbSyncRecord(
+      id: dco_decode_String(arr[0]),
+      bookId: dco_decode_String(arr[1]),
+      dataType: dco_decode_String(arr[2]),
+      dataId: dco_decode_String(arr[3]),
+      localVersion: dco_decode_i_32(arr[4]),
+      remoteVersion: dco_decode_opt_box_autoadd_i_32(arr[5]),
+      status: dco_decode_db_sync_status(arr[6]),
+      modifiedAt: dco_decode_Chrono_Utc(arr[7]),
+      etag: dco_decode_opt_String(arr[8]),
+    );
+  }
+
+  @protected
+  DbSyncStatus dco_decode_db_sync_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return DbSyncStatus.values[raw as int];
   }
 
   @protected
@@ -3084,45 +5217,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  LayoutCacheResult dco_decode_layout_cache_result(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
-    return LayoutCacheResult(
-      hit: dco_decode_bool(arr[0]),
-      cachedLayout: dco_decode_opt_box_autoadd_cached_layout(arr[1]),
-    );
-  }
-
-  @protected
   List<String> dco_decode_list_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_String).toList();
   }
 
   @protected
-  List<Bookmark> dco_decode_list_bookmark(dynamic raw) {
+  List<DbBookmark> dco_decode_list_db_bookmark(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_bookmark).toList();
+    return (raw as List<dynamic>).map(dco_decode_db_bookmark).toList();
   }
 
   @protected
-  List<CachedLayout> dco_decode_list_cached_layout(dynamic raw) {
+  List<DbChapter> dco_decode_list_db_chapter(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_cached_layout).toList();
-  }
-
-  @protected
-  List<ChapterInfo> dco_decode_list_chapter_info(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_chapter_info).toList();
-  }
-
-  @protected
-  List<DailyReadingRecord> dco_decode_list_daily_reading_record(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_daily_reading_record).toList();
+    return (raw as List<dynamic>).map(dco_decode_db_chapter).toList();
   }
 
   @protected
@@ -3132,21 +5241,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  List<PageOffset> dco_decode_list_page_offset(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_page_offset).toList();
-  }
-
-  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
   }
 
   @protected
-  List<ReadingProgress> dco_decode_list_reading_progress(dynamic raw) {
+  List<(PlatformInt64, PlatformInt64)> dco_decode_list_record_i_64_i_64(
+    dynamic raw,
+  ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_reading_progress).toList();
+    return (raw as List<dynamic>).map(dco_decode_record_i_64_i_64).toList();
   }
 
   @protected
@@ -3168,51 +5273,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  List<SearchHit> dco_decode_list_search_hit(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_search_hit).toList();
-  }
-
-  @protected
-  LocalBookInfo dco_decode_local_book_info(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
-    return LocalBookInfo(
-      filePath: dco_decode_String(arr[0]),
-      fileSize: dco_decode_i_64(arr[1]),
-      title: dco_decode_String(arr[2]),
-      author: dco_decode_String(arr[3]),
-      description: dco_decode_String(arr[4]),
-      coverPath: dco_decode_opt_String(arr[5]),
-      chapterCount: dco_decode_i_32(arr[6]),
-      chapters: dco_decode_list_chapter_info(arr[7]),
-    );
-  }
-
-  @protected
   String? dco_decode_opt_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_String(raw);
   }
 
   @protected
-  CachedLayout? dco_decode_opt_box_autoadd_cached_layout(dynamic raw) {
+  DateTime? dco_decode_opt_box_autoadd_Chrono_Utc(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_cached_layout(raw);
+    return raw == null ? null : dco_decode_box_autoadd_Chrono_Utc(raw);
   }
 
   @protected
-  LocalBookInfo? dco_decode_opt_box_autoadd_local_book_info(dynamic raw) {
+  DbNoteType? dco_decode_opt_box_autoadd_db_note_type(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_local_book_info(raw);
+    return raw == null ? null : dco_decode_box_autoadd_db_note_type(raw);
   }
 
   @protected
-  PdfMetadata? dco_decode_opt_box_autoadd_pdf_metadata(dynamic raw) {
+  int? dco_decode_opt_box_autoadd_i_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_pdf_metadata(raw);
+    return raw == null ? null : dco_decode_box_autoadd_i_32(raw);
   }
 
   @protected
@@ -3222,22 +5303,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     if (arr.length != 4)
       throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return PageContent(
-      chapterId: dco_decode_i_32(arr[0]),
+      chapterIndex: dco_decode_i_32(arr[0]),
       pageIndex: dco_decode_i_32(arr[1]),
       content: dco_decode_String(arr[2]),
       isLastPage: dco_decode_bool(arr[3]),
-    );
-  }
-
-  @protected
-  PageOffset dco_decode_page_offset(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
-    return PageOffset(
-      offset: dco_decode_i_64(arr[0]),
-      length: dco_decode_i_64(arr[1]),
     );
   }
 
@@ -3305,55 +5374,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  PdfMetadata dco_decode_pdf_metadata(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
-    return PdfMetadata(
-      title: dco_decode_opt_String(arr[0]),
-      author: dco_decode_opt_String(arr[1]),
-      subject: dco_decode_opt_String(arr[2]),
-      creator: dco_decode_opt_String(arr[3]),
-      pageCount: dco_decode_i_32(arr[4]),
-    );
-  }
-
-  @protected
-  ReadingProgress dco_decode_reading_progress(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 6)
-      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
-    return ReadingProgress(
-      chapterId: dco_decode_i_32(arr[0]),
-      pageIndex: dco_decode_i_32(arr[1]),
-      totalPages: dco_decode_i_32(arr[2]),
-      progress: dco_decode_f_32(arr[3]),
-      readingTimeSeconds: dco_decode_i_64(arr[4]),
-      lastReadTimestamp: dco_decode_i_64(arr[5]),
-    );
-  }
-
-  @protected
-  ReadingStats dco_decode_reading_stats(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
-    return ReadingStats(
-      totalReadingTimeSeconds: dco_decode_i_64(arr[0]),
-      totalCharactersRead: dco_decode_i_64(arr[1]),
-      booksReadCount: dco_decode_i_32(arr[2]),
-      booksCompletedCount: dco_decode_i_32(arr[3]),
-      consecutiveReadingDays: dco_decode_i_32(arr[4]),
-      todayReadingTimeSeconds: dco_decode_i_64(arr[5]),
-      todayCharactersRead: dco_decode_i_64(arr[6]),
-      averageReadingSpeed: dco_decode_f_32(arr[7]),
-    );
-  }
-
-  @protected
   (PlatformInt64, PlatformInt64) dco_decode_record_i_64_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -3371,19 +5391,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       throw Exception('Expected 2 elements, got ${arr.length}');
     }
     return (dco_decode_usize(arr[0]), dco_decode_usize(arr[1]));
-  }
-
-  @protected
-  RichChapterContent dco_decode_rich_chapter_content(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
-    return RichChapterContent(
-      chapterId: dco_decode_i_32(arr[0]),
-      paragraphs: dco_decode_list_rich_paragraph(arr[1]),
-      totalCharacters: dco_decode_i_64(arr[2]),
-    );
   }
 
   @protected
@@ -3427,34 +5434,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       default:
         throw Exception('unreachable');
     }
-  }
-
-  @protected
-  SearchHit dco_decode_search_hit(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
-    return SearchHit(
-      chapterId: dco_decode_i_32(arr[0]),
-      chapterTitle: dco_decode_String(arr[1]),
-      snippet: dco_decode_String(arr[2]),
-      position: dco_decode_i_64(arr[3]),
-      score: dco_decode_f_32(arr[4]),
-    );
-  }
-
-  @protected
-  SearchResults dco_decode_search_results(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
-    return SearchResults(
-      totalHits: dco_decode_i_32(arr[0]),
-      hits: dco_decode_list_search_hit(arr[1]),
-      elapsedMs: dco_decode_i_64(arr[2]),
-    );
   }
 
   @protected
@@ -3508,24 +5487,72 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ApiResultEpubImageInfo
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
+  ApiResultBookMetadata
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return ApiResultEpubImageInfoImpl.frbInternalSseDecode(
+    return ApiResultBookMetadataImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  ApiResultEpubImageList
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
+  ApiResultBookmarkStats
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return ApiResultEpubImageListImpl.frbInternalSseDecode(
+    return ApiResultBookmarkStatsImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultDbBookmark
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultDbBookmarkImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultDbDailyReadingStats
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultDbDailyReadingStatsImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultDbGlobalStats
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultDbGlobalStatsImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultDbNote
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultDbNoteImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -3550,6 +5577,78 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return ApiResultLocalBookInfoImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultOptionDbBookCategory
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultOptionDbBookCategoryImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultOptionDbBookRecord
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultOptionDbBookRecordImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultOptionDbBookmark
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultOptionDbBookmarkImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultOptionDbChapter
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultOptionDbChapterImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultOptionDbLayoutCache
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultOptionDbLayoutCacheImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultOptionDbReadingProgress
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultOptionDbReadingProgressImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -3592,24 +5691,144 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ApiResultZeroCopyBufferVecSearchHit
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
+  ApiResultVecDbBookCategory
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return ApiResultZeroCopyBufferVecSearchHitImpl.frbInternalSseDecode(
+    return ApiResultVecDbBookCategoryImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  ApiResultZeroCopyBufferVecU8
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
+  ApiResultVecDbBookRecord
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return ApiResultZeroCopyBufferVecU8Impl.frbInternalSseDecode(
+    return ApiResultVecDbBookRecordImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecDbBookmark
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecDbBookmarkImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecDbChapter
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecDbChapterImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecDbDailyReadingStats
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecDbDailyReadingStatsImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecDbNote
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecDbNoteImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecDbReadingSession
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecDbReadingSessionImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecDbSearchResult
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecDbSearchResultImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecDbSyncRecord
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecDbSyncRecordImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecPageContent
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecPageContentImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecRichParagraph
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecRichParagraphImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecSearchResult
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecSearchResultImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -3628,6 +5847,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ApiResultUsize
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultUsizeImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  DateTime sse_decode_Chrono_Utc(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final inner = sse_decode_i_64(deserializer);
+    return DateTime.fromMicrosecondsSinceEpoch(inner.toInt(), isUtc: true);
+  }
+
+  @protected
   ApiResult
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
     SseDeserializer deserializer,
@@ -3640,24 +5878,72 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ApiResultEpubImageInfo
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
+  ApiResultBookMetadata
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return ApiResultEpubImageInfoImpl.frbInternalSseDecode(
+    return ApiResultBookMetadataImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  ApiResultEpubImageList
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
+  ApiResultBookmarkStats
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return ApiResultEpubImageListImpl.frbInternalSseDecode(
+    return ApiResultBookmarkStatsImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultDbBookmark
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultDbBookmarkImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultDbDailyReadingStats
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultDbDailyReadingStatsImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultDbGlobalStats
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultDbGlobalStatsImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultDbNote
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultDbNoteImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -3682,6 +5968,78 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return ApiResultLocalBookInfoImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultOptionDbBookCategory
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultOptionDbBookCategoryImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultOptionDbBookRecord
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultOptionDbBookRecordImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultOptionDbBookmark
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultOptionDbBookmarkImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultOptionDbChapter
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultOptionDbChapterImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultOptionDbLayoutCache
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultOptionDbLayoutCacheImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultOptionDbReadingProgress
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultOptionDbReadingProgressImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -3724,24 +6082,144 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ApiResultZeroCopyBufferVecSearchHit
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
+  ApiResultVecDbBookCategory
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return ApiResultZeroCopyBufferVecSearchHitImpl.frbInternalSseDecode(
+    return ApiResultVecDbBookCategoryImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  ApiResultZeroCopyBufferVecU8
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
+  ApiResultVecDbBookRecord
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return ApiResultZeroCopyBufferVecU8Impl.frbInternalSseDecode(
+    return ApiResultVecDbBookRecordImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecDbBookmark
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecDbBookmarkImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecDbChapter
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecDbChapterImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecDbDailyReadingStats
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecDbDailyReadingStatsImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecDbNote
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecDbNoteImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecDbReadingSession
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecDbReadingSessionImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecDbSearchResult
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecDbSearchResultImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecDbSyncRecord
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecDbSyncRecordImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecPageContent
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecPageContentImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecRichParagraph
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecRichParagraphImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ApiResultVecSearchResult
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultVecSearchResultImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -3760,31 +6238,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ApiResultUsize
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ApiResultUsizeImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
   String sse_decode_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     final inner = sse_decode_list_prim_u_8_strict(deserializer);
     return utf8.decoder.convert(inner);
-  }
-
-  @protected
-  Bookmark sse_decode_bookmark(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_bookmarkId = sse_decode_String(deserializer);
-    final var_bookId = sse_decode_String(deserializer);
-    final var_chapterId = sse_decode_i_32(deserializer);
-    final var_pageIndex = sse_decode_i_32(deserializer);
-    final var_title = sse_decode_String(deserializer);
-    final var_createdTimestamp = sse_decode_i_64(deserializer);
-    final var_note = sse_decode_opt_String(deserializer);
-    return Bookmark(
-      bookmarkId: var_bookmarkId,
-      bookId: var_bookId,
-      chapterId: var_chapterId,
-      pageIndex: var_pageIndex,
-      title: var_title,
-      createdTimestamp: var_createdTimestamp,
-      note: var_note,
-    );
   }
 
   @protected
@@ -3794,35 +6263,91 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CachedLayout sse_decode_box_autoadd_cached_layout(
-    SseDeserializer deserializer,
-  ) {
+  DateTime sse_decode_box_autoadd_Chrono_Utc(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_cached_layout(deserializer));
+    return (sse_decode_Chrono_Utc(deserializer));
   }
 
   @protected
-  LocalBookInfo sse_decode_box_autoadd_local_book_info(
+  DbBookCategory sse_decode_box_autoadd_db_book_category(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_local_book_info(deserializer));
+    return (sse_decode_db_book_category(deserializer));
   }
 
   @protected
-  PdfMetadata sse_decode_box_autoadd_pdf_metadata(
+  DbBookRecord sse_decode_box_autoadd_db_book_record(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_pdf_metadata(deserializer));
+    return (sse_decode_db_book_record(deserializer));
   }
 
   @protected
-  RichChapterContent sse_decode_box_autoadd_rich_chapter_content(
+  DbBookmark sse_decode_box_autoadd_db_bookmark(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_db_bookmark(deserializer));
+  }
+
+  @protected
+  DbDailyReadingStats sse_decode_box_autoadd_db_daily_reading_stats(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_rich_chapter_content(deserializer));
+    return (sse_decode_db_daily_reading_stats(deserializer));
+  }
+
+  @protected
+  DbGlobalStats sse_decode_box_autoadd_db_global_stats(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_db_global_stats(deserializer));
+  }
+
+  @protected
+  DbLayoutCache sse_decode_box_autoadd_db_layout_cache(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_db_layout_cache(deserializer));
+  }
+
+  @protected
+  DbNoteType sse_decode_box_autoadd_db_note_type(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_db_note_type(deserializer));
+  }
+
+  @protected
+  DbReadingProgress sse_decode_box_autoadd_db_reading_progress(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_db_reading_progress(deserializer));
+  }
+
+  @protected
+  DbReadingSession sse_decode_box_autoadd_db_reading_session(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_db_reading_session(deserializer));
+  }
+
+  @protected
+  DbSyncRecord sse_decode_box_autoadd_db_sync_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_db_sync_record(deserializer));
+  }
+
+  @protected
+  int sse_decode_box_autoadd_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_i_32(deserializer));
   }
 
   @protected
@@ -3847,16 +6372,174 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CachedLayout sse_decode_cached_layout(SseDeserializer deserializer) {
+  DbBookCategory sse_decode_db_book_category(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_chapterId = sse_decode_i_32(deserializer);
-    final var_configHash = sse_decode_String(deserializer);
-    final var_pageOffsets = sse_decode_list_page_offset(deserializer);
+    final var_id = sse_decode_String(deserializer);
+    final var_name = sse_decode_String(deserializer);
+    final var_color = sse_decode_String(deserializer);
+    final var_sortOrder = sse_decode_i_32(deserializer);
+    final var_isSystem = sse_decode_bool(deserializer);
+    final var_createdAt = sse_decode_Chrono_Utc(deserializer);
+    final var_updatedAt = sse_decode_Chrono_Utc(deserializer);
+    return DbBookCategory(
+      id: var_id,
+      name: var_name,
+      color: var_color,
+      sortOrder: var_sortOrder,
+      isSystem: var_isSystem,
+      createdAt: var_createdAt,
+      updatedAt: var_updatedAt,
+    );
+  }
+
+  @protected
+  DbBookFormat sse_decode_db_book_format(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final inner = sse_decode_i_32(deserializer);
+    return DbBookFormat.values[inner];
+  }
+
+  @protected
+  DbBookRecord sse_decode_db_book_record(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_bookId = sse_decode_String(deserializer);
+    final var_filePath = sse_decode_String(deserializer);
+    final var_fileSize = sse_decode_i_64(deserializer);
+    final var_title = sse_decode_String(deserializer);
+    final var_author = sse_decode_String(deserializer);
+    final var_description = sse_decode_opt_String(deserializer);
+    final var_coverPath = sse_decode_opt_String(deserializer);
+    final var_chapterCount = sse_decode_i_32(deserializer);
+    final var_totalCharacters = sse_decode_i_64(deserializer);
+    final var_format = sse_decode_db_book_format(deserializer);
+    final var_addedAt = sse_decode_Chrono_Utc(deserializer);
+    final var_lastOpenedAt = sse_decode_opt_box_autoadd_Chrono_Utc(
+      deserializer,
+    );
+    final var_status = sse_decode_db_book_status(deserializer);
+    final var_isPinned = sse_decode_bool(deserializer);
+    final var_categoryIds = sse_decode_list_String(deserializer);
+    final var_lastReadAt = sse_decode_opt_box_autoadd_Chrono_Utc(deserializer);
+    return DbBookRecord(
+      bookId: var_bookId,
+      filePath: var_filePath,
+      fileSize: var_fileSize,
+      title: var_title,
+      author: var_author,
+      description: var_description,
+      coverPath: var_coverPath,
+      chapterCount: var_chapterCount,
+      totalCharacters: var_totalCharacters,
+      format: var_format,
+      addedAt: var_addedAt,
+      lastOpenedAt: var_lastOpenedAt,
+      status: var_status,
+      isPinned: var_isPinned,
+      categoryIds: var_categoryIds,
+      lastReadAt: var_lastReadAt,
+    );
+  }
+
+  @protected
+  DbBookStatus sse_decode_db_book_status(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final inner = sse_decode_i_32(deserializer);
+    return DbBookStatus.values[inner];
+  }
+
+  @protected
+  DbBookmark sse_decode_db_bookmark(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_id = sse_decode_String(deserializer);
+    final var_bookId = sse_decode_String(deserializer);
+    final var_chapterIndex = sse_decode_i_32(deserializer);
+    final var_charOffset = sse_decode_i_64(deserializer);
+    final var_title = sse_decode_String(deserializer);
+    final var_createdAt = sse_decode_Chrono_Utc(deserializer);
+    return DbBookmark(
+      id: var_id,
+      bookId: var_bookId,
+      chapterIndex: var_chapterIndex,
+      charOffset: var_charOffset,
+      title: var_title,
+      createdAt: var_createdAt,
+    );
+  }
+
+  @protected
+  DbChapter sse_decode_db_chapter(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_id = sse_decode_String(deserializer);
+    final var_bookId = sse_decode_String(deserializer);
+    final var_title = sse_decode_String(deserializer);
+    final var_contentFile = sse_decode_String(deserializer);
+    final var_chapterIndex = sse_decode_i_32(deserializer);
+    final var_wordCount = sse_decode_i_64(deserializer);
+    final var_cachedAt = sse_decode_Chrono_Utc(deserializer);
+    return DbChapter(
+      id: var_id,
+      bookId: var_bookId,
+      title: var_title,
+      contentFile: var_contentFile,
+      chapterIndex: var_chapterIndex,
+      wordCount: var_wordCount,
+      cachedAt: var_cachedAt,
+    );
+  }
+
+  @protected
+  DbDailyReadingStats sse_decode_db_daily_reading_stats(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_date = sse_decode_String(deserializer);
+    final var_totalReadingTimeSeconds = sse_decode_i_64(deserializer);
+    final var_totalCharactersRead = sse_decode_i_64(deserializer);
+    final var_booksRead = sse_decode_list_String(deserializer);
+    final var_sessionCount = sse_decode_i_32(deserializer);
+    final var_chaptersRead = sse_decode_i_32(deserializer);
+    final var_pagesRead = sse_decode_i_32(deserializer);
+    return DbDailyReadingStats(
+      date: var_date,
+      totalReadingTimeSeconds: var_totalReadingTimeSeconds,
+      totalCharactersRead: var_totalCharactersRead,
+      booksRead: var_booksRead,
+      sessionCount: var_sessionCount,
+      chaptersRead: var_chaptersRead,
+      pagesRead: var_pagesRead,
+    );
+  }
+
+  @protected
+  DbGlobalStats sse_decode_db_global_stats(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_totalReadingTimeSeconds = sse_decode_i_64(deserializer);
+    final var_totalCharactersRead = sse_decode_i_64(deserializer);
+    final var_booksReadCount = sse_decode_i_32(deserializer);
+    final var_booksCompletedCount = sse_decode_i_32(deserializer);
+    final var_consecutiveReadingDays = sse_decode_i_32(deserializer);
+    final var_todayReadingTimeSeconds = sse_decode_i_64(deserializer);
+    final var_todayCharactersRead = sse_decode_i_64(deserializer);
+    final var_averageReadingSpeed = sse_decode_f_32(deserializer);
+    return DbGlobalStats(
+      totalReadingTimeSeconds: var_totalReadingTimeSeconds,
+      totalCharactersRead: var_totalCharactersRead,
+      booksReadCount: var_booksReadCount,
+      booksCompletedCount: var_booksCompletedCount,
+      consecutiveReadingDays: var_consecutiveReadingDays,
+      todayReadingTimeSeconds: var_todayReadingTimeSeconds,
+      todayCharactersRead: var_todayCharactersRead,
+      averageReadingSpeed: var_averageReadingSpeed,
+    );
+  }
+
+  @protected
+  DbLayoutCache sse_decode_db_layout_cache(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_pageOffsets = sse_decode_list_record_i_64_i_64(deserializer);
     final var_totalPages = sse_decode_i_32(deserializer);
-    final var_createdAt = sse_decode_i_64(deserializer);
-    return CachedLayout(
-      chapterId: var_chapterId,
-      configHash: var_configHash,
+    final var_createdAt = sse_decode_Chrono_Utc(deserializer);
+    return DbLayoutCache(
       pageOffsets: var_pageOffsets,
       totalPages: var_totalPages,
       createdAt: var_createdAt,
@@ -3864,41 +6547,94 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ChapterInfo sse_decode_chapter_info(SseDeserializer deserializer) {
+  DbNoteType sse_decode_db_note_type(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_chapterId = sse_decode_i_32(deserializer);
-    final var_title = sse_decode_String(deserializer);
-    final var_startIndex = sse_decode_i_64(deserializer);
-    final var_endIndex = sse_decode_i_64(deserializer);
-    final var_contentLength = sse_decode_i_64(deserializer);
-    final var_index = sse_decode_i_32(deserializer);
-    return ChapterInfo(
-      chapterId: var_chapterId,
-      title: var_title,
-      startIndex: var_startIndex,
-      endIndex: var_endIndex,
-      contentLength: var_contentLength,
-      index: var_index,
+    final inner = sse_decode_i_32(deserializer);
+    return DbNoteType.values[inner];
+  }
+
+  @protected
+  DbReadingProgress sse_decode_db_reading_progress(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_bookId = sse_decode_String(deserializer);
+    final var_chapterIndex = sse_decode_i_32(deserializer);
+    final var_charOffset = sse_decode_i_64(deserializer);
+    final var_pageIndex = sse_decode_i_32(deserializer);
+    final var_totalPages = sse_decode_i_32(deserializer);
+    final var_progress = sse_decode_f_32(deserializer);
+    final var_readingTimeSeconds = sse_decode_i_64(deserializer);
+    final var_lastReadAt = sse_decode_Chrono_Utc(deserializer);
+    final var_isCompleted = sse_decode_bool(deserializer);
+    return DbReadingProgress(
+      bookId: var_bookId,
+      chapterIndex: var_chapterIndex,
+      charOffset: var_charOffset,
+      pageIndex: var_pageIndex,
+      totalPages: var_totalPages,
+      progress: var_progress,
+      readingTimeSeconds: var_readingTimeSeconds,
+      lastReadAt: var_lastReadAt,
+      isCompleted: var_isCompleted,
     );
   }
 
   @protected
-  DailyReadingRecord sse_decode_daily_reading_record(
-    SseDeserializer deserializer,
-  ) {
+  DbReadingSession sse_decode_db_reading_session(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_date = sse_decode_String(deserializer);
-    final var_readingTimeSeconds = sse_decode_i_64(deserializer);
+    final var_id = sse_decode_String(deserializer);
+    final var_bookId = sse_decode_String(deserializer);
+    final var_chapterIndex = sse_decode_i_32(deserializer);
+    final var_startCharOffset = sse_decode_i_64(deserializer);
+    final var_endCharOffset = sse_decode_i_64(deserializer);
+    final var_startedAt = sse_decode_Chrono_Utc(deserializer);
+    final var_endedAt = sse_decode_Chrono_Utc(deserializer);
+    final var_durationSeconds = sse_decode_i_64(deserializer);
     final var_charactersRead = sse_decode_i_64(deserializer);
-    final var_chaptersRead = sse_decode_i_32(deserializer);
-    final var_pagesRead = sse_decode_i_32(deserializer);
-    return DailyReadingRecord(
-      date: var_date,
-      readingTimeSeconds: var_readingTimeSeconds,
+    return DbReadingSession(
+      id: var_id,
+      bookId: var_bookId,
+      chapterIndex: var_chapterIndex,
+      startCharOffset: var_startCharOffset,
+      endCharOffset: var_endCharOffset,
+      startedAt: var_startedAt,
+      endedAt: var_endedAt,
+      durationSeconds: var_durationSeconds,
       charactersRead: var_charactersRead,
-      chaptersRead: var_chaptersRead,
-      pagesRead: var_pagesRead,
     );
+  }
+
+  @protected
+  DbSyncRecord sse_decode_db_sync_record(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_id = sse_decode_String(deserializer);
+    final var_bookId = sse_decode_String(deserializer);
+    final var_dataType = sse_decode_String(deserializer);
+    final var_dataId = sse_decode_String(deserializer);
+    final var_localVersion = sse_decode_i_32(deserializer);
+    final var_remoteVersion = sse_decode_opt_box_autoadd_i_32(deserializer);
+    final var_status = sse_decode_db_sync_status(deserializer);
+    final var_modifiedAt = sse_decode_Chrono_Utc(deserializer);
+    final var_etag = sse_decode_opt_String(deserializer);
+    return DbSyncRecord(
+      id: var_id,
+      bookId: var_bookId,
+      dataType: var_dataType,
+      dataId: var_dataId,
+      localVersion: var_localVersion,
+      remoteVersion: var_remoteVersion,
+      status: var_status,
+      modifiedAt: var_modifiedAt,
+      etag: var_etag,
+    );
+  }
+
+  @protected
+  DbSyncStatus sse_decode_db_sync_status(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final inner = sse_decode_i_32(deserializer);
+    return DbSyncStatus.values[inner];
   }
 
   @protected
@@ -3927,18 +6663,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  LayoutCacheResult sse_decode_layout_cache_result(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_hit = sse_decode_bool(deserializer);
-    final var_cachedLayout = sse_decode_opt_box_autoadd_cached_layout(
-      deserializer,
-    );
-    return LayoutCacheResult(hit: var_hit, cachedLayout: var_cachedLayout);
-  }
-
-  @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3951,53 +6675,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  List<Bookmark> sse_decode_list_bookmark(SseDeserializer deserializer) {
+  List<DbBookmark> sse_decode_list_db_bookmark(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <Bookmark>[];
+    final ans_ = <DbBookmark>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_bookmark(deserializer));
+      ans_.add(sse_decode_db_bookmark(deserializer));
     }
     return ans_;
   }
 
   @protected
-  List<CachedLayout> sse_decode_list_cached_layout(
-    SseDeserializer deserializer,
-  ) {
+  List<DbChapter> sse_decode_list_db_chapter(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <CachedLayout>[];
+    final ans_ = <DbChapter>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_cached_layout(deserializer));
-    }
-    return ans_;
-  }
-
-  @protected
-  List<ChapterInfo> sse_decode_list_chapter_info(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <ChapterInfo>[];
-    for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_chapter_info(deserializer));
-    }
-    return ans_;
-  }
-
-  @protected
-  List<DailyReadingRecord> sse_decode_list_daily_reading_record(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <DailyReadingRecord>[];
-    for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_daily_reading_record(deserializer));
+      ans_.add(sse_decode_db_chapter(deserializer));
     }
     return ans_;
   }
@@ -4015,18 +6711,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  List<PageOffset> sse_decode_list_page_offset(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <PageOffset>[];
-    for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_page_offset(deserializer));
-    }
-    return ans_;
-  }
-
-  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     final len_ = sse_decode_i_32(deserializer);
@@ -4034,15 +6718,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  List<ReadingProgress> sse_decode_list_reading_progress(
+  List<(PlatformInt64, PlatformInt64)> sse_decode_list_record_i_64_i_64(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <ReadingProgress>[];
+    final ans_ = <(PlatformInt64, PlatformInt64)>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_reading_progress(deserializer));
+      ans_.add(sse_decode_record_i_64_i_64(deserializer));
     }
     return ans_;
   }
@@ -4090,41 +6774,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  List<SearchHit> sse_decode_list_search_hit(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <SearchHit>[];
-    for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_search_hit(deserializer));
-    }
-    return ans_;
-  }
-
-  @protected
-  LocalBookInfo sse_decode_local_book_info(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_filePath = sse_decode_String(deserializer);
-    final var_fileSize = sse_decode_i_64(deserializer);
-    final var_title = sse_decode_String(deserializer);
-    final var_author = sse_decode_String(deserializer);
-    final var_description = sse_decode_String(deserializer);
-    final var_coverPath = sse_decode_opt_String(deserializer);
-    final var_chapterCount = sse_decode_i_32(deserializer);
-    final var_chapters = sse_decode_list_chapter_info(deserializer);
-    return LocalBookInfo(
-      filePath: var_filePath,
-      fileSize: var_fileSize,
-      title: var_title,
-      author: var_author,
-      description: var_description,
-      coverPath: var_coverPath,
-      chapterCount: var_chapterCount,
-      chapters: var_chapters,
-    );
-  }
-
-  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -4136,39 +6785,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CachedLayout? sse_decode_opt_box_autoadd_cached_layout(
+  DateTime? sse_decode_opt_box_autoadd_Chrono_Utc(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_cached_layout(deserializer));
+      return (sse_decode_box_autoadd_Chrono_Utc(deserializer));
     } else {
       return null;
     }
   }
 
   @protected
-  LocalBookInfo? sse_decode_opt_box_autoadd_local_book_info(
+  DbNoteType? sse_decode_opt_box_autoadd_db_note_type(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_local_book_info(deserializer));
+      return (sse_decode_box_autoadd_db_note_type(deserializer));
     } else {
       return null;
     }
   }
 
   @protected
-  PdfMetadata? sse_decode_opt_box_autoadd_pdf_metadata(
-    SseDeserializer deserializer,
-  ) {
+  int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_pdf_metadata(deserializer));
+      return (sse_decode_box_autoadd_i_32(deserializer));
     } else {
       return null;
     }
@@ -4177,24 +6824,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   PageContent sse_decode_page_content(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_chapterId = sse_decode_i_32(deserializer);
+    final var_chapterIndex = sse_decode_i_32(deserializer);
     final var_pageIndex = sse_decode_i_32(deserializer);
     final var_content = sse_decode_String(deserializer);
     final var_isLastPage = sse_decode_bool(deserializer);
     return PageContent(
-      chapterId: var_chapterId,
+      chapterIndex: var_chapterIndex,
       pageIndex: var_pageIndex,
       content: var_content,
       isLastPage: var_isLastPage,
     );
-  }
-
-  @protected
-  PageOffset sse_decode_page_offset(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_offset = sse_decode_i_64(deserializer);
-    final var_length = sse_decode_i_64(deserializer);
-    return PageOffset(offset: var_offset, length: var_length);
   }
 
   @protected
@@ -4277,65 +6916,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  PdfMetadata sse_decode_pdf_metadata(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_title = sse_decode_opt_String(deserializer);
-    final var_author = sse_decode_opt_String(deserializer);
-    final var_subject = sse_decode_opt_String(deserializer);
-    final var_creator = sse_decode_opt_String(deserializer);
-    final var_pageCount = sse_decode_i_32(deserializer);
-    return PdfMetadata(
-      title: var_title,
-      author: var_author,
-      subject: var_subject,
-      creator: var_creator,
-      pageCount: var_pageCount,
-    );
-  }
-
-  @protected
-  ReadingProgress sse_decode_reading_progress(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_chapterId = sse_decode_i_32(deserializer);
-    final var_pageIndex = sse_decode_i_32(deserializer);
-    final var_totalPages = sse_decode_i_32(deserializer);
-    final var_progress = sse_decode_f_32(deserializer);
-    final var_readingTimeSeconds = sse_decode_i_64(deserializer);
-    final var_lastReadTimestamp = sse_decode_i_64(deserializer);
-    return ReadingProgress(
-      chapterId: var_chapterId,
-      pageIndex: var_pageIndex,
-      totalPages: var_totalPages,
-      progress: var_progress,
-      readingTimeSeconds: var_readingTimeSeconds,
-      lastReadTimestamp: var_lastReadTimestamp,
-    );
-  }
-
-  @protected
-  ReadingStats sse_decode_reading_stats(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_totalReadingTimeSeconds = sse_decode_i_64(deserializer);
-    final var_totalCharactersRead = sse_decode_i_64(deserializer);
-    final var_booksReadCount = sse_decode_i_32(deserializer);
-    final var_booksCompletedCount = sse_decode_i_32(deserializer);
-    final var_consecutiveReadingDays = sse_decode_i_32(deserializer);
-    final var_todayReadingTimeSeconds = sse_decode_i_64(deserializer);
-    final var_todayCharactersRead = sse_decode_i_64(deserializer);
-    final var_averageReadingSpeed = sse_decode_f_32(deserializer);
-    return ReadingStats(
-      totalReadingTimeSeconds: var_totalReadingTimeSeconds,
-      totalCharactersRead: var_totalCharactersRead,
-      booksReadCount: var_booksReadCount,
-      booksCompletedCount: var_booksCompletedCount,
-      consecutiveReadingDays: var_consecutiveReadingDays,
-      todayReadingTimeSeconds: var_todayReadingTimeSeconds,
-      todayCharactersRead: var_todayCharactersRead,
-      averageReadingSpeed: var_averageReadingSpeed,
-    );
-  }
-
-  @protected
   (PlatformInt64, PlatformInt64) sse_decode_record_i_64_i_64(
     SseDeserializer deserializer,
   ) {
@@ -4351,21 +6931,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final var_field0 = sse_decode_usize(deserializer);
     final var_field1 = sse_decode_usize(deserializer);
     return (var_field0, var_field1);
-  }
-
-  @protected
-  RichChapterContent sse_decode_rich_chapter_content(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_chapterId = sse_decode_i_32(deserializer);
-    final var_paragraphs = sse_decode_list_rich_paragraph(deserializer);
-    final var_totalCharacters = sse_decode_i_64(deserializer);
-    return RichChapterContent(
-      chapterId: var_chapterId,
-      paragraphs: var_paragraphs,
-      totalCharacters: var_totalCharacters,
-    );
   }
 
   @protected
@@ -4422,36 +6987,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  SearchHit sse_decode_search_hit(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_chapterId = sse_decode_i_32(deserializer);
-    final var_chapterTitle = sse_decode_String(deserializer);
-    final var_snippet = sse_decode_String(deserializer);
-    final var_position = sse_decode_i_64(deserializer);
-    final var_score = sse_decode_f_32(deserializer);
-    return SearchHit(
-      chapterId: var_chapterId,
-      chapterTitle: var_chapterTitle,
-      snippet: var_snippet,
-      position: var_position,
-      score: var_score,
-    );
-  }
-
-  @protected
-  SearchResults sse_decode_search_results(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_totalHits = sse_decode_i_32(deserializer);
-    final var_hits = sse_decode_list_search_hit(deserializer);
-    final var_elapsedMs = sse_decode_i_64(deserializer);
-    return SearchResults(
-      totalHits: var_totalHits,
-      hits: var_hits,
-      elapsedMs: var_elapsedMs,
-    );
-  }
-
-  @protected
   TypesetConfig sse_decode_typeset_config(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     final var_pageWidth = sse_decode_i_32(deserializer);
@@ -4496,6 +7031,740 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
+    ApiResult raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
+    ApiResultBookMetadata raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultBookMetadataImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
+    ApiResultBookmarkStats raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultBookmarkStatsImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    ApiResultDbBookmark raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultDbBookmarkImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    ApiResultDbDailyReadingStats raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultDbDailyReadingStatsImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    ApiResultDbGlobalStats raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultDbGlobalStatsImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+    ApiResultDbNote raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultDbNoteImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
+    ApiResultEpubMetadata raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultEpubMetadataImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
+    ApiResultLocalBookInfo raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultLocalBookInfoImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    ApiResultOptionDbBookCategory raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultOptionDbBookCategoryImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    ApiResultOptionDbBookRecord raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultOptionDbBookRecordImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    ApiResultOptionDbBookmark raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultOptionDbBookmarkImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    ApiResultOptionDbChapter raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultOptionDbChapterImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    ApiResultOptionDbLayoutCache raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultOptionDbLayoutCacheImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+    ApiResultOptionDbReadingProgress raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultOptionDbReadingProgressImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
+    ApiResultParseResult raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultParseResultImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
+    ApiResultRichChapterContent raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultRichChapterContentImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
+    ApiResultString raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultStringImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
+    ApiResultVecDbBookCategory raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbBookCategoryImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
+    ApiResultVecDbBookRecord raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbBookRecordImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    ApiResultVecDbBookmark raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbBookmarkImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    ApiResultVecDbChapter raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbChapterImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    ApiResultVecDbDailyReadingStats raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbDailyReadingStatsImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    ApiResultVecDbNote raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbNoteImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    ApiResultVecDbReadingSession raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbReadingSessionImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    ApiResultVecDbSearchResult raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbSearchResultImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    ApiResultVecDbSyncRecord raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbSyncRecordImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    ApiResultVecPageContent raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecPageContentImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    ApiResultVecRichParagraph raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecRichParagraphImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+    ApiResultVecSearchResult raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecSearchResultImpl).frbInternalCstEncode(
+      move: true,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
+    ApiResultI64 raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultI64Impl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    ApiResultUsize raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultUsizeImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
+    ApiResult raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
+    ApiResultBookMetadata raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultBookMetadataImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
+    ApiResultBookmarkStats raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultBookmarkStatsImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    ApiResultDbBookmark raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultDbBookmarkImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    ApiResultDbDailyReadingStats raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultDbDailyReadingStatsImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    ApiResultDbGlobalStats raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultDbGlobalStatsImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+    ApiResultDbNote raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultDbNoteImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
+    ApiResultEpubMetadata raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultEpubMetadataImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
+    ApiResultLocalBookInfo raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultLocalBookInfoImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    ApiResultOptionDbBookCategory raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultOptionDbBookCategoryImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    ApiResultOptionDbBookRecord raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultOptionDbBookRecordImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    ApiResultOptionDbBookmark raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultOptionDbBookmarkImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    ApiResultOptionDbChapter raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultOptionDbChapterImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    ApiResultOptionDbLayoutCache raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultOptionDbLayoutCacheImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+    ApiResultOptionDbReadingProgress raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultOptionDbReadingProgressImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
+    ApiResultParseResult raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultParseResultImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
+    ApiResultRichChapterContent raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultRichChapterContentImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
+    ApiResultString raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultStringImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
+    ApiResultVecDbBookCategory raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbBookCategoryImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
+    ApiResultVecDbBookRecord raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbBookRecordImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    ApiResultVecDbBookmark raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbBookmarkImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    ApiResultVecDbChapter raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbChapterImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    ApiResultVecDbDailyReadingStats raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbDailyReadingStatsImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    ApiResultVecDbNote raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbNoteImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    ApiResultVecDbReadingSession raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbReadingSessionImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    ApiResultVecDbSearchResult raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbSearchResultImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    ApiResultVecDbSyncRecord raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecDbSyncRecordImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    ApiResultVecPageContent raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecPageContentImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    ApiResultVecRichParagraph raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecRichParagraphImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+    ApiResultVecSearchResult raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultVecSearchResultImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
+    ApiResultI64 raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultI64Impl).frbInternalCstEncode();
+  }
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    ApiResultUsize raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as ApiResultUsizeImpl).frbInternalCstEncode();
+  }
+
+  @protected
+  bool cst_encode_bool(bool raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
+  int cst_encode_db_book_format(DbBookFormat raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
+  int cst_encode_db_book_status(DbBookStatus raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
+  int cst_encode_db_note_type(DbNoteType raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
+  int cst_encode_db_sync_status(DbSyncStatus raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
+  double cst_encode_f_32(double raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
+  int cst_encode_i_32(int raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
+  int cst_encode_language_type(LanguageType raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
+  int cst_encode_u_8(int raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
+  void cst_encode_unit(void raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
   void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
     ApiResult self,
@@ -4510,26 +7779,80 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
-    ApiResultEpubImageInfo self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
+    ApiResultBookMetadata self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as ApiResultEpubImageInfoImpl).frbInternalSseEncode(move: true),
+      (self as ApiResultBookMetadataImpl).frbInternalSseEncode(move: true),
       serializer,
     );
   }
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
-    ApiResultEpubImageList self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
+    ApiResultBookmarkStats self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as ApiResultEpubImageListImpl).frbInternalSseEncode(move: true),
+      (self as ApiResultBookmarkStatsImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    ApiResultDbBookmark self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultDbBookmarkImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    ApiResultDbDailyReadingStats self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultDbDailyReadingStatsImpl).frbInternalSseEncode(
+        move: true,
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    ApiResultDbGlobalStats self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultDbGlobalStatsImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+    ApiResultDbNote self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultDbNoteImpl).frbInternalSseEncode(move: true),
       serializer,
     );
   }
@@ -4556,6 +7879,92 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
       (self as ApiResultLocalBookInfoImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    ApiResultOptionDbBookCategory self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultOptionDbBookCategoryImpl).frbInternalSseEncode(
+        move: true,
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    ApiResultOptionDbBookRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultOptionDbBookRecordImpl).frbInternalSseEncode(
+        move: true,
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    ApiResultOptionDbBookmark self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultOptionDbBookmarkImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    ApiResultOptionDbChapter self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultOptionDbChapterImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    ApiResultOptionDbLayoutCache self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultOptionDbLayoutCacheImpl).frbInternalSseEncode(
+        move: true,
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+    ApiResultOptionDbReadingProgress self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultOptionDbReadingProgressImpl).frbInternalSseEncode(
+        move: true,
+      ),
       serializer,
     );
   }
@@ -4603,13 +8012,65 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
-    ApiResultZeroCopyBufferVecSearchHit self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
+    ApiResultVecDbBookCategory self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as ApiResultZeroCopyBufferVecSearchHitImpl).frbInternalSseEncode(
+      (self as ApiResultVecDbBookCategoryImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
+    ApiResultVecDbBookRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecDbBookRecordImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    ApiResultVecDbBookmark self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecDbBookmarkImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    ApiResultVecDbChapter self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecDbChapterImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    ApiResultVecDbDailyReadingStats self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecDbDailyReadingStatsImpl).frbInternalSseEncode(
         move: true,
       ),
       serializer,
@@ -4618,15 +8079,93 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
-    ApiResultZeroCopyBufferVecU8 self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    ApiResultVecDbNote self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as ApiResultZeroCopyBufferVecU8Impl).frbInternalSseEncode(
+      (self as ApiResultVecDbNoteImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    ApiResultVecDbReadingSession self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecDbReadingSessionImpl).frbInternalSseEncode(
         move: true,
       ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    ApiResultVecDbSearchResult self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecDbSearchResultImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    ApiResultVecDbSyncRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecDbSyncRecordImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    ApiResultVecPageContent self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecPageContentImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    ApiResultVecRichParagraph self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecRichParagraphImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+    ApiResultVecSearchResult self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecSearchResultImpl).frbInternalSseEncode(move: true),
       serializer,
     );
   }
@@ -4646,6 +8185,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    ApiResultUsize self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultUsizeImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_Chrono_Utc(DateTime self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(
+      PlatformInt64Util.from(self.microsecondsSinceEpoch),
+      serializer,
+    );
+  }
+
+  @protected
+  void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
     ApiResult self,
     SseSerializer serializer,
@@ -4659,26 +8220,80 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
-    ApiResultEpubImageInfo self,
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
+    ApiResultBookMetadata self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as ApiResultEpubImageInfoImpl).frbInternalSseEncode(move: null),
+      (self as ApiResultBookMetadataImpl).frbInternalSseEncode(move: null),
       serializer,
     );
   }
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
-    ApiResultEpubImageList self,
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
+    ApiResultBookmarkStats self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as ApiResultEpubImageListImpl).frbInternalSseEncode(move: null),
+      (self as ApiResultBookmarkStatsImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    ApiResultDbBookmark self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultDbBookmarkImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    ApiResultDbDailyReadingStats self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultDbDailyReadingStatsImpl).frbInternalSseEncode(
+        move: null,
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    ApiResultDbGlobalStats self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultDbGlobalStatsImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+    ApiResultDbNote self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultDbNoteImpl).frbInternalSseEncode(move: null),
       serializer,
     );
   }
@@ -4705,6 +8320,92 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
       (self as ApiResultLocalBookInfoImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    ApiResultOptionDbBookCategory self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultOptionDbBookCategoryImpl).frbInternalSseEncode(
+        move: null,
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    ApiResultOptionDbBookRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultOptionDbBookRecordImpl).frbInternalSseEncode(
+        move: null,
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    ApiResultOptionDbBookmark self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultOptionDbBookmarkImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    ApiResultOptionDbChapter self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultOptionDbChapterImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    ApiResultOptionDbLayoutCache self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultOptionDbLayoutCacheImpl).frbInternalSseEncode(
+        move: null,
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+    ApiResultOptionDbReadingProgress self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultOptionDbReadingProgressImpl).frbInternalSseEncode(
+        move: null,
+      ),
       serializer,
     );
   }
@@ -4752,13 +8453,65 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
-    ApiResultZeroCopyBufferVecSearchHit self,
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
+    ApiResultVecDbBookCategory self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as ApiResultZeroCopyBufferVecSearchHitImpl).frbInternalSseEncode(
+      (self as ApiResultVecDbBookCategoryImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
+    ApiResultVecDbBookRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecDbBookRecordImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    ApiResultVecDbBookmark self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecDbBookmarkImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    ApiResultVecDbChapter self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecDbChapterImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    ApiResultVecDbDailyReadingStats self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecDbDailyReadingStatsImpl).frbInternalSseEncode(
         move: null,
       ),
       serializer,
@@ -4767,15 +8520,93 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
-    ApiResultZeroCopyBufferVecU8 self,
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    ApiResultVecDbNote self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as ApiResultZeroCopyBufferVecU8Impl).frbInternalSseEncode(
+      (self as ApiResultVecDbNoteImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    ApiResultVecDbReadingSession self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecDbReadingSessionImpl).frbInternalSseEncode(
         move: null,
       ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    ApiResultVecDbSearchResult self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecDbSearchResultImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    ApiResultVecDbSyncRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecDbSyncRecordImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    ApiResultVecPageContent self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecPageContentImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    ApiResultVecRichParagraph self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecRichParagraphImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+    ApiResultVecSearchResult self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ApiResultVecSearchResultImpl).frbInternalSseEncode(move: null),
       serializer,
     );
   }
@@ -4794,21 +8625,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_String(String self, SseSerializer serializer) {
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    ApiResultUsize self,
+    SseSerializer serializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_list_prim_u_8_strict(utf8.encoder.convert(self), serializer);
+    sse_encode_usize(
+      (self as ApiResultUsizeImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
   }
 
   @protected
-  void sse_encode_bookmark(Bookmark self, SseSerializer serializer) {
+  void sse_encode_String(String self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.bookmarkId, serializer);
-    sse_encode_String(self.bookId, serializer);
-    sse_encode_i_32(self.chapterId, serializer);
-    sse_encode_i_32(self.pageIndex, serializer);
-    sse_encode_String(self.title, serializer);
-    sse_encode_i_64(self.createdTimestamp, serializer);
-    sse_encode_opt_String(self.note, serializer);
+    sse_encode_list_prim_u_8_strict(utf8.encoder.convert(self), serializer);
   }
 
   @protected
@@ -4818,39 +8650,108 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_box_autoadd_cached_layout(
-    CachedLayout self,
+  void sse_encode_box_autoadd_Chrono_Utc(
+    DateTime self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_cached_layout(self, serializer);
+    sse_encode_Chrono_Utc(self, serializer);
   }
 
   @protected
-  void sse_encode_box_autoadd_local_book_info(
-    LocalBookInfo self,
+  void sse_encode_box_autoadd_db_book_category(
+    DbBookCategory self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_local_book_info(self, serializer);
+    sse_encode_db_book_category(self, serializer);
   }
 
   @protected
-  void sse_encode_box_autoadd_pdf_metadata(
-    PdfMetadata self,
+  void sse_encode_box_autoadd_db_book_record(
+    DbBookRecord self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_pdf_metadata(self, serializer);
+    sse_encode_db_book_record(self, serializer);
   }
 
   @protected
-  void sse_encode_box_autoadd_rich_chapter_content(
-    RichChapterContent self,
+  void sse_encode_box_autoadd_db_bookmark(
+    DbBookmark self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_rich_chapter_content(self, serializer);
+    sse_encode_db_bookmark(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_db_daily_reading_stats(
+    DbDailyReadingStats self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_db_daily_reading_stats(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_db_global_stats(
+    DbGlobalStats self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_db_global_stats(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_db_layout_cache(
+    DbLayoutCache self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_db_layout_cache(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_db_note_type(
+    DbNoteType self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_db_note_type(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_db_reading_progress(
+    DbReadingProgress self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_db_reading_progress(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_db_reading_session(
+    DbReadingSession self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_db_reading_session(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_db_sync_record(
+    DbSyncRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_db_sync_record(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self, serializer);
   }
 
   @protected
@@ -4871,37 +8772,176 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_cached_layout(CachedLayout self, SseSerializer serializer) {
+  void sse_encode_db_book_category(
+    DbBookCategory self,
+    SseSerializer serializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.chapterId, serializer);
-    sse_encode_String(self.configHash, serializer);
-    sse_encode_list_page_offset(self.pageOffsets, serializer);
-    sse_encode_i_32(self.totalPages, serializer);
-    sse_encode_i_64(self.createdAt, serializer);
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.color, serializer);
+    sse_encode_i_32(self.sortOrder, serializer);
+    sse_encode_bool(self.isSystem, serializer);
+    sse_encode_Chrono_Utc(self.createdAt, serializer);
+    sse_encode_Chrono_Utc(self.updatedAt, serializer);
   }
 
   @protected
-  void sse_encode_chapter_info(ChapterInfo self, SseSerializer serializer) {
+  void sse_encode_db_book_format(DbBookFormat self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.chapterId, serializer);
-    sse_encode_String(self.title, serializer);
-    sse_encode_i_64(self.startIndex, serializer);
-    sse_encode_i_64(self.endIndex, serializer);
-    sse_encode_i_64(self.contentLength, serializer);
     sse_encode_i_32(self.index, serializer);
   }
 
   @protected
-  void sse_encode_daily_reading_record(
-    DailyReadingRecord self,
+  void sse_encode_db_book_record(DbBookRecord self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.bookId, serializer);
+    sse_encode_String(self.filePath, serializer);
+    sse_encode_i_64(self.fileSize, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.author, serializer);
+    sse_encode_opt_String(self.description, serializer);
+    sse_encode_opt_String(self.coverPath, serializer);
+    sse_encode_i_32(self.chapterCount, serializer);
+    sse_encode_i_64(self.totalCharacters, serializer);
+    sse_encode_db_book_format(self.format, serializer);
+    sse_encode_Chrono_Utc(self.addedAt, serializer);
+    sse_encode_opt_box_autoadd_Chrono_Utc(self.lastOpenedAt, serializer);
+    sse_encode_db_book_status(self.status, serializer);
+    sse_encode_bool(self.isPinned, serializer);
+    sse_encode_list_String(self.categoryIds, serializer);
+    sse_encode_opt_box_autoadd_Chrono_Utc(self.lastReadAt, serializer);
+  }
+
+  @protected
+  void sse_encode_db_book_status(DbBookStatus self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_db_bookmark(DbBookmark self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.bookId, serializer);
+    sse_encode_i_32(self.chapterIndex, serializer);
+    sse_encode_i_64(self.charOffset, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_Chrono_Utc(self.createdAt, serializer);
+  }
+
+  @protected
+  void sse_encode_db_chapter(DbChapter self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.bookId, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.contentFile, serializer);
+    sse_encode_i_32(self.chapterIndex, serializer);
+    sse_encode_i_64(self.wordCount, serializer);
+    sse_encode_Chrono_Utc(self.cachedAt, serializer);
+  }
+
+  @protected
+  void sse_encode_db_daily_reading_stats(
+    DbDailyReadingStats self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.date, serializer);
-    sse_encode_i_64(self.readingTimeSeconds, serializer);
-    sse_encode_i_64(self.charactersRead, serializer);
+    sse_encode_i_64(self.totalReadingTimeSeconds, serializer);
+    sse_encode_i_64(self.totalCharactersRead, serializer);
+    sse_encode_list_String(self.booksRead, serializer);
+    sse_encode_i_32(self.sessionCount, serializer);
     sse_encode_i_32(self.chaptersRead, serializer);
     sse_encode_i_32(self.pagesRead, serializer);
+  }
+
+  @protected
+  void sse_encode_db_global_stats(
+    DbGlobalStats self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.totalReadingTimeSeconds, serializer);
+    sse_encode_i_64(self.totalCharactersRead, serializer);
+    sse_encode_i_32(self.booksReadCount, serializer);
+    sse_encode_i_32(self.booksCompletedCount, serializer);
+    sse_encode_i_32(self.consecutiveReadingDays, serializer);
+    sse_encode_i_64(self.todayReadingTimeSeconds, serializer);
+    sse_encode_i_64(self.todayCharactersRead, serializer);
+    sse_encode_f_32(self.averageReadingSpeed, serializer);
+  }
+
+  @protected
+  void sse_encode_db_layout_cache(
+    DbLayoutCache self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_record_i_64_i_64(self.pageOffsets, serializer);
+    sse_encode_i_32(self.totalPages, serializer);
+    sse_encode_Chrono_Utc(self.createdAt, serializer);
+  }
+
+  @protected
+  void sse_encode_db_note_type(DbNoteType self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_db_reading_progress(
+    DbReadingProgress self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.bookId, serializer);
+    sse_encode_i_32(self.chapterIndex, serializer);
+    sse_encode_i_64(self.charOffset, serializer);
+    sse_encode_i_32(self.pageIndex, serializer);
+    sse_encode_i_32(self.totalPages, serializer);
+    sse_encode_f_32(self.progress, serializer);
+    sse_encode_i_64(self.readingTimeSeconds, serializer);
+    sse_encode_Chrono_Utc(self.lastReadAt, serializer);
+    sse_encode_bool(self.isCompleted, serializer);
+  }
+
+  @protected
+  void sse_encode_db_reading_session(
+    DbReadingSession self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.bookId, serializer);
+    sse_encode_i_32(self.chapterIndex, serializer);
+    sse_encode_i_64(self.startCharOffset, serializer);
+    sse_encode_i_64(self.endCharOffset, serializer);
+    sse_encode_Chrono_Utc(self.startedAt, serializer);
+    sse_encode_Chrono_Utc(self.endedAt, serializer);
+    sse_encode_i_64(self.durationSeconds, serializer);
+    sse_encode_i_64(self.charactersRead, serializer);
+  }
+
+  @protected
+  void sse_encode_db_sync_record(DbSyncRecord self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.bookId, serializer);
+    sse_encode_String(self.dataType, serializer);
+    sse_encode_String(self.dataId, serializer);
+    sse_encode_i_32(self.localVersion, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.remoteVersion, serializer);
+    sse_encode_db_sync_status(self.status, serializer);
+    sse_encode_Chrono_Utc(self.modifiedAt, serializer);
+    sse_encode_opt_String(self.etag, serializer);
+  }
+
+  @protected
+  void sse_encode_db_sync_status(DbSyncStatus self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected
@@ -4929,16 +8969,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_layout_cache_result(
-    LayoutCacheResult self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_bool(self.hit, serializer);
-    sse_encode_opt_box_autoadd_cached_layout(self.cachedLayout, serializer);
-  }
-
-  @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
@@ -4948,47 +8978,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_list_bookmark(List<Bookmark> self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.length, serializer);
-    for (final item in self) {
-      sse_encode_bookmark(item, serializer);
-    }
-  }
-
-  @protected
-  void sse_encode_list_cached_layout(
-    List<CachedLayout> self,
+  void sse_encode_list_db_bookmark(
+    List<DbBookmark> self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
-      sse_encode_cached_layout(item, serializer);
+      sse_encode_db_bookmark(item, serializer);
     }
   }
 
   @protected
-  void sse_encode_list_chapter_info(
-    List<ChapterInfo> self,
+  void sse_encode_list_db_chapter(
+    List<DbChapter> self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
-      sse_encode_chapter_info(item, serializer);
-    }
-  }
-
-  @protected
-  void sse_encode_list_daily_reading_record(
-    List<DailyReadingRecord> self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.length, serializer);
-    for (final item in self) {
-      sse_encode_daily_reading_record(item, serializer);
+      sse_encode_db_chapter(item, serializer);
     }
   }
 
@@ -5005,18 +9014,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_list_page_offset(
-    List<PageOffset> self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.length, serializer);
-    for (final item in self) {
-      sse_encode_page_offset(item, serializer);
-    }
-  }
-
-  @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
     SseSerializer serializer,
@@ -5027,14 +9024,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_list_reading_progress(
-    List<ReadingProgress> self,
+  void sse_encode_list_record_i_64_i_64(
+    List<(PlatformInt64, PlatformInt64)> self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
-      sse_encode_reading_progress(item, serializer);
+      sse_encode_record_i_64_i_64(item, serializer);
     }
   }
 
@@ -5075,34 +9072,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_list_search_hit(
-    List<SearchHit> self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.length, serializer);
-    for (final item in self) {
-      sse_encode_search_hit(item, serializer);
-    }
-  }
-
-  @protected
-  void sse_encode_local_book_info(
-    LocalBookInfo self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.filePath, serializer);
-    sse_encode_i_64(self.fileSize, serializer);
-    sse_encode_String(self.title, serializer);
-    sse_encode_String(self.author, serializer);
-    sse_encode_String(self.description, serializer);
-    sse_encode_opt_String(self.coverPath, serializer);
-    sse_encode_i_32(self.chapterCount, serializer);
-    sse_encode_list_chapter_info(self.chapters, serializer);
-  }
-
-  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -5113,58 +9082,48 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_opt_box_autoadd_cached_layout(
-    CachedLayout? self,
+  void sse_encode_opt_box_autoadd_Chrono_Utc(
+    DateTime? self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     sse_encode_bool(self != null, serializer);
     if (self != null) {
-      sse_encode_box_autoadd_cached_layout(self, serializer);
+      sse_encode_box_autoadd_Chrono_Utc(self, serializer);
     }
   }
 
   @protected
-  void sse_encode_opt_box_autoadd_local_book_info(
-    LocalBookInfo? self,
+  void sse_encode_opt_box_autoadd_db_note_type(
+    DbNoteType? self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     sse_encode_bool(self != null, serializer);
     if (self != null) {
-      sse_encode_box_autoadd_local_book_info(self, serializer);
+      sse_encode_box_autoadd_db_note_type(self, serializer);
     }
   }
 
   @protected
-  void sse_encode_opt_box_autoadd_pdf_metadata(
-    PdfMetadata? self,
-    SseSerializer serializer,
-  ) {
+  void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     sse_encode_bool(self != null, serializer);
     if (self != null) {
-      sse_encode_box_autoadd_pdf_metadata(self, serializer);
+      sse_encode_box_autoadd_i_32(self, serializer);
     }
   }
 
   @protected
   void sse_encode_page_content(PageContent self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.chapterId, serializer);
+    sse_encode_i_32(self.chapterIndex, serializer);
     sse_encode_i_32(self.pageIndex, serializer);
     sse_encode_String(self.content, serializer);
     sse_encode_bool(self.isLastPage, serializer);
-  }
-
-  @protected
-  void sse_encode_page_offset(PageOffset self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_64(self.offset, serializer);
-    sse_encode_i_64(self.length, serializer);
   }
 
   @protected
@@ -5237,43 +9196,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_pdf_metadata(PdfMetadata self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_opt_String(self.title, serializer);
-    sse_encode_opt_String(self.author, serializer);
-    sse_encode_opt_String(self.subject, serializer);
-    sse_encode_opt_String(self.creator, serializer);
-    sse_encode_i_32(self.pageCount, serializer);
-  }
-
-  @protected
-  void sse_encode_reading_progress(
-    ReadingProgress self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.chapterId, serializer);
-    sse_encode_i_32(self.pageIndex, serializer);
-    sse_encode_i_32(self.totalPages, serializer);
-    sse_encode_f_32(self.progress, serializer);
-    sse_encode_i_64(self.readingTimeSeconds, serializer);
-    sse_encode_i_64(self.lastReadTimestamp, serializer);
-  }
-
-  @protected
-  void sse_encode_reading_stats(ReadingStats self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_64(self.totalReadingTimeSeconds, serializer);
-    sse_encode_i_64(self.totalCharactersRead, serializer);
-    sse_encode_i_32(self.booksReadCount, serializer);
-    sse_encode_i_32(self.booksCompletedCount, serializer);
-    sse_encode_i_32(self.consecutiveReadingDays, serializer);
-    sse_encode_i_64(self.todayReadingTimeSeconds, serializer);
-    sse_encode_i_64(self.todayCharactersRead, serializer);
-    sse_encode_f_32(self.averageReadingSpeed, serializer);
-  }
-
-  @protected
   void sse_encode_record_i_64_i_64(
     (PlatformInt64, PlatformInt64) self,
     SseSerializer serializer,
@@ -5291,17 +9213,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(self.$1, serializer);
     sse_encode_usize(self.$2, serializer);
-  }
-
-  @protected
-  void sse_encode_rich_chapter_content(
-    RichChapterContent self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.chapterId, serializer);
-    sse_encode_list_rich_paragraph(self.paragraphs, serializer);
-    sse_encode_i_64(self.totalCharacters, serializer);
   }
 
   @protected
@@ -5347,24 +9258,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_search_hit(SearchHit self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.chapterId, serializer);
-    sse_encode_String(self.chapterTitle, serializer);
-    sse_encode_String(self.snippet, serializer);
-    sse_encode_i_64(self.position, serializer);
-    sse_encode_f_32(self.score, serializer);
-  }
-
-  @protected
-  void sse_encode_search_results(SearchResults self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.totalHits, serializer);
-    sse_encode_list_search_hit(self.hits, serializer);
-    sse_encode_i_64(self.elapsedMs, serializer);
-  }
-
-  @protected
   void sse_encode_typeset_config(TypesetConfig self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.pageWidth, serializer);
@@ -5398,14 +9291,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 }
 
 @sealed
-class ApiResultEpubImageInfoImpl extends RustOpaque
-    implements ApiResultEpubImageInfo {
+class ApiResultBookMetadataImpl extends RustOpaque
+    implements ApiResultBookMetadata {
   // Not to be used by end users
-  ApiResultEpubImageInfoImpl.frbInternalDcoDecode(List<dynamic> wire)
+  ApiResultBookMetadataImpl.frbInternalDcoDecode(List<dynamic> wire)
     : super.frbInternalDcoDecode(wire, _kStaticData);
 
   // Not to be used by end users
-  ApiResultEpubImageInfoImpl.frbInternalSseDecode(
+  ApiResultBookMetadataImpl.frbInternalSseDecode(
     BigInt ptr,
     int externalSizeOnNative,
   ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
@@ -5414,27 +9307,27 @@ class ApiResultEpubImageInfoImpl extends RustOpaque
     rustArcIncrementStrongCount: RustLib
         .instance
         .api
-        .rust_arc_increment_strong_count_ApiResultEpubImageInfo,
+        .rust_arc_increment_strong_count_ApiResultBookMetadata,
     rustArcDecrementStrongCount: RustLib
         .instance
         .api
-        .rust_arc_decrement_strong_count_ApiResultEpubImageInfo,
+        .rust_arc_decrement_strong_count_ApiResultBookMetadata,
     rustArcDecrementStrongCountPtr: RustLib
         .instance
         .api
-        .rust_arc_decrement_strong_count_ApiResultEpubImageInfoPtr,
+        .rust_arc_decrement_strong_count_ApiResultBookMetadataPtr,
   );
 }
 
 @sealed
-class ApiResultEpubImageListImpl extends RustOpaque
-    implements ApiResultEpubImageList {
+class ApiResultBookmarkStatsImpl extends RustOpaque
+    implements ApiResultBookmarkStats {
   // Not to be used by end users
-  ApiResultEpubImageListImpl.frbInternalDcoDecode(List<dynamic> wire)
+  ApiResultBookmarkStatsImpl.frbInternalDcoDecode(List<dynamic> wire)
     : super.frbInternalDcoDecode(wire, _kStaticData);
 
   // Not to be used by end users
-  ApiResultEpubImageListImpl.frbInternalSseDecode(
+  ApiResultBookmarkStatsImpl.frbInternalSseDecode(
     BigInt ptr,
     int externalSizeOnNative,
   ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
@@ -5443,15 +9336,122 @@ class ApiResultEpubImageListImpl extends RustOpaque
     rustArcIncrementStrongCount: RustLib
         .instance
         .api
-        .rust_arc_increment_strong_count_ApiResultEpubImageList,
+        .rust_arc_increment_strong_count_ApiResultBookmarkStats,
     rustArcDecrementStrongCount: RustLib
         .instance
         .api
-        .rust_arc_decrement_strong_count_ApiResultEpubImageList,
+        .rust_arc_decrement_strong_count_ApiResultBookmarkStats,
     rustArcDecrementStrongCountPtr: RustLib
         .instance
         .api
-        .rust_arc_decrement_strong_count_ApiResultEpubImageListPtr,
+        .rust_arc_decrement_strong_count_ApiResultBookmarkStatsPtr,
+  );
+}
+
+@sealed
+class ApiResultDbBookmarkImpl extends RustOpaque
+    implements ApiResultDbBookmark {
+  // Not to be used by end users
+  ApiResultDbBookmarkImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultDbBookmarkImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultDbBookmark,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultDbBookmark,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultDbBookmarkPtr,
+  );
+}
+
+@sealed
+class ApiResultDbDailyReadingStatsImpl extends RustOpaque
+    implements ApiResultDbDailyReadingStats {
+  // Not to be used by end users
+  ApiResultDbDailyReadingStatsImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultDbDailyReadingStatsImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultDbDailyReadingStats,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultDbDailyReadingStats,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultDbDailyReadingStatsPtr,
+  );
+}
+
+@sealed
+class ApiResultDbGlobalStatsImpl extends RustOpaque
+    implements ApiResultDbGlobalStats {
+  // Not to be used by end users
+  ApiResultDbGlobalStatsImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultDbGlobalStatsImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultDbGlobalStats,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultDbGlobalStats,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultDbGlobalStatsPtr,
+  );
+}
+
+@sealed
+class ApiResultDbNoteImpl extends RustOpaque implements ApiResultDbNote {
+  // Not to be used by end users
+  ApiResultDbNoteImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultDbNoteImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
+    : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount:
+        RustLib.instance.api.rust_arc_increment_strong_count_ApiResultDbNote,
+    rustArcDecrementStrongCount:
+        RustLib.instance.api.rust_arc_decrement_strong_count_ApiResultDbNote,
+    rustArcDecrementStrongCountPtr:
+        RustLib.instance.api.rust_arc_decrement_strong_count_ApiResultDbNotePtr,
   );
 }
 
@@ -5554,6 +9554,180 @@ class ApiResultLocalBookInfoImpl extends RustOpaque
 }
 
 @sealed
+class ApiResultOptionDbBookCategoryImpl extends RustOpaque
+    implements ApiResultOptionDbBookCategory {
+  // Not to be used by end users
+  ApiResultOptionDbBookCategoryImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultOptionDbBookCategoryImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultOptionDbBookCategory,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultOptionDbBookCategory,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultOptionDbBookCategoryPtr,
+  );
+}
+
+@sealed
+class ApiResultOptionDbBookRecordImpl extends RustOpaque
+    implements ApiResultOptionDbBookRecord {
+  // Not to be used by end users
+  ApiResultOptionDbBookRecordImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultOptionDbBookRecordImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultOptionDbBookRecord,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultOptionDbBookRecord,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultOptionDbBookRecordPtr,
+  );
+}
+
+@sealed
+class ApiResultOptionDbBookmarkImpl extends RustOpaque
+    implements ApiResultOptionDbBookmark {
+  // Not to be used by end users
+  ApiResultOptionDbBookmarkImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultOptionDbBookmarkImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultOptionDbBookmark,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultOptionDbBookmark,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultOptionDbBookmarkPtr,
+  );
+}
+
+@sealed
+class ApiResultOptionDbChapterImpl extends RustOpaque
+    implements ApiResultOptionDbChapter {
+  // Not to be used by end users
+  ApiResultOptionDbChapterImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultOptionDbChapterImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultOptionDbChapter,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultOptionDbChapter,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultOptionDbChapterPtr,
+  );
+}
+
+@sealed
+class ApiResultOptionDbLayoutCacheImpl extends RustOpaque
+    implements ApiResultOptionDbLayoutCache {
+  // Not to be used by end users
+  ApiResultOptionDbLayoutCacheImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultOptionDbLayoutCacheImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultOptionDbLayoutCache,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultOptionDbLayoutCache,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultOptionDbLayoutCachePtr,
+  );
+}
+
+@sealed
+class ApiResultOptionDbReadingProgressImpl extends RustOpaque
+    implements ApiResultOptionDbReadingProgress {
+  // Not to be used by end users
+  ApiResultOptionDbReadingProgressImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultOptionDbReadingProgressImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultOptionDbReadingProgress,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultOptionDbReadingProgress,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultOptionDbReadingProgressPtr,
+  );
+}
+
+@sealed
 class ApiResultParseResultImpl extends RustOpaque
     implements ApiResultParseResult {
   // Not to be used by end users
@@ -5632,44 +9806,34 @@ class ApiResultStringImpl extends RustOpaque implements ApiResultString {
 }
 
 @sealed
-class ApiResultZeroCopyBufferVecSearchHitImpl extends RustOpaque
-    implements ApiResultZeroCopyBufferVecSearchHit {
+class ApiResultUsizeImpl extends RustOpaque implements ApiResultUsize {
   // Not to be used by end users
-  ApiResultZeroCopyBufferVecSearchHitImpl.frbInternalDcoDecode(
-    List<dynamic> wire,
-  ) : super.frbInternalDcoDecode(wire, _kStaticData);
+  ApiResultUsizeImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
 
   // Not to be used by end users
-  ApiResultZeroCopyBufferVecSearchHitImpl.frbInternalSseDecode(
-    BigInt ptr,
-    int externalSizeOnNative,
-  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+  ApiResultUsizeImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
+    : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
 
   static final _kStaticData = RustArcStaticData(
-    rustArcIncrementStrongCount: RustLib
-        .instance
-        .api
-        .rust_arc_increment_strong_count_ApiResultZeroCopyBufferVecSearchHit,
-    rustArcDecrementStrongCount: RustLib
-        .instance
-        .api
-        .rust_arc_decrement_strong_count_ApiResultZeroCopyBufferVecSearchHit,
-    rustArcDecrementStrongCountPtr: RustLib
-        .instance
-        .api
-        .rust_arc_decrement_strong_count_ApiResultZeroCopyBufferVecSearchHitPtr,
+    rustArcIncrementStrongCount:
+        RustLib.instance.api.rust_arc_increment_strong_count_ApiResultUsize,
+    rustArcDecrementStrongCount:
+        RustLib.instance.api.rust_arc_decrement_strong_count_ApiResultUsize,
+    rustArcDecrementStrongCountPtr:
+        RustLib.instance.api.rust_arc_decrement_strong_count_ApiResultUsizePtr,
   );
 }
 
 @sealed
-class ApiResultZeroCopyBufferVecU8Impl extends RustOpaque
-    implements ApiResultZeroCopyBufferVecU8 {
+class ApiResultVecDbBookCategoryImpl extends RustOpaque
+    implements ApiResultVecDbBookCategory {
   // Not to be used by end users
-  ApiResultZeroCopyBufferVecU8Impl.frbInternalDcoDecode(List<dynamic> wire)
+  ApiResultVecDbBookCategoryImpl.frbInternalDcoDecode(List<dynamic> wire)
     : super.frbInternalDcoDecode(wire, _kStaticData);
 
   // Not to be used by end users
-  ApiResultZeroCopyBufferVecU8Impl.frbInternalSseDecode(
+  ApiResultVecDbBookCategoryImpl.frbInternalSseDecode(
     BigInt ptr,
     int externalSizeOnNative,
   ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
@@ -5678,14 +9842,328 @@ class ApiResultZeroCopyBufferVecU8Impl extends RustOpaque
     rustArcIncrementStrongCount: RustLib
         .instance
         .api
-        .rust_arc_increment_strong_count_ApiResultZeroCopyBufferVecU8,
+        .rust_arc_increment_strong_count_ApiResultVecDbBookCategory,
     rustArcDecrementStrongCount: RustLib
         .instance
         .api
-        .rust_arc_decrement_strong_count_ApiResultZeroCopyBufferVecU8,
+        .rust_arc_decrement_strong_count_ApiResultVecDbBookCategory,
     rustArcDecrementStrongCountPtr: RustLib
         .instance
         .api
-        .rust_arc_decrement_strong_count_ApiResultZeroCopyBufferVecU8Ptr,
+        .rust_arc_decrement_strong_count_ApiResultVecDbBookCategoryPtr,
+  );
+}
+
+@sealed
+class ApiResultVecDbBookRecordImpl extends RustOpaque
+    implements ApiResultVecDbBookRecord {
+  // Not to be used by end users
+  ApiResultVecDbBookRecordImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultVecDbBookRecordImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultVecDbBookRecord,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecDbBookRecord,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecDbBookRecordPtr,
+  );
+}
+
+@sealed
+class ApiResultVecDbBookmarkImpl extends RustOpaque
+    implements ApiResultVecDbBookmark {
+  // Not to be used by end users
+  ApiResultVecDbBookmarkImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultVecDbBookmarkImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultVecDbBookmark,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecDbBookmark,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecDbBookmarkPtr,
+  );
+}
+
+@sealed
+class ApiResultVecDbChapterImpl extends RustOpaque
+    implements ApiResultVecDbChapter {
+  // Not to be used by end users
+  ApiResultVecDbChapterImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultVecDbChapterImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultVecDbChapter,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecDbChapter,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecDbChapterPtr,
+  );
+}
+
+@sealed
+class ApiResultVecDbDailyReadingStatsImpl extends RustOpaque
+    implements ApiResultVecDbDailyReadingStats {
+  // Not to be used by end users
+  ApiResultVecDbDailyReadingStatsImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultVecDbDailyReadingStatsImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultVecDbDailyReadingStats,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecDbDailyReadingStats,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecDbDailyReadingStatsPtr,
+  );
+}
+
+@sealed
+class ApiResultVecDbNoteImpl extends RustOpaque implements ApiResultVecDbNote {
+  // Not to be used by end users
+  ApiResultVecDbNoteImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultVecDbNoteImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount:
+        RustLib.instance.api.rust_arc_increment_strong_count_ApiResultVecDbNote,
+    rustArcDecrementStrongCount:
+        RustLib.instance.api.rust_arc_decrement_strong_count_ApiResultVecDbNote,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecDbNotePtr,
+  );
+}
+
+@sealed
+class ApiResultVecDbReadingSessionImpl extends RustOpaque
+    implements ApiResultVecDbReadingSession {
+  // Not to be used by end users
+  ApiResultVecDbReadingSessionImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultVecDbReadingSessionImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultVecDbReadingSession,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecDbReadingSession,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecDbReadingSessionPtr,
+  );
+}
+
+@sealed
+class ApiResultVecDbSearchResultImpl extends RustOpaque
+    implements ApiResultVecDbSearchResult {
+  // Not to be used by end users
+  ApiResultVecDbSearchResultImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultVecDbSearchResultImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultVecDbSearchResult,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecDbSearchResult,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecDbSearchResultPtr,
+  );
+}
+
+@sealed
+class ApiResultVecDbSyncRecordImpl extends RustOpaque
+    implements ApiResultVecDbSyncRecord {
+  // Not to be used by end users
+  ApiResultVecDbSyncRecordImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultVecDbSyncRecordImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultVecDbSyncRecord,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecDbSyncRecord,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecDbSyncRecordPtr,
+  );
+}
+
+@sealed
+class ApiResultVecPageContentImpl extends RustOpaque
+    implements ApiResultVecPageContent {
+  // Not to be used by end users
+  ApiResultVecPageContentImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultVecPageContentImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultVecPageContent,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecPageContent,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecPageContentPtr,
+  );
+}
+
+@sealed
+class ApiResultVecRichParagraphImpl extends RustOpaque
+    implements ApiResultVecRichParagraph {
+  // Not to be used by end users
+  ApiResultVecRichParagraphImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultVecRichParagraphImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultVecRichParagraph,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecRichParagraph,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecRichParagraphPtr,
+  );
+}
+
+@sealed
+class ApiResultVecSearchResultImpl extends RustOpaque
+    implements ApiResultVecSearchResult {
+  // Not to be used by end users
+  ApiResultVecSearchResultImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ApiResultVecSearchResultImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ApiResultVecSearchResult,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecSearchResult,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ApiResultVecSearchResultPtr,
   );
 }

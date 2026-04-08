@@ -4,7 +4,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/src/rust/api.dart' as rust_api;
+import 'package:zephyr_reader/src/rust/api/core.dart' as rust_api;
 import 'package:zephyr_reader/src/rust/ffi/types.dart';
 import 'package:zephyr_reader/src/rust/stream/page_stream.dart';
 

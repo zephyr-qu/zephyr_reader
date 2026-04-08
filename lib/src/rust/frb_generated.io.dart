@@ -3,9 +3,13 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
-import 'api.dart';
+import 'api/core.dart';
+import 'api/cover.dart';
+import 'api/epub.dart';
+import 'api/incremental.dart';
+import 'api/search.dart';
 import 'api/security.dart';
-import 'api/simple.dart';
+import 'api/storage.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
@@ -14,6 +18,7 @@ import 'ffi/types.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 import 'parser/incremental.dart';
+import 'storage/models.dart';
 import 'stream/page_stream.dart';
 
 abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
@@ -29,12 +34,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultPtr;
 
   CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultEpubImageInfoPtr => wire
-      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfoPtr;
+  get rust_arc_decrement_strong_count_ApiResultBookMetadataPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadataPtr;
 
   CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultEpubImageListPtr => wire
-      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageListPtr;
+  get rust_arc_decrement_strong_count_ApiResultBookmarkStatsPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStatsPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultDbBookmarkPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmarkPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultDbDailyReadingStatsPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStatsPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultDbGlobalStatsPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStatsPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultDbNotePtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNotePtr;
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_ApiResultEpubMetadataPtr => wire
@@ -43,6 +64,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_ApiResultLocalBookInfoPtr => wire
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfoPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultOptionDbBookCategoryPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategoryPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultOptionDbBookRecordPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecordPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultOptionDbBookmarkPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmarkPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultOptionDbChapterPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapterPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultOptionDbLayoutCachePtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCachePtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultOptionDbReadingProgressPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgressPtr;
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_ApiResultParseResultPtr => wire
@@ -57,16 +102,60 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultStringPtr;
 
   CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultZeroCopyBufferVecSearchHitPtr =>
-      wire._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHitPtr;
+  get rust_arc_decrement_strong_count_ApiResultVecDbBookCategoryPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategoryPtr;
 
   CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultZeroCopyBufferVecU8Ptr => wire
-      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8Ptr;
+  get rust_arc_decrement_strong_count_ApiResultVecDbBookRecordPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecordPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecDbBookmarkPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmarkPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecDbChapterPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapterPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecDbDailyReadingStatsPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStatsPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecDbNotePtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNotePtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecDbReadingSessionPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSessionPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecDbSearchResultPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResultPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecDbSyncRecordPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecordPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecPageContentPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContentPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecRichParagraphPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraphPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultVecSearchResultPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResultPtr;
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_ApiResultI64Ptr => wire
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64Ptr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ApiResultUsizePtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusizePtr;
 
   @protected
   ApiResult
@@ -75,14 +164,38 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ApiResultEpubImageInfo
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
+  ApiResultBookMetadata
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
     dynamic raw,
   );
 
   @protected
-  ApiResultEpubImageList
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
+  ApiResultBookmarkStats
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultDbBookmark
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultDbDailyReadingStats
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultDbGlobalStats
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultDbNote
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
     dynamic raw,
   );
 
@@ -95,6 +208,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ApiResultLocalBookInfo
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultOptionDbBookCategory
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultOptionDbBookRecord
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultOptionDbBookmark
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultOptionDbChapter
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultOptionDbLayoutCache
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultOptionDbReadingProgress
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
     dynamic raw,
   );
 
@@ -117,14 +266,74 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ApiResultZeroCopyBufferVecSearchHit
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
+  ApiResultVecDbBookCategory
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
     dynamic raw,
   );
 
   @protected
-  ApiResultZeroCopyBufferVecU8
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
+  ApiResultVecDbBookRecord
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecDbBookmark
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecDbChapter
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecDbDailyReadingStats
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecDbNote
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecDbReadingSession
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecDbSearchResult
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecDbSyncRecord
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecPageContent
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecRichParagraph
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecSearchResult
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
     dynamic raw,
   );
 
@@ -135,20 +344,53 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ApiResultUsize
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    dynamic raw,
+  );
+
+  @protected
+  DateTime dco_decode_Chrono_Utc(dynamic raw);
+
+  @protected
   ApiResult
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
     dynamic raw,
   );
 
   @protected
-  ApiResultEpubImageInfo
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
+  ApiResultBookMetadata
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
     dynamic raw,
   );
 
   @protected
-  ApiResultEpubImageList
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
+  ApiResultBookmarkStats
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultDbBookmark
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultDbDailyReadingStats
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultDbGlobalStats
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultDbNote
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
     dynamic raw,
   );
 
@@ -161,6 +403,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ApiResultLocalBookInfo
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultOptionDbBookCategory
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultOptionDbBookRecord
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultOptionDbBookmark
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultOptionDbChapter
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultOptionDbLayoutCache
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultOptionDbReadingProgress
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
     dynamic raw,
   );
 
@@ -183,14 +461,74 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ApiResultZeroCopyBufferVecSearchHit
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
+  ApiResultVecDbBookCategory
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
     dynamic raw,
   );
 
   @protected
-  ApiResultZeroCopyBufferVecU8
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
+  ApiResultVecDbBookRecord
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecDbBookmark
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecDbChapter
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecDbDailyReadingStats
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecDbNote
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecDbReadingSession
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecDbSearchResult
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecDbSyncRecord
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecPageContent
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecRichParagraph
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    dynamic raw,
+  );
+
+  @protected
+  ApiResultVecSearchResult
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
     dynamic raw,
   );
 
@@ -201,25 +539,54 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  String dco_decode_String(dynamic raw);
+  ApiResultUsize
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    dynamic raw,
+  );
 
   @protected
-  Bookmark dco_decode_bookmark(dynamic raw);
+  String dco_decode_String(dynamic raw);
 
   @protected
   bool dco_decode_bool(dynamic raw);
 
   @protected
-  CachedLayout dco_decode_box_autoadd_cached_layout(dynamic raw);
+  DateTime dco_decode_box_autoadd_Chrono_Utc(dynamic raw);
 
   @protected
-  LocalBookInfo dco_decode_box_autoadd_local_book_info(dynamic raw);
+  DbBookCategory dco_decode_box_autoadd_db_book_category(dynamic raw);
 
   @protected
-  PdfMetadata dco_decode_box_autoadd_pdf_metadata(dynamic raw);
+  DbBookRecord dco_decode_box_autoadd_db_book_record(dynamic raw);
 
   @protected
-  RichChapterContent dco_decode_box_autoadd_rich_chapter_content(dynamic raw);
+  DbBookmark dco_decode_box_autoadd_db_bookmark(dynamic raw);
+
+  @protected
+  DbDailyReadingStats dco_decode_box_autoadd_db_daily_reading_stats(
+    dynamic raw,
+  );
+
+  @protected
+  DbGlobalStats dco_decode_box_autoadd_db_global_stats(dynamic raw);
+
+  @protected
+  DbLayoutCache dco_decode_box_autoadd_db_layout_cache(dynamic raw);
+
+  @protected
+  DbNoteType dco_decode_box_autoadd_db_note_type(dynamic raw);
+
+  @protected
+  DbReadingProgress dco_decode_box_autoadd_db_reading_progress(dynamic raw);
+
+  @protected
+  DbReadingSession dco_decode_box_autoadd_db_reading_session(dynamic raw);
+
+  @protected
+  DbSyncRecord dco_decode_box_autoadd_db_sync_record(dynamic raw);
+
+  @protected
+  int dco_decode_box_autoadd_i_32(dynamic raw);
 
   @protected
   TypesetConfig dco_decode_box_autoadd_typeset_config(dynamic raw);
@@ -228,13 +595,46 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CacheStats dco_decode_cache_stats(dynamic raw);
 
   @protected
-  CachedLayout dco_decode_cached_layout(dynamic raw);
+  DbBookCategory dco_decode_db_book_category(dynamic raw);
 
   @protected
-  ChapterInfo dco_decode_chapter_info(dynamic raw);
+  DbBookFormat dco_decode_db_book_format(dynamic raw);
 
   @protected
-  DailyReadingRecord dco_decode_daily_reading_record(dynamic raw);
+  DbBookRecord dco_decode_db_book_record(dynamic raw);
+
+  @protected
+  DbBookStatus dco_decode_db_book_status(dynamic raw);
+
+  @protected
+  DbBookmark dco_decode_db_bookmark(dynamic raw);
+
+  @protected
+  DbChapter dco_decode_db_chapter(dynamic raw);
+
+  @protected
+  DbDailyReadingStats dco_decode_db_daily_reading_stats(dynamic raw);
+
+  @protected
+  DbGlobalStats dco_decode_db_global_stats(dynamic raw);
+
+  @protected
+  DbLayoutCache dco_decode_db_layout_cache(dynamic raw);
+
+  @protected
+  DbNoteType dco_decode_db_note_type(dynamic raw);
+
+  @protected
+  DbReadingProgress dco_decode_db_reading_progress(dynamic raw);
+
+  @protected
+  DbReadingSession dco_decode_db_reading_session(dynamic raw);
+
+  @protected
+  DbSyncRecord dco_decode_db_sync_record(dynamic raw);
+
+  @protected
+  DbSyncStatus dco_decode_db_sync_status(dynamic raw);
 
   @protected
   double dco_decode_f_32(dynamic raw);
@@ -249,34 +649,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LanguageType dco_decode_language_type(dynamic raw);
 
   @protected
-  LayoutCacheResult dco_decode_layout_cache_result(dynamic raw);
-
-  @protected
   List<String> dco_decode_list_String(dynamic raw);
 
   @protected
-  List<Bookmark> dco_decode_list_bookmark(dynamic raw);
+  List<DbBookmark> dco_decode_list_db_bookmark(dynamic raw);
 
   @protected
-  List<CachedLayout> dco_decode_list_cached_layout(dynamic raw);
-
-  @protected
-  List<ChapterInfo> dco_decode_list_chapter_info(dynamic raw);
-
-  @protected
-  List<DailyReadingRecord> dco_decode_list_daily_reading_record(dynamic raw);
+  List<DbChapter> dco_decode_list_db_chapter(dynamic raw);
 
   @protected
   List<PageContent> dco_decode_list_page_content(dynamic raw);
 
   @protected
-  List<PageOffset> dco_decode_list_page_offset(dynamic raw);
-
-  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
-  List<ReadingProgress> dco_decode_list_reading_progress(dynamic raw);
+  List<(PlatformInt64, PlatformInt64)> dco_decode_list_record_i_64_i_64(
+    dynamic raw,
+  );
 
   @protected
   List<(BigInt, BigInt)> dco_decode_list_record_usize_usize(dynamic raw);
@@ -288,28 +678,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<RichTextSpan> dco_decode_list_rich_text_span(dynamic raw);
 
   @protected
-  List<SearchHit> dco_decode_list_search_hit(dynamic raw);
-
-  @protected
-  LocalBookInfo dco_decode_local_book_info(dynamic raw);
-
-  @protected
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
-  CachedLayout? dco_decode_opt_box_autoadd_cached_layout(dynamic raw);
+  DateTime? dco_decode_opt_box_autoadd_Chrono_Utc(dynamic raw);
 
   @protected
-  LocalBookInfo? dco_decode_opt_box_autoadd_local_book_info(dynamic raw);
+  DbNoteType? dco_decode_opt_box_autoadd_db_note_type(dynamic raw);
 
   @protected
-  PdfMetadata? dco_decode_opt_box_autoadd_pdf_metadata(dynamic raw);
+  int? dco_decode_opt_box_autoadd_i_32(dynamic raw);
 
   @protected
   PageContent dco_decode_page_content(dynamic raw);
-
-  @protected
-  PageOffset dco_decode_page_offset(dynamic raw);
 
   @protected
   PageStreamer dco_decode_page_streamer(dynamic raw);
@@ -318,34 +699,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ParserError dco_decode_parser_error(dynamic raw);
 
   @protected
-  PdfMetadata dco_decode_pdf_metadata(dynamic raw);
-
-  @protected
-  ReadingProgress dco_decode_reading_progress(dynamic raw);
-
-  @protected
-  ReadingStats dco_decode_reading_stats(dynamic raw);
-
-  @protected
   (PlatformInt64, PlatformInt64) dco_decode_record_i_64_i_64(dynamic raw);
 
   @protected
   (BigInt, BigInt) dco_decode_record_usize_usize(dynamic raw);
 
   @protected
-  RichChapterContent dco_decode_rich_chapter_content(dynamic raw);
-
-  @protected
   RichParagraph dco_decode_rich_paragraph(dynamic raw);
 
   @protected
   RichTextSpan dco_decode_rich_text_span(dynamic raw);
-
-  @protected
-  SearchHit dco_decode_search_hit(dynamic raw);
-
-  @protected
-  SearchResults dco_decode_search_results(dynamic raw);
 
   @protected
   TypesetConfig dco_decode_typeset_config(dynamic raw);
@@ -366,14 +729,38 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ApiResultEpubImageInfo
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
+  ApiResultBookMetadata
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
     SseDeserializer deserializer,
   );
 
   @protected
-  ApiResultEpubImageList
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
+  ApiResultBookmarkStats
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultDbBookmark
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultDbDailyReadingStats
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultDbGlobalStats
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultDbNote
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
     SseDeserializer deserializer,
   );
 
@@ -386,6 +773,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ApiResultLocalBookInfo
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultOptionDbBookCategory
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultOptionDbBookRecord
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultOptionDbBookmark
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultOptionDbChapter
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultOptionDbLayoutCache
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultOptionDbReadingProgress
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
     SseDeserializer deserializer,
   );
 
@@ -408,14 +831,74 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ApiResultZeroCopyBufferVecSearchHit
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
+  ApiResultVecDbBookCategory
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
     SseDeserializer deserializer,
   );
 
   @protected
-  ApiResultZeroCopyBufferVecU8
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
+  ApiResultVecDbBookRecord
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecDbBookmark
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecDbChapter
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecDbDailyReadingStats
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecDbNote
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecDbReadingSession
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecDbSearchResult
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecDbSyncRecord
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecPageContent
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecRichParagraph
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecSearchResult
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
     SseDeserializer deserializer,
   );
 
@@ -426,20 +909,53 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ApiResultUsize
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DateTime sse_decode_Chrono_Utc(SseDeserializer deserializer);
+
+  @protected
   ApiResult
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
     SseDeserializer deserializer,
   );
 
   @protected
-  ApiResultEpubImageInfo
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
+  ApiResultBookMetadata
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
     SseDeserializer deserializer,
   );
 
   @protected
-  ApiResultEpubImageList
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
+  ApiResultBookmarkStats
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultDbBookmark
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultDbDailyReadingStats
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultDbGlobalStats
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultDbNote
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
     SseDeserializer deserializer,
   );
 
@@ -452,6 +968,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ApiResultLocalBookInfo
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultOptionDbBookCategory
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultOptionDbBookRecord
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultOptionDbBookmark
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultOptionDbChapter
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultOptionDbLayoutCache
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultOptionDbReadingProgress
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
     SseDeserializer deserializer,
   );
 
@@ -474,14 +1026,74 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ApiResultZeroCopyBufferVecSearchHit
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
+  ApiResultVecDbBookCategory
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
     SseDeserializer deserializer,
   );
 
   @protected
-  ApiResultZeroCopyBufferVecU8
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
+  ApiResultVecDbBookRecord
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecDbBookmark
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecDbChapter
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecDbDailyReadingStats
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecDbNote
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecDbReadingSession
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecDbSearchResult
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecDbSyncRecord
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecPageContent
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecRichParagraph
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiResultVecSearchResult
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
     SseDeserializer deserializer,
   );
 
@@ -492,31 +1104,68 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  String sse_decode_String(SseDeserializer deserializer);
+  ApiResultUsize
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    SseDeserializer deserializer,
+  );
 
   @protected
-  Bookmark sse_decode_bookmark(SseDeserializer deserializer);
+  String sse_decode_String(SseDeserializer deserializer);
 
   @protected
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
-  CachedLayout sse_decode_box_autoadd_cached_layout(
+  DateTime sse_decode_box_autoadd_Chrono_Utc(SseDeserializer deserializer);
+
+  @protected
+  DbBookCategory sse_decode_box_autoadd_db_book_category(
     SseDeserializer deserializer,
   );
 
   @protected
-  LocalBookInfo sse_decode_box_autoadd_local_book_info(
+  DbBookRecord sse_decode_box_autoadd_db_book_record(
     SseDeserializer deserializer,
   );
 
   @protected
-  PdfMetadata sse_decode_box_autoadd_pdf_metadata(SseDeserializer deserializer);
+  DbBookmark sse_decode_box_autoadd_db_bookmark(SseDeserializer deserializer);
 
   @protected
-  RichChapterContent sse_decode_box_autoadd_rich_chapter_content(
+  DbDailyReadingStats sse_decode_box_autoadd_db_daily_reading_stats(
     SseDeserializer deserializer,
   );
+
+  @protected
+  DbGlobalStats sse_decode_box_autoadd_db_global_stats(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DbLayoutCache sse_decode_box_autoadd_db_layout_cache(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DbNoteType sse_decode_box_autoadd_db_note_type(SseDeserializer deserializer);
+
+  @protected
+  DbReadingProgress sse_decode_box_autoadd_db_reading_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DbReadingSession sse_decode_box_autoadd_db_reading_session(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DbSyncRecord sse_decode_box_autoadd_db_sync_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  int sse_decode_box_autoadd_i_32(SseDeserializer deserializer);
 
   @protected
   TypesetConfig sse_decode_box_autoadd_typeset_config(
@@ -527,15 +1176,50 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CacheStats sse_decode_cache_stats(SseDeserializer deserializer);
 
   @protected
-  CachedLayout sse_decode_cached_layout(SseDeserializer deserializer);
+  DbBookCategory sse_decode_db_book_category(SseDeserializer deserializer);
 
   @protected
-  ChapterInfo sse_decode_chapter_info(SseDeserializer deserializer);
+  DbBookFormat sse_decode_db_book_format(SseDeserializer deserializer);
 
   @protected
-  DailyReadingRecord sse_decode_daily_reading_record(
+  DbBookRecord sse_decode_db_book_record(SseDeserializer deserializer);
+
+  @protected
+  DbBookStatus sse_decode_db_book_status(SseDeserializer deserializer);
+
+  @protected
+  DbBookmark sse_decode_db_bookmark(SseDeserializer deserializer);
+
+  @protected
+  DbChapter sse_decode_db_chapter(SseDeserializer deserializer);
+
+  @protected
+  DbDailyReadingStats sse_decode_db_daily_reading_stats(
     SseDeserializer deserializer,
   );
+
+  @protected
+  DbGlobalStats sse_decode_db_global_stats(SseDeserializer deserializer);
+
+  @protected
+  DbLayoutCache sse_decode_db_layout_cache(SseDeserializer deserializer);
+
+  @protected
+  DbNoteType sse_decode_db_note_type(SseDeserializer deserializer);
+
+  @protected
+  DbReadingProgress sse_decode_db_reading_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DbReadingSession sse_decode_db_reading_session(SseDeserializer deserializer);
+
+  @protected
+  DbSyncRecord sse_decode_db_sync_record(SseDeserializer deserializer);
+
+  @protected
+  DbSyncStatus sse_decode_db_sync_status(SseDeserializer deserializer);
 
   @protected
   double sse_decode_f_32(SseDeserializer deserializer);
@@ -550,40 +1234,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LanguageType sse_decode_language_type(SseDeserializer deserializer);
 
   @protected
-  LayoutCacheResult sse_decode_layout_cache_result(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
-  List<Bookmark> sse_decode_list_bookmark(SseDeserializer deserializer);
+  List<DbBookmark> sse_decode_list_db_bookmark(SseDeserializer deserializer);
 
   @protected
-  List<CachedLayout> sse_decode_list_cached_layout(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  List<ChapterInfo> sse_decode_list_chapter_info(SseDeserializer deserializer);
-
-  @protected
-  List<DailyReadingRecord> sse_decode_list_daily_reading_record(
-    SseDeserializer deserializer,
-  );
+  List<DbChapter> sse_decode_list_db_chapter(SseDeserializer deserializer);
 
   @protected
   List<PageContent> sse_decode_list_page_content(SseDeserializer deserializer);
 
   @protected
-  List<PageOffset> sse_decode_list_page_offset(SseDeserializer deserializer);
-
-  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
-  List<ReadingProgress> sse_decode_list_reading_progress(
+  List<(PlatformInt64, PlatformInt64)> sse_decode_list_record_i_64_i_64(
     SseDeserializer deserializer,
   );
 
@@ -603,49 +1269,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  List<SearchHit> sse_decode_list_search_hit(SseDeserializer deserializer);
-
-  @protected
-  LocalBookInfo sse_decode_local_book_info(SseDeserializer deserializer);
-
-  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
-  CachedLayout? sse_decode_opt_box_autoadd_cached_layout(
+  DateTime? sse_decode_opt_box_autoadd_Chrono_Utc(SseDeserializer deserializer);
+
+  @protected
+  DbNoteType? sse_decode_opt_box_autoadd_db_note_type(
     SseDeserializer deserializer,
   );
 
   @protected
-  LocalBookInfo? sse_decode_opt_box_autoadd_local_book_info(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  PdfMetadata? sse_decode_opt_box_autoadd_pdf_metadata(
-    SseDeserializer deserializer,
-  );
+  int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer);
 
   @protected
   PageContent sse_decode_page_content(SseDeserializer deserializer);
-
-  @protected
-  PageOffset sse_decode_page_offset(SseDeserializer deserializer);
 
   @protected
   PageStreamer sse_decode_page_streamer(SseDeserializer deserializer);
 
   @protected
   ParserError sse_decode_parser_error(SseDeserializer deserializer);
-
-  @protected
-  PdfMetadata sse_decode_pdf_metadata(SseDeserializer deserializer);
-
-  @protected
-  ReadingProgress sse_decode_reading_progress(SseDeserializer deserializer);
-
-  @protected
-  ReadingStats sse_decode_reading_stats(SseDeserializer deserializer);
 
   @protected
   (PlatformInt64, PlatformInt64) sse_decode_record_i_64_i_64(
@@ -656,21 +1300,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   (BigInt, BigInt) sse_decode_record_usize_usize(SseDeserializer deserializer);
 
   @protected
-  RichChapterContent sse_decode_rich_chapter_content(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   RichParagraph sse_decode_rich_paragraph(SseDeserializer deserializer);
 
   @protected
   RichTextSpan sse_decode_rich_text_span(SseDeserializer deserializer);
-
-  @protected
-  SearchHit sse_decode_search_hit(SseDeserializer deserializer);
-
-  @protected
-  SearchResults sse_decode_search_results(SseDeserializer deserializer);
 
   @protected
   TypesetConfig sse_decode_typeset_config(SseDeserializer deserializer);
@@ -685,6 +1318,1189 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BigInt sse_decode_usize(SseDeserializer deserializer);
 
   @protected
+  int cst_encode_Chrono_Utc(DateTime raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_64(raw.microsecondsSinceEpoch);
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_String(String raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_list_prim_u_8_strict(utf8.encoder.convert(raw));
+  }
+
+  @protected
+  ffi.Pointer<ffi.Int64> cst_encode_box_autoadd_Chrono_Utc(DateTime raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return wire.cst_new_box_autoadd_Chrono_Utc(cst_encode_Chrono_Utc(raw));
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_db_book_category>
+  cst_encode_box_autoadd_db_book_category(DbBookCategory raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_db_book_category();
+    cst_api_fill_to_wire_db_book_category(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_db_book_record> cst_encode_box_autoadd_db_book_record(
+    DbBookRecord raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_db_book_record();
+    cst_api_fill_to_wire_db_book_record(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_db_bookmark> cst_encode_box_autoadd_db_bookmark(
+    DbBookmark raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_db_bookmark();
+    cst_api_fill_to_wire_db_bookmark(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_db_daily_reading_stats>
+  cst_encode_box_autoadd_db_daily_reading_stats(DbDailyReadingStats raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_db_daily_reading_stats();
+    cst_api_fill_to_wire_db_daily_reading_stats(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_db_global_stats> cst_encode_box_autoadd_db_global_stats(
+    DbGlobalStats raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_db_global_stats();
+    cst_api_fill_to_wire_db_global_stats(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_db_layout_cache> cst_encode_box_autoadd_db_layout_cache(
+    DbLayoutCache raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_db_layout_cache();
+    cst_api_fill_to_wire_db_layout_cache(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<ffi.Int32> cst_encode_box_autoadd_db_note_type(DbNoteType raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return wire.cst_new_box_autoadd_db_note_type(cst_encode_db_note_type(raw));
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_db_reading_progress>
+  cst_encode_box_autoadd_db_reading_progress(DbReadingProgress raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_db_reading_progress();
+    cst_api_fill_to_wire_db_reading_progress(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_db_reading_session>
+  cst_encode_box_autoadd_db_reading_session(DbReadingSession raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_db_reading_session();
+    cst_api_fill_to_wire_db_reading_session(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_db_sync_record> cst_encode_box_autoadd_db_sync_record(
+    DbSyncRecord raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_db_sync_record();
+    cst_api_fill_to_wire_db_sync_record(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<ffi.Int32> cst_encode_box_autoadd_i_32(int raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return wire.cst_new_box_autoadd_i_32(cst_encode_i_32(raw));
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_typeset_config> cst_encode_box_autoadd_typeset_config(
+    TypesetConfig raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_typeset_config();
+    cst_api_fill_to_wire_typeset_config(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  int cst_encode_i_64(PlatformInt64 raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.toInt();
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_String> cst_encode_list_String(List<String> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_String(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      ans.ref.ptr[i] = cst_encode_String(raw[i]);
+    }
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_db_bookmark> cst_encode_list_db_bookmark(
+    List<DbBookmark> raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_db_bookmark(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_db_bookmark(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_db_chapter> cst_encode_list_db_chapter(
+    List<DbChapter> raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_db_chapter(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_db_chapter(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_page_content> cst_encode_list_page_content(
+    List<PageContent> raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_page_content(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_page_content(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_list_prim_u_8_strict(
+    Uint8List raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_prim_u_8_strict(raw.length);
+    ans.ref.ptr.asTypedList(raw.length).setAll(0, raw);
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_record_i_64_i_64> cst_encode_list_record_i_64_i_64(
+    List<(PlatformInt64, PlatformInt64)> raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_record_i_64_i_64(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_record_i_64_i_64(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_record_usize_usize>
+  cst_encode_list_record_usize_usize(List<(BigInt, BigInt)> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_record_usize_usize(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_record_usize_usize(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_rich_paragraph> cst_encode_list_rich_paragraph(
+    List<RichParagraph> raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_rich_paragraph(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_rich_paragraph(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_rich_text_span> cst_encode_list_rich_text_span(
+    List<RichTextSpan> raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_rich_text_span(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_rich_text_span(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_opt_String(
+    String? raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? ffi.nullptr : cst_encode_String(raw);
+  }
+
+  @protected
+  ffi.Pointer<ffi.Int64> cst_encode_opt_box_autoadd_Chrono_Utc(DateTime? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_Chrono_Utc(raw);
+  }
+
+  @protected
+  ffi.Pointer<ffi.Int32> cst_encode_opt_box_autoadd_db_note_type(
+    DbNoteType? raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_db_note_type(raw);
+  }
+
+  @protected
+  ffi.Pointer<ffi.Int32> cst_encode_opt_box_autoadd_i_32(int? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_i_32(raw);
+  }
+
+  @protected
+  int cst_encode_usize(BigInt raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.toSigned(64).toInt();
+  }
+
+  @protected
+  void cst_api_fill_to_wire_box_autoadd_db_book_category(
+    DbBookCategory apiObj,
+    ffi.Pointer<wire_cst_db_book_category> wireObj,
+  ) {
+    cst_api_fill_to_wire_db_book_category(apiObj, wireObj.ref);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_box_autoadd_db_book_record(
+    DbBookRecord apiObj,
+    ffi.Pointer<wire_cst_db_book_record> wireObj,
+  ) {
+    cst_api_fill_to_wire_db_book_record(apiObj, wireObj.ref);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_box_autoadd_db_bookmark(
+    DbBookmark apiObj,
+    ffi.Pointer<wire_cst_db_bookmark> wireObj,
+  ) {
+    cst_api_fill_to_wire_db_bookmark(apiObj, wireObj.ref);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_box_autoadd_db_daily_reading_stats(
+    DbDailyReadingStats apiObj,
+    ffi.Pointer<wire_cst_db_daily_reading_stats> wireObj,
+  ) {
+    cst_api_fill_to_wire_db_daily_reading_stats(apiObj, wireObj.ref);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_box_autoadd_db_global_stats(
+    DbGlobalStats apiObj,
+    ffi.Pointer<wire_cst_db_global_stats> wireObj,
+  ) {
+    cst_api_fill_to_wire_db_global_stats(apiObj, wireObj.ref);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_box_autoadd_db_layout_cache(
+    DbLayoutCache apiObj,
+    ffi.Pointer<wire_cst_db_layout_cache> wireObj,
+  ) {
+    cst_api_fill_to_wire_db_layout_cache(apiObj, wireObj.ref);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_box_autoadd_db_reading_progress(
+    DbReadingProgress apiObj,
+    ffi.Pointer<wire_cst_db_reading_progress> wireObj,
+  ) {
+    cst_api_fill_to_wire_db_reading_progress(apiObj, wireObj.ref);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_box_autoadd_db_reading_session(
+    DbReadingSession apiObj,
+    ffi.Pointer<wire_cst_db_reading_session> wireObj,
+  ) {
+    cst_api_fill_to_wire_db_reading_session(apiObj, wireObj.ref);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_box_autoadd_db_sync_record(
+    DbSyncRecord apiObj,
+    ffi.Pointer<wire_cst_db_sync_record> wireObj,
+  ) {
+    cst_api_fill_to_wire_db_sync_record(apiObj, wireObj.ref);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_box_autoadd_typeset_config(
+    TypesetConfig apiObj,
+    ffi.Pointer<wire_cst_typeset_config> wireObj,
+  ) {
+    cst_api_fill_to_wire_typeset_config(apiObj, wireObj.ref);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_cache_stats(
+    CacheStats apiObj,
+    wire_cst_cache_stats wireObj,
+  ) {
+    wireObj.file_count = cst_encode_usize(apiObj.fileCount);
+    wireObj.chapter_count = cst_encode_usize(apiObj.chapterCount);
+    wireObj.total_memory_estimate = cst_encode_usize(
+      apiObj.totalMemoryEstimate,
+    );
+  }
+
+  @protected
+  void cst_api_fill_to_wire_db_book_category(
+    DbBookCategory apiObj,
+    wire_cst_db_book_category wireObj,
+  ) {
+    wireObj.id = cst_encode_String(apiObj.id);
+    wireObj.name = cst_encode_String(apiObj.name);
+    wireObj.color = cst_encode_String(apiObj.color);
+    wireObj.sort_order = cst_encode_i_32(apiObj.sortOrder);
+    wireObj.is_system = cst_encode_bool(apiObj.isSystem);
+    wireObj.created_at = cst_encode_Chrono_Utc(apiObj.createdAt);
+    wireObj.updated_at = cst_encode_Chrono_Utc(apiObj.updatedAt);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_db_book_record(
+    DbBookRecord apiObj,
+    wire_cst_db_book_record wireObj,
+  ) {
+    wireObj.book_id = cst_encode_String(apiObj.bookId);
+    wireObj.file_path = cst_encode_String(apiObj.filePath);
+    wireObj.file_size = cst_encode_i_64(apiObj.fileSize);
+    wireObj.title = cst_encode_String(apiObj.title);
+    wireObj.author = cst_encode_String(apiObj.author);
+    wireObj.description = cst_encode_opt_String(apiObj.description);
+    wireObj.cover_path = cst_encode_opt_String(apiObj.coverPath);
+    wireObj.chapter_count = cst_encode_i_32(apiObj.chapterCount);
+    wireObj.total_characters = cst_encode_i_64(apiObj.totalCharacters);
+    wireObj.format = cst_encode_db_book_format(apiObj.format);
+    wireObj.added_at = cst_encode_Chrono_Utc(apiObj.addedAt);
+    wireObj.last_opened_at = cst_encode_opt_box_autoadd_Chrono_Utc(
+      apiObj.lastOpenedAt,
+    );
+    wireObj.status = cst_encode_db_book_status(apiObj.status);
+    wireObj.is_pinned = cst_encode_bool(apiObj.isPinned);
+    wireObj.category_ids = cst_encode_list_String(apiObj.categoryIds);
+    wireObj.last_read_at = cst_encode_opt_box_autoadd_Chrono_Utc(
+      apiObj.lastReadAt,
+    );
+  }
+
+  @protected
+  void cst_api_fill_to_wire_db_bookmark(
+    DbBookmark apiObj,
+    wire_cst_db_bookmark wireObj,
+  ) {
+    wireObj.id = cst_encode_String(apiObj.id);
+    wireObj.book_id = cst_encode_String(apiObj.bookId);
+    wireObj.chapter_index = cst_encode_i_32(apiObj.chapterIndex);
+    wireObj.char_offset = cst_encode_i_64(apiObj.charOffset);
+    wireObj.title = cst_encode_String(apiObj.title);
+    wireObj.created_at = cst_encode_Chrono_Utc(apiObj.createdAt);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_db_chapter(
+    DbChapter apiObj,
+    wire_cst_db_chapter wireObj,
+  ) {
+    wireObj.id = cst_encode_String(apiObj.id);
+    wireObj.book_id = cst_encode_String(apiObj.bookId);
+    wireObj.title = cst_encode_String(apiObj.title);
+    wireObj.content_file = cst_encode_String(apiObj.contentFile);
+    wireObj.chapter_index = cst_encode_i_32(apiObj.chapterIndex);
+    wireObj.word_count = cst_encode_i_64(apiObj.wordCount);
+    wireObj.cached_at = cst_encode_Chrono_Utc(apiObj.cachedAt);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_db_daily_reading_stats(
+    DbDailyReadingStats apiObj,
+    wire_cst_db_daily_reading_stats wireObj,
+  ) {
+    wireObj.date = cst_encode_String(apiObj.date);
+    wireObj.total_reading_time_seconds = cst_encode_i_64(
+      apiObj.totalReadingTimeSeconds,
+    );
+    wireObj.total_characters_read = cst_encode_i_64(apiObj.totalCharactersRead);
+    wireObj.books_read = cst_encode_list_String(apiObj.booksRead);
+    wireObj.session_count = cst_encode_i_32(apiObj.sessionCount);
+    wireObj.chapters_read = cst_encode_i_32(apiObj.chaptersRead);
+    wireObj.pages_read = cst_encode_i_32(apiObj.pagesRead);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_db_global_stats(
+    DbGlobalStats apiObj,
+    wire_cst_db_global_stats wireObj,
+  ) {
+    wireObj.total_reading_time_seconds = cst_encode_i_64(
+      apiObj.totalReadingTimeSeconds,
+    );
+    wireObj.total_characters_read = cst_encode_i_64(apiObj.totalCharactersRead);
+    wireObj.books_read_count = cst_encode_i_32(apiObj.booksReadCount);
+    wireObj.books_completed_count = cst_encode_i_32(apiObj.booksCompletedCount);
+    wireObj.consecutive_reading_days = cst_encode_i_32(
+      apiObj.consecutiveReadingDays,
+    );
+    wireObj.today_reading_time_seconds = cst_encode_i_64(
+      apiObj.todayReadingTimeSeconds,
+    );
+    wireObj.today_characters_read = cst_encode_i_64(apiObj.todayCharactersRead);
+    wireObj.average_reading_speed = cst_encode_f_32(apiObj.averageReadingSpeed);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_db_layout_cache(
+    DbLayoutCache apiObj,
+    wire_cst_db_layout_cache wireObj,
+  ) {
+    wireObj.page_offsets = cst_encode_list_record_i_64_i_64(apiObj.pageOffsets);
+    wireObj.total_pages = cst_encode_i_32(apiObj.totalPages);
+    wireObj.created_at = cst_encode_Chrono_Utc(apiObj.createdAt);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_db_reading_progress(
+    DbReadingProgress apiObj,
+    wire_cst_db_reading_progress wireObj,
+  ) {
+    wireObj.book_id = cst_encode_String(apiObj.bookId);
+    wireObj.chapter_index = cst_encode_i_32(apiObj.chapterIndex);
+    wireObj.char_offset = cst_encode_i_64(apiObj.charOffset);
+    wireObj.page_index = cst_encode_i_32(apiObj.pageIndex);
+    wireObj.total_pages = cst_encode_i_32(apiObj.totalPages);
+    wireObj.progress = cst_encode_f_32(apiObj.progress);
+    wireObj.reading_time_seconds = cst_encode_i_64(apiObj.readingTimeSeconds);
+    wireObj.last_read_at = cst_encode_Chrono_Utc(apiObj.lastReadAt);
+    wireObj.is_completed = cst_encode_bool(apiObj.isCompleted);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_db_reading_session(
+    DbReadingSession apiObj,
+    wire_cst_db_reading_session wireObj,
+  ) {
+    wireObj.id = cst_encode_String(apiObj.id);
+    wireObj.book_id = cst_encode_String(apiObj.bookId);
+    wireObj.chapter_index = cst_encode_i_32(apiObj.chapterIndex);
+    wireObj.start_char_offset = cst_encode_i_64(apiObj.startCharOffset);
+    wireObj.end_char_offset = cst_encode_i_64(apiObj.endCharOffset);
+    wireObj.started_at = cst_encode_Chrono_Utc(apiObj.startedAt);
+    wireObj.ended_at = cst_encode_Chrono_Utc(apiObj.endedAt);
+    wireObj.duration_seconds = cst_encode_i_64(apiObj.durationSeconds);
+    wireObj.characters_read = cst_encode_i_64(apiObj.charactersRead);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_db_sync_record(
+    DbSyncRecord apiObj,
+    wire_cst_db_sync_record wireObj,
+  ) {
+    wireObj.id = cst_encode_String(apiObj.id);
+    wireObj.book_id = cst_encode_String(apiObj.bookId);
+    wireObj.data_type = cst_encode_String(apiObj.dataType);
+    wireObj.data_id = cst_encode_String(apiObj.dataId);
+    wireObj.local_version = cst_encode_i_32(apiObj.localVersion);
+    wireObj.remote_version = cst_encode_opt_box_autoadd_i_32(
+      apiObj.remoteVersion,
+    );
+    wireObj.status = cst_encode_db_sync_status(apiObj.status);
+    wireObj.modified_at = cst_encode_Chrono_Utc(apiObj.modifiedAt);
+    wireObj.etag = cst_encode_opt_String(apiObj.etag);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_page_content(
+    PageContent apiObj,
+    wire_cst_page_content wireObj,
+  ) {
+    wireObj.chapter_index = cst_encode_i_32(apiObj.chapterIndex);
+    wireObj.page_index = cst_encode_i_32(apiObj.pageIndex);
+    wireObj.content = cst_encode_String(apiObj.content);
+    wireObj.is_last_page = cst_encode_bool(apiObj.isLastPage);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_page_streamer(
+    PageStreamer apiObj,
+    wire_cst_page_streamer wireObj,
+  ) {
+    wireObj.lines = cst_encode_list_String(apiObj.lines);
+    wireObj.current_page = cst_encode_usize(apiObj.currentPage);
+    wireObj.lines_per_page = cst_encode_usize(apiObj.linesPerPage);
+    wireObj.line_offsets = cst_encode_list_record_usize_usize(
+      apiObj.lineOffsets,
+    );
+  }
+
+  @protected
+  void cst_api_fill_to_wire_parser_error(
+    ParserError apiObj,
+    wire_cst_parser_error wireObj,
+  ) {
+    if (apiObj is ParserError_FileNotFound) {
+      var pre_path = cst_encode_String(apiObj.path);
+      var pre_reason = cst_encode_String(apiObj.reason);
+      wireObj.tag = 0;
+      wireObj.kind.FileNotFound.path = pre_path;
+      wireObj.kind.FileNotFound.reason = pre_reason;
+      return;
+    }
+    if (apiObj is ParserError_FileReadError) {
+      var pre_path = cst_encode_String(apiObj.path);
+      var pre_message = cst_encode_String(apiObj.message);
+      wireObj.tag = 1;
+      wireObj.kind.FileReadError.path = pre_path;
+      wireObj.kind.FileReadError.message = pre_message;
+      return;
+    }
+    if (apiObj is ParserError_EncodingError) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 2;
+      wireObj.kind.EncodingError.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is ParserError_EpubParseError) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 3;
+      wireObj.kind.EpubParseError.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is ParserError_PdfParseError) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 4;
+      wireObj.kind.PdfParseError.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is ParserError_TxtParseError) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 5;
+      wireObj.kind.TxtParseError.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is ParserError_ChapterExtractError) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 6;
+      wireObj.kind.ChapterExtractError.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is ParserError_Typeset) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 7;
+      wireObj.kind.Typeset.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is ParserError_StreamError) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 8;
+      wireObj.kind.StreamError.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is ParserError_UnsupportedFormat) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 9;
+      wireObj.kind.UnsupportedFormat.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is ParserError_FileWriteError) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 10;
+      wireObj.kind.FileWriteError.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is ParserError_InternalError) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 11;
+      wireObj.kind.InternalError.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is ParserError_ConfigError) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 12;
+      wireObj.kind.ConfigError.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is ParserError_PageExtractError) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 13;
+      wireObj.kind.PageExtractError.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is ParserError_TextExtractError) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 14;
+      wireObj.kind.TextExtractError.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is ParserError_Other) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 15;
+      wireObj.kind.Other.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is ParserError_SecurityError) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 16;
+      wireObj.kind.SecurityError.field0 = pre_field0;
+      return;
+    }
+  }
+
+  @protected
+  void cst_api_fill_to_wire_record_i_64_i_64(
+    (PlatformInt64, PlatformInt64) apiObj,
+    wire_cst_record_i_64_i_64 wireObj,
+  ) {
+    wireObj.field0 = cst_encode_i_64(apiObj.$1);
+    wireObj.field1 = cst_encode_i_64(apiObj.$2);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_record_usize_usize(
+    (BigInt, BigInt) apiObj,
+    wire_cst_record_usize_usize wireObj,
+  ) {
+    wireObj.field0 = cst_encode_usize(apiObj.$1);
+    wireObj.field1 = cst_encode_usize(apiObj.$2);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_rich_paragraph(
+    RichParagraph apiObj,
+    wire_cst_rich_paragraph wireObj,
+  ) {
+    wireObj.spans = cst_encode_list_rich_text_span(apiObj.spans);
+    wireObj.indent = cst_encode_u_8(apiObj.indent);
+    wireObj.is_heading = cst_encode_bool(apiObj.isHeading);
+    wireObj.heading_level = cst_encode_u_8(apiObj.headingLevel);
+    wireObj.class_name = cst_encode_opt_String(apiObj.className);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_rich_text_span(
+    RichTextSpan apiObj,
+    wire_cst_rich_text_span wireObj,
+  ) {
+    if (apiObj is RichTextSpan_Plain) {
+      var pre_text = cst_encode_String(apiObj.text);
+      wireObj.tag = 0;
+      wireObj.kind.Plain.text = pre_text;
+      return;
+    }
+    if (apiObj is RichTextSpan_Bold) {
+      var pre_text = cst_encode_String(apiObj.text);
+      wireObj.tag = 1;
+      wireObj.kind.Bold.text = pre_text;
+      return;
+    }
+    if (apiObj is RichTextSpan_Italic) {
+      var pre_text = cst_encode_String(apiObj.text);
+      wireObj.tag = 2;
+      wireObj.kind.Italic.text = pre_text;
+      return;
+    }
+    if (apiObj is RichTextSpan_BoldItalic) {
+      var pre_text = cst_encode_String(apiObj.text);
+      wireObj.tag = 3;
+      wireObj.kind.BoldItalic.text = pre_text;
+      return;
+    }
+    if (apiObj is RichTextSpan_Underline) {
+      var pre_text = cst_encode_String(apiObj.text);
+      wireObj.tag = 4;
+      wireObj.kind.Underline.text = pre_text;
+      return;
+    }
+    if (apiObj is RichTextSpan_Strikethrough) {
+      var pre_text = cst_encode_String(apiObj.text);
+      wireObj.tag = 5;
+      wireObj.kind.Strikethrough.text = pre_text;
+      return;
+    }
+    if (apiObj is RichTextSpan_Code) {
+      var pre_text = cst_encode_String(apiObj.text);
+      wireObj.tag = 6;
+      wireObj.kind.Code.text = pre_text;
+      return;
+    }
+    if (apiObj is RichTextSpan_Link) {
+      var pre_text = cst_encode_String(apiObj.text);
+      var pre_url = cst_encode_String(apiObj.url);
+      wireObj.tag = 7;
+      wireObj.kind.Link.text = pre_text;
+      wireObj.kind.Link.url = pre_url;
+      return;
+    }
+  }
+
+  @protected
+  void cst_api_fill_to_wire_typeset_config(
+    TypesetConfig apiObj,
+    wire_cst_typeset_config wireObj,
+  ) {
+    wireObj.page_width = cst_encode_i_32(apiObj.pageWidth);
+    wireObj.page_height = cst_encode_i_32(apiObj.pageHeight);
+    wireObj.font_size = cst_encode_i_32(apiObj.fontSize);
+    wireObj.line_spacing = cst_encode_f_32(apiObj.lineSpacing);
+    wireObj.letter_spacing = cst_encode_f_32(apiObj.letterSpacing);
+    wireObj.paragraph_spacing = cst_encode_f_32(apiObj.paragraphSpacing);
+    wireObj.first_line_indent = cst_encode_u_8(apiObj.firstLineIndent);
+    wireObj.language = cst_encode_language_type(apiObj.language);
+    wireObj.enable_hyphenation = cst_encode_bool(apiObj.enableHyphenation);
+    wireObj.hyphenation_language = cst_encode_opt_String(
+      apiObj.hyphenationLanguage,
+    );
+  }
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
+    ApiResult raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
+    ApiResultBookMetadata raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
+    ApiResultBookmarkStats raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    ApiResultDbBookmark raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    ApiResultDbDailyReadingStats raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    ApiResultDbGlobalStats raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+    ApiResultDbNote raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
+    ApiResultEpubMetadata raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
+    ApiResultLocalBookInfo raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    ApiResultOptionDbBookCategory raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    ApiResultOptionDbBookRecord raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    ApiResultOptionDbBookmark raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    ApiResultOptionDbChapter raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    ApiResultOptionDbLayoutCache raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+    ApiResultOptionDbReadingProgress raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
+    ApiResultParseResult raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
+    ApiResultRichChapterContent raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
+    ApiResultString raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
+    ApiResultVecDbBookCategory raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
+    ApiResultVecDbBookRecord raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    ApiResultVecDbBookmark raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    ApiResultVecDbChapter raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    ApiResultVecDbDailyReadingStats raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    ApiResultVecDbNote raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    ApiResultVecDbReadingSession raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    ApiResultVecDbSearchResult raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    ApiResultVecDbSyncRecord raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    ApiResultVecPageContent raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    ApiResultVecRichParagraph raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+    ApiResultVecSearchResult raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
+    ApiResultI64 raw,
+  );
+
+  @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    ApiResultUsize raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
+    ApiResult raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
+    ApiResultBookMetadata raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
+    ApiResultBookmarkStats raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    ApiResultDbBookmark raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    ApiResultDbDailyReadingStats raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    ApiResultDbGlobalStats raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+    ApiResultDbNote raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
+    ApiResultEpubMetadata raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
+    ApiResultLocalBookInfo raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    ApiResultOptionDbBookCategory raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    ApiResultOptionDbBookRecord raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    ApiResultOptionDbBookmark raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    ApiResultOptionDbChapter raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    ApiResultOptionDbLayoutCache raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+    ApiResultOptionDbReadingProgress raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
+    ApiResultParseResult raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
+    ApiResultRichChapterContent raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
+    ApiResultString raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
+    ApiResultVecDbBookCategory raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
+    ApiResultVecDbBookRecord raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    ApiResultVecDbBookmark raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    ApiResultVecDbChapter raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    ApiResultVecDbDailyReadingStats raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    ApiResultVecDbNote raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    ApiResultVecDbReadingSession raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    ApiResultVecDbSearchResult raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    ApiResultVecDbSyncRecord raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    ApiResultVecPageContent raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    ApiResultVecRichParagraph raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+    ApiResultVecSearchResult raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
+    ApiResultI64 raw,
+  );
+
+  @protected
+  int
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    ApiResultUsize raw,
+  );
+
+  @protected
+  bool cst_encode_bool(bool raw);
+
+  @protected
+  int cst_encode_db_book_format(DbBookFormat raw);
+
+  @protected
+  int cst_encode_db_book_status(DbBookStatus raw);
+
+  @protected
+  int cst_encode_db_note_type(DbNoteType raw);
+
+  @protected
+  int cst_encode_db_sync_status(DbSyncStatus raw);
+
+  @protected
+  double cst_encode_f_32(double raw);
+
+  @protected
+  int cst_encode_i_32(int raw);
+
+  @protected
+  int cst_encode_language_type(LanguageType raw);
+
+  @protected
+  int cst_encode_u_8(int raw);
+
+  @protected
+  void cst_encode_unit(void raw);
+
+  @protected
   void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
     ApiResult self,
@@ -693,15 +2509,43 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
-    ApiResultEpubImageInfo self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
+    ApiResultBookMetadata self,
     SseSerializer serializer,
   );
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
-    ApiResultEpubImageList self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
+    ApiResultBookmarkStats self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    ApiResultDbBookmark self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    ApiResultDbDailyReadingStats self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    ApiResultDbGlobalStats self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+    ApiResultDbNote self,
     SseSerializer serializer,
   );
 
@@ -716,6 +2560,48 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
     ApiResultLocalBookInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    ApiResultOptionDbBookCategory self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    ApiResultOptionDbBookRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    ApiResultOptionDbBookmark self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    ApiResultOptionDbChapter self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    ApiResultOptionDbLayoutCache self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+    ApiResultOptionDbReadingProgress self,
     SseSerializer serializer,
   );
 
@@ -742,15 +2628,85 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
-    ApiResultZeroCopyBufferVecSearchHit self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
+    ApiResultVecDbBookCategory self,
     SseSerializer serializer,
   );
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
-    ApiResultZeroCopyBufferVecU8 self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
+    ApiResultVecDbBookRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    ApiResultVecDbBookmark self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    ApiResultVecDbChapter self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    ApiResultVecDbDailyReadingStats self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    ApiResultVecDbNote self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    ApiResultVecDbReadingSession self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    ApiResultVecDbSearchResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    ApiResultVecDbSyncRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    ApiResultVecPageContent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    ApiResultVecRichParagraph self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+    ApiResultVecSearchResult self,
     SseSerializer serializer,
   );
 
@@ -763,6 +2719,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    ApiResultUsize self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_Chrono_Utc(DateTime self, SseSerializer serializer);
+
+  @protected
+  void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
     ApiResult self,
     SseSerializer serializer,
@@ -770,15 +2736,43 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
-    ApiResultEpubImageInfo self,
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
+    ApiResultBookMetadata self,
     SseSerializer serializer,
   );
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
-    ApiResultEpubImageList self,
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
+    ApiResultBookmarkStats self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    ApiResultDbBookmark self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    ApiResultDbDailyReadingStats self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    ApiResultDbGlobalStats self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+    ApiResultDbNote self,
     SseSerializer serializer,
   );
 
@@ -793,6 +2787,48 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
     ApiResultLocalBookInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    ApiResultOptionDbBookCategory self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    ApiResultOptionDbBookRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    ApiResultOptionDbBookmark self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    ApiResultOptionDbChapter self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    ApiResultOptionDbLayoutCache self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+    ApiResultOptionDbReadingProgress self,
     SseSerializer serializer,
   );
 
@@ -819,15 +2855,85 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
-    ApiResultZeroCopyBufferVecSearchHit self,
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
+    ApiResultVecDbBookCategory self,
     SseSerializer serializer,
   );
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
-    ApiResultZeroCopyBufferVecU8 self,
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
+    ApiResultVecDbBookRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    ApiResultVecDbBookmark self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    ApiResultVecDbChapter self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    ApiResultVecDbDailyReadingStats self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    ApiResultVecDbNote self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    ApiResultVecDbReadingSession self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    ApiResultVecDbSearchResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    ApiResultVecDbSyncRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    ApiResultVecPageContent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    ApiResultVecRichParagraph self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+    ApiResultVecSearchResult self,
     SseSerializer serializer,
   );
 
@@ -839,37 +2945,86 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_String(String self, SseSerializer serializer);
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    ApiResultUsize self,
+    SseSerializer serializer,
+  );
 
   @protected
-  void sse_encode_bookmark(Bookmark self, SseSerializer serializer);
+  void sse_encode_String(String self, SseSerializer serializer);
 
   @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
-  void sse_encode_box_autoadd_cached_layout(
-    CachedLayout self,
+  void sse_encode_box_autoadd_Chrono_Utc(
+    DateTime self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_box_autoadd_local_book_info(
-    LocalBookInfo self,
+  void sse_encode_box_autoadd_db_book_category(
+    DbBookCategory self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_box_autoadd_pdf_metadata(
-    PdfMetadata self,
+  void sse_encode_box_autoadd_db_book_record(
+    DbBookRecord self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_box_autoadd_rich_chapter_content(
-    RichChapterContent self,
+  void sse_encode_box_autoadd_db_bookmark(
+    DbBookmark self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_box_autoadd_db_daily_reading_stats(
+    DbDailyReadingStats self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_db_global_stats(
+    DbGlobalStats self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_db_layout_cache(
+    DbLayoutCache self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_db_note_type(
+    DbNoteType self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_db_reading_progress(
+    DbReadingProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_db_reading_session(
+    DbReadingSession self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_db_sync_record(
+    DbSyncRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_typeset_config(
@@ -881,16 +3036,58 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_cache_stats(CacheStats self, SseSerializer serializer);
 
   @protected
-  void sse_encode_cached_layout(CachedLayout self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_chapter_info(ChapterInfo self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_daily_reading_record(
-    DailyReadingRecord self,
+  void sse_encode_db_book_category(
+    DbBookCategory self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_db_book_format(DbBookFormat self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_db_book_record(DbBookRecord self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_db_book_status(DbBookStatus self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_db_bookmark(DbBookmark self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_db_chapter(DbChapter self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_db_daily_reading_stats(
+    DbDailyReadingStats self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_db_global_stats(DbGlobalStats self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_db_layout_cache(DbLayoutCache self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_db_note_type(DbNoteType self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_db_reading_progress(
+    DbReadingProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_db_reading_session(
+    DbReadingSession self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_db_sync_record(DbSyncRecord self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_db_sync_status(DbSyncStatus self, SseSerializer serializer);
 
   @protected
   void sse_encode_f_32(double self, SseSerializer serializer);
@@ -905,32 +3102,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_language_type(LanguageType self, SseSerializer serializer);
 
   @protected
-  void sse_encode_layout_cache_result(
-    LayoutCacheResult self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
-  void sse_encode_list_bookmark(List<Bookmark> self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_list_cached_layout(
-    List<CachedLayout> self,
+  void sse_encode_list_db_bookmark(
+    List<DbBookmark> self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_list_chapter_info(
-    List<ChapterInfo> self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_list_daily_reading_record(
-    List<DailyReadingRecord> self,
+  void sse_encode_list_db_chapter(
+    List<DbChapter> self,
     SseSerializer serializer,
   );
 
@@ -941,20 +3123,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_list_page_offset(
-    List<PageOffset> self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_list_reading_progress(
-    List<ReadingProgress> self,
+  void sse_encode_list_record_i_64_i_64(
+    List<(PlatformInt64, PlatformInt64)> self,
     SseSerializer serializer,
   );
 
@@ -977,58 +3153,31 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_list_search_hit(
-    List<SearchHit> self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_local_book_info(LocalBookInfo self, SseSerializer serializer);
-
-  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
-  void sse_encode_opt_box_autoadd_cached_layout(
-    CachedLayout? self,
+  void sse_encode_opt_box_autoadd_Chrono_Utc(
+    DateTime? self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_opt_box_autoadd_local_book_info(
-    LocalBookInfo? self,
+  void sse_encode_opt_box_autoadd_db_note_type(
+    DbNoteType? self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_opt_box_autoadd_pdf_metadata(
-    PdfMetadata? self,
-    SseSerializer serializer,
-  );
+  void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer);
 
   @protected
   void sse_encode_page_content(PageContent self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_page_offset(PageOffset self, SseSerializer serializer);
 
   @protected
   void sse_encode_page_streamer(PageStreamer self, SseSerializer serializer);
 
   @protected
   void sse_encode_parser_error(ParserError self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_pdf_metadata(PdfMetadata self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_reading_progress(
-    ReadingProgress self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_reading_stats(ReadingStats self, SseSerializer serializer);
 
   @protected
   void sse_encode_record_i_64_i_64(
@@ -1043,22 +3192,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_rich_chapter_content(
-    RichChapterContent self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_rich_paragraph(RichParagraph self, SseSerializer serializer);
 
   @protected
   void sse_encode_rich_text_span(RichTextSpan self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_search_hit(SearchHit self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_search_results(SearchResults self, SseSerializer serializer);
 
   @protected
   void sse_encode_typeset_config(TypesetConfig self, SseSerializer serializer);
@@ -1075,6 +3212,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
 // Section: wire_class
 
+// ignore_for_file: camel_case_types, non_constant_identifier_names, avoid_positional_boolean_parameters, annotate_overrides, constant_identifier_names
+// AUTO GENERATED FILE, DO NOT EDIT.
+//
+// Generated by `package:ffigen`.
+// ignore_for_file: type=lint, unused_import
+
+/// generated by flutter_rust_bridge
 class RustLibWire implements BaseWire {
   factory RustLibWire.fromExternalLibrary(ExternalLibrary lib) =>
       RustLibWire(lib.ffiDynamicLibrary);
@@ -1086,6 +3230,2594 @@ class RustLibWire implements BaseWire {
   /// The symbols are looked up in [dynamicLibrary].
   RustLibWire(ffi.DynamicLibrary dynamicLibrary)
     : _lookup = dynamicLibrary.lookup;
+
+  /// The symbols are looked up with [lookup].
+  RustLibWire.fromLookup(
+    ffi.Pointer<T> Function<T extends ffi.NativeType>(String symbolName) lookup,
+  ) : _lookup = lookup;
+
+  void store_dart_post_cobject(DartPostCObjectFnType ptr) {
+    return _store_dart_post_cobject(ptr);
+  }
+
+  late final _store_dart_post_cobjectPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(DartPostCObjectFnType)>>(
+        'store_dart_post_cobject',
+      );
+  late final _store_dart_post_cobject = _store_dart_post_cobjectPtr
+      .asFunction<void Function(DartPostCObjectFnType)>();
+
+  void wire__crate__api__storage__assign_category_to_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> category_id,
+  ) {
+    return _wire__crate__api__storage__assign_category_to_book(
+      port_,
+      book_id,
+      category_id,
+    );
+  }
+
+  late final _wire__crate__api__storage__assign_category_to_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__assign_category_to_book',
+      );
+  late final _wire__crate__api__storage__assign_category_to_book =
+      _wire__crate__api__storage__assign_category_to_bookPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__storage__cleanup_expired_layout_cache(
+    int port_,
+    int max_age_days,
+  ) {
+    return _wire__crate__api__storage__cleanup_expired_layout_cache(
+      port_,
+      max_age_days,
+    );
+  }
+
+  late final _wire__crate__api__storage__cleanup_expired_layout_cachePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__storage__cleanup_expired_layout_cache',
+      );
+  late final _wire__crate__api__storage__cleanup_expired_layout_cache =
+      _wire__crate__api__storage__cleanup_expired_layout_cachePtr
+          .asFunction<void Function(int, int)>();
+
+  void wire__crate__api__search__clear_all_search_index(int port_) {
+    return _wire__crate__api__search__clear_all_search_index(port_);
+  }
+
+  late final _wire__crate__api__search__clear_all_search_indexPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__search__clear_all_search_index',
+      );
+  late final _wire__crate__api__search__clear_all_search_index =
+      _wire__crate__api__search__clear_all_search_indexPtr
+          .asFunction<void Function(int)>();
+
+  void wire__crate__api__storage__clear_all_sync_records(int port_) {
+    return _wire__crate__api__storage__clear_all_sync_records(port_);
+  }
+
+  late final _wire__crate__api__storage__clear_all_sync_recordsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__storage__clear_all_sync_records',
+      );
+  late final _wire__crate__api__storage__clear_all_sync_records =
+      _wire__crate__api__storage__clear_all_sync_recordsPtr
+          .asFunction<void Function(int)>();
+
+  void wire__crate__api__storage__clear_categories_for_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__clear_categories_for_book(
+      port_,
+      book_id,
+    );
+  }
+
+  late final _wire__crate__api__storage__clear_categories_for_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__clear_categories_for_book',
+      );
+  late final _wire__crate__api__storage__clear_categories_for_book =
+      _wire__crate__api__storage__clear_categories_for_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  WireSyncRust2DartDco
+  wire__crate__api__incremental__clear_incremental_parser_cache() {
+    return _wire__crate__api__incremental__clear_incremental_parser_cache();
+  }
+
+  late final _wire__crate__api__incremental__clear_incremental_parser_cachePtr =
+      _lookup<ffi.NativeFunction<WireSyncRust2DartDco Function()>>(
+        'frbgen_zephyr_reader_wire__crate__api__incremental__clear_incremental_parser_cache',
+      );
+  late final _wire__crate__api__incremental__clear_incremental_parser_cache =
+      _wire__crate__api__incremental__clear_incremental_parser_cachePtr
+          .asFunction<WireSyncRust2DartDco Function()>();
+
+  void wire__crate__api__storage__clear_layout_cache(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__clear_layout_cache(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__clear_layout_cachePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__clear_layout_cache');
+  late final _wire__crate__api__storage__clear_layout_cache =
+      _wire__crate__api__storage__clear_layout_cachePtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__clear_reading_progress(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__clear_reading_progress(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__clear_reading_progressPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__clear_reading_progress',
+      );
+  late final _wire__crate__api__storage__clear_reading_progress =
+      _wire__crate__api__storage__clear_reading_progressPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__clear_sync_conflicts(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__clear_sync_conflicts(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__clear_sync_conflictsPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__clear_sync_conflicts');
+  late final _wire__crate__api__storage__clear_sync_conflicts =
+      _wire__crate__api__storage__clear_sync_conflictsPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__create_bookmark(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_index,
+    int char_offset,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> title,
+  ) {
+    return _wire__crate__api__storage__create_bookmark(
+      port_,
+      book_id,
+      chapter_index,
+      char_offset,
+      title,
+    );
+  }
+
+  late final _wire__crate__api__storage__create_bookmarkPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__create_bookmark');
+  late final _wire__crate__api__storage__create_bookmark =
+      _wire__crate__api__storage__create_bookmarkPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__storage__create_note(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_index,
+    int char_offset,
+    int length,
+    int note_type,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> content,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> selected_text,
+    ffi.Pointer<ffi.Int32> highlight_color,
+  ) {
+    return _wire__crate__api__storage__create_note(
+      port_,
+      book_id,
+      chapter_index,
+      char_offset,
+      length,
+      note_type,
+      content,
+      selected_text,
+      highlight_color,
+    );
+  }
+
+  late final _wire__crate__api__storage__create_notePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Int64,
+            ffi.Int64,
+            ffi.Int32,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<ffi.Int32>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__create_note');
+  late final _wire__crate__api__storage__create_note =
+      _wire__crate__api__storage__create_notePtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              int,
+              int,
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<ffi.Int32>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__core__create_page_streamer(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> content,
+    ffi.Pointer<wire_cst_typeset_config> config,
+  ) {
+    return _wire__crate__api__core__create_page_streamer(content, config);
+  }
+
+  late final _wire__crate__api__core__create_page_streamerPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_typeset_config>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__core__create_page_streamer');
+  late final _wire__crate__api__core__create_page_streamer =
+      _wire__crate__api__core__create_page_streamerPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_typeset_config>,
+            )
+          >();
+
+  void wire__crate__api__storage__delete_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__delete_book(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__delete_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__delete_book');
+  late final _wire__crate__api__storage__delete_book =
+      _wire__crate__api__storage__delete_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__delete_bookmark(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> bookmark_id,
+  ) {
+    return _wire__crate__api__storage__delete_bookmark(port_, bookmark_id);
+  }
+
+  late final _wire__crate__api__storage__delete_bookmarkPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__delete_bookmark');
+  late final _wire__crate__api__storage__delete_bookmark =
+      _wire__crate__api__storage__delete_bookmarkPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__delete_bookmarks_by_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__delete_bookmarks_by_book(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__delete_bookmarks_by_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__delete_bookmarks_by_book',
+      );
+  late final _wire__crate__api__storage__delete_bookmarks_by_book =
+      _wire__crate__api__storage__delete_bookmarks_by_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__delete_category(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> category_id,
+  ) {
+    return _wire__crate__api__storage__delete_category(port_, category_id);
+  }
+
+  late final _wire__crate__api__storage__delete_categoryPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__delete_category');
+  late final _wire__crate__api__storage__delete_category =
+      _wire__crate__api__storage__delete_categoryPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__delete_chapters_by_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__delete_chapters_by_book(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__delete_chapters_by_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__delete_chapters_by_book',
+      );
+  late final _wire__crate__api__storage__delete_chapters_by_book =
+      _wire__crate__api__storage__delete_chapters_by_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__delete_note(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> note_id,
+  ) {
+    return _wire__crate__api__storage__delete_note(port_, note_id);
+  }
+
+  late final _wire__crate__api__storage__delete_notePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__delete_note');
+  late final _wire__crate__api__storage__delete_note =
+      _wire__crate__api__storage__delete_notePtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__delete_search_index(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__delete_search_index(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__delete_search_indexPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__delete_search_index');
+  late final _wire__crate__api__storage__delete_search_index =
+      _wire__crate__api__storage__delete_search_indexPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__delete_sessions_by_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__delete_sessions_by_book(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__delete_sessions_by_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__delete_sessions_by_book',
+      );
+  late final _wire__crate__api__storage__delete_sessions_by_book =
+      _wire__crate__api__storage__delete_sessions_by_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__delete_sync_record(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> record_id,
+  ) {
+    return _wire__crate__api__storage__delete_sync_record(port_, record_id);
+  }
+
+  late final _wire__crate__api__storage__delete_sync_recordPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__delete_sync_record');
+  late final _wire__crate__api__storage__delete_sync_record =
+      _wire__crate__api__storage__delete_sync_recordPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__export_bookmarks(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__export_bookmarks(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__export_bookmarksPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__export_bookmarks');
+  late final _wire__crate__api__storage__export_bookmarks =
+      _wire__crate__api__storage__export_bookmarksPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__cover__extract_book_cover(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> output_dir,
+  ) {
+    return _wire__crate__api__cover__extract_book_cover(file_path, output_dir);
+  }
+
+  late final _wire__crate__api__cover__extract_book_coverPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__cover__extract_book_cover');
+  late final _wire__crate__api__cover__extract_book_cover =
+      _wire__crate__api__cover__extract_book_coverPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__core__extract_chapter(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+    int chapter_id,
+  ) {
+    return _wire__crate__api__core__extract_chapter(file_path, chapter_id);
+  }
+
+  late final _wire__crate__api__core__extract_chapterPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__core__extract_chapter');
+  late final _wire__crate__api__core__extract_chapter =
+      _wire__crate__api__core__extract_chapterPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__core__extract_metadata(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+  ) {
+    return _wire__crate__api__core__extract_metadata(file_path);
+  }
+
+  late final _wire__crate__api__core__extract_metadataPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__core__extract_metadata');
+  late final _wire__crate__api__core__extract_metadata =
+      _wire__crate__api__core__extract_metadataPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__storage__get_all_books(int port_) {
+    return _wire__crate__api__storage__get_all_books(port_);
+  }
+
+  late final _wire__crate__api__storage__get_all_booksPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__storage__get_all_books',
+      );
+  late final _wire__crate__api__storage__get_all_books =
+      _wire__crate__api__storage__get_all_booksPtr
+          .asFunction<void Function(int)>();
+
+  void wire__crate__api__storage__get_all_categories(int port_) {
+    return _wire__crate__api__storage__get_all_categories(port_);
+  }
+
+  late final _wire__crate__api__storage__get_all_categoriesPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__storage__get_all_categories',
+      );
+  late final _wire__crate__api__storage__get_all_categories =
+      _wire__crate__api__storage__get_all_categoriesPtr
+          .asFunction<void Function(int)>();
+
+  void wire__crate__api__storage__get_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__get_book(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__get_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__get_book');
+  late final _wire__crate__api__storage__get_book =
+      _wire__crate__api__storage__get_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__get_bookmark(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> bookmark_id,
+  ) {
+    return _wire__crate__api__storage__get_bookmark(port_, bookmark_id);
+  }
+
+  late final _wire__crate__api__storage__get_bookmarkPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__get_bookmark');
+  late final _wire__crate__api__storage__get_bookmark =
+      _wire__crate__api__storage__get_bookmarkPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__get_bookmark_stats(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__get_bookmark_stats(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__get_bookmark_statsPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__get_bookmark_stats');
+  late final _wire__crate__api__storage__get_bookmark_stats =
+      _wire__crate__api__storage__get_bookmark_statsPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__get_bookmarks(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__get_bookmarks(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__get_bookmarksPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__get_bookmarks');
+  late final _wire__crate__api__storage__get_bookmarks =
+      _wire__crate__api__storage__get_bookmarksPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__get_books_by_status(int port_, int status) {
+    return _wire__crate__api__storage__get_books_by_status(port_, status);
+  }
+
+  late final _wire__crate__api__storage__get_books_by_statusPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Int32)>>(
+        'frbgen_zephyr_reader_wire__crate__api__storage__get_books_by_status',
+      );
+  late final _wire__crate__api__storage__get_books_by_status =
+      _wire__crate__api__storage__get_books_by_statusPtr
+          .asFunction<void Function(int, int)>();
+
+  void wire__crate__api__storage__get_categories_for_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__get_categories_for_book(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__get_categories_for_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__get_categories_for_book',
+      );
+  late final _wire__crate__api__storage__get_categories_for_book =
+      _wire__crate__api__storage__get_categories_for_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__get_category(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> category_id,
+  ) {
+    return _wire__crate__api__storage__get_category(port_, category_id);
+  }
+
+  late final _wire__crate__api__storage__get_categoryPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__get_category');
+  late final _wire__crate__api__storage__get_category =
+      _wire__crate__api__storage__get_categoryPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__get_chapter_by_index(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_index,
+  ) {
+    return _wire__crate__api__storage__get_chapter_by_index(
+      port_,
+      book_id,
+      chapter_index,
+    );
+  }
+
+  late final _wire__crate__api__storage__get_chapter_by_indexPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__get_chapter_by_index');
+  late final _wire__crate__api__storage__get_chapter_by_index =
+      _wire__crate__api__storage__get_chapter_by_indexPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, int)
+          >();
+
+  void wire__crate__api__storage__get_chapters_by_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__get_chapters_by_book(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__get_chapters_by_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__get_chapters_by_book');
+  late final _wire__crate__api__storage__get_chapters_by_book =
+      _wire__crate__api__storage__get_chapters_by_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__epub__get_epub_chapter_content(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+    int chapter_id,
+    ffi.Pointer<wire_cst_typeset_config> config,
+  ) {
+    return _wire__crate__api__epub__get_epub_chapter_content(
+      file_path,
+      chapter_id,
+      config,
+    );
+  }
+
+  late final _wire__crate__api__epub__get_epub_chapter_contentPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Pointer<wire_cst_typeset_config>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__epub__get_epub_chapter_content',
+      );
+  late final _wire__crate__api__epub__get_epub_chapter_content =
+      _wire__crate__api__epub__get_epub_chapter_contentPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              ffi.Pointer<wire_cst_typeset_config>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__epub__get_epub_chapter_rich_content(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+    int chapter_id,
+    ffi.Pointer<wire_cst_typeset_config> config,
+  ) {
+    return _wire__crate__api__epub__get_epub_chapter_rich_content(
+      file_path,
+      chapter_id,
+      config,
+    );
+  }
+
+  late final _wire__crate__api__epub__get_epub_chapter_rich_contentPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Pointer<wire_cst_typeset_config>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__epub__get_epub_chapter_rich_content',
+      );
+  late final _wire__crate__api__epub__get_epub_chapter_rich_content =
+      _wire__crate__api__epub__get_epub_chapter_rich_contentPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              ffi.Pointer<wire_cst_typeset_config>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__epub__get_epub_metadata(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+  ) {
+    return _wire__crate__api__epub__get_epub_metadata(file_path);
+  }
+
+  late final _wire__crate__api__epub__get_epub_metadataPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__epub__get_epub_metadata');
+  late final _wire__crate__api__epub__get_epub_metadata =
+      _wire__crate__api__epub__get_epub_metadataPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__core__get_file_size(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+  ) {
+    return _wire__crate__api__core__get_file_size(file_path);
+  }
+
+  late final _wire__crate__api__core__get_file_sizePtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__core__get_file_size');
+  late final _wire__crate__api__core__get_file_size =
+      _wire__crate__api__core__get_file_sizePtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__storage__get_global_reading_stats(int port_) {
+    return _wire__crate__api__storage__get_global_reading_stats(port_);
+  }
+
+  late final _wire__crate__api__storage__get_global_reading_statsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__storage__get_global_reading_stats',
+      );
+  late final _wire__crate__api__storage__get_global_reading_stats =
+      _wire__crate__api__storage__get_global_reading_statsPtr
+          .asFunction<void Function(int)>();
+
+  WireSyncRust2DartDco
+  wire__crate__api__incremental__get_incremental_parser_stats() {
+    return _wire__crate__api__incremental__get_incremental_parser_stats();
+  }
+
+  late final _wire__crate__api__incremental__get_incremental_parser_statsPtr =
+      _lookup<ffi.NativeFunction<WireSyncRust2DartDco Function()>>(
+        'frbgen_zephyr_reader_wire__crate__api__incremental__get_incremental_parser_stats',
+      );
+  late final _wire__crate__api__incremental__get_incremental_parser_stats =
+      _wire__crate__api__incremental__get_incremental_parser_statsPtr
+          .asFunction<WireSyncRust2DartDco Function()>();
+
+  void wire__crate__api__storage__get_layout_cache(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_index,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> config_hash,
+  ) {
+    return _wire__crate__api__storage__get_layout_cache(
+      port_,
+      book_id,
+      chapter_index,
+      config_hash,
+    );
+  }
+
+  late final _wire__crate__api__storage__get_layout_cachePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__get_layout_cache');
+  late final _wire__crate__api__storage__get_layout_cache =
+      _wire__crate__api__storage__get_layout_cachePtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__storage__get_notes(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<ffi.Int32> note_type,
+  ) {
+    return _wire__crate__api__storage__get_notes(port_, book_id, note_type);
+  }
+
+  late final _wire__crate__api__storage__get_notesPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<ffi.Int32>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__get_notes');
+  late final _wire__crate__api__storage__get_notes =
+      _wire__crate__api__storage__get_notesPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<ffi.Int32>,
+            )
+          >();
+
+  void wire__crate__api__storage__get_pending_sync_records(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__get_pending_sync_records(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__get_pending_sync_recordsPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__get_pending_sync_records',
+      );
+  late final _wire__crate__api__storage__get_pending_sync_records =
+      _wire__crate__api__storage__get_pending_sync_recordsPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__get_pinned_books(int port_) {
+    return _wire__crate__api__storage__get_pinned_books(port_);
+  }
+
+  late final _wire__crate__api__storage__get_pinned_booksPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__storage__get_pinned_books',
+      );
+  late final _wire__crate__api__storage__get_pinned_books =
+      _wire__crate__api__storage__get_pinned_booksPtr
+          .asFunction<void Function(int)>();
+
+  void wire__crate__api__storage__get_reading_progress(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__get_reading_progress(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__get_reading_progressPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__get_reading_progress');
+  late final _wire__crate__api__storage__get_reading_progress =
+      _wire__crate__api__storage__get_reading_progressPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__get_reading_sessions(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int limit,
+  ) {
+    return _wire__crate__api__storage__get_reading_sessions(
+      port_,
+      book_id,
+      limit,
+    );
+  }
+
+  late final _wire__crate__api__storage__get_reading_sessionsPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.UintPtr,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__get_reading_sessions');
+  late final _wire__crate__api__storage__get_reading_sessions =
+      _wire__crate__api__storage__get_reading_sessionsPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, int)
+          >();
+
+  void wire__crate__api__storage__get_reading_stats_range(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> start_date,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> end_date,
+  ) {
+    return _wire__crate__api__storage__get_reading_stats_range(
+      port_,
+      start_date,
+      end_date,
+    );
+  }
+
+  late final _wire__crate__api__storage__get_reading_stats_rangePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__get_reading_stats_range',
+      );
+  late final _wire__crate__api__storage__get_reading_stats_range =
+      _wire__crate__api__storage__get_reading_stats_rangePtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__storage__get_recent_sessions(int port_, int limit) {
+    return _wire__crate__api__storage__get_recent_sessions(port_, limit);
+  }
+
+  late final _wire__crate__api__storage__get_recent_sessionsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.UintPtr)>>(
+        'frbgen_zephyr_reader_wire__crate__api__storage__get_recent_sessions',
+      );
+  late final _wire__crate__api__storage__get_recent_sessions =
+      _wire__crate__api__storage__get_recent_sessionsPtr
+          .asFunction<void Function(int, int)>();
+
+  void wire__crate__api__storage__get_recently_read_books(
+    int port_,
+    int limit,
+  ) {
+    return _wire__crate__api__storage__get_recently_read_books(port_, limit);
+  }
+
+  late final _wire__crate__api__storage__get_recently_read_booksPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.UintPtr)>>(
+        'frbgen_zephyr_reader_wire__crate__api__storage__get_recently_read_books',
+      );
+  late final _wire__crate__api__storage__get_recently_read_books =
+      _wire__crate__api__storage__get_recently_read_booksPtr
+          .asFunction<void Function(int, int)>();
+
+  void wire__crate__api__storage__get_sessions_by_date_range(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> start_date,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> end_date,
+  ) {
+    return _wire__crate__api__storage__get_sessions_by_date_range(
+      port_,
+      book_id,
+      start_date,
+      end_date,
+    );
+  }
+
+  late final _wire__crate__api__storage__get_sessions_by_date_rangePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__get_sessions_by_date_range',
+      );
+  late final _wire__crate__api__storage__get_sessions_by_date_range =
+      _wire__crate__api__storage__get_sessions_by_date_rangePtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__core__get_supported_formats() {
+    return _wire__crate__api__core__get_supported_formats();
+  }
+
+  late final _wire__crate__api__core__get_supported_formatsPtr =
+      _lookup<ffi.NativeFunction<WireSyncRust2DartDco Function()>>(
+        'frbgen_zephyr_reader_wire__crate__api__core__get_supported_formats',
+      );
+  late final _wire__crate__api__core__get_supported_formats =
+      _wire__crate__api__core__get_supported_formatsPtr
+          .asFunction<WireSyncRust2DartDco Function()>();
+
+  void wire__crate__api__storage__get_sync_conflicts(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__get_sync_conflicts(port_, book_id);
+  }
+
+  late final _wire__crate__api__storage__get_sync_conflictsPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__get_sync_conflicts');
+  late final _wire__crate__api__storage__get_sync_conflicts =
+      _wire__crate__api__storage__get_sync_conflictsPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__get_today_reading_stats(int port_) {
+    return _wire__crate__api__storage__get_today_reading_stats(port_);
+  }
+
+  late final _wire__crate__api__storage__get_today_reading_statsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__storage__get_today_reading_stats',
+      );
+  late final _wire__crate__api__storage__get_today_reading_stats =
+      _wire__crate__api__storage__get_today_reading_statsPtr
+          .asFunction<void Function(int)>();
+
+  WireSyncRust2DartDco wire__crate__api__core__get_txt_chapter_content(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+    int chapter_index,
+    ffi.Pointer<wire_cst_typeset_config> config,
+  ) {
+    return _wire__crate__api__core__get_txt_chapter_content(
+      file_path,
+      chapter_index,
+      config,
+    );
+  }
+
+  late final _wire__crate__api__core__get_txt_chapter_contentPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Pointer<wire_cst_typeset_config>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__core__get_txt_chapter_content');
+  late final _wire__crate__api__core__get_txt_chapter_content =
+      _wire__crate__api__core__get_txt_chapter_contentPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              ffi.Pointer<wire_cst_typeset_config>,
+            )
+          >();
+
+  void wire__crate__api__storage__import_bookmarks(
+    int port_,
+    ffi.Pointer<wire_cst_list_db_bookmark> bookmarks,
+  ) {
+    return _wire__crate__api__storage__import_bookmarks(port_, bookmarks);
+  }
+
+  late final _wire__crate__api__storage__import_bookmarksPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_db_bookmark>)
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__import_bookmarks');
+  late final _wire__crate__api__storage__import_bookmarks =
+      _wire__crate__api__storage__import_bookmarksPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_db_bookmark>)
+          >();
+
+  void wire__crate__api__search__index_chapter_content(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_title,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> content,
+  ) {
+    return _wire__crate__api__search__index_chapter_content(
+      port_,
+      book_id,
+      chapter_id,
+      chapter_title,
+      content,
+    );
+  }
+
+  late final _wire__crate__api__search__index_chapter_contentPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__search__index_chapter_content');
+  late final _wire__crate__api__search__index_chapter_content =
+      _wire__crate__api__search__index_chapter_contentPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__storage__index_chapter_content(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_index,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> content,
+  ) {
+    return _wire__crate__api__storage__index_chapter_content(
+      port_,
+      book_id,
+      chapter_index,
+      content,
+    );
+  }
+
+  late final _wire__crate__api__storage__index_chapter_contentPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__index_chapter_content',
+      );
+  late final _wire__crate__api__storage__index_chapter_content =
+      _wire__crate__api__storage__index_chapter_contentPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__core__init_app(int port_) {
+    return _wire__crate__api__core__init_app(port_);
+  }
+
+  late final _wire__crate__api__core__init_appPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__core__init_app',
+      );
+  late final _wire__crate__api__core__init_app =
+      _wire__crate__api__core__init_appPtr.asFunction<void Function(int)>();
+
+  WireSyncRust2DartDco
+  wire__crate__api__incremental__init_incremental_parser() {
+    return _wire__crate__api__incremental__init_incremental_parser();
+  }
+
+  late final _wire__crate__api__incremental__init_incremental_parserPtr =
+      _lookup<ffi.NativeFunction<WireSyncRust2DartDco Function()>>(
+        'frbgen_zephyr_reader_wire__crate__api__incremental__init_incremental_parser',
+      );
+  late final _wire__crate__api__incremental__init_incremental_parser =
+      _wire__crate__api__incremental__init_incremental_parserPtr
+          .asFunction<WireSyncRust2DartDco Function()>();
+
+  void wire__crate__api__search__init_search_engine(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> db_path,
+  ) {
+    return _wire__crate__api__search__init_search_engine(port_, db_path);
+  }
+
+  late final _wire__crate__api__search__init_search_enginePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__search__init_search_engine');
+  late final _wire__crate__api__search__init_search_engine =
+      _wire__crate__api__search__init_search_enginePtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__epub__is_epub_file(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+  ) {
+    return _wire__crate__api__epub__is_epub_file(file_path);
+  }
+
+  late final _wire__crate__api__epub__is_epub_filePtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__epub__is_epub_file');
+  late final _wire__crate__api__epub__is_epub_file =
+      _wire__crate__api__epub__is_epub_filePtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__core__paginate_all_content(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> content,
+    int chapter_id,
+    ffi.Pointer<wire_cst_typeset_config> config,
+  ) {
+    return _wire__crate__api__core__paginate_all_content(
+      content,
+      chapter_id,
+      config,
+    );
+  }
+
+  late final _wire__crate__api__core__paginate_all_contentPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Pointer<wire_cst_typeset_config>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__core__paginate_all_content');
+  late final _wire__crate__api__core__paginate_all_content =
+      _wire__crate__api__core__paginate_all_contentPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              ffi.Pointer<wire_cst_typeset_config>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__epub__paginate_epub_rich_content(
+    ffi.Pointer<wire_cst_list_rich_paragraph> paragraphs,
+    int chapter_index,
+    ffi.Pointer<wire_cst_typeset_config> config,
+  ) {
+    return _wire__crate__api__epub__paginate_epub_rich_content(
+      paragraphs,
+      chapter_index,
+      config,
+    );
+  }
+
+  late final _wire__crate__api__epub__paginate_epub_rich_contentPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_rich_paragraph>,
+            ffi.Int32,
+            ffi.Pointer<wire_cst_typeset_config>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__epub__paginate_epub_rich_content',
+      );
+  late final _wire__crate__api__epub__paginate_epub_rich_content =
+      _wire__crate__api__epub__paginate_epub_rich_contentPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_rich_paragraph>,
+              int,
+              ffi.Pointer<wire_cst_typeset_config>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__core__parse_book(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+  ) {
+    return _wire__crate__api__core__parse_book(file_path);
+  }
+
+  late final _wire__crate__api__core__parse_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__core__parse_book');
+  late final _wire__crate__api__core__parse_book =
+      _wire__crate__api__core__parse_bookPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__epub__parse_epub_chapter_rich(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+    int chapter_index,
+  ) {
+    return _wire__crate__api__epub__parse_epub_chapter_rich(
+      file_path,
+      chapter_index,
+    );
+  }
+
+  late final _wire__crate__api__epub__parse_epub_chapter_richPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__epub__parse_epub_chapter_rich');
+  late final _wire__crate__api__epub__parse_epub_chapter_rich =
+      _wire__crate__api__epub__parse_epub_chapter_richPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+            )
+          >();
+
+  WireSyncRust2DartDco
+  wire__crate__api__incremental__parse_local_book_incremental(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+  ) {
+    return _wire__crate__api__incremental__parse_local_book_incremental(
+      file_path,
+    );
+  }
+
+  late final _wire__crate__api__incremental__parse_local_book_incrementalPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__incremental__parse_local_book_incremental',
+      );
+  late final _wire__crate__api__incremental__parse_local_book_incremental =
+      _wire__crate__api__incremental__parse_local_book_incrementalPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__core__read_file_chunk(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+    int start_pos,
+    int chunk_size,
+  ) {
+    return _wire__crate__api__core__read_file_chunk(
+      file_path,
+      start_pos,
+      chunk_size,
+    );
+  }
+
+  late final _wire__crate__api__core__read_file_chunkPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int64,
+            ffi.Int64,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__core__read_file_chunk');
+  late final _wire__crate__api__core__read_file_chunk =
+      _wire__crate__api__core__read_file_chunkPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              int,
+            )
+          >();
+
+  void wire__crate__api__storage__receive_global_stats(
+    int port_,
+    ffi.Pointer<wire_cst_db_global_stats> stats,
+  ) {
+    return _wire__crate__api__storage__receive_global_stats(port_, stats);
+  }
+
+  late final _wire__crate__api__storage__receive_global_statsPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_db_global_stats>)
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__receive_global_stats');
+  late final _wire__crate__api__storage__receive_global_stats =
+      _wire__crate__api__storage__receive_global_statsPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_db_global_stats>)
+          >();
+
+  void wire__crate__api__storage__record_reading_session(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_index,
+    int start_offset,
+    int end_offset,
+    int duration_seconds,
+    int characters_read,
+  ) {
+    return _wire__crate__api__storage__record_reading_session(
+      port_,
+      book_id,
+      chapter_index,
+      start_offset,
+      end_offset,
+      duration_seconds,
+      characters_read,
+    );
+  }
+
+  late final _wire__crate__api__storage__record_reading_sessionPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Int64,
+            ffi.Int64,
+            ffi.Int64,
+            ffi.Int64,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__record_reading_session',
+      );
+  late final _wire__crate__api__storage__record_reading_session =
+      _wire__crate__api__storage__record_reading_sessionPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              int,
+              int,
+              int,
+              int,
+            )
+          >();
+
+  void wire__crate__api__storage__remove_category_from_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> category_id,
+  ) {
+    return _wire__crate__api__storage__remove_category_from_book(
+      port_,
+      book_id,
+      category_id,
+    );
+  }
+
+  late final _wire__crate__api__storage__remove_category_from_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__remove_category_from_book',
+      );
+  late final _wire__crate__api__storage__remove_category_from_book =
+      _wire__crate__api__storage__remove_category_from_bookPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__storage__save_book(
+    int port_,
+    ffi.Pointer<wire_cst_db_book_record> book,
+  ) {
+    return _wire__crate__api__storage__save_book(port_, book);
+  }
+
+  late final _wire__crate__api__storage__save_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_db_book_record>)
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__save_book');
+  late final _wire__crate__api__storage__save_book =
+      _wire__crate__api__storage__save_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_db_book_record>)
+          >();
+
+  void wire__crate__api__storage__save_bookmark(
+    int port_,
+    ffi.Pointer<wire_cst_db_bookmark> bookmark,
+  ) {
+    return _wire__crate__api__storage__save_bookmark(port_, bookmark);
+  }
+
+  late final _wire__crate__api__storage__save_bookmarkPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_db_bookmark>)
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__save_bookmark');
+  late final _wire__crate__api__storage__save_bookmark =
+      _wire__crate__api__storage__save_bookmarkPtr
+          .asFunction<void Function(int, ffi.Pointer<wire_cst_db_bookmark>)>();
+
+  void wire__crate__api__storage__save_bookmarks_batch(
+    int port_,
+    ffi.Pointer<wire_cst_list_db_bookmark> bookmarks,
+  ) {
+    return _wire__crate__api__storage__save_bookmarks_batch(port_, bookmarks);
+  }
+
+  late final _wire__crate__api__storage__save_bookmarks_batchPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_db_bookmark>)
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__save_bookmarks_batch');
+  late final _wire__crate__api__storage__save_bookmarks_batch =
+      _wire__crate__api__storage__save_bookmarks_batchPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_db_bookmark>)
+          >();
+
+  void wire__crate__api__storage__save_category(
+    int port_,
+    ffi.Pointer<wire_cst_db_book_category> category,
+  ) {
+    return _wire__crate__api__storage__save_category(port_, category);
+  }
+
+  late final _wire__crate__api__storage__save_categoryPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_db_book_category>)
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__save_category');
+  late final _wire__crate__api__storage__save_category =
+      _wire__crate__api__storage__save_categoryPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_db_book_category>)
+          >();
+
+  void wire__crate__api__storage__save_chapters(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> _book_id,
+    ffi.Pointer<wire_cst_list_db_chapter> chapters,
+  ) {
+    return _wire__crate__api__storage__save_chapters(port_, _book_id, chapters);
+  }
+
+  late final _wire__crate__api__storage__save_chaptersPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_db_chapter>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__save_chapters');
+  late final _wire__crate__api__storage__save_chapters =
+      _wire__crate__api__storage__save_chaptersPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_db_chapter>,
+            )
+          >();
+
+  void wire__crate__api__storage__save_layout_cache(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_index,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> config_hash,
+    ffi.Pointer<wire_cst_list_record_i_64_i_64> page_offsets,
+    int total_pages,
+  ) {
+    return _wire__crate__api__storage__save_layout_cache(
+      port_,
+      book_id,
+      chapter_index,
+      config_hash,
+      page_offsets,
+      total_pages,
+    );
+  }
+
+  late final _wire__crate__api__storage__save_layout_cachePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_record_i_64_i_64>,
+            ffi.Int32,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__save_layout_cache');
+  late final _wire__crate__api__storage__save_layout_cache =
+      _wire__crate__api__storage__save_layout_cachePtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_record_i_64_i_64>,
+              int,
+            )
+          >();
+
+  void wire__crate__api__storage__save_layout_cache_full(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_index,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> config_hash,
+    ffi.Pointer<wire_cst_db_layout_cache> cache,
+  ) {
+    return _wire__crate__api__storage__save_layout_cache_full(
+      port_,
+      book_id,
+      chapter_index,
+      config_hash,
+      cache,
+    );
+  }
+
+  late final _wire__crate__api__storage__save_layout_cache_fullPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_db_layout_cache>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__save_layout_cache_full',
+      );
+  late final _wire__crate__api__storage__save_layout_cache_full =
+      _wire__crate__api__storage__save_layout_cache_fullPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_db_layout_cache>,
+            )
+          >();
+
+  void wire__crate__api__storage__save_reading_progress(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_index,
+    int char_offset,
+    int page_index,
+    int total_pages,
+    int reading_time_seconds,
+  ) {
+    return _wire__crate__api__storage__save_reading_progress(
+      port_,
+      book_id,
+      chapter_index,
+      char_offset,
+      page_index,
+      total_pages,
+      reading_time_seconds,
+    );
+  }
+
+  late final _wire__crate__api__storage__save_reading_progressPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Int64,
+            ffi.Int32,
+            ffi.Int32,
+            ffi.Int64,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__save_reading_progress',
+      );
+  late final _wire__crate__api__storage__save_reading_progress =
+      _wire__crate__api__storage__save_reading_progressPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              int,
+              int,
+              int,
+              int,
+            )
+          >();
+
+  void wire__crate__api__storage__save_reading_session(
+    int port_,
+    ffi.Pointer<wire_cst_db_reading_session> session,
+  ) {
+    return _wire__crate__api__storage__save_reading_session(port_, session);
+  }
+
+  late final _wire__crate__api__storage__save_reading_sessionPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_db_reading_session>)
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__save_reading_session');
+  late final _wire__crate__api__storage__save_reading_session =
+      _wire__crate__api__storage__save_reading_sessionPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_db_reading_session>)
+          >();
+
+  void wire__crate__api__storage__save_sync_record(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> data_type,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> data_id,
+    int local_version,
+    ffi.Pointer<ffi.Int32> remote_version,
+    int status,
+  ) {
+    return _wire__crate__api__storage__save_sync_record(
+      port_,
+      book_id,
+      data_type,
+      data_id,
+      local_version,
+      remote_version,
+      status,
+    );
+  }
+
+  late final _wire__crate__api__storage__save_sync_recordPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Pointer<ffi.Int32>,
+            ffi.Int32,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__save_sync_record');
+  late final _wire__crate__api__storage__save_sync_record =
+      _wire__crate__api__storage__save_sync_recordPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              ffi.Pointer<ffi.Int32>,
+              int,
+            )
+          >();
+
+  void wire__crate__api__storage__save_sync_record_full(
+    int port_,
+    ffi.Pointer<wire_cst_db_sync_record> record,
+  ) {
+    return _wire__crate__api__storage__save_sync_record_full(port_, record);
+  }
+
+  late final _wire__crate__api__storage__save_sync_record_fullPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_db_sync_record>)
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__save_sync_record_full',
+      );
+  late final _wire__crate__api__storage__save_sync_record_full =
+      _wire__crate__api__storage__save_sync_record_fullPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_db_sync_record>)
+          >();
+
+  void wire__crate__api__storage__search_books(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> keyword,
+  ) {
+    return _wire__crate__api__storage__search_books(port_, keyword);
+  }
+
+  late final _wire__crate__api__storage__search_booksPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__search_books');
+  late final _wire__crate__api__storage__search_books =
+      _wire__crate__api__storage__search_booksPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__storage__search_content(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> query,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__storage__search_content(port_, query, book_id);
+  }
+
+  late final _wire__crate__api__storage__search_contentPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__search_content');
+  late final _wire__crate__api__storage__search_content =
+      _wire__crate__api__storage__search_contentPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__search__search_in_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> query,
+    int limit,
+  ) {
+    return _wire__crate__api__search__search_in_book(
+      port_,
+      book_id,
+      query,
+      limit,
+    );
+  }
+
+  late final _wire__crate__api__search__search_in_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__search__search_in_book');
+  late final _wire__crate__api__search__search_in_book =
+      _wire__crate__api__search__search_in_bookPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__core__set_allowed_base_dir(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> base_dir,
+  ) {
+    return _wire__crate__api__core__set_allowed_base_dir(base_dir);
+  }
+
+  late final _wire__crate__api__core__set_allowed_base_dirPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__core__set_allowed_base_dir');
+  late final _wire__crate__api__core__set_allowed_base_dir =
+      _wire__crate__api__core__set_allowed_base_dirPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__storage__set_categories_for_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_String> category_ids,
+  ) {
+    return _wire__crate__api__storage__set_categories_for_book(
+      port_,
+      book_id,
+      category_ids,
+    );
+  }
+
+  late final _wire__crate__api__storage__set_categories_for_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_String>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__set_categories_for_book',
+      );
+  late final _wire__crate__api__storage__set_categories_for_book =
+      _wire__crate__api__storage__set_categories_for_bookPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_String>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__cover__supports_cover_extraction(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+  ) {
+    return _wire__crate__api__cover__supports_cover_extraction(file_path);
+  }
+
+  late final _wire__crate__api__cover__supports_cover_extractionPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__cover__supports_cover_extraction',
+      );
+  late final _wire__crate__api__cover__supports_cover_extraction =
+      _wire__crate__api__cover__supports_cover_extractionPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__core__supports_format(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> format,
+  ) {
+    return _wire__crate__api__core__supports_format(format);
+  }
+
+  late final _wire__crate__api__core__supports_formatPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__core__supports_format');
+  late final _wire__crate__api__core__supports_format =
+      _wire__crate__api__core__supports_formatPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__storage__sync_bookmarks(
+    int port_,
+    ffi.Pointer<wire_cst_list_db_bookmark> local_bookmarks,
+    ffi.Pointer<wire_cst_list_db_bookmark> remote_bookmarks,
+  ) {
+    return _wire__crate__api__storage__sync_bookmarks(
+      port_,
+      local_bookmarks,
+      remote_bookmarks,
+    );
+  }
+
+  late final _wire__crate__api__storage__sync_bookmarksPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_db_bookmark>,
+            ffi.Pointer<wire_cst_list_db_bookmark>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__sync_bookmarks');
+  late final _wire__crate__api__storage__sync_bookmarks =
+      _wire__crate__api__storage__sync_bookmarksPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_db_bookmark>,
+              ffi.Pointer<wire_cst_list_db_bookmark>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__core__test_connection() {
+    return _wire__crate__api__core__test_connection();
+  }
+
+  late final _wire__crate__api__core__test_connectionPtr =
+      _lookup<ffi.NativeFunction<WireSyncRust2DartDco Function()>>(
+        'frbgen_zephyr_reader_wire__crate__api__core__test_connection',
+      );
+  late final _wire__crate__api__core__test_connection =
+      _wire__crate__api__core__test_connectionPtr
+          .asFunction<WireSyncRust2DartDco Function()>();
+
+  WireSyncRust2DartDco wire__crate__api__core__typeset_text(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> content,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> language,
+    ffi.Pointer<wire_cst_typeset_config> config,
+  ) {
+    return _wire__crate__api__core__typeset_text(content, language, config);
+  }
+
+  late final _wire__crate__api__core__typeset_textPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_typeset_config>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__core__typeset_text');
+  late final _wire__crate__api__core__typeset_text =
+      _wire__crate__api__core__typeset_textPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_typeset_config>,
+            )
+          >();
+
+  void wire__crate__api__storage__update_bookmark(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> bookmark_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> title,
+  ) {
+    return _wire__crate__api__storage__update_bookmark(
+      port_,
+      bookmark_id,
+      title,
+    );
+  }
+
+  late final _wire__crate__api__storage__update_bookmarkPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__update_bookmark');
+  late final _wire__crate__api__storage__update_bookmark =
+      _wire__crate__api__storage__update_bookmarkPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__storage__update_daily_stats(
+    int port_,
+    ffi.Pointer<wire_cst_db_daily_reading_stats> stats,
+  ) {
+    return _wire__crate__api__storage__update_daily_stats(port_, stats);
+  }
+
+  late final _wire__crate__api__storage__update_daily_statsPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_db_daily_reading_stats>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__update_daily_stats');
+  late final _wire__crate__api__storage__update_daily_stats =
+      _wire__crate__api__storage__update_daily_statsPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_db_daily_reading_stats>)
+          >();
+
+  void wire__crate__api__storage__update_note(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> note_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> content,
+    ffi.Pointer<ffi.Int32> highlight_color,
+  ) {
+    return _wire__crate__api__storage__update_note(
+      port_,
+      note_id,
+      content,
+      highlight_color,
+    );
+  }
+
+  late final _wire__crate__api__storage__update_notePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<ffi.Int32>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__update_note');
+  late final _wire__crate__api__storage__update_note =
+      _wire__crate__api__storage__update_notePtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<ffi.Int32>,
+            )
+          >();
+
+  void wire__crate__api__storage__update_reading_progress(
+    int port_,
+    ffi.Pointer<wire_cst_db_reading_progress> progress,
+  ) {
+    return _wire__crate__api__storage__update_reading_progress(port_, progress);
+  }
+
+  late final _wire__crate__api__storage__update_reading_progressPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_db_reading_progress>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__update_reading_progress',
+      );
+  late final _wire__crate__api__storage__update_reading_progress =
+      _wire__crate__api__storage__update_reading_progressPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_db_reading_progress>)
+          >();
+
+  void wire__crate__api__storage__update_reading_progress_partial(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_index,
+    int char_offset,
+    int page_index,
+    int total_pages,
+    int reading_time_seconds,
+  ) {
+    return _wire__crate__api__storage__update_reading_progress_partial(
+      port_,
+      book_id,
+      chapter_index,
+      char_offset,
+      page_index,
+      total_pages,
+      reading_time_seconds,
+    );
+  }
+
+  late final _wire__crate__api__storage__update_reading_progress_partialPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Int64,
+            ffi.Int32,
+            ffi.Int32,
+            ffi.Int64,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__storage__update_reading_progress_partial',
+      );
+  late final _wire__crate__api__storage__update_reading_progress_partial =
+      _wire__crate__api__storage__update_reading_progress_partialPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              int,
+              int,
+              int,
+              int,
+            )
+          >();
+
+  void wire__crate__api__storage__update_sync_status(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> record_id,
+    int status,
+    ffi.Pointer<ffi.Int32> remote_version,
+  ) {
+    return _wire__crate__api__storage__update_sync_status(
+      port_,
+      record_id,
+      status,
+      remote_version,
+    );
+  }
+
+  late final _wire__crate__api__storage__update_sync_statusPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Pointer<ffi.Int32>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__update_sync_status');
+  late final _wire__crate__api__storage__update_sync_status =
+      _wire__crate__api__storage__update_sync_statusPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              ffi.Pointer<ffi.Int32>,
+            )
+          >();
+
+  void wire__crate__api__security__validate_file_path(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+  ) {
+    return _wire__crate__api__security__validate_file_path(port_, file_path);
+  }
+
+  late final _wire__crate__api__security__validate_file_pathPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__security__validate_file_path');
+  late final _wire__crate__api__security__validate_file_path =
+      _wire__crate__api__security__validate_file_pathPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__security__validate_path_securely(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> allowed_base,
+  ) {
+    return _wire__crate__api__security__validate_path_securely(
+      port_,
+      file_path,
+      allowed_base,
+    );
+  }
+
+  late final _wire__crate__api__security__validate_path_securelyPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__security__validate_path_securely',
+      );
+  late final _wire__crate__api__security__validate_path_securely =
+      _wire__crate__api__security__validate_path_securelyPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
 
   void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
@@ -1122,71 +5854,207 @@ class RustLibWire implements BaseWire {
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
     ffi.Pointer<ffi.Void> ptr,
   ) {
-    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
       ptr,
     );
   }
 
-  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfoPtr =
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadataPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo',
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata',
       );
-  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo =
-      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfoPtr
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadataPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
     ffi.Pointer<ffi.Void> ptr,
   ) {
-    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo(
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
       ptr,
     );
   }
 
-  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfoPtr =
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadataPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo',
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata',
       );
-  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfo =
-      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageInfoPtr
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadataPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
     ffi.Pointer<ffi.Void> ptr,
   ) {
-    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
       ptr,
     );
   }
 
-  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageListPtr =
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStatsPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList',
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats',
       );
-  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList =
-      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageListPtr
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStatsPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
     ffi.Pointer<ffi.Void> ptr,
   ) {
-    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList(
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats(
       ptr,
     );
   }
 
-  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageListPtr =
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStatsPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList',
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats',
       );
-  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageList =
-      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubImageListPtr
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStats =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookmarkStatsPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmarkPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmarkPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmarkPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmark =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbBookmarkPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStatsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStatsPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStatsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStatsPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStatsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStatsPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStatsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStatsPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNotePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNotePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNotePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNotePtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
@@ -1255,6 +6123,210 @@ class RustLibWire implements BaseWire {
       );
   late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo =
       _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfoPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategoryPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategoryPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategoryPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategoryPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecordPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecordPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecordPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecordPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmarkPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmarkPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmarkPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmarkPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapterPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapterPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapterPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapterPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCachePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCachePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCachePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCachePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgressPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgressPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgressPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgressPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
@@ -1360,71 +6432,411 @@ class RustLibWire implements BaseWire {
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
     ffi.Pointer<ffi.Void> ptr,
   ) {
-    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
       ptr,
     );
   }
 
-  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHitPtr =
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategoryPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit',
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory',
       );
-  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit =
-      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHitPtr
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategoryPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
     ffi.Pointer<ffi.Void> ptr,
   ) {
-    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit(
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
       ptr,
     );
   }
 
-  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHitPtr =
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategoryPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit',
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory',
       );
-  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHit =
-      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecSearchHitPtr
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategoryPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
     ffi.Pointer<ffi.Void> ptr,
   ) {
-    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
       ptr,
     );
   }
 
-  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8Ptr =
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecordPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8',
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord',
       );
-  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8 =
-      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8Ptr
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecordPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
     ffi.Pointer<ffi.Void> ptr,
   ) {
-    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8(
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
       ptr,
     );
   }
 
-  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8Ptr =
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecordPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8',
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord',
       );
-  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8 =
-      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultZeroCopyBufferVecu8Ptr
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecordPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmarkPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmarkPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmarkPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmarkPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapterPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapterPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapterPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapterPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStatsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStatsPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStatsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStatsPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNotePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNotePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNotePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNotePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSessionPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSessionPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSessionPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSessionPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResultPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResultPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResultPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResult =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSearchResultPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecordPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecordPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecordPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecord =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbSyncRecordPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContentPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContentPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContentPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContentPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraphPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraphPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraphPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraphPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResultPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResultPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResultPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResultPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
@@ -1460,4 +6872,918 @@ class RustLibWire implements BaseWire {
   late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64 =
       _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64Ptr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusizePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusizePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusizePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusizePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  ffi.Pointer<ffi.Int64> cst_new_box_autoadd_Chrono_Utc(int value) {
+    return _cst_new_box_autoadd_Chrono_Utc(value);
+  }
+
+  late final _cst_new_box_autoadd_Chrono_UtcPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Int64> Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_cst_new_box_autoadd_Chrono_Utc',
+      );
+  late final _cst_new_box_autoadd_Chrono_Utc =
+      _cst_new_box_autoadd_Chrono_UtcPtr
+          .asFunction<ffi.Pointer<ffi.Int64> Function(int)>();
+
+  ffi.Pointer<wire_cst_db_book_category>
+  cst_new_box_autoadd_db_book_category() {
+    return _cst_new_box_autoadd_db_book_category();
+  }
+
+  late final _cst_new_box_autoadd_db_book_categoryPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Pointer<wire_cst_db_book_category> Function()>
+      >('frbgen_zephyr_reader_cst_new_box_autoadd_db_book_category');
+  late final _cst_new_box_autoadd_db_book_category =
+      _cst_new_box_autoadd_db_book_categoryPtr
+          .asFunction<ffi.Pointer<wire_cst_db_book_category> Function()>();
+
+  ffi.Pointer<wire_cst_db_book_record> cst_new_box_autoadd_db_book_record() {
+    return _cst_new_box_autoadd_db_book_record();
+  }
+
+  late final _cst_new_box_autoadd_db_book_recordPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Pointer<wire_cst_db_book_record> Function()>
+      >('frbgen_zephyr_reader_cst_new_box_autoadd_db_book_record');
+  late final _cst_new_box_autoadd_db_book_record =
+      _cst_new_box_autoadd_db_book_recordPtr
+          .asFunction<ffi.Pointer<wire_cst_db_book_record> Function()>();
+
+  ffi.Pointer<wire_cst_db_bookmark> cst_new_box_autoadd_db_bookmark() {
+    return _cst_new_box_autoadd_db_bookmark();
+  }
+
+  late final _cst_new_box_autoadd_db_bookmarkPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_db_bookmark> Function()>>(
+        'frbgen_zephyr_reader_cst_new_box_autoadd_db_bookmark',
+      );
+  late final _cst_new_box_autoadd_db_bookmark =
+      _cst_new_box_autoadd_db_bookmarkPtr
+          .asFunction<ffi.Pointer<wire_cst_db_bookmark> Function()>();
+
+  ffi.Pointer<wire_cst_db_daily_reading_stats>
+  cst_new_box_autoadd_db_daily_reading_stats() {
+    return _cst_new_box_autoadd_db_daily_reading_stats();
+  }
+
+  late final _cst_new_box_autoadd_db_daily_reading_statsPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_db_daily_reading_stats> Function()
+        >
+      >('frbgen_zephyr_reader_cst_new_box_autoadd_db_daily_reading_stats');
+  late final _cst_new_box_autoadd_db_daily_reading_stats =
+      _cst_new_box_autoadd_db_daily_reading_statsPtr
+          .asFunction<
+            ffi.Pointer<wire_cst_db_daily_reading_stats> Function()
+          >();
+
+  ffi.Pointer<wire_cst_db_global_stats> cst_new_box_autoadd_db_global_stats() {
+    return _cst_new_box_autoadd_db_global_stats();
+  }
+
+  late final _cst_new_box_autoadd_db_global_statsPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Pointer<wire_cst_db_global_stats> Function()>
+      >('frbgen_zephyr_reader_cst_new_box_autoadd_db_global_stats');
+  late final _cst_new_box_autoadd_db_global_stats =
+      _cst_new_box_autoadd_db_global_statsPtr
+          .asFunction<ffi.Pointer<wire_cst_db_global_stats> Function()>();
+
+  ffi.Pointer<wire_cst_db_layout_cache> cst_new_box_autoadd_db_layout_cache() {
+    return _cst_new_box_autoadd_db_layout_cache();
+  }
+
+  late final _cst_new_box_autoadd_db_layout_cachePtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Pointer<wire_cst_db_layout_cache> Function()>
+      >('frbgen_zephyr_reader_cst_new_box_autoadd_db_layout_cache');
+  late final _cst_new_box_autoadd_db_layout_cache =
+      _cst_new_box_autoadd_db_layout_cachePtr
+          .asFunction<ffi.Pointer<wire_cst_db_layout_cache> Function()>();
+
+  ffi.Pointer<ffi.Int32> cst_new_box_autoadd_db_note_type(int value) {
+    return _cst_new_box_autoadd_db_note_type(value);
+  }
+
+  late final _cst_new_box_autoadd_db_note_typePtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Int32> Function(ffi.Int32)>>(
+        'frbgen_zephyr_reader_cst_new_box_autoadd_db_note_type',
+      );
+  late final _cst_new_box_autoadd_db_note_type =
+      _cst_new_box_autoadd_db_note_typePtr
+          .asFunction<ffi.Pointer<ffi.Int32> Function(int)>();
+
+  ffi.Pointer<wire_cst_db_reading_progress>
+  cst_new_box_autoadd_db_reading_progress() {
+    return _cst_new_box_autoadd_db_reading_progress();
+  }
+
+  late final _cst_new_box_autoadd_db_reading_progressPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Pointer<wire_cst_db_reading_progress> Function()>
+      >('frbgen_zephyr_reader_cst_new_box_autoadd_db_reading_progress');
+  late final _cst_new_box_autoadd_db_reading_progress =
+      _cst_new_box_autoadd_db_reading_progressPtr
+          .asFunction<ffi.Pointer<wire_cst_db_reading_progress> Function()>();
+
+  ffi.Pointer<wire_cst_db_reading_session>
+  cst_new_box_autoadd_db_reading_session() {
+    return _cst_new_box_autoadd_db_reading_session();
+  }
+
+  late final _cst_new_box_autoadd_db_reading_sessionPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Pointer<wire_cst_db_reading_session> Function()>
+      >('frbgen_zephyr_reader_cst_new_box_autoadd_db_reading_session');
+  late final _cst_new_box_autoadd_db_reading_session =
+      _cst_new_box_autoadd_db_reading_sessionPtr
+          .asFunction<ffi.Pointer<wire_cst_db_reading_session> Function()>();
+
+  ffi.Pointer<wire_cst_db_sync_record> cst_new_box_autoadd_db_sync_record() {
+    return _cst_new_box_autoadd_db_sync_record();
+  }
+
+  late final _cst_new_box_autoadd_db_sync_recordPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Pointer<wire_cst_db_sync_record> Function()>
+      >('frbgen_zephyr_reader_cst_new_box_autoadd_db_sync_record');
+  late final _cst_new_box_autoadd_db_sync_record =
+      _cst_new_box_autoadd_db_sync_recordPtr
+          .asFunction<ffi.Pointer<wire_cst_db_sync_record> Function()>();
+
+  ffi.Pointer<ffi.Int32> cst_new_box_autoadd_i_32(int value) {
+    return _cst_new_box_autoadd_i_32(value);
+  }
+
+  late final _cst_new_box_autoadd_i_32Ptr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Int32> Function(ffi.Int32)>>(
+        'frbgen_zephyr_reader_cst_new_box_autoadd_i_32',
+      );
+  late final _cst_new_box_autoadd_i_32 = _cst_new_box_autoadd_i_32Ptr
+      .asFunction<ffi.Pointer<ffi.Int32> Function(int)>();
+
+  ffi.Pointer<wire_cst_typeset_config> cst_new_box_autoadd_typeset_config() {
+    return _cst_new_box_autoadd_typeset_config();
+  }
+
+  late final _cst_new_box_autoadd_typeset_configPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Pointer<wire_cst_typeset_config> Function()>
+      >('frbgen_zephyr_reader_cst_new_box_autoadd_typeset_config');
+  late final _cst_new_box_autoadd_typeset_config =
+      _cst_new_box_autoadd_typeset_configPtr
+          .asFunction<ffi.Pointer<wire_cst_typeset_config> Function()>();
+
+  ffi.Pointer<wire_cst_list_String> cst_new_list_String(int len) {
+    return _cst_new_list_String(len);
+  }
+
+  late final _cst_new_list_StringPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_String> Function(ffi.Int32)
+        >
+      >('frbgen_zephyr_reader_cst_new_list_String');
+  late final _cst_new_list_String = _cst_new_list_StringPtr
+      .asFunction<ffi.Pointer<wire_cst_list_String> Function(int)>();
+
+  ffi.Pointer<wire_cst_list_db_bookmark> cst_new_list_db_bookmark(int len) {
+    return _cst_new_list_db_bookmark(len);
+  }
+
+  late final _cst_new_list_db_bookmarkPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_db_bookmark> Function(ffi.Int32)
+        >
+      >('frbgen_zephyr_reader_cst_new_list_db_bookmark');
+  late final _cst_new_list_db_bookmark = _cst_new_list_db_bookmarkPtr
+      .asFunction<ffi.Pointer<wire_cst_list_db_bookmark> Function(int)>();
+
+  ffi.Pointer<wire_cst_list_db_chapter> cst_new_list_db_chapter(int len) {
+    return _cst_new_list_db_chapter(len);
+  }
+
+  late final _cst_new_list_db_chapterPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_db_chapter> Function(ffi.Int32)
+        >
+      >('frbgen_zephyr_reader_cst_new_list_db_chapter');
+  late final _cst_new_list_db_chapter = _cst_new_list_db_chapterPtr
+      .asFunction<ffi.Pointer<wire_cst_list_db_chapter> Function(int)>();
+
+  ffi.Pointer<wire_cst_list_page_content> cst_new_list_page_content(int len) {
+    return _cst_new_list_page_content(len);
+  }
+
+  late final _cst_new_list_page_contentPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_page_content> Function(ffi.Int32)
+        >
+      >('frbgen_zephyr_reader_cst_new_list_page_content');
+  late final _cst_new_list_page_content = _cst_new_list_page_contentPtr
+      .asFunction<ffi.Pointer<wire_cst_list_page_content> Function(int)>();
+
+  ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_new_list_prim_u_8_strict(
+    int len,
+  ) {
+    return _cst_new_list_prim_u_8_strict(len);
+  }
+
+  late final _cst_new_list_prim_u_8_strictPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_prim_u_8_strict> Function(ffi.Int32)
+        >
+      >('frbgen_zephyr_reader_cst_new_list_prim_u_8_strict');
+  late final _cst_new_list_prim_u_8_strict = _cst_new_list_prim_u_8_strictPtr
+      .asFunction<ffi.Pointer<wire_cst_list_prim_u_8_strict> Function(int)>();
+
+  ffi.Pointer<wire_cst_list_record_i_64_i_64> cst_new_list_record_i_64_i_64(
+    int len,
+  ) {
+    return _cst_new_list_record_i_64_i_64(len);
+  }
+
+  late final _cst_new_list_record_i_64_i_64Ptr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_record_i_64_i_64> Function(ffi.Int32)
+        >
+      >('frbgen_zephyr_reader_cst_new_list_record_i_64_i_64');
+  late final _cst_new_list_record_i_64_i_64 = _cst_new_list_record_i_64_i_64Ptr
+      .asFunction<ffi.Pointer<wire_cst_list_record_i_64_i_64> Function(int)>();
+
+  ffi.Pointer<wire_cst_list_record_usize_usize> cst_new_list_record_usize_usize(
+    int len,
+  ) {
+    return _cst_new_list_record_usize_usize(len);
+  }
+
+  late final _cst_new_list_record_usize_usizePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_record_usize_usize> Function(ffi.Int32)
+        >
+      >('frbgen_zephyr_reader_cst_new_list_record_usize_usize');
+  late final _cst_new_list_record_usize_usize =
+      _cst_new_list_record_usize_usizePtr
+          .asFunction<
+            ffi.Pointer<wire_cst_list_record_usize_usize> Function(int)
+          >();
+
+  ffi.Pointer<wire_cst_list_rich_paragraph> cst_new_list_rich_paragraph(
+    int len,
+  ) {
+    return _cst_new_list_rich_paragraph(len);
+  }
+
+  late final _cst_new_list_rich_paragraphPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_rich_paragraph> Function(ffi.Int32)
+        >
+      >('frbgen_zephyr_reader_cst_new_list_rich_paragraph');
+  late final _cst_new_list_rich_paragraph = _cst_new_list_rich_paragraphPtr
+      .asFunction<ffi.Pointer<wire_cst_list_rich_paragraph> Function(int)>();
+
+  ffi.Pointer<wire_cst_list_rich_text_span> cst_new_list_rich_text_span(
+    int len,
+  ) {
+    return _cst_new_list_rich_text_span(len);
+  }
+
+  late final _cst_new_list_rich_text_spanPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_rich_text_span> Function(ffi.Int32)
+        >
+      >('frbgen_zephyr_reader_cst_new_list_rich_text_span');
+  late final _cst_new_list_rich_text_span = _cst_new_list_rich_text_spanPtr
+      .asFunction<ffi.Pointer<wire_cst_list_rich_text_span> Function(int)>();
+
+  int dummy_method_to_enforce_bundling() {
+    return _dummy_method_to_enforce_bundling();
+  }
+
+  late final _dummy_method_to_enforce_bundlingPtr =
+      _lookup<ffi.NativeFunction<ffi.Int64 Function()>>(
+        'dummy_method_to_enforce_bundling',
+      );
+  late final _dummy_method_to_enforce_bundling =
+      _dummy_method_to_enforce_bundlingPtr.asFunction<int Function()>();
+}
+
+typedef DartPort = ffi.Int64;
+typedef DartDartPort = int;
+typedef DartPostCObjectFnTypeFunction =
+    ffi.Bool Function(DartPort port_id, ffi.Pointer<ffi.Void> message);
+typedef DartDartPostCObjectFnTypeFunction =
+    bool Function(DartDartPort port_id, ffi.Pointer<ffi.Void> message);
+typedef DartPostCObjectFnType =
+    ffi.Pointer<ffi.NativeFunction<DartPostCObjectFnTypeFunction>>;
+
+final class wire_cst_list_prim_u_8_strict extends ffi.Struct {
+  external ffi.Pointer<ffi.Uint8> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_typeset_config extends ffi.Struct {
+  @ffi.Int32()
+  external int page_width;
+
+  @ffi.Int32()
+  external int page_height;
+
+  @ffi.Int32()
+  external int font_size;
+
+  @ffi.Float()
+  external double line_spacing;
+
+  @ffi.Float()
+  external double letter_spacing;
+
+  @ffi.Float()
+  external double paragraph_spacing;
+
+  @ffi.Uint8()
+  external int first_line_indent;
+
+  @ffi.Int32()
+  external int language;
+
+  @ffi.Bool()
+  external bool enable_hyphenation;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> hyphenation_language;
+}
+
+final class wire_cst_db_bookmark extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
+
+  @ffi.Int32()
+  external int chapter_index;
+
+  @ffi.Int64()
+  external int char_offset;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> title;
+
+  @ffi.Int64()
+  external int created_at;
+}
+
+final class wire_cst_list_db_bookmark extends ffi.Struct {
+  external ffi.Pointer<wire_cst_db_bookmark> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_RichTextSpan_Plain extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> text;
+}
+
+final class wire_cst_RichTextSpan_Bold extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> text;
+}
+
+final class wire_cst_RichTextSpan_Italic extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> text;
+}
+
+final class wire_cst_RichTextSpan_BoldItalic extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> text;
+}
+
+final class wire_cst_RichTextSpan_Underline extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> text;
+}
+
+final class wire_cst_RichTextSpan_Strikethrough extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> text;
+}
+
+final class wire_cst_RichTextSpan_Code extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> text;
+}
+
+final class wire_cst_RichTextSpan_Link extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> text;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> url;
+}
+
+final class RichTextSpanKind extends ffi.Union {
+  external wire_cst_RichTextSpan_Plain Plain;
+
+  external wire_cst_RichTextSpan_Bold Bold;
+
+  external wire_cst_RichTextSpan_Italic Italic;
+
+  external wire_cst_RichTextSpan_BoldItalic BoldItalic;
+
+  external wire_cst_RichTextSpan_Underline Underline;
+
+  external wire_cst_RichTextSpan_Strikethrough Strikethrough;
+
+  external wire_cst_RichTextSpan_Code Code;
+
+  external wire_cst_RichTextSpan_Link Link;
+}
+
+final class wire_cst_rich_text_span extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external RichTextSpanKind kind;
+}
+
+final class wire_cst_list_rich_text_span extends ffi.Struct {
+  external ffi.Pointer<wire_cst_rich_text_span> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_rich_paragraph extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_rich_text_span> spans;
+
+  @ffi.Uint8()
+  external int indent;
+
+  @ffi.Bool()
+  external bool is_heading;
+
+  @ffi.Uint8()
+  external int heading_level;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> class_name;
+}
+
+final class wire_cst_list_rich_paragraph extends ffi.Struct {
+  external ffi.Pointer<wire_cst_rich_paragraph> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_db_global_stats extends ffi.Struct {
+  @ffi.Int64()
+  external int total_reading_time_seconds;
+
+  @ffi.Int64()
+  external int total_characters_read;
+
+  @ffi.Int32()
+  external int books_read_count;
+
+  @ffi.Int32()
+  external int books_completed_count;
+
+  @ffi.Int32()
+  external int consecutive_reading_days;
+
+  @ffi.Int64()
+  external int today_reading_time_seconds;
+
+  @ffi.Int64()
+  external int today_characters_read;
+
+  @ffi.Float()
+  external double average_reading_speed;
+}
+
+final class wire_cst_list_String extends ffi.Struct {
+  external ffi.Pointer<ffi.Pointer<wire_cst_list_prim_u_8_strict>> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_db_book_record extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path;
+
+  @ffi.Int64()
+  external int file_size;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> title;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> author;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> description;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> cover_path;
+
+  @ffi.Int32()
+  external int chapter_count;
+
+  @ffi.Int64()
+  external int total_characters;
+
+  @ffi.Int32()
+  external int format;
+
+  @ffi.Int64()
+  external int added_at;
+
+  external ffi.Pointer<ffi.Int64> last_opened_at;
+
+  @ffi.Int32()
+  external int status;
+
+  @ffi.Bool()
+  external bool is_pinned;
+
+  external ffi.Pointer<wire_cst_list_String> category_ids;
+
+  external ffi.Pointer<ffi.Int64> last_read_at;
+}
+
+final class wire_cst_db_book_category extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> name;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> color;
+
+  @ffi.Int32()
+  external int sort_order;
+
+  @ffi.Bool()
+  external bool is_system;
+
+  @ffi.Int64()
+  external int created_at;
+
+  @ffi.Int64()
+  external int updated_at;
+}
+
+final class wire_cst_db_chapter extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> title;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> content_file;
+
+  @ffi.Int32()
+  external int chapter_index;
+
+  @ffi.Int64()
+  external int word_count;
+
+  @ffi.Int64()
+  external int cached_at;
+}
+
+final class wire_cst_list_db_chapter extends ffi.Struct {
+  external ffi.Pointer<wire_cst_db_chapter> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_record_i_64_i_64 extends ffi.Struct {
+  @ffi.Int64()
+  external int field0;
+
+  @ffi.Int64()
+  external int field1;
+}
+
+final class wire_cst_list_record_i_64_i_64 extends ffi.Struct {
+  external ffi.Pointer<wire_cst_record_i_64_i_64> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_db_layout_cache extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_record_i_64_i_64> page_offsets;
+
+  @ffi.Int32()
+  external int total_pages;
+
+  @ffi.Int64()
+  external int created_at;
+}
+
+final class wire_cst_db_reading_session extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
+
+  @ffi.Int32()
+  external int chapter_index;
+
+  @ffi.Int64()
+  external int start_char_offset;
+
+  @ffi.Int64()
+  external int end_char_offset;
+
+  @ffi.Int64()
+  external int started_at;
+
+  @ffi.Int64()
+  external int ended_at;
+
+  @ffi.Int64()
+  external int duration_seconds;
+
+  @ffi.Int64()
+  external int characters_read;
+}
+
+final class wire_cst_db_sync_record extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> data_type;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> data_id;
+
+  @ffi.Int32()
+  external int local_version;
+
+  external ffi.Pointer<ffi.Int32> remote_version;
+
+  @ffi.Int32()
+  external int status;
+
+  @ffi.Int64()
+  external int modified_at;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> etag;
+}
+
+final class wire_cst_db_daily_reading_stats extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> date;
+
+  @ffi.Int64()
+  external int total_reading_time_seconds;
+
+  @ffi.Int64()
+  external int total_characters_read;
+
+  external ffi.Pointer<wire_cst_list_String> books_read;
+
+  @ffi.Int32()
+  external int session_count;
+
+  @ffi.Int32()
+  external int chapters_read;
+
+  @ffi.Int32()
+  external int pages_read;
+}
+
+final class wire_cst_db_reading_progress extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
+
+  @ffi.Int32()
+  external int chapter_index;
+
+  @ffi.Int64()
+  external int char_offset;
+
+  @ffi.Int32()
+  external int page_index;
+
+  @ffi.Int32()
+  external int total_pages;
+
+  @ffi.Float()
+  external double progress;
+
+  @ffi.Int64()
+  external int reading_time_seconds;
+
+  @ffi.Int64()
+  external int last_read_at;
+
+  @ffi.Bool()
+  external bool is_completed;
+}
+
+final class wire_cst_page_content extends ffi.Struct {
+  @ffi.Int32()
+  external int chapter_index;
+
+  @ffi.Int32()
+  external int page_index;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> content;
+
+  @ffi.Bool()
+  external bool is_last_page;
+}
+
+final class wire_cst_list_page_content extends ffi.Struct {
+  external ffi.Pointer<wire_cst_page_content> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_record_usize_usize extends ffi.Struct {
+  @ffi.UintPtr()
+  external int field0;
+
+  @ffi.UintPtr()
+  external int field1;
+}
+
+final class wire_cst_list_record_usize_usize extends ffi.Struct {
+  external ffi.Pointer<wire_cst_record_usize_usize> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_cache_stats extends ffi.Struct {
+  @ffi.UintPtr()
+  external int file_count;
+
+  @ffi.UintPtr()
+  external int chapter_count;
+
+  @ffi.UintPtr()
+  external int total_memory_estimate;
+}
+
+final class wire_cst_page_streamer extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_String> lines;
+
+  @ffi.UintPtr()
+  external int current_page;
+
+  @ffi.UintPtr()
+  external int lines_per_page;
+
+  external ffi.Pointer<wire_cst_list_record_usize_usize> line_offsets;
+}
+
+final class wire_cst_ParserError_FileNotFound extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> path;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> reason;
+}
+
+final class wire_cst_ParserError_FileReadError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> path;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> message;
+}
+
+final class wire_cst_ParserError_EncodingError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_ParserError_EpubParseError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_ParserError_PdfParseError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_ParserError_TxtParseError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_ParserError_ChapterExtractError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_ParserError_Typeset extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_ParserError_StreamError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_ParserError_UnsupportedFormat extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_ParserError_FileWriteError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_ParserError_InternalError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_ParserError_ConfigError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_ParserError_PageExtractError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_ParserError_TextExtractError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_ParserError_Other extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_ParserError_SecurityError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class ParserErrorKind extends ffi.Union {
+  external wire_cst_ParserError_FileNotFound FileNotFound;
+
+  external wire_cst_ParserError_FileReadError FileReadError;
+
+  external wire_cst_ParserError_EncodingError EncodingError;
+
+  external wire_cst_ParserError_EpubParseError EpubParseError;
+
+  external wire_cst_ParserError_PdfParseError PdfParseError;
+
+  external wire_cst_ParserError_TxtParseError TxtParseError;
+
+  external wire_cst_ParserError_ChapterExtractError ChapterExtractError;
+
+  external wire_cst_ParserError_Typeset Typeset;
+
+  external wire_cst_ParserError_StreamError StreamError;
+
+  external wire_cst_ParserError_UnsupportedFormat UnsupportedFormat;
+
+  external wire_cst_ParserError_FileWriteError FileWriteError;
+
+  external wire_cst_ParserError_InternalError InternalError;
+
+  external wire_cst_ParserError_ConfigError ConfigError;
+
+  external wire_cst_ParserError_PageExtractError PageExtractError;
+
+  external wire_cst_ParserError_TextExtractError TextExtractError;
+
+  external wire_cst_ParserError_Other Other;
+
+  external wire_cst_ParserError_SecurityError SecurityError;
+}
+
+final class wire_cst_parser_error extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external ParserErrorKind kind;
 }

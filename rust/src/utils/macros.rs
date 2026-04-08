@@ -77,29 +77,29 @@ macro_rules! catch_panic_with_msg {
     }};
 }
 
-// #[cfg(test)]
-// mod tests {
+#[cfg(test)]
+mod tests {
+    use crate::ffi::ParserError;
 
-//     use rayon::result;
+    #[test]
+    fn test_catch_panic_normal() {
+        let result = crate::catch_panic! {
+            {
+                Ok::<_, ParserError>(42)
+            }
+        };
+        assert_eq!(result.unwrap(), 42);
+    }
 
-//     use crate::api::ParserError;
-//     #[test]
-//     fn test_catch_panic_normal() {
-//         let result = catch_panic! {
-//             {
-//                 Ok::<_, ParserError>(42)
-//             }
-//         };
-//         assert_eq!(result.unwrap(), 42);
-//     }
-
-// #[test]
-// fn test_catch_panic_panics() {
-//     let result = catch_panic! {
-//         {
-//             panic!("test panic");
-//         }
-//     };
-//     assert!(result.is_err());
-// }
-// }
+    #[test]
+    fn test_catch_panic_panics() {
+        let result = crate::catch_panic! {
+            {
+                panic!("test panic");
+                #[allow(unreachable_code)]
+                Ok::<_, ParserError>(0)
+            }
+        };
+        assert!(result.is_err());
+    }
+}

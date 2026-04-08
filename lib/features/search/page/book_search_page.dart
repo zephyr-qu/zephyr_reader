@@ -6,9 +6,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
-import '../../../../core/database/database.dart';
 import '../../../../core/routing/route_constants.dart';
-import '../../../../di/service_locator.dart';
 import '../application/book_search_service.dart';
 
 /// 书籍搜索页面
@@ -18,7 +16,7 @@ class BookSearchPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final searchService = useMemoized(
-      () => BookSearchService(getIt<AppDatabase>()),
+      () => BookSearchService(),
     );
     final searchResults = useSignal<List<SearchHit>>([]);
     final isSearching = useSignal(false);
@@ -221,13 +219,15 @@ class _SearchResultTile extends StatelessWidget {
         children: [
           const SizedBox(height: 4),
           Text(
-            result.bookTitle,
+            result.content,
             style: TextStyle(
               fontSize: 12,
               color: Theme.of(
                 context,
               ).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
           Text(
@@ -247,7 +247,7 @@ class _SearchResultTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            '${(result.score * 100).toStringAsFixed(0)}%',
+            '${(result.rank * 100).toStringAsFixed(0)}%',
             style: TextStyle(
               fontSize: 12,
               color: Theme.of(context).colorScheme.primary,
@@ -263,8 +263,8 @@ class _SearchResultTile extends StatelessWidget {
         context.goNamed(
           RouteNames.reader,
           pathParameters: {
-            'bookId': result.bookId.toString(),
-            'chapterId': result.chapterId.toString(),
+            'bookId': result.bookId,
+            'chapterId': result.chapterIndex.toString(),
           },
         );
       },

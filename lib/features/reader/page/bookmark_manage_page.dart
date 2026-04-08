@@ -14,13 +14,13 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
-import 'package:zephyr_reader/domain/models/bookmark.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 import '../../../../di/service_locator.dart';
 
 /// 书签管理页面
 class BookmarkManagePage extends HookWidget {
-  final int bookId;
+  final String bookId;
 
   const BookmarkManagePage({super.key, required this.bookId});
 
@@ -29,7 +29,7 @@ class BookmarkManagePage extends HookWidget {
     final vm = useMemoized(() => getIt<ReaderViewModel>());
     final searchController = useTextEditingController();
     final isSearchMode = useSignal(false);
-    final selectedBookmarks = useSignal<Set<int>>({});
+    final selectedBookmarks = useSignal<Set<String>>({});
     final sortBy = useSignal<BookmarkSortType>(BookmarkSortType.createdAt);
     final ascending = useSignal(false);
 
@@ -54,7 +54,6 @@ class BookmarkManagePage extends HookWidget {
               )
             : const Text('书签管理'),
         actions: [
-          // 搜索按钮
           if (!isSearchMode.value)
             IconButton(
               icon: const Icon(Icons.search),
@@ -71,7 +70,6 @@ class BookmarkManagePage extends HookWidget {
               },
               tooltip: '关闭搜索',
             ),
-          // 排序按钮
           PopupMenuButton<BookmarkSortType>(
             icon: const Icon(Icons.sort),
             tooltip: '排序',
@@ -85,7 +83,7 @@ class BookmarkManagePage extends HookWidget {
                 child: Text('按时间排序'),
               ),
               const PopupMenuItem(
-                value: BookmarkSortType.chapterId,
+                value: BookmarkSortType.chapterIndex,
                 child: Text('按章节排序'),
               ),
               const PopupMenuItem(
@@ -94,7 +92,6 @@ class BookmarkManagePage extends HookWidget {
               ),
             ],
           ),
-          // 批量操作
           if (selectedBookmarks.value.isNotEmpty)
             IconButton(
               icon: Badge(
@@ -144,29 +141,27 @@ class BookmarkManagePage extends HookWidget {
             );
           }
 
-          var bookmarkList = async.value ?? [];
+          var bookmarkList = (async.value ?? []).whereType<DbBookmark>().toList();
 
-          // 搜索过滤
           if (isSearchMode.value && searchController.text.isNotEmpty) {
             final keyword = searchController.text.toLowerCase();
             bookmarkList = bookmarkList.where((b) {
-              return (b.note ?? '').toLowerCase().contains(keyword) ||
-                  b.chapterId.toString().contains(keyword);
+              return b.title.toLowerCase().contains(keyword) ||
+                  b.chapterIndex.toString().contains(keyword);
             }).toList();
           }
 
-          // 排序
           bookmarkList.sort((a, b) {
             int result;
             switch (sortBy.value) {
               case BookmarkSortType.createdAt:
                 result = a.createdAt.compareTo(b.createdAt);
                 break;
-              case BookmarkSortType.chapterId:
-                result = a.chapterId.compareTo(b.chapterId);
+              case BookmarkSortType.chapterIndex:
+                result = a.chapterIndex.compareTo(b.chapterIndex);
                 break;
               case BookmarkSortType.position:
-                result = a.position.compareTo(b.position);
+                result = a.charOffset.compareTo(b.charOffset);
                 break;
             }
             return ascending.value ? result : -result;
@@ -221,7 +216,9 @@ class BookmarkManagePage extends HookWidget {
             separatorBuilder: (context, index) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final bookmark = bookmarkList[index];
-              final isSelected = selectedBookmarks.value.contains(bookmark.id);
+              final isSelected = selectedBookmarks.value.contains(
+                bookmark.id,
+              );
               return _BookmarkTile(
                 bookmark: bookmark,
                 isSelected: isSelected,
@@ -256,7 +253,7 @@ class BookmarkManagePage extends HookWidget {
   void _jumpToBookmark(
     BuildContext context,
     ReaderViewModel vm,
-    Bookmark bookmark,
+    DbBookmark bookmark,
   ) {
     vm.jumpToBookmark(bookmark);
     Navigator.pop(context);
@@ -265,13 +262,13 @@ class BookmarkManagePage extends HookWidget {
   Future<void> _deleteBookmark(
     BuildContext context,
     ReaderViewModel vm,
-    Bookmark bookmark,
+    DbBookmark bookmark,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('删除书签'),
-        content: Text('确定要删除"${bookmark.note ?? '书签'}"吗？'),
+        content: Text('确定要删除"${bookmark.title}"吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -286,7 +283,7 @@ class BookmarkManagePage extends HookWidget {
     );
 
     if (confirmed == true) {
-      final success = await vm.deleteBookmark(bookmark.id);
+      final success = await vm.deleteBookmark(bookmark.id.hashCode);
       if (context.mounted) {
         if (success) {
           ScaffoldMessenger.of(
@@ -304,7 +301,7 @@ class BookmarkManagePage extends HookWidget {
   Future<void> _batchDelete(
     BuildContext context,
     ReaderViewModel vm,
-    Set<int> bookmarkIds,
+    Set<String> bookmarkIds,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -330,7 +327,7 @@ class BookmarkManagePage extends HookWidget {
     if (confirmed == true) {
       var successCount = 0;
       for (final id in bookmarkIds) {
-        final success = await vm.deleteBookmark(id);
+        final success = await vm.deleteBookmark(id.hashCode);
         if (success) successCount++;
       }
 
@@ -370,11 +367,10 @@ class BookmarkManagePage extends HookWidget {
     );
 
     if (confirmed == true) {
-      // 批量删除所有书签
       final bookmarks = vm.bookmarks.value.value ?? [];
       var successCount = 0;
       for (final bookmark in bookmarks) {
-        final success = await vm.deleteBookmark(bookmark.id);
+        final success = await vm.deleteBookmark(bookmark.id.hashCode);
         if (success) successCount++;
       }
 
@@ -390,7 +386,7 @@ class BookmarkManagePage extends HookWidget {
 /// 书签排序类型
 enum BookmarkSortType {
   createdAt('时间'),
-  chapterId('章节'),
+  chapterIndex('章节'),
   position('位置');
 
   final String label;
@@ -399,7 +395,7 @@ enum BookmarkSortType {
 
 /// 书签列表项
 class _BookmarkTile extends StatelessWidget {
-  final Bookmark bookmark;
+  final DbBookmark bookmark;
   final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback onDelete;
@@ -420,7 +416,7 @@ class _BookmarkTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Dismissible(
-      key: Key(bookmark.id.toString()),
+      key: Key(bookmark.id),
       direction: DismissDirection.endToStart,
       background: Container(
         color: theme.colorScheme.error,
@@ -462,7 +458,7 @@ class _BookmarkTile extends StatelessWidget {
                   color: theme.colorScheme.primary.withValues(alpha: 0.7),
                 ),
           title: Text(
-            bookmark.note ?? '书签',
+            bookmark.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -471,20 +467,11 @@ class _BookmarkTile extends StatelessWidget {
             children: [
               const SizedBox(height: 4),
               Text(
-                '第${bookmark.chapterId}章',
+                '第${bookmark.chapterIndex}章',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
-              if (bookmark.note != null && bookmark.note!.isNotEmpty)
-                Text(
-                  bookmark.note!,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
             ],
           ),
           trailing: Column(
@@ -499,7 +486,7 @@ class _BookmarkTile extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '位置：${bookmark.position}',
+                '位置：${bookmark.charOffset}',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                 ),

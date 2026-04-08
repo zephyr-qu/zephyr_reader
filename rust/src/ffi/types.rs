@@ -1,10 +1,39 @@
 //! FFI 数据类型定义
-//! 与 Flutter 侧对齐的数据结构
+//! 与 Flutter 相对应的数据结构
 
 use crate::ffi::error::TypesetConfigError;
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
+
+// ==================== 排版配置常量 ====================
+
+/// 页面最小宽度（像素）
+const MIN_PAGE_WIDTH: i32 = 100;
+/// 页面最大宽度（像素）
+const MAX_PAGE_WIDTH: i32 = 10000;
+/// 页面最小高度（像素）
+const MIN_PAGE_HEIGHT: i32 = 100;
+/// 页面最大高度（像素）
+const MAX_PAGE_HEIGHT: i32 = 10000;
+/// 最小字体大小（像素）
+const MIN_FONT_SIZE: i32 = 8;
+/// 最大字体大小（像素）
+const MAX_FONT_SIZE: i32 = 100;
+/// 最小行间距
+const MIN_LINE_SPACING: f32 = 0.5;
+/// 最大行间距
+const MAX_LINE_SPACING: f32 = 5.0;
+/// 最小字间距
+const MIN_LETTER_SPACING: f32 = -10.0;
+/// 最大字间距
+const MAX_LETTER_SPACING: f32 = 10.0;
+/// 最小段落间距
+const MIN_PARAGRAPH_SPACING: f32 = 0.0;
+/// 最大段落间距
+const MAX_PARAGRAPH_SPACING: f32 = 10.0;
+/// 最大首行缩进（字符数）
+const MAX_FIRST_LINE_INDENT: u8 = 10;
 
 /// 解析配置
 ///
@@ -14,7 +43,7 @@ use std::hash::{Hash, Hasher};
 pub struct ParseConfig {
     /// 是否启用并行解析（多章节同时处理）
     pub enable_parallel: bool,
-    /// 并行处理的线程数（0 表示使用 CPU 核心数）
+    /// 并行处理的线程数（表示使用 CPU 核心数）
     pub parallel_threads: usize,
     /// 是否启用缓存
     pub enable_cache: bool,
@@ -80,8 +109,8 @@ pub struct BookInfo {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
 pub struct ChapterInfo {
-    /// 章节唯一标识
-    pub chapter_id: i32,
+    /// 章节唯一标识 (UUID)
+    pub chapter_id: String,
     /// 章节标题
     pub title: String,
     /// 章节在文件中的起始位置
@@ -90,7 +119,7 @@ pub struct ChapterInfo {
     pub end_index: i64,
     /// 章节内容长度
     pub content_length: i64,
-    /// 章节序号
+    /// 章节序号（顺序索引，从 0 开始）
     pub index: i32,
 }
 
@@ -98,8 +127,8 @@ pub struct ChapterInfo {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
 pub struct PageContent {
-    /// 章节 ID
-    pub chapter_id: i32,
+    /// 章节索引（顺序号，从 0 开始）
+    pub chapter_index: i32,
     /// 页码
     pub page_index: i32,
     /// 页面内容
@@ -108,7 +137,7 @@ pub struct PageContent {
     pub is_last_page: bool,
 }
 
-// 排版后的文本块（暂未使用）
+// 排序后的文本块（暂未使用）
 // #[derive(Debug, Clone, Serialize, Deserialize)]
 // #[frb(non_opaque)]
 // pub struct TypesetBlock {
@@ -121,6 +150,22 @@ pub struct PageContent {
 //     /// 段落缩进（字符数）
 //     pub indent: u8,
 // }
+
+/// 搜索结果项
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[frb]
+pub struct SearchResult {
+    /// 章节 ID
+    pub chapter_id: i32,
+    /// 章节标题
+    pub chapter_title: String,
+    /// 匹配的文本片段
+    pub snippet: String,
+    /// 匹配位置（字符偏移）
+    pub position: i64,
+    /// 相关度评分
+    pub score: f32,
+}
 
 /// 文件类型枚举
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -165,9 +210,9 @@ pub struct TypesetConfig {
     pub first_line_indent: u8,
     /// 语言类型
     pub language: LanguageType,
-    /// 是否启用英文连字符
+    /// 是否启用英文连字
     pub enable_hyphenation: bool,
-    /// 连字符语言（如 "en-us", "en-gb"）
+    /// 连字语言（如 "en-us", "en-gb"）
     pub hyphenation_language: Option<String>,
 }
 
@@ -175,11 +220,11 @@ impl Default for TypesetConfig {
     /// 创建默认排版配置
     ///
     /// 默认值：
-    /// - 页面尺寸：1080 x 1920 像素（标准手机屏幕）
+    /// - 页面尺寸：1080 x 1920 像素（智能手机屏幕）
     /// - 字体大小：18 像素
     /// - 行间距：1.5
     /// - 首行缩进：2 字符
-    /// - 连字符：禁用
+    /// - 连字：禁用
     fn default() -> Self {
         Self {
             page_width: 1080,
@@ -208,20 +253,20 @@ impl Hash for TypesetConfig {
         self.first_line_indent.hash(state);
         self.language.hash(state);
         self.enable_hyphenation.hash(state);
-        // Option<String> 也需要哈希
+        // Option<String> 也要哈希
         self.hyphenation_language.hash(state);
     }
 }
 
 /// 排版配置修复报告
 ///
-/// 包含修复后的配置和所有修正项的描述
+/// 包含修复后的配置和所有修复项的描述
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
 pub struct TypesetConfigFixReport {
     /// 修复后的配置
     pub fixed_config: TypesetConfig,
-    /// 修正项描述列表
+    /// 修复项描述列表
     pub fixes: Vec<String>,
 }
 
@@ -259,90 +304,96 @@ impl TypesetConfig {
     /// ```
     #[frb(sync)]
     pub fn validate(&self) -> Result<(), TypesetConfigError> {
-        if self.page_width < 100 || self.page_width > 10000 {
+        if self.page_width < MIN_PAGE_WIDTH || self.page_width > MAX_PAGE_WIDTH {
             return Err(TypesetConfigError::InvalidParameter(format!(
-                "页面宽度必须在 100-10000 像素之间，当前值：{}",
-                self.page_width
+                "页面宽度必须在 {}-{} 像素之间，当前值：{}",
+                MIN_PAGE_WIDTH, MAX_PAGE_WIDTH, self.page_width
             )));
         }
 
-        if self.page_height < 100 || self.page_height > 10000 {
+        if self.page_height < MIN_PAGE_HEIGHT || self.page_height > MAX_PAGE_HEIGHT {
             return Err(TypesetConfigError::InvalidParameter(format!(
-                "页面高度必须在 100-10000 像素之间，当前值：{}",
-                self.page_height
+                "页面高度必须在 {}-{} 像素之间，当前值：{}",
+                MIN_PAGE_HEIGHT, MAX_PAGE_HEIGHT, self.page_height
             )));
         }
 
-        if self.font_size < 8 || self.font_size > 100 {
+        if self.font_size < MIN_FONT_SIZE || self.font_size > MAX_FONT_SIZE {
             return Err(TypesetConfigError::InvalidParameter(format!(
-                "字体大小必须在 8-100 像素之间，当前值：{}",
-                self.font_size
+                "字体大小必须在 {}-{} 像素之间，当前值：{}",
+                MIN_FONT_SIZE, MAX_FONT_SIZE, self.font_size
             )));
         }
 
-        if self.line_spacing < 0.5 || self.line_spacing > 5.0 {
+        if self.line_spacing < MIN_LINE_SPACING || self.line_spacing > MAX_LINE_SPACING {
             return Err(TypesetConfigError::InvalidParameter(format!(
-                "行间距必须在 0.5-5.0 之间，当前值：{}",
-                self.line_spacing
+                "行间距必须在 {}-{} 之间，当前值：{}",
+                MIN_LINE_SPACING, MAX_LINE_SPACING, self.line_spacing
             )));
         }
 
-        if self.letter_spacing < -10.0 || self.letter_spacing > 10.0 {
+        if self.letter_spacing < MIN_LETTER_SPACING || self.letter_spacing > MAX_LETTER_SPACING {
             return Err(TypesetConfigError::InvalidParameter(format!(
-                "字间距必须在 -10.0 到 10.0 之间，当前值：{}",
-                self.letter_spacing
+                "字间距必须在 {} 到 {} 之间，当前值：{}",
+                MIN_LETTER_SPACING, MAX_LETTER_SPACING, self.letter_spacing
             )));
         }
 
-        if self.paragraph_spacing < 0.0 || self.paragraph_spacing > 10.0 {
+        if self.paragraph_spacing < MIN_PARAGRAPH_SPACING
+            || self.paragraph_spacing > MAX_PARAGRAPH_SPACING
+        {
             return Err(TypesetConfigError::InvalidParameter(format!(
-                "段落间距必须在 0.0-10.0 之间，当前值：{}",
-                self.paragraph_spacing
+                "段落间距必须在 {}-{} 之间，当前值：{}",
+                MIN_PARAGRAPH_SPACING, MAX_PARAGRAPH_SPACING, self.paragraph_spacing
             )));
         }
 
-        if self.first_line_indent > 10 {
+        if self.first_line_indent > MAX_FIRST_LINE_INDENT {
             return Err(TypesetConfigError::InvalidParameter(format!(
-                "首行缩进必须在 0-10 字符之间，当前值：{}",
-                self.first_line_indent
+                "首行缩进必须在 0-{} 字符之间，当前值：{}",
+                MAX_FIRST_LINE_INDENT, self.first_line_indent
             )));
         }
 
         Ok(())
     }
 
-    /// 验证并修复配置参数到有效范围
+    /// 验证并修正配置参数到有效范围
     ///
     /// 如果参数超出范围，会自动调整为最接近的有效值。
     ///
     /// # 返回值
     ///
-    /// 返回修复后的配置
+    /// 返回修正后的配置
     #[frb(sync)]
     pub fn validate_and_fix(&self) -> TypesetConfig {
         TypesetConfig {
-            page_width: self.page_width.clamp(100, 10000),
-            page_height: self.page_height.clamp(100, 10000),
-            font_size: self.font_size.clamp(8, 100),
-            line_spacing: self.line_spacing.clamp(0.5, 5.0),
-            letter_spacing: self.letter_spacing.clamp(-10.0, 10.0),
-            paragraph_spacing: self.paragraph_spacing.clamp(0.0, 10.0),
-            first_line_indent: self.first_line_indent.clamp(0, 10),
+            page_width: self.page_width.clamp(MIN_PAGE_WIDTH, MAX_PAGE_WIDTH),
+            page_height: self.page_height.clamp(MIN_PAGE_HEIGHT, MAX_PAGE_HEIGHT),
+            font_size: self.font_size.clamp(MIN_FONT_SIZE, MAX_FONT_SIZE),
+            line_spacing: self.line_spacing.clamp(MIN_LINE_SPACING, MAX_LINE_SPACING),
+            letter_spacing: self
+                .letter_spacing
+                .clamp(MIN_LETTER_SPACING, MAX_LETTER_SPACING),
+            paragraph_spacing: self
+                .paragraph_spacing
+                .clamp(MIN_PARAGRAPH_SPACING, MAX_PARAGRAPH_SPACING),
+            first_line_indent: self.first_line_indent.clamp(0_u8, MAX_FIRST_LINE_INDENT),
             language: self.language.clone(),
             enable_hyphenation: self.enable_hyphenation,
             hyphenation_language: self.hyphenation_language.clone(),
         }
     }
 
-    /// 验证配置并返回修复报告
+    /// 验证配置并返回修正报告
     ///
-    /// 如果参数超出范围，会自动调整为最接近的有效值，并返回详细的修复报告。
+    /// 如果参数超出范围，会自动调整为最接近的有效值，并返回详细的修正报告。
     ///
     /// # 返回值
     ///
     /// 返回 `(TypesetConfig, TypesetConfigFixReport)` 元组，包含：
-    /// - 修复后的配置
-    /// - 修复报告（包含所有修正项描述）
+    /// - 修正后的配置
+    /// - 修正报告（包含所有修正项描述）
     ///
     /// # 示例
     ///
@@ -356,9 +407,9 @@ impl TypesetConfig {
     /// };
     ///
     /// let (fixed, report) = config.validate_and_report();
-    /// assert_eq!(fixed.font_size, 100); // 被修复为最大值
-    /// assert_eq!(fixed.page_width, 100); // 被修复为最小值
-    /// assert!(!report.fixes.is_empty()); // 有修复项
+    /// assert_eq!(fixed.font_size, 100); // 被修正为最大值
+    /// assert_eq!(fixed.page_width, 100); // 被修正为最小值
+    /// assert!(!report.fixes.is_empty()); // 有修正项
     /// ```
     #[frb(sync)]
     pub fn validate_and_report(&self) -> (TypesetConfig, TypesetConfigFixReport) {
@@ -367,77 +418,81 @@ impl TypesetConfig {
         let fixed_config = TypesetConfig {
             page_width: {
                 let original = self.page_width;
-                let fixed = self.page_width.clamp(100, 10000);
+                let fixed = self.page_width.clamp(MIN_PAGE_WIDTH, MAX_PAGE_WIDTH);
                 if original != fixed {
                     fixes.push(format!(
-                        "页面宽度：{} -> {} (限制在 100-10000 范围内)",
-                        original, fixed
+                        "页面宽度：{} -> {} (限制在 {}-{} 范围内)",
+                        original, fixed, MIN_PAGE_WIDTH, MAX_PAGE_WIDTH
                     ));
                 }
                 fixed
             },
             page_height: {
                 let original = self.page_height;
-                let fixed = self.page_height.clamp(100, 10000);
+                let fixed = self.page_height.clamp(MIN_PAGE_HEIGHT, MAX_PAGE_HEIGHT);
                 if original != fixed {
                     fixes.push(format!(
-                        "页面高度：{} -> {} (限制在 100-10000 范围内)",
-                        original, fixed
+                        "页面高度：{} -> {} (限制在 {}-{} 范围内)",
+                        original, fixed, MIN_PAGE_HEIGHT, MAX_PAGE_HEIGHT
                     ));
                 }
                 fixed
             },
             font_size: {
                 let original = self.font_size;
-                let fixed = self.font_size.clamp(8, 100);
+                let fixed = self.font_size.clamp(MIN_FONT_SIZE, MAX_FONT_SIZE);
                 if original != fixed {
                     fixes.push(format!(
-                        "字体大小：{} -> {} (限制在 8-100 范围内)",
-                        original, fixed
+                        "字体大小：{} -> {} (限制在 {}-{} 范围内)",
+                        original, fixed, MIN_FONT_SIZE, MAX_FONT_SIZE
                     ));
                 }
                 fixed
             },
             line_spacing: {
                 let original = self.line_spacing;
-                let fixed = self.line_spacing.clamp(0.5, 5.0);
+                let fixed = self.line_spacing.clamp(MIN_LINE_SPACING, MAX_LINE_SPACING);
                 if original != fixed {
                     fixes.push(format!(
-                        "行间距：{} -> {} (限制在 0.5-5.0 范围内)",
-                        original, fixed
+                        "行间距：{} -> {} (限制在 {}-{} 范围内)",
+                        original, fixed, MIN_LINE_SPACING, MAX_LINE_SPACING
                     ));
                 }
                 fixed
             },
             letter_spacing: {
                 let original = self.letter_spacing;
-                let fixed = self.letter_spacing.clamp(-10.0, 10.0);
+                let fixed = self
+                    .letter_spacing
+                    .clamp(MIN_LETTER_SPACING, MAX_LETTER_SPACING);
                 if original != fixed {
                     fixes.push(format!(
-                        "字间距：{} -> {} (限制在 -10.0-10.0 范围内)",
-                        original, fixed
+                        "字间距：{} -> {} (限制在 {}-{} 范围内)",
+                        original, fixed, MIN_LETTER_SPACING, MAX_LETTER_SPACING
                     ));
                 }
                 fixed
             },
             paragraph_spacing: {
                 let original = self.paragraph_spacing;
-                let fixed = self.paragraph_spacing.clamp(0.0, 10.0);
+                let fixed = self
+                    .paragraph_spacing
+                    .clamp(MIN_PARAGRAPH_SPACING, MAX_PARAGRAPH_SPACING);
                 if original != fixed {
                     fixes.push(format!(
-                        "段落间距：{} -> {} (限制在 0.0-10.0 范围内)",
-                        original, fixed
+                        "段落间距：{} -> {} (限制在 {}-{} 范围内)",
+                        original, fixed, MIN_PARAGRAPH_SPACING, MAX_PARAGRAPH_SPACING
                     ));
                 }
                 fixed
             },
             first_line_indent: {
                 let original = self.first_line_indent;
-                let fixed = self.first_line_indent.clamp(0, 10);
+                let fixed = self.first_line_indent.clamp(0_u8, MAX_FIRST_LINE_INDENT);
                 if original != fixed {
                     fixes.push(format!(
-                        "首行缩进：{} -> {} (限制在 0-10 范围内)",
-                        original, fixed
+                        "首行缩进：{} -> {} (限制在 0-{} 范围内)",
+                        original, fixed, MAX_FIRST_LINE_INDENT
                     ));
                 }
                 fixed
@@ -492,8 +547,8 @@ pub struct LocalBookInfo {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
 pub struct ReadingProgress {
-    /// 当前章节 ID
-    pub chapter_id: i32,
+    /// 当前章节索引（顺序号，从 0 开始）
+    pub chapter_index: i32,
     /// 当前页码
     pub page_index: i32,
     /// 总页数
@@ -509,7 +564,7 @@ pub struct ReadingProgress {
 impl Default for ReadingProgress {
     fn default() -> Self {
         Self {
-            chapter_id: 0,
+            chapter_index: 0,
             page_index: 0,
             total_pages: 0,
             progress: 0.0,
@@ -527,8 +582,8 @@ pub struct Bookmark {
     pub bookmark_id: String,
     /// 书籍 ID
     pub book_id: String,
-    /// 章节 ID
-    pub chapter_id: i32,
+    /// 章节索引（顺序号，从 0 开始）
+    pub chapter_index: i32,
     /// 页码
     pub page_index: i32,
     /// 书签标题（用户自定义或自动生成）
@@ -587,7 +642,7 @@ pub struct PdfMetadata {
 pub struct ReadingStats {
     /// 总阅读时长（秒）
     pub total_reading_time_seconds: i64,
-    /// 总阅读字数
+    /// 总阅读字符数
     pub total_characters_read: i64,
     /// 阅读书籍数量
     pub books_read_count: i32,
@@ -597,7 +652,7 @@ pub struct ReadingStats {
     pub consecutive_reading_days: i32,
     /// 今日阅读时长（秒）
     pub today_reading_time_seconds: i64,
-    /// 今日阅读字数
+    /// 今日阅读字符数
     pub today_characters_read: i64,
     /// 平均阅读速度（字/分钟）
     pub average_reading_speed: f32,
@@ -618,22 +673,6 @@ impl Default for ReadingStats {
     }
 }
 
-/// 每日阅读记录
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb(non_opaque)]
-pub struct DailyReadingRecord {
-    /// 日期（YYYY-MM-DD 格式）
-    pub date: String,
-    /// 阅读时长（秒）
-    pub reading_time_seconds: i64,
-    /// 阅读字数
-    pub characters_read: i64,
-    /// 阅读章节数
-    pub chapters_read: i32,
-    /// 阅读页数
-    pub pages_read: i32,
-}
-
 /// 阅读会话记录（单次连续阅读）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
@@ -642,15 +681,15 @@ pub struct ReadingSession {
     pub session_id: String,
     /// 书籍 ID
     pub book_id: String,
-    /// 章节 ID
-    pub chapter_id: i32,
+    /// 章节索引（顺序号，从 0 开始）
+    pub chapter_index: i32,
     /// 开始时间戳
     pub start_timestamp: i64,
     /// 结束时间戳
     pub end_timestamp: i64,
     /// 阅读时长（秒）
     pub duration_seconds: i64,
-    /// 阅读字数
+    /// 阅读字符数
     pub characters_read: i64,
 }
 
@@ -658,7 +697,7 @@ pub struct ReadingSession {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
 pub struct PageOffset {
-    /// 字符偏移量（在原始内容中的位置）
+    /// 字符偏移量（在原内容中的位置）
     pub offset: i64,
     /// 页面长度（字符数）
     pub length: i64,
@@ -668,11 +707,11 @@ pub struct PageOffset {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
 pub struct CachedLayout {
-    /// 章节 ID
-    pub chapter_id: i32,
+    /// 章节唯一标识 (UUID)
+    pub chapter_id: String,
     /// 排版配置哈希
     pub config_hash: String,
-    /// 页面偏移量列表
+    /// 页面偏移量序列
     pub page_offsets: Vec<PageOffset>,
     /// 总页数
     pub total_pages: i32,
@@ -694,17 +733,17 @@ pub struct LayoutCacheResult {
 
 /// 富文本片段类型
 ///
-/// 用于表示带有样式的文本片段，支持加粗、斜体等基础样式。
+/// 用于表示带有样式的文本片段，支持加粗、倾斜等基础样式。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
 pub enum RichTextSpan {
     /// 纯文本
     Plain { text: String },
-    /// 粗体
+    /// 加粗
     Bold { text: String },
-    /// 斜体
+    /// 倾斜
     Italic { text: String },
-    /// 粗体 + 斜体
+    /// 加粗 + 倾斜
     BoldItalic { text: String },
     /// 下划线
     Underline { text: String },
@@ -739,7 +778,7 @@ impl RichTextSpan {
 
 /// 富文本段落
 ///
-/// 由多个富文本片段组成的段落，支持首行缩进和标题标记。
+/// 由多个富文本片段组成的段落，支持首行缩进和标题标题等。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
 pub struct RichParagraph {
@@ -749,7 +788,7 @@ pub struct RichParagraph {
     pub indent: u8,
     /// 是否为标题
     pub is_heading: bool,
-    /// 标题层级（1-6，0 表示非标题）
+    /// 标题层级（1-6），表示非标题时为 0
     pub heading_level: u8,
     /// 段落样式类名（来自 HTML class 属性）
     pub class_name: Option<String>,
@@ -778,7 +817,7 @@ impl RichParagraph {
         }
     }
 
-    /// 获取完整文本内容（不含样式）
+    /// 获取完整文本内容（不含样式标记）
     pub fn full_text(&self) -> String {
         self.spans.iter().map(|s| s.text()).collect()
     }
@@ -790,8 +829,8 @@ impl RichParagraph {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
 pub struct RichChapterContent {
-    /// 章节 ID
-    pub chapter_id: i32,
+    /// 章节唯一标识 (UUID)
+    pub chapter_id: String,
     /// 段落列表
     pub paragraphs: Vec<RichParagraph>,
     /// 总字符数（不含样式标记）
@@ -815,15 +854,15 @@ impl RichChapterContent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
 pub struct SearchHit {
-    /// 章节 ID
-    pub chapter_id: i32,
+    /// 章节索引（顺序号，从 0 开始）
+    pub chapter_index: i32,
     /// 章节标题
     pub chapter_title: String,
     /// 匹配的文本片段
     pub snippet: String,
     /// 匹配位置（字符偏移）
     pub position: i64,
-    /// 相关度评分
+    /// 相关性评分
     pub score: f32,
 }
 
@@ -849,11 +888,11 @@ pub struct AlignedSegment {
     pub chinese: String,
     /// 英文内容
     pub english: String,
-    /// 相似度评分 (0.0 - 1.0)
+    /// 相似度评分（0.0 - 1.0）
     pub similarity_score: f32,
-    /// 中文在原文中的位置
+    /// 中文在原文本中的位置
     pub chinese_position: usize,
-    /// 英文在原文中的位置
+    /// 英文在原文本中的位置
     pub english_position: usize,
 }
 
@@ -861,7 +900,7 @@ pub struct AlignedSegment {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
 pub struct BilingualAlignment {
-    /// 对齐的片段列表
+    /// 对齐的片段序列
     pub segments: Vec<AlignedSegment>,
     /// 未对齐的中文片段
     pub unmatched_chinese: Vec<String>,
@@ -985,12 +1024,11 @@ mod tests {
 
         let (fixed, report) = config.validate_and_report();
 
-        // 验证修复后的值
-        assert_eq!(fixed.font_size, 100); // 被修复为最大值
-        assert_eq!(fixed.page_width, 100); // 被修复为最小值
-        assert_eq!(fixed.line_spacing, 5.0); // 被修复为最大值
-
-        // 验证修复报告
+        // 验证修正后的值
+        assert_eq!(fixed.font_size, 100); // 被修正为最大值
+        assert_eq!(fixed.page_width, 100); // 被修正为最小值
+        assert_eq!(fixed.line_spacing, 5.0); // 被修正为最大值
+                                             // 验证修正报告
         assert_eq!(report.fixes.len(), 3);
         assert!(report.fixes.iter().any(|f| f.contains("字体大小")));
         assert!(report.fixes.iter().any(|f| f.contains("页面宽度")));

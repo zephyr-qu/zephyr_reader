@@ -28,18 +28,10 @@ Future<String> validatePathSecurely({
   allowedBase: allowedBase,
 );
 
-/// 检查是否为安全路径（简化版，向后兼容）
+/// 验证文件路径并返回规范化的路径
 ///
 /// # 注意
 ///
-/// 此函数仅进行基本检查，建议使用 `validate_path_securely` 进行严格验证。
-Future<bool> isSafePath({required String path}) =>
-    RustLib.instance.api.crateApiSecurityIsSafePath(path: path);
-
-/// 验证文件路径并返回规范化的路径（向后兼容）
-///
-/// # 注意
-///
-/// 此函数使用简化的安全检查，建议使用 `validate_path_securely` 进行严格验证。
+/// 此函数使用严格的路径规范化，确保路径安全性。
 Future<String> validateFilePath({required String filePath}) =>
     RustLib.instance.api.crateApiSecurityValidateFilePath(filePath: filePath);

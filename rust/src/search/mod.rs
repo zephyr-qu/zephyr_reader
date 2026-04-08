@@ -5,25 +5,11 @@
 use jieba_rs::Jieba;
 use once_cell::sync::Lazy;
 use rusqlite::{params, Connection};
-use serde::{Deserialize, Serialize};
+
+use crate::{api::SearchResult, text_process::constants::SEARCH_CHUNK_SIZE};
 
 /// 全局 Jieba 分词器实例（懒加载）
 static JIEBA: Lazy<Jieba> = Lazy::new(Jieba::new);
-
-/// 搜索结果项
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SearchResult {
-    /// 章节 ID
-    pub chapter_id: i32,
-    /// 章节标题
-    pub chapter_title: String,
-    /// 匹配的文本片段
-    pub snippet: String,
-    /// 匹配位置（字符偏移）
-    pub position: i64,
-    /// 相关度评分
-    pub score: f32,
-}
 
 /// 搜索引擎（基于 SQLite FTS5）
 pub struct SearchEngine {
@@ -48,6 +34,11 @@ impl SearchEngine {
         )?;
 
         Ok(Self { conn })
+    }
+
+    /// 获取底层数据库连接（只读访问）
+    pub fn conn(&self) -> &Connection {
+        &self.conn
     }
 
     /// 索引章节内容
@@ -78,23 +69,49 @@ impl SearchEngine {
             tokenized_content.len()
         );
 
-        // 将内容分块索引（每块 500 字符）
-        const CHUNK_SIZE: usize = 500;
-        let chars: Vec<char> = tokenized_content.chars().collect();
-        let chunk_count = chars.chunks(CHUNK_SIZE).len();
+        // 将内容分块索引（每块 SEARCH_CHUNK_SIZE 字符）
+        // 使用单次遍历收集分块边界，避免 O(n) 内存占用
+        let char_count = tokenized_content.chars().count();
+        let chunk_count = char_count.div_ceil(SEARCH_CHUNK_SIZE);
+
+        // 收集每个分块的字节边界（仅 chunk_count 个元素，远小于 char_count）
+        let mut chunk_boundaries: Vec<usize> = Vec::with_capacity(chunk_count + 1);
+        chunk_boundaries.push(0);
+
+        let mut current_chunk_chars = 0;
+        for (byte_idx, _) in tokenized_content.char_indices() {
+            if current_chunk_chars >= SEARCH_CHUNK_SIZE {
+                chunk_boundaries.push(byte_idx);
+                current_chunk_chars = 0;
+            }
+            current_chunk_chars += 1;
+        }
+        chunk_boundaries.push(tokenized_content.len());
 
         let tx = self.conn.transaction()?;
 
-        for (i, chunk) in chars.chunks(CHUNK_SIZE).enumerate() {
-            let chunk_str: String = chunk.iter().collect();
-            let position = (i * CHUNK_SIZE) as i64;
-
-            tx.execute(
+        // 预编译语句，循环复用（避免重复 SQL 解析）
+        {
+            let mut stmt = tx.prepare(
                 "INSERT INTO search_index (book_id, chapter_id, chapter_title, content, position)
                  VALUES (?1, ?2, ?3, ?4, ?5)",
-                params![book_id, chapter_id, tokenized_title, chunk_str, position],
             )?;
-        }
+
+            for i in 0..chunk_count {
+                let byte_start = chunk_boundaries[i];
+                let byte_end = chunk_boundaries[i + 1];
+                let chunk_str = &tokenized_content[byte_start..byte_end];
+                let position = (i * SEARCH_CHUNK_SIZE) as i64;
+
+                stmt.execute(params![
+                    book_id,
+                    chapter_id,
+                    tokenized_title,
+                    chunk_str,
+                    position
+                ])?;
+            }
+        } // stmt 在此析构，释放对 tx 的借用
 
         tx.commit()?;
 
@@ -119,6 +136,8 @@ impl SearchEngine {
     ) -> Result<Vec<SearchResult>, rusqlite::Error> {
         // 对搜索关键词也进行分词
         let tokenized_query = tokenize_chinese_text(query);
+        // 转义 FTS5 特殊字符
+        let safe_query = escape_fts5_query(&tokenized_query);
 
         let mut stmt = self.conn.prepare(
             "SELECT chapter_id, chapter_title, content, position, bm25(search_index) as score
@@ -128,25 +147,19 @@ impl SearchEngine {
              LIMIT ?3",
         )?;
 
-        let results = stmt.query_map(
-            // 将 usize 转换为 i64
-            params![book_id, tokenized_query, limit as i64],
-            |row| {
-                Ok(SearchResult {
-                    chapter_id: row.get(0)?,
-                    chapter_title: row.get(1)?,
-                    snippet: truncate_snippet(&row.get::<_, String>(2)?, 100),
-                    position: row.get(3)?,
-                    score: row.get(4)?,
-                })
-            },
-        )?;
+        let results = stmt.query_map(params![book_id, safe_query, limit as i64], |row| {
+            Ok(SearchResult {
+                chapter_id: row.get(0)?,
+                chapter_title: row.get(1)?,
+                snippet: truncate_snippet(&row.get::<_, String>(2)?, 100),
+                position: row.get(3)?,
+                score: row.get(4)?,
+            })
+        })?;
 
         let mut collected = Vec::new();
-        for result in results {
-            if let Ok(search_result) = result {
-                collected.push(search_result);
-            }
+        for search_result in results.flatten() {
+            collected.push(search_result);
         }
 
         Ok(collected)
@@ -168,21 +181,39 @@ impl SearchEngine {
 
 /// 对中文文本进行分词
 ///
-/// 使用 jieba-rs 对中文内容进行分词，提升搜索准确率。
+/// 使用 jieba-rs 对中文内容进行分词（精确模式），提升搜索准确率。
 /// 对于混合文本，会自动处理中英文边界。
 pub fn tokenize_chinese_text(text: &str) -> String {
-    // 使用 jieba 分词，结果用空格连接
-    let words: Vec<&str> = JIEBA.cut_all(text);
+    // 使用 jieba 精确模式分词（cut_all=false），避免索引膨胀
+    let words: Vec<&str> = JIEBA.cut(text, false);
     words.join(" ")
+}
+
+/// 转义 FTS5 查询中的特殊字符
+///
+/// FTS5 使用双引号作为标识符引用，以下字符需要转义：
+/// - " 替换为 ""（双引号转义）
+/// - * ^ ~ 等特殊字符也需要转义
+fn escape_fts5_query(query: &str) -> String {
+    let escaped = query
+        .replace('"', "\"\"")
+        .replace('*', "\"*\"")
+        .replace('^', "\"^\"")
+        .replace('~', "\"~\"");
+
+    if escaped.trim().is_empty() {
+        return "\"\"".to_string();
+    }
+    format!("\"{}\"", escaped)
 }
 
 /// 截断摘要文本
 fn truncate_snippet(text: &str, max_len: usize) -> String {
-    let chars: Vec<char> = text.chars().collect();
-    if chars.len() <= max_len {
+    let char_count = text.chars().count();
+    if char_count <= max_len {
         return text.to_string();
     }
-    chars[..max_len].iter().collect::<String>() + "..."
+    text.chars().take(max_len).collect::<String>() + "..."
 }
 
 #[cfg(test)]

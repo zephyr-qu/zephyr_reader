@@ -12,10 +12,55 @@ const UTF8_BOM: [u8; 3] = [0xEF, 0xBB, 0xBF];
 const UTF16_LE_BOM: [u8; 2] = [0xFF, 0xFE];
 const UTF16_BE_BOM: [u8; 2] = [0xFE, 0xFF];
 
+/// 内存映射文件最大大小（100MB）
+const MMAP_MAX_SIZE: u64 = 100 * 1024 * 1024;
+
 /// 检测文件编码（使用内存映射，高性能）
 pub fn detect_encoding(file_path: &str) -> Result<&'static Encoding, ParserError> {
     let file = File::open(file_path)
         .map_err(|_e| ParserError::file_not_found(format!("无法打开文件：{}", file_path)))?;
+
+    // 验证是否为常规文件（非目录、非符号链接等）
+    let metadata = file
+        .metadata()
+        .map_err(|e| ParserError::file_read_error(file_path, e.to_string()))?;
+
+    if !metadata.is_file() {
+        return Err(ParserError::file_read_error(
+            file_path,
+            "路径不是常规文件".to_string(),
+        ));
+    }
+
+    // Unix 系统：检查特殊文件类型（FIFO、Socket、块设备）
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::FileTypeExt;
+        let ft = metadata.file_type();
+        if ft.is_fifo() || ft.is_socket() || ft.is_block_device() || ft.is_char_device() {
+            return Err(ParserError::file_read_error(
+                file_path,
+                "不支持的文件类型（特殊设备）".to_string(),
+            ));
+        }
+    }
+
+    // 提前检查空文件
+    if metadata.len() == 0 {
+        return Ok(UTF_8);
+    }
+
+    // 检查文件大小
+    if metadata.len() > MMAP_MAX_SIZE {
+        return Err(ParserError::file_read_error(
+            file_path,
+            format!(
+                "文件过大 ({}MB)，超过限制 {}MB",
+                metadata.len() / 1024 / 1024,
+                MMAP_MAX_SIZE / 1024 / 1024
+            ),
+        ));
+    }
 
     // 使用内存映射读取文件，避免一次性加载到内存
     let mmap = unsafe {
@@ -58,7 +103,7 @@ pub fn detect_encoding_from_bytes(buffer: &[u8]) -> Result<&'static Encoding, Pa
             return Ok(UTF_8);
         }
         // 如果 UTF-8 无效，回退到 GB18030
-        log::warn!("检测到 UTF-8 但解码失败，尝试使用 GB18030");
+        tracing::warn!("检测到 UTF-8 但解码失败，尝试使用 GB18030");
         return Ok(GB18030);
     }
 
@@ -97,7 +142,7 @@ pub fn decode_file(file_path: &str) -> Result<String, ParserError> {
     let (content, _, had_errors) = encoding.decode(&mmap);
 
     if had_errors {
-        log::warn!("解码文件时遇到错误，部分字符可能无法正确显示");
+        tracing::warn!("解码文件时遇到错误，部分字符可能无法正确显示");
     }
 
     Ok(content.into_owned())
@@ -107,7 +152,7 @@ pub fn decode_file(file_path: &str) -> Result<String, ParserError> {
 pub fn decode_bytes(bytes: &[u8], encoding: &'static Encoding) -> String {
     let (content, _, had_errors) = encoding.decode(bytes);
     if had_errors {
-        log::warn!("解码字节时遇到错误");
+        tracing::warn!("解码字节时遇到错误");
     }
     content.into_owned()
 }

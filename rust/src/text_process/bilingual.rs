@@ -16,8 +16,7 @@ impl SentenceSegmenter {
         let mut current = String::new();
         let mut start_pos = 0;
 
-        let chars: Vec<char> = text.chars().collect();
-        for (i, &c) in chars.iter().enumerate() {
+        for (i, c) in text.char_indices() {
             current.push(c);
 
             // 中文句子结束标志
@@ -27,7 +26,7 @@ impl SentenceSegmenter {
                     sentences.push((trimmed, start_pos));
                 }
                 current = String::new();
-                start_pos = i + 1;
+                start_pos = i + c.len_utf8();
             }
         }
 
@@ -46,22 +45,39 @@ impl SentenceSegmenter {
         let mut current = String::new();
         let mut start_pos = 0;
 
-        let chars: Vec<char> = text.chars().collect();
-        for (i, &c) in chars.iter().enumerate() {
+        // 常见英文缩写白名单
+        let abbreviations = [
+            "mr.", "mrs.", "ms.", "dr.", "prof.", "sr.", "jr.", "vs.", "etc.", "e.g.", "i.e.",
+            "inc.", "ltd.", "corp.", "approx.", "dept.", "est.", "gov.", "misc.", "no.",
+        ];
+
+        for (byte_idx, c) in text.char_indices() {
             current.push(c);
 
             // 英文句子结束标志
             if matches!(c, '.' | '!' | '?' | '\n' | '\r') {
-                // 检查是否是缩写（如 Mr. Dr.）
-                let is_abbreviation = i + 1 < chars.len() && chars[i + 1].is_ascii_lowercase();
+                // 检查是否是缩写
+                let lower_current = current.to_lowercase();
+                let is_abbreviation = abbreviations
+                    .iter()
+                    .any(|abbr| lower_current.ends_with(abbr));
 
-                if !is_abbreviation {
+                // 或者检查下一个字符：如果后面有空格+大写字母，可能是句子结束
+                // 如果后面直接跟小写字母，可能是缩写
+                let remaining = text[byte_idx + c.len_utf8()..].trim_start();
+                let _next_is_uppercase = remaining.chars().next().map(|n| n.is_ascii_uppercase());
+
+                // 是缩写，或者是缩写模式（点后紧跟小写），则不分割
+                let follow_pattern = remaining.chars().next().map(|n| n.is_ascii_lowercase());
+                let is_abbreviation_pattern = follow_pattern == Some(true);
+
+                if !is_abbreviation && !is_abbreviation_pattern {
                     let trimmed = current.trim().to_string();
                     if !trimmed.is_empty() {
                         sentences.push((trimmed, start_pos));
                     }
                     current = String::new();
-                    start_pos = i + 1;
+                    start_pos = byte_idx + c.len_utf8();
                 }
             }
         }
@@ -115,6 +131,9 @@ impl SimilarityCalculator {
 }
 
 /// 计算编辑距离（Levenshtein 距离）
+///
+/// 使用两行滚动数组优化，将空间复杂度从 O(n×m) 降到 O(min(n,m))。
+/// 同时添加快速失败检查，当长度差异过大时直接返回上限。
 fn levenshtein_distance(s1: &str, s2: &str) -> usize {
     let s1_graphemes: Vec<&str> = UnicodeSegmentation::graphemes(s1, true).collect();
     let s2_graphemes: Vec<&str> = UnicodeSegmentation::graphemes(s2, true).collect();
@@ -129,33 +148,31 @@ fn levenshtein_distance(s1: &str, s2: &str) -> usize {
         return len1;
     }
 
-    // 创建距离矩阵
-    let mut matrix = vec![vec![0; len2 + 1]; len1 + 1];
-
-    // 初始化第一行和第一列
-    for i in 0..=len1 {
-        matrix[i][0] = i;
-    }
-    for j in 0..=len2 {
-        matrix[0][j] = j;
+    // 快速失败：如果长度差异过大，直接返回上限
+    if (len1 as isize - len2 as isize).unsigned_abs() > len1.min(len2) / 2 {
+        return len1.max(len2) / 2;
     }
 
-    // 填充矩阵
-    for i in 1..=len1 {
-        for j in 1..=len2 {
-            let cost = if s1_graphemes[i - 1] == s2_graphemes[j - 1] {
-                0
-            } else {
-                1
-            };
+    // 使用两行滚动数组优化空间复杂度 O(min(n,m))
+    let (short, long) = if len1 < len2 {
+        (&s1_graphemes, &s2_graphemes)
+    } else {
+        (&s2_graphemes, &s1_graphemes)
+    };
 
-            matrix[i][j] = (matrix[i - 1][j] + 1)
-                .min(matrix[i][j - 1] + 1)
-                .min(matrix[i - 1][j - 1] + cost);
+    let mut prev: Vec<usize> = (0..=short.len()).collect();
+    let mut curr = vec![0; short.len() + 1];
+
+    for j in 1..=long.len() {
+        curr[0] = j;
+        for i in 1..=short.len() {
+            let cost = if short[i - 1] == long[j - 1] { 0 } else { 1 };
+            curr[i] = (prev[i] + 1).min(curr[i - 1] + 1).min(prev[i - 1] + cost);
         }
+        std::mem::swap(&mut prev, &mut curr);
     }
 
-    matrix[len1][len2]
+    prev[short.len()]
 }
 
 /// 双语对齐器
@@ -226,13 +243,20 @@ impl BilingualAligner {
                 }
 
                 if let Some((zh_match_idx, en_match_idx, zh_pos, en_pos)) = best_match {
-                    // 添加未匹配的中间句子
-                    for i in zh_idx..zh_match_idx {
-                        unmatched_zh.push(zh_sentences[i].0.clone());
-                    }
-                    for j in en_idx..en_match_idx {
-                        unmatched_en.push(en_sentences[j].0.clone());
-                    }
+                    // ✅ 优化点 1: 使用 iter().take().skip() 替代 for i in range
+                    // 获取 zh_idx 到 zh_match_idx 之间的未匹配中文句子
+                    unmatched_zh.extend(
+                        zh_sentences[zh_idx..zh_match_idx]
+                            .iter()
+                            .map(|(text, _)| text.clone()),
+                    );
+
+                    // 获取 en_idx 到 en_match_idx 之间的未匹配英文句子
+                    unmatched_en.extend(
+                        en_sentences[en_idx..en_match_idx]
+                            .iter()
+                            .map(|(text, _)| text.clone()),
+                    );
 
                     // 添加匹配的句子
                     segments.push(AlignedSegment {
@@ -259,12 +283,12 @@ impl BilingualAligner {
         }
 
         // 处理剩余未匹配的句子
-        for i in zh_idx..zh_sentences.len() {
-            unmatched_zh.push(zh_sentences[i].0.clone());
-        }
-        for j in en_idx..en_sentences.len() {
-            unmatched_en.push(en_sentences[j].0.clone());
-        }
+        // ✅ 优化点 2: 处理剩余未匹配的句子
+        // 原代码: for i in zh_idx..zh_sentences.len() { ... }
+        unmatched_zh.extend(zh_sentences[zh_idx..].iter().map(|(text, _)| text.clone()));
+
+        // 原代码: for j in en_idx..en_sentences.len() { ... }
+        unmatched_en.extend(en_sentences[en_idx..].iter().map(|(text, _)| text.clone()));
 
         BilingualAlignment {
             segments,
@@ -307,24 +331,29 @@ pub fn simple_bilingual_align(
     let mut segments = Vec::new();
     let max_count = zh_sentences.len().min(en_sentences.len());
 
-    for i in 0..max_count {
+    // 使用 zip 对齐两个语言的句子
+    for ((zh_text, zh_pos), (en_text, en_pos)) in zh_sentences
+        .iter()
+        .take(max_count)
+        .zip(en_sentences.iter().take(max_count))
+    {
         segments.push(AlignedSegment {
-            chinese: zh_sentences[i].0.clone(),
-            english: en_sentences[i].0.clone(),
+            chinese: zh_text.clone(),
+            english: en_text.clone(),
             similarity_score: 1.0, // 简单对齐，假设完全匹配
-            chinese_position: zh_sentences[i].1,
-            english_position: en_sentences[i].1,
+            chinese_position: *zh_pos,
+            english_position: *en_pos,
         });
     }
 
     let mut unmatched_zh = Vec::new();
     let mut unmatched_en = Vec::new();
 
-    for i in max_count..zh_sentences.len() {
-        unmatched_zh.push(zh_sentences[i].0.clone());
+    for (text, _pos) in zh_sentences.iter().skip(max_count) {
+        unmatched_zh.push(text.clone());
     }
-    for j in max_count..en_sentences.len() {
-        unmatched_en.push(en_sentences[j].0.clone());
+    for (text, _pos) in en_sentences.iter().skip(max_count) {
+        unmatched_en.push(text.clone());
     }
 
     BilingualAlignment {

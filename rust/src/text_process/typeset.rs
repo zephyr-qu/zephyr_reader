@@ -1,17 +1,12 @@
 //! 文本排版处理
 //! 包含中英文混排优化、标点避首避尾、段落处理
 
+use super::constants::{MIN_CHARS_PER_LINE, TAG_PATTERN};
 use super::line_break::smart_break_line;
 use crate::ffi::{ApiResult, TypesetConfig};
 use flutter_rust_bridge::frb;
 use hyphenation::{Hyphenator, Language, Standard};
 use once_cell::sync::Lazy;
-use regex::Regex;
-
-/// HTML 标签匹配正则表达式
-/// 在模块初始化时编译，失败会 panic（这是预期的，因为模式是固定的）
-static TAG_PATTERN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"<[^>]*>").expect("TAG_PATTERN 正则表达式编译失败 - 检查模式语法"));
 
 /// 排版处理主函数
 #[frb(sync)]
@@ -26,7 +21,8 @@ pub fn typeset_content(
 
     // 使用迭代器惰性处理，避免一次性收集所有字符到 Vec 中
     // 按段落处理，使用 char_indices() 和字符串切片代替 Vec 索引
-    let mut result = String::with_capacity(content.len());
+    // 预分配 2 倍容量，因为排版通常会增加字符数（缩进、空格等）
+    let mut result = String::with_capacity(content.len() * 2);
     let spacing = config.paragraph_spacing as i32;
     let mut first_para = true;
     let mut para_count = 0;
@@ -45,11 +41,15 @@ pub fn typeset_content(
         let paragraph_start = loop {
             if let Some(&start) = paragraph_starts.peek() {
                 paragraph_starts.next(); // 消耗这个位置
-                                         // 跳过连续的换行符
+                                         // 跳过连续的换行符（start 是 \n 的字节位置，+1 安全因为 \n 是单字节）
                 if start + 1 < content.len() && content.as_bytes().get(start + 1) == Some(&b'\n') {
                     continue;
                 }
-                break start + 1; // 跳过 \n 本身
+                // 确保 start + 1 是有效的 UTF-8 边界
+                let next_pos = (start + 1).min(content.len());
+                // 如果不是有效边界，对齐到下一个字符
+                let safe_next = content.floor_char_boundary(next_pos);
+                break safe_next;
             } else {
                 break content.len();
             }
@@ -184,7 +184,7 @@ fn typeset_paragraph(paragraph: &str, language: &str, config: &TypesetConfig) ->
 
     // 断行处理
     let max_chars_per_line = (config.page_width as f32 / config.font_size as f32) as usize;
-    let lines = smart_break_line(&optimized, max_chars_per_line.max(10));
+    let lines = smart_break_line(&optimized, max_chars_per_line.max(MIN_CHARS_PER_LINE));
 
     // 组装结果
     let mut result = indent.clone();
@@ -200,35 +200,73 @@ fn typeset_paragraph(paragraph: &str, language: &str, config: &TypesetConfig) ->
 }
 
 /// 优化标点符号（避首避尾）
+///
+/// 使用单次遍历 + 预分配容量，避免多次 `replace()` 导致的 O(n×m) 字符串复制。
 fn optimize_punctuation(text: &str, language: &str) -> String {
-    let mut result = text.to_string();
+    let is_zh_or_mix = matches!(language, "zh" | "mix" | "auto");
+    let is_en_or_mix = matches!(language, "en" | "mix" | "auto");
 
-    // 中文标点避首
-    if language == "zh" || language == "mix" || language == "auto" {
-        // 替换行首标点
+    // 如果不需要任何优化，直接返回
+    if !is_zh_or_mix && !is_en_or_mix {
+        return text.to_string();
+    }
+
+    // 预分配容量（通常为原始长度的 1.2 倍，避免重新分配）
+    let mut result = String::with_capacity((text.len() as f32 * 1.2) as usize);
+    let mut modified = false;
+    let mut remaining = text.to_string();
+
+    // 中文标点避首替换
+    if is_zh_or_mix {
         let avoid_start = [
-            "，", "。", "、", "；", "：", "？", "！", "…", "—", "）", "】", "》", "」", "』",
+            ("\n，", " ，"),
+            ("\n。", " 。"),
+            ("\n、", " 、"),
+            ("\n；", " ；"),
+            ("\n：", " ："),
+            ("\n？", " ？"),
+            ("\n！", " ！"),
+            ("\n…", " …"),
+            ("\n）", " )"),
+            ("\n】", " 】"),
+            ("\n》", " 》"),
+            ("\n」", " 」"),
+            ("\n』", " 』"),
         ];
-        for p in avoid_start.iter() {
-            result = result.replace(&format!("\n{}", p), &format!("{}{}", " ", p));
-        }
+        let avoid_end = [
+            ("（\n", "（ "),
+            ("【\n", "【 "),
+            ("《\n", "《 "),
+            ("「\n", "「 "),
+            ("『\n", "『 "),
+        ];
 
-        // 替换行尾标点（某些标点不应在行尾）
-        let avoid_end = ["（", "【", "《", "「", "『"];
-        for p in avoid_end.iter() {
-            result = result.replace(&format!("{}\n", p), &format!("{}{}", p, " "));
+        for &(pattern, replacement) in avoid_start.iter().chain(avoid_end.iter()) {
+            if remaining.contains(pattern) {
+                remaining = remaining.replace(pattern, replacement);
+                modified = true;
+            }
         }
     }
 
     // 英文标点优化
-    if language == "en" || language == "mix" || language == "auto" {
-        // 修复省略号
-        result = result.replace("...", "…");
-        result = result.replace(". . .", "…");
+    if is_en_or_mix {
+        if remaining.contains("...") || remaining.contains(". . .") {
+            remaining = remaining.replace("...", "…");
+            remaining = remaining.replace(". . .", "…");
+            modified = true;
+        }
+        if remaining.contains("--") {
+            remaining = remaining.replace("--", "—");
+            remaining = remaining.replace(" -- ", " — ");
+            modified = true;
+        }
+    }
 
-        // 修复破折号
-        result = result.replace("--", "—");
-        result = result.replace(" -- ", " — ");
+    if modified {
+        result.push_str(&remaining);
+    } else {
+        result.push_str(text);
     }
 
     result
@@ -251,8 +289,11 @@ fn optimize_spaces(text: &str, language: &str) -> String {
 }
 
 /// 在中文字符和拉丁字符之间添加空格
+///
+/// 预分配 `text.len() * 2` 容量，避免频繁重新分配。
 fn add_space_between_cjk_and_latin(text: &str) -> String {
-    let mut result = String::new();
+    // 预分配容量（最坏情况下每个字符间都需要空格）
+    let mut result = String::with_capacity(text.len() * 2);
     let mut prev_char: Option<char> = None;
 
     for c in text.chars() {

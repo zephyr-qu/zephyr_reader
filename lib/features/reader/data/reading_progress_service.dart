@@ -1,20 +1,19 @@
-/// 阅读进度服务（基于 Drift）
+/// 阅读进度服务（基于 Rust）
 ///
 /// 功能：
 /// - 保存和加载阅读进度
 /// - 记录阅读时长
-/// - 所有数据持久化到 Flutter 侧的 Drift 数据库
+/// - 所有数据持久化到 Rust 侧的 SQLite 数据库
 library;
 
 import 'package:injectable/injectable.dart';
-import 'package:zephyr_reader/core/database/database.dart';
 import 'package:zephyr_reader/core/error/app_error.dart';
-import 'package:zephyr_reader/domain/models/reading_progress.dart';
+import 'package:zephyr_reader/core/local/rust_storage_service.dart';
 
 /// 阅读进度数据
 class ReadingProgressData {
-  final int bookId;
-  final int chapterId;
+  final String bookId;
+  final int chapterIndex;
   final int pageIndex;
   final int totalPages;
   final int readingTimeSeconds;
@@ -22,21 +21,18 @@ class ReadingProgressData {
 
   ReadingProgressData({
     required this.bookId,
-    required this.chapterId,
+    required this.chapterIndex,
     required this.pageIndex,
     required this.totalPages,
     required this.readingTimeSeconds,
     required this.lastReadAt,
   });
 
-  /// 获取进度百分比
   double get progressPercent =>
       totalPages > 0 ? (pageIndex + 1) / totalPages : 0.0;
 
-  /// 格式化进度文本
   String get progressText => '${(progressPercent * 100).toStringAsFixed(1)}%';
 
-  /// 格式化时间文本
   String get readingTimeText {
     final minutes = readingTimeSeconds ~/ 60;
     final hours = minutes ~/ 60;
@@ -53,34 +49,28 @@ class ReadingProgressData {
 /// 阅读进度服务
 @injectable
 class ReadingProgressService {
-  final AppDatabase _db;
-
-  /// 内存缓存：bookId -> ReadingProgressData
+  final _storage = RustStorageService();
   ReadingProgressData? _currentProgress;
 
-  ReadingProgressService(this._db);
-
-  /// 更新阅读进度
   Future<Result<void>> updateReadingProgress({
-    required int bookId,
+    required String bookId,
     required int chapterId,
     required int pageIndex,
     required int totalPages,
     int readingTimeSeconds = 0,
   }) async {
     return Result.guardAsync(() async {
-      await _db.updateReadingProgress(
+      await _storage.saveReadingProgress(
         bookId: bookId,
-        chapterId: chapterId,
+        chapterIndex: chapterId,
+        charOffset: 0,
         pageIndex: pageIndex,
         totalPages: totalPages,
         readingTimeSeconds: readingTimeSeconds,
       );
-
-      // 更新缓存
       _currentProgress = ReadingProgressData(
         bookId: bookId,
-        chapterId: chapterId,
+        chapterIndex: chapterId,
         pageIndex: pageIndex,
         totalPages: totalPages,
         readingTimeSeconds: readingTimeSeconds,
@@ -89,69 +79,59 @@ class ReadingProgressService {
     });
   }
 
-  /// 加载阅读进度
-  Future<Result<ReadingProgressData?>> loadReadingProgress(int bookId) async {
+  Future<Result<ReadingProgressData?>> loadReadingProgress(String bookId) async {
     return Result.guardAsync(() async {
-      // 先检查缓存
       if (_currentProgress != null && _currentProgress!.bookId == bookId) {
         return _currentProgress;
       }
-
-      final readingProgress = await _db.getReadingProgress(bookId);
-      if (readingProgress == null) {
-        return null;
-      }
-
-      final progress = ReadingProgress.fromDb(readingProgress);
+      final progress = await _storage.getReadingProgress(bookId);
+      if (progress == null) return null;
       _currentProgress = ReadingProgressData(
         bookId: bookId,
-        chapterId: progress.chapterId,
+        chapterIndex: progress.chapterIndex,
         pageIndex: progress.pageIndex,
         totalPages: progress.totalPages,
-        readingTimeSeconds: progress.readingTimeSeconds,
-        lastReadAt: DateTime.fromMillisecondsSinceEpoch(
-          progress.lastReadTimestamp * 1000,
-        ),
+        readingTimeSeconds: progress.readingTimeSeconds.toInt(),
+        lastReadAt: progress.lastReadAt,
       );
-
       return _currentProgress;
     });
   }
 
-  /// 获取当前缓存的进度
   ReadingProgressData? get currentProgress => _currentProgress;
 
-  /// 清除阅读进度
-  Future<Result<void>> clearReadingProgress(int bookId) async {
+  Future<Result<void>> clearReadingProgress(String bookId) async {
     return Result.guardAsync(() async {
-      await _db.clearReadingProgress(bookId);
+      await _storage.clearReadingProgress(bookId);
       if (_currentProgress?.bookId == bookId) {
         _currentProgress = null;
       }
     });
   }
 
-  /// 获取所有阅读进度
   Future<Result<List<ReadingProgressData>>> getAllReadingProgress() async {
     return Result.guardAsync(() async {
-      final progressList = await _db.getAllReadingProgress();
-      return progressList.map((progress) {
-        final dbProgress = ReadingProgress.fromDb(progress);
-        return ReadingProgressData(
-          bookId: dbProgress.bookId,
-          chapterId: dbProgress.chapterId,
-          pageIndex: dbProgress.pageIndex,
-          totalPages: dbProgress.totalPages,
-          readingTimeSeconds: dbProgress.readingTimeSeconds,
-          lastReadAt: DateTime.fromMillisecondsSinceEpoch(
-            progress.lastReadTimestamp * 1000,
-          ),
-        );
-      }).toList();
+      final books = await _storage.getAllBooks();
+      final result = <ReadingProgressData>[];
+      for (final book in books) {
+        final progress = await _storage.getReadingProgress(book.bookId);
+        if (progress != null) {
+          result.add(
+            ReadingProgressData(
+              bookId: book.bookId,
+              chapterIndex: progress.chapterIndex,
+              pageIndex: progress.pageIndex,
+              totalPages: progress.totalPages,
+              readingTimeSeconds: progress.readingTimeSeconds.toInt(),
+              lastReadAt: progress.lastReadAt,
+            ),
+          );
+        }
+      }
+      return result;
     });
   }
 
-  /// 清除所有缓存
   void clearCache() {
     _currentProgress = null;
   }

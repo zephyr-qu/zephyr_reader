@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
-import 'package:zephyr_reader/features/bookshelf/domain/models/book_category.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 分类管理页面
 class CategoryManagementPage extends StatefulWidget {
@@ -113,7 +114,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     );
   }
 
-  Widget _buildCategoryTile(BookCategory category, ThemeData theme) {
+  Widget _buildCategoryTile(DbBookCategory category, ThemeData theme) {
     return Card(
       key: ValueKey(category.id),
       margin: const EdgeInsets.only(bottom: 8),
@@ -122,7 +123,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: category.colorValue,
+            // color: category.colorValue,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
@@ -162,7 +163,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
   }
 
   Future<void> _onReorder(int oldIndex, int newIndex) async {
-    final categories = List<BookCategory>.from(_vm.categories.value);
+    final categories = List<DbBookCategory>.from(_vm.categories.value);
     if (newIndex > oldIndex) {
       newIndex -= 1;
     }
@@ -172,10 +173,17 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     // 更新排序
     for (int i = 0; i < categories.length; i++) {
       if (categories[i].sortOrder != i) {
-        final updated = categories[i].copyWith(
+        final oldCategory = categories[i];
+        final updated = DbBookCategory(
+          id: oldCategory.id,
+          name: oldCategory.name,
+          color: oldCategory.color,
           sortOrder: i,
+          isSystem: oldCategory.isSystem,
+          createdAt: oldCategory.createdAt,
           updatedAt: DateTime.now(),
         );
+        categories[i] = updated;
         await _vm.updateCategory(updated);
       }
     }
@@ -296,7 +304,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     );
   }
 
-  void _showEditCategoryDialog(BookCategory category) {
+  void _showEditCategoryDialog(DbBookCategory category) {
     _nameController.text = category.name;
     String selectedColor = category.color;
 
@@ -383,9 +391,14 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                   return;
                 }
 
-                final updated = category.copyWith(
+                final oldCategory = category;
+                final updated = DbBookCategory(
+                  id: oldCategory.id,
                   name: name,
                   color: selectedColor,
+                  sortOrder: oldCategory.sortOrder,
+                  isSystem: oldCategory.isSystem,
+                  createdAt: oldCategory.createdAt,
                   updatedAt: DateTime.now(),
                 );
                 final success = await _vm.updateCategory(updated);
@@ -411,7 +424,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     );
   }
 
-  void _showDeleteConfirm(BookCategory category) {
+  void _showDeleteConfirm(DbBookCategory category) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

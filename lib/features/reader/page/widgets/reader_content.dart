@@ -16,7 +16,7 @@ import '../../application/services/chapter_content_service.dart';
 /// 阅读器内容组件
 class ReaderContent extends HookWidget {
   /// 书籍 ID
-  final int bookId;
+  final String bookId;
 
   /// 章节 ID
   final int chapterId;

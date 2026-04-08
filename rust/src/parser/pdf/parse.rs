@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use super::metadata::extract_metadata_from_path;
 use super::text::estimate_total_chars;
+use crate::api::security::validate_file_path;
 use crate::ffi::{ApiResult, BookInfo, ChapterInfo, ParseResult, ParserError};
 use flutter_rust_bridge::frb;
 
@@ -28,7 +29,7 @@ const DEFAULT_PAGES_PER_CHAPTER: usize = 10;
 #[frb(sync)]
 pub fn parse_pdf(file_path: String) -> ApiResult<ParseResult> {
     let start_time = std::time::Instant::now();
-    log::info!("开始解析 PDF 文件：{}", file_path);
+    tracing::info!("开始解析 PDF 文件：{}", file_path);
 
     // 检查文件是否存在
     if !Path::new(&file_path).exists() {
@@ -78,7 +79,7 @@ pub fn parse_pdf(file_path: String) -> ApiResult<ParseResult> {
     };
 
     let elapsed = start_time.elapsed();
-    log::info!(
+    tracing::info!(
         "PDF 解析完成：{} 章节，{} 字符，{} 页，耗时：{:?}",
         chapter_count,
         total_chars,
@@ -101,21 +102,18 @@ fn generate_chapters(total_pages: usize, pages_per_chapter: usize) -> Vec<Chapte
     }
 
     let pages_per_chapter = pages_per_chapter.max(1);
-    let mut chapter_id = 0;
 
-    for start_page in (0..total_pages).step_by(pages_per_chapter) {
+    for (chapter_index, start_page) in (0..total_pages).step_by(pages_per_chapter).enumerate() {
         let end_page = (start_page + pages_per_chapter).min(total_pages);
 
         chapters.push(ChapterInfo {
-            chapter_id,
-            title: format!("第 {} 章", chapter_id + 1),
+            chapter_id: Uuid::new_v4().to_string(),
+            title: format!("第 {} 章", chapter_index + 1),
             start_index: start_page as i64,
             end_index: end_page as i64,
             content_length: (end_page - start_page) as i64,
-            index: chapter_id,
+            index: chapter_index as i32,
         });
-
-        chapter_id += 1;
     }
 
     chapters
@@ -138,26 +136,19 @@ pub async fn async_parse_pdf_file(file_path: String) -> ApiResult<ParseResult> {
     .map_err(|e| ParserError::Other(format!("异步任务执行失败：{}", e)))?
 }
 
-/// 验证文件路径是否安全
-fn validate_file_path(file_path: &str) -> ApiResult<String> {
-    if file_path.contains("..\\") || file_path.contains("../") {
-        return Err(ParserError::Other(format!("文件路径不安全：{}", file_path)));
-    }
-
-    if !Path::new(file_path).exists() {
-        return Err(ParserError::file_not_found(file_path));
-    }
-
-    Ok(file_path.to_string())
-}
-
 /// 获取 PDF 文件的页数
+///
+/// 注意：每次调用都会创建新的 Pdfium 实例（涉及加载动态库）。
+/// 由于此函数调用频率低，性能影响可接受。
+#[allow(dead_code)]
 #[frb(sync)]
 pub fn get_pdf_page_count(file_path: String) -> i32 {
-    use pdf::file::FileOptions;
+    use pdfium_render::prelude::Pdfium;
 
-    match FileOptions::cached().open(&file_path) {
-        Ok(doc) => doc.num_pages() as i32,
+    let pdfium = Pdfium::default();
+    let load_result = pdfium.load_pdf_from_file(&file_path, None);
+    match load_result {
+        Ok(pdf) => pdf.pages().len() as i32,
         Err(_) => 0,
     }
 }
@@ -246,18 +237,6 @@ mod tests {
         // 测试每章 0 页的边界情况（应该被修正为至少 1 页）
         let chapters = generate_chapters(10, 0);
         assert!(!chapters.is_empty());
-    }
-
-    #[test]
-    fn test_validate_file_path_traversal() {
-        let result = validate_file_path("../etc/passwd");
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_validate_file_path_windows_traversal() {
-        let result = validate_file_path("..\\windows\\system32");
-        assert!(result.is_err());
     }
 
     #[test]

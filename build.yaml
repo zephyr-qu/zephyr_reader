@@ -14,14 +14,6 @@ targets:
         generate_for:
           - lib/**
 
-      # 其他生成器
-      drift_dev:
-        generate_for:
-          - lib/domain/**
-          - lib/data/**
-          - lib/core/**
-          - lib/core/database/**
-
       retrofit_generator:
         generate_for:
           - lib/features/**/api/**

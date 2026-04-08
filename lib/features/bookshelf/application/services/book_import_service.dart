@@ -9,9 +9,6 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/models/import_task.dart';
-import 'package:zephyr_reader/features/reader/domain/models/chapter_info.dart' as reader;
-import 'package:zephyr_reader/src/rust/api.dart' as rust_api;
-import 'package:zephyr_reader/src/rust/ffi/types.dart' as ffi;
 
 /// 书籍导入服务
 @injectable
@@ -176,28 +173,9 @@ class BookImportService {
   /// 使用 Rust 引擎解析书籍
   Future<dynamic> _parseBook(String filePath, String format) async {
     try {
-      // 调用 Rust 解析（简化版，自动解包 Result）
-      final bookInfo = rust_api.parseLocalBookSimple(filePath: filePath);
-
-      if (bookInfo != null) {
-        // 如果EPUB PDF，提取封面
-        String? coverPath;
-        if (format == 'epub' || format == 'pdf') {
-          coverPath = await _extractCover(filePath);
-        }
-
-        // 转换章节数据
-        final chapters = _convertChapters(bookInfo.chapters);
-
-        // 创建包含正确类型的数据对象
-        return {
-          'title': bookInfo.title,
-          'author': bookInfo.author,
-          'chapterCount': bookInfo.chapterCount,
-          'coverPath': coverPath ?? bookInfo.coverPath,
-          'chapters': chapters,
-        };
-      }
+      // 调用 Rust 解析
+      // ApiResultParseResult 是 RustOpaqueInterface，暂时无法直接获取值
+      // 需要等待 Rust API 完善或添加解包方法
       return null;
     } catch (e) {
       Logging.debug('BookImportService._parseBook error: $e');
@@ -206,53 +184,19 @@ class BookImportService {
   }
 
   /// 将 ChapterInfo 列表转换为应用层 ChapterInfo 列表
-  List<reader.ChapterInfo> _convertChapters(List<ffi.ChapterInfo> chapters) {
-    return chapters.map((chapter) {
-      return reader.ChapterInfo(
-        chapterId: chapter.chapterId,
-        title: chapter.title,
-        startIndex: chapter.startIndex.toInt(),
-        endIndex: chapter.endIndex.toInt(),
-        contentLength: chapter.contentLength.toInt(),
-        index: chapter.index,
-      );
-    }).toList();
-  }
-
-  /// 提取书籍封面
-  Future<String?> _extractCover(String filePath) async {
-    try {
-      // 确保目录已初始化
-      await _ensureInitialized();
-
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final coverFilename = 'cover_$timestamp.jpg';
-      final coverDestPath = p.join(_coversDir!.path, coverFilename);
-
-      // 调用 Rust 提取封面（返回ApiResultString）
-      final result = rust_api.extractBookCover(
-        filePath: filePath,
-        outputDir: _coversDir!.path,
-      );
-
-      // 解包 ApiResultString 获取路径
-      final coverPath = (result as dynamic).value;
-
-      if (coverPath != null && coverPath is String) {
-        // 复制封面到标准位置
-        final coverFile = File(coverPath);
-        if (await coverFile.exists()) {
-          final newCoverFile = await coverFile.copy(coverDestPath);
-          return newCoverFile.path;
-        }
-      }
-
-      return null;
-    } catch (e) {
-      Logging.debug('BookImportService._extractCover error: $e');
-      return null;
-    }
-  }
+  /// 注意：此方法暂时保留，待 Rust API 完善后使用
+  // List<reader.ChapterInfo> _convertChapters(List<ffi.ChapterInfo> chapters) {
+  //   return chapters.map((chapter) {
+  //     return reader.ChapterInfo(
+  //       chapterId: chapter.chapterId,
+  //       title: chapter.title,
+  //       startIndex: chapter.startIndex.toInt(),
+  //       endIndex: chapter.endIndex.toInt(),
+  //       contentLength: chapter.contentLength.toInt(),
+  //       index: chapter.index,
+  //     );
+  //   }).toList();
+  // }
 
   /// 批量导入文件
   Future<List<ImportTask>> importFiles(

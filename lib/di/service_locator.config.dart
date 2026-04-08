@@ -13,12 +13,10 @@ import 'package:dio/dio.dart' as _i361;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
-import 'package:zephyr_reader/core/database/database.dart' as _i731;
 import 'package:zephyr_reader/core/local/file_storage.dart' as _i772;
 import 'package:zephyr_reader/core/network/network_module.dart' as _i510;
 import 'package:zephyr_reader/core/reader/reader_config.dart' as _i849;
 import 'package:zephyr_reader/di/app_module.dart' as _i431;
-import 'package:zephyr_reader/di/database_module.dart' as _i559;
 import 'package:zephyr_reader/features/article/application/article_view_model.dart'
     as _i556;
 import 'package:zephyr_reader/features/article/data/article_api.dart' as _i569;
@@ -42,16 +40,14 @@ import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_
     as _i377;
 import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_settings_service.dart'
     as _i265;
-import 'package:zephyr_reader/features/bookshelf/application/services/category_cache_service.dart'
-    as _i702;
 import 'package:zephyr_reader/features/bookshelf/application/states/bookshelf_state.dart'
     as _i895;
-import 'package:zephyr_reader/features/bookshelf/data/repositories/book_repository_impl.dart'
-    as _i183;
-import 'package:zephyr_reader/features/bookshelf/data/repositories/bookmark_repository_impl.dart'
-    as _i956;
-import 'package:zephyr_reader/features/bookshelf/data/repositories/chapter_repository_impl.dart'
-    as _i514;
+import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_book_repository.dart'
+    as _i682;
+import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_bookmark_repository.dart'
+    as _i565;
+import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_chapter_repository.dart'
+    as _i454;
 import 'package:zephyr_reader/features/bookshelf/domain/repositories/book_repository.dart'
     as _i134;
 import 'package:zephyr_reader/features/bookshelf/domain/repositories/bookmark_repository.dart'
@@ -72,8 +68,8 @@ import 'package:zephyr_reader/features/reader/data/reading_progress_service.dart
     as _i189;
 import 'package:zephyr_reader/features/reader/data/reading_stats_service.dart'
     as _i152;
-import 'package:zephyr_reader/features/reader/data/repositories/reader_repository_impl.dart'
-    as _i500;
+import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart'
+    as _i1054;
 import 'package:zephyr_reader/features/reader/domain/repositories/reader_repository.dart'
     as _i537;
 import 'package:zephyr_reader/features/search/application/search_view_model.dart'
@@ -82,6 +78,8 @@ import 'package:zephyr_reader/features/search/data/search_service.dart'
     as _i584;
 import 'package:zephyr_reader/features/search/domain/repositories/search_repository.dart'
     as _i384;
+import 'package:zephyr_reader/features/statistics/application/reading_stats_service.dart'
+    as _i1072;
 import 'package:zephyr_reader/features/sync/application/sync_view_model.dart'
     as _i988;
 import 'package:zephyr_reader/features/sync/data/sync_service.dart' as _i456;
@@ -96,7 +94,6 @@ extension GetItInjectableX on _i174.GetIt {
   }) async {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
     final appModule = _$AppModule();
-    final databaseModule = _$DatabaseModule();
     final networkModule = _$NetworkModule();
     await gh.factoryAsync<_i460.SharedPreferences>(
       () => appModule.prefs,
@@ -105,51 +102,31 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i715.BookImportService>(() => _i715.BookImportService());
     gh.factory<_i39.BookImportServiceV2>(() => _i39.BookImportServiceV2());
     gh.factory<_i895.BookshelfState>(() => _i895.BookshelfState());
-    await gh.singletonAsync<_i731.AppDatabase>(
-      () => databaseModule.database,
-      preResolve: true,
+    gh.factory<_i874.BookmarkService>(() => _i874.BookmarkService());
+    gh.factory<_i365.LayoutCacheService>(() => _i365.LayoutCacheService());
+    gh.factory<_i189.ReadingProgressService>(
+      () => _i189.ReadingProgressService(),
     );
+    gh.factory<_i152.ReadingStatsService>(() => _i152.ReadingStatsService());
+    gh.factory<_i1072.ReadingStatsService>(() => _i1072.ReadingStatsService());
     gh.lazySingletonAsync<_i772.FileStorage>(() {
       final i = _i772.FileStorage();
       return i.init().then((_) => i);
     });
     gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
-    gh.lazySingleton<_i1052.BookmarkRepository>(
-      () => _i956.BookmarkRepositoryImpl(gh<_i731.AppDatabase>()),
-    );
+    gh.factory<_i821.ChapterRepository>(() => _i454.RustChapterRepository());
+    gh.factory<_i1052.BookmarkRepository>(() => _i565.RustBookmarkRepository());
     gh.lazySingleton<_i384.SearchRepository>(() => _i584.SearchService());
-    gh.factory<_i874.BookmarkService>(
-      () => _i874.BookmarkService(gh<_i731.AppDatabase>()),
-    );
-    gh.factory<_i365.LayoutCacheService>(
-      () => _i365.LayoutCacheService(gh<_i731.AppDatabase>()),
-    );
-    gh.factory<_i189.ReadingProgressService>(
-      () => _i189.ReadingProgressService(gh<_i731.AppDatabase>()),
-    );
-    gh.factory<_i152.ReadingStatsService>(
-      () => _i152.ReadingStatsService(gh<_i731.AppDatabase>()),
-    );
-    gh.lazySingletonAsync<_i537.ReaderRepository>(
-      () async => _i500.ReaderRepositoryImpl(
-        gh<_i731.AppDatabase>(),
-        await getAsync<_i772.FileStorage>(),
-      ),
-    );
     gh.factory<_i1.SearchViewModel>(
       () => _i1.SearchViewModel(gh<_i384.SearchRepository>()),
     );
     gh.factory<_i569.ArticleApi>(() => _i569.ArticleApi(gh<_i361.Dio>()));
     gh.factory<_i60.AuthApi>(() => _i60.AuthApi(gh<_i361.Dio>()));
-    gh.lazySingleton<_i134.BookRepository>(
-      () => _i183.BookRepositoryImpl(gh<_i731.AppDatabase>()),
-    );
+    gh.factory<_i537.ReaderRepository>(() => _i1054.RustReaderRepository());
     gh.lazySingleton<_i29.ArticleRepository>(
       () => _i582.ArticleService(gh<_i569.ArticleApi>()),
     );
-    gh.lazySingleton<_i821.ChapterRepository>(
-      () => _i514.ChapterRepositoryImpl(gh<_i731.AppDatabase>()),
-    );
+    gh.factory<_i134.BookRepository>(() => _i682.RustBookRepository());
     gh.factory<_i377.BookshelfService>(
       () => _i377.BookshelfService(
         gh<_i134.BookRepository>(),
@@ -189,14 +166,11 @@ extension GetItInjectableX on _i174.GetIt {
       ),
     );
     gh.factory<_i790.BookshelfViewModel>(
-      () => _i790.BookshelfViewModel(
-        gh<_i134.BookRepository>(),
-        gh<_i702.CategoryCacheService>(),
-      ),
+      () => _i790.BookshelfViewModel(gh<_i134.BookRepository>()),
     );
-    gh.factoryAsync<_i335.ReaderViewModel>(
-      () async => _i335.ReaderViewModel(
-        await getAsync<_i537.ReaderRepository>(),
+    gh.factory<_i335.ReaderViewModel>(
+      () => _i335.ReaderViewModel(
+        gh<_i537.ReaderRepository>(),
         gh<_i849.ReaderConfig>(),
         gh<_i817.ChapterContentService>(),
         gh<_i189.ReadingProgressService>(),
@@ -208,7 +182,5 @@ extension GetItInjectableX on _i174.GetIt {
 }
 
 class _$AppModule extends _i431.AppModule {}
-
-class _$DatabaseModule extends _i559.DatabaseModule {}
 
 class _$NetworkModule extends _i510.NetworkModule {}

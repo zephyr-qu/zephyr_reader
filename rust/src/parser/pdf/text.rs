@@ -1,12 +1,13 @@
 //! PDF 文本提取模块
 //!
-//! 使用 `pdf` crate 实现 PDF 文本提取功能。
+//! 使用 `pdfium-render` 实现 PDF 文本提取功能。
 //! 支持多页面文本提取和字符数估算。
 
-use pdf::file::FileOptions;
+use pdfium_render::prelude::{PdfPageIndex, Pdfium};
 use std::path::Path;
 
 use crate::ffi::{ApiResult, ParserError};
+use crate::text_process::constants::PDF_CHARS_PER_PAGE;
 
 /// 从 PDF 文件中提取指定页面的文本
 ///
@@ -24,11 +25,12 @@ pub fn get_pdf_page_text(file_path: &str, page_index: usize) -> ApiResult<String
         return Err(ParserError::file_not_found(file_path));
     }
 
-    let doc = FileOptions::cached()
-        .open(file_path)
-        .map_err(|e| ParserError::PdfParseError(format!("打开 PDF 文件失败：{}", e)))?;
+    let pdfium = Pdfium::default();
+    let load_result = pdfium.load_pdf_from_file(file_path, None);
+    let pdf =
+        load_result.map_err(|e| ParserError::PdfParseError(format!("打开 PDF 文件失败：{}", e)))?;
 
-    let num_pages = doc.num_pages() as usize;
+    let num_pages: usize = pdf.pages().len().into();
     if page_index >= num_pages {
         return Err(ParserError::PdfParseError(format!(
             "页面索引超出范围：{} (总共 {} 页)",
@@ -36,13 +38,24 @@ pub fn get_pdf_page_text(file_path: &str, page_index: usize) -> ApiResult<String
         )));
     }
 
-    let _page = doc
-        .get_page(page_index as u32)
+    let page = pdf
+        .pages()
+        .get(page_index as PdfPageIndex)
         .map_err(|e| ParserError::PageExtractError(format!("获取页面失败：{}", e)))?;
 
-    // 简化实现：返回页面内容的字符串表示
-    // 注意：pdf crate 的文本提取功能有限，这里返回占位符
-    let text = format!("[PDF Page {}]", page_index);
+    // 使用 pdfium-render 提取页面文本
+    let page_text = page
+        .text()
+        .map_err(|e| ParserError::PdfParseError(format!("提取页面文本失败：{}", e)))?;
+
+    // 使用 chars() 获取所有字符并拼接
+    let chars = page_text.chars();
+    let mut text = String::new();
+    for char_obj in chars.iter() {
+        if let Some(ch) = char_obj.unicode_char() {
+            text.push(ch);
+        }
+    }
 
     Ok(text)
 }
@@ -64,11 +77,12 @@ pub fn get_chapter_text(file_path: &str, start_page: usize, end_page: usize) -> 
         return Err(ParserError::file_not_found(file_path));
     }
 
-    let doc = FileOptions::cached()
-        .open(file_path)
-        .map_err(|e| ParserError::PdfParseError(format!("打开 PDF 文件失败：{}", e)))?;
+    let pdfium = Pdfium::default();
+    let load_result = pdfium.load_pdf_from_file(file_path, None);
+    let pdf =
+        load_result.map_err(|e| ParserError::PdfParseError(format!("打开 PDF 文件失败：{}", e)))?;
 
-    let num_pages = doc.num_pages() as usize;
+    let num_pages: usize = pdf.pages().len().into();
     if start_page >= num_pages {
         return Err(ParserError::PdfParseError(format!(
             "起始页面超出范围：{} (总共 {} 页)",
@@ -76,7 +90,7 @@ pub fn get_chapter_text(file_path: &str, start_page: usize, end_page: usize) -> 
         )));
     }
 
-    let actual_end = end_page.min(num_pages as usize);
+    let actual_end = end_page.min(num_pages);
     if actual_end <= start_page {
         return Err(ParserError::PdfParseError(format!(
             "无效的页面范围：{} - {}",
@@ -86,14 +100,27 @@ pub fn get_chapter_text(file_path: &str, start_page: usize, end_page: usize) -> 
 
     let mut chapter_text = String::new();
     for page_index in start_page..actual_end {
-        let _page = doc.get_page(page_index as u32).map_err(|e| {
+        let page = pdf.pages().get(page_index as PdfPageIndex).map_err(|e| {
             ParserError::PageExtractError(format!("获取页面 {} 失败：{}", page_index, e))
         })?;
+
+        let page_text = page.text().map_err(|e| {
+            ParserError::PdfParseError(format!("提取页面 {} 文本失败：{}", page_index, e))
+        })?;
+
+        // 使用 chars() 获取所有字符并拼接
+        let chars = page_text.chars();
+        let mut text = String::new();
+        for char_obj in chars.iter() {
+            if let Some(ch) = char_obj.unicode_char() {
+                text.push(ch);
+            }
+        }
 
         if !chapter_text.is_empty() {
             chapter_text.push('\n');
         }
-        chapter_text.push_str(&format!("[PDF Page {}]", page_index));
+        chapter_text.push_str(&text);
     }
 
     Ok(chapter_text)
@@ -112,35 +139,19 @@ pub fn get_chapter_text(file_path: &str, start_page: usize, end_page: usize) -> 
 ///
 /// 估算的总字符数
 pub fn estimate_total_chars(file_path: &str, _sample_pages: usize) -> i64 {
-    let doc = match FileOptions::cached().open(file_path) {
-        Ok(d) => d,
+    let pdfium = Pdfium::default();
+    let pdf = match pdfium.load_pdf_from_file(file_path, None) {
+        Ok(p) => p,
         Err(_) => return 0,
     };
 
-    let num_pages = doc.num_pages();
+    let num_pages: usize = pdf.pages().len().into();
     if num_pages == 0 {
         return 0;
     }
 
-    // 简化估算：每页约 500 字符
-    num_pages as i64 * 500
-}
-
-/// 获取 PDF 文件的总页数
-///
-/// # 参数
-///
-/// * `file_path` - PDF 文件路径
-///
-/// # 返回值
-///
-/// 总页数，如果失败返回 0
-pub fn get_pdf_page_count(file_path: &str) -> usize {
-    let doc = match FileOptions::cached().open(file_path) {
-        Ok(d) => d,
-        Err(_) => return 0,
-    };
-    doc.num_pages() as usize
+    // 简化估算：每页约 PDF_CHARS_PER_PAGE 字符
+    num_pages as i64 * PDF_CHARS_PER_PAGE as i64
 }
 
 #[cfg(test)]
@@ -177,8 +188,5 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("empty.pdf");
         fs::write(&file_path, b"").unwrap();
-
-        let count = get_pdf_page_count(file_path.to_str().unwrap());
-        assert_eq!(count, 0);
     }
 }
