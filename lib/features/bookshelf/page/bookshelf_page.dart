@@ -4,7 +4,6 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
-import 'package:zephyr_reader/domain/models/book.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/application/services/book_import_service.dart';
 import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart';
@@ -12,6 +11,7 @@ import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_
 import 'package:zephyr_reader/features/bookshelf/domain/models/import_task.dart';
 import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
 import 'package:zephyr_reader/shared/widget/ui_components.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 书架页面
 class BookshelfPage extends StatelessWidget {
@@ -223,7 +223,7 @@ class BookshelfPage extends StatelessWidget {
               onPressed: () {
                 context.pushNamed(
                   RouteNames.reader,
-                  pathParameters: {'id': book.id.toString()},
+                  pathParameters: {'id': book.bookId},
                 );
               },
             ),
@@ -274,7 +274,7 @@ class BookshelfPage extends StatelessWidget {
                     category.name,
                     isSelected,
                     () => vm.selectCategory(category),
-                    category.colorValue,
+                    _parseColor(category.color),
                     category.isSystem,
                   );
                 },
@@ -479,7 +479,7 @@ class BookshelfPage extends StatelessWidget {
 
   Widget _buildBookCard(
     BuildContext context,
-    Book book,
+    DbBookRecord book,
     DeviceType deviceType,
   ) {
     final theme = Theme.of(context);
@@ -493,7 +493,7 @@ class BookshelfPage extends StatelessWidget {
       child: InkWell(
         onTap: () => context.pushNamed(
           RouteNames.bookDetail,
-          pathParameters: {'id': book.id.toString()},
+          pathParameters: {'id': book.bookId},
         ),
         onLongPress: () {
           _showBookOptions(context, book);
@@ -597,7 +597,7 @@ class BookshelfPage extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${(book.progress * 100).toInt()}%',
+                              '${(book.chapterCount > 0 ? 1 : 0) * 100}%',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
@@ -639,10 +639,10 @@ class BookshelfPage extends StatelessWidget {
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      _buildStatusChip(book.status, theme),
+                      _buildStatusChip(book.status.name, theme),
                       const Spacer(),
                       Text(
-                        '${book.totalChapters} 章',
+                        '${book.chapterCount} 章',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -654,9 +654,6 @@ class BookshelfPage extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
-                      value: book.progress / 100,
-                      minHeight: 4,
-                      backgroundColor: theme.colorScheme.outlineVariant,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         theme.colorScheme.primary,
                       ),
@@ -669,6 +666,18 @@ class BookshelfPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _parseColor(String hex) {
+    try {
+      final hexColor = hex.replaceAll('#', '');
+      if (hexColor.length == 6) {
+        return Color(int.parse('FF$hexColor', radix: 16));
+      } else if (hexColor.length == 8) {
+        return Color(int.parse(hexColor, radix: 16));
+      }
+    } catch (_) {}
+    return Colors.grey;
   }
 
   Widget _buildPlaceholder(ThemeData theme, bool isDesktop) {
@@ -720,7 +729,7 @@ class BookshelfPage extends StatelessWidget {
     );
   }
 
-  void _showBookOptions(BuildContext context, Book book) {
+  void _showBookOptions(BuildContext context, DbBookRecord book) {
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -737,7 +746,7 @@ class BookshelfPage extends StatelessWidget {
                 Navigator.pop(context);
                 context.pushNamed(
                   RouteNames.reader,
-                  pathParameters: {'id': book.id.toString()},
+                  pathParameters: {'id': book.bookId},
                 );
               },
             ),
@@ -751,7 +760,7 @@ class BookshelfPage extends StatelessWidget {
                 Navigator.pop(context);
                 context.pushNamed(
                   RouteNames.bookDetail,
-                  pathParameters: {'id': book.id.toString()},
+                  pathParameters: {'id': book.bookId},
                 );
               },
             ),
@@ -784,7 +793,7 @@ class BookshelfPage extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirm(BuildContext context, Book book) {
+  void _showDeleteConfirm(BuildContext context, DbBookRecord book) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

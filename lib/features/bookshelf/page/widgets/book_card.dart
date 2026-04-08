@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
-import 'package:zephyr_reader/domain/models/book.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart' as rust_models;
 import 'package:zephyr_reader/features/bookshelf/domain/models/bookshelf_filter.dart';
 
 import '../../application/services/bookshelf_service.dart';
@@ -24,7 +24,7 @@ class BookCard extends StatelessWidget {
   });
 
   /// 书籍信息
-  final Book book;
+  final rust_models.DbBookRecord book;
 
   /// 视图模式
   final BookshelfViewMode viewMode;
@@ -70,18 +70,15 @@ class BookCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 封面区域
             Expanded(
               child: Stack(
                 children: [
-                  // 封面图片
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(12),
                     ),
                     child: _buildCoverImage(context),
                   ),
-                  // 选中遮罩
                   if (selectingMode)
                     Positioned.fill(
                       child: Container(
@@ -99,31 +96,14 @@ class BookCard extends StatelessWidget {
                             : null,
                       ),
                     ),
-                  // 进度标签
-                  if (book.progress > 0 && !selectingMode)
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: LinearProgressIndicator(
-                        value: book.progress,
-                        minHeight: 3,
-                        backgroundColor: theme.colorScheme.outlineVariant,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
-            // 书籍信息
             Padding(
               padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 书名
                   Text(
                     book.title,
                     style: theme.textTheme.titleSmall?.copyWith(
@@ -133,7 +113,6 @@ class BookCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  // 作
                   Text(
                     book.author,
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -143,7 +122,6 @@ class BookCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
-                  // 进度百分
                   Row(
                     children: [
                       Icon(
@@ -153,14 +131,13 @@ class BookCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${(book.progress * 100).toStringAsFixed(1)}%',
+                        '${book.chapterCount} 章',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const Spacer(),
-                      // 格式标签
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 6,
@@ -171,7 +148,7 @@ class BookCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          book.fileType.toUpperCase(),
+                          book.format.name.toUpperCase(),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: _getFormatColor(theme),
                             fontWeight: FontWeight.w600,
@@ -203,7 +180,6 @@ class BookCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            // 选择
             if (selectingMode)
               Padding(
                 padding: const EdgeInsets.only(right: 12),
@@ -216,18 +192,15 @@ class BookCard extends StatelessWidget {
                       : theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-            // 封面缩略
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: _buildCoverImage(context, width: 60, height: 80),
             ),
             const SizedBox(width: 16),
-            // 书籍信息
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 书名
                   Text(
                     book.title,
                     style: theme.textTheme.titleMedium?.copyWith(
@@ -237,7 +210,6 @@ class BookCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  // 作
                   Text(
                     book.author,
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -247,30 +219,8 @@ class BookCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
-                  // 进度和格
                   Row(
                     children: [
-                      // 进度
-                      Expanded(
-                        child: LinearProgressIndicator(
-                          value: book.progress,
-                          minHeight: 4,
-                          backgroundColor: theme.colorScheme.outlineVariant,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            theme.colorScheme.primary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        '${(book.progress * 100).toStringAsFixed(0)}%',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // 格式标签
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -281,7 +231,7 @@ class BookCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          book.fileType.toUpperCase(),
+                          book.format.name.toUpperCase(),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: _getFormatColor(theme),
                             fontWeight: FontWeight.w600,
@@ -292,7 +242,6 @@ class BookCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  // 最后阅读时
                   if (book.lastReadAt != null)
                     Text(
                       '阅读${DateFormat('MM-dd HH:mm').format(book.lastReadAt!)}',
@@ -304,21 +253,17 @@ class BookCard extends StatelessWidget {
                 ],
               ),
             ),
-            // 更多操作
             if (!selectingMode)
               PopupMenuButton<String>(
                 onSelected: (value) async {
                   switch (value) {
                     case 'detail':
-                      // 跳转到书籍详情页
                       if (onTap != null) onTap!();
                       break;
                     case 'rename':
-                      // 显示重命名对话框
                       await _showRenameDialog(context, book);
                       break;
                     case 'delete':
-                      // 显示删除确认对话
                       await _showDeleteConfirm(context, book);
                       break;
                   }
@@ -394,20 +339,21 @@ class BookCard extends StatelessWidget {
   }
 
   Color _getFormatColor(ThemeData theme) {
-    switch (book.fileType) {
-      case 'txt':
+    switch (book.format) {
+      case rust_models.DbBookFormat.txt:
         return theme.colorScheme.primary;
-      case 'epub':
+      case rust_models.DbBookFormat.epub:
         return theme.colorScheme.secondary;
-      case 'pdf':
+      case rust_models.DbBookFormat.pdf:
         return theme.colorScheme.tertiary;
-      default:
-        return theme.colorScheme.onSurfaceVariant;
     }
   }
 
   /// 显示重命名对话框
-  Future<void> _showRenameDialog(BuildContext context, Book book) async {
+  Future<void> _showRenameDialog(
+    BuildContext context,
+    rust_models.DbBookRecord book,
+  ) async {
     final controller = TextEditingController(text: book.title);
 
     final confirmed = await showDialog<bool>(
@@ -436,10 +382,9 @@ class BookCard extends StatelessWidget {
     );
 
     if (confirmed == true && controller.text.isNotEmpty) {
-      // 调用服务更新书名
       final bookshelfService = GetIt.I.get<BookshelfService>();
       final updated = await bookshelfService.updateBookTitle(
-        book.id,
+        book.bookId,
         controller.text,
       );
 
@@ -458,7 +403,10 @@ class BookCard extends StatelessWidget {
   }
 
   /// 显示删除确认对话
-  Future<void> _showDeleteConfirm(BuildContext context, Book book) async {
+  Future<void> _showDeleteConfirm(
+    BuildContext context,
+    rust_models.DbBookRecord book,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -481,9 +429,8 @@ class BookCard extends StatelessWidget {
     );
 
     if (confirmed == true) {
-      // 调用服务删除书籍
       final bookshelfService = GetIt.I.get<BookshelfService>();
-      final deleted = await bookshelfService.deleteBook(book.id);
+      final deleted = await bookshelfService.deleteBook(book.bookId);
 
       if (!context.mounted) return;
 

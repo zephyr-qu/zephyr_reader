@@ -46,7 +46,7 @@ pub fn parse_txt(file_path: String) -> ApiResult<ParseResult> {
 #[frb(sync)]
 pub fn parse_txt_with_config(file_path: String, config: ParseConfig) -> ApiResult<ParseResult> {
     let start_time = std::time::Instant::now();
-    log::info!(
+    tracing::info!(
         "开始解析 TXT 文件：{} (并行：{})",
         file_path,
         config.enable_parallel
@@ -103,7 +103,7 @@ pub fn parse_txt_with_config(file_path: String, config: ParseConfig) -> ApiResul
     };
 
     let elapsed = start_time.elapsed();
-    log::info!(
+    tracing::info!(
         "TXT 解析完成：{} 章节，{} 字符，耗时：{:?}",
         chapters.len(),
         total_chars,
@@ -120,6 +120,9 @@ pub fn parse_txt_with_config(file_path: String, config: ParseConfig) -> ApiResul
 }
 
 /// 从内容中提取章节
+///
+/// **重要**：返回的 `ChapterInfo.start_index` 和 `end_index` 是**字节偏移**（而非字符索引）。
+/// 在使用这些值切片内容时，必须确保在 UTF-8 字符边界处截断。
 fn extract_chapters(content: &str) -> Vec<ChapterInfo> {
     let mut chapters: Vec<ChapterInfo> = Vec::new();
     let mut chapter_id = 0;
@@ -147,7 +150,7 @@ fn extract_chapters(content: &str) -> Vec<ChapterInfo> {
             }
 
             chapters.push(ChapterInfo {
-                chapter_id,
+                chapter_id: uuid::Uuid::new_v4().to_string(),
                 title: m.as_str().trim().to_string(),
                 start_index: start,
                 end_index: content.len() as i64,
@@ -163,7 +166,7 @@ fn extract_chapters(content: &str) -> Vec<ChapterInfo> {
     // 如果没有匹配到任何章节，将整个文件作为一章
     if chapters.is_empty() {
         chapters.push(ChapterInfo {
-            chapter_id: 0,
+            chapter_id: uuid::Uuid::new_v4().to_string(),
             title: "全文".to_string(),
             start_index: 0,
             end_index: content.len() as i64,
@@ -178,7 +181,7 @@ fn extract_chapters(content: &str) -> Vec<ChapterInfo> {
 /// 获取章节内容（分页）
 pub fn get_chapter_content(
     file_path: &str,
-    chapter_id: i32,
+    chapter_index: i32,
     config: &TypesetConfig,
 ) -> ApiResult<Vec<PageContent>> {
     let content = decode::decode_file(file_path)?;
@@ -186,13 +189,21 @@ pub fn get_chapter_content(
 
     let chapter = chapters
         .iter()
-        .find(|c| c.chapter_id == chapter_id)
-        .ok_or_else(|| ParserError::ChapterExtractError(format!("未找到章节 {}", chapter_id)))?;
+        .find(|c| c.index == chapter_index)
+        .ok_or_else(|| ParserError::ChapterExtractError(format!("未找到章节 {}", chapter_index)))?;
 
     // 提取章节内容
-    let start = chapter.start_index as usize;
-    let end = chapter.end_index as usize;
-    let chapter_text = &content[start..end.min(content.len())];
+    // 注意：extract_chapters 返回的 start_index/end_index 是字节偏移（来自 regex::Match::start/end）
+    // 需要确保在 UTF-8 字符边界处截断
+    let start_byte = chapter.start_index as usize;
+    let end_byte = chapter.end_index.min(content.len() as i64) as usize;
+
+    // 使用 floor_char_boundary 和 ceil_char_boundary 确保 UTF-8 边界对齐
+    // （Rust 1.79+ 提供这些方法，如果使用更低版本需手动实现）
+    let safe_start = content.floor_char_boundary(start_byte);
+    let safe_end = content.ceil_char_boundary(end_byte);
+
+    let chapter_text = &content[safe_start..safe_end];
 
     // 排版处理
     let typeset_content =
@@ -201,7 +212,7 @@ pub fn get_chapter_content(
     // 简单分页（实际应该根据像素计算）
     let pages = simple_paginate(
         &typeset_content,
-        chapter_id,
+        chapter.index,
         config.page_height as usize / 20,
     );
 
@@ -209,14 +220,14 @@ pub fn get_chapter_content(
 }
 
 /// 简单分页
-fn simple_paginate(content: &str, chapter_id: i32, lines_per_page: usize) -> Vec<PageContent> {
+fn simple_paginate(content: &str, chapter_index: i32, lines_per_page: usize) -> Vec<PageContent> {
     let lines: Vec<&str> = content.lines().collect();
     let mut pages = Vec::new();
 
     for (page_index, chunk) in lines.chunks(lines_per_page).enumerate() {
         let is_last = page_index == lines.len().div_ceil(lines_per_page) - 1;
         pages.push(PageContent {
-            chapter_id,
+            chapter_index,
             page_index: page_index as i32,
             content: chunk.join("\n"),
             is_last_page: is_last,
@@ -225,7 +236,7 @@ fn simple_paginate(content: &str, chapter_id: i32, lines_per_page: usize) -> Vec
 
     if pages.is_empty() {
         pages.push(PageContent {
-            chapter_id,
+            chapter_index,
             page_index: 0,
             content: content.to_string(),
             is_last_page: true,

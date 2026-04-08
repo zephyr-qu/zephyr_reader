@@ -4,11 +4,14 @@
 
 use std::sync::Arc;
 
+use flutter_rust_bridge::frb;
+
 use crate::ffi::{ApiResult, ParseResult, ParserError};
 use crate::parser::traits::{BookMetadata, BookParser};
 use crate::text_process::chapter_detect::extract_chapters;
 
 /// TXT 文件解析器
+#[frb(opaque)]
 pub struct TxtParser;
 
 impl TxtParser {
@@ -60,14 +63,37 @@ impl BookParser for TxtParser {
 
         let chapter = chapters
             .iter()
-            .find(|c| c.chapter_id == chapter_id)
+            .find(|c| c.index == chapter_id)
             .ok_or_else(|| {
                 ParserError::ChapterExtractError(format!("未找到章节 {}", chapter_id))
             })?;
 
+        // 注意：start_index 和 end_index 是字节偏移（来自 regex::Match::start()）
+        // 直接使用字节边界进行切片，无需 char_indices 转换
         let start = chapter.start_index as usize;
         let end = chapter.end_index as usize;
-        Ok(content[start..end.min(content.len())].to_string())
+
+        // 边界检查
+        if start >= content.len() {
+            return Ok(String::new());
+        }
+
+        let safe_end = end.min(content.len());
+
+        // 验证 UTF-8 边界（确保不会截断多字节字符）
+        if !content.is_char_boundary(start) || !content.is_char_boundary(safe_end) {
+            tracing::warn!(
+                "章节边界不是有效的 UTF-8 字符边界：start={}, end={}",
+                start,
+                safe_end
+            );
+            return Err(ParserError::ChapterExtractError(format!(
+                "章节边界无效：{}-{}",
+                start, safe_end
+            )));
+        }
+
+        Ok(content[start..safe_end].to_string())
     }
 }
 

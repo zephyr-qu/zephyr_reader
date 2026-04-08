@@ -1,74 +1,66 @@
-/// 书签服务（基于 Drift）
-///
-/// 功能：
-/// - 添加、删除书签
-/// - 获取书籍的所有书签
-/// - 获取所有书签
+/// 书签服务（基于 Rust）
 library;
 
 import 'package:injectable/injectable.dart';
-import 'package:zephyr_reader/core/database/database.dart';
 import 'package:zephyr_reader/core/error/app_error.dart';
-import 'package:zephyr_reader/domain/models/bookmark.dart';
+import 'package:zephyr_reader/core/local/rust_storage_service.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-/// 书签服务
 @injectable
 class BookmarkService {
-  BookmarkService(this._db);
-  final AppDatabase _db;
+  final _storage = RustStorageService();
 
-  /// 添加书签
-  Future<Result<int>> addBookmark({
-    required int bookId,
+  Future<Result<String>> addBookmark({
+    required String bookId,
     required int chapterId,
     required int pageIndex,
     required String title,
-    String? note,
   }) async {
     return Result.guardAsync(() async {
-      final createdTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-
-      await _db.addBookmark(
-        bookId: bookId,
-        chapterId: chapterId,
-        pageIndex: pageIndex,
+      final rustBookmark = await _storage.createBookmark(
+        bookId: 'book_$bookId',
+        chapterIndex: chapterId,
+        charOffset: pageIndex,
         title: title,
-        createdTimestamp: createdTimestamp,
-        note: note,
-        position: 0,
       );
-
-      return createdTimestamp.toInt();
+      return rustBookmark.id;
     });
   }
 
-  /// 获取书籍的所有书签
-  Future<Result<List<Bookmark>>> getBookmarks(int bookId) async {
+  Future<Result<List<DbBookmark>>> getBookmarks(String bookId) async {
     return Result.guardAsync(() async {
-      final bookmarks = await _db.getBookmarks(bookId);
-      return bookmarks.map((e) => Bookmark.fromDb(e)).toList();
+      return _storage.getBookmarks('book_$bookId');
     });
   }
 
-  /// 删除书签
-  Future<Result<void>> removeBookmark(int bookmarkId) async {
+  Future<Result<void>> removeBookmark(String bookmarkId) async {
     return Result.guardAsync(() async {
-      await _db.removeBookmark(bookmarkId);
+      await _storage.deleteBookmark(bookmarkId);
     });
   }
 
-  /// 清除书籍的所有书签
-  Future<Result<void>> clearBookmarks(int bookId) async {
+  Future<Result<void>> clearBookmarks(String bookId) async {
     return Result.guardAsync(() async {
-      await _db.clearBookmarks(bookId);
+      final result = await getBookmarks(bookId);
+      if (result.isSuccess) {
+        for (final bm in result.value!) {
+          await removeBookmark(bm.id);
+        }
+      }
     });
   }
 
-  /// 获取所有书签
-  Future<Result<List<Bookmark>>> getAllBookmarks() async {
+  Future<Result<List<DbBookmark>>> getAllBookmarks() async {
     return Result.guardAsync(() async {
-      final bookmarks = await _db.getAllBookmarks();
-      return bookmarks.map((bookmark) => Bookmark.fromDb(bookmark)).toList();
+      final books = await _storage.getAllBooks();
+      final allBookmarks = <DbBookmark>[];
+      for (final book in books) {
+        final result = await getBookmarks(book.bookId);
+        if (result.isSuccess) {
+          allBookmarks.addAll(result.value!);
+        }
+      }
+      return allBookmarks;
     });
   }
 }

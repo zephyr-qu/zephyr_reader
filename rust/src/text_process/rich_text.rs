@@ -18,8 +18,8 @@ pub fn parse_html_to_rich_text(html_content: &str) -> Vec<RichParagraph> {
 
     let mut paragraphs = Vec::new();
 
-    // 遍历 DOM 树提取段落
-    traverse_dom(&dom.document, &mut paragraphs, false, 0, None);
+    // ✅ 优化：移除无用的 in_block 和 heading_depth 参数
+    traverse_dom(&dom.document, &mut paragraphs, None);
 
     paragraphs
 }
@@ -28,9 +28,7 @@ pub fn parse_html_to_rich_text(html_content: &str) -> Vec<RichParagraph> {
 fn traverse_dom(
     handle: &Handle,
     paragraphs: &mut Vec<RichParagraph>,
-    in_block: bool,
-    heading_depth: u8,
-    current_class: Option<String>,
+    inherited_class: Option<String>, // 用于继承父级的 class
 ) {
     let node = handle;
 
@@ -40,7 +38,14 @@ fn traverse_dom(
         ..
     } = node.data
     {
-        let class_name = get_class_name(attrs);
+        let current_class = get_class_name(attrs);
+
+        // 决定当前节点的有效 class：如果当前节点有 class 则使用，否则继承父级
+        let effective_class = if !current_class.is_empty() {
+            Some(current_class.clone())
+        } else {
+            inherited_class.clone()
+        };
 
         match name.local.as_ref() {
             // 块级元素 - 创建新段落
@@ -54,17 +59,18 @@ fn traverse_dom(
                         indent: 2,
                         is_heading: false,
                         heading_level: 0,
-                        class_name: if class_name.is_empty() {
-                            None
+                        class_name: if current_class.is_empty() {
+                            inherited_class // 如果当前没 class，尝试继承
                         } else {
-                            Some(class_name)
+                            Some(current_class)
                         },
                     });
                 }
 
-                // 递归处理子节点
+                // 递归处理子节点：块级元素内部通常重新开始，或者根据需求决定是否继承
+                // 这里选择重置为 None，因为 p/div 内部通常是一个新的上下文
                 for child in node.children.borrow().iter() {
-                    traverse_dom(child, paragraphs, false, 0, None);
+                    traverse_dom(child, paragraphs, None);
                 }
             }
 
@@ -81,7 +87,7 @@ fn traverse_dom(
 
                 // 递归处理子节点
                 for child in node.children.borrow().iter() {
-                    traverse_dom(child, paragraphs, false, level, None);
+                    traverse_dom(child, paragraphs, None);
                 }
             }
 
@@ -104,38 +110,32 @@ fn traverse_dom(
                         indent: 0,
                         is_heading: false,
                         heading_level: 0,
-                        class_name: if class_name.is_empty() {
-                            None
+                        class_name: if current_class.is_empty() {
+                            inherited_class
                         } else {
-                            Some(class_name)
+                            Some(current_class)
                         },
                     });
                 }
+
+                // li 内部可能还有嵌套列表或其他结构，继续递归
+                for child in node.children.borrow().iter() {
+                    traverse_dom(child, paragraphs, effective_class.clone());
+                }
             }
 
-            // 其他块级元素...
+            // 其他元素（如 span, b, i 等内联元素，或 ul, ol 等容器）
             _ => {
                 for child in node.children.borrow().iter() {
-                    traverse_dom(
-                        child,
-                        paragraphs,
-                        in_block,
-                        heading_depth,
-                        Some(class_name.clone()),
-                    );
+                    // 传递有效的 class 给子节点，以便内联元素能获取到上下文样式
+                    traverse_dom(child, paragraphs, effective_class.clone());
                 }
             }
         }
     } else {
-        // 非元素节点，递归处理子节点
+        // 非元素节点（如文本节点、注释），递归处理子节点（虽然文本节点通常没有子节点）
         for child in node.children.borrow().iter() {
-            traverse_dom(
-                child,
-                paragraphs,
-                in_block,
-                heading_depth,
-                current_class.clone(),
-            );
+            traverse_dom(child, paragraphs, inherited_class.clone());
         }
     }
 }
@@ -323,7 +323,7 @@ pub fn parse_simple_html(html: &str) -> Vec<RichParagraph> {
     let mut paragraphs = Vec::new();
 
     // 按段落分割
-    let blocks: Vec<&str> = html.split(|c| c == '\n' || c == '\r').collect();
+    let blocks: Vec<&str> = html.split(['\n', '\r']).collect();
 
     for block in blocks {
         let block = block.trim();
@@ -464,13 +464,14 @@ fn extract_attr_value(tag: &str, attr_name: &str) -> Option<String> {
         let rest = &tag[pos + pattern.len()..];
         let rest = rest.trim_start();
 
-        if rest.starts_with('"') {
-            if let Some(end) = rest[1..].find('"') {
-                return Some(rest[1..end + 1].to_string());
+        // ✅ 优化：使用 strip_prefix 替代手动切片和 starts_with 检查
+        if let Some(stripped) = rest.strip_prefix('"') {
+            if let Some(end) = stripped.find('"') {
+                return Some(stripped[..end].to_string());
             }
-        } else if rest.starts_with('\'') {
-            if let Some(end) = rest[1..].find('\'') {
-                return Some(rest[1..end + 1].to_string());
+        } else if let Some(stripped) = rest.strip_prefix('\'') {
+            if let Some(end) = stripped.find('\'') {
+                return Some(stripped[..end].to_string());
             }
         }
     }

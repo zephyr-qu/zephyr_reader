@@ -53,7 +53,7 @@ fn extract_toc_items_recursive(
         let full_title = format_title_with_hierarchy(title, _level);
 
         chapters.push(ChapterInfo {
-            chapter_id: *chapter_id,
+            chapter_id: uuid::Uuid::new_v4().to_string(),
             title: full_title,
             start_index: index as i64,
             end_index: (index + 1) as i64,
@@ -91,7 +91,7 @@ fn generate_chapters_from_spine(spine: &[String]) -> Vec<ChapterInfo> {
             let title = extract_title_from_href(href);
 
             ChapterInfo {
-                chapter_id: i as i32,
+                chapter_id: uuid::Uuid::new_v4().to_string(),
                 title,
                 start_index: i as i64,
                 end_index: (i + 1) as i64,

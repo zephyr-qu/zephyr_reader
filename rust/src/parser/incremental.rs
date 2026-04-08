@@ -3,13 +3,18 @@
 //! 实现文件变更检测和增量解析，避免重复解析未变更的内容。
 //! 适用于大文件重新加载场景，显著提升性能。
 
-use std::collections::HashMap;
 use std::fs;
 use std::hash::Hasher;
+use std::num::NonZeroUsize;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use lru::LruCache;
 
 use crate::ffi::{ApiResult, ChapterInfo, ParseResult, ParserError};
 use crate::parser::BookParser;
+
+/// 默认缓存大小
+const DEFAULT_CACHE_SIZE: usize = 100;
 
 /// 文件元数据缓存
 #[derive(Debug, Clone)]
@@ -48,7 +53,7 @@ impl FileMetadata {
         let mut buffer = Vec::new();
         reader.read_to_end(&mut buffer)?;
 
-        let mut hasher = fnv_hasher();
+        let mut hasher = default_hasher();
         hasher.write(&buffer);
         Ok(hasher.finish())
     }
@@ -77,10 +82,16 @@ impl FileMetadata {
 /// 章节缓存信息
 #[derive(Debug, Clone)]
 pub struct CachedChapter {
-    /// 章节 ID
-    pub chapter_id: i32,
+    /// 章节索引
+    pub chapter_index: i32,
     /// 章节标题
     pub title: String,
+    /// 章节起始位置（字节偏移）
+    pub start_index: i64,
+    /// 章节结束位置（字节偏移）
+    pub end_index: i64,
+    /// 章节内容长度（字节）
+    pub content_length: i64,
     /// 章节内容哈希
     pub content_hash: u64,
     /// 缓存时间戳
@@ -93,11 +104,11 @@ pub struct IncrementalParseResult {
     /// 完整解析结果
     pub parse_result: ParseResult,
     /// 新增的章节 ID 列表
-    pub new_chapters: Vec<i32>,
+    pub new_chapters: Vec<String>,
     /// 变更的章节 ID 列表
-    pub modified_chapters: Vec<i32>,
+    pub modified_chapters: Vec<String>,
     /// 删除的章节 ID 列表
-    pub deleted_chapters: Vec<i32>,
+    pub deleted_chapters: Vec<String>,
     /// 是否需要完全重新解析
     pub full_reparse_required: bool,
 }
@@ -105,7 +116,11 @@ pub struct IncrementalParseResult {
 impl IncrementalParseResult {
     /// 创建完全重新解析的结果
     pub fn full_reparse(parse_result: ParseResult) -> Self {
-        let chapter_ids: Vec<i32> = parse_result.chapters.iter().map(|c| c.chapter_id).collect();
+        let chapter_ids: Vec<String> = parse_result
+            .chapters
+            .iter()
+            .map(|c| c.chapter_id.clone())
+            .collect();
         Self {
             parse_result,
             new_chapters: chapter_ids.clone(),
@@ -118,8 +133,8 @@ impl IncrementalParseResult {
     /// 创建增量解析结果
     pub fn incremental(
         parse_result: ParseResult,
-        new_chapters: Vec<i32>,
-        modified_chapters: Vec<i32>,
+        new_chapters: Vec<String>,
+        modified_chapters: Vec<String>,
     ) -> Self {
         Self {
             parse_result,
@@ -135,21 +150,22 @@ impl IncrementalParseResult {
 ///
 /// 跟踪文件变更，支持增量解析。
 pub struct IncrementalParser {
-    /// 文件元数据缓存
-    file_metadata: HashMap<String, FileMetadata>,
-    /// 章节缓存
-    chapter_cache: HashMap<String, Vec<CachedChapter>>,
+    /// 文件元数据缓存（使用 LRU 淘汰策略）
+    file_metadata: LruCache<String, FileMetadata>,
+    /// 章节缓存（使用 LRU 淘汰策略）
+    chapter_cache: LruCache<String, Vec<CachedChapter>>,
     /// 上次解析时间戳
-    last_parse_timestamp: HashMap<String, u64>,
+    last_parse_timestamp: LruCache<String, u64>,
 }
 
 impl IncrementalParser {
     /// 创建新的增量解析器
     pub fn new() -> Self {
+        let cache_size = NonZeroUsize::new(DEFAULT_CACHE_SIZE).unwrap();
         Self {
-            file_metadata: HashMap::new(),
-            chapter_cache: HashMap::new(),
-            last_parse_timestamp: HashMap::new(),
+            file_metadata: LruCache::new(cache_size),
+            chapter_cache: LruCache::new(cache_size),
+            last_parse_timestamp: LruCache::new(cache_size),
         }
     }
 
@@ -163,7 +179,7 @@ impl IncrementalParser {
     ///
     /// * `true` - 文件已变更，需要重新解析
     /// * `false` - 文件未变更，可使用缓存
-    pub fn needs_reparse(&self, file_path: &str) -> bool {
+    pub fn needs_reparse(&mut self, file_path: &str) -> bool {
         // 检查是否有缓存的元数据
         if let Some(cached) = self.file_metadata.get(file_path) {
             match FileMetadata::from_path(file_path) {
@@ -216,7 +232,7 @@ impl IncrementalParser {
 
     /// 获取缓存的解析结果
     fn get_cached_result<P: BookParser>(
-        &self,
+        &mut self,
         file_path: &str,
         parser: &P,
     ) -> ApiResult<IncrementalParseResult> {
@@ -224,13 +240,20 @@ impl IncrementalParser {
         if let Some(chapters) = self.chapter_cache.get(file_path) {
             let chapter_infos: Vec<ChapterInfo> = chapters
                 .iter()
-                .map(|c| ChapterInfo {
-                    chapter_id: c.chapter_id,
-                    title: c.title.clone(),
-                    start_index: 0, // 缓存中不存储位置信息
-                    end_index: 0,
-                    content_length: 0,
-                    index: c.chapter_id,
+                .map(|c| {
+                    // 使用稳定的章节 ID：基于文件路径和章节索引生成
+                    // 确保同一章节在多次解析中 ID 一致
+                    let stable_id = format!("{}:chapter_{}", file_path, c.chapter_index);
+                    let chapter_id = format!("{:x}", md5::compute(&stable_id));
+
+                    ChapterInfo {
+                        chapter_id,
+                        title: c.title.clone(),
+                        start_index: c.start_index, // 使用缓存的位置信息
+                        end_index: c.end_index,     // 使用缓存的位置信息
+                        content_length: c.content_length, // 使用缓存的内容长度
+                        index: c.chapter_index,
+                    }
                 })
                 .collect();
 
@@ -272,7 +295,7 @@ impl IncrementalParser {
         parse_result: &ParseResult,
     ) -> Result<(), ParserError> {
         // 更新文件元数据
-        self.file_metadata.insert(file_path.to_string(), metadata);
+        self.file_metadata.put(file_path.to_string(), metadata);
 
         // 更新章节缓存
         let now = SystemTime::now()
@@ -284,24 +307,27 @@ impl IncrementalParser {
             .chapters
             .iter()
             .map(|c| CachedChapter {
-                chapter_id: c.chapter_id,
+                chapter_index: c.index,
                 title: c.title.clone(),
+                start_index: c.start_index,
+                end_index: c.end_index,
+                content_length: c.content_length,
                 content_hash: 0, // 可以计算内容哈希
                 cached_at: now,
             })
             .collect();
 
-        self.chapter_cache.insert(file_path.to_string(), chapters);
-        self.last_parse_timestamp.insert(file_path.to_string(), now);
+        self.chapter_cache.put(file_path.to_string(), chapters);
+        self.last_parse_timestamp.put(file_path.to_string(), now);
 
         Ok(())
     }
 
     /// 清除指定文件的缓存
     pub fn clear_cache(&mut self, file_path: &str) {
-        self.file_metadata.remove(file_path);
-        self.chapter_cache.remove(file_path);
-        self.last_parse_timestamp.remove(file_path);
+        self.file_metadata.pop(file_path);
+        self.chapter_cache.pop(file_path);
+        self.last_parse_timestamp.pop(file_path);
         tracing::debug!("缓存已清除：{}", file_path);
     }
 
@@ -317,7 +343,7 @@ impl IncrementalParser {
     pub fn get_cache_stats(&self) -> CacheStats {
         CacheStats {
             file_count: self.file_metadata.len(),
-            chapter_count: self.chapter_cache.values().map(|v| v.len()).sum(),
+            chapter_count: self.chapter_cache.iter().map(|(_, v)| v.len()).sum(),
             total_memory_estimate: self.estimate_memory_usage(),
         }
     }
@@ -328,8 +354,8 @@ impl IncrementalParser {
         let metadata_size = self.file_metadata.len() * std::mem::size_of::<FileMetadata>();
         let chapter_size = self
             .chapter_cache
-            .values()
-            .map(|v| v.len() * std::mem::size_of::<CachedChapter>())
+            .iter()
+            .map(|(_, v)| v.len() * std::mem::size_of::<CachedChapter>())
             .sum::<usize>();
         metadata_size + chapter_size
     }
@@ -352,8 +378,9 @@ pub struct CacheStats {
     pub total_memory_estimate: usize,
 }
 
-/// FNV-1a 哈希器创建函数
-fn fnv_hasher() -> std::collections::hash_map::DefaultHasher {
+/// 默认哈希器创建函数
+/// 返回 std::collections::hash_map::DefaultHasher (SipHash)
+fn default_hasher() -> std::collections::hash_map::DefaultHasher {
     std::collections::hash_map::DefaultHasher::new()
 }
 
@@ -400,7 +427,7 @@ mod tests {
 
     #[test]
     fn test_incremental_parser_needs_reparse() {
-        let parser = IncrementalParser::new();
+        let mut parser = IncrementalParser::new();
 
         // 首次应该需要解析
         assert!(parser.needs_reparse("non_existent.txt"));
@@ -410,7 +437,7 @@ mod tests {
     fn test_incremental_parser_clear_cache() {
         let mut parser = IncrementalParser::new();
 
-        parser.file_metadata.insert(
+        parser.file_metadata.put(
             "test.txt".to_string(),
             FileMetadata {
                 modified_timestamp: 1000,
@@ -420,14 +447,14 @@ mod tests {
         );
 
         parser.clear_cache("test.txt");
-        assert!(!parser.file_metadata.contains_key("test.txt"));
+        assert!(!parser.file_metadata.contains(&"test.txt".to_string()));
     }
 
     #[test]
     fn test_cache_stats() {
         let mut parser = IncrementalParser::new();
 
-        parser.file_metadata.insert(
+        parser.file_metadata.put(
             "test.txt".to_string(),
             FileMetadata {
                 modified_timestamp: 1000,

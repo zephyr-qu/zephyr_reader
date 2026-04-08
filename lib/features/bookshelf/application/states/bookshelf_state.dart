@@ -3,8 +3,8 @@ library;
 
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/domain/models/book.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/models/bookshelf_filter.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 书架状态类
 @injectable
@@ -16,7 +16,7 @@ class BookshelfState {
   final filter = signal(const BookshelfFilter());
 
   /// 书籍列表
-  final books = signal<List<Book>>([]);
+  final books = signal<List<DbBookRecord>>([]);
 
   /// 加载状
   final isLoading = signal(false);
@@ -25,7 +25,7 @@ class BookshelfState {
   final error = signal<String?>(null);
 
   /// 选中书籍 ID 列表（批量操作）
-  final selectedBookIds = signal<Set<int>>({});
+  final selectedBookIds = signal<Set<String>>({});
 
   /// 是否处于批量选择模式
   final isSelectingMode = signal(false);
@@ -65,7 +65,7 @@ class BookshelfState {
   }
 
   /// 设置排序方式
-  void setSortType(BookshelfSortType type, {bool? ascending}) {
+  void setSortTypes(BookshelfSortType type, {bool? ascending}) {
     updateFilter(
       (f) => f.copyWith(sortType: type, ascending: ascending ?? f.ascending),
     );
@@ -82,23 +82,25 @@ class BookshelfState {
   }
 
   /// 更新书籍列表
-  void setBooks(List<Book> newBooks) {
+  void setBooks(List<DbBookRecord> newBooks) {
     books.value = newBooks;
   }
 
   /// 添加书籍
-  void addBook(Book book) {
+  void addBook(DbBookRecord book) {
     books.value = [...books.value, book];
   }
 
   /// 更新书籍
-  void updateBook(Book book) {
-    books.value = books.value.map((b) => b.id == book.id ? book : b).toList();
+  void updateBook(DbBookRecord book) {
+    books.value = books.value
+        .map((b) => b.bookId == book.bookId ? book : b)
+        .toList();
   }
 
   /// 删除书籍
-  void removeBook(int bookId) {
-    books.value = books.value.where((b) => b.id != bookId).toList();
+  void removeBook(String bookId) {
+    books.value = books.value.where((b) => b.bookId != bookId).toList();
     selectedBookIds.value.remove(bookId);
   }
 
@@ -110,7 +112,7 @@ class BookshelfState {
     } else {
       newSet.add(bookId);
     }
-    selectedBookIds.value = newSet.cast<int>();
+    selectedBookIds.value = newSet;
   }
 
   /// 清除选择
@@ -121,7 +123,7 @@ class BookshelfState {
 
   /// 全
   void selectAll() {
-    selectedBookIds.value = books.value.map((b) => b.id).toSet();
+    selectedBookIds.value = books.value.map((b) => b.bookId).toSet();
   }
 
   /// 切换批量选择模式
@@ -136,5 +138,5 @@ class BookshelfState {
   int get selectedCount => selectedBookIds.value.length;
 
   /// 是否已选中某书
-  bool isSelected(int bookId) => selectedBookIds.value.contains(bookId);
+  bool isSelected(String bookId) => selectedBookIds.value.contains(bookId);
 }

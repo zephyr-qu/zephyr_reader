@@ -87,7 +87,7 @@ final router = GoRouter(
           name: RouteNames.bookDetail,
           path: RoutePaths.bookDetail,
           builder: (_, state) {
-            final id = int.parse(state.pathParameters['id'] ?? '0');
+            final id = state.pathParameters['id'] ?? '0';
             return BookDetailPage(bookId: id);
           },
         ),
@@ -145,7 +145,7 @@ final router = GoRouter(
       name: RouteNames.reader,
       path: RoutePaths.reader,
       builder: (_, state) {
-        final bookId = int.parse(state.pathParameters['bookId'] ?? '0');
+        final bookId = state.pathParameters['bookId'] ?? '0';
         final chapterId = int.parse(state.pathParameters['chapterId'] ?? '1');
         return ReaderPage(bookId: bookId, initialChapterId: chapterId);
       },

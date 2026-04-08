@@ -3,14 +3,14 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
-import 'package:zephyr_reader/domain/models/book.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
 import 'package:zephyr_reader/shared/widget/ui_components.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 书籍详情页面 - 响应式设计
 class BookDetailPage extends StatelessWidget {
-  final int bookId;
+  final String bookId;
 
   const BookDetailPage({super.key, required this.bookId});
 
@@ -25,13 +25,10 @@ class BookDetailPage extends StatelessWidget {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // 顶部 AppBar
           _buildAppBar(context, theme, deviceType),
-          // 内容区域
           SliverPadding(
             padding: pagePadding,
-            sliver: FutureBuilder<Book?>(
-              // 使用 key 确保 bookId 变化时重新创建 Future
+            sliver: FutureBuilder<DbBookRecord?>(
               key: ValueKey(bookId),
               future: vm.getBookDetail(bookId),
               builder: (context, snapshot) {
@@ -72,10 +69,7 @@ class BookDetailPage extends StatelessWidget {
                           Text('加载失败：${snapshot.error}'),
                           const SizedBox(height: 24),
                           FilledButton.icon(
-                            onPressed: () {
-                              // 重新加载数据
-                              _loadBookDetail(context, bookId);
-                            },
+                            onPressed: () => _loadBookDetail(context),
                             icon: const Icon(Icons.refresh_rounded),
                             label: const Text('重试'),
                           ),
@@ -189,7 +183,11 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPhoneLayout(BuildContext context, Book book, ThemeData theme) {
+  Widget _buildPhoneLayout(
+    BuildContext context,
+    DbBookRecord book,
+    ThemeData theme,
+  ) {
     final spacing = LayoutBreakpoints.getSpacing(context);
 
     return Column(
@@ -207,7 +205,11 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTabletLayout(BuildContext context, Book book, ThemeData theme) {
+  Widget _buildTabletLayout(
+    BuildContext context,
+    DbBookRecord book,
+    ThemeData theme,
+  ) {
     final spacing = LayoutBreakpoints.getSpacing(context);
 
     return Column(
@@ -240,7 +242,11 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroSection(BuildContext context, Book book, ThemeData theme) {
+  Widget _buildHeroSection(
+    BuildContext context,
+    DbBookRecord book,
+    ThemeData theme,
+  ) {
     final deviceType = LayoutBreakpoints.getDeviceType(context);
     final isDesktop = deviceType == DeviceType.desktop;
     final coverWidth = isDesktop ? 140.0 : 120.0;
@@ -327,39 +333,6 @@ class BookDetailPage extends StatelessWidget {
                   ],
                 ),
                 const Spacer(),
-                if (book.progress > 0) ...[
-                  Row(
-                    children: [
-                      Text(
-                        '已读 ${(book.progress * 100).toInt()}%',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${book.totalChapters} 章',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: book.progress,
-                      minHeight: 6,
-                      backgroundColor:
-                          theme.colorScheme.surfaceContainerHighest,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        theme.colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
                 FilledButton.icon(
                   onPressed: () => _startReading(context, book),
                   icon: const Icon(Icons.menu_book_rounded),
@@ -390,7 +363,7 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoSection(Book book, ThemeData theme) {
+  Widget _buildInfoSection(DbBookRecord book, ThemeData theme) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -400,19 +373,19 @@ class BookDetailPage extends StatelessWidget {
           children: [
             _buildInfoItem(
               context: '总章节',
-              value: '${book.totalChapters} 章',
+              value: '${book.chapterCount} 章',
               icon: Icons.chrome_reader_mode_rounded,
               theme: theme,
             ),
             _buildInfoItem(
               context: '状态',
-              value: _getStatusText(book.status),
-              icon: _getStatusIcon(book.status),
+              value: _getStatusText(book.status.name),
+              icon: _getStatusIcon(book.status.name),
               theme: theme,
             ),
             _buildInfoItem(
               context: '添加时间',
-              value: _formatDate(book.createdAt),
+              value: _formatDate(book.addedAt),
               icon: Icons.calendar_today_rounded,
               theme: theme,
             ),
@@ -469,7 +442,10 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDescriptionSection(Book book, ThemeData theme) {
+  Widget _buildDescriptionSection(
+    DbBookRecord book,
+    ThemeData theme,
+  ) {
     if (book.description == null || book.description!.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -511,7 +487,7 @@ class BookDetailPage extends StatelessWidget {
 
   Widget _buildChaptersSection(
     BuildContext context,
-    Book book,
+    DbBookRecord book,
     ThemeData theme,
   ) {
     final deviceType = LayoutBreakpoints.getDeviceType(context);
@@ -544,13 +520,13 @@ class BookDetailPage extends StatelessWidget {
                       context,
                     ).showSnackBar(const SnackBar(content: Text('全部章节功能开发中')));
                   },
-                  child: Text('全部 ${book.totalChapters} 章'),
+                  child: Text('全部 ${book.chapterCount} 章'),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             ...List.generate(
-              book.totalChapters.clamp(0, isDesktop ? 15 : 10),
+              book.chapterCount.clamp(0, isDesktop ? 15 : 10),
               (index) =>
                   _buildChapterItem(context, index, book, theme, isDesktop),
             ),
@@ -563,7 +539,7 @@ class BookDetailPage extends StatelessWidget {
   Widget _buildChapterItem(
     BuildContext context,
     int index,
-    Book book,
+    DbBookRecord book,
     ThemeData theme,
     bool isDesktop,
   ) {
@@ -634,22 +610,22 @@ class BookDetailPage extends StatelessWidget {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
-  void _startReading(BuildContext context, Book book, {int? chapterIndex}) {
+  void _startReading(
+    BuildContext context,
+    DbBookRecord book, {
+    int? chapterIndex,
+  }) {
     final targetChapter = chapterIndex ?? 1;
     context.pushNamed(
       RouteNames.reader,
       pathParameters: {
-        'bookId': book.id.toString(),
+        'bookId': book.bookId,
         'chapterId': targetChapter.toString(),
       },
     );
   }
 
-  /// 重新加载书籍详情
-  void _loadBookDetail(BuildContext context, int bookId) {
-    // 通过刷新页面重新触发 Future
-    // 由于使用了 ValueKey，改变 key 会重新触发 FutureBuilder
-    // 这里使用简单的导航刷新方式
+  void _loadBookDetail(BuildContext context) {
     final currentRoute = GoRouterState.of(context).uri.toString();
     context.go(currentRoute);
   }

@@ -25,7 +25,7 @@ import 'widgets/bookmark_widget.dart';
 /// 阅读器页面
 class ReaderPage extends StatelessWidget {
   /// 书籍 ID
-  final int bookId;
+  final String bookId;
 
   /// 初始章节 ID
   final int initialChapterId;
@@ -136,9 +136,13 @@ class ReaderPage extends StatelessWidget {
                     if (showCatalog)
                       ChapterListWidget(
                         chapters: vm.chapters.value.value ?? [],
-                        currentChapterId: vm.chapterId.value,
+                        currentChapterId: vm.chapterId.value.toString(),
                         themeMode: themeMode,
-                        onChapterSelected: vm.jumpToChapter,
+                        onChapterSelected: (chapterId) {
+                          // 将 String 类型的 chapterId 转换为 int 索引
+                          final index = int.tryParse(chapterId) ?? 0;
+                          vm.jumpToChapter(index);
+                        },
                         onClose: vm.toggleCatalog,
                       ),
                     // 设置面板
@@ -161,7 +165,9 @@ class ReaderPage extends StatelessWidget {
                         themeMode: themeMode,
                         onBookmarkSelected: vm.jumpToBookmark,
                         onAddBookmark: vm.addBookmark,
-                        onDeleteBookmark: vm.deleteBookmark,
+                        onDeleteBookmark: (bookmarkId) {
+                          vm.deleteBookmark(bookmarkId.hashCode);
+                        },
                         onClose: vm.toggleBookmarks,
                       ),
                   ],

@@ -9,13 +9,17 @@
 //! - **运行时注册**: 支持动态注册/注销解析器
 //! - **线程安全**: 支持多线程并发访问
 
+use parking_lot::Mutex;
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+
+use flutter_rust_bridge::frb;
 
 use crate::ffi::{ApiResult, ParseResult, ParserError};
 
 /// 书籍元数据
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
+#[frb]
 pub struct BookMetadata {
     /// 书籍标题
     pub title: String,
@@ -33,21 +37,6 @@ pub struct BookMetadata {
     pub chapter_count: i32,
     /// 总字符数
     pub total_characters: i64,
-}
-
-impl Default for BookMetadata {
-    fn default() -> Self {
-        Self {
-            title: String::new(),
-            author: String::new(),
-            description: None,
-            cover_path: None,
-            publish_year: None,
-            language: None,
-            chapter_count: 0,
-            total_characters: 0,
-        }
-    }
 }
 
 /// 解析器 trait
@@ -200,13 +189,13 @@ impl ParserRegistry {
     ///
     /// # 返回值
     ///
-    /// * `Some(&dyn BookParser)` - 找到解析器
+    /// * `Some(Arc<dyn BookParser>)` - 找到解析器
     /// * `None` - 未找到支持的解析器
-    pub fn get_parser(&self, format: &str) -> Option<&dyn BookParser> {
+    pub fn get_parser(&self, format: &str) -> Option<Arc<dyn BookParser>> {
         let format_lower = format.to_lowercase();
         self.format_map
             .get(&format_lower)
-            .and_then(|name| self.parsers.get(name).map(|p| p.as_ref()))
+            .and_then(|name| self.parsers.get(name).cloned())
     }
 
     /// 获取所有已注册的解析器名称
@@ -215,8 +204,8 @@ impl ParserRegistry {
     }
 
     /// 获取所有支持的格式
-    pub fn supported_formats(&self) -> Vec<&str> {
-        self.format_map.keys().map(|s| s.as_str()).collect()
+    pub fn supported_formats(&self) -> Vec<String> {
+        self.format_map.keys().cloned().collect()
     }
 
     /// 检查是否支持指定格式
@@ -256,38 +245,51 @@ impl Default for ParserRegistry {
 
 /// 线程安全的解析器注册表
 pub struct ThreadSafeParserRegistry {
-    inner: RwLock<ParserRegistry>,
+    inner: Mutex<ParserRegistry>,
 }
 
 impl ThreadSafeParserRegistry {
     /// 创建新的线程安全注册表
     pub fn new() -> Self {
         Self {
-            inner: RwLock::new(ParserRegistry::new()),
+            inner: Mutex::new(ParserRegistry::new()),
         }
     }
 
     /// 注册解析器
     pub fn register(&self, parser: Arc<dyn BookParser>) -> Result<(), String> {
-        let mut registry = self.inner.write().map_err(|e| e.to_string())?;
+        let mut registry = self.inner.lock();
         registry.register(parser)
     }
 
     /// 解析文件
     pub fn parse_file(&self, file_path: &str) -> ApiResult<ParseResult> {
-        let registry = self
-            .inner
-            .read()
-            .map_err(|e| ParserError::InternalError(format!("锁获取失败：{}", e)))?;
+        let registry = self.inner.lock();
         registry.parse_file(file_path)
     }
 
     /// 检查是否支持指定格式
     pub fn supports_format(&self, format: &str) -> bool {
-        match self.inner.read() {
-            Ok(registry) => registry.supports_format(format),
-            Err(_) => false,
-        }
+        self.inner.lock().supports_format(format)
+    }
+
+    /// 获取指定格式的解析器
+    ///
+    /// # 参数
+    ///
+    /// * `format` - 文件格式（扩展名，不含点）
+    ///
+    /// # 返回值
+    ///
+    /// * `Some(Arc<dyn BookParser>)` - 找到解析器
+    /// * `None` - 未找到支持的解析器
+    pub fn get_parser(&self, format: &str) -> Option<Arc<dyn BookParser>> {
+        self.inner.lock().get_parser(format)
+    }
+
+    /// 获取所有支持的格式
+    pub fn supported_formats(&self) -> Vec<String> {
+        self.inner.lock().supported_formats()
     }
 }
 
@@ -389,8 +391,8 @@ mod tests {
             .unwrap();
 
         let formats = registry.supported_formats();
-        assert!(formats.contains(&"txt"));
-        assert!(formats.contains(&"epub"));
+        assert!(formats.contains(&"txt".to_string()));
+        assert!(formats.contains(&"epub".to_string()));
     }
 
     #[test]

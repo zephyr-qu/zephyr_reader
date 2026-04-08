@@ -2,21 +2,21 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/domain/models/chapter.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 章节列表组件
 class ChapterListWidget extends StatelessWidget {
   /// 章节列表
-  final List<Chapter> chapters;
+  final List<DbChapter> chapters;
 
   /// 当前章节 ID
-  final int currentChapterId;
+  final String currentChapterId;
 
   /// 主题模式
   final ThemeMode themeMode;
 
   /// 章节选中回调
-  final ValueChanged<int> onChapterSelected;
+  final ValueChanged<String> onChapterSelected;
 
   /// 关闭回调
   final VoidCallback onClose;

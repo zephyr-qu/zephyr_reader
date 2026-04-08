@@ -2,16 +2,22 @@
 //! 使用 epub 库读取 EPUB 文件结构
 //! 注意：epub crate 2.x API 与 1.x 不兼容
 
-use crate::ffi::ParserError;
+use crate::ffi::{ApiResult, EpubMetadata, ParserError};
 use epub::doc::{EpubDoc, ResourceItem, SpineItem};
+use flutter_rust_bridge::frb;
+use lru::LruCache;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
+use std::num::NonZeroUsize;
 
-/// EPUB 文件句柄（带缓存）
+/// EPUB 缓存最大条目数
+const EPUB_CACHE_SIZE: usize = 50;
+
+/// EPUB 文件句柄（带 LRU 缓存）
 pub struct EpubFile {
     doc: EpubDoc<BufReader<File>>,
-    cache: HashMap<String, Vec<u8>>,
+    cache: LruCache<String, Vec<u8>>,
 }
 
 /// 辅助函数：从 MetadataItem Vec 中获取指定类型的第一个值
@@ -53,7 +59,7 @@ impl EpubFile {
 
         Ok(Self {
             doc,
-            cache: HashMap::new(),
+            cache: LruCache::new(NonZeroUsize::new(EPUB_CACHE_SIZE).unwrap()),
         })
     }
 
@@ -92,9 +98,9 @@ impl EpubFile {
 
     /// 读取指定资源内容（带缓存）
     pub fn read_resource(&mut self, href: &str) -> Result<String, ParserError> {
-        // 检查缓存
-        if let Some(cached) = self.cache.get(href) {
-            return self.decode_content(cached);
+        // 检查缓存（先克隆内容以避免借用冲突）
+        if let Some(cached) = self.cache.get(href).cloned() {
+            return self.decode_content(&cached);
         }
 
         // 查找资源
@@ -119,7 +125,7 @@ impl EpubFile {
             })?;
 
             // 缓存内容（只缓存字节）
-            self.cache.insert(href.to_string(), content.clone());
+            self.cache.put(href.to_string(), content.clone());
 
             return self.decode_content(&content);
         }
@@ -131,15 +137,21 @@ impl EpubFile {
     }
 
     /// 解码内容（EPUB 规范要求 UTF-8，提供回退）
+    ///
+    /// 优先尝试零拷贝的 `from_utf8`，失败后再使用 `encoding_rs` 解码。
+    /// 避免 `to_vec()` 导致的不必要全量拷贝。
     fn decode_content(&self, content: &[u8]) -> Result<String, ParserError> {
-        match String::from_utf8(content.to_vec()) {
-            Ok(s) => Ok(s),
-            Err(_) => {
-                // 回退到 encoding_rs 解码
-                let (decoded, _, _) = encoding_rs::UTF_8.decode(content);
-                Ok(decoded.into_owned())
+        // 先尝试零拷贝解析（EPUB 规范要求 UTF-8）
+        match std::str::from_utf8(content) {
+            Ok(s) => return Ok(s.to_string()),
+            Err(e) => {
+                tracing::debug!("EPUB 内容非 UTF-8，尝试解码: {:?}", e);
             }
         }
+
+        // 回退到 encoding_rs 解码
+        let (decoded, _, _) = encoding_rs::UTF_8.decode(content);
+        Ok(decoded.into_owned())
     }
 
     /// 读取章节内容（HTML）
@@ -170,7 +182,7 @@ impl EpubFile {
         let (content, _charset) = self.doc.get_current()?;
 
         // 缓存内容
-        self.cache.insert(href.to_string(), content.clone());
+        self.cache.put(href.to_string(), content.clone());
 
         Some(content)
     }
@@ -199,7 +211,7 @@ impl EpubFile {
         candidates.extend(cover_names.iter().map(|&s| s.to_string()));
 
         // 3. 查找包含 "cover" 的图片资源
-        for (href, _item) in &self.doc.resources {
+        for href in self.doc.resources.keys() {
             let lower_href = href.to_lowercase();
             if (lower_href.contains("cover") || lower_href.contains("封面"))
                 && (lower_href.ends_with(".jpg")
@@ -281,15 +293,38 @@ impl EpubFile {
     }
 }
 
-/// 获取 EPUB 元数据
-pub fn get_epub_metadata(file_path: &str) -> Result<(String, String, Option<String>), ParserError> {
+/// 获取 EPUB 元数据（快速预览，不读取章节内容）
+///
+/// 用于 Flutter 侧快速获取 EPUB 文件的基本信息，
+/// 无需完整解析即可显示书名、作者、封面、目录等。
+///
+/// # 参数
+/// * `file_path` - EPUB 文件路径
+///
+/// # 返回值
+/// * `Ok(EpubMetadata)` - 元数据
+/// * `Err(ParserError)` - 解析失败
+#[frb(sync)]
+pub fn get_epub_metadata(file_path: &str) -> ApiResult<EpubMetadata> {
     let epub_file = EpubFile::open(file_path)?;
 
     let title = epub_file.title();
     let author = epub_file.author();
-    let cover = epub_file.cover_path();
+    let cover_path = epub_file.cover_path();
+    let toc = epub_file
+        .toc()
+        .into_iter()
+        .map(|(label, href)| crate::ffi::EpubTocItem { label, href })
+        .collect();
+    let spine = epub_file.spine();
 
-    Ok((title, author, cover))
+    Ok(EpubMetadata {
+        title,
+        author,
+        cover_path,
+        toc,
+        spine,
+    })
 }
 
 #[cfg(test)]
@@ -299,6 +334,12 @@ mod tests {
     #[test]
     fn test_epub_not_found() {
         let result = EpubFile::open("non_existent.epub");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_get_epub_metadata_not_found() {
+        let result = get_epub_metadata("non_existent.epub");
         assert!(result.is_err());
     }
 }

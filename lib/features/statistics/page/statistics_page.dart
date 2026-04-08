@@ -4,6 +4,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:zephyr_reader/features/statistics/application/reading_stats_service.dart';
 import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
 import 'package:zephyr_reader/shared/widget/ui_components.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 统计页面 - 展示阅读数据统计
 class StatisticsPage extends HookWidget {
@@ -13,19 +14,19 @@ class StatisticsPage extends HookWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final deviceType = LayoutBreakpoints.getDeviceType(context);
-    final pagePadding = LayoutBreakpoints.getPagePadding(context);
+    final pagePadding = LayoutBreakpoints.getSpacing(context);
     final isTabletOrDesktop = deviceType != DeviceType.phone;
     final statsService = ReadingStatsService.instance;
 
     // 加载统计数据
-    final statsAsync = useFuture(
-      useMemoized(() => statsService.getStatistics(), []),
+    final globalStatsAsync = useFuture(
+      useMemoized(() => statsService.getGlobalStats(), []),
     );
     final dailyRecordsAsync = useFuture(
       useMemoized(() => statsService.getDailyRecords(days: 7), []),
     );
 
-    final stats = statsAsync.data;
+    final globalStats = globalStatsAsync.data;
     final dailyRecords = dailyRecordsAsync.data ?? [];
 
     // 准备图表数据
@@ -43,7 +44,7 @@ class StatisticsPage extends HookWidget {
                 icon: const Icon(Icons.refresh_rounded),
                 onPressed: () {
                   // 刷新统计数据
-                  statsService.getStatistics();
+                  statsService.getGlobalStats();
                   statsService.getDailyRecords(days: 7);
                 },
                 tooltip: '刷新',
@@ -53,14 +54,14 @@ class StatisticsPage extends HookWidget {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: pagePadding,
+              padding: EdgeInsets.all(pagePadding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (isTabletOrDesktop)
-                    ..._buildTabletLayout(context, theme, stats, chartData)
+                    ..._buildTabletLayout(context, theme, globalStats, chartData)
                   else
-                    ..._buildPhoneLayout(context, theme, stats, chartData),
+                    ..._buildPhoneLayout(context, theme, globalStats, chartData),
                   SizedBox(height: LayoutBreakpoints.getSpacing(context)),
                 ],
               ),
@@ -72,7 +73,7 @@ class StatisticsPage extends HookWidget {
   }
 
   /// 准备图表数据
-  List<ChartData> _prepareChartData(List<DailyReadingRecord> records) {
+  List<ChartData> _prepareChartData(List<DbDailyReadingStats> records) {
     final weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
     final now = DateTime.now();
     final data = <ChartData>[];
@@ -80,18 +81,18 @@ class StatisticsPage extends HookWidget {
     // 生成最近7天的数据
     for (int i = 6; i >= 0; i--) {
       final date = now.subtract(Duration(days: i));
+      final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       final weekdayIndex = (date.weekday - 1) % 7;
 
       // 查找对应日期的记录
       final record = records.firstWhere(
-        (r) =>
-            r.date.year == date.year &&
-            r.date.month == date.month &&
-            r.date.day == date.day,
-        orElse: () => DailyReadingRecord(
-          date: date,
-          readingTimeSeconds: 0,
-          charactersRead: 0,
+        (r) => r.date == dateStr,
+        orElse: () => DbDailyReadingStats(
+          date: dateStr,
+          totalReadingTimeSeconds: 0,
+          totalCharactersRead: 0,
+          booksRead: [],
+          sessionCount: 0,
           chaptersRead: 0,
           pagesRead: 0,
         ),
@@ -100,8 +101,8 @@ class StatisticsPage extends HookWidget {
       data.add(
         ChartData(
           day: weekdays[weekdayIndex],
-          hours: record.readingTimeSeconds / 3600,
-          characters: record.charactersRead,
+          hours: record.totalReadingTimeSeconds.toDouble() / 3600,
+          characters: record.totalCharactersRead.toInt(),
         ),
       );
     }
@@ -113,7 +114,7 @@ class StatisticsPage extends HookWidget {
   List<Widget> _buildPhoneLayout(
     BuildContext context,
     ThemeData theme,
-    ReadingStatistics? stats,
+    DbGlobalStats? stats,
     List<ChartData> chartData,
   ) {
     return [
@@ -141,7 +142,7 @@ class StatisticsPage extends HookWidget {
   List<Widget> _buildTabletLayout(
     BuildContext context,
     ThemeData theme,
-    ReadingStatistics? stats,
+    DbGlobalStats? stats,
     List<ChartData> chartData,
   ) {
     final spacing = LayoutBreakpoints.getSpacing(context);
@@ -192,7 +193,7 @@ class StatisticsPage extends HookWidget {
     );
   }
 
-  Widget _buildOverviewCard(BuildContext context, ReadingStatistics? stats) {
+  Widget _buildOverviewCard(BuildContext context, DbGlobalStats? stats) {
     final theme = Theme.of(context);
     final isTabletOrDesktop =
         LayoutBreakpoints.getDeviceType(context) != DeviceType.phone;
@@ -549,7 +550,7 @@ class StatisticsPage extends HookWidget {
     );
   }
 
-  Widget _buildDetailedStats(BuildContext context, ReadingStatistics? stats) {
+  Widget _buildDetailedStats(BuildContext context, DbGlobalStats? stats) {
     final theme = Theme.of(context);
     final isTabletOrDesktop =
         LayoutBreakpoints.getDeviceType(context) != DeviceType.phone;
@@ -589,7 +590,7 @@ class StatisticsPage extends HookWidget {
         'color': theme.colorScheme.secondary,
       },
       {
-        'label': '本周阅读',
+        'label': '今日阅读',
         'value':
             '${((stats?.todayReadingTimeSeconds ?? 0) / 3600).toStringAsFixed(1)}h',
         'icon': Icons.today,

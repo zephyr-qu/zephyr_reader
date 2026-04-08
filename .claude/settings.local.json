@@ -17,7 +17,21 @@
       "Bash(cargo test:*)",
       "Bash(git add:*)",
       "Bash(git commit -m ':*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(grep -r \"^///\" src --include=\"*.rs\")",
+      "Bash(grep -r \"^//!\" src --include=\"*.rs\")",
+      "Bash(flutter_rust_bridge_codegen build:*)",
+      "Bash(flutter_rust_bridge_codegen --help)",
+      "Bash(sed -n '56,70p' src/search/mod.rs)",
+      "Bash(sed -n '114,130p' src/search/mod.rs)",
+      "Bash(sed -i 's/^pub struct EpubCoverExtractor;/#[frb\\(opaque\\)]\\\\npub struct EpubCoverExtractor;/' rust/src/api/cover.rs)",
+      "Bash(sed -i 's/^pub struct PdfCoverExtractor;/#[frb\\(opaque\\)]\\\\npub struct PdfCoverExtractor;/' rust/src/api/cover.rs)",
+      "Bash(sed -i 's/^pub struct TxtCoverExtractor;/#[frb\\(opaque\\)]\\\\npub struct TxtCoverExtractor;/' rust/src/api/cover.rs)",
+      "Bash(flutter:*)",
+      "Bash(python:*)",
+      "Bash(git checkout:*)",
+      "Bash(grep:*)"
     ]
   }
 }

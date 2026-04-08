@@ -6,7 +6,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:zephyr_reader/features/sync/application/services/backup_restore_service.dart';
+import 'package:zephyr_reader/features/sync/application/services/backup_service_types.dart';
 
 /// 显示创建备份对话框
 Future<void> showCreateBackupDialog(BuildContext context) async {

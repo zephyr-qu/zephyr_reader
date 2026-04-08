@@ -2,8 +2,13 @@
 //!
 //! 提供严格的路径验证逻辑，防止路径遍历攻击、符号链接攻击等安全漏洞。
 
+use crate::api::core::ALLOWED_BASE_DIR;
 use crate::ffi::ParserError;
 use std::path::{Path, PathBuf};
+
+/// 最大允许文件大小（500MB）
+/// 防止超大文件导致内存耗尽，同时支持大型扫描版 PDF 和 EPUB 合集
+const MAX_FILE_SIZE: u64 = 500 * 1024 * 1024;
 
 /// 验证文件路径是否安全
 ///
@@ -18,10 +23,7 @@ use std::path::{Path, PathBuf};
 ///
 /// * `Ok(String)` - 验证通过的规范化路径
 /// * `Err(ParserError)` - 路径不安全或无效
-pub fn validate_path_securely(
-    file_path: &str,
-    allowed_base: &str,
-) -> Result<String, ParserError> {
+pub fn validate_path_securely(file_path: &str, allowed_base: &str) -> Result<String, ParserError> {
     let allowed_base_path = Path::new(allowed_base);
 
     // 1. 检查空字节（路径截断攻击）
@@ -59,87 +61,69 @@ pub fn validate_path_securely(
             canonical_base.display(),
         )));
     }
-
-    // 6. 额外检查：Windows 系统检查危险路径
-    #[cfg(windows)]
-    {
-        let path_str = canonical_path.to_string_lossy().to_lowercase();
-        if path_str.starts_with(r"c:\windows")
-            || path_str.starts_with(r"c:\program files")
-            || path_str.starts_with(r"c:\programdata")
-        {
-            return Err(ParserError::SecurityError(
-                "路径位于系统目录，禁止访问".to_string(),
-            ));
-        }
-    }
-
-    // 7. Unix 系统检查危险路径
-    #[cfg(unix)]
-    {
-        let path_str = canonical_path.to_string_lossy();
-        if path_str.starts_with("/etc/")
-            || path_str.starts_with("/proc/")
-            || path_str.starts_with("/sys/")
-            || path_str.starts_with("/dev/")
-        {
-            return Err(ParserError::SecurityError(
-                "路径位于系统目录，禁止访问".to_string(),
-            ));
-        }
-    }
-
     Ok(canonical_path.to_string_lossy().to_string())
 }
 
-/// 检查是否为安全路径（简化版，向后兼容）
+/// 验证文件路径并返回规范化的路径
+///
+/// # 安全性
+///
+/// 此函数直接调用 `canonicalize()` 避免 TOCTOU 竞态条件，
+/// 不分离 `exists()` 检查，确保路径验证的原子性。
 ///
 /// # 注意
 ///
-/// 此函数仅进行基本检查，建议使用 `validate_path_securely` 进行严格验证。
-pub fn is_safe_path(path: &str) -> bool {
-    // 检查路径遍历攻击模式
-    if path.contains("..\\") || path.contains("../") {
-        return false;
-    }
-
-    // 检查绝对路径是否来自危险位置
-    let path_lower = path.to_lowercase();
-    if path_lower.starts_with("c:\\windows")
-        || path_lower.starts_with("/etc/")
-        || path_lower.starts_with("/proc/")
-        || path_lower.starts_with("/sys/")
-    {
-        return false;
-    }
-
-    // 检查是否包含空字节（路径截断攻击）
-    if path.contains('\0') {
-        return false;
-    }
-
-    true
-}
-
-/// 验证文件路径并返回规范化的路径（向后兼容）
-///
-/// # 注意
-///
-/// 此函数使用简化的安全检查，建议使用 `validate_path_securely` 进行严格验证。
+/// 此函数使用严格的路径规范化，确保路径安全性。
 pub fn validate_file_path(file_path: &str) -> Result<String, ParserError> {
-    if !is_safe_path(file_path) {
+    // 1. 检查空字节（路径截断攻击）
+    if file_path.contains('\0') {
+        return Err(ParserError::SecurityError(
+            "路径包含空字节，可能存在路径截断攻击".to_string(),
+        ));
+    }
+
+    let path = std::path::Path::new(file_path);
+
+    // 2. 直接规范化路径（避免 TOCTOU 竞态条件）
+    // 不分离 exists() 检查，通过 canonicalize() 的结果判断文件是否存在
+    let canonical_path = path.canonicalize().map_err(|e| {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            ParserError::file_not_found(file_path)
+        } else {
+            ParserError::FileReadError {
+                path: file_path.to_string(),
+                message: format!("无法规范化路径: {}", e),
+            }
+        }
+    })?;
+
+    // 3. 检查允许的基础目录（使用 RwLock 替代 OnceCell）
+    {
+        let guard = ALLOWED_BASE_DIR.read();
+        if let Some(base_dir) = guard.as_ref() {
+            if !canonical_path.starts_with(base_dir.as_path()) {
+                return Err(ParserError::SecurityError(format!(
+                    "文件必须在 {} 目录内",
+                    base_dir.display()
+                )));
+            }
+        }
+    }
+
+    // 4. 检查文件大小（防止超大文件耗尽内存）
+    let metadata = std::fs::metadata(&canonical_path).map_err(|e| ParserError::FileReadError {
+        path: file_path.to_string(),
+        message: format!("无法读取文件元数据: {}", e),
+    })?;
+
+    if metadata.len() > MAX_FILE_SIZE {
         return Err(ParserError::SecurityError(format!(
-            "文件路径不安全：{}",
-            file_path
+            "文件大小超出限制（最大 {} MB）",
+            MAX_FILE_SIZE / 1024 / 1024
         )));
     }
 
-    // 检查文件是否存在
-    if !std::path::Path::new(file_path).exists() {
-        return Err(ParserError::file_not_found(file_path));
-    }
-
-    Ok(file_path.to_string())
+    Ok(canonical_path.to_string_lossy().to_string())
 }
 
 #[cfg(test)]
@@ -171,10 +155,7 @@ mod tests {
             temp_dir.path().display()
         );
 
-        let result = validate_path_securely(
-            &malicious_path,
-            temp_dir.path().to_str().unwrap(),
-        );
+        let result = validate_path_securely(&malicious_path, temp_dir.path().to_str().unwrap());
 
         // 在 Windows 上应该检测到路径遍历攻击或者文件不存在
         assert!(result.is_err());
@@ -194,26 +175,9 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let malicious_path = format!("{}/../../../etc/passwd\0", temp_dir.path().display());
 
-        let result = validate_path_securely(
-            &malicious_path,
-            temp_dir.path().to_str().unwrap(),
-        );
+        let result = validate_path_securely(&malicious_path, temp_dir.path().to_str().unwrap());
 
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), ParserError::SecurityError(_)));
-    }
-
-    #[test]
-    fn test_is_safe_path_basic() {
-        // 基本安全检查
-        assert!(!is_safe_path("../etc/passwd"));
-        assert!(!is_safe_path("..\\windows\\system32"));
-        assert!(!is_safe_path("/etc/passwd"));
-        assert!(!is_safe_path("/proc/self"));
-        assert!(!is_safe_path("test\0file.txt"));
-
-        // 安全路径
-        assert!(is_safe_path("/documents/book.txt"));
-        assert!(is_safe_path("C:\\Users\\Documents\\book.txt"));
     }
 }

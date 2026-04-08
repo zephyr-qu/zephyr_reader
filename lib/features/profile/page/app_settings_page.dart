@@ -13,7 +13,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/utils/cache_utils.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/backup_dialog.dart';
-import 'package:zephyr_reader/features/sync/application/services/backup_restore_service.dart';
+import 'package:zephyr_reader/features/sync/application/services/backup_service_types.dart';
 import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
 
 /// 应用设置页面

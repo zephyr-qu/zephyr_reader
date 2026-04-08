@@ -12,6 +12,7 @@
 //! - `EpubParser`: EPUB 文件格式解析
 //! - `PdfParser`: PDF 文件格式解析
 
+pub mod cover_extractor;
 pub mod epub;
 pub mod epub_parser;
 pub mod incremental;
@@ -44,3 +45,9 @@ pub use incremental::{CacheStats, FileMetadata, IncrementalParseResult, Incremen
 
 // 导出并行解析
 pub use parallel::{process_chapters_parallel, validate_chapters_parallel};
+
+// 导出封面提取器
+pub use cover_extractor::{
+    get_cover_registry, CoverExtractor, CoverExtractorRegistry, EpubCoverExtractor,
+    PdfCoverExtractor, ThreadSafeCoverRegistry, TxtCoverExtractor,
+};

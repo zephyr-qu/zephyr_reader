@@ -10,9 +10,10 @@ use super::toc::extract_chapters_from_epub;
 use super::unzip::EpubFile;
 use crate::ffi::{
     ApiResult, BookInfo, ChapterInfo, PageContent, ParseConfig, ParseResult, ParserError,
-    TypesetConfig,
+    RichChapterContent, RichParagraph, TypesetConfig,
 };
-use crate::text_process::typeset;
+use crate::text_process::constants::{EPUB_MIN_CHARS_PER_PAGE, EPUB_MIN_LINES_PER_PAGE};
+use crate::text_process::{rich_text, typeset};
 use flutter_rust_bridge::frb;
 
 /// 解析 EPUB 文件
@@ -37,7 +38,7 @@ pub fn parse_epub(file_path: String) -> ApiResult<ParseResult> {
 #[frb(sync)]
 pub fn parse_epub_with_config(file_path: String, config: ParseConfig) -> ApiResult<ParseResult> {
     let start_time = std::time::Instant::now();
-    log::info!(
+    tracing::info!(
         "开始解析 EPUB 文件：{} (并行：{})",
         file_path,
         config.enable_parallel
@@ -87,15 +88,12 @@ pub fn parse_epub_with_config(file_path: String, config: ParseConfig) -> ApiResu
         let thread_count = config.get_thread_count();
         tracing::info!("使用并行解析，线程数：{}", thread_count);
 
-        // 设置 rayon 全局线程池（仅当需要时）
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(thread_count)
-            .build_global()
-            .ok();
+        // 使用当前线程池（全局线程池在 lib.rs 中初始化）
+        // 如果全局线程池未初始化，rayon 会使用默认线程池
     }
 
     let elapsed = start_time.elapsed();
-    log::info!(
+    tracing::info!(
         "EPUB 解析完成：{} 章节，{} 字符，耗时：{:?}",
         chapter_count,
         total_chars,
@@ -109,26 +107,40 @@ pub fn parse_epub_with_config(file_path: String, config: ParseConfig) -> ApiResu
 }
 
 /// 估算总字符数
+///
+/// 使用首/中/尾三章采样取平均，避免因章节长度分布不均导致的估算偏差。
 fn estimate_total_chars(epub_file: &mut EpubFile, chapters: &[ChapterInfo]) -> i64 {
-    let mut total = 0i64;
+    if chapters.is_empty() {
+        return 0;
+    }
 
-    // 读取前 10 章估算
-    for chapter in chapters.iter().take(10) {
-        if let Ok(content) = read_chapter_content(epub_file, chapter) {
+    // 采样策略：取首章、中章、尾章（避免仅采样前几章导致的偏差）
+    let sample_indices = if chapters.len() >= 3 {
+        vec![0, chapters.len() / 2, chapters.len() - 1]
+    } else if chapters.len() == 2 {
+        vec![0, 1]
+    } else {
+        vec![0]
+    };
+
+    let mut total_sampled = 0i64;
+    let mut sampled_count = 0i64;
+
+    for &idx in &sample_indices {
+        if let Ok(content) = read_chapter_content(epub_file, &chapters[idx]) {
             let content_str: String = content;
-            total += content_str.chars().count() as i64;
+            total_sampled += content_str.chars().count() as i64;
+            sampled_count += 1;
         }
     }
 
-    // 根据已读取的章节估算总数
-    if !chapters.is_empty() {
-        let read_count = chapters.len().min(10);
-        if read_count > 0 {
-            total = (total as f64 / read_count as f64 * chapters.len() as f64) as i64;
-        }
+    // 根据采样章节估算总数
+    if sampled_count > 0 {
+        let avg_chars_per_chapter = total_sampled / sampled_count;
+        avg_chars_per_chapter * chapters.len() as i64
+    } else {
+        0
     }
-
-    total
 }
 
 /// 获取章节内容（分页）
@@ -137,14 +149,14 @@ pub fn get_chapter_content(
     chapter_id: i32,
     config: &TypesetConfig,
 ) -> ApiResult<Vec<PageContent>> {
-    log::debug!("读取 EPUB 章节 {} 内容：{}", chapter_id, file_path);
+    tracing::debug!("读取 EPUB 章节 {} 内容：{}", chapter_id, file_path);
 
     let mut epub_file = EpubFile::open(file_path)?;
     let chapters = extract_chapters_from_epub(&mut epub_file);
 
     let chapter = chapters
         .iter()
-        .find(|c| c.chapter_id == chapter_id)
+        .find(|c| c.index == chapter_id)
         .ok_or_else(|| ParserError::ChapterExtractError(format!("未找到章节 {}", chapter_id)))?;
 
     // 读取章节内容
@@ -154,7 +166,7 @@ pub fn get_chapter_content(
     let typeset_content = typeset::typeset_content(content, "auto".to_string(), config.clone())?;
 
     // 分页
-    let pages = paginate_content(&typeset_content, chapter_id, config);
+    let pages = paginate_content(&typeset_content, chapter.index, config);
 
     Ok(pages)
 }
@@ -171,19 +183,19 @@ fn read_chapter_content(epub_file: &mut EpubFile, chapter: &ChapterInfo) -> ApiR
 }
 
 /// 分页处理
-fn paginate_content(content: &str, chapter_id: i32, config: &TypesetConfig) -> Vec<PageContent> {
+fn paginate_content(content: &str, chapter_index: i32, config: &TypesetConfig) -> Vec<PageContent> {
     let lines: Vec<&str> = content.lines().collect();
     let mut pages = Vec::new();
 
     // 根据页面高度和字体大小估算每页行数
     let lines_per_page =
         (config.page_height as f32 / config.font_size as f32 / config.line_spacing) as usize;
-    let lines_per_page = lines_per_page.max(10); // 至少 10 行每页
+    let lines_per_page = lines_per_page.max(EPUB_MIN_LINES_PER_PAGE); // 至少 EPUB_MIN_LINES_PER_PAGE 行每页
 
     for (page_index, chunk) in lines.chunks(lines_per_page).enumerate() {
         let is_last = page_index == lines.len().div_ceil(lines_per_page) - 1;
         pages.push(PageContent {
-            chapter_id,
+            chapter_index,
             page_index: page_index as i32,
             content: chunk.join("\n"),
             is_last_page: is_last,
@@ -192,9 +204,168 @@ fn paginate_content(content: &str, chapter_id: i32, config: &TypesetConfig) -> V
 
     if pages.is_empty() {
         pages.push(PageContent {
-            chapter_id,
+            chapter_index,
             page_index: 0,
             content: content.to_string(),
+            is_last_page: true,
+        });
+    }
+
+    pages
+}
+
+// ==================== 富文本支持 ====================
+
+/// 获取章节富文本内容（保留 HTML 样式）
+///
+/// 解析 EPUB 章节的 HTML 内容，提取为结构化的富文本段落。
+///
+/// # 参数
+///
+/// * `file_path` - EPUB 文件路径
+/// * `chapter_id` - 章节 ID（从 0 开始）
+///
+/// # 返回值
+///
+/// * `Ok(RichChapterContent)` - 富文本章节内容
+/// * `Err(ParserError)` - 解析失败
+pub fn get_chapter_content_rich(file_path: &str, chapter_id: i32) -> ApiResult<RichChapterContent> {
+    tracing::debug!("读取 EPUB 章节 {} 富文本内容：{}", chapter_id, file_path);
+
+    let mut epub_file = EpubFile::open(file_path)?;
+    let chapters = extract_chapters_from_epub(&mut epub_file);
+
+    let chapter = chapters
+        .iter()
+        .find(|c| c.index == chapter_id)
+        .ok_or_else(|| ParserError::ChapterExtractError(format!("未找到章节 {}", chapter_id)))?;
+
+    // 读取章节 HTML 内容
+    let html_content = read_chapter_content(&mut epub_file, chapter)?;
+
+    // 使用 html5ever 解析 HTML 为富文本
+    let paragraphs = rich_text::parse_html_to_rich_text(&html_content);
+
+    // 计算总字符数
+    let total_characters = paragraphs
+        .iter()
+        .map(|p| p.full_text().chars().count() as i64)
+        .sum();
+
+    Ok(RichChapterContent {
+        chapter_id: chapter.chapter_id.clone(),
+        paragraphs,
+        total_characters,
+    })
+}
+
+/// 获取章节富文本内容（带排版配置）
+///
+/// 在保留 HTML 样式的基础上，应用排版配置（首行缩进、标点优化等）。
+///
+/// # 参数
+///
+/// * `file_path` - EPUB 文件路径
+/// * `chapter_id` - 章节 ID
+/// * `config` - 排版配置
+///
+/// # 返回值
+///
+/// * `Ok(Vec<RichParagraph>)` - 排版后的富文本段落
+/// * `Err(ParserError)` - 解析失败
+pub fn get_chapter_content_rich_with_typeset(
+    file_path: &str,
+    chapter_id: i32,
+    config: &TypesetConfig,
+) -> ApiResult<Vec<RichParagraph>> {
+    let rich_content = get_chapter_content_rich(file_path, chapter_id)?;
+
+    // 对富文本段落应用排版优化
+    let mut optimized_paragraphs = Vec::with_capacity(rich_content.paragraphs.len());
+
+    for paragraph in rich_content.paragraphs {
+        // 应用首行缩进
+        let mut optimized = paragraph.clone();
+        if !paragraph.is_heading && config.first_line_indent > 0 {
+            optimized.indent = config.first_line_indent;
+        }
+        optimized_paragraphs.push(optimized);
+    }
+
+    Ok(optimized_paragraphs)
+}
+
+/// 将富文本内容分页
+///
+/// 根据排版配置，将富文本段落分割为适合阅读的页面。
+///
+/// # 参数
+///
+/// * `paragraphs` - 富文本段落列表
+/// * `chapter_id` - 章节 ID
+/// * `config` - 排版配置
+///
+/// # 返回值
+///
+/// 返回分页后的页面列表（每个页面包含纯文本内容）
+pub fn paginate_rich_content(
+    paragraphs: &[RichParagraph],
+    chapter_index: i32,
+    config: &TypesetConfig,
+) -> Vec<PageContent> {
+    // 估算每页可容纳的字符数
+    let chars_per_page =
+        ((config.page_height as f32 / config.font_size as f32 / config.line_spacing)
+            * (config.page_width as f32 / config.font_size as f32)) as usize;
+    let chars_per_page = chars_per_page.max(EPUB_MIN_CHARS_PER_PAGE); // 至少 EPUB_MIN_CHARS_PER_PAGE 字符每页
+
+    let mut pages = Vec::new();
+    let mut current_page_content = String::new();
+    let mut current_page_chars = 0;
+    let mut page_index = 0;
+
+    for (para_idx, paragraph) in paragraphs.iter().enumerate() {
+        let para_text = paragraph.full_text();
+        let para_chars = para_text.chars().count();
+
+        // 如果当前页放不下这个段落，或者已达到字符限制
+        if current_page_chars > 0 && current_page_chars + para_chars > chars_per_page {
+            // 保存当前页
+            pages.push(PageContent {
+                chapter_index,
+                page_index,
+                content: current_page_content.clone(),
+                is_last_page: false,
+            });
+            page_index += 1;
+            current_page_content = String::new();
+            current_page_chars = 0;
+        }
+
+        // 添加段落
+        if !current_page_content.is_empty() {
+            current_page_content.push_str("\n\n");
+        }
+        current_page_content.push_str(&para_text);
+        current_page_chars += para_chars;
+
+        // 如果是最后一个段落，标记为最后一页
+        if para_idx == paragraphs.len() - 1 {
+            pages.push(PageContent {
+                chapter_index,
+                page_index,
+                content: current_page_content.clone(),
+                is_last_page: true,
+            });
+        }
+    }
+
+    // 处理空内容
+    if pages.is_empty() {
+        pages.push(PageContent {
+            chapter_index,
+            page_index: 0,
+            content: String::new(),
             is_last_page: true,
         });
     }
@@ -254,5 +425,56 @@ mod tests {
         let pages = paginate_content(content, 0, &config);
         assert!(!pages.is_empty());
         assert!(pages[0].is_last_page);
+    }
+
+    // ==================== 富文本测试 ====================
+
+    #[test]
+    fn test_paginate_rich_content_empty() {
+        let config = TypesetConfig::default();
+        let paragraphs = vec![];
+        let pages = paginate_rich_content(&paragraphs, 0, &config);
+        assert_eq!(pages.len(), 1);
+        assert!(pages[0].is_last_page);
+    }
+
+    #[test]
+    fn test_paginate_rich_content_single_paragraph() {
+        let config = TypesetConfig::default();
+        let paragraphs = vec![RichParagraph::plain("这是一个测试段落。".to_string(), 2)];
+        let pages = paginate_rich_content(&paragraphs, 0, &config);
+        assert_eq!(pages.len(), 1);
+        assert!(pages[0].content.contains("这是一个测试段落"));
+        assert!(pages[0].is_last_page);
+    }
+
+    #[test]
+    fn test_paginate_rich_content_multiple_pages() {
+        let config = TypesetConfig {
+            page_height: 800,
+            page_width: 600,
+            font_size: 16,
+            line_spacing: 1.5,
+            ..Default::default()
+        };
+
+        // 创建多个长段落，测试分页
+        let paragraphs: Vec<RichParagraph> = (0..10)
+            .map(|i| {
+                RichParagraph::plain(
+                    format!("这是第 {} 个段落，包含大量文本用于测试分页功能。", i),
+                    2,
+                )
+            })
+            .collect();
+
+        let pages = paginate_rich_content(&paragraphs, 0, &config);
+        assert!(!pages.is_empty());
+        // 验证最后一页标记
+        assert!(pages.last().unwrap().is_last_page);
+        // 验证第一页不是最后一页
+        if pages.len() > 1 {
+            assert!(!pages[0].is_last_page);
+        }
     }
 }
