@@ -110,9 +110,6 @@ pub fn parse_txt_with_config(file_path: String, config: ParseConfig) -> ApiResul
         elapsed
     );
 
-    // 记录性能指标
-    crate::utils::metrics::METRICS.record_parse(elapsed.as_millis() as u64);
-
     Ok(ParseResult {
         book_info,
         chapters,
@@ -210,11 +207,8 @@ pub fn get_chapter_content(
         typeset::typeset_content(chapter_text.to_string(), "auto".to_string(), config.clone())?;
 
     // 简单分页（实际应该根据像素计算）
-    let pages = simple_paginate(
-        &typeset_content,
-        chapter.index,
-        config.page_height as usize / 20,
-    );
+    let lines_per_page = (config.page_height as usize / 20).max(1);
+    let pages = simple_paginate(&typeset_content, chapter.index, lines_per_page);
 
     Ok(pages)
 }

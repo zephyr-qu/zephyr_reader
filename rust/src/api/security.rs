@@ -23,7 +23,8 @@ const MAX_FILE_SIZE: u64 = 500 * 1024 * 1024;
 ///
 /// * `Ok(String)` - 验证通过的规范化路径
 /// * `Err(ParserError)` - 路径不安全或无效
-pub fn validate_path_securely(file_path: &str, allowed_base: &str) -> Result<String, ParserError> {
+#[allow(dead_code)]
+pub(crate) fn validate_path_securely(file_path: &str, allowed_base: &str) -> Result<String, ParserError> {
     let allowed_base_path = Path::new(allowed_base);
 
     // 1. 检查空字节（路径截断攻击）
@@ -74,7 +75,7 @@ pub fn validate_path_securely(file_path: &str, allowed_base: &str) -> Result<Str
 /// # 注意
 ///
 /// 此函数使用严格的路径规范化，确保路径安全性。
-pub fn validate_file_path(file_path: &str) -> Result<String, ParserError> {
+pub(crate) fn validate_file_path(file_path: &str) -> Result<String, ParserError> {
     // 1. 检查空字节（路径截断攻击）
     if file_path.contains('\0') {
         return Err(ParserError::SecurityError(
@@ -98,15 +99,21 @@ pub fn validate_file_path(file_path: &str) -> Result<String, ParserError> {
     })?;
 
     // 3. 检查允许的基础目录（使用 RwLock 替代 OnceCell）
+    // 如果未设置基目录，默认拒绝所有文件访问（fail closed），
+    // 调用者必须先调用 set_allowed_base_dir() 明确授权可访问的目录范围
     {
         let guard = ALLOWED_BASE_DIR.read();
-        if let Some(base_dir) = guard.as_ref() {
-            if !canonical_path.starts_with(base_dir.as_path()) {
-                return Err(ParserError::SecurityError(format!(
-                    "文件必须在 {} 目录内",
-                    base_dir.display()
-                )));
-            }
+        let base_dir = guard.as_ref().ok_or_else(|| {
+            ParserError::SecurityError(
+                "未设置允许的基目录，文件访问被拒绝。请先调用 set_allowed_base_dir() 设置允许的基目录。".to_string(),
+            )
+        })?;
+
+        if !canonical_path.starts_with(base_dir.as_path()) {
+            return Err(ParserError::SecurityError(format!(
+                "文件必须在 {} 目录内",
+                base_dir.display()
+            )));
         }
     }
 

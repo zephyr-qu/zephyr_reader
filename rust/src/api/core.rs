@@ -4,7 +4,6 @@
 //! Automatically selects the appropriate parser based on file extension via ParserRegistry.
 
 use crate::api::security::validate_file_path;
-use crate::catch_panic;
 use crate::parser::traits::ThreadSafeParserRegistry;
 use crate::parser::{create_epub_parser, create_pdf_parser, create_txt_parser};
 use flutter_rust_bridge::frb;
@@ -13,7 +12,7 @@ use parking_lot::RwLock;
 use std::path::PathBuf;
 
 pub use crate::api::ApiResult;
-pub use crate::ffi::{PageContent, ParseResult, TypesetConfig};
+pub use crate::ffi::{PageContent, ParseResult, ParserError, TypesetConfig};
 pub use crate::parser::BookMetadata;
 
 static PARSER_REGISTRY: OnceCell<ThreadSafeParserRegistry> = OnceCell::new();
@@ -36,7 +35,7 @@ fn init_parser_registry() -> ThreadSafeParserRegistry {
     registry
 }
 
-pub fn get_registry() -> &'static ThreadSafeParserRegistry {
+pub(crate) fn get_registry() -> &'static ThreadSafeParserRegistry {
     PARSER_REGISTRY.get_or_init(init_parser_registry)
 }
 
@@ -72,13 +71,9 @@ fn get_parser_for_file(
 /// * `Ok(ParseResult)` - 解析成功，包含书籍元数据和章节列表
 /// * `Err(ParserError)` - 解析失败（文件不存在、格式不支持等）
 pub fn parse_book(file_path: String) -> ApiResult<ParseResult> {
-    catch_panic! {
-        {
-            let validated_path = validate_file_path(&file_path)?;
-            let registry = get_registry();
-            registry.parse_file(&validated_path)
-        }
-    }
+    let validated_path = validate_file_path(&file_path)?;
+    let registry = get_registry();
+    registry.parse_file(&validated_path)
 }
 
 #[frb(sync)]
@@ -93,13 +88,9 @@ pub fn parse_book(file_path: String) -> ApiResult<ParseResult> {
 /// * `Ok(BookMetadata)` - 元数据提取成功
 /// * `Err(ParserError)` - 提取失败
 pub fn extract_metadata(file_path: String) -> ApiResult<BookMetadata> {
-    catch_panic! {
-        {
-            let validated_path = validate_file_path(&file_path)?;
-            let parser = get_parser_for_file(&validated_path)?;
-            parser.extract_metadata(&validated_path)
-        }
-    }
+    let validated_path = validate_file_path(&file_path)?;
+    let parser = get_parser_for_file(&validated_path)?;
+    parser.extract_metadata(&validated_path)
 }
 
 #[frb(sync)]
@@ -115,13 +106,9 @@ pub fn extract_metadata(file_path: String) -> ApiResult<BookMetadata> {
 /// * `Ok(String)` - 章节内容
 /// * `Err(ParserError)` - 提取失败（章节不存在等）
 pub fn extract_chapter(file_path: String, chapter_id: i32) -> ApiResult<String> {
-    catch_panic! {
-        {
-            let validated_path = validate_file_path(&file_path)?;
-            let parser = get_parser_for_file(&validated_path)?;
-            parser.extract_chapter(&validated_path, chapter_id)
-        }
-    }
+    let validated_path = validate_file_path(&file_path)?;
+    let parser = get_parser_for_file(&validated_path)?;
+    parser.extract_chapter(&validated_path, chapter_id)
 }
 
 #[frb(sync)]
@@ -143,12 +130,9 @@ pub fn get_txt_chapter_content(
     chapter_index: i32,
     config: TypesetConfig,
 ) -> ApiResult<Vec<PageContent>> {
-    catch_panic! {
-        {
-            let validated_path = validate_file_path(&file_path)?;
-            crate::parser::txt::parse::get_chapter_content(&validated_path, chapter_index, &config)
-        }
-    }
+    let config = config.validate_and_fix();
+    let validated_path = validate_file_path(&file_path)?;
+    crate::parser::txt::parse::get_chapter_content(&validated_path, chapter_index, &config)
 }
 
 #[frb(sync)]
@@ -191,6 +175,7 @@ pub fn supports_format(format: String) -> bool {
 /// * `Ok(String)` - 排版后的文本
 /// * `Err(ParserError)` - 排版失败
 pub fn typeset_text(content: String, language: String, config: TypesetConfig) -> ApiResult<String> {
+    let config = config.validate_and_fix();
     crate::text_process::typeset::typeset_content(content, language, config)
 }
 
@@ -204,13 +189,9 @@ pub fn typeset_text(content: String, language: String, config: TypesetConfig) ->
 /// * `Ok(i64)` - 文件大小（字节）
 /// * `Err(ParserError)` - 获取失败（文件不存在等）
 pub fn get_file_size(file_path: String) -> ApiResult<i64> {
-    catch_panic! {
-        {
-            let validated_path = validate_file_path(&file_path)?;
-            let metadata = std::fs::metadata(&validated_path)?;
-            Ok(metadata.len() as i64)
-        }
-    }
+    let validated_path = validate_file_path(&file_path)?;
+    let metadata = std::fs::metadata(&validated_path)?;
+    Ok(metadata.len() as i64)
 }
 
 #[frb(sync)]
@@ -227,12 +208,27 @@ pub fn get_file_size(file_path: String) -> ApiResult<i64> {
 /// * `Ok(String)` - 文件块内容
 /// * `Err(ParserError)` - 读取失败
 pub fn read_file_chunk(file_path: String, start_pos: i64, chunk_size: i64) -> ApiResult<String> {
-    catch_panic! {
-        {
-            let validated_path = validate_file_path(&file_path)?;
-            crate::stream::file_stream::read_chunk(validated_path, start_pos, chunk_size)
-        }
+    // 输入边界校验
+    if start_pos < 0 {
+        return Err(ParserError::StreamError(
+            "读取起始位置不能为负数".to_string(),
+        ));
     }
+    if chunk_size <= 0 {
+        return Err(ParserError::StreamError(
+            "读取大小必须为正数".to_string(),
+        ));
+    }
+    const MAX_CHUNK_SIZE: i64 = 10 * 1024 * 1024; // 10 MB
+    if chunk_size > MAX_CHUNK_SIZE {
+        return Err(ParserError::StreamError(format!(
+            "单次读取大小不能超过 {} MB",
+            MAX_CHUNK_SIZE / 1024 / 1024
+        )));
+    }
+
+    let validated_path = validate_file_path(&file_path)?;
+    crate::stream::file_stream::read_chunk(validated_path, start_pos, chunk_size)
 }
 
 /// 创建流式分页器
@@ -250,6 +246,7 @@ pub fn read_file_chunk(file_path: String, start_pos: i64, chunk_size: i64) -> Ap
 /// 返回配置好的 `PageStreamer` 实例
 #[frb(sync)]
 pub fn create_page_streamer(content: String, config: TypesetConfig) -> crate::stream::PageStreamer {
+    let config = config.validate_and_fix();
     crate::stream::PageStreamer::new(content, config)
 }
 
@@ -273,6 +270,7 @@ pub fn paginate_all_content(
     chapter_id: i32,
     config: TypesetConfig,
 ) -> Vec<PageContent> {
+    let config = config.validate_and_fix();
     crate::stream::page_stream::paginate_all(content, chapter_id, config)
 }
 
@@ -287,10 +285,9 @@ pub fn init_app() {
 
     // 初始化 Rayon 全局线程池
     crate::init_rayon_pool();
-
     // 初始化解析器注册表
-    crate::get_registry();
-
+    get_registry();
+    flutter_rust_bridge::setup_default_user_utils();
     tracing::info!("Rust core engine initialized");
 }
 

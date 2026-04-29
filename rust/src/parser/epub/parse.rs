@@ -12,10 +12,15 @@ use crate::ffi::{
     ApiResult, BookInfo, ChapterInfo, PageContent, ParseConfig, ParseResult, ParserError,
     RichChapterContent, RichParagraph, TypesetConfig,
 };
-use crate::text_process::constants::{EPUB_MIN_CHARS_PER_PAGE, EPUB_MIN_LINES_PER_PAGE};
+
 use crate::text_process::{rich_text, typeset};
 use flutter_rust_bridge::frb;
-
+/// EPUB 分页：每页最小行数
+/// 防止每页行数过少导致显示异常
+pub const EPUB_MIN_LINES_PER_PAGE: usize = 10;
+/// EPUB 分页：每页最小字符数
+/// 防止分页过小导致性能问题
+pub const EPUB_MIN_CHARS_PER_PAGE: usize = 500;
 /// 解析 EPUB 文件
 #[frb(sync)]
 pub fn parse_epub(file_path: String) -> ApiResult<ParseResult> {
@@ -244,7 +249,7 @@ pub fn get_chapter_content_rich(file_path: &str, chapter_id: i32) -> ApiResult<R
     let html_content = read_chapter_content(&mut epub_file, chapter)?;
 
     // 使用 html5ever 解析 HTML 为富文本
-    let paragraphs = rich_text::parse_html_to_rich_text(&html_content);
+    let paragraphs = rich_text::parse_html_to_rich_text(&html_content)?;
 
     // 计算总字符数
     let total_characters = paragraphs
