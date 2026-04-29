@@ -4,8 +4,7 @@
 //! 通用解析功能请使用 core::parse_book。
 
 use crate::api::security::validate_file_path;
-use crate::catch_panic;
-use crate::ffi::{
+pub use crate::ffi::{
     ApiResult, EpubMetadata, PageContent, RichChapterContent, RichParagraph, TypesetConfig,
 };
 use flutter_rust_bridge::frb;
@@ -23,12 +22,8 @@ use flutter_rust_bridge::frb;
 /// * `Err(ParserError)` - 解析失败（文件不存在、格式错误等）
 #[frb(sync)]
 pub fn get_epub_metadata(file_path: String) -> ApiResult<EpubMetadata> {
-    catch_panic! {
-        {
-            let validated_path = validate_file_path(&file_path)?;
-            crate::parser::epub::unzip::get_epub_metadata(&validated_path)
-        }
-    }
+    let validated_path = validate_file_path(&file_path)?;
+    crate::parser::epub::unzip::get_epub_metadata(&validated_path)
 }
 
 /// 解析 EPUB 章节（富文本）
@@ -42,14 +37,8 @@ pub fn parse_epub_chapter_rich(
     file_path: String,
     chapter_index: i32,
 ) -> ApiResult<RichChapterContent> {
-    catch_panic! {
-        {
-            let validated_path = validate_file_path(&file_path)?;
-
-            // 使用新的富文本解析
-            crate::parser::epub::parse::get_chapter_content_rich(&validated_path, chapter_index)
-        }
-    }
+    let validated_path = validate_file_path(&file_path)?;
+    crate::parser::epub::parse::get_chapter_content_rich(&validated_path, chapter_index)
 }
 
 /// 获取 EPUB 章节内容（使用排版配置）
@@ -62,16 +51,11 @@ pub fn get_epub_chapter_content(
     chapter_id: i32,
     config: TypesetConfig,
 ) -> ApiResult<Vec<PageContent>> {
-    catch_panic! {
-        {
-            let validated_path = validate_file_path(&file_path)?;
-
-            let pages =
-                crate::parser::epub::parse::get_chapter_content(&validated_path, chapter_id, &config)?;
-
-            Ok(pages)
-        }
-    }
+    let config = config.validate_and_fix();
+    let validated_path = validate_file_path(&file_path)?;
+    let pages =
+        crate::parser::epub::parse::get_chapter_content(&validated_path, chapter_id, &config)?;
+    Ok(pages)
 }
 
 /// 获取 EPUB 章节富文本内容（带排版）
@@ -92,17 +76,13 @@ pub fn get_epub_chapter_rich_content(
     chapter_id: i32,
     config: TypesetConfig,
 ) -> ApiResult<Vec<RichParagraph>> {
-    catch_panic! {
-        {
-            let validated_path = validate_file_path(&file_path)?;
-
-            crate::parser::epub::parse::get_chapter_content_rich_with_typeset(
-                &validated_path,
-                chapter_id,
-                &config,
-            )
-        }
-    }
+    let config = config.validate_and_fix();
+    let validated_path = validate_file_path(&file_path)?;
+    crate::parser::epub::parse::get_chapter_content_rich_with_typeset(
+        &validated_path,
+        chapter_id,
+        &config,
+    )
 }
 
 /// 将 EPUB 章节富文本分页
@@ -122,6 +102,7 @@ pub fn paginate_epub_rich_content(
     chapter_index: i32,
     config: TypesetConfig,
 ) -> Vec<PageContent> {
+    let config = config.validate_and_fix();
     crate::parser::epub::parse::paginate_rich_content(&paragraphs, chapter_index, &config)
 }
 

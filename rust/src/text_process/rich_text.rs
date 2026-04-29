@@ -1,7 +1,7 @@
 //! HTML 解析模块
 //! 解析 HTML 内容并提取富文本结构
 
-use crate::ffi::{RichParagraph, RichTextSpan};
+use crate::ffi::{ParserError, RichParagraph, RichTextSpan};
 use html5ever::parse_document;
 use html5ever::tendril::TendrilSink;
 use html5ever::Attribute;
@@ -9,19 +9,19 @@ use markup5ever_rcdom::{Handle, NodeData, RcDom};
 use std::cell::RefCell;
 
 /// 解析 HTML 内容为富文本段落列表
-pub fn parse_html_to_rich_text(html_content: &str) -> Vec<RichParagraph> {
+pub fn parse_html_to_rich_text(html_content: &str) -> Result<Vec<RichParagraph>, ParserError> {
     // 解析 HTML
     let dom = parse_document(RcDom::default(), Default::default())
         .from_utf8()
         .read_from(&mut html_content.as_bytes())
-        .expect("HTML 解析失败");
+        .map_err(|e| ParserError::EpubParseError(format!("HTML 解析失败: {}", e)))?;
 
     let mut paragraphs = Vec::new();
 
     // ✅ 优化：移除无用的 in_block 和 heading_depth 参数
     traverse_dom(&dom.document, &mut paragraphs, None);
 
-    paragraphs
+    Ok(paragraphs)
 }
 
 /// 遍历 DOM 树
