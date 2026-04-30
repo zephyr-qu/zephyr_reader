@@ -3,7 +3,7 @@
 //! 注意：epub crate 2.x API 与 1.x 不兼容
 
 use crate::ffi::{ApiResult, EpubMetadata, ParserError};
-use epub::doc::{EpubDoc, ResourceItem, SpineItem};
+use epub::doc::{EpubDoc, NavPoint, ResourceItem, SpineItem};
 use flutter_rust_bridge::frb;
 use lru::LruCache;
 use std::collections::HashMap;
@@ -13,6 +13,9 @@ use std::num::NonZeroUsize;
 
 /// EPUB 缓存最大条目数
 const EPUB_CACHE_SIZE: usize = 50;
+/// 单个资源最大大小（10 MB）
+/// 防止大文件（如单章超大 HTML）耗尽内存
+const MAX_RESOURCE_SIZE: usize = 10 * 1024 * 1024;
 
 /// EPUB 文件句柄（带 LRU 缓存）
 pub struct EpubFile {
@@ -46,6 +49,17 @@ fn find_resource_by_href_or_path<'a>(
         .find(|(_, item)| item.path.to_string_lossy().ends_with(href))
 }
 
+/// 递归地将 NavPoint 树扁平化为前序三元组 (label, href, level)
+fn flatten_toc_items(nav_points: &[NavPoint], level: usize) -> Vec<(String, String, usize)> {
+    let mut result = Vec::new();
+    for nav in nav_points {
+        let href = nav.content.to_string_lossy().to_string();
+        result.push((nav.label.clone(), href, level));
+        result.extend(flatten_toc_items(&nav.children, level + 1));
+    }
+    result
+}
+
 impl EpubFile {
     /// 打开 EPUB 文件
     pub fn open(file_path: &str) -> Result<Self, ParserError> {
@@ -59,7 +73,10 @@ impl EpubFile {
 
         Ok(Self {
             doc,
-            cache: LruCache::new(NonZeroUsize::new(EPUB_CACHE_SIZE).unwrap()),
+            cache: LruCache::new(
+                NonZeroUsize::new(EPUB_CACHE_SIZE)
+                    .expect("EPUB_CACHE_SIZE is 50, which is always non-zero"),
+            ),
         })
     }
 
@@ -78,13 +95,12 @@ impl EpubFile {
         get_metadata_first(&self.doc.metadata, "cover")
     }
 
-    /// 获取目录（NCX/Nav），支持多级嵌套
-    pub fn toc(&self) -> Vec<(String, String)> {
-        self.doc
-            .toc
-            .iter()
-            .map(|nav| (nav.label.clone(), nav.content.to_string_lossy().to_string()))
-            .collect()
+    /// 获取目录（NCX/Nav），返回 (label, href, level) 三元组
+    ///
+    /// 通过递归遍历 NavPoint.children 保留多级嵌套结构，
+    /// level 0 = 顶层章节，1 = 子章节，以此类推。
+    pub fn toc(&self) -> Vec<(String, String, usize)> {
+        flatten_toc_items(&self.doc.toc, 0)
     }
 
     /// 获取 spine（阅读顺序）
@@ -124,6 +140,15 @@ impl EpubFile {
                 ParserError::EpubParseError("读取资源失败：无法获取当前内容".to_string())
             })?;
 
+            // 防止单资源过大导致 OOM
+            if content.len() > MAX_RESOURCE_SIZE {
+                return Err(ParserError::EpubParseError(format!(
+                    "资源大小 {} 超过单资源最大限制 {} MB",
+                    content.len(),
+                    MAX_RESOURCE_SIZE / 1024 / 1024
+                )));
+            }
+
             // 缓存内容（只缓存字节）
             self.cache.put(href.to_string(), content.clone());
 
@@ -136,21 +161,26 @@ impl EpubFile {
         )))
     }
 
-    /// 解码内容（EPUB 规范要求 UTF-8，提供回退）
+    /// 解码内容（EPUB 规范要求 UTF-8，提供编码检测回退）
     ///
-    /// 优先尝试零拷贝的 `from_utf8`，失败后再使用 `encoding_rs` 解码。
+    /// 优先尝试零拷贝的 `from_utf8`，失败后使用 chardetng 检测编码并解码。
     /// 避免 `to_vec()` 导致的不必要全量拷贝。
     fn decode_content(&self, content: &[u8]) -> Result<String, ParserError> {
         // 先尝试零拷贝解析（EPUB 规范要求 UTF-8）
-        match std::str::from_utf8(content) {
-            Ok(s) => return Ok(s.to_string()),
-            Err(e) => {
-                tracing::debug!("EPUB 内容非 UTF-8，尝试解码: {:?}", e);
-            }
+        if let Ok(s) = std::str::from_utf8(content) {
+            return Ok(s.to_string());
         }
 
-        // 回退到 encoding_rs 解码
-        let (decoded, _, _) = encoding_rs::UTF_8.decode(content);
+        tracing::debug!("EPUB 内容非 UTF-8，使用编码检测回退");
+
+        // 使用 chardetng 检测编码后解码
+        let encoding = crate::parser::txt::decode::detect_encoding_from_bytes(content)?;
+        let (decoded, _, had_errors) = encoding.decode(content);
+
+        if had_errors {
+            tracing::warn!("EPUB 解码时遇到错误，部分字符可能无法正确显示");
+        }
+
         Ok(decoded.into_owned())
     }
 
@@ -180,6 +210,11 @@ impl EpubFile {
 
         // 读取内容 - epub 2.x 返回 (Vec<u8>, String) 元组
         let (content, _charset) = self.doc.get_current()?;
+
+        // 防止单资源过大
+        if content.len() > MAX_RESOURCE_SIZE {
+            return None;
+        }
 
         // 缓存内容
         self.cache.put(href.to_string(), content.clone());
@@ -314,7 +349,11 @@ pub fn get_epub_metadata(file_path: &str) -> ApiResult<EpubMetadata> {
     let toc = epub_file
         .toc()
         .into_iter()
-        .map(|(label, href)| crate::ffi::EpubTocItem { label, href })
+        .map(|(label, href, level)| crate::ffi::EpubTocItem {
+            label,
+            href,
+            level: level as i32,
+        })
         .collect();
     let spine = epub_file.spine();
 

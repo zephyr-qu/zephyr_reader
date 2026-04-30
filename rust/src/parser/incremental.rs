@@ -5,11 +5,13 @@
 
 use std::fs;
 use std::hash::Hasher;
+use std::io::{Read, Seek, SeekFrom};
 use std::num::NonZeroUsize;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use lru::LruCache;
 
+use flutter_rust_bridge::frb;
 use crate::ffi::{ApiResult, ChapterInfo, ParseResult, ParserError};
 use crate::parser::BookParser;
 
@@ -37,23 +39,30 @@ impl FileMetadata {
             .unwrap_or_default()
             .as_millis() as u64;
 
+        let size_bytes = metadata.len();
+        let content_hash = if size_bytes > 0 {
+            compute_lightweight_hash(path)?
+        } else {
+            None
+        };
+
         Ok(Self {
             modified_timestamp: modified,
-            size_bytes: metadata.len(),
-            content_hash: None,
+            size_bytes,
+            content_hash,
         })
     }
 
-    /// 计算文件内容哈希（使用 FNV-1a 算法，快速但非加密级）
+    /// 计算文件内容哈希
     pub fn compute_hash(path: &str) -> Result<u64, std::io::Error> {
-        use std::io::{BufReader, Read};
+        use std::io::BufReader;
 
         let file = fs::File::open(path)?;
         let mut reader = BufReader::new(file);
         let mut buffer = Vec::new();
         reader.read_to_end(&mut buffer)?;
 
-        let mut hasher = default_hasher();
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
         hasher.write(&buffer);
         Ok(hasher.finish())
     }
@@ -77,6 +86,39 @@ impl FileMetadata {
 
         false
     }
+}
+
+/// 计算轻量级内容哈希（仅读文件首尾部分字节）
+///
+/// 与全量 `compute_hash` 不同，此函数只读取文件头部和尾部各 4KB，
+/// 结合文件大小计算哈希，避免大文件全量 I/O，适合快速变更检测。
+fn compute_lightweight_hash(path: &str) -> Result<Option<u64>, std::io::Error> {
+    let mut file = fs::File::open(path)?;
+    let file_size = file.metadata()?.len();
+    if file_size == 0 {
+        return Ok(None);
+    }
+
+    const SAMPLE_SIZE: u64 = 4096;
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+
+    // 读取头部 4KB（使用 by_ref 避免 take 消耗 file）
+    let mut head = Vec::with_capacity(SAMPLE_SIZE as usize);
+    file.by_ref().take(SAMPLE_SIZE).read_to_end(&mut head)?;
+    hasher.write(&head);
+    hasher.write_u64(head.len() as u64);
+    hasher.write_u64(file_size);
+
+    // 读取尾部 4KB（如果文件大于 SAMPLE_SIZE）
+    if file_size > SAMPLE_SIZE {
+        file.seek(SeekFrom::End(-(SAMPLE_SIZE as i64)))?;
+        let mut tail = Vec::with_capacity(SAMPLE_SIZE as usize);
+        file.by_ref().take(SAMPLE_SIZE).read_to_end(&mut tail)?;
+        hasher.write(&tail);
+        hasher.write_u64(tail.len() as u64);
+    }
+
+    Ok(Some(hasher.finish()))
 }
 
 /// 章节缓存信息
@@ -146,14 +188,21 @@ impl IncrementalParseResult {
     }
 }
 
+/// 缓存的文件数据（包含文件类型和章节列表）
+#[derive(Debug, Clone)]
+struct CachedFileData {
+    file_type: String,
+    chapters: Vec<CachedChapter>,
+}
+
 /// 增量解析器
 ///
 /// 跟踪文件变更，支持增量解析。
 pub struct IncrementalParser {
     /// 文件元数据缓存（使用 LRU 淘汰策略）
     file_metadata: LruCache<String, FileMetadata>,
-    /// 章节缓存（使用 LRU 淘汰策略）
-    chapter_cache: LruCache<String, Vec<CachedChapter>>,
+    /// 章节缓存（使用 LRU 淘汰策略，包含文件类型信息）
+    chapter_cache: LruCache<String, CachedFileData>,
     /// 上次解析时间戳
     last_parse_timestamp: LruCache<String, u64>,
 }
@@ -161,7 +210,8 @@ pub struct IncrementalParser {
 impl IncrementalParser {
     /// 创建新的增量解析器
     pub fn new() -> Self {
-        let cache_size = NonZeroUsize::new(DEFAULT_CACHE_SIZE).unwrap();
+        let cache_size = NonZeroUsize::new(DEFAULT_CACHE_SIZE)
+            .expect("DEFAULT_CACHE_SIZE is 100, which is always non-zero");
         Self {
             file_metadata: LruCache::new(cache_size),
             chapter_cache: LruCache::new(cache_size),
@@ -202,7 +252,7 @@ impl IncrementalParser {
     ///
     /// * `Ok(IncrementalParseResult)` - 解析成功
     /// * `Err(ParserError)` - 解析失败
-    pub fn parse_incremental<P: BookParser>(
+    pub fn parse_incremental<P: BookParser + ?Sized>(
         &mut self,
         file_path: &str,
         parser: &P,
@@ -231,14 +281,15 @@ impl IncrementalParser {
     }
 
     /// 获取缓存的解析结果
-    fn get_cached_result<P: BookParser>(
+    fn get_cached_result<P: BookParser + ?Sized>(
         &mut self,
         file_path: &str,
         parser: &P,
     ) -> ApiResult<IncrementalParseResult> {
         // 从缓存重建 ParseResult
-        if let Some(chapters) = self.chapter_cache.get(file_path) {
-            let chapter_infos: Vec<ChapterInfo> = chapters
+        if let Some(cached_data) = self.chapter_cache.get(file_path) {
+            let chapter_infos: Vec<ChapterInfo> = cached_data
+                .chapters
                 .iter()
                 .map(|c| {
                     // 使用稳定的章节 ID：基于文件路径和章节索引生成
@@ -253,6 +304,7 @@ impl IncrementalParser {
                         end_index: c.end_index,     // 使用缓存的位置信息
                         content_length: c.content_length, // 使用缓存的内容长度
                         index: c.chapter_index,
+                        level: 0,
                     }
                 })
                 .collect();
@@ -268,7 +320,7 @@ impl IncrementalParser {
                     chapter_count: metadata.chapter_count,
                     total_characters: metadata.total_characters,
                     file_path: file_path.to_string(),
-                    file_type: "cached".to_string(),
+                    file_type: cached_data.file_type.clone(),
                     cover_path: metadata.cover_path,
                 },
                 chapters: chapter_infos,
@@ -306,18 +358,32 @@ impl IncrementalParser {
         let chapters: Vec<CachedChapter> = parse_result
             .chapters
             .iter()
-            .map(|c| CachedChapter {
-                chapter_index: c.index,
-                title: c.title.clone(),
-                start_index: c.start_index,
-                end_index: c.end_index,
-                content_length: c.content_length,
-                content_hash: 0, // 可以计算内容哈希
-                cached_at: now,
+            .map(|c| {
+                let mut hasher = std::collections::hash_map::DefaultHasher::new();
+                hasher.write(c.title.as_bytes());
+                hasher.write(&c.start_index.to_le_bytes());
+                hasher.write(&c.end_index.to_le_bytes());
+                hasher.write(&c.content_length.to_le_bytes());
+                let content_hash = hasher.finish();
+
+                CachedChapter {
+                    chapter_index: c.index,
+                    title: c.title.clone(),
+                    start_index: c.start_index,
+                    end_index: c.end_index,
+                    content_length: c.content_length,
+                    content_hash,
+                    cached_at: now,
+                }
             })
             .collect();
 
-        self.chapter_cache.put(file_path.to_string(), chapters);
+        let cached_data = CachedFileData {
+            file_type: parse_result.book_info.file_type.clone(),
+            chapters,
+        };
+
+        self.chapter_cache.put(file_path.to_string(), cached_data);
         self.last_parse_timestamp.put(file_path.to_string(), now);
 
         Ok(())
@@ -343,7 +409,7 @@ impl IncrementalParser {
     pub fn get_cache_stats(&self) -> CacheStats {
         CacheStats {
             file_count: self.file_metadata.len(),
-            chapter_count: self.chapter_cache.iter().map(|(_, v)| v.len()).sum(),
+            chapter_count: self.chapter_cache.iter().map(|(_, v)| v.chapters.len()).sum(),
             total_memory_estimate: self.estimate_memory_usage(),
         }
     }
@@ -355,7 +421,7 @@ impl IncrementalParser {
         let chapter_size = self
             .chapter_cache
             .iter()
-            .map(|(_, v)| v.len() * std::mem::size_of::<CachedChapter>())
+            .map(|(_, v)| v.chapters.len() * std::mem::size_of::<CachedChapter>())
             .sum::<usize>();
         metadata_size + chapter_size
     }
@@ -369,6 +435,7 @@ impl Default for IncrementalParser {
 
 /// 缓存统计信息
 #[derive(Debug, Clone)]
+#[frb(non_opaque)]
 pub struct CacheStats {
     /// 缓存的文件数量
     pub file_count: usize,
@@ -376,12 +443,6 @@ pub struct CacheStats {
     pub chapter_count: usize,
     /// 估算的内存使用量（字节）
     pub total_memory_estimate: usize,
-}
-
-/// 默认哈希器创建函数
-/// 返回 std::collections::hash_map::DefaultHasher (SipHash)
-fn default_hasher() -> std::collections::hash_map::DefaultHasher {
-    std::collections::hash_map::DefaultHasher::new()
 }
 
 #[cfg(test)]

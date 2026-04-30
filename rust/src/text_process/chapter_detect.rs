@@ -2,13 +2,30 @@
 //! 识别中文和英文小说的章节标题
 //!
 //! 使用 `rayon` 并行库优化大文本的预处理和匹配后处理。
-
 use crate::ffi::ChapterInfo;
-use crate::text_process::constants::{
-    CHAPTER_PATTERN_DIGIT, CHAPTER_PATTERN_EN, CHAPTER_PATTERN_ZH,
-};
+use once_cell::sync::Lazy;
 use regex::Regex;
+/// 中文章节匹配模式
+/// 识别中文小说的章节标题（如"第一章"、"第壹回"等）
+pub static CHAPTER_PATTERN_ZH: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r"(?m)^(?:第\s*)?([零〇一二三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟 0-9]+)\s*[章回卷节部篇集]\s*(.+)?|(?:楔子 | 序 [言引]|前言 | 引子 | 尾声 | 完结 | 番外 | 后记)\s*(.+)?$"
+    ).expect("CHAPTER_PATTERN_ZH 正则表达式编译失败")
+});
 
+/// 英文章节匹配模式
+/// 识别英文小说的章节标题（如"Chapter 1"、"Part I"等）
+pub static CHAPTER_PATTERN_EN: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r"(?mi)^(?:Chapter\s+\d+|[IVX]+\.[\s.]|[IVX]+\s+[A-Z]|\bPart\s+\d+|Book\s+\d+|Prologue|Epilogue|Preface|Introduction|Conclusion)\s*:?\s*(.*)$"
+    ).expect("CHAPTER_PATTERN_EN 正则表达式编译失败")
+});
+
+/// 数字章节匹配模式
+/// 识别纯数字章节（如"1. Title"、"2、标题"等）
+pub static CHAPTER_PATTERN_DIGIT: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"(?m)^(\d+)[\s.、:：](.+)$").expect("CHAPTER_PATTERN_DIGIT 正则表达式编译失败")
+});
 /// 从文本中提取章节信息
 pub fn extract_chapters(content: &str, max_chapters: i32) -> Vec<ChapterInfo> {
     // 尝试多种章节模式，按优先级排序（中文 -> 英文 -> 数字）
@@ -59,6 +76,7 @@ fn extract_chapters_with_pattern(
                 end_index: content_len,
                 content_length: content_len - start,
                 index: chapters.len() as i32,
+                level: 0,
             });
         }
     }
