@@ -5,8 +5,10 @@
 use rayon::prelude::*;
 
 use crate::ffi::{ApiResult, ChapterInfo, ParserError};
-use crate::text_process::constants::MIN_CHAPTER_LENGTH;
 
+/// 章节最小长度（字符数）
+/// 防止章节内容过短导致处理异常
+pub const MIN_CHAPTER_LENGTH: usize = 10;
 /// 并行验证章节内容
 ///
 /// 使用 rayon 全局线程池并行处理章节列表，过滤掉无效章节。
@@ -172,6 +174,7 @@ mod tests {
             end_index: end,
             content_length: end - start,
             index: id,
+            level: 0,
         }
     }
 

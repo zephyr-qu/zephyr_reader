@@ -39,7 +39,7 @@ const MAX_FIRST_LINE_INDENT: u8 = 10;
 ///
 /// 用于控制解析器的行为，包括并行处理、缓存等选项。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb]
+#[frb(non_opaque)]
 pub struct ParseConfig {
     /// 是否启用并行解析（多章节同时处理）
     pub enable_parallel: bool,
@@ -121,6 +121,8 @@ pub struct ChapterInfo {
     pub content_length: i64,
     /// 章节序号（顺序索引，从 0 开始）
     pub index: i32,
+    /// 层级深度（0 = 顶层章节，1 = 子章节，…）
+    pub level: i32,
 }
 
 /// 分页内容结构体
@@ -153,7 +155,7 @@ pub struct PageContent {
 
 /// 搜索结果项
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb]
+#[frb(non_opaque)]
 pub struct SearchResult {
     /// 章节 ID
     pub chapter_id: i32,
@@ -192,7 +194,7 @@ pub enum LanguageType {
 
 /// 排版配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb]
+#[frb(non_opaque)]
 pub struct TypesetConfig {
     /// 页面宽度（像素）
     pub page_width: i32,
@@ -602,6 +604,8 @@ pub struct EpubTocItem {
     pub label: String,
     /// 目录链接
     pub href: String,
+    /// 层级深度（0 = 顶层，1 = 子章节，…）
+    pub level: i32,
 }
 
 /// EPUB 元数据
@@ -848,35 +852,18 @@ impl RichChapterContent {
     }
 }
 
+// ==================== 笔记统计 ====================
+
+/// 笔记统计
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[frb(non_opaque)]
+pub struct NoteStats {
+    pub total_count: i32,
+    pub highlight_count: i32,
+    pub annotation_count: i32,
+}
+
 // ==================== 全文搜索支持 ====================
-
-/// 搜索结果项
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb(non_opaque)]
-pub struct SearchHit {
-    /// 章节索引（顺序号，从 0 开始）
-    pub chapter_index: i32,
-    /// 章节标题
-    pub chapter_title: String,
-    /// 匹配的文本片段
-    pub snippet: String,
-    /// 匹配位置（字符偏移）
-    pub position: i64,
-    /// 相关性评分
-    pub score: f32,
-}
-
-/// 搜索结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb(non_opaque)]
-pub struct SearchResults {
-    /// 总匹配数
-    pub total_hits: i32,
-    /// 搜索结果列表
-    pub hits: Vec<SearchHit>,
-    /// 搜索耗时（毫秒）
-    pub elapsed_ms: i64,
-}
 
 // ==================== 双语对齐支持 ====================
 

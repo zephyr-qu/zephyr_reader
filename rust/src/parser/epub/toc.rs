@@ -25,21 +25,20 @@ pub fn extract_chapters_from_epub(epub_file: &mut EpubFile) -> Vec<ChapterInfo> 
     let mut chapters = Vec::new();
     let mut chapter_id = 0i32;
 
-    // 递归处理目录项（支持多级）
-    extract_toc_items_recursive(&toc, &href_map, &mut chapters, &mut chapter_id, 0);
+    // 处理带层级的目录项
+    extract_toc_items_recursive(&toc, &href_map, &mut chapters, &mut chapter_id);
 
     chapters
 }
 
-/// 递归提取目录项（支持多级嵌套）
+/// 提取目录项（支持多级嵌套）
 fn extract_toc_items_recursive(
-    items: &[(String, String)],
+    items: &[(String, String, usize)],
     href_map: &HashMap<&str, usize>,
     chapters: &mut Vec<ChapterInfo>,
     chapter_id: &mut i32,
-    _level: usize,
 ) {
-    for (title, href) in items {
+    for (title, href, level) in items {
         // 提取纯 href（去掉片段标识符）
         let pure_href = href.split('#').next().unwrap_or(href);
 
@@ -48,9 +47,8 @@ fn extract_toc_items_recursive(
             .copied()
             .unwrap_or(*chapter_id as usize);
 
-        // 检测并格式化层级标题
-        // 如果标题包含 ">" 或其他分隔符，说明是多级目录
-        let full_title = format_title_with_hierarchy(title, _level);
+        // 根据层级格式化标题
+        let full_title = format_title_with_hierarchy(title, *level);
 
         chapters.push(ChapterInfo {
             chapter_id: uuid::Uuid::new_v4().to_string(),
@@ -59,21 +57,15 @@ fn extract_toc_items_recursive(
             end_index: (index + 1) as i64,
             content_length: 0, // EPUB 章节长度在读取时确定
             index: *chapter_id,
+            level: *level as i32,
         });
 
         *chapter_id += 1;
     }
 }
 
-/// 格式化带层级的标题
+/// 根据层级缩进标题
 fn format_title_with_hierarchy(title: &str, level: usize) -> String {
-    // 检查标题是否已经包含层级分隔符
-    if title.contains(" > ") || title.contains("·") || title.contains("．") {
-        // 已经有层级标记，直接返回
-        return title.to_string();
-    }
-
-    // 根据层级添加前缀
     if level > 0 {
         format!("{}{}", "  ".repeat(level), title)
     } else {
@@ -97,6 +89,7 @@ fn generate_chapters_from_spine(spine: &[String]) -> Vec<ChapterInfo> {
                 end_index: (i + 1) as i64,
                 content_length: 0,
                 index: i as i32,
+                level: 0,
             }
         })
         .collect()

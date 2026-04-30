@@ -153,6 +153,7 @@ fn extract_chapters(content: &str) -> Vec<ChapterInfo> {
                 end_index: content.len() as i64,
                 content_length: content.len() as i64 - start,
                 index: chapter_id,
+                level: 0,
             });
 
             chapter_id += 1;
@@ -169,6 +170,7 @@ fn extract_chapters(content: &str) -> Vec<ChapterInfo> {
             end_index: content.len() as i64,
             content_length: content.len() as i64,
             index: 0,
+            level: 0,
         });
     }
 
@@ -206,8 +208,9 @@ pub fn get_chapter_content(
     let typeset_content =
         typeset::typeset_content(chapter_text.to_string(), "auto".to_string(), config.clone())?;
 
-    // 简单分页（实际应该根据像素计算）
-    let lines_per_page = (config.page_height as usize / 20).max(1);
+    // 根据字体大小和行间距估算每页行数
+    let lines_per_page = (config.page_height as f32 / config.font_size as f32 / config.line_spacing) as usize;
+    let lines_per_page = lines_per_page.max(1);
     let pages = simple_paginate(&typeset_content, chapter.index, lines_per_page);
 
     Ok(pages)

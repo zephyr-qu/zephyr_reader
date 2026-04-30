@@ -113,6 +113,7 @@ fn generate_chapters(total_pages: usize, pages_per_chapter: usize) -> Vec<Chapte
             end_index: end_page as i64,
             content_length: (end_page - start_page) as i64,
             index: chapter_index as i32,
+            level: 0,
         });
     }
 
@@ -125,13 +126,7 @@ fn generate_chapters(total_pages: usize, pages_per_chapter: usize) -> Vec<Chapte
 pub async fn async_parse_pdf_file(file_path: String) -> ApiResult<ParseResult> {
     validate_file_path(&file_path)?;
 
-    tokio::task::spawn_blocking(move || {
-        crate::catch_panic! {
-            {
-                parse_pdf(file_path)
-            }
-        }
-    })
+    tokio::task::spawn_blocking(move || { parse_pdf(file_path) })
     .await
     .map_err(|e| ParserError::Other(format!("异步任务执行失败：{}", e)))?
 }

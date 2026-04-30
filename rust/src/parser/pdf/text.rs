@@ -3,11 +3,15 @@
 //! 使用 `pdfium-render` 实现 PDF 文本提取功能。
 //! 支持多页面文本提取和字符数估算。
 
-use pdfium_render::prelude::{PdfPageIndex, Pdfium};
+use pdfium_render::prelude::PdfPageIndex;
 use std::path::Path;
 
 use crate::ffi::{ApiResult, ParserError};
-use crate::text_process::constants::PDF_CHARS_PER_PAGE;
+
+use pdfium_render::prelude::Pdfium;
+/// PDF 文本估算：每页默认字符数
+/// 用于在无法精确计算时估算 PDF 文本内容量
+pub const PDF_CHARS_PER_PAGE: usize = 500;
 
 /// 从 PDF 文件中提取指定页面的文本
 ///
