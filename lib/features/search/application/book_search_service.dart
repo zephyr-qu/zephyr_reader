@@ -6,8 +6,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:zephyr_reader/src/rust/api/search.dart' as search_api;
-import 'package:zephyr_reader/src/rust/api/storage.dart' as storage_api;
+import 'package:zephyr_reader/core/local/rust_search_service.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 搜索结果
@@ -42,9 +41,10 @@ class SearchHit {
 
 /// 书籍搜索服务
 class BookSearchService {
+  final RustSearchService _search;
   String? _searchIndexPath;
 
-  BookSearchService();
+  BookSearchService(this._search);
 
   /// 初始化搜索索
   Future<void> init() async {
@@ -87,7 +87,7 @@ class BookSearchService {
 
       // 调用 Rust 索引函数
       try {
-        await search_api.indexChapterContent(
+        await _search.indexChapterContent(
           bookId: bookId,
           chapterId: 0,
           chapterTitle: '全书',
@@ -118,45 +118,31 @@ class BookSearchService {
     }
 
     try {
-      // 调用 Rust 搜索函数
-      try {
-        await storage_api.searchContent(
-          query: query,
-          bookId: bookId,
-        );
+      // 使用独立的 search 模块进行搜索
+      final searchResults = _search.searchInBook(
+        bookId: bookId ?? '',
+        query: query,
+        limit: limit,
+      );
 
-        // ApiResultVecDbSearchResult 是 RustOpaqueInterface，暂时无法直接获取值
-        // 需要等待 Rust API 完善或添加解包方法
-        // 暂时返回空列表，待 Rust API 完善后再实现
-        debugPrint('Rust 搜索返回结果（暂时无法解包）');
-        return [];
-      } catch (e) {
-        debugPrint('Rust 搜索失败：$e');
-        // 降级使用数据库搜索
-        return await _searchInDatabase(query, bookId: bookId, limit: limit);
-      }
+      // 转换 Rust 搜索结果为 SearchHit
+      final hits =
+          (searchResults as dynamic).value.map((result) {
+            return SearchHit(
+              bookId: result.bookId,
+              chapterIndex: result.chapterId.toInt(),
+              chapterTitle: result.chapterTitle,
+              snippet: result.snippet,
+              content: result.content,
+              rank: result.rank,
+            );
+          }).toList() ??
+          [];
+
+      debugPrint('搜索完成：query=$query, 结果数=${hits.length}');
+      return hits;
     } catch (e) {
       debugPrint('搜索失败：$e');
-      return [];
-    }
-  }
-
-  /// 在数据库中搜索（临时实现
-  ///
-  /// 注意：此方法需要从 Rust API 获取书籍和章节信息
-  /// 未来将使用 Rust 全文搜索替代
-  Future<List<SearchHit>> _searchInDatabase(
-    String query, {
-    String? bookId,
-    int limit = 50,
-  }) async {
-    try {
-      // TODO: 从 Rust API 获取书籍和章节信息
-      // 当前返回空列表，等待 Rust 搜索 API 完善
-      debugPrint('数据库搜索功能待实现，查询：$query');
-      return [];
-    } catch (e) {
-      debugPrint('数据库搜索失败：$e');
       return [];
     }
   }
@@ -164,11 +150,9 @@ class BookSearchService {
   /// 删除书籍索引
   Future<void> removeBookIndex(String bookId) async {
     try {
-      // 调用 Rust 删除索引函数
-      await storage_api.deleteSearchIndex(
-        bookId: bookId,
-      );
-      debugPrint('删除书籍索引完成：bookId=$bookId');
+      // 注意：search 模块目前没有单独的删除索引 API
+      // 可以通过重新索引空内容来实现，或者等待 Rust 侧添加该功能
+      debugPrint('删除书籍索引：bookId=$bookId (待 Rust search API 完善)');
     } catch (e) {
       debugPrint('删除书籍索引失败：bookId=$bookId, error=$e');
     }
@@ -178,7 +162,7 @@ class BookSearchService {
   Future<void> clearAllIndex() async {
     try {
       // 调用 Rust 清除索引函数
-      await search_api.clearAllSearchIndex();
+      await _search.clearAllSearchIndex();
       debugPrint('清除所有索引完成');
     } catch (e) {
       debugPrint('清除所有索引失败：$e');

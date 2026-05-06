@@ -4,12 +4,16 @@
 //! 通过 CoverExtractorRegistry 自动根据文件类型选择对应的提取器。
 
 use crate::ffi::{ApiResult, ParserError};
-use flutter_rust_bridge::frb;
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
+
+/// 封面图片最大大小（20 MB）
+/// EPUB 封面通常为几百 KB，20 MB 足以覆盖所有合理封面，
+/// 同时防止恶意超大图片耗尽内存。
+const MAX_COVER_SIZE: usize = 20 * 1024 * 1024;
 /// 封面提取器 trait
 ///
 /// 所有文件格式的封面提取器必须实现此 trait。
@@ -42,12 +46,11 @@ pub trait CoverExtractor: Send + Sync {
 }
 
 /// EPUB 封面提取器
-#[frb(opaque)]
-pub struct EpubCoverExtractor;
+pub struct EpubCoverExtractor {}
 
 impl EpubCoverExtractor {
     pub fn new() -> Self {
-        Self
+        Self {}
     }
 }
 
@@ -71,6 +74,14 @@ impl CoverExtractor for EpubCoverExtractor {
         let cover_data = epub_file
             .read_cover()
             .ok_or_else(|| ParserError::Other("未找到 EPUB 封面".to_string()))?;
+
+        if cover_data.len() > MAX_COVER_SIZE {
+            return Err(ParserError::Other(format!(
+                "封面图片大小 {} 超过最大限制 {} MB",
+                cover_data.len(),
+                MAX_COVER_SIZE / 1024 / 1024
+            )));
+        }
 
         let file_stem = Path::new(file_path)
             .file_stem()
@@ -104,12 +115,11 @@ impl CoverExtractor for EpubCoverExtractor {
 }
 
 /// PDF 封面提取器
-#[frb(opaque)]
-pub struct PdfCoverExtractor;
+pub struct PdfCoverExtractor {}
 
 impl PdfCoverExtractor {
     pub fn new() -> Self {
-        Self
+        Self {}
     }
 }
 
@@ -134,12 +144,11 @@ impl CoverExtractor for PdfCoverExtractor {
 }
 
 /// TXT 封面提取器（不支持封面提取）
-#[frb(opaque)]
-pub struct TxtCoverExtractor;
+pub struct TxtCoverExtractor {}
 
 impl TxtCoverExtractor {
     pub fn new() -> Self {
-        Self
+        Self {}
     }
 }
 
@@ -166,7 +175,6 @@ impl CoverExtractor for TxtCoverExtractor {
 }
 
 /// 封面提取器注册表
-#[frb(opaque)]
 pub struct CoverExtractorRegistry {
     extractors: HashMap<String, Arc<dyn CoverExtractor>>,
     format_map: HashMap<String, String>, // format -> extractor_name
@@ -243,7 +251,6 @@ impl Default for CoverExtractorRegistry {
 }
 
 /// 线程安全的封面提取器注册表
-#[frb(opaque)]
 pub struct ThreadSafeCoverRegistry {
     inner: Mutex<CoverExtractorRegistry>,
 }

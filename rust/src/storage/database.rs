@@ -6,12 +6,12 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use rusqlite::{params, Connection, OptionalExtension};
 
-use crate::storage::repositories::NoteStats;
+use crate::storage::models::NoteStats;
 
 use super::models::*;
 
-/// 数据库版本（当前固定为 v4）
-const DB_VERSION: i32 = 4;
+/// 数据库版本（当前固定为 v1：全量建表）
+const DB_VERSION: i32 = 1;
 
 /// SQLite INTEGER (Unix timestamp) → chrono::DateTime<Utc>
 /// 如果时间戳无效，返回当前时间（避免崩溃）
@@ -52,6 +52,7 @@ fn row_to_chapter(row: &rusqlite::Row<'_>) -> rusqlite::Result<DbChapter> {
         chapter_index: row.get("chapter_index")?,
         word_count: row.get("word_count")?,
         cached_at: ts_to_dt(row.get("cached_at")?),
+        level: row.get("level")?,
     })
 }
 
@@ -61,6 +62,7 @@ fn row_to_book_category(row: &rusqlite::Row<'_>) -> rusqlite::Result<DbBookCateg
     Ok(DbBookCategory {
         id: row.get("id")?,
         name: row.get("name")?,
+        description: row.get("description")?,
         color: row.get("color")?,
         sort_order: row.get("sort_order")?,
         is_system: row.get::<_, i32>("is_system")? != 0,
@@ -102,11 +104,10 @@ impl Database {
             .unwrap_or(0);
 
         if version == 0 {
-            // 首次创建：直接初始化 v4 表结构
+            // 首次创建：全量建表
             self.create_tables()?;
             self.conn.pragma_update(None, "user_version", DB_VERSION)?;
         } else if version < DB_VERSION {
-            // 安全策略：遇到旧版本直接报错，避免字段缺失导致 Panic
             anyhow::bail!(
                 "数据库版本过旧 (v{})，与当前版本 (v{}) 不兼容。请备份数据后删除旧数据库文件重新生成。",
                 version, DB_VERSION
@@ -115,7 +116,7 @@ impl Database {
         Ok(())
     }
 
-    /// 创建所有数据表（v5 优化结构）
+    /// 创建所有数据表（v1 全量建表）
     fn create_tables(&self) -> Result<()> {
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS books (
@@ -145,6 +146,14 @@ impl Database {
             "CREATE INDEX IF NOT EXISTS idx_progress_last_read ON reading_progress(last_read_at)",
             [],
         )?;
+        self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_books_status_last_open ON books(status, last_opened_at)",
+            [],
+        )?;
+        self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_books_pinned_last_open ON books(is_pinned, last_opened_at)",
+            [],
+        )?;
 
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS bookmarks (
@@ -170,7 +179,6 @@ impl Database {
                 start_char_offset INTEGER NOT NULL, end_char_offset INTEGER NOT NULL,
                 started_at INTEGER NOT NULL, ended_at INTEGER NOT NULL,
                 duration_seconds INTEGER NOT NULL, characters_read INTEGER NOT NULL,
-                start_timestamp INTEGER, end_timestamp INTEGER,
                 FOREIGN KEY (book_id) REFERENCES books(book_id) ON DELETE CASCADE
             )",
             [],
@@ -179,26 +187,30 @@ impl Database {
             "CREATE INDEX IF NOT EXISTS idx_sessions_book ON reading_sessions(book_id)",
             [],
         )?;
-
-        // book_id 为 NULL 时表示当日汇总
         self.conn.execute(
-            "CREATE TABLE IF NOT EXISTS daily_stats (
-                date TEXT NOT NULL, book_id TEXT,
-                reading_time_seconds INTEGER NOT NULL DEFAULT 0,
-                characters_read INTEGER NOT NULL DEFAULT 0,
-                session_count INTEGER NOT NULL DEFAULT 0,
-                chapters_read INTEGER DEFAULT 0, pages_read INTEGER DEFAULT 0,
+            "CREATE INDEX IF NOT EXISTS idx_sessions_started_at ON reading_sessions(started_at)",
+            [],
+        )?;
+
+        self.conn.execute(
+            "CREATE TABLE IF NOT EXISTS daily_read_books (
+                date TEXT NOT NULL,
+                book_id TEXT NOT NULL,
                 PRIMARY KEY (date, book_id),
-                FOREIGN KEY (date) REFERENCES daily_stats(date) ON DELETE CASCADE
+                FOREIGN KEY (book_id) REFERENCES books(book_id) ON DELETE CASCADE
             )",
             [],
         )?;
+
         self.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_daily_date ON daily_stats(date)",
-            [],
-        )?;
-        self.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_daily_book ON daily_stats(book_id)",
+            "CREATE TABLE IF NOT EXISTS daily_stats (
+                date TEXT NOT NULL PRIMARY KEY,
+                reading_time_seconds INTEGER NOT NULL DEFAULT 0,
+                characters_read INTEGER NOT NULL DEFAULT 0,
+                session_count INTEGER NOT NULL DEFAULT 0,
+                chapters_read INTEGER DEFAULT 0,
+                pages_read INTEGER DEFAULT 0
+            )",
             [],
         )?;
 
@@ -226,6 +238,7 @@ impl Database {
                 id TEXT PRIMARY KEY, book_id TEXT NOT NULL, title TEXT NOT NULL,
                 content_file TEXT NOT NULL, chapter_index INTEGER NOT NULL,
                 word_count INTEGER DEFAULT 0, cached_at INTEGER NOT NULL,
+                level INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY (book_id) REFERENCES books(book_id) ON DELETE CASCADE
             )",
             [],
@@ -236,20 +249,6 @@ impl Database {
         )?;
         self.conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_chapters_index ON chapters(book_id, chapter_index)",
-            [],
-        )?;
-
-        self.conn.execute(
-            "CREATE TABLE IF NOT EXISTS sync_records (
-                id TEXT PRIMARY KEY, book_id TEXT NOT NULL, data_type TEXT NOT NULL,
-                data_id TEXT NOT NULL, local_version INTEGER NOT NULL,
-                remote_version INTEGER, status TEXT NOT NULL,
-                modified_at INTEGER NOT NULL, etag TEXT
-            )",
-            [],
-        )?;
-        self.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_sync_query ON sync_records(book_id, data_type, status)",
             [],
         )?;
 
@@ -276,6 +275,21 @@ impl Database {
             "CREATE INDEX IF NOT EXISTS idx_notes_type ON notes(book_id, note_type)",
             [],
         )?;
+        self.conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_notes_unique ON notes(book_id, chapter_index, char_offset, note_type)",
+            [],
+        )?;
+
+        // FTS5 全文搜索索引（与主数据库同文件，支持事务）
+        self.conn.execute_batch(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
+                book_id,
+                chapter_id,
+                chapter_title,
+                content,
+                position UNINDEXED
+            )",
+        )?;
 
         Ok(())
     }
@@ -283,6 +297,11 @@ impl Database {
     /// 获取原生连接（用于高级操作）
     pub fn conn(&self) -> &Connection {
         &self.conn
+    }
+
+    /// 获取可变原生连接（用于事务等需要可变访问的操作）
+    pub fn conn_mut(&mut self) -> &mut Connection {
+        &mut self.conn
     }
 
     // ==================== Book Operations ====================
@@ -441,6 +460,60 @@ impl Database {
             .query_map([limit as i64], |row| self.row_to_book_record(row))?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(books)
+    }
+
+    /// 分页获取书籍
+    pub fn get_books_paginated(
+        &self,
+        limit: i64,
+        offset: i64,
+        sort_by: &str,
+        sort_order: &str,
+    ) -> Result<Vec<DbBookRecord>> {
+        // 安全：仅允许白名单的排序列和方向
+        let sort_column = match sort_by {
+            "title" => "b.title",
+            "added_at" => "b.added_at",
+            "last_opened_at" => "b.last_opened_at",
+            "file_size" => "b.file_size",
+            _ => "b.added_at",
+        };
+        let order = if sort_order.eq_ignore_ascii_case("asc") { "ASC" } else { "DESC" };
+        let sql = format!(
+            "SELECT b.* FROM books b ORDER BY {} {} LIMIT ?1 OFFSET ?2",
+            sort_column, order
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let books = stmt
+            .query_map(params![limit, offset], |row| self.row_to_book_record(row))?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(books)
+    }
+
+    /// 更新书籍阅读状态
+    pub fn update_book_status(&self, book_id: &str, status: &str) -> Result<()> {
+        self.conn.execute(
+            "UPDATE books SET status = ?1 WHERE book_id = ?2",
+            params![status, book_id],
+        )?;
+        Ok(())
+    }
+
+    /// 更新书籍置顶状态
+    pub fn update_book_pin(&self, book_id: &str, is_pinned: bool) -> Result<()> {
+        self.conn.execute(
+            "UPDATE books SET is_pinned = ?1 WHERE book_id = ?2",
+            params![is_pinned as i32, book_id],
+        )?;
+        Ok(())
+    }
+
+    /// 获取书籍总数
+    pub fn get_book_count(&self) -> Result<i64> {
+        let count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM books", [], |row| row.get(0))?;
+        Ok(count)
     }
 
     // ==================== Reading Progress ====================
@@ -627,29 +700,6 @@ impl Database {
             updated_at: ts_to_dt(row.get("updated_at")?),
         })
     }
-    fn row_to_sync_record(
-        &self,
-        row: &rusqlite::Row,
-    ) -> std::result::Result<DbSyncRecord, rusqlite::Error> {
-        Ok(DbSyncRecord {
-            id: row.get("id")?,
-            book_id: row.get("book_id")?,
-            data_type: row.get("data_type")?,
-            data_id: row.get("data_id")?,
-            local_version: row.get("local_version")?,
-            remote_version: row.get("remote_version")?,
-            status: match row.get::<_, String>("status")?.as_str() {
-                "pending_upload" => DbSyncStatus::PendingUpload,
-                "pending_download" => DbSyncStatus::PendingDownload,
-                "conflict" => DbSyncStatus::Conflict,
-                _ => DbSyncStatus::Synced,
-            },
-            modified_at: chrono::DateTime::from_timestamp(row.get("modified_at")?, 0)
-                .unwrap_or_else(chrono::Utc::now),
-            etag: row.get("etag")?,
-        })
-    }
-
     pub fn save_note(&self, note: &DbNote) -> Result<()> {
         self.conn.execute(
             "INSERT INTO notes (id, book_id, chapter_index, char_offset, length, note_type, content, selected_text, highlight_color, created_at, updated_at)
@@ -856,6 +906,12 @@ impl Database {
         Ok(())
     }
 
+    pub fn delete_daily_read_book(&self, book_id: &str) -> Result<()> {
+        self.conn
+            .execute("DELETE FROM daily_read_books WHERE book_id = ?1", [book_id])?;
+        Ok(())
+    }
+
     // ==================== DbChapters ====================
 
     pub fn save_chapters(&self, book_id: &str, chapters: &[DbChapter]) -> Result<()> {
@@ -867,15 +923,16 @@ impl Database {
         {
             // 预编译语句，循环复用
             let mut stmt = tx.prepare(
-                "INSERT INTO chapters (id, book_id, title, content_file, chapter_index, word_count, cached_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+                "INSERT INTO chapters (id, book_id, title, content_file, chapter_index, word_count, cached_at, level)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
                  ON CONFLICT(id) DO UPDATE SET
                     book_id = excluded.book_id,
                     title = excluded.title,
                     content_file = excluded.content_file,
                     chapter_index = excluded.chapter_index,
                     word_count = excluded.word_count,
-                    cached_at = excluded.cached_at",
+                    cached_at = excluded.cached_at,
+                    level = excluded.level",
             )?;
 
             for chapter in chapters {
@@ -896,7 +953,8 @@ impl Database {
                     chapter.content_file,
                     chapter.chapter_index,
                     chapter.word_count,
-                    chapter.cached_at.timestamp()
+                    chapter.cached_at.timestamp(),
+                    chapter.level,
                 ])?;
             }
         } // stmt 在此析构
@@ -939,16 +997,17 @@ impl Database {
 
     pub fn save_category(&self, category: &DbBookCategory) -> Result<()> {
         self.conn.execute(
-            "INSERT INTO categories (id, name, color, sort_order, created_at, is_system, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+            "INSERT INTO categories (id, name, description, color, sort_order, created_at, is_system, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
              ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
+                description = excluded.description,
                 color = excluded.color,
                 sort_order = excluded.sort_order,
                 created_at = excluded.created_at,
                 is_system = excluded.is_system,
                 updated_at = excluded.updated_at",
-            params![category.id, category.name, category.color, category.sort_order, category.created_at.timestamp(), category.is_system as i32, category.updated_at.timestamp()],
+            params![category.id, category.name, category.description, category.color, category.sort_order, category.created_at.timestamp(), category.is_system as i32, category.updated_at.timestamp()],
         )?;
         Ok(())
     }
@@ -1042,35 +1101,61 @@ impl Database {
     // ==================== Stats ====================
 
     pub fn get_daily_stats(&self, date: &str) -> Result<Option<DbDailyReadingStats>> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT date, book_id, reading_time_seconds, characters_read, session_count, chapters_read, pages_read FROM daily_stats WHERE date = ?1 AND book_id IS NULL")?;
-        let stats = stmt
-            .query_row([date], |row| {
-                Ok(DbDailyReadingStats {
-                    date: row.get::<_, String>("date")?,
-                    total_reading_time_seconds: row.get("reading_time_seconds")?,
-                    total_characters_read: row.get("characters_read")?,
-                    books_read: vec![],
-                    session_count: row.get("session_count")?,
-                    chapters_read: row.get("chapters_read")?,
-                    pages_read: row.get("pages_read")?,
-                })
-            })
-            .optional()?;
+        // 从 reading_sessions 实时聚合基础统计
+        let sessions_agg = self.conn.query_row(
+            "SELECT
+                COALESCE(COUNT(*), 0) as session_count,
+                COALESCE(SUM(duration_seconds), 0) as total_time,
+                COALESCE(SUM(characters_read), 0) as total_chars
+             FROM reading_sessions
+             WHERE date(started_at, 'unixepoch') = ?1",
+            [date],
+            |row| {
+                Ok((
+                    row.get::<_, i32>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
+            },
+        ).optional()?;
 
-        if let Some(mut stats) = stats {
-            stats.books_read = self.get_books_for_date(date)?;
-            Ok(Some(stats))
-        } else {
-            Ok(None)
+        let (session_count, total_time, total_chars) = match sessions_agg {
+            Some(s) => s,
+            None => (0, 0, 0),
+        };
+
+        // 从 daily_stats 缓存读取 Flutter 侧计算的扩展字段
+        let (chapters_read, pages_read) = self
+            .conn
+            .query_row(
+                "SELECT chapters_read, pages_read FROM daily_stats WHERE date = ?1",
+                [date],
+                |row| Ok((row.get::<_, i32>(0)?, row.get::<_, i32>(1)?)),
+            )
+            .optional()?
+            .unwrap_or((0, 0));
+
+        let books_read = self.get_books_for_date(date)?;
+
+        if session_count == 0 && chapters_read == 0 && pages_read == 0 && books_read.is_empty() {
+            return Ok(None);
         }
+
+        Ok(Some(DbDailyReadingStats {
+            date: date.to_string(),
+            total_reading_time_seconds: total_time,
+            total_characters_read: total_chars,
+            books_read,
+            session_count,
+            chapters_read,
+            pages_read,
+        }))
     }
 
     fn get_books_for_date(&self, date: &str) -> Result<Vec<String>> {
         let mut stmt = self
             .conn
-            .prepare("SELECT book_id FROM daily_stats WHERE date = ?1 AND book_id IS NOT NULL")?;
+            .prepare("SELECT book_id FROM daily_read_books WHERE date = ?1")?;
         let books = stmt
             .query_map([date], |row| row.get(0))?
             .collect::<Result<Vec<String>, _>>()?;
@@ -1079,12 +1164,12 @@ impl Database {
 
     fn save_books_for_date(&self, date: &str, book_ids: &[String]) -> Result<()> {
         self.conn.execute(
-            "DELETE FROM daily_stats WHERE date = ?1 AND book_id IS NOT NULL",
+            "DELETE FROM daily_read_books WHERE date = ?1",
             [date],
         )?;
         for book_id in book_ids {
             self.conn.execute(
-                "INSERT OR IGNORE INTO daily_stats (date, book_id, reading_time_seconds, characters_read, session_count, chapters_read, pages_read) VALUES (?1, ?2, 0, 0, 0, 0, 0)",
+                "INSERT OR IGNORE INTO daily_read_books (date, book_id) VALUES (?1, ?2)",
                 params![date, book_id],
             )?;
         }
@@ -1093,9 +1178,9 @@ impl Database {
 
     pub fn update_daily_stats(&self, stats: &DbDailyReadingStats) -> Result<()> {
         self.conn.execute(
-            "INSERT INTO daily_stats (date, book_id, reading_time_seconds, characters_read, session_count, chapters_read, pages_read)
-             VALUES (?1, NULL, ?2, ?3, ?4, ?5, ?6)
-             ON CONFLICT(date, book_id) DO UPDATE SET
+            "INSERT INTO daily_stats (date, reading_time_seconds, characters_read, session_count, chapters_read, pages_read)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(date) DO UPDATE SET
                 reading_time_seconds = excluded.reading_time_seconds,
                 characters_read = excluded.characters_read,
                 session_count = excluded.session_count,
@@ -1108,19 +1193,18 @@ impl Database {
     }
 
     pub fn get_global_stats(&self) -> Result<DbGlobalStats> {
-        // 单次查询获取所有聚合数据
+        // 始终从 reading_sessions 实时聚合，保证所有动态值准确
         let stats = self.conn.query_row(
             r#"
         SELECT
-            COALESCE(SUM(ds.reading_time_seconds), 0) as total_time,
-            COALESCE(SUM(ds.characters_read), 0) as total_chars,
+            COALESCE(SUM(duration_seconds), 0) as total_time,
+            COALESCE(SUM(characters_read), 0) as total_chars,
             (SELECT COUNT(DISTINCT book_id) FROM reading_sessions) as books_read,
             (SELECT COUNT(*) FROM reading_progress WHERE is_completed = 1) as books_completed,
             (SELECT COUNT(*) FROM books) as total_books,
             (SELECT COUNT(*) FROM notes) as total_notes,
             (SELECT COUNT(*) FROM bookmarks) as total_bookmarks
-        FROM daily_stats ds
-        WHERE ds.book_id IS NULL
+        FROM reading_sessions
         "#,
             [],
             |row| {
@@ -1146,13 +1230,12 @@ impl Database {
             total_bookmarks,
         ) = stats;
 
-        // 仅保留单独查询：今日数据（需要日期过滤）和连续天数（需要复杂逻辑）
         let today = chrono::Utc::now().date_naive().to_string();
         let (today_time, today_chars) = self
             .conn
             .query_row(
-                "SELECT COALESCE(reading_time_seconds, 0), COALESCE(characters_read, 0)
-         FROM daily_stats WHERE date = ?1 AND book_id IS NULL",
+                "SELECT COALESCE(SUM(duration_seconds), 0), COALESCE(SUM(characters_read), 0)
+         FROM reading_sessions WHERE date(started_at, 'unixepoch') = ?1",
                 [&today],
                 |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
             )
@@ -1184,12 +1267,11 @@ impl Database {
     }
     fn calculate_consecutive_reading_days(&self) -> Result<i32> {
         // 优化：只查询最近 365 天的数据，避免加载全量历史记录
-        // 如果用户有数千天的记录，全量加载会影响性能
         let mut stmt = self.conn.prepare(
-            "SELECT date FROM daily_stats
-             WHERE book_id IS NULL AND reading_time_seconds > 0
-               AND date >= date('now', '-365 days')
-             ORDER BY date DESC",
+            "SELECT DISTINCT date(started_at, 'unixepoch') FROM reading_sessions
+             WHERE duration_seconds > 0
+               AND date(started_at, 'unixepoch') >= date('now', '-365 days')
+             ORDER BY date(started_at, 'unixepoch') DESC",
         )?;
 
         // 将结果收集到 Vec<String> 中
@@ -1236,104 +1318,80 @@ impl Database {
         start_date: &str,
         end_date: &str,
     ) -> Result<Vec<DbDailyReadingStats>> {
+        // 从 reading_sessions 按天聚合基础统计
         let mut stmt = self.conn.prepare(
-            "SELECT date, book_id, reading_time_seconds, characters_read, session_count, chapters_read, pages_read
-             FROM daily_stats
-             WHERE date >= ?1 AND date <= ?2 AND book_id IS NULL
+            "SELECT
+                date(started_at, 'unixepoch') as date,
+                COALESCE(COUNT(*), 0) as session_count,
+                COALESCE(SUM(duration_seconds), 0) as total_time,
+                COALESCE(SUM(characters_read), 0) as total_chars
+             FROM reading_sessions
+             WHERE date(started_at, 'unixepoch') >= ?1 AND date(started_at, 'unixepoch') <= ?2
+             GROUP BY date(started_at, 'unixepoch')
              ORDER BY date ASC"
         )?;
 
-        let stats = stmt
+        let mut session_map: std::collections::HashMap<String, (i32, i64, i64)> = stmt
             .query_map(params![start_date, end_date], |row| {
-                Ok(DbDailyReadingStats {
-                    date: row.get("date")?,
-                    total_reading_time_seconds: row.get("reading_time_seconds")?,
-                    total_characters_read: row.get("characters_read")?,
-                    books_read: vec![], // 注意：范围查询通常不返回具体的 books_read 列表，或者需要额外处理
-                    session_count: row.get("session_count")?,
-                    chapters_read: row.get("chapters_read")?,
-                    pages_read: row.get("pages_read")?,
-                })
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i32>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                ))
             })?
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .map(|(date, sessions, time, chars)| (date, (sessions, time, chars)))
+            .collect();
 
-        Ok(stats)
-    }
-    pub fn record_sync(&self, record: &DbSyncRecord) -> Result<()> {
-        self.conn.execute(
-                "INSERT OR REPLACE INTO sync_records (id, book_id, data_type, data_id, local_version, remote_version, status, modified_at, etag)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-               params![
-                    record.id, record.book_id, record.data_type, record.data_id,
-                    record.local_version, record.remote_version, record.status.as_str(),
-                    record.modified_at.timestamp(), record.etag
-                ],
-            )?;
-        Ok(())
-    }
-    /// 获取待同步项目
-    pub fn get_pending_sync(&self, book_id: &str) -> Result<Vec<DbSyncRecord>> {
-        let mut stmt = self.conn.prepare(
-            "SELECT * FROM sync_records WHERE book_id = ?1 AND status IN ('pending_upload', 'pending_download', 'conflict')"
+        // 从 daily_stats 缓存读取扩展字段
+        let mut stats_stmt = self.conn.prepare(
+            "SELECT date, chapters_read, pages_read FROM daily_stats
+             WHERE date >= ?1 AND date <= ?2"
         )?;
-        let records = stmt
-            .query_map([book_id], |row| self.row_to_sync_record(row))?
-            .collect::<Result<Vec<_>, rusqlite::Error>>()?;
-        Ok(records)
-    }
+        let cache_map: std::collections::HashMap<String, (i32, i32)> = stats_stmt
+            .query_map(params![start_date, end_date], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i32>(1)?,
+                    row.get::<_, i32>(2)?,
+                ))
+            })?
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .map(|(date, chapters, pages)| (date, (chapters, pages)))
+            .collect();
 
-    /// 获取同步冲突
-    pub fn get_sync_conflicts(&self, book_id: &str) -> Result<Vec<DbSyncRecord>> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT * FROM sync_records WHERE book_id = ?1 AND status = 'conflict'")?;
-        let records = stmt
-            .query_map([book_id], |row| self.row_to_sync_record(row))?
-            .collect::<Result<Vec<_>, rusqlite::Error>>()?;
-        Ok(records)
-    }
+        // 合并日期范围中的所有天
+        let start = chrono::NaiveDate::parse_from_str(start_date, "%Y-%m-%d")
+            .context("Invalid start_date format")?;
+        let end = chrono::NaiveDate::parse_from_str(end_date, "%Y-%m-%d")
+            .context("Invalid end_date format")?;
 
-    /// 清除同步冲突
-    pub fn clear_sync_conflicts(&self, book_id: &str) -> Result<()> {
-        self.conn.execute(
-            "UPDATE sync_records SET status = 'synced' WHERE book_id = ?1 AND status = 'conflict'",
-            [book_id],
-        )?;
-        Ok(())
-    }
+        let mut results = Vec::new();
+        let mut current = start;
+        while current <= end {
+            let date_str = current.to_string();
+            let (sessions, time, chars) = session_map.remove(&date_str).unwrap_or((0, 0, 0));
+            let (chapters, pages) = cache_map.get(&date_str).copied().unwrap_or((0, 0));
+            let books = self.get_books_for_date(&date_str)?;
 
-    /// 删除同步记录
-    pub fn delete_sync_record(&self, record_id: &str) -> Result<()> {
-        self.conn
-            .execute("DELETE FROM sync_records WHERE id = ?1", [record_id])?;
-        Ok(())
-    }
-
-    /// 清除所有同步记录
-    pub fn clear_all_sync_records(&self) -> Result<()> {
-        self.conn.execute("DELETE FROM sync_records", [])?;
-        Ok(())
-    }
-
-    /// 更新同步状态
-    pub fn update_sync_status(
-        &self,
-        record_id: &str,
-        status: DbSyncStatus,
-        remote_version: Option<i32>,
-    ) -> Result<()> {
-        if let Some(rv) = remote_version {
-            self.conn.execute(
-                "UPDATE sync_records SET status = ?1, remote_version = ?2, modified_at = ?3 WHERE id = ?4",
-                params![status.as_str(), rv, chrono::Utc::now().timestamp(), record_id],
-            )?;
-        } else {
-            self.conn.execute(
-                "UPDATE sync_records SET status = ?1, modified_at = ?2 WHERE id = ?3",
-                params![status.as_str(), chrono::Utc::now().timestamp(), record_id],
-            )?;
+            if sessions > 0 || chapters > 0 || pages > 0 || !books.is_empty() {
+                results.push(DbDailyReadingStats {
+                    date: date_str,
+                    total_reading_time_seconds: time,
+                    total_characters_read: chars,
+                    books_read: books,
+                    session_count: sessions,
+                    chapters_read: chapters,
+                    pages_read: pages,
+                });
+            }
+            current = current.succ_opt().unwrap_or(current);
         }
-        Ok(())
+
+        Ok(results)
     }
     // 在应用生命周期结束时主动执行完整检查点
     pub fn full_checkpoint(&self) -> Result<()> {

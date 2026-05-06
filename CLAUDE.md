@@ -1,225 +1,65 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
-## Project Overview
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
-Zephyr Reader is an Android bilingual (Chinese/English) offline novel reader built with **Flutter + Rust**. Pure local storage, no backend, no ads, no data collection.
+## 1. Think Before Coding
 
-## Tech Stack
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
 
-| Layer | Technology |
-|-------|------------|
-| **Flutter** | 3.22.0+, Dart 3.10.7+ |
-| **Rust** | 1.75.0+ (in `rust/`) |
-| **FFI Bridge** | flutter_rust_bridge 2.11.1 |
-| **State Management** | signals_flutter, signals_hooks |
-| **Dependency Injection** | get_it + injectable |
-| **Database** | Drift (SQLite) |
-| **Routing** | go_router |
-| **Network** | dio + retrofit |
-| **Target** | Android 8.0+ (API 26+) |
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
 
-## Quick Start Commands
+## 2. Simplicity First
 
-```bash
-# Install Flutter dependencies
-flutter pub get
+**Minimum code that solves the problem. Nothing speculative.**
 
-# Generate code (injectable, drift, freezed, json_serializable, retrofit)
-dart run build_runner build --delete-conflicting-outputs
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
 
-# Generate Rust bridge code
-cd rust && flutter_rust_bridge_codegen build
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
-# Run app (debug)
-flutter run
+## 3. Surgical Changes
 
-# Build release APK
-flutter build apk --release --target-platform android-arm64,android-arm,android-x64 --split-per-abi
+**Touch only what you must. Clean up only your own mess.**
 
-# Code analysis
-flutter analyze
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
 
-# Run tests
-flutter test
-flutter test integration_test/
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
 
-# Rust commands
-cd rust
-cargo check          # Check Rust code
-cargo build          # Build debug
-cargo build --release  # Build release
-cargo test           # Run Rust tests
+The test: Every changed line should trace directly to the user's request.
 
-# Clean
-flutter clean
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
 ```
 
-## Architecture
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
-### Directory Structure
+---
 
-```
-zephyr_reader/
-├── lib/                      # Flutter main
-│   ├── main.dart             # App entry
-│   ├── app.dart              # App root widget
-│   ├── core/                 # Core infrastructure
-│   │   ├── network/          # Dio config, interceptors
-│   │   ├── local/            # SharedPreferences, FileStorage
-│   │   ├── routing/          # GoRouter config
-│   │   ├── theme/            # ThemeData, DesignTokens
-│   │   ├── database/         # Drift tables, database
-│   │   ├── performance/      # Cache, optimizer
-│   │   └── utils/            # Logging
-│   ├── di/                   # Dependency injection
-│   │   ├── app_module.dart
-│   │   ├── database_module.dart
-│   │   └── service_locator.dart
-│   ├── domain/               # Domain models
-│   │   └── models/           # Book, Chapter, Bookmark, etc.
-│   └── features/             # Feature modules
-│       ├── article/          # Article reading
-│       ├── auth/             # Authentication
-│       ├── bookshelf/        # Book management
-│       ├── home/             # Home page
-│       ├── profile/          # User profile
-│       ├── reader/           # Core reading
-│       ├── search/           # Full-text search
-│       ├── statistics/       # Reading stats
-│       └── sync/             # WebDAV sync
-├── rust/                     # Rust core engine
-│   ├── src/
-│   │   ├── api/              # FFI API layer
-│   │   ├── parser/           # TXT/EPUB/PDF parsers
-│   │   ├── text_process/     # Line breaking, typesetting
-│   │   ├── stream/           # Stream loading
-│   │   └── search/           # Full-text search
-│   └── Cargo.toml
-├── rust_builder/             # Flutter plugin wrapper
-└── native/reader_core/       # FRB config
-```
-
-### Feature Module Structure
-
-```
-features/<feature>/
-├── application/          # ViewModels (signals_flutter)
-│   └── <feature>_view_model.dart
-├── data/
-│   ├── <feature>_api.dart    # Retrofit API definition
-│   └── repositories/         # Repository implementations
-├── domain/
-│   └── repositories/         # Repository interfaces
-└── page/                 # UI pages
-```
-
-### Core Patterns
-
-**State Management (signals_flutter):**
-```dart
-// Signal
-final count = signal(0);
-
-// Computed
-final doubleCount = computed(() => count.value * 2);
-
-// Async signal
-final user = asyncSignal<User?>(AsyncState.data(null));
-
-// Effect
-effect(() => print('User: ${user.value}'));
-
-// In Widget
-Watch(builder: (context) => Text('${count}'));
-```
-
-**ViewModel Pattern:**
-```dart
-@injectable
-class AuthViewModel {
-  final AuthRepository _repo;
-  AuthViewModel(this._repo);
-
-  final user = asyncSignal<User?>(AsyncState.data(null));
-  final email = signal('');
-
-  Future<void> login() async {
-    user.value = AsyncState.loading();
-    try {
-      user.value = AsyncState.data(await _repo.login(email.value));
-    } catch (e) {
-      user.value = AsyncState.error(e);
-    }
-  }
-}
-```
-
-**Database (Drift):**
-```dart
-// Query
-final books = await db.dbBooks.get();
-
-// Insert
-await db.dbBooks.insert(book, mode: InsertMode.insertOrReplace);
-
-// Transaction
-await db.transaction(() async { ... });
-```
-
-**Rust FFI:**
-```rust
-// Rust function with FRB
-#[flutter_rust_bridge::frb(sync)]
-pub fn greet(name: String) -> String {
-    format!("Hello, {name}!")
-}
-
-// Call from Dart
-final result = RustLib.instance.greet(name: "World");
-```
-
-## Key Conventions
-
-1. **Feature-first organization**: Each feature is self-contained with its own data/domain/application/page layers
-2. **Repository pattern**: Domain layer defines interfaces, data layer provides implementations
-3. **ViewModel with signals**: All ViewModels use signals_flutter for reactive state
-4. **Freezed for models**: Domain models use `@freezed` for immutability
-5. **Drift for database**: Type-safe SQL with Drift ORM
-6. **Logging**: Use `Logging` utility class for all debug/error logging (no `print` or `debugPrint`)
-7. **Error handling**: Use try-catch with proper error logging via `Logging.error()`
-8. **Performance**: Large files (>10MB) use chunked loading with LRU caching
-9. **Code style**: Follow analysis_options.yaml rules (prefer_single_quotes, require_trailing_commas, sort_constructors_first, etc.)
-
-## Existing Skills/Conventions
-
-The project uses `.qwen/skills/` for AI assistant guidance on:
-- Flutter architecture (Clean Architecture, feature-first)
-- signals_flutter state management
-- Rust integration patterns
-- UI/UX best practices
-- Drift database patterns
-
-## Database Schema
-
-The app uses Drift with these tables:
-- `DbBooks` - Book metadata
-- `DbChapters` - Chapter data
-- `DbBookmarks` - User bookmarks
-- `DbReadingProgress` - Reading progress per book
-- `DbReadingHistory` - Reading history
-- `DbLayoutCaches` - Typesetting cache
-- `DbReadingStats` - Reading statistics
-- `DbReadingSessions` - Reading session records
-- `DbDailyReadingRecords` - Daily reading records
-
-## Rust Core Modules
-
-| Module | Purpose |
-|--------|---------|
-| `parser/` | TXT/EPUB/PDF parsing, encoding detection |
-| `text_process/` | Chinese/English line breaking, typesetting |
-| `stream/` | Lazy loading, memory-mapped file reading |
-| `search/` | Full-text search with jieba-rs |
-| `api/` | FFI interface for Flutter |
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

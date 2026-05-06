@@ -21,9 +21,14 @@ class RustBookRepository implements BookRepository {
     DbBookCategory category,
   ) async {
     final allBooks = await getAllBooks();
-    return allBooks
-        .where((book) => book.categoryIds.contains(category.id))
-        .toList();
+    final booksWithCategory = <DbBookRecord>[];
+    for (final book in allBooks) {
+      final categories = _storage.getCategoriesForBook(book.bookId);
+      if (categories.any((c) => c.id == category.id)) {
+        booksWithCategory.add(book);
+      }
+    }
+    return booksWithCategory;
   }
 
   @override
@@ -34,22 +39,28 @@ class RustBookRepository implements BookRepository {
 
   @override
   Future<void> addBook(DbBookRecord book) async {
-    await _storage.saveBook(book);
+    _storage.saveBook(book);
   }
 
   @override
   Future<void> updateBook(DbBookRecord book) async {
-    await _storage.saveBook(book);
+    _storage.saveBook(book);
   }
 
   @override
   Future<void> deleteBook(String id) async {
-    await _storage.deleteBook(id);
+    _storage.deleteBook(id);
   }
 
   @override
   Future<List<DbBookRecord>> searchBooks(String keyword) async {
     return _storage.searchBooks(keyword);
+  }
+
+  @override
+  Future<List<DbBookRecord>> getBooksByStatus(DbBookStatus status) async {
+    final all = _storage.getAllBooks();
+    return all.where((b) => b.status == status).toList();
   }
 
   @override
@@ -65,17 +76,17 @@ class RustBookRepository implements BookRepository {
 
   @override
   Future<void> addCategory(DbBookCategory category) async {
-    await _storage.saveCategory(category);
+    _storage.saveCategory(category);
   }
 
   @override
   Future<void> updateCategory(DbBookCategory category) async {
-    await _storage.saveCategory(category);
+    _storage.saveCategory(category);
   }
 
   @override
   Future<void> deleteCategory(String id) async {
-    await _storage.deleteCategory(id);
+    _storage.deleteCategory(id);
   }
 
   @override

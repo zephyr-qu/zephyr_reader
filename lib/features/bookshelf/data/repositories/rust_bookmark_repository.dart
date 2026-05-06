@@ -17,12 +17,17 @@ class RustBookmarkRepository implements BookmarkRepository {
 
   @override
   Future<List<DbBookmark>> getBookmarksByChapterId(int chapterId) async {
+    // 需要 bookId 参数才能查 Rust API；上层应在调用前用 getBookmarksByBookId 再过滤
     return [];
   }
 
   @override
   Future<DbBookmark?> getBookmarkById(String bookmarkId) async {
-    return null;
+    try {
+      return _storage.getBookmarkById(bookmarkId);
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
@@ -32,18 +37,22 @@ class RustBookmarkRepository implements BookmarkRepository {
     required int pageIndex,
     required String title,
   }) async {
-    return _storage.createBookmark(
+    final bookmark = DbBookmark(
+      id: 'bookmark_${DateTime.now().millisecondsSinceEpoch}',
       bookId: 'book_$bookId',
       chapterIndex: chapterId,
       charOffset: pageIndex,
       title: title,
+      createdAt: DateTime.now(),
     );
+    await _storage.createBookmark(bookmark);
+    return bookmark;
   }
 
   @override
   Future<bool> deleteBookmark(String bookmarkId) async {
     try {
-      await _storage.deleteBookmark(bookmarkId);
+      _storage.deleteBookmark(bookmarkId);
       return true;
     } catch (_) {
       return false;

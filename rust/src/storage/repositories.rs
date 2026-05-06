@@ -33,7 +33,6 @@ impl_db_repo!(NoteRepository);
 impl_db_repo!(StatsRepository);
 impl_db_repo!(ChapterRepository);
 impl_db_repo!(CategoryRepository);
-impl_db_repo!(SyncRepository);
 impl_db_repo!(BookRepository);
 impl_db_repo!(SessionRepository);
 
@@ -178,13 +177,6 @@ impl NoteRepository {
         let notes = self.db().get_note_stats(book_id)?;
         Ok(notes)
     }
-}
-
-/// 笔记统计
-pub struct NoteStats {
-    pub total_count: i32,
-    pub highlight_count: i32,
-    pub annotation_count: i32,
 }
 
 /// 排版缓存仓库
@@ -386,51 +378,6 @@ impl CategoryRepository {
     }
 }
 
-/// 同步状态仓库
-impl SyncRepository {
-    /// 记录同步状态
-    pub fn record_sync(&self, record: &DbSyncRecord) -> Result<()> {
-        self.db().record_sync(record)?;
-        Ok(())
-    }
-
-    /// 获取待同步项目
-    pub fn get_pending_sync(&self, book_id: &str) -> Result<Vec<DbSyncRecord>> {
-        self.db().get_pending_sync(book_id)
-    }
-
-    /// 获取同步冲突
-    pub fn get_sync_conflicts(&self, book_id: &str) -> Result<Vec<DbSyncRecord>> {
-        self.db().get_sync_conflicts(book_id)
-    }
-
-    /// 更新同步冲突
-    pub fn clear_sync_conflicts(&self, book_id: &str) -> Result<()> {
-        self.db().clear_sync_conflicts(book_id)
-    }
-
-    /// 删除同步记录
-    pub fn delete_sync_record(&self, record_id: &str) -> Result<()> {
-        self.db().delete_sync_record(record_id)
-    }
-
-    /// 清除所有同步记录
-    pub fn clear_all_sync_records(&self) -> Result<()> {
-        self.db().clear_all_sync_records()
-    }
-
-    /// 更新同步状态
-    pub fn update_sync_status(
-        &self,
-        record_id: &str,
-        status: DbSyncStatus,
-        remote_version: Option<i32>,
-    ) -> Result<()> {
-        self.db()
-            .update_sync_status(record_id, status, remote_version)
-    }
-}
-
 /// 书籍仓库
 impl BookRepository {
     /// 获取所有书籍
@@ -471,6 +418,32 @@ impl BookRepository {
     /// 获取最近阅读的书籍
     pub fn list_by_recently(&self, limit: usize) -> Result<Vec<DbBookRecord>> {
         self.db().get_recently_read_books(limit)
+    }
+
+    /// 分页获取书籍
+    pub fn list_paginated(
+        &self,
+        limit: i64,
+        offset: i64,
+        sort_by: &str,
+        sort_order: &str,
+    ) -> Result<Vec<DbBookRecord>> {
+        self.db().get_books_paginated(limit, offset, sort_by, sort_order)
+    }
+
+    /// 更新书籍阅读状态
+    pub fn update_status(&self, book_id: &str, status: DbBookStatus) -> Result<()> {
+        self.db().update_book_status(book_id, status.as_str())
+    }
+
+    /// 更新书籍置顶状态
+    pub fn update_pin(&self, book_id: &str, is_pinned: bool) -> Result<()> {
+        self.db().update_book_pin(book_id, is_pinned)
+    }
+
+    /// 获取书籍总数
+    pub fn count(&self) -> Result<i64> {
+        self.db().get_book_count()
     }
 }
 

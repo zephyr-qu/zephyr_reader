@@ -12,7 +12,9 @@
 //! - **search**: 全文搜索
 //! - **security**: 路径安全验证
 //! - **storage**: 数据库和文件存储操作
+//! - **bilingual**: 双语对齐功能
 
+pub mod bilingual;
 pub mod core;
 pub mod cover;
 pub mod epub;
@@ -36,7 +38,8 @@ pub use cover::{extract_book_cover, supports_cover_extraction};
 
 // 重新导出搜索 API
 pub use search::{
-    clear_all_search_index, index_chapter_content, init_search_engine, search_in_book,
+    clear_all_search_index, delete_book_search_index, index_chapter_content, init_search_engine,
+    search_in_book,
 };
 
 // 重新导出增量解析 API
@@ -45,21 +48,7 @@ pub use incremental::{
     parse_local_book_incremental,
 };
 
-// 重新导出存储 API
-// pub use storage::{
-//     assign_category_to_book, clear_all_sync_records, clear_categories_for_book, clear_layout_cache,
-//     clear_reading_progress, clear_sync_conflicts, create_bookmark, delete_book, delete_bookmark,
-//     delete_bookmarks_by_book, delete_category, delete_chapters_by_book, delete_search_index,
-//     delete_sessions_by_book, delete_sync_record, export_bookmarks, get_all_books, get_all_categories,
-//     get_book, get_bookmark, get_bookmark_stats, get_bookmarks, get_books_by_status,
-//     get_categories_for_book, get_category, get_chapter_by_index, get_chapters_by_book,
-//     get_global_reading_stats, get_layout_cache, get_pending_sync_records, get_pinned_books,
-//     get_reading_progress, get_reading_sessions, get_reading_stats_range, get_recent_sessions,
-//     get_recently_read_books, get_sessions_by_date_range, get_sync_conflicts, get_today_reading_stats,
-//     import_bookmarks, record_reading_session, remove_category_from_book,
-//     save_book, save_bookmark, save_bookmarks_batch, save_category, save_chapters, save_layout_cache,
-//     save_reading_progress, save_sync_record, search_books, search_content, set_categories_for_book,
-//     sync_bookmarks, update_bookmark, update_reading_progress, update_reading_progress_partial,
-//     update_sync_status, cleanup_expired_layout_cache
-// };
+// 重新导出双语对齐 API
+pub use bilingual::{align_bilingual_content, simple_bilingual_align};
+
 pub use storage::*;

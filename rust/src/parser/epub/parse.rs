@@ -14,7 +14,7 @@ use crate::ffi::{
 };
 
 use crate::text_process::{rich_text, typeset};
-use flutter_rust_bridge::frb;
+
 /// EPUB 分页：每页最小行数
 /// 防止每页行数过少导致显示异常
 pub const EPUB_MIN_LINES_PER_PAGE: usize = 10;
@@ -22,32 +22,14 @@ pub const EPUB_MIN_LINES_PER_PAGE: usize = 10;
 /// 防止分页过小导致性能问题
 pub const EPUB_MIN_CHARS_PER_PAGE: usize = 500;
 /// 解析 EPUB 文件
-#[frb(sync)]
 pub fn parse_epub(file_path: String) -> ApiResult<ParseResult> {
     parse_epub_with_config(file_path, ParseConfig::default())
 }
 
 /// 解析 EPUB 文件（带配置）
-///
-/// 支持并行解析配置，适用于大文件优化。
-///
-/// # 参数
-///
-/// * `file_path` - EPUB 文件的完整路径
-/// * `config` - 解析配置（并行、缓存等）
-///
-/// # 返回值
-///
-/// * `Ok(ParseResult)` - 解析成功，包含书籍信息和章节列表
-/// * `Err(ParserError)` - 解析失败
-#[frb(sync)]
-pub fn parse_epub_with_config(file_path: String, config: ParseConfig) -> ApiResult<ParseResult> {
+pub fn parse_epub_with_config(file_path: String, _config: ParseConfig) -> ApiResult<ParseResult> {
     let start_time = std::time::Instant::now();
-    tracing::info!(
-        "开始解析 EPUB 文件：{} (并行：{})",
-        file_path,
-        config.enable_parallel
-    );
+    tracing::info!("开始解析 EPUB 文件：{}", file_path);
 
     // 检查文件是否存在
     if !Path::new(&file_path).exists() {
@@ -87,15 +69,6 @@ pub fn parse_epub_with_config(file_path: String, config: ParseConfig) -> ApiResu
         file_type: "epub".to_string(),
         cover_path,
     };
-
-    // 如果启用并行解析，使用 rayon 处理章节
-    if config.enable_parallel && chapter_count > 1 {
-        let thread_count = config.get_thread_count();
-        tracing::info!("使用并行解析，线程数：{}", thread_count);
-
-        // 使用当前线程池（全局线程池在 lib.rs 中初始化）
-        // 如果全局线程池未初始化，rayon 会使用默认线程池
-    }
 
     let elapsed = start_time.elapsed();
     tracing::info!(

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
-import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
-import 'package:zephyr_reader/shared/widget/ui_components.dart';
+import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
+import 'package:zephyr_reader/core/presentation/widgets/ui_components.dart';
 
 /// 首页 - 展示阅读概览、最近阅读、推荐等内容
 class HomePage extends StatelessWidget {

@@ -1,13 +1,19 @@
 //! 文本排版处理
 //! 包含中英文混排优化、标点避首避尾、段落处理
 
-use super::constants::{MIN_CHARS_PER_LINE, TAG_PATTERN};
 use super::line_break::smart_break_line;
 use crate::ffi::{ApiResult, TypesetConfig};
 use flutter_rust_bridge::frb;
 use hyphenation::{Hyphenator, Language, Standard};
 use once_cell::sync::Lazy;
+/// 排版：最小行宽（字符数）
+/// 防止行宽过小导致文本过度换行
+pub const MIN_CHARS_PER_LINE: usize = 10;
 
+/// HTML 标签匹配正则表达式
+/// 用于移除 HTML 标签
+pub static TAG_PATTERN: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"<[^>]*>").expect("TAG_PATTERN 正则表达式编译失败"));
 /// 排版处理主函数
 #[frb(sync)]
 pub fn typeset_content(
@@ -357,6 +363,7 @@ pub fn optimize_mixed_text(text: &str) -> String {
 // ==================== 英文连字符支持 ====================
 
 use hyphenation::Load;
+use regex::Regex;
 
 /// 全局连字符处理器（懒加载）
 static HYPHENATOR_EN: Lazy<Option<Standard>> =

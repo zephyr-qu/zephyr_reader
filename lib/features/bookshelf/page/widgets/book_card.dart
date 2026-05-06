@@ -242,9 +242,9 @@ class BookCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  if (book.lastReadAt != null)
+                  if (book.lastOpenedAt != null)
                     Text(
-                      '阅读${DateFormat('MM-dd HH:mm').format(book.lastReadAt!)}',
+                      '阅读${DateFormat('MM-dd HH:mm').format(book.lastOpenedAt!)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 11,

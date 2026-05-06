@@ -25,6 +25,9 @@ abstract class BookRepository {
   /// 搜索书籍
   Future<List<DbBookRecord>> searchBooks(String keyword);
 
+  /// 按状态获取书籍
+  Future<List<DbBookRecord>> getBooksByStatus(DbBookStatus status);
+
   // ==================== 分类管理 ====================
 
   /// 获取所有分类

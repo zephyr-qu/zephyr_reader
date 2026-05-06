@@ -6,7 +6,7 @@ import 'package:zephyr_reader/features/bookshelf/page/bookshelf_page.dart';
 import 'package:zephyr_reader/features/home/page/home_page.dart';
 import 'package:zephyr_reader/features/profile/page/profile_page.dart';
 import 'package:zephyr_reader/features/statistics/page/statistics_page.dart';
-import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
+import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 
 /// 底部导航栏配置
 enum BottomNavItem {

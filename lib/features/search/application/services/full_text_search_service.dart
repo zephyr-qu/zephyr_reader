@@ -95,13 +95,22 @@ class FullTextSearchService {
     }
 
     try {
-      await rust_search.searchInBook(
+      final result = rust_search.searchInBook(
         bookId: bookId,
         query: query,
         limit: limit,
       );
-
-      return [];
+      final rawList = (result as dynamic).value as List<dynamic>? ?? [];
+      return rawList.map((item) {
+        return SearchHit(
+          bookId: bookId,
+          chapterId: (item.chapterId ?? item.chapter_id ?? 0) as int,
+          chapterTitle: (item.chapterTitle ?? item.chapter_title ?? '') as String,
+          snippet: (item.snippet ?? '') as String,
+          position: (item.position ?? 0) as int,
+          score: (item.score ?? 0.0).toDouble(),
+        );
+      }).toList();
     } catch (e) {
       debugPrint('搜索失败：$e');
       return [];
@@ -109,7 +118,7 @@ class FullTextSearchService {
   }
 
   /// 删除书籍索引
-  Future<void> deleteBookIndex(String bookId) async {
+  void deleteBookIndex(String bookId) {
     if (!_initialized) return;
 
     try {
@@ -122,11 +131,11 @@ class FullTextSearchService {
   }
 
   /// 清除所有索引
-  Future<void> clearAll() async {
+  void clearAll() {
     if (!_initialized) return;
 
     try {
-      await rust_search.clearAllSearchIndex();
+      rust_search.clearAllSearchIndex();
       debugPrint('清除所有索引完成');
     } catch (e) {
       debugPrint('清除索引失败：$e');

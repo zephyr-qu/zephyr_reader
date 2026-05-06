@@ -4,20 +4,17 @@
 
 use std::sync::Arc;
 
-use flutter_rust_bridge::frb;
-
 use crate::ffi::{ApiResult, ParseResult, ParserError};
 use crate::parser::traits::{BookMetadata, BookParser};
 use crate::text_process::chapter_detect::extract_chapters;
 
 /// TXT 文件解析器
-#[frb(opaque)]
-pub struct TxtParser;
+pub struct TxtParser {}
 
 impl TxtParser {
     /// 创建新的 TXT 解析器实例
     pub fn new() -> Self {
-        Self
+        Self {}
     }
 }
 

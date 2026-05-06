@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:zephyr_reader/core/theme/app_theme.dart';
+import 'package:zephyr_reader/core/theme/theme_manager.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
-import 'core/app_config.dart';
 import 'core/routing/app_router.dart';
 
 class MyApp extends HookWidget {
@@ -11,7 +11,7 @@ class MyApp extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appConfig = AppConfig.instance;
+    final themeManager = ThemeManager.instance;
     return Watch.builder(
       builder: (context) {
         return MaterialApp.router(
@@ -19,7 +19,7 @@ class MyApp extends HookWidget {
           debugShowCheckedModeBanner: false,
           theme: AppThemes.lightTheme,
           darkTheme: AppThemes.darkTheme,
-          themeMode: appConfig.currentMode,
+          themeMode: themeManager.themeMode,
         );
       },
     );

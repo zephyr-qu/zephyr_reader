@@ -3,8 +3,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/core/local/rust_search_service.dart';
 
 import '../../../../core/routing/route_constants.dart';
 import '../application/book_search_service.dart';
@@ -16,7 +18,7 @@ class BookSearchPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final searchService = useMemoized(
-      () => BookSearchService(),
+      () => BookSearchService(GetIt.I.get<RustSearchService>()),
     );
     final searchResults = useSignal<List<SearchHit>>([]);
     final isSearching = useSignal(false);

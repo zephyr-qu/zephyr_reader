@@ -87,7 +87,13 @@ class ChapterListWidget extends StatelessWidget {
                   final chapter = chapters[index];
                   final isCurrent = chapter.id == currentChapterId;
 
+                  final indent = chapter.level * 16.0;
+
                   return ListTile(
+                    contentPadding: EdgeInsets.only(
+                      left: 16.0 + indent,
+                      right: 16.0,
+                    ),
                     title: Text(
                       chapter.title,
                       style: TextStyle(

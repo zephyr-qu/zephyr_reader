@@ -8,6 +8,10 @@ use html5ever::Attribute;
 use markup5ever_rcdom::{Handle, NodeData, RcDom};
 use std::cell::RefCell;
 
+/// DOM 递归遍历最大深度
+/// 防止恶意/畸形 HTML 导致栈溢出
+const MAX_DOM_DEPTH: u32 = 128;
+
 /// 解析 HTML 内容为富文本段落列表
 pub fn parse_html_to_rich_text(html_content: &str) -> Result<Vec<RichParagraph>, ParserError> {
     // 解析 HTML
@@ -18,8 +22,7 @@ pub fn parse_html_to_rich_text(html_content: &str) -> Result<Vec<RichParagraph>,
 
     let mut paragraphs = Vec::new();
 
-    // ✅ 优化：移除无用的 in_block 和 heading_depth 参数
-    traverse_dom(&dom.document, &mut paragraphs, None);
+    traverse_dom(&dom.document, &mut paragraphs, None, 0);
 
     Ok(paragraphs)
 }
@@ -29,7 +32,11 @@ fn traverse_dom(
     handle: &Handle,
     paragraphs: &mut Vec<RichParagraph>,
     inherited_class: Option<String>, // 用于继承父级的 class
+    depth: u32,
 ) {
+    if depth > MAX_DOM_DEPTH {
+        return;
+    }
     let node = handle;
 
     if let NodeData::Element {
@@ -70,7 +77,7 @@ fn traverse_dom(
                 // 递归处理子节点：块级元素内部通常重新开始，或者根据需求决定是否继承
                 // 这里选择重置为 None，因为 p/div 内部通常是一个新的上下文
                 for child in node.children.borrow().iter() {
-                    traverse_dom(child, paragraphs, None);
+                    traverse_dom(child, paragraphs, None, depth + 1);
                 }
             }
 
@@ -87,7 +94,7 @@ fn traverse_dom(
 
                 // 递归处理子节点
                 for child in node.children.borrow().iter() {
-                    traverse_dom(child, paragraphs, None);
+                    traverse_dom(child, paragraphs, None, depth + 1);
                 }
             }
 
@@ -120,7 +127,7 @@ fn traverse_dom(
 
                 // li 内部可能还有嵌套列表或其他结构，继续递归
                 for child in node.children.borrow().iter() {
-                    traverse_dom(child, paragraphs, effective_class.clone());
+                    traverse_dom(child, paragraphs, effective_class.clone(), depth + 1);
                 }
             }
 
@@ -128,20 +135,28 @@ fn traverse_dom(
             _ => {
                 for child in node.children.borrow().iter() {
                     // 传递有效的 class 给子节点，以便内联元素能获取到上下文样式
-                    traverse_dom(child, paragraphs, effective_class.clone());
+                    traverse_dom(child, paragraphs, effective_class.clone(), depth + 1);
                 }
             }
         }
     } else {
         // 非元素节点（如文本节点、注释），递归处理子节点（虽然文本节点通常没有子节点）
         for child in node.children.borrow().iter() {
-            traverse_dom(child, paragraphs, inherited_class.clone());
+            traverse_dom(child, paragraphs, inherited_class.clone(), depth + 1);
         }
     }
 }
 
 /// 收集文本片段（保留样式）
 fn collect_text_spans(handle: &Handle, spans: &mut Vec<RichTextSpan>) {
+    collect_text_spans_inner(handle, spans, 0);
+}
+
+/// 收集文本片段内部实现（带深度限制）
+fn collect_text_spans_inner(handle: &Handle, spans: &mut Vec<RichTextSpan>, depth: u32) {
+    if depth > MAX_DOM_DEPTH {
+        return;
+    }
     let node = handle;
 
     if let NodeData::Element {
@@ -250,7 +265,7 @@ fn collect_text_spans(handle: &Handle, spans: &mut Vec<RichTextSpan>) {
             // 其他元素 - 递归处理
             _ => {
                 for child in node.children.borrow().iter() {
-                    collect_text_spans(child, spans);
+                    collect_text_spans_inner(child, spans, depth + 1);
                 }
             }
         }
@@ -264,13 +279,21 @@ fn collect_text_spans(handle: &Handle, spans: &mut Vec<RichTextSpan>) {
 
 /// 收集纯文本（不含样式）
 fn collect_plain_text(handle: &Handle, text: &mut String) {
+    collect_plain_text_inner(handle, text, 0);
+}
+
+/// 收集纯文本内部实现（带深度限制）
+fn collect_plain_text_inner(handle: &Handle, text: &mut String, depth: u32) {
+    if depth > MAX_DOM_DEPTH {
+        return;
+    }
     let node = handle;
 
     if let NodeData::Text { ref contents } = node.data {
         text.push_str(&contents.borrow());
     } else {
         for child in node.children.borrow().iter() {
-            collect_plain_text(child, text);
+            collect_plain_text_inner(child, text, depth + 1);
         }
     }
 }

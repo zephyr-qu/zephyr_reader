@@ -17,13 +17,16 @@ class BookmarkService {
     required String title,
   }) async {
     return Result.guardAsync(() async {
-      final rustBookmark = await _storage.createBookmark(
+      final bookmark = DbBookmark(
+        id: 'bm_${DateTime.now().millisecondsSinceEpoch}',
         bookId: 'book_$bookId',
         chapterIndex: chapterId,
         charOffset: pageIndex,
         title: title,
+        createdAt: DateTime.now(),
       );
-      return rustBookmark.id;
+      await _storage.createBookmark(bookmark);
+      return bookmark.id;
     });
   }
 
@@ -35,7 +38,7 @@ class BookmarkService {
 
   Future<Result<void>> removeBookmark(String bookmarkId) async {
     return Result.guardAsync(() async {
-      await _storage.deleteBookmark(bookmarkId);
+      _storage.deleteBookmark(bookmarkId);
     });
   }
 
@@ -52,7 +55,7 @@ class BookmarkService {
 
   Future<Result<List<DbBookmark>>> getAllBookmarks() async {
     return Result.guardAsync(() async {
-      final books = await _storage.getAllBooks();
+      final books = _storage.getAllBooks();
       final allBookmarks = <DbBookmark>[];
       for (final book in books) {
         final result = await getBookmarks(book.bookId);

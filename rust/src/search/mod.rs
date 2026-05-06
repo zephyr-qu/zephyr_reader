@@ -1,51 +1,44 @@
 //! 全文搜索引擎模块
 //! 基于 SQLite FTS5 实现书籍内容搜索
 //! 集成 jieba-rs 中文分词支持
+//!
+//! FTS5 虚拟表与主数据库共享连接，支持事务隔离。
 
 use jieba_rs::Jieba;
 use once_cell::sync::Lazy;
-use rusqlite::{params, Connection};
+use parking_lot::Mutex;
+use rusqlite::{params};
+use std::sync::Arc;
 
-use crate::{api::SearchResult, text_process::constants::SEARCH_CHUNK_SIZE};
+use crate::api::SearchResult;
 
-/// 全局 Jieba 分词器实例（懒加载）
-static JIEBA: Lazy<Jieba> = Lazy::new(Jieba::new);
+/// 全局 Jieba 分词器实例（安全懒加载）
+///
+/// 使用 `catch_unwind` 包装 `Jieba::new()`，避免词典文件缺失时 panic。
+/// 若初始化失败则为 `None`，`tokenize_chinese_text` 会降级为不进行分词。
+static JIEBA: Lazy<Option<Jieba>> = Lazy::new(|| std::panic::catch_unwind(Jieba::new).ok());
+/// 搜索索引分块大小（字符数）
+/// 用于将文档分割成小块进行索引
+pub const SEARCH_CHUNK_SIZE: usize = 500;
 
 /// 搜索引擎（基于 SQLite FTS5）
+///
+/// 与主数据库共享连接，确保索引操作参与主数据库事务。
 pub struct SearchEngine {
-    conn: Connection,
+    db: Arc<Mutex<crate::storage::database::Database>>,
 }
 
 impl SearchEngine {
-    /// 创建或打开搜索引擎
-    pub fn open_or_create(db_path: &str) -> Result<Self, rusqlite::Error> {
-        let conn = Connection::open(db_path)?;
-
-        // 创建 FTS5 虚拟表
-        conn.execute(
-            "CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
-                book_id UNINDEXED,
-                chapter_id UNINDEXED,
-                chapter_title,
-                content,
-                position UNINDEXED
-            )",
-            [],
-        )?;
-
-        Ok(Self { conn })
-    }
-
-    /// 获取底层数据库连接（只读访问）
-    pub fn conn(&self) -> &Connection {
-        &self.conn
+    /// 创建搜索引擎，使用主数据库连接
+    pub fn new(db: Arc<Mutex<crate::storage::database::Database>>) -> Self {
+        Self { db }
     }
 
     /// 索引章节内容
     ///
     /// 自动对中文内容进行分词后索引，提升搜索准确率。
     pub fn index_chapter(
-        &mut self,
+        &self,
         book_id: &str,
         chapter_id: i32,
         chapter_title: &str,
@@ -70,27 +63,18 @@ impl SearchEngine {
         );
 
         // 将内容分块索引（每块 SEARCH_CHUNK_SIZE 字符）
-        // 使用单次遍历收集分块边界，避免 O(n) 内存占用
-        let char_count = tokenized_content.chars().count();
-        let chunk_count = char_count.div_ceil(SEARCH_CHUNK_SIZE);
+        let chunk_boundaries: Vec<usize> = tokenized_content
+            .char_indices()
+            .step_by(SEARCH_CHUNK_SIZE)
+            .map(|(byte_idx, _)| byte_idx)
+            .chain(std::iter::once(tokenized_content.len()))
+            .collect();
 
-        // 收集每个分块的字节边界（仅 chunk_count 个元素，远小于 char_count）
-        let mut chunk_boundaries: Vec<usize> = Vec::with_capacity(chunk_count + 1);
-        chunk_boundaries.push(0);
+        let chunk_count = chunk_boundaries.len() - 1;
 
-        let mut current_chunk_chars = 0;
-        for (byte_idx, _) in tokenized_content.char_indices() {
-            if current_chunk_chars >= SEARCH_CHUNK_SIZE {
-                chunk_boundaries.push(byte_idx);
-                current_chunk_chars = 0;
-            }
-            current_chunk_chars += 1;
-        }
-        chunk_boundaries.push(tokenized_content.len());
+        let mut db = self.db.lock();
+        let tx = db.conn_mut().transaction()?;
 
-        let tx = self.conn.transaction()?;
-
-        // 预编译语句，循环复用（避免重复 SQL 解析）
         {
             let mut stmt = tx.prepare(
                 "INSERT INTO search_index (book_id, chapter_id, chapter_title, content, position)
@@ -111,7 +95,7 @@ impl SearchEngine {
                     position
                 ])?;
             }
-        } // stmt 在此析构，释放对 tx 的借用
+        }
 
         tx.commit()?;
 
@@ -128,6 +112,26 @@ impl SearchEngine {
     }
 
     /// 搜索书籍内容
+    ///
+    /// 使用 FTS5 列查询语法过滤 book_id，利用 FTS5 内部索引
+    /// 替代 `WHERE book_id = ?` 的后置过滤，提升跨书籍搜索性能。
+    fn build_fts5_query(book_id: &str, query: &str) -> String {
+        // book_id 通常是 UUID（如 "550e8400-e29b-..."），unicode61 tokenizer 会按连字符拆分。
+        // 将各段用 AND 组合可精确匹配目标书籍。
+        let book_id_tokens: Vec<&str> = book_id.split('-').filter(|s| !s.is_empty()).collect();
+        if book_id_tokens.is_empty() {
+            query.to_string()
+        } else {
+            let book_id_filter = book_id_tokens
+                .iter()
+                .map(|s| format!("book_id: {}", s))
+                .collect::<Vec<_>>()
+                .join(" AND ");
+            format!("({}) AND ({})", book_id_filter, query)
+        }
+    }
+
+    /// 搜索书籍内容
     pub fn search(
         &self,
         book_id: &str,
@@ -138,16 +142,19 @@ impl SearchEngine {
         let tokenized_query = tokenize_chinese_text(query);
         // 转义 FTS5 特殊字符
         let safe_query = escape_fts5_query(&tokenized_query);
+        // 构建包含 book_id 过滤的 FTS5 MATCH 表达式
+        let fts5_query = Self::build_fts5_query(book_id, &safe_query);
 
-        let mut stmt = self.conn.prepare(
+        let db = self.db.lock();
+        let mut stmt = db.conn().prepare(
             "SELECT chapter_id, chapter_title, content, position, bm25(search_index) as score
              FROM search_index
-             WHERE book_id = ?1 AND search_index MATCH ?2
+             WHERE search_index MATCH ?1
              ORDER BY score
-             LIMIT ?3",
+             LIMIT ?2",
         )?;
 
-        let results = stmt.query_map(params![book_id, safe_query, limit as i64], |row| {
+        let results = stmt.query_map(params![fts5_query, limit as i64], |row| {
             Ok(SearchResult {
                 chapter_id: row.get(0)?,
                 chapter_title: row.get(1)?,
@@ -167,25 +174,49 @@ impl SearchEngine {
 
     /// 删除书籍的所有索引
     pub fn delete_book(&self, book_id: &str) -> Result<(), rusqlite::Error> {
-        self.conn
+        self.db
+            .lock()
+            .conn()
             .execute("DELETE FROM search_index WHERE book_id = ?1", [book_id])?;
         Ok(())
     }
 
     /// 清除所有索引
     pub fn clear_all(&self) -> Result<(), rusqlite::Error> {
-        self.conn.execute("DELETE FROM search_index", [])?;
+        self.db
+            .lock()
+            .conn()
+            .execute("DELETE FROM search_index", [])?;
         Ok(())
     }
+}
+
+/// 检查 Jieba 分词器是否成功初始化
+///
+/// 应在引擎初始化时调用，以确保搜索功能可用。
+/// 若 Jieba 初始化失败，返回错误信息。
+pub fn ensure_jieba() -> Result<(), String> {
+    JIEBA
+        .as_ref()
+        .ok_or_else(|| "Jieba 分词器初始化失败：词典文件可能缺失或损坏".to_string())
+        .map(|_| ())
 }
 
 /// 对中文文本进行分词
 ///
 /// 使用 jieba-rs 对中文内容进行分词（精确模式），提升搜索准确率。
 /// 对于混合文本，会自动处理中英文边界。
+///
+/// # 降级行为
+///
+/// 若 Jieba 初始化失败（词典文件缺失等），则原样返回文本（不分词）。
 pub fn tokenize_chinese_text(text: &str) -> String {
+    let jieba = match JIEBA.as_ref() {
+        Some(j) => j,
+        None => return text.to_string(), // fallback: no tokenization
+    };
     // 使用 jieba 精确模式分词（cut_all=false），避免索引膨胀
-    let words: Vec<&str> = JIEBA.cut(text, false);
+    let words: Vec<&str> = jieba.cut(text, false);
     words.join(" ")
 }
 
@@ -219,35 +250,27 @@ fn truncate_snippet(text: &str, max_len: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::storage::database::Database;
+    use std::sync::Arc;
     use tempfile::TempDir;
+
+    fn create_test_engine() -> (SearchEngine, TempDir) {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("test.db");
+        let db = Database::new(&db_path).unwrap();
+        let engine = SearchEngine::new(Arc::new(Mutex::new(db)));
+        (engine, temp_dir)
+    }
 
     #[test]
     fn test_search_engine_create() {
-        let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir
-            .path()
-            .join("search.db")
-            .to_str()
-            .unwrap()
-            .to_string();
-
-        let engine = SearchEngine::open_or_create(&db_path);
-        assert!(engine.is_ok(), "搜索引擎创建失败");
+        let (_, _temp_dir) = create_test_engine();
     }
 
     #[test]
     fn test_search_engine_index_chapter() {
-        let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir
-            .path()
-            .join("search.db")
-            .to_str()
-            .unwrap()
-            .to_string();
+        let (engine, _temp_dir) = create_test_engine();
 
-        let mut engine = SearchEngine::open_or_create(&db_path).unwrap();
-
-        // 索引测试内容
         let result = engine.index_chapter(
             "book1",
             1,
@@ -259,17 +282,8 @@ mod tests {
 
     #[test]
     fn test_search_chinese_content() {
-        let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir
-            .path()
-            .join("search.db")
-            .to_str()
-            .unwrap()
-            .to_string();
+        let (engine, _temp_dir) = create_test_engine();
 
-        let mut engine = SearchEngine::open_or_create(&db_path).unwrap();
-
-        // 索引中文内容
         engine
             .index_chapter(
                 "book1",
@@ -279,7 +293,6 @@ mod tests {
             )
             .unwrap();
 
-        // 搜索中文关键词
         let results = engine.search("book1", "测试", 10).unwrap();
         assert!(!results.is_empty(), "中文搜索应该返回结果");
         assert!(results[0].score.is_finite(), "相关度评分应该是有效数字");
@@ -287,17 +300,8 @@ mod tests {
 
     #[test]
     fn test_search_english_content() {
-        let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir
-            .path()
-            .join("search.db")
-            .to_str()
-            .unwrap()
-            .to_string();
+        let (engine, _temp_dir) = create_test_engine();
 
-        let mut engine = SearchEngine::open_or_create(&db_path).unwrap();
-
-        // 索引英文内容
         engine
             .index_chapter(
                 "book1",
@@ -307,24 +311,14 @@ mod tests {
             )
             .unwrap();
 
-        // 搜索英文关键词
         let results = engine.search("book1", "test", 10).unwrap();
         assert!(!results.is_empty(), "英文搜索应该返回结果");
     }
 
     #[test]
     fn test_search_mixed_content() {
-        let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir
-            .path()
-            .join("search.db")
-            .to_str()
-            .unwrap()
-            .to_string();
+        let (engine, _temp_dir) = create_test_engine();
 
-        let mut engine = SearchEngine::open_or_create(&db_path).unwrap();
-
-        // 索引中英文混合内容
         engine
             .index_chapter(
                 "book1",
@@ -334,34 +328,23 @@ mod tests {
             )
             .unwrap();
 
-        // 搜索中文
         let cn_results = engine.search("book1", "测试", 10).unwrap();
         assert!(!cn_results.is_empty(), "中文搜索应该返回结果");
 
-        // 搜索英文
         let en_results = engine.search("book1", "test", 10).unwrap();
         assert!(!en_results.is_empty(), "英文搜索应该返回结果");
     }
 
     #[test]
     fn test_search_relevance_ranking() {
-        let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir
-            .path()
-            .join("search.db")
-            .to_str()
-            .unwrap()
-            .to_string();
+        let (engine, _temp_dir) = create_test_engine();
 
-        let mut engine = SearchEngine::open_or_create(&db_path).unwrap();
-
-        // 索引多个章节，包含不同密度的关键词
         engine
             .index_chapter(
                 "book1",
                 1,
                 "第一章",
-                "测试 测试 测试 测试 测试 测试 测试 测试 测试 测试", // 高频
+                "测试 测试 测试 测试 测试 测试 测试 测试 测试 测试",
             )
             .unwrap();
 
@@ -370,15 +353,12 @@ mod tests {
                 "book1",
                 2,
                 "第二章",
-                "测试 其他内容 其他内容 其他内容", // 低频
+                "测试 其他内容 其他内容 其他内容",
             )
             .unwrap();
 
         let results = engine.search("book1", "测试", 10).unwrap();
         assert!(results.len() >= 2, "应该找到至少两个结果");
-
-        // 验证相关度排序（高频应该排在前面）
-        // 注意：FTS5 的 bm25 评分越低表示相关度越高
         assert!(
             results[0].score <= results[1].score,
             "高频关键词的章节应该排在前面的 (分数更低)"
@@ -387,39 +367,20 @@ mod tests {
 
     #[test]
     fn test_search_no_results() {
-        let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir
-            .path()
-            .join("search.db")
-            .to_str()
-            .unwrap()
-            .to_string();
+        let (engine, _temp_dir) = create_test_engine();
 
-        let mut engine = SearchEngine::open_or_create(&db_path).unwrap();
-
-        // 索引内容
         engine
             .index_chapter("book1", 1, "第一章", "这是测试内容")
             .unwrap();
 
-        // 搜索不存在的关键词
         let results = engine.search("book1", "不存在的关键词", 10).unwrap();
         assert!(results.is_empty(), "搜索不存在的关键词应该返回空结果");
     }
 
     #[test]
     fn test_search_limit() {
-        let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir
-            .path()
-            .join("search.db")
-            .to_str()
-            .unwrap()
-            .to_string();
+        let (engine, _temp_dir) = create_test_engine();
 
-        let mut engine = SearchEngine::open_or_create(&db_path).unwrap();
-
-        // 索引多个章节
         for i in 1..=20 {
             engine
                 .index_chapter(
@@ -431,24 +392,14 @@ mod tests {
                 .unwrap();
         }
 
-        // 限制返回结果数量
         let results = engine.search("book1", "测试", 5).unwrap();
         assert!(results.len() <= 5, "返回结果数不应超过限制");
     }
 
     #[test]
     fn test_search_delete_book() {
-        let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir
-            .path()
-            .join("search.db")
-            .to_str()
-            .unwrap()
-            .to_string();
+        let (engine, _temp_dir) = create_test_engine();
 
-        let mut engine = SearchEngine::open_or_create(&db_path).unwrap();
-
-        // 索引两本书
         engine
             .index_chapter("book1", 1, "第一章", "测试内容 1")
             .unwrap();
@@ -456,39 +407,25 @@ mod tests {
             .index_chapter("book2", 1, "第一章", "测试内容 2")
             .unwrap();
 
-        // 删除一本书的索引
         engine.delete_book("book1").unwrap();
 
-        // 搜索 book1 应该没有结果
         let results_book1 = engine.search("book1", "测试", 10).unwrap();
         assert!(results_book1.is_empty(), "删除后 book1 应该没有搜索结果");
 
-        // 搜索 book2 应该还有结果
         let results_book2 = engine.search("book2", "测试", 10).unwrap();
         assert!(!results_book2.is_empty(), "book2 应该还有搜索结果");
     }
 
     #[test]
     fn test_search_clear_all() {
-        let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir
-            .path()
-            .join("search.db")
-            .to_str()
-            .unwrap()
-            .to_string();
+        let (engine, _temp_dir) = create_test_engine();
 
-        let mut engine = SearchEngine::open_or_create(&db_path).unwrap();
-
-        // 索引内容
         engine
             .index_chapter("book1", 1, "第一章", "测试内容")
             .unwrap();
 
-        // 清除所有索引
         engine.clear_all().unwrap();
 
-        // 搜索应该返回空结果
         let results = engine.search("book1", "测试", 10).unwrap();
         assert!(results.is_empty(), "清除所有索引后应该没有搜索结果");
     }
@@ -497,9 +434,7 @@ mod tests {
     fn test_chinese_tokenization_basic() {
         let text = "这是一个测试";
         let tokenized = tokenize_chinese_text(text);
-        // 分词后应该包含空格
         assert!(tokenized.contains(' '), "分词后应该包含空格分隔符");
-        // 分词后应该包含原始字符
         assert!(tokenized.contains("测试"), "分词后应该包含原始词汇");
     }
 
@@ -507,7 +442,6 @@ mod tests {
     fn test_chinese_tokenization_mixed() {
         let text = "Hello 世界 This is 测试";
         let tokenized = tokenize_chinese_text(text);
-        // 分词后应该保留英文单词
         assert!(tokenized.contains("Hello"), "应该保留英文单词");
         assert!(tokenized.contains("测试"), "应该包含中文词汇");
     }
@@ -521,12 +455,10 @@ mod tests {
 
     #[test]
     fn test_truncate_snippet() {
-        // 测试短文本（不需要截断）
         let short_text = "短文本";
         let result = truncate_snippet(short_text, 100);
         assert_eq!(result, short_text, "短文本不应该被截断");
 
-        // 测试长文本（需要截断）
         let long_text = "这是一个非常长的文本，超过了最大长度限制，应该被截断并添加省略号";
         let result = truncate_snippet(long_text, 10);
         assert!(result.len() <= long_text.len(), "长文本应该被截断");

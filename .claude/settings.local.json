@@ -31,7 +31,10 @@
       "Bash(flutter:*)",
       "Bash(python:*)",
       "Bash(git checkout:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(sort -t'/' -k5,5 -k6,6 -k7,7)",
+      "Bash(git commit *)",
+      "Bash(cargo build *)"
     ]
   }
 }

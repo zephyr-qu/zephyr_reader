@@ -1,7 +1,8 @@
-/// 笔记服务（简化版）
-///
-/// TODO: 等待 FRB 正确生成 DbNote 类型后完善
+/// 笔记服务
 library;
+
+import 'package:zephyr_reader/core/local/rust_storage_service.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 笔记服务
 class NoteService {
@@ -11,9 +12,25 @@ class NoteService {
 
   static NoteService get instance => _instance;
 
+  final _storage = RustStorageService();
+
   /// 获取笔记统计
-  Future<Map<String, int>> getNoteStats(String bookId) async {
-    // TODO: 实现获取笔记统计
-    return {'total': 0, 'highlights': 0, 'annotations': 0};
+  Map<String, int> getNoteStats(String bookId) {
+    return _storage.getNoteStats('book_$bookId');
+  }
+
+  /// 获取笔记列表
+  List<DbNote> getNotes(String bookId, {DbNoteType? noteType}) {
+    return _storage.getNotes('book_$bookId', noteType: noteType);
+  }
+
+  /// 创建笔记
+  DbNote createNote(DbNote note) {
+    return _storage.createNote(note);
+  }
+
+  /// 删除笔记
+  void deleteNote(String noteId) {
+    _storage.deleteNote(noteId);
   }
 }

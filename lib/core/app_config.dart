@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -25,13 +24,10 @@ class AppConfig {
     'Accept': 'application/json',
   };
 
-  final themeMode = signal<ThemeMode>(ThemeMode.system);
   final enableDebugLogging = signal<bool>(true);
   final apiTimeout = signal<int>(30000);
   final defaultPageSize = signal<int>(20);
-  ThemeMode get currentMode => themeMode.value;
 
-  static const String _keyThemeMode = 'app.theme.mode';
   static const String _keyDebugLogging = 'app.debug.logging';
   static const String _keyApiTimeout = 'app.api.timeout';
   static const String _keyDefaultPageSize = 'app.default.page.size';
@@ -46,24 +42,11 @@ class AppConfig {
     await dotenv.load();
     _prefs = await SharedPreferences.getInstance();
 
-    final int themeIndex =
-        _prefs!.getInt(_keyThemeMode) ?? ThemeMode.system.index;
-    final int resolvedIndex =
-        themeIndex >= 0 && themeIndex < ThemeMode.values.length
-        ? themeIndex
-        : ThemeMode.system.index;
-    themeMode.value = ThemeMode.values[resolvedIndex];
     enableDebugLogging.value = _prefs!.getBool(_keyDebugLogging) ?? false;
     apiTimeout.value = _prefs!.getInt(_keyApiTimeout) ?? 30;
     defaultPageSize.value = _prefs!.getInt(_keyDefaultPageSize) ?? 20;
 
     _initialized = true;
-  }
-
-  /// 设置主题模式
-  Future<void> setThemeMode(ThemeMode mode) async {
-    themeMode.value = mode;
-    await _prefs?.setInt(_keyThemeMode, mode.index);
   }
 
   /// 设置调试日志开关

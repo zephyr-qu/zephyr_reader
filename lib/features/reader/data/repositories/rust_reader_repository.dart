@@ -14,29 +14,17 @@ class RustReaderRepository implements ReaderRepository {
 
   @override
   Future<DbChapter?> getChapter(int bookId, int chapterIndex) async {
-    final chapters = await getChapters(bookId);
-    return chapters.where((c) => c.chapterIndex == chapterIndex).firstOrNull;
+    final chapters = _storage.getChaptersByBook('book_$bookId');
+    try {
+      return chapters.firstWhere((c) => c.chapterIndex == chapterIndex);
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
   Future<List<DbChapter>> getChapters(int bookId) async {
-    return _storage
-        .getChaptersByBook('book_$bookId')
-        .then(
-          (rustChapters) => rustChapters
-              .map(
-                (rc) => DbChapter(
-                  id: rc.id,
-                  bookId: rc.bookId,
-                  title: rc.title,
-                  contentFile: rc.contentFile,
-                  chapterIndex: rc.chapterIndex,
-                  wordCount: rc.wordCount,
-                  cachedAt: rc.cachedAt,
-                ),
-              )
-              .toList(),
-        );
+    return _storage.getChaptersByBook('book_$bookId');
   }
 
   @override
@@ -58,7 +46,7 @@ class RustReaderRepository implements ReaderRepository {
 
   @override
   Future<DbGlobalStats?> getReadingHistory(int bookId) async {
-    return _storage.getReadingStats();
+    return _storage.getGlobalReadingStats();
   }
 
   @override
@@ -67,13 +55,16 @@ class RustReaderRepository implements ReaderRepository {
     int chapterId,
     int position,
   ) async {
-    final rustBookmark = await _storage.createBookmark(
+    final bookmark = DbBookmark(
+      id: 'bm_${DateTime.now().millisecondsSinceEpoch}',
       bookId: 'book_$bookId',
       chapterIndex: chapterId,
       charOffset: position,
       title: '书签',
+      createdAt: DateTime.now(),
     );
-    return rustBookmark.id.hashCode;
+    await _storage.createBookmark(bookmark);
+    return bookmark.id.hashCode;
   }
 
   @override
@@ -84,7 +75,7 @@ class RustReaderRepository implements ReaderRepository {
   @override
   Future<bool> deleteBookmark(int bookmarkId) async {
     try {
-      await _storage.deleteBookmark('bm_$bookmarkId');
+      _storage.deleteBookmark('bm_$bookmarkId');
       return true;
     } catch (_) {
       return false;

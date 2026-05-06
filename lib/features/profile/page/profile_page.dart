@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
-import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
-import 'package:zephyr_reader/shared/widget/ui_components.dart';
+import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
+import 'package:zephyr_reader/core/presentation/widgets/ui_components.dart';
 
 /// 个人中心页面 - 现代化设计
 class ProfilePage extends StatelessWidget {
