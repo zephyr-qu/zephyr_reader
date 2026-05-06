@@ -21,6 +21,9 @@ class ChapterInfo {
   /// 章节序号（顺序索引，从 0 开始）
   final int index;
 
+  /// 层级深度（0 = 顶层，1 = 子章节，…）
+  final int level;
+
   ChapterInfo({
     required this.chapterId,
     required this.title,
@@ -28,5 +31,6 @@ class ChapterInfo {
     required this.endIndex,
     required this.contentLength,
     required this.index,
+    this.level = 0,
   });
 }

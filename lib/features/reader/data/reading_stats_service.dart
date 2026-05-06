@@ -35,7 +35,7 @@ class ReadingStatsService {
 
   Future<DbGlobalStats> getReadingStats() async {
     try {
-      return await _storage.getReadingStats();
+      return _storage.getGlobalReadingStats();
     } catch (e) {
       debugPrint('ReadingStatsService.getReadingStats error: $e');
       return const DbGlobalStats(
@@ -47,13 +47,21 @@ class ReadingStatsService {
         todayReadingTimeSeconds: 0,
         todayCharactersRead: 0,
         averageReadingSpeed: 0.0,
+        totalBooksCount: 0,
+        totalNotesCount: 0,
+        totalBookmarksCount: 0,
+        maxConsecutiveReadingDays: 0,
       );
     }
   }
 
   Future<(int, int)> getTodayReadingData() async {
     try {
-      return await _storage.getTodayReadingData();
+      final stats = _storage.getTodayReadingStats();
+      return (
+        stats.totalReadingTimeSeconds.toInt(),
+        stats.totalCharactersRead.toInt()
+      );
     } catch (e) {
       debugPrint('ReadingStatsService.getTodayReadingData error: $e');
       return (0, 0);
@@ -62,19 +70,23 @@ class ReadingStatsService {
 
   Future<DbDailyReadingStats?> getDailyReadingRecord(String date) async {
     try {
-      return await _storage.getDailyReadingRecord(date);
+      final stats = await _storage.getReadingStatsRange(
+        startDate: date,
+        endDate: date,
+      );
+      return stats.isNotEmpty ? stats.first : null;
     } catch (e) {
       debugPrint('ReadingStatsService.getDailyReadingRecord error: $e');
       return null;
     }
   }
 
-  Future<dynamic> getDailyReadingRecordsInRange({
+  Future<List<DbDailyReadingStats>> getDailyReadingRecordsInRange({
     required String startDate,
     required String endDate,
   }) async {
     try {
-      return await _storage.getDailyReadingRecordsInRange(
+      return await _storage.getReadingStatsRange(
         startDate: startDate,
         endDate: endDate,
       );
@@ -84,9 +96,14 @@ class ReadingStatsService {
     }
   }
 
-  Future<dynamic> getRecentReadingRecords(int days) async {
+  Future<List<DbDailyReadingStats>> getRecentReadingRecords(int days) async {
     try {
-      return await _storage.getRecentReadingRecords(days);
+      final endDate = DateTime.now();
+      final startDate = endDate.subtract(Duration(days: days - 1));
+      return await _storage.getReadingStatsRange(
+        startDate: startDate.toIso8601String().split('T').first,
+        endDate: endDate.toIso8601String().split('T').first,
+      );
     } catch (e) {
       debugPrint('ReadingStatsService.getRecentReadingRecords error: $e');
       return [];
@@ -95,7 +112,8 @@ class ReadingStatsService {
 
   Future<int> getConsecutiveReadingDays() async {
     try {
-      return await _storage.getConsecutiveReadingDays();
+      final stats = _storage.getGlobalReadingStats();
+      return stats.consecutiveReadingDays;
     } catch (e) {
       debugPrint('ReadingStatsService.getConsecutiveReadingDays error: $e');
       return 0;
@@ -104,7 +122,8 @@ class ReadingStatsService {
 
   Future<double> getReadingSpeed() async {
     try {
-      return await _storage.getReadingSpeed();
+      final stats = _storage.getGlobalReadingStats();
+      return stats.averageReadingSpeed;
     } catch (e) {
       debugPrint('ReadingStatsService.getReadingSpeed error: $e');
       return 0.0;

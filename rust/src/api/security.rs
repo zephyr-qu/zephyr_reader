@@ -10,19 +10,8 @@ use std::path::{Path, PathBuf};
 /// 防止超大文件导致内存耗尽，同时支持大型扫描版 PDF 和 EPUB 合集
 const MAX_FILE_SIZE: u64 = 500 * 1024 * 1024;
 
-/// 验证文件路径是否安全
-///
+/// 验证文件路径是否安全（仅供测试使用）
 /// 确保文件路径在允许的基目录内，防止路径遍历攻击。
-///
-/// # 参数
-///
-/// * `file_path` - 待验证的文件路径
-/// * `allowed_base` - 允许的基目录路径（字符串）
-///
-/// # 返回值
-///
-/// * `Ok(String)` - 验证通过的规范化路径
-/// * `Err(ParserError)` - 路径不安全或无效
 #[allow(dead_code)]
 pub(crate) fn validate_path_securely(file_path: &str, allowed_base: &str) -> Result<String, ParserError> {
     let allowed_base_path = Path::new(allowed_base);
@@ -75,7 +64,7 @@ pub(crate) fn validate_path_securely(file_path: &str, allowed_base: &str) -> Res
 /// # 注意
 ///
 /// 此函数使用严格的路径规范化，确保路径安全性。
-pub(crate) fn validate_file_path(file_path: &str) -> Result<String, ParserError> {
+pub fn validate_file_path(file_path: &str) -> Result<String, ParserError> {
     // 1. 检查空字节（路径截断攻击）
     if file_path.contains('\0') {
         return Err(ParserError::SecurityError(

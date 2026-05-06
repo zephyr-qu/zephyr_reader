@@ -3,7 +3,6 @@
 
 use crate::ffi::types::{AlignedSegment, BilingualAlignment};
 use crate::ffi::ParserError;
-use flutter_rust_bridge::frb;
 use unicode_segmentation::UnicodeSegmentation;
 
 /// 句子分割器
@@ -309,7 +308,6 @@ impl BilingualAligner {
 /// # 返回值
 ///
 /// 返回对齐结果，包含匹配的片段和未匹配的片段
-#[frb(sync)]
 pub fn align_bilingual_content(
     chinese_content: String,
     english_content: String,
@@ -320,7 +318,6 @@ pub fn align_bilingual_content(
 }
 
 /// 简单的句子对齐（1:1 对齐）
-#[frb(sync)]
 pub fn simple_bilingual_align(
     chinese_content: String,
     english_content: String,

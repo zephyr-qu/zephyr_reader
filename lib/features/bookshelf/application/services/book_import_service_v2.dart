@@ -10,10 +10,10 @@ import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/core/error/app_error.dart';
+import 'package:zephyr_reader/core/local/rust_core_service.dart';
+import 'package:zephyr_reader/core/local/rust_cover_service.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/models/import_task.dart';
 import 'package:zephyr_reader/features/reader/domain/models/chapter_info.dart';
-import 'package:zephyr_reader/src/rust/api/core.dart' as rust_api;
-import 'package:zephyr_reader/src/rust/api/cover.dart' as rust_cover;
 
 /// 导入结果
 class ImportResult {
@@ -33,11 +33,13 @@ class ImportResult {
 /// 书籍导入服务（新错误处理版本）
 @injectable
 class BookImportServiceV2 {
+  final RustCoreService _core;
+  final RustCoverService _cover;
   Directory? _booksDir;
   Directory? _coversDir;
   Future<void>? _initFuture;
 
-  BookImportServiceV2() {
+  BookImportServiceV2(this._core, this._cover) {
     _initFuture = _initDirectories();
   }
 
@@ -64,7 +66,8 @@ class BookImportServiceV2 {
     List<String>? allowedExtensions,
   }) {
     return Result.guardAsync(() async {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker
+      .pickFiles(
         allowMultiple: allowMultiple,
         type: FileType.custom,
         allowedExtensions: allowedExtensions ?? ['txt', 'epub', 'pdf'],
@@ -81,7 +84,7 @@ class BookImportServiceV2 {
   /// 选择文件夹 - 返回 Result 类型
   Future<Result<String>> selectFolder() {
     return Result.guardAsync(() async {
-      final folder = await FilePicker.platform.getDirectoryPath();
+      final folder = await FilePicker.getDirectoryPath();
 
       if (folder == null || folder.isEmpty) {
         throw AppError.cancelled(message: '未选择文件夹');
@@ -172,7 +175,7 @@ class BookImportServiceV2 {
     String format,
   ) async {
     return Result.guardAsync(() async {
-      final result = rust_api.parseBook(filePath: filePath);
+      final result = _core.parseBook(filePath);
       final parseResult = (result as dynamic);
 
       // Access book info and chapters from the parse result
@@ -215,7 +218,7 @@ class BookImportServiceV2 {
       final coverFilename = 'cover_$timestamp.jpg';
       final coverDestPath = p.join(_coversDir!.path, coverFilename);
 
-      final result = rust_cover.extractBookCover(
+      final result = _cover.extractBookCover(
         filePath: filePath,
         outputDir: _coversDir!.path,
       );
@@ -235,17 +238,22 @@ class BookImportServiceV2 {
     if (chapters == null || chapters is! List) return [];
 
     return chapters.map((chapter) {
-      // Rust ChapterInfo fields: chapterId (String/UUID), title, startIndex (i64), endIndex (i64), contentLength (i64), index (i32)
+      // Rust ChapterInfo fields: chapterId (String/UUID), title, startIndex (i64), endIndex (i64), contentLength (i64), index (i32), level (i32)
       final chapterIdVal = chapter.chapterId ?? chapter.chapter_id;
       final chapterIndex = chapter.index ?? chapter.chapterIndex ?? 0;
+      final chapterLevel =
+          (chapter.level ?? chapter.chapterLevel ?? 0) as int;
       return ChapterInfo(
-        chapterId: chapterIdVal is String ? chapterIdVal : chapterIndex.toString(),
+        chapterId: chapterIdVal is String
+            ? chapterIdVal
+            : chapterIndex.toString(),
         title: chapter.title ?? '',
         startIndex: (chapter.startIndex ?? chapter.start_index ?? 0).toInt(),
         endIndex: (chapter.endIndex ?? chapter.end_index ?? 0).toInt(),
-        contentLength:
-            (chapter.contentLength ?? chapter.content_length ?? 0).toInt(),
+        contentLength: (chapter.contentLength ?? chapter.content_length ?? 0)
+            .toInt(),
         index: chapterIndex,
+        level: chapterLevel,
       );
     }).toList();
   }

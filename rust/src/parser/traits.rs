@@ -19,7 +19,7 @@ use crate::ffi::{ApiResult, ParseResult, ParserError};
 
 /// 书籍元数据
 #[derive(Debug, Clone, Default)]
-#[frb]
+#[frb(non_opaque)]
 pub struct BookMetadata {
     /// 书籍标题
     pub title: String,

@@ -5,19 +5,16 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use flutter_rust_bridge::frb;
-
 use crate::ffi::{ApiResult, ParseResult, ParserError};
 use crate::parser::traits::{BookMetadata, BookParser};
 
 /// PDF 文件解析器
-#[frb(opaque)]
-pub struct PdfParser;
+pub struct PdfParser {}
 
 impl PdfParser {
     /// 创建新的 PDF 解析器实例
     pub fn new() -> Self {
-        Self
+        Self {}
     }
 }
 

@@ -26,14 +26,11 @@ class LayoutCacheService {
     required int totalPages,
   }) async {
     try {
-      final offsets = pageOffsets
-          .map((o) => (o.$1, o.$2))
-          .toList();
       await _storage.saveLayoutCache(
         bookId: 'book_$bookId',
         chapterIndex: chapterId,
         configHash: configHash,
-        pageOffsets: offsets,
+        pageOffsets: pageOffsets,
         totalPages: totalPages,
       );
       debugPrint('保存排版缓存：book=$bookId, chapter=$chapterId, pages=$totalPages');
@@ -66,7 +63,7 @@ class LayoutCacheService {
 
   Future<int> clearLayoutCache(int bookId) async {
     try {
-      await _storage.clearLayoutCache('book_$bookId');
+      _storage.clearLayoutCache('book_$bookId');
       return 0;
     } catch (e) {
       debugPrint('LayoutCacheService.clearLayoutCache error: $e');

@@ -84,7 +84,7 @@ class ReadingProgressService {
       if (_currentProgress != null && _currentProgress!.bookId == bookId) {
         return _currentProgress;
       }
-      final progress = await _storage.getReadingProgress(bookId);
+      final progress = _storage.getReadingProgress(bookId);
       if (progress == null) return null;
       _currentProgress = ReadingProgressData(
         bookId: bookId,
@@ -102,7 +102,7 @@ class ReadingProgressService {
 
   Future<Result<void>> clearReadingProgress(String bookId) async {
     return Result.guardAsync(() async {
-      await _storage.clearReadingProgress(bookId);
+      _storage.clearReadingProgress(bookId);
       if (_currentProgress?.bookId == bookId) {
         _currentProgress = null;
       }
@@ -111,10 +111,10 @@ class ReadingProgressService {
 
   Future<Result<List<ReadingProgressData>>> getAllReadingProgress() async {
     return Result.guardAsync(() async {
-      final books = await _storage.getAllBooks();
+      final books = _storage.getAllBooks();
       final result = <ReadingProgressData>[];
       for (final book in books) {
-        final progress = await _storage.getReadingProgress(book.bookId);
+        final progress = _storage.getReadingProgress(book.bookId);
         if (progress != null) {
           result.add(
             ReadingProgressData(

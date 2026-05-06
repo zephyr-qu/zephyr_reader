@@ -54,7 +54,7 @@ class BookImportService {
     List<String>? allowedExtensions,
   }) async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         allowMultiple: allowMultiple,
         type: FileType.custom,
         allowedExtensions: allowedExtensions ?? ['txt', 'epub', 'pdf'],
@@ -70,7 +70,7 @@ class BookImportService {
   /// 选择文件
   Future<String?> selectFolder() async {
     try {
-      final folder = await FilePicker.platform.getDirectoryPath();
+      final folder = await FilePicker.getDirectoryPath();
       return folder;
     } catch (e) {
       Logging.debug('BookImportService.selectFolder error: $e');

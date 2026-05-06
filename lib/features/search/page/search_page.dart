@@ -6,8 +6,8 @@ import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart';
 import 'package:zephyr_reader/features/search/application/search_view_model.dart';
 import 'package:zephyr_reader/features/search/domain/repositories/search_repository.dart';
-import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
-import 'package:zephyr_reader/shared/widget/ui_components.dart';
+import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
+import 'package:zephyr_reader/core/presentation/widgets/ui_components.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 /// 搜索页面 - 响应式设计

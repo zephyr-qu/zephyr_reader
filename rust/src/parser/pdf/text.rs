@@ -34,7 +34,7 @@ pub fn get_pdf_page_text(file_path: &str, page_index: usize) -> ApiResult<String
     let pdf =
         load_result.map_err(|e| ParserError::PdfParseError(format!("打开 PDF 文件失败：{}", e)))?;
 
-    let num_pages: usize = pdf.pages().len().into();
+    let num_pages: usize = pdf.pages().len() as usize;
     if page_index >= num_pages {
         return Err(ParserError::PdfParseError(format!(
             "页面索引超出范围：{} (总共 {} 页)",
@@ -86,7 +86,7 @@ pub fn get_chapter_text(file_path: &str, start_page: usize, end_page: usize) -> 
     let pdf =
         load_result.map_err(|e| ParserError::PdfParseError(format!("打开 PDF 文件失败：{}", e)))?;
 
-    let num_pages: usize = pdf.pages().len().into();
+    let num_pages: usize = pdf.pages().len() as usize;
     if start_page >= num_pages {
         return Err(ParserError::PdfParseError(format!(
             "起始页面超出范围：{} (总共 {} 页)",
@@ -149,7 +149,7 @@ pub fn estimate_total_chars(file_path: &str, _sample_pages: usize) -> i64 {
         Err(_) => return 0,
     };
 
-    let num_pages: usize = pdf.pages().len().into();
+    let num_pages: usize = pdf.pages().len() as usize;
     if num_pages == 0 {
         return 0;
     }

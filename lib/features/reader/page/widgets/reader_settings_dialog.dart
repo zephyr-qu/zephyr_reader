@@ -2,7 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/shared/widget/ui_components.dart';
+import 'package:zephyr_reader/core/presentation/widgets/ui_components.dart';
 
 /// 阅读器设置对话框
 class ReaderSettingsDialog extends StatelessWidget {

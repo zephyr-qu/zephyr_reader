@@ -36,15 +36,9 @@ const MAX_PARAGRAPH_SPACING: f32 = 10.0;
 const MAX_FIRST_LINE_INDENT: u8 = 10;
 
 /// 解析配置
-///
-/// 用于控制解析器的行为，包括并行处理、缓存等选项。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
 pub struct ParseConfig {
-    /// 是否启用并行解析（多章节同时处理）
-    pub enable_parallel: bool,
-    /// 并行处理的线程数（表示使用 CPU 核心数）
-    pub parallel_threads: usize,
     /// 是否启用缓存
     pub enable_cache: bool,
     /// 缓存最大条目数
@@ -54,32 +48,9 @@ pub struct ParseConfig {
 impl Default for ParseConfig {
     fn default() -> Self {
         Self {
-            enable_parallel: true,
-            parallel_threads: 0, // 0 表示使用 CPU 核心数
             enable_cache: true,
             cache_max_entries: 100,
         }
-    }
-}
-
-impl ParseConfig {
-    /// 获取实际的线程数
-    ///
-    /// 如果配置为 0，返回 CPU 核心数；否则返回配置值。
-    pub fn get_thread_count(&self) -> usize {
-        if self.parallel_threads == 0 {
-            std::thread::available_parallelism()
-                .map(|p| p.get())
-                .unwrap_or(4)
-        } else {
-            self.parallel_threads.clamp(1, 16)
-        }
-    }
-
-    /// 验证配置并修复无效值
-    pub fn validate_and_fix(&mut self) {
-        self.parallel_threads = self.parallel_threads.clamp(0, 16);
-        self.cache_max_entries = self.cache_max_entries.clamp(1, 10000);
     }
 }
 
@@ -545,57 +516,6 @@ pub struct LocalBookInfo {
     pub chapters: Vec<ChapterInfo>,
 }
 
-/// 阅读进度信息
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb(non_opaque)]
-pub struct ReadingProgress {
-    /// 当前章节索引（顺序号，从 0 开始）
-    pub chapter_index: i32,
-    /// 当前页码
-    pub page_index: i32,
-    /// 总页数
-    pub total_pages: i32,
-    /// 进度百分比（0.0 - 1.0）
-    pub progress: f32,
-    /// 已阅读时间（秒）
-    pub reading_time_seconds: i64,
-    /// 最后阅读时间戳（Unix 时间戳）
-    pub last_read_timestamp: i64,
-}
-
-impl Default for ReadingProgress {
-    fn default() -> Self {
-        Self {
-            chapter_index: 0,
-            page_index: 0,
-            total_pages: 0,
-            progress: 0.0,
-            reading_time_seconds: 0,
-            last_read_timestamp: 0,
-        }
-    }
-}
-
-/// 书签信息
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb(non_opaque)]
-pub struct Bookmark {
-    /// 书签唯一标识
-    pub bookmark_id: String,
-    /// 书籍 ID
-    pub book_id: String,
-    /// 章节索引（顺序号，从 0 开始）
-    pub chapter_index: i32,
-    /// 页码
-    pub page_index: i32,
-    /// 书签标题（用户自定义或自动生成）
-    pub title: String,
-    /// 创建时间戳（Unix 时间戳）
-    pub created_timestamp: i64,
-    /// 备注
-    pub note: Option<String>,
-}
-
 /// EPUB 目录项
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
@@ -640,63 +560,6 @@ pub struct PdfMetadata {
     pub page_count: i32,
 }
 
-/// 阅读统计数据
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb(non_opaque)]
-pub struct ReadingStats {
-    /// 总阅读时长（秒）
-    pub total_reading_time_seconds: i64,
-    /// 总阅读字符数
-    pub total_characters_read: i64,
-    /// 阅读书籍数量
-    pub books_read_count: i32,
-    /// 完成阅读书籍数量
-    pub books_completed_count: i32,
-    /// 连续阅读天数
-    pub consecutive_reading_days: i32,
-    /// 今日阅读时长（秒）
-    pub today_reading_time_seconds: i64,
-    /// 今日阅读字符数
-    pub today_characters_read: i64,
-    /// 平均阅读速度（字/分钟）
-    pub average_reading_speed: f32,
-}
-
-impl Default for ReadingStats {
-    fn default() -> Self {
-        Self {
-            total_reading_time_seconds: 0,
-            total_characters_read: 0,
-            books_read_count: 0,
-            books_completed_count: 0,
-            consecutive_reading_days: 0,
-            today_reading_time_seconds: 0,
-            today_characters_read: 0,
-            average_reading_speed: 0.0,
-        }
-    }
-}
-
-/// 阅读会话记录（单次连续阅读）
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb(non_opaque)]
-pub struct ReadingSession {
-    /// 会话 ID
-    pub session_id: String,
-    /// 书籍 ID
-    pub book_id: String,
-    /// 章节索引（顺序号，从 0 开始）
-    pub chapter_index: i32,
-    /// 开始时间戳
-    pub start_timestamp: i64,
-    /// 结束时间戳
-    pub end_timestamp: i64,
-    /// 阅读时长（秒）
-    pub duration_seconds: i64,
-    /// 阅读字符数
-    pub characters_read: i64,
-}
-
 /// 排版缓存中的页面偏移量
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
@@ -706,34 +569,6 @@ pub struct PageOffset {
     /// 页面长度（字符数）
     pub length: i64,
 }
-
-/// 缓存的排版结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb(non_opaque)]
-pub struct CachedLayout {
-    /// 章节唯一标识 (UUID)
-    pub chapter_id: String,
-    /// 排版配置哈希
-    pub config_hash: String,
-    /// 页面偏移量序列
-    pub page_offsets: Vec<PageOffset>,
-    /// 总页数
-    pub total_pages: i32,
-    /// 创建时间戳
-    pub created_at: i64,
-}
-
-/// 排版缓存查询结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb(non_opaque)]
-pub struct LayoutCacheResult {
-    /// 是否命中缓存
-    pub hit: bool,
-    /// 缓存的排版结果（如果命中）
-    pub cached_layout: Option<CachedLayout>,
-}
-
-// ==================== 富文本支持 ====================
 
 /// 富文本片段类型
 ///
@@ -852,16 +687,7 @@ impl RichChapterContent {
     }
 }
 
-// ==================== 笔记统计 ====================
 
-/// 笔记统计
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb(non_opaque)]
-pub struct NoteStats {
-    pub total_count: i32,
-    pub highlight_count: i32,
-    pub annotation_count: i32,
-}
 
 // ==================== 全文搜索支持 ====================
 

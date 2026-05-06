@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -38,7 +39,8 @@ class BookshelfViewModel {
       if (selectedCategory.value == null && data.isNotEmpty) {
         selectedCategory.value = data.first;
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('BookshelfViewModel._loadCategories error: $e\n$stack');
       categories.value = [];
     }
   }
@@ -90,7 +92,8 @@ class BookshelfViewModel {
       await _repo.deleteBook(id);
       await loadBooks();
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('BookshelfViewModel.deleteBook error: $e\n$stack');
       return false;
     }
   }
@@ -121,7 +124,8 @@ class BookshelfViewModel {
       await _repo.addCategory(category);
       await _loadCategories();
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('BookshelfViewModel.addCategory error: $e\n$stack');
       return false;
     }
   }
@@ -132,7 +136,8 @@ class BookshelfViewModel {
       await _repo.updateCategory(category);
       await _loadCategories();
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('BookshelfViewModel.updateCategory error: $e\n$stack');
       return false;
     }
   }
@@ -152,7 +157,8 @@ class BookshelfViewModel {
             : categories.value.first;
       }
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('BookshelfViewModel.removeCategory error: $e\n$stack');
       return false;
     }
   }
@@ -165,7 +171,8 @@ class BookshelfViewModel {
     try {
       await _repo.updateBookCategories(bookId, categoryIds);
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('BookshelfViewModel.updateBookCategories error: $e\n$stack');
       return false;
     }
   }

@@ -1,9 +1,10 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:get_it/get_it.dart';
+import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
+import 'package:zephyr_reader/core/presentation/widgets/ui_components.dart';
 import 'package:zephyr_reader/features/statistics/application/reading_stats_service.dart';
-import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
-import 'package:zephyr_reader/shared/widget/ui_components.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 统计页面 - 展示阅读数据统计
@@ -16,7 +17,7 @@ class StatisticsPage extends HookWidget {
     final deviceType = LayoutBreakpoints.getDeviceType(context);
     final pagePadding = LayoutBreakpoints.getSpacing(context);
     final isTabletOrDesktop = deviceType != DeviceType.phone;
-    final statsService = ReadingStatsService.instance;
+    final statsService = GetIt.I.get<ReadingStatsService>();
 
     // 加载统计数据
     final globalStatsAsync = useFuture(
@@ -59,9 +60,19 @@ class StatisticsPage extends HookWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (isTabletOrDesktop)
-                    ..._buildTabletLayout(context, theme, globalStats, chartData)
+                    ..._buildTabletLayout(
+                      context,
+                      theme,
+                      globalStats,
+                      chartData,
+                    )
                   else
-                    ..._buildPhoneLayout(context, theme, globalStats, chartData),
+                    ..._buildPhoneLayout(
+                      context,
+                      theme,
+                      globalStats,
+                      chartData,
+                    ),
                   SizedBox(height: LayoutBreakpoints.getSpacing(context)),
                 ],
               ),
@@ -81,7 +92,8 @@ class StatisticsPage extends HookWidget {
     // 生成最近7天的数据
     for (int i = 6; i >= 0; i--) {
       final date = now.subtract(Duration(days: i));
-      final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final dateStr =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       final weekdayIndex = (date.weekday - 1) % 7;
 
       // 查找对应日期的记录

@@ -4,7 +4,6 @@
 
 use crate::ffi::{ApiResult, EpubMetadata, ParserError};
 use epub::doc::{EpubDoc, NavPoint, ResourceItem, SpineItem};
-use flutter_rust_bridge::frb;
 use lru::LruCache;
 use std::collections::HashMap;
 use std::fs::File;
@@ -339,7 +338,6 @@ impl EpubFile {
 /// # 返回值
 /// * `Ok(EpubMetadata)` - 元数据
 /// * `Err(ParserError)` - 解析失败
-#[frb(sync)]
 pub fn get_epub_metadata(file_path: &str) -> ApiResult<EpubMetadata> {
     let epub_file = EpubFile::open(file_path)?;
 

@@ -10,10 +10,6 @@ pub mod search;
 pub mod storage;
 pub mod stream;
 pub mod text_process;
-pub mod utils;
-
-// 公开导出 get_registry 以便在 api/core.rs 中使用
-pub use api::core::get_registry;
 
 // Rayon 全局线程池初始化状态
 static RAYON_INIT: OnceCell<()> = OnceCell::new();
@@ -33,9 +29,4 @@ pub fn init_rayon_pool() {
             });
     });
 }
-
-// FRB 生成的代码（仅在 frb_expand 时包含）
-// 注意：运行 `flutter_rust_bridge_codegen build` 后会自动生成
-#[macro_use]
-#[cfg(frb_expand)]
-mod frb_generated;
+// mod frb_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not be accurate, and you can change it according to your needs. */

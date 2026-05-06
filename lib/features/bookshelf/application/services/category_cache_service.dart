@@ -1,8 +1,10 @@
+import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 分类缓存服务
 ///
 /// 提供分类的内存缓存，避免频繁查询数据库
+@LazySingleton()
 class CategoryCacheService {
   /// 缓存的分类列表
   List<DbBookCategory> _categories = [];

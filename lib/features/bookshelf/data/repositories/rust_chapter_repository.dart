@@ -12,7 +12,7 @@ class RustChapterRepository implements ChapterRepository {
 
   @override
   Future<List<DbChapter>> getChaptersByBookId(int bookId) async {
-    final rustChapters = await _storage.getChaptersByBook('book_$bookId');
+    final rustChapters = _storage.getChaptersByBook('book_$bookId');
     return rustChapters.map(_chapterFromRust).toList();
   }
 
@@ -45,16 +45,17 @@ class RustChapterRepository implements ChapterRepository {
             chapterIndex: c.chapterIndex,
             wordCount: c.wordCount,
             cachedAt: c.cachedAt,
+            level: c.level,
           ),
         )
         .toList();
-    await _storage.saveChapters(bookIdStr, rustChapters);
+    _storage.saveChapters(bookIdStr, rustChapters);
     return chapters.length;
   }
 
   @override
   Future<int> deleteChaptersByBookId(int bookId) async {
-    await _storage.deleteChaptersByBook('book_$bookId');
+    _storage.deleteChaptersByBook('book_$bookId');
     return 0;
   }
 
@@ -67,6 +68,7 @@ class RustChapterRepository implements ChapterRepository {
       chapterIndex: rustChapter.chapterIndex,
       wordCount: rustChapter.wordCount,
       cachedAt: rustChapter.cachedAt,
+      level: rustChapter.level,
     );
   }
 }

@@ -2,7 +2,6 @@
 //!
 //! 使用 pdfium-render 提取 PDF 封面图像
 
-use flutter_rust_bridge::frb;
 use pdfium_render::prelude::*;
 use std::path::Path;
 
@@ -13,7 +12,6 @@ use crate::ffi::{ApiResult, EpubImageInfo, ParserError};
 /// 尝试多种策略提取最佳封面：
 /// 1. 首先尝试提取嵌入的封面图像
 /// 2. 如果失败，渲染第一页作为封面
-#[frb(sync)]
 pub fn extract_pdf_cover(file_path: &str, output_dir: &str) -> ApiResult<String> {
     if !Path::new(file_path).exists() {
         return Err(ParserError::file_not_found(file_path));
@@ -85,6 +83,7 @@ fn extract_cover_from_pdf(file_path: &str, output_path: &str) -> ApiResult<()> {
 
     bitmap
         .as_image()
+        .map_err(|e| ParserError::PdfParseError(format!("获取 PDF 页面图像失败：{}", e)))?
         .into_rgb8()
         .save_with_format(output_path, image::ImageFormat::Jpeg)
         .map_err(|e| {
@@ -147,6 +146,7 @@ pub fn extract_pdf_cover_bytes(file_path: &str) -> ApiResult<Vec<u8>> {
 
     bitmap
         .as_image()
+        .map_err(|e| ParserError::PdfParseError(format!("获取 PDF 页面图像失败：{}", e)))?
         .into_rgb8()
         .write_to(&mut jpeg_data, image::ImageFormat::Jpeg)
         .map_err(|e| {
@@ -193,7 +193,7 @@ pub fn get_page_images(file_path: &str, page_index: u32) -> ApiResult<Vec<EpubIm
 
     let page = pdf
         .pages()
-        .get(page_index as u16)
+        .get(page_index as i32)
         .map_err(|e| ParserError::PdfParseError(format!("获取页面失败：{}", e)))?;
 
     let page_width = page.width().value.ceil() as i32;

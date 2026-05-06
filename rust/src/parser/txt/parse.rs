@@ -15,7 +15,6 @@ use crate::ffi::{
 };
 use crate::parser::parallel::validate_chapters_parallel;
 use crate::text_process::{chapter_detect, typeset};
-use flutter_rust_bridge::frb;
 
 /// 中文章节匹配模式
 static CHAPTER_PATTERN_ZH: Lazy<Regex> = Lazy::new(|| {
@@ -25,7 +24,6 @@ static CHAPTER_PATTERN_ZH: Lazy<Regex> = Lazy::new(|| {
 });
 
 /// 解析 TXT 文件
-#[frb(sync)]
 pub fn parse_txt(file_path: String) -> ApiResult<ParseResult> {
     parse_txt_with_config(file_path, ParseConfig::default())
 }
@@ -43,14 +41,9 @@ pub fn parse_txt(file_path: String) -> ApiResult<ParseResult> {
 ///
 /// * `Ok(ParseResult)` - 解析成功，包含书籍信息和章节列表
 /// * `Err(ParserError)` - 解析失败
-#[frb(sync)]
-pub fn parse_txt_with_config(file_path: String, config: ParseConfig) -> ApiResult<ParseResult> {
+pub fn parse_txt_with_config(file_path: String, _config: ParseConfig) -> ApiResult<ParseResult> {
     let start_time = std::time::Instant::now();
-    tracing::info!(
-        "开始解析 TXT 文件：{} (并行：{})",
-        file_path,
-        config.enable_parallel
-    );
+    tracing::info!("开始解析 TXT 文件：{}", file_path);
 
     // 检查文件是否存在
     if !Path::new(&file_path).exists() {
@@ -68,11 +61,9 @@ pub fn parse_txt_with_config(file_path: String, config: ParseConfig) -> ApiResul
     let chapter_count = chapters.len() as i32;
     tracing::debug!("章节提取完成，章节数：{}", chapter_count);
 
-    // 如果启用并行验证，使用 rayon 处理章节
-    if config.enable_parallel && chapter_count > 5 {
-        let thread_count = config.get_thread_count();
-        tracing::info!("使用并行章节验证，线程数：{}", thread_count);
-        chapters = validate_chapters_parallel(chapters, &content, thread_count);
+    // 并行验证章节（大文件优化）
+    if chapter_count > 5 {
+        chapters = validate_chapters_parallel(chapters, &content, 0);
         tracing::debug!("并行验证完成，有效章节数：{}", chapters.len());
     }
 

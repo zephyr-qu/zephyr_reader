@@ -11,19 +11,20 @@ use parking_lot::Mutex;
 /// 全局搜索引擎单例
 static SEARCH_ENGINE: OnceCell<Mutex<SearchEngine>> = OnceCell::new();
 
-/// 初始化搜索引擎（需要数据库路径）
+/// 初始化搜索引擎
+///
+/// 与主数据库共享连接，确保索引操作参与主数据库事务。
+/// `_db_path` 保留参数以兼容 Flutter 侧调用接口。
 #[frb]
-pub fn init_search_engine(db_path: String) -> ApiResult<()> {
-    // 验证数据库路径在允许的基目录内
-    let path = std::path::Path::new(&db_path);
-    if let Some(parent) = path.parent().and_then(|p| p.to_str()) {
-        if !parent.is_empty() {
-            // 验证父目录（数据库文件可能还不存在，但父目录必须存在且在允许的基目录内）
-            crate::api::security::validate_file_path(parent)?;
-        }
-    }
+pub fn init_search_engine(_db_path: String) -> ApiResult<()> {
+    // 初始化 Jieba 分词器（若词典缺失则返回明确错误而非 panic）
+    crate::search::ensure_jieba().map_err(|e| {
+        ParserError::InternalError(format!("搜索引擎初始化失败: {}", e))
+    })?;
 
-    let engine = SearchEngine::open_or_create(&db_path)?;
+    let storage = crate::storage::ensure_storage()?;
+    let db = storage.db();
+    let engine = SearchEngine::new(db);
     SEARCH_ENGINE
         .set(Mutex::new(engine))
         .map_err(|_| ParserError::InternalError("Search engine already initialized".into()))?;
@@ -76,6 +77,22 @@ pub fn search_in_book(book_id: String, query: String, limit: i32) -> ApiResult<V
     let limit = limit.max(0) as usize;
     let results = engine.lock().search(&book_id, &query, limit)?;
     Ok(results)
+}
+
+/// 删除指定书籍的所有搜索索引
+///
+/// 当书籍被删除时调用，防止搜索索引孤立。
+///
+/// # 参数
+///
+/// * `book_id` - 书籍唯一标识
+#[frb(sync)]
+pub fn delete_book_search_index(book_id: String) -> ApiResult<()> {
+    let engine = get_search_engine()?;
+    engine
+        .lock()
+        .delete_book(&book_id)?;
+    Ok(())
 }
 
 /// 清除所有搜索索引

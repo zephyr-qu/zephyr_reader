@@ -27,11 +27,6 @@ pub use epub::parse_epub;
 pub use pdf::parse_pdf;
 pub use txt::parse_txt;
 
-// 重新导出给 FRB 使用
-pub use epub::parse_epub as frb_parse_epub;
-pub use pdf::parse_pdf as frb_parse_pdf;
-pub use txt::parse_txt as frb_parse_txt;
-
 // 导出插件化架构
 pub use traits::{BookMetadata, BookParser, ParserRegistry, ThreadSafeParserRegistry};
 

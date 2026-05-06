@@ -6,7 +6,7 @@ import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/article/application/article_view_model.dart';
 import 'package:zephyr_reader/features/article/domain/models/article.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
+import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 
 /// 文章详情页面
 class ArticleDetailPage extends StatefulWidget {

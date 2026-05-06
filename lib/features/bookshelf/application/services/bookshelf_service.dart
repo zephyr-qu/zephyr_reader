@@ -32,47 +32,40 @@ class BookshelfService {
     _state.error.value = null;
 
     try {
-      final books = await _repository.getAllBooks();
-
-      var filteredBooks = books;
       final filter = _state.filter.value;
+      List<DbBookRecord> books;
 
+      // 利用 Rust 侧 API 进行过滤
       if (filter.keyword != null && filter.keyword!.isNotEmpty) {
-        final keyword = filter.keyword!.toLowerCase();
-        filteredBooks = filteredBooks
-            .where(
-              (b) =>
-                  b.title.toLowerCase().contains(keyword) ||
-                  b.author.toLowerCase().contains(keyword),
-            )
-            .toList();
-      }
-
-      if (filter.status != null) {
+        // 使用 Rust 侧关键词搜索
+        books = await _repository.searchBooks(filter.keyword!);
+      } else if (filter.status != null) {
+        // 使用 Rust 侧状态筛选
         final targetStatus = DbBookStatus.values.firstWhere(
           (s) => s.name == filter.status,
           orElse: () => DbBookStatus.reading,
         );
-        filteredBooks = filteredBooks
-            .where((b) => b.status == targetStatus)
-            .toList();
+        books = await _repository.getBooksByStatus(targetStatus);
+      } else {
+        // 获取全部书籍
+        books = await _repository.getAllBooks();
       }
 
+      // Dart 侧格式筛选（Rust 侧暂不支持）
       if (filter.format != null) {
         final targetFormat = DbBookFormat.values.firstWhere(
           (f) => f.name == filter.format,
           orElse: () => DbBookFormat.txt,
         );
-        filteredBooks = filteredBooks
-            .where((b) => b.format == targetFormat)
-            .toList();
+        books = books.where((b) => b.format == targetFormat).toList();
       }
 
-      filteredBooks.sort((a, b) {
+      // Dart 侧排序（Rust 侧暂不支持自定义排序）
+      books.sort((a, b) {
         switch (filter.sortType) {
           case BookshelfSortType.lastRead:
-            final aTime = a.lastReadAt ?? a.addedAt;
-            final bTime = b.lastReadAt ?? b.addedAt;
+            final aTime = a.lastOpenedAt ?? a.addedAt;
+            final bTime = b.lastOpenedAt ?? b.addedAt;
             return filter.ascending
                 ? aTime.compareTo(bTime)
                 : bTime.compareTo(aTime);
@@ -95,7 +88,7 @@ class BookshelfService {
         }
       });
 
-      _state.setBooks(filteredBooks);
+      _state.setBooks(books);
     } catch (e) {
       _state.error.value = '加载书架失败';
       Logging.debug('BookshelfService.loadBooks error: $e');
@@ -133,7 +126,6 @@ class BookshelfService {
         addedAt: DateTime.now(),
         status: DbBookStatus.planned,
         isPinned: false,
-        categoryIds: [],
       );
 
       await _repository.addBook(book);
@@ -177,6 +169,7 @@ class BookshelfService {
           chapterIndex: chapter.index,
           wordCount: 0,
           cachedAt: DateTime.now(),
+          level: chapter.level,
         );
       }).toList();
 
@@ -199,8 +192,6 @@ class BookshelfService {
           lastOpenedAt: book.lastOpenedAt,
           status: book.status,
           isPinned: book.isPinned,
-          categoryIds: book.categoryIds,
-          lastReadAt: book.lastReadAt,
         );
         await _repository.updateBook(updated);
       }
@@ -243,7 +234,7 @@ class BookshelfService {
         addedAt: DateTime.now(),
         status: DbBookStatus.planned,
         isPinned: false,
-        categoryIds: [],
+
       );
 
       await _repository.addBook(book);
@@ -320,8 +311,6 @@ class BookshelfService {
         lastOpenedAt: book.lastOpenedAt,
         status: book.status,
         isPinned: book.isPinned,
-        categoryIds: book.categoryIds,
-        lastReadAt: book.lastReadAt,
       );
       await _repository.updateBook(updated);
 
@@ -363,8 +352,7 @@ class BookshelfService {
         lastOpenedAt: book.lastOpenedAt,
         status: bookStatus,
         isPinned: book.isPinned,
-        categoryIds: book.categoryIds,
-        lastReadAt: book.lastReadAt,
+
       );
       await _repository.updateBook(updated);
 
@@ -407,8 +395,7 @@ class BookshelfService {
         lastOpenedAt: book.lastOpenedAt,
         status: book.status,
         isPinned: book.isPinned,
-        categoryIds: book.categoryIds,
-        lastReadAt: DateTime.now(),
+
       );
       await _repository.updateBook(updated);
 

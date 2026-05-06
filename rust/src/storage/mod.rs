@@ -25,7 +25,6 @@ use kv_store::KvStore;
 /// 存储管理器
 ///
 /// 统一管理 SQLite 和 KV 存储，提供类型安全的 CRUD 接口
-#[flutter_rust_bridge::frb(opaque)]
 pub struct StorageManager {
     /// SQLite 数据库连接（使用 Mutex 保证线程安全）
     db: Arc<Mutex<Database>>,
@@ -85,24 +84,24 @@ impl StorageManager {
 
 use once_cell::sync::OnceCell;
 
-static STORAGE: OnceCell<Arc<StorageManager>> = OnceCell::new();
+static STORAGE: OnceCell<StorageManager> = OnceCell::new();
 
 /// 初始化全局存储
 pub fn init_storage(data_dir: impl AsRef<Path>) -> Result<()> {
     let manager = StorageManager::new(data_dir)?;
     STORAGE
-        .set(Arc::new(manager))
+        .set(manager)
         .map_err(|_| anyhow::anyhow!("Storage already initialized"))?;
     Ok(())
 }
 
 /// 获取全局存储实例
-pub fn storage() -> Option<Arc<StorageManager>> {
-    STORAGE.get().cloned()
+pub fn storage() -> Option<&'static StorageManager> {
+    STORAGE.get()
 }
 
 /// 确保存储已初始化
-pub fn ensure_storage() -> Result<Arc<StorageManager>> {
+pub fn ensure_storage() -> Result<&'static StorageManager> {
     storage().context("Storage not initialized. Call init_storage() first.")
 }
 

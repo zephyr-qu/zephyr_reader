@@ -1,5 +1,5 @@
-
 import 'package:flutter/material.dart';
+import 'package:injectable/injectable.dart';
 
 import 'rust_pagination_service.dart';
 
@@ -35,6 +35,7 @@ class ChapterCacheItem {
 ///
 /// 负责加载和管理章节内容，支持分页计算和内存缓存
 /// 使用 Rust API 提取章节内容，实现统一的解析流程
+@injectable
 class ChapterContentService {
   final RustPaginationService _paginationService;
 
@@ -44,14 +45,14 @@ class ChapterContentService {
   /// 缓存大小限制
   static const int maxCacheSize = 10;
 
-  ChapterContentService()
-    : _paginationService = RustPaginationService();
+  ChapterContentService(this._paginationService);
 
   /// 加载章节内容
   ///
   /// 优先从 Rust API 提取章节内容，如果提供文件路径则直接读取
   Future<String> loadChapterContent(
-    String bookId, int chapterId, {
+    String bookId,
+    int chapterId, {
     String? contentFilePath,
   }) async {
     final cacheKey = bookId.toString();

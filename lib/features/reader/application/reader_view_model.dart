@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart';
 import 'package:zephyr_reader/features/reader/application/services/chapter_content_service.dart';
 import 'package:zephyr_reader/features/reader/data/reading_progress_service.dart';
-import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-import '../domain/repositories/reader_repository.dart';
 import '../../../core/reader/reader_config.dart';
+import '../domain/repositories/reader_repository.dart';
 
 /// 阅读模式
 enum ReadingMode {
@@ -114,6 +114,7 @@ class ReaderViewModel {
 
   Timer? _readingTimer;
   Timer? _saveTimer;
+  final List<void Function()> _disposers = [];
 
   ReaderViewModel(
     this._repo,
@@ -126,13 +127,15 @@ class ReaderViewModel {
     _loadSettings();
 
     // 监听自动滚动设置
-    effect(() {
-      if (_config.autoScroll.value && isReading.value) {
-        _startAutoScroll();
-      } else {
-        _stopAutoScroll();
-      }
-    });
+    _disposers.add(
+      effect(() {
+        if (_config.autoScroll.value && isReading.value) {
+          _startAutoScroll();
+        } else {
+          _stopAutoScroll();
+        }
+      }),
+    );
   }
 
   /// 加载设置
@@ -395,11 +398,7 @@ class ReaderViewModel {
   /// 添加书签
   Future<bool> addBookmark() async {
     try {
-      await _repo.addBookmark(
-        bookId.value,
-        chapterId.value,
-        pageIndex.value,
-      );
+      await _repo.addBookmark(bookId.value, chapterId.value, pageIndex.value);
       await loadBookmarks();
       return true;
     } catch (e) {
@@ -433,9 +432,7 @@ class ReaderViewModel {
   /// 检查当前位置是否已有书签
   bool get hasBookmarkAtCurrentPosition {
     final currentBookmarks = bookmarks.value.value ?? [];
-    return currentBookmarks.any(
-      (b) => b.chapterIndex == chapterId.value,
-    );
+    return currentBookmarks.any((b) => b.chapterIndex == chapterId.value);
   }
 
   /// 获取当前位置的书签（如果有）
@@ -510,6 +507,10 @@ class ReaderViewModel {
 
   /// 清理资源
   Future<void> dispose() async {
+    for (final disposer in _disposers) {
+      disposer();
+    }
+    _disposers.clear();
     await stopReading();
     _saveTimer?.cancel();
     _readingTimer?.cancel();

@@ -8,7 +8,6 @@ use super::metadata::extract_metadata_from_path;
 use super::text::estimate_total_chars;
 use crate::api::security::validate_file_path;
 use crate::ffi::{ApiResult, BookInfo, ChapterInfo, ParseResult, ParserError};
-use flutter_rust_bridge::frb;
 
 /// 默认每章包含的页数
 const DEFAULT_PAGES_PER_CHAPTER: usize = 10;
@@ -26,7 +25,6 @@ const DEFAULT_PAGES_PER_CHAPTER: usize = 10;
 ///
 /// * `Ok(ParseResult)` - 解析成功，包含书籍信息和章节列表
 /// * `Err(ParserError)` - 解析失败
-#[frb(sync)]
 pub fn parse_pdf(file_path: String) -> ApiResult<ParseResult> {
     let start_time = std::time::Instant::now();
     tracing::info!("开始解析 PDF 文件：{}", file_path);
@@ -121,8 +119,6 @@ fn generate_chapters(total_pages: usize, pages_per_chapter: usize) -> Vec<Chapte
 }
 
 /// 异步解析 PDF 文件
-#[must_use = "解析结果必须被处理"]
-#[frb(async)]
 pub async fn async_parse_pdf_file(file_path: String) -> ApiResult<ParseResult> {
     validate_file_path(&file_path)?;
 
@@ -136,7 +132,6 @@ pub async fn async_parse_pdf_file(file_path: String) -> ApiResult<ParseResult> {
 /// 注意：每次调用都会创建新的 Pdfium 实例（涉及加载动态库）。
 /// 由于此函数调用频率低，性能影响可接受。
 #[allow(dead_code)]
-#[frb(sync)]
 pub fn get_pdf_page_count(file_path: String) -> i32 {
     use pdfium_render::prelude::Pdfium;
 
@@ -149,7 +144,6 @@ pub fn get_pdf_page_count(file_path: String) -> i32 {
 }
 
 /// 获取 PDF 元数据
-#[frb(sync)]
 pub fn get_pdf_metadata(file_path: String) -> crate::ffi::PdfMetadata {
     extract_metadata_from_path(&file_path)
 }

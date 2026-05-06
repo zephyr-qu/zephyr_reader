@@ -24,77 +24,72 @@ class RustStorageService {
 
   // ==================== Books ====================
 
-  Future<List<DbBookRecord>> getAllBooks() async {
-    final result = await rust_storage.getAllBooks();
+  List<DbBookRecord> getAllBooks() {
+    final result = rust_storage.getAllBooks();
     return _unwrap<List<DbBookRecord>>(result);
   }
 
-  Future<void> saveBook(DbBookRecord book) async {
-    final result = await rust_storage.saveBook(book: book);
+  void saveBook(DbBookRecord book) {
+    final result = rust_storage.saveBook(book: book);
     _unwrap<void>(result);
   }
 
-  Future<void> deleteBook(String bookId) async {
-    final result = await rust_storage.deleteBook(bookId: bookId);
+  void deleteBook(String bookId) {
+    final result =  rust_storage.deleteBook(bookId: bookId);
     _unwrap<void>(result);
   }
 
-  Future<List<DbBookRecord>> searchBooks(String keyword) async {
-    final result = await rust_storage.searchBooks(keyword: keyword);
+  List<DbBookRecord> searchBooks(String keyword) {
+    final result =  rust_storage.searchBooks(keyword: keyword);
     return _unwrap<List<DbBookRecord>>(result);
   }
 
   // ==================== Chapters ====================
 
-  Future<List<DbChapter>> getChaptersByBook(String bookId) async {
-    final result = await rust_storage.getChaptersByBook(bookId: bookId);
+  List<DbChapter> getChaptersByBook(String bookId) {
+    final result =  rust_storage.getChaptersByBook(bookId: bookId);
     return _unwrap<List<DbChapter>>(result);
   }
 
-  Future<void> saveChapters(String bookId, List<DbChapter> chapters) async {
-    final result = await rust_storage.saveChapters(
+  void saveChapters(String bookId, List<DbChapter> chapters) {
+    final result =  rust_storage.saveChapters(
       bookId: bookId,
       chapters: chapters,
     );
     _unwrap<void>(result);
   }
 
-  Future<void> deleteChaptersByBook(String bookId) async {
-    final result = await rust_storage.deleteChaptersByBook(bookId: bookId);
+  void deleteChaptersByBook(String bookId) {
+    final result =  rust_storage.deleteChaptersByBook(bookId: bookId);
     _unwrap<void>(result);
   }
 
   // ==================== Bookmarks ====================
 
-  Future<List<DbBookmark>> getBookmarks(String bookId) async {
-    final result = await rust_storage.getBookmarks(bookId: bookId);
+  List<DbBookmark> getBookmarks(String bookId) {
+    final result =  rust_storage.getBookmarks(bookId: bookId);
     return _unwrap<List<DbBookmark>>(result);
   }
 
-  Future<DbBookmark> createBookmark({
-    required String bookId,
-    required int chapterIndex,
-    required int charOffset,
-    String? title,
-  }) async {
-    final result = await rust_storage.createBookmark(
-      bookId: bookId,
-      chapterIndex: chapterIndex,
-      charOffset: charOffset,
-      title: title,
-    );
+  DbBookmark? getBookmarkById(String bookmarkId) {
+    final result =  rust_storage.getBookmark(bookmarkId: bookmarkId);
+    return _unwrapNullable<DbBookmark>(result);
+  }
+
+  Future<DbBookmark> createBookmark(DbBookmark bookmark) async {
+    final result =  rust_storage.createBookmark(bookmark: bookmark);
     return _unwrap<DbBookmark>(result);
   }
 
-  Future<void> deleteBookmark(String bookmarkId) async {
-    final result = await rust_storage.deleteBookmark(bookmarkId: bookmarkId);
+  void deleteBookmark(String bookmarkId) {
+    final result =  rust_storage.deleteBookmark(bookmarkId: bookmarkId);
     _unwrap<void>(result);
   }
 
   // ==================== Reading Progress ====================
 
-  Future<DbReadingProgress?> getReadingProgress(String bookId) async {
-    final result = await rust_storage.getReadingProgress(bookId: bookId);
+  DbReadingProgress? getReadingProgress(String bookId) {
+    final result =  rust_storage.getReadingProgress(bookId: bookId);
     return _unwrapNullable<DbReadingProgress>(result);
   }
 
@@ -106,25 +101,20 @@ class RustStorageService {
     required int totalPages,
     required int readingTimeSeconds,
   }) async {
-    await rust_storage.saveReadingProgress(
-      bookId: bookId,
-      chapterIndex: chapterIndex,
-      charOffset: charOffset,
-      pageIndex: pageIndex,
-      totalPages: totalPages,
-      readingTimeSeconds: readingTimeSeconds,
+     rust_storage.saveReadingProgress(
+      progress: DbReadingProgress(bookId: bookId, chapterIndex: chapterIndex, charOffset: charOffset, pageIndex: pageIndex, totalPages: totalPages, progress: 0, readingTimeSeconds: readingTimeSeconds, lastReadAt: DateTime.now(), isCompleted: false)
     );
   }
 
-  Future<void> clearReadingProgress(String bookId) async {
-    await rust_storage.clearReadingProgress(bookId: bookId);
+  void clearReadingProgress(String bookId) {
+     rust_storage.clearReadingProgress(bookId: bookId);
   }
 
   // ==================== Stats ====================
 
-  Future<DbGlobalStats> getReadingStats() async {
-    final globalStats = await getGlobalReadingStats();
-    final todayStats = await getTodayReadingStats();
+  DbGlobalStats getReadingStats() {
+    final globalStats = getGlobalReadingStats();
+    final todayStats =  getTodayReadingStats();
     return DbGlobalStats(
       totalReadingTimeSeconds: globalStats.totalReadingTimeSeconds.toInt(),
       totalCharactersRead: globalStats.totalCharactersRead.toInt(),
@@ -134,16 +124,20 @@ class RustStorageService {
       todayReadingTimeSeconds: todayStats.todayReadingTimeSeconds,
       todayCharactersRead: todayStats.totalCharactersRead,
       averageReadingSpeed: globalStats.averageReadingSpeed,
+      totalBooksCount: globalStats.totalBooksCount,
+      totalNotesCount: globalStats.totalNotesCount,
+      totalBookmarksCount: globalStats.totalBookmarksCount,
+      maxConsecutiveReadingDays: globalStats.maxConsecutiveReadingDays,
     );
   }
 
-  Future<(int, int)> getTodayReadingData() async {
-    final todayStats = await getTodayReadingStats();
+  (int, int) getTodayReadingData() {
+    final todayStats =  getTodayReadingStats();
     return (todayStats.todayReadingTimeSeconds, todayStats.totalCharactersRead);
   }
 
-  Future<DbDailyReadingStats> getDailyReadingRecord(String date) async {
-    await getDailyReadingRecordsInRange(startDate: date, endDate: date);
+  DbDailyReadingStats getDailyReadingRecord(String date) {
+     getDailyReadingRecordsInRange(startDate: date, endDate: date);
     return DbDailyReadingStats(
       date: date,
       chaptersRead: 0,
@@ -159,41 +153,41 @@ class RustStorageService {
     required String startDate,
     required String endDate,
   }) async {
-    final result = await rust_storage.getReadingStatsRange(
+    final result =  rust_storage.getReadingStatsRange(
       startDate: startDate,
       endDate: endDate,
     );
     return _unwrapNullable<DbDailyReadingStats>(result);
   }
 
-  Future<DbDailyReadingStats?> getRecentReadingRecords(int days) async {
+  DbDailyReadingStats? getRecentReadingRecords(int days) {
     final now = DateTime.now();
     final startDate = now.subtract(Duration(days: days - 1));
     final endDate = now.toString().split(' ')[0];
-    final stats = await getDailyReadingRecordsInRange(
+    final stats =  getDailyReadingRecordsInRange(
       startDate: startDate.toString().split(' ')[0],
       endDate: endDate,
     );
     return _unwrapNullable<DbDailyReadingStats>(stats);
   }
 
-  Future<int> getConsecutiveReadingDays() async {
-    final globalStats = await getGlobalReadingStats();
+  int getConsecutiveReadingDays() {
+    final globalStats = getGlobalReadingStats();
     return globalStats.consecutiveReadingDays;
   }
 
-  Future<double> getReadingSpeed() async {
-    final globalStats = await getGlobalReadingStats();
+  double getReadingSpeed() {
+    final globalStats = getGlobalReadingStats();
     return globalStats.averageReadingSpeed;
   }
 
-  Future<DbGlobalStats> getGlobalReadingStats() async {
-    final result = await rust_storage.getGlobalReadingStats();
+  DbGlobalStats getGlobalReadingStats() {
+    final result =  rust_storage.getGlobalReadingStats();
     return _unwrap<DbGlobalStats>(result);
   }
 
-  Future<DbGlobalStats> getTodayReadingStats() async {
-    final result = await rust_storage.getTodayReadingStats();
+  DbGlobalStats getTodayReadingStats() {
+    final result =  rust_storage.getTodayReadingStats();
     return _unwrap<DbGlobalStats>(result);
   }
 
@@ -201,7 +195,7 @@ class RustStorageService {
     required String startDate,
     required String endDate,
   }) async {
-    final result = await rust_storage.getReadingStatsRange(
+    final result =  rust_storage.getReadingStatsRange(
       startDate: startDate,
       endDate: endDate,
     );
@@ -216,35 +210,39 @@ class RustStorageService {
     required int durationSeconds,
     required int charactersRead,
   }) async {
-    await rust_storage.recordReadingSession(
-      bookId: bookId,
-      chapterIndex: chapterIndex,
-      startOffset: startOffset,
-      endOffset: endOffset,
-      durationSeconds: durationSeconds,
-      charactersRead: charactersRead,
+     rust_storage.recordReadingSession(
+      session: DbReadingSession(bookId: bookId, chapterIndex: chapterIndex, startCharOffset: startOffset, endCharOffset: endOffset, startedAt: DateTime.now(), endedAt: DateTime.now(), durationSeconds: durationSeconds, charactersRead: charactersRead, id: ' ')
+
     );
+  }
+
+  List<DbReadingSession> getReadingSessions(String bookId, {int limit = 100}) {
+    final result = rust_storage.getReadingSessions(
+      bookId: bookId,
+      limit: BigInt.from(limit),
+    );
+    return _unwrap<List<DbReadingSession>>(result);
   }
 
   // ==================== Categories ====================
 
-  Future<List<DbBookCategory>> getAllCategories() async {
-    final result = await rust_storage.getAllCategories();
+  List<DbBookCategory> getAllCategories() {
+    final result =  rust_storage.getAllCategories();
     return _unwrap<List<DbBookCategory>>(result);
   }
 
-  Future<void> saveCategory(DbBookCategory category) async {
-    final result = await rust_storage.saveCategory(category: category);
+  void saveCategory(DbBookCategory category) {
+    final result =  rust_storage.saveCategory(category: category);
     _unwrap<void>(result);
   }
 
-  Future<void> deleteCategory(String categoryId) async {
-    final result = await rust_storage.deleteCategory(categoryId: categoryId);
+  void deleteCategory(String categoryId) {
+    final result =  rust_storage.deleteCategory(categoryId: categoryId);
     _unwrap<void>(result);
   }
 
-  Future<List<DbBookCategory>> getCategoriesForBook(String bookId) async {
-    final result = await rust_storage.getCategoriesForBook(bookId: bookId);
+  List<DbBookCategory> getCategoriesForBook(String bookId) {
+    final result =  rust_storage.getCategoriesForBook(bookId: bookId);
     return _unwrap<List<DbBookCategory>>(result);
   }
 
@@ -252,7 +250,7 @@ class RustStorageService {
     String bookId,
     List<String> categoryIds,
   ) async {
-    final result = await rust_storage.setCategoriesForBook(
+    final result =  rust_storage.setCategoriesForBook(
       bookId: bookId,
       categoryIds: categoryIds,
     );
@@ -268,12 +266,13 @@ class RustStorageService {
     required List<(int, int)> pageOffsets,
     required int totalPages,
   }) async {
-    await rust_storage.saveLayoutCache(
-      bookId: bookId,
-      chapterIndex: chapterIndex,
-      configHash: configHash,
-      pageOffsets: pageOffsets,
-      totalPages: totalPages,
+     rust_storage.saveLayoutCache(
+       cache: DbLayoutCache(
+        totalPages: totalPages,
+        pageOffsets: pageOffsets,
+        createdAt: DateTime.now(),
+       ),
+       key: LayoutCacheKey(bookId: bookId, chapterIndex: chapterIndex, configHash: configHash),
     );
   }
 
@@ -282,7 +281,7 @@ class RustStorageService {
     required int chapterIndex,
     required String configHash,
   }) async {
-    final result = await rust_storage.getLayoutCache(
+    final result =  rust_storage.getLayoutCache(
       bookId: bookId,
       chapterIndex: chapterIndex,
       configHash: configHash,
@@ -290,7 +289,38 @@ class RustStorageService {
     return _unwrapNullable<DbLayoutCache>(result);
   }
 
-  Future<void> clearLayoutCache(String bookId) async {
-    await rust_storage.clearLayoutCache(bookId: bookId);
+  void clearLayoutCache(String bookId) {
+     rust_storage.clearLayoutCache(bookId: bookId);
+  }
+
+  // ==================== Notes ====================
+
+  DbNote createNote(DbNote note) {
+    final result = rust_storage.createNote(note: note);
+    return _unwrap<DbNote>(result);
+  }
+
+  List<DbNote> getNotes(String bookId, {DbNoteType? noteType}) {
+    final result = rust_storage.getNotes(bookId: bookId, noteType: noteType);
+    return _unwrap<List<DbNote>>(result);
+  }
+
+  void deleteNote(String noteId) {
+    rust_storage.deleteNote(noteId: noteId);
+  }
+
+  Map<String, int> getNoteStats(String bookId) {
+    final result = rust_storage.getNoteStats(bookId: bookId);
+    final value = (result as dynamic).value;
+    if (value == null) return {'total': 0, 'highlights': 0, 'annotations': 0};
+    return {
+      'total': (value.totalCount ?? value.total_count ?? 0) as int,
+      'highlights': (value.highlightCount ?? value.highlight_count ?? 0) as int,
+      'annotations': (value.annotationCount ?? value.annotation_count ?? 0) as int,
+    };
+  }
+
+  void putGlobalReadingStats(DbGlobalStats stats) {
+    rust_storage.putGlobalReadingStats(stats: stats);
   }
 }

@@ -9,8 +9,8 @@ import 'package:zephyr_reader/features/bookshelf/application/services/book_impor
 import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart';
 import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_settings_service.dart';
 import 'package:zephyr_reader/features/bookshelf/domain/models/import_task.dart';
-import 'package:zephyr_reader/shared/widget/adaptive_layout.dart';
-import 'package:zephyr_reader/shared/widget/ui_components.dart';
+import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
+import 'package:zephyr_reader/core/presentation/widgets/ui_components.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 书架页面

@@ -213,70 +213,19 @@ pub struct DbDailyReadingStats {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[frb]
 pub struct DbGlobalStats {
-    // ── 原有 8 字段（修复类型）─────────────────────────────
-    pub total_reading_time_seconds: i64, // ✅ 累计阅读时长（秒）
-    pub total_characters_read: i64,      // ✅ 累计阅读字符数
-    pub books_read_count: i32,           // ✅ 已读书籍数
-    pub books_completed_count: i32,      // ✅ 已完成书籍数
-    pub consecutive_reading_days: i32,   // ✅ 当前连续阅读天数
-    pub today_reading_time_seconds: i64, // ✅ 今日阅读时长
-    pub today_characters_read: i64,      // ✅ 今日阅读字符数
-    pub average_reading_speed: f32,      // ✅ 平均速度（字/分钟）
-    #[serde(default)]
+    pub total_reading_time_seconds: i64,
+    pub total_characters_read: i64,
+    pub books_read_count: i32,
+    pub books_completed_count: i32,
+    pub consecutive_reading_days: i32,
+    pub today_reading_time_seconds: i64,
+    pub today_characters_read: i64,
+    pub average_reading_speed: f32,
     pub total_books_count: i32,
-    /// 总笔记数（高亮 + 批注）
-    #[serde(default)]
     pub total_notes_count: i32,
-    /// 总书签数
-    #[serde(default)]
     pub total_bookmarks_count: i32,
-    /// 历史最长连续阅读天数
-    #[serde(default)]
     pub max_consecutive_reading_days: i32,
 }
-/// 同步状态记录
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[frb]
-pub struct DbSyncRecord {
-    pub id: String,
-    pub book_id: String,
-    pub data_type: String,
-    pub data_id: String,
-    pub local_version: i32,
-    pub remote_version: Option<i32>,
-    pub status: DbSyncStatus,
-    pub modified_at: DateTime<Utc>,
-    pub etag: Option<String>,
-}
-
-/// 同步状态
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[frb]
-pub enum DbSyncStatus {
-    Synced,
-    PendingUpload,
-    PendingDownload,
-    Conflict,
-}
-
-impl DbSyncStatus {
-    /// 获取同步状态的字符串表示
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            DbSyncStatus::Synced => "synced",
-            DbSyncStatus::PendingUpload => "pending_upload",
-            DbSyncStatus::PendingDownload => "pending_download",
-            DbSyncStatus::Conflict => "conflict",
-        }
-    }
-}
-
-impl std::fmt::Display for DbSyncStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
-
 /// 排版缓存值
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[frb]
@@ -372,6 +321,8 @@ pub struct DbChapter {
     pub chapter_index: i32,
     pub word_count: i64,
     pub cached_at: DateTime<Utc>,
+    /// 层级深度（0 = 顶层，1 = 子章节，…）
+    pub level: i32,
 }
 
 /// 书籍分类
@@ -380,6 +331,7 @@ pub struct DbChapter {
 pub struct DbBookCategory {
     pub id: String,
     pub name: String,
+    pub description: Option<String>,
     pub color: String,
     pub sort_order: i32,
     pub is_system: bool,
@@ -396,4 +348,13 @@ pub struct DbSearchResult {
     pub content: String,
     pub rank: f64,
     pub highlighted_text: String,
+}
+
+/// 笔记统计
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[frb]
+pub struct NoteStats {
+    pub total_count: i32,
+    pub highlight_count: i32,
+    pub annotation_count: i32,
 }

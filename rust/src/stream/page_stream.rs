@@ -112,11 +112,10 @@ fn smart_line_breaks(text: &str, max_width_px: f32, font_size: f32) -> Vec<(usiz
 #[frb]
 #[derive(Clone)]
 pub struct PageStreamer {
-    pub lines: Vec<String>,
-    pub current_page: usize,
-    pub lines_per_page: usize,
-    #[frb]
-    pub line_offsets: Vec<(usize, usize)>,
+    pub(crate) lines: Vec<String>,
+    pub(crate) current_page: usize,
+    pub(crate) lines_per_page: usize,
+    pub(crate) line_offsets: Vec<(usize, usize)>,
 }
 
 const PAGE_STREAMER_MEMORY_THRESHOLD: usize = 100 * 1024 * 1024;
@@ -140,7 +139,7 @@ impl PageStreamer {
         let page_height_px = config.page_height as f32;
         let page_width_px = config.page_width as f32;
 
-        let line_height = font_size * line_spacing;
+        let line_height = (font_size * line_spacing).max(1.0);
         let lines_per_page = ((page_height_px / line_height) as usize).max(5);
 
         let indent_width = font_size * config.first_line_indent as f32;

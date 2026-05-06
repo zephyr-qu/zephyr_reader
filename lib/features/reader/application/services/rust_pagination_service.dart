@@ -4,7 +4,8 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/src/rust/api/core.dart' as rust_api;
+import 'package:injectable/injectable.dart';
+import 'package:zephyr_reader/core/local/rust_core_service.dart';
 import 'package:zephyr_reader/src/rust/ffi/types.dart';
 import 'package:zephyr_reader/src/rust/stream/page_stream.dart';
 
@@ -22,16 +23,12 @@ class PageItem {
 }
 
 /// Rust 引擎分页服务
+@injectable
 class RustPaginationService {
-  /// 使用 Rust 引擎分页
-  ///
-  /// [content] 待分页的文本内容
-  /// [chapterId] 章节 ID
-  /// [fontSize] 字体大小
-  /// [lineHeight] 行间距
-  /// [pageWidth] 页面宽度（像素）
-  /// [pageHeight] 页面高度（像素）
-  /// [padding] 页边距（像素）
+  final RustCoreService _core;
+
+  RustPaginationService(this._core);
+
   Future<List<PageItem>> paginateContent({
     required String content,
     required int chapterId,
@@ -42,7 +39,6 @@ class RustPaginationService {
     required double padding,
   }) async {
     try {
-      // 创建排版配置
       final config = TypesetConfig(
         pageWidth: (pageWidth - (padding * 2)).toInt(),
         pageHeight: (pageHeight - (padding * 2)).toInt(),
@@ -55,14 +51,12 @@ class RustPaginationService {
         enableHyphenation: false,
       );
 
-      // 调用 Rust 引擎分页
-      final pages = rust_api.paginateAllContent(
+      final pages = _core.paginateAllContent(
         content: content,
         chapterId: chapterId,
         config: config,
       );
 
-      // 转换为 PageItem 列表
       return pages
           .asMap()
           .entries
@@ -76,14 +70,10 @@ class RustPaginationService {
           .toList();
     } catch (e) {
       debugPrint('RustPaginationService.paginateContent error: $e');
-      // 如果 Rust 分页失败，返回空列表
       return [];
     }
   }
 
-  /// 创建分页器（流式分页）
-  ///
-  /// 适用于大文件，可以按需获取页面
   PageStreamer createPageStreamer({
     required String content,
     required double fontSize,
@@ -103,6 +93,6 @@ class RustPaginationService {
       enableHyphenation: false,
     );
 
-    return rust_api.createPageStreamer(content: content, config: config);
+    return _core.createPageStreamer(content: content, config: config);
   }
 }
