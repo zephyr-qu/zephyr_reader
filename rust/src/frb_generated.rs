@@ -38,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
                     default_rust_auto_opaque = RustAutoOpaqueNom,
                 );
                 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 335878861;
+                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 432364834;
             
 
 // Section: executor
@@ -374,6 +374,12 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "init_search_engine", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {  move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::search::init_search_engine().await?;   Ok(output_ok)
+                    })().await)
+                } })
+            }fn wire__crate__api__storage__init_storage_impl(port_: flutter_rust_bridge::for_generated::MessagePort,data_dir: impl CstDecode<String>)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "init_storage", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_data_dir = data_dir.cst_decode(); move |context| async move {
+                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
+                         let output_ok = crate::api::storage::init_storage(api_data_dir).await?;   Ok(output_ok)
                     })().await)
                 } })
             }fn wire__crate__api__book__paginate_all_content_impl(port_: flutter_rust_bridge::for_generated::MessagePort,file_path: impl CstDecode<String>,chapter_index: impl CstDecode<i32>,config: impl CstDecode<crate::domain::types::TypesetConfig>)  {
@@ -3781,6 +3787,12 @@ hyphenation_language: core::ptr::null_mut(), }
             
 
                 #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__storage__init_storage(port_: i64, data_dir: *mut wire_cst_list_prim_u_8_strict)  {
+                    wire__crate__api__storage__init_storage_impl(port_, data_dir)
+                }
+            
+
+                #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__book__paginate_all_content(port_: i64, file_path: *mut wire_cst_list_prim_u_8_strict, chapter_index: i32, config: *mut wire_cst_typeset_config)  {
                     wire__crate__api__book__paginate_all_content_impl(port_, file_path, chapter_index, config)
                 }
@@ -5134,6 +5146,12 @@ impl CstDecode<String> for String {
                 #[wasm_bindgen]
                 pub  fn wire__crate__api__search__init_search_engine(port_: flutter_rust_bridge::for_generated::MessagePort)  {
                     wire__crate__api__search__init_search_engine_impl(port_)
+                }
+            
+
+                #[wasm_bindgen]
+                pub  fn wire__crate__api__storage__init_storage(port_: flutter_rust_bridge::for_generated::MessagePort, data_dir: String)  {
+                    wire__crate__api__storage__init_storage_impl(port_, data_dir)
                 }
             
 

@@ -38,13 +38,14 @@ integration_test
 .pub-cache/
 .pub/
 /build/
+/rust/
 /coverage/
 signals.md
 signals_hooks.md
 QWEN.md
 docs/
 rust/target/
-
+docs/*
 # Symbolication related
 app.*.symbols
 
@@ -55,3 +56,5 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+rust_builder/cargokit/build_output/include
+rust_builder/cargokit/build_output/include

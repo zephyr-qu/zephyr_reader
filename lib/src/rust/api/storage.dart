@@ -8,6 +8,9 @@ import '../frb_generated.dart';
 import '../storage/models.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+Future<void> initStorage({required String dataDir}) =>
+    RustLib.instance.api.crateApiStorageInitStorage(dataDir: dataDir);
+
 Future<List<Book>> getAllBooks() =>
     RustLib.instance.api.crateApiStorageGetAllBooks();
 

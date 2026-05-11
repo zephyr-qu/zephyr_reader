@@ -3351,6 +3351,28 @@ class RustLibWire implements BaseWire {
       _wire__crate__api__search__init_search_enginePtr
           .asFunction<void Function(int)>();
 
+  void wire__crate__api__storage__init_storage(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> data_dir,
+  ) {
+    return _wire__crate__api__storage__init_storage(port_, data_dir);
+  }
+
+  late final _wire__crate__api__storage__init_storagePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__storage__init_storage');
+  late final _wire__crate__api__storage__init_storage =
+      _wire__crate__api__storage__init_storagePtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
   void wire__crate__api__book__paginate_all_content(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,

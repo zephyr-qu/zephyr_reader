@@ -2141,6 +2141,11 @@ class RustLibWire implements BaseWire {
   void wire__crate__api__search__init_search_engine(NativePortType port_) =>
       wasmModule.wire__crate__api__search__init_search_engine(port_);
 
+  void wire__crate__api__storage__init_storage(
+    NativePortType port_,
+    String data_dir,
+  ) => wasmModule.wire__crate__api__storage__init_storage(port_, data_dir);
+
   void wire__crate__api__book__paginate_all_content(
     NativePortType port_,
     String file_path,
@@ -2657,6 +2662,11 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
 
   external void wire__crate__api__search__init_search_engine(
     NativePortType port_,
+  );
+
+  external void wire__crate__api__storage__init_storage(
+    NativePortType port_,
+    String data_dir,
   );
 
   external void wire__crate__api__book__paginate_all_content(

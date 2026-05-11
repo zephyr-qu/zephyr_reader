@@ -77,7 +77,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 335878861;
+  int get rustContentHash => 432364834;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -268,6 +268,8 @@ abstract class RustLibApi extends BaseApi {
   });
 
   Future<void> crateApiSearchInitSearchEngine();
+
+  Future<void> crateApiStorageInitStorage({required String dataDir});
 
   Future<List<PageContent>> crateApiBookPaginateAllContent({
     required String filePath,
@@ -1898,6 +1900,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiSearchInitSearchEngineConstMeta =>
       const TaskConstMeta(debugName: 'init_search_engine', argNames: []);
+
+  @override
+  Future<void> crateApiStorageInitStorage({required String dataDir}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(dataDir);
+          return wire.wire__crate__api__storage__init_storage(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiStorageInitStorageConstMeta,
+        argValues: [dataDir],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageInitStorageConstMeta =>
+      const TaskConstMeta(debugName: 'init_storage', argNames: ['dataDir']);
 
   @override
   Future<List<PageContent>> crateApiBookPaginateAllContent({

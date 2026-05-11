@@ -10,7 +10,6 @@ import 'package:zephyr_reader/src/rust/api/file.dart' as file;
 import 'package:zephyr_reader/src/rust/api/typeset.dart' as typeset;
 import 'package:zephyr_reader/src/rust/domain/parser.dart';
 import 'package:zephyr_reader/src/rust/domain/types.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/text/pagination.dart';
 
 @LazySingleton()

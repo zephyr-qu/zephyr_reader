@@ -2,7 +2,7 @@ use flutter_rust_bridge::frb;
 
 
 use crate::domain::AppError;
-use crate::storage::ensure_storage;
+use crate::storage::{ensure_storage, init_storage as rust_init_storage};
 use crate::storage::repos::{
     BookRepository, BookmarkRepository, CategoryRepository, ChapterRepository,
     LayoutCacheRepository, NoteRepository, ProgressRepository, SessionRepository, StatsRepository,
@@ -13,6 +13,15 @@ pub use crate::storage::models::{
     LayoutCache, Note, NoteType, ReadingProgress, ReadingSession, ReadingStats,
     LayoutCacheKey, NoteStats,
 };
+
+// ==================== 存储初始化 ====================
+
+#[frb]
+pub async fn init_storage(data_dir: String) -> Result<(), AppError> {
+    rust_init_storage(&data_dir)
+        .await
+        .map_err(|e| AppError::internal(e.to_string()))
+}
 
 macro_rules! async_storage {
     ($op:expr) => {{
