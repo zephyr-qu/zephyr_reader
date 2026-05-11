@@ -681,6 +681,9 @@ void frbgen_zephyr_reader_wire__crate__api__search__index_chapter_content(int64_
 
 void frbgen_zephyr_reader_wire__crate__api__search__init_search_engine(int64_t port_);
 
+void frbgen_zephyr_reader_wire__crate__api__storage__init_storage(int64_t port_,
+                                                                  struct wire_cst_list_prim_u_8_strict *data_dir);
+
 void frbgen_zephyr_reader_wire__crate__api__book__paginate_all_content(int64_t port_,
                                                                        struct wire_cst_list_prim_u_8_strict *file_path,
                                                                        int32_t chapter_index,
@@ -936,6 +939,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__storage__get_sessions_by_date_range);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__storage__get_today_reading_stats);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__storage__import_bookmarks);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__storage__init_storage);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__storage__record_reading_session);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__storage__remove_category_from_book);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__storage__restore_database);
