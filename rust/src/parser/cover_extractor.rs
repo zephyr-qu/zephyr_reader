@@ -3,17 +3,13 @@
 //! 提供统一的封面提取入口，支持 EPUB、PDF 等多种格式。
 //! 通过 CoverExtractorRegistry 自动根据文件类型选择对应的提取器。
 
-use crate::ffi::{ApiResult, ParserError};
+use crate::domain::{AppError};
+use flutter_rust_bridge::frb;
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
-
-/// 封面图片最大大小（20 MB）
-/// EPUB 封面通常为几百 KB，20 MB 足以覆盖所有合理封面，
-/// 同时防止恶意超大图片耗尽内存。
-const MAX_COVER_SIZE: usize = 20 * 1024 * 1024;
 /// 封面提取器 trait
 ///
 /// 所有文件格式的封面提取器必须实现此 trait。
@@ -34,8 +30,8 @@ pub trait CoverExtractor: Send + Sync {
     /// # 返回值
     ///
     /// * `Ok(String)` - 封面保存路径
-    /// * `Err(ParserError)` - 提取失败
-    fn extract_cover(&self, file_path: &str, output_dir: &str) -> ApiResult<String>;
+    /// * `Err(AppError)` - 提取失败
+    fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String,AppError>;
 
     /// 检查是否支持指定格式
     fn supports_format(&self, format: &str) -> bool {
@@ -46,11 +42,12 @@ pub trait CoverExtractor: Send + Sync {
 }
 
 /// EPUB 封面提取器
-pub struct EpubCoverExtractor {}
+#[frb(opaque)]
+pub struct EpubCoverExtractor;
 
 impl EpubCoverExtractor {
     pub fn new() -> Self {
-        Self {}
+        Self
     }
 }
 
@@ -69,19 +66,11 @@ impl CoverExtractor for EpubCoverExtractor {
         vec!["epub"]
     }
 
-    fn extract_cover(&self, file_path: &str, output_dir: &str) -> ApiResult<String> {
+    fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String,AppError> {
         let mut epub_file = crate::parser::epub::unzip::EpubFile::open(file_path)?;
         let cover_data = epub_file
             .read_cover()
-            .ok_or_else(|| ParserError::Other("未找到 EPUB 封面".to_string()))?;
-
-        if cover_data.len() > MAX_COVER_SIZE {
-            return Err(ParserError::Other(format!(
-                "封面图片大小 {} 超过最大限制 {} MB",
-                cover_data.len(),
-                MAX_COVER_SIZE / 1024 / 1024
-            )));
-        }
+            .ok_or_else(|| AppError::Other("未找到 EPUB 封面".to_string()))?;
 
         let file_stem = Path::new(file_path)
             .file_stem()
@@ -96,10 +85,23 @@ impl CoverExtractor for EpubCoverExtractor {
             .collect();
 
         // 动态检测图片格式（根据魔数）
-        let extension = if cover_data.starts_with(&[0x89, 0x50, 0x4E, 0x47]) {
+        let extension = if cover_data.len() < 4 {
+            "jpg"
+        } else if cover_data.starts_with(&[0x89, 0x50, 0x4E, 0x47]) {
             "png"
+        } else if cover_data.starts_with(&[0xFF, 0xD8, 0xFF]) {
+            "jpg"
+        } else if cover_data.starts_with(b"GIF8") || cover_data.starts_with(b"GIF89a") {
+            "gif"
+        } else if cover_data.starts_with(b"RIFF")
+            && cover_data.len() > 12
+            && &cover_data[8..12] == b"WEBP"
+        {
+            "webp"
+        } else if cover_data.starts_with(b"BM") {
+            "bmp"
         } else {
-            "jpg" // 默认使用 jpg（包括 JPEG 魔数 0xFF 0xD8 0xFF 的情况）
+            "jpg"
         };
 
         let output_path = Path::new(output_dir)
@@ -107,19 +109,22 @@ impl CoverExtractor for EpubCoverExtractor {
             .to_string_lossy()
             .to_string();
 
-        std::fs::create_dir_all(output_dir)?;
-        std::fs::write(&output_path, cover_data)?;
+        std::fs::create_dir_all(output_dir)
+            .map_err(|e| AppError::file_write_error(output_dir.to_string(), e.to_string()))?;
+        std::fs::write(&output_path, cover_data)
+            .map_err(|e| AppError::file_write_error(&output_path, e.to_string()))?;
 
         Ok(output_path)
     }
 }
 
 /// PDF 封面提取器
-pub struct PdfCoverExtractor {}
+#[frb(opaque)]
+pub struct PdfCoverExtractor;
 
 impl PdfCoverExtractor {
     pub fn new() -> Self {
-        Self {}
+        Self
     }
 }
 
@@ -138,43 +143,13 @@ impl CoverExtractor for PdfCoverExtractor {
         vec!["pdf"]
     }
 
-    fn extract_cover(&self, file_path: &str, output_dir: &str) -> ApiResult<String> {
+    fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String,AppError> {
         crate::parser::pdf::images::extract_pdf_cover(file_path, output_dir)
     }
 }
 
-/// TXT 封面提取器（不支持封面提取）
-pub struct TxtCoverExtractor {}
-
-impl TxtCoverExtractor {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Default for TxtCoverExtractor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl CoverExtractor for TxtCoverExtractor {
-    fn name(&self) -> &str {
-        "TXT Cover Extractor"
-    }
-
-    fn supported_formats(&self) -> Vec<&str> {
-        vec!["txt"]
-    }
-
-    fn extract_cover(&self, _file_path: &str, _output_dir: &str) -> ApiResult<String> {
-        Err(ParserError::UnsupportedFormat(
-            "TXT 文件不支持封面提取".to_string(),
-        ))
-    }
-}
-
 /// 封面提取器注册表
+#[frb(opaque)]
 pub struct CoverExtractorRegistry {
     extractors: HashMap<String, Arc<dyn CoverExtractor>>,
     format_map: HashMap<String, String>, // format -> extractor_name
@@ -225,14 +200,14 @@ impl CoverExtractorRegistry {
     }
 
     /// 提取封面（自动选择提取器）
-    pub fn extract_cover(&self, file_path: &str, output_dir: &str) -> ApiResult<String> {
+    pub fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String,AppError> {
         let extension = Path::new(file_path)
             .extension()
             .and_then(|ext| ext.to_str())
-            .ok_or_else(|| ParserError::UnsupportedFormat("无法识别文件扩展名".to_string()))?;
+            .ok_or_else(|| AppError::unsupported_format("无法识别文件扩展名".to_string()))?;
 
         let extractor = self.get_extractor(extension).ok_or_else(|| {
-            ParserError::UnsupportedFormat(format!("不支持的文件格式: {}", extension))
+            AppError::unsupported_format(format!("不支持的文件格式: {}", extension))
         })?;
 
         extractor.extract_cover(file_path, output_dir)
@@ -251,6 +226,7 @@ impl Default for CoverExtractorRegistry {
 }
 
 /// 线程安全的封面提取器注册表
+#[frb(opaque)]
 pub struct ThreadSafeCoverRegistry {
     inner: Mutex<CoverExtractorRegistry>,
 }
@@ -270,9 +246,15 @@ impl ThreadSafeCoverRegistry {
     }
 
     /// 提取封面
-    pub fn extract_cover(&self, file_path: &str, output_dir: &str) -> ApiResult<String> {
-        let registry = self.inner.lock();
-        registry.extract_cover(file_path, output_dir)
+    pub fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String,AppError> {
+        let extension = Path::new(file_path)
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .ok_or_else(|| AppError::unsupported_format("无法识别文件扩展名".to_string()))?;
+        let extractor = self.inner.lock().get_extractor(extension).ok_or_else(|| {
+            AppError::unsupported_format(format!("不支持的文件格式: {}", extension))
+        })?;
+        extractor.extract_cover(file_path, output_dir)
     }
 
     /// 检查是否支持指定格式
@@ -302,11 +284,6 @@ fn init_cover_registry() -> ThreadSafeCoverRegistry {
     // 注册 PDF 提取器
     if let Err(e) = registry.register(Arc::new(PdfCoverExtractor::new())) {
         tracing::warn!("注册 PDF 封面提取器失败: {}", e);
-    }
-
-    // 注册 TXT 提取器（虽然不支持提取，但为了统一处理）
-    if let Err(e) = registry.register(Arc::new(TxtCoverExtractor::new())) {
-        tracing::warn!("注册 TXT 封面提取器失败: {}", e);
     }
 
     tracing::info!("封面提取器注册表初始化完成");
@@ -356,16 +333,5 @@ mod tests {
         assert!(registry.get_extractor("epub").is_some());
         assert!(registry.get_extractor("pdf").is_some());
         assert!(registry.get_extractor("txt").is_none());
-    }
-
-    #[test]
-    fn test_txt_cover_extractor_returns_error() {
-        let extractor = TxtCoverExtractor::new();
-        let result = extractor.extract_cover("test.txt", "/tmp");
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            ParserError::UnsupportedFormat(_)
-        ));
     }
 }

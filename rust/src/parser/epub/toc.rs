@@ -2,11 +2,11 @@
 //! 从 NCX 或 Nav 文档中提取章节信息，支持多级目录
 
 use super::unzip::EpubFile;
-use crate::ffi::ChapterInfo;
+use crate::storage::models::Chapter;
 use std::collections::HashMap;
 
 /// 从 EPUB 中提取章节信息（支持多级目录）
-pub fn extract_chapters_from_epub(epub_file: &mut EpubFile) -> Vec<ChapterInfo> {
+pub fn extract_chapters_from_epub(epub_file: &mut EpubFile) -> Vec<Chapter> {
     let toc = epub_file.toc();
     let spine = epub_file.spine();
 
@@ -25,21 +25,18 @@ pub fn extract_chapters_from_epub(epub_file: &mut EpubFile) -> Vec<ChapterInfo> 
     let mut chapters = Vec::new();
     let mut chapter_id = 0i32;
 
-    // 处理带层级的目录项
-    extract_toc_items_recursive(&toc, &href_map, &mut chapters, &mut chapter_id);
+    extract_toc_items(&toc, &href_map, &mut chapters, &mut chapter_id);
 
     chapters
 }
 
-/// 提取目录项（支持多级嵌套）
-fn extract_toc_items_recursive(
-    items: &[(String, String, usize)],
+fn extract_toc_items(
+    items: &[(String, String)],
     href_map: &HashMap<&str, usize>,
-    chapters: &mut Vec<ChapterInfo>,
+    chapters: &mut Vec<Chapter>,
     chapter_id: &mut i32,
 ) {
-    for (title, href, level) in items {
-        // 提取纯 href（去掉片段标识符）
+    for (title, href) in items {
         let pure_href = href.split('#').next().unwrap_or(href);
 
         let index = href_map
@@ -47,34 +44,26 @@ fn extract_toc_items_recursive(
             .copied()
             .unwrap_or(*chapter_id as usize);
 
-        // 根据层级格式化标题
-        let full_title = format_title_with_hierarchy(title, *level);
-
-        chapters.push(ChapterInfo {
-            chapter_id: uuid::Uuid::new_v4().to_string(),
-            title: full_title,
+        chapters.push(Chapter {
+            id: uuid::Uuid::new_v4().to_string(),
+            book_id: String::new(),
+            title: title.to_string(),
             start_index: index as i64,
             end_index: (index + 1) as i64,
-            content_length: 0, // EPUB 章节长度在读取时确定
-            index: *chapter_id,
-            level: *level as i32,
+            content_length: 0,
+            chapter_index: *chapter_id,
+            level: 0,
+            content_file: String::new(),
+            word_count: 0,
+            cached_at: chrono::Utc::now(),
         });
 
         *chapter_id += 1;
     }
 }
 
-/// 根据层级缩进标题
-fn format_title_with_hierarchy(title: &str, level: usize) -> String {
-    if level > 0 {
-        format!("{}{}", "  ".repeat(level), title)
-    } else {
-        title.to_string()
-    }
-}
-
 /// 从 spine 生成简单章节
-fn generate_chapters_from_spine(spine: &[String]) -> Vec<ChapterInfo> {
+fn generate_chapters_from_spine(spine: &[String]) -> Vec<Chapter> {
     spine
         .iter()
         .enumerate()
@@ -82,14 +71,18 @@ fn generate_chapters_from_spine(spine: &[String]) -> Vec<ChapterInfo> {
             // 从 href 提取章节标题
             let title = extract_title_from_href(href);
 
-            ChapterInfo {
-                chapter_id: uuid::Uuid::new_v4().to_string(),
+            Chapter {
+                id: uuid::Uuid::new_v4().to_string(),
+                book_id: String::new(),
                 title,
                 start_index: i as i64,
                 end_index: (i + 1) as i64,
                 content_length: 0,
-                index: i as i32,
+                chapter_index: i as i32,
                 level: 0,
+                content_file: String::new(),
+                word_count: 0,
+                cached_at: chrono::Utc::now(),
             }
         })
         .collect()

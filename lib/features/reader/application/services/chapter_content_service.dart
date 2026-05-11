@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
 
-import 'rust_pagination_service.dart';
-
 /// 分页信息
 class PageInfo {
   final int pageIndex;
@@ -37,19 +35,15 @@ class ChapterCacheItem {
 /// 使用 Rust API 提取章节内容，实现统一的解析流程
 @injectable
 class ChapterContentService {
-  final RustPaginationService _paginationService;
-
   /// 内存缓存：bookId -> chapterId -> ChapterCacheItem
   final Map<String, Map<int, ChapterCacheItem>> _cache = {};
 
   /// 缓存大小限制
   static const int maxCacheSize = 10;
 
-  ChapterContentService(this._paginationService);
+  ChapterContentService();
 
   /// 加载章节内容
-  ///
-  /// 优先从 Rust API 提取章节内容，如果提供文件路径则直接读取
   Future<String> loadChapterContent(
     String bookId,
     int chapterId, {
@@ -57,7 +51,6 @@ class ChapterContentService {
   }) async {
     final cacheKey = bookId.toString();
 
-    // 检查缓存
     if (_cache.containsKey(cacheKey) &&
         _cache[cacheKey]!.containsKey(chapterId)) {
       return _cache[cacheKey]![chapterId]!.content;
@@ -66,23 +59,17 @@ class ChapterContentService {
     try {
       String content;
 
-      // 优先使用 Rust API 提取章节内容
       if (contentFilePath != null && contentFilePath.isNotEmpty) {
-        // ApiResultString 是 RustOpaqueInterface，暂时无法直接获取值
-        // 使用 fallback 方法
         content = '';
       } else {
-        throw Exception('章节文件路径未提供，请从 Rust API 获取章节信息');
+        throw Exception('章节文件路径未提供');
       }
 
-      // 如果内容为空，使用 fallback
       if (content.isEmpty) {
         throw Exception('Rust API 返回空内容');
       }
 
-      // 更新缓存
       _updateCache(cacheKey, chapterId, content, []);
-
       return content;
     } catch (e) {
       throw Exception('加载章节内容失败：$e');
@@ -101,64 +88,27 @@ class ChapterContentService {
   }) async {
     final cacheKey = bookId.toString();
 
-    // 检查缓存
     if (_cache.containsKey(cacheKey) &&
         _cache[cacheKey]!.containsKey(chapterId)) {
       return _cache[cacheKey]![chapterId]!.pages;
     }
 
-    // 加载内容
     final content = await loadChapterContent(bookId, chapterId);
 
     try {
-      // 使用 Rust 引擎分页
-      final pages = await _paginationService.paginateContent(
-        content: content,
-        chapterId: chapterId,
-        fontSize: fontSize,
-        lineHeight: lineHeight,
-        pageWidth: width,
-        pageHeight: height,
-        padding: padding,
-      );
-
-      // 转换为 PageInfo 列表
-      final pageInfos = pages
-          .asMap()
-          .entries
-          .map(
-            (entry) => PageInfo(
-              pageIndex: entry.key,
-              content: entry.value.content,
-              startOffset: content.indexOf(entry.value.content),
-              endOffset:
-                  content.indexOf(entry.value.content) +
-                  entry.value.content.length,
-            ),
-          )
-          .toList();
-
-      // 更新缓存
-      if (pageInfos.isNotEmpty) {
-        _updateCache(cacheKey, chapterId, content, pageInfos);
+      final pages = _fallbackPaginateContent(content);
+      if (pages.isNotEmpty) {
+        _updateCache(cacheKey, chapterId, content, pages);
       }
-
-      return pageInfos;
+      return pages;
     } catch (e) {
       debugPrint('ChapterContentService.calculatePages error: $e');
-      // 如果 Rust 分页失败，使用简化的字符估算方法
-      return _fallbackPaginateContent(content, chapterId, fontSize, lineHeight);
+      return _fallbackPaginateContent(content);
     }
   }
 
-  /// fallback 分页方法（当 Rust 引擎不可用时）
-  List<PageInfo> _fallbackPaginateContent(
-    String content,
-    int chapterId,
-    double fontSize,
-    double lineHeight,
-  ) {
-    // 简化的字符估算（每页约 2000 字符）
+  /// fallback 分页方法
+  List<PageInfo> _fallbackPaginateContent(String content) {
     const int charsPerPage = 2000;
     final pages = <PageInfo>[];
     var offset = 0;
@@ -195,14 +145,12 @@ class ChapterContentService {
     return pages;
   }
 
-  /// 更新缓存
   void _updateCache(
     String cacheKey,
     int chapterId,
     String content,
     List<PageInfo> pages,
   ) {
-    // 检查是否需要清理缓存
     if (_cache.length >= maxCacheSize) {
       _clearOldestCache();
     }
@@ -218,7 +166,6 @@ class ChapterContentService {
     );
   }
 
-  /// 清理最旧的缓存
   void _clearOldestCache() {
     if (_cache.isEmpty) return;
 
@@ -240,17 +187,14 @@ class ChapterContentService {
     }
   }
 
-  /// 清除指定书籍的缓存
   void clearBookCache(int bookId) {
     _cache.remove(bookId.toString());
   }
 
-  /// 清除所有缓存
   void clearAllCache() {
     _cache.clear();
   }
 
-  /// 获取缓存的章节内容
   String? getCachedContent(int bookId, int chapterId) {
     final cacheKey = bookId.toString();
     if (_cache.containsKey(cacheKey) &&
@@ -260,7 +204,6 @@ class ChapterContentService {
     return null;
   }
 
-  /// 获取缓存的页数
   int? getCachedTotalPages(int bookId, int chapterId) {
     final cacheKey = bookId.toString();
     if (_cache.containsKey(cacheKey) &&
@@ -270,7 +213,6 @@ class ChapterContentService {
     return null;
   }
 
-  /// 获取缓存的页面列表
   List<PageInfo>? getCachedPages(String bookId, int chapterId) {
     final cacheKey = bookId.toString();
     if (_cache.containsKey(cacheKey) &&
@@ -280,7 +222,6 @@ class ChapterContentService {
     return null;
   }
 
-  /// 获取指定页的内容
   String? getPageContent(int bookId, int chapterId, int pageIndex) {
     final cacheKey = bookId.toString();
     if (_cache.containsKey(cacheKey) &&

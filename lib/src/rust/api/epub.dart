@@ -3,9 +3,9 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
-import '../ffi/types.dart';
+import '../domain/error.dart';
+import '../domain/types.dart';
 import '../frb_generated.dart';
-import 'core.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 /// 快速获取 EPUB 元数据
@@ -18,8 +18,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 ///
 /// # 返回值
 /// * `Ok(EpubMetadata)` - 元数据（包含标题、作者、封面、目录、阅读顺序）
-/// * `Err(ParserError)` - 解析失败（文件不存在、格式错误等）
-ApiResultEpubMetadata getEpubMetadata({required String filePath}) =>
+/// * `Err(AppError)` - 解析失败（文件不存在、格式错误等）
+Future<EpubMetadata> getEpubMetadata({required String filePath}) =>
     RustLib.instance.api.crateApiEpubGetEpubMetadata(filePath: filePath);
 
 /// 解析 EPUB 章节（富文本）
@@ -28,26 +28,12 @@ ApiResultEpubMetadata getEpubMetadata({required String filePath}) =>
 ///
 /// **注意**: 这是一个 EPUB 特有的功能，用于需要保留 HTML 格式的场景。
 /// 普通文本解析请使用 `core::extract_chapter`。
-ApiResultRichChapterContent parseEpubChapterRich({
+Future<RichChapterContent> parseEpubChapterRich({
   required String filePath,
   required int chapterIndex,
 }) => RustLib.instance.api.crateApiEpubParseEpubChapterRich(
   filePath: filePath,
   chapterIndex: chapterIndex,
-);
-
-/// 获取 EPUB 章节内容（使用排版配置）
-///
-/// **注意**: 这是一个 EPUB 特有的功能。
-/// 通用章节内容获取请使用 `core::extract_chapter`。
-ApiResultVecPageContent getEpubChapterContent({
-  required String filePath,
-  required int chapterId,
-  required TypesetConfig config,
-}) => RustLib.instance.api.crateApiEpubGetEpubChapterContent(
-  filePath: filePath,
-  chapterId: chapterId,
-  config: config,
 );
 
 /// 获取 EPUB 章节富文本内容（带排版）
@@ -56,19 +42,19 @@ ApiResultVecPageContent getEpubChapterContent({
 ///
 /// # 参数
 /// * `file_path` - EPUB 文件路径
-/// * `chapter_id` - 章节 ID
+/// * `chapter_index` - 章节索引
 /// * `config` - 排版配置
 ///
 /// # 返回值
 /// * `Ok(Vec<RichParagraph>)` - 排版后的富文本段落
-/// * `Err(ParserError)` - 解析失败
-ApiResultVecRichParagraph getEpubChapterRichContent({
+/// * `Err(AppError)` - 解析失败
+Future<List<RichParagraph>> getEpubChapterRichContent({
   required String filePath,
-  required int chapterId,
+  required int chapterIndex,
   required TypesetConfig config,
 }) => RustLib.instance.api.crateApiEpubGetEpubChapterRichContent(
   filePath: filePath,
-  chapterId: chapterId,
+  chapterIndex: chapterIndex,
   config: config,
 );
 
@@ -92,16 +78,3 @@ List<PageContent> paginateEpubRichContent({
   chapterIndex: chapterIndex,
   config: config,
 );
-
-/// 检查文件是否为 EPUB 格式
-bool isEpubFile({required String filePath}) =>
-    RustLib.instance.api.crateApiEpubIsEpubFile(filePath: filePath);
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < EpubMetadata >>>
-abstract class ApiResultEpubMetadata implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < RichChapterContent >>>
-abstract class ApiResultRichChapterContent implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < Vec < RichParagraph > >>>
-abstract class ApiResultVecRichParagraph implements RustOpaqueInterface {}

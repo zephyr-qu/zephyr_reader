@@ -9,21 +9,22 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 @Injectable(as: BookRepository)
 class RustBookRepository implements BookRepository {
-  final _storage = RustStorageService();
+  final RustStorageService _storage;
+  RustBookRepository(this._storage);
 
   @override
-  Future<List<DbBookRecord>> getAllBooks() async {
+  Future<List<Book>> getAllBooks() async {
     return _storage.getAllBooks();
   }
 
   @override
-  Future<List<DbBookRecord>> getBooksByCategory(
-    DbBookCategory category,
+  Future<List<Book>> getBooksByCategory(
+    BookCategory category,
   ) async {
     final allBooks = await getAllBooks();
-    final booksWithCategory = <DbBookRecord>[];
+    final booksWithCategory = <Book>[];
     for (final book in allBooks) {
-      final categories = _storage.getCategoriesForBook(book.bookId);
+      final categories = await _storage.getCategoriesForBook(book.bookId);
       if (categories.any((c) => c.id == category.id)) {
         booksWithCategory.add(book);
       }
@@ -32,61 +33,61 @@ class RustBookRepository implements BookRepository {
   }
 
   @override
-  Future<DbBookRecord?> getBookById(String id) async {
+  Future<Book?> getBookById(String id) async {
     final allBooks = await getAllBooks();
     return allBooks.where((b) => b.bookId == id).firstOrNull;
   }
 
   @override
-  Future<void> addBook(DbBookRecord book) async {
-    _storage.saveBook(book);
+  Future<void> addBook(Book book) async {
+    await _storage.saveBook(book);
   }
 
   @override
-  Future<void> updateBook(DbBookRecord book) async {
-    _storage.saveBook(book);
+  Future<void> updateBook(Book book) async {
+    await _storage.saveBook(book);
   }
 
   @override
   Future<void> deleteBook(String id) async {
-    _storage.deleteBook(id);
+    await _storage.deleteBook(id);
   }
 
   @override
-  Future<List<DbBookRecord>> searchBooks(String keyword) async {
+  Future<List<Book>> searchBooks(String keyword) async {
     return _storage.searchBooks(keyword);
   }
 
   @override
-  Future<List<DbBookRecord>> getBooksByStatus(DbBookStatus status) async {
-    final all = _storage.getAllBooks();
+  Future<List<Book>> getBooksByStatus(BookStatus status) async {
+    final all = await _storage.getAllBooks();
     return all.where((b) => b.status == status).toList();
   }
 
   @override
-  Future<List<DbBookCategory>> getAllCategories() async {
+  Future<List<BookCategory>> getAllCategories() async {
     return _storage.getAllCategories();
   }
 
   @override
-  Future<DbBookCategory?> getCategoryById(String id) async {
+  Future<BookCategory?> getCategoryById(String id) async {
     final allCategories = await getAllCategories();
     return allCategories.where((c) => c.id == id).firstOrNull;
   }
 
   @override
-  Future<void> addCategory(DbBookCategory category) async {
-    _storage.saveCategory(category);
+  Future<void> addCategory(BookCategory category) async {
+    await _storage.saveCategory(category);
   }
 
   @override
-  Future<void> updateCategory(DbBookCategory category) async {
-    _storage.saveCategory(category);
+  Future<void> updateCategory(BookCategory category) async {
+    await _storage.saveCategory(category);
   }
 
   @override
   Future<void> deleteCategory(String id) async {
-    _storage.deleteCategory(id);
+    await _storage.deleteCategory(id);
   }
 
   @override

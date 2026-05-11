@@ -141,7 +141,7 @@ class BookmarkManagePage extends HookWidget {
             );
           }
 
-          var bookmarkList = (async.value ?? []).whereType<DbBookmark>().toList();
+          var bookmarkList = (async.value ?? []).whereType<Bookmark>().toList();
 
           if (isSearchMode.value && searchController.text.isNotEmpty) {
             final keyword = searchController.text.toLowerCase();
@@ -253,7 +253,7 @@ class BookmarkManagePage extends HookWidget {
   void _jumpToBookmark(
     BuildContext context,
     ReaderViewModel vm,
-    DbBookmark bookmark,
+    Bookmark bookmark,
   ) {
     vm.jumpToBookmark(bookmark);
     Navigator.pop(context);
@@ -262,7 +262,7 @@ class BookmarkManagePage extends HookWidget {
   Future<void> _deleteBookmark(
     BuildContext context,
     ReaderViewModel vm,
-    DbBookmark bookmark,
+    Bookmark bookmark,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -395,7 +395,7 @@ enum BookmarkSortType {
 
 /// 书签列表项
 class _BookmarkTile extends StatelessWidget {
-  final DbBookmark bookmark;
+  final Bookmark bookmark;
   final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback onDelete;

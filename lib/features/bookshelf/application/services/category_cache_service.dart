@@ -7,14 +7,14 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 @LazySingleton()
 class CategoryCacheService {
   /// 缓存的分类列表
-  List<DbBookCategory> _categories = [];
+  List<BookCategory> _categories = [];
 
   /// 缓存是否已初始化
   bool _isInitialized = false;
 
   /// 默认分类（硬编码）
-  static final List<DbBookCategory> _defaultCategories = [
-    DbBookCategory(
+  static final List<BookCategory> _defaultCategories = [
+    BookCategory(
       id: '0',
       name: '全部',
       color: '#FF5722',
@@ -23,7 +23,7 @@ class CategoryCacheService {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     ),
-    DbBookCategory(
+    BookCategory(
       id: '1',
       name: '阅读中',
       color: '#2196F3',
@@ -32,7 +32,7 @@ class CategoryCacheService {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     ),
-    DbBookCategory(
+    BookCategory(
       id: '2',
       name: '已完结',
       color: '#4CAF50',
@@ -41,7 +41,7 @@ class CategoryCacheService {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     ),
-    DbBookCategory(
+    BookCategory(
       id: '3',
       name: '已弃坑',
       color: '#9E9E9E',
@@ -50,7 +50,7 @@ class CategoryCacheService {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     ),
-    DbBookCategory(
+    BookCategory(
       id: '4',
       name: '计划阅读',
       color: '#FF9800',
@@ -62,33 +62,33 @@ class CategoryCacheService {
   ];
 
   /// 获取缓存的分类
-  List<DbBookCategory> get categories => _isInitialized && _categories.isNotEmpty
+  List<BookCategory> get categories => _isInitialized && _categories.isNotEmpty
       ? _categories
       : _defaultCategories;
 
   /// 获取缓存的分类（根据 ID）
-  DbBookCategory? getCategoryById(String id) {
+  BookCategory? getCategoryById(String id) {
     if (_categories.isEmpty) {
-      return _defaultCategories.cast<DbBookCategory?>().firstWhere(
+      return _defaultCategories.cast<BookCategory?>().firstWhere(
         (c) => c?.id == id,
         orElse: () => null,
       );
     }
-    return _categories.cast<DbBookCategory?>().firstWhere(
+    return _categories.cast<BookCategory?>().firstWhere(
       (c) => c?.id == id,
       orElse: () => null,
     );
   }
 
   /// 更新缓存
-  void updateCategories(List<DbBookCategory> categories) {
+  void updateCategories(List<BookCategory> categories) {
     _categories = List.from(categories)
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     _isInitialized = true;
   }
 
   /// 添加分类到缓存
-  void addCategory(DbBookCategory category) {
+  void addCategory(BookCategory category) {
     _categories.add(category);
     _categories.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
   }
@@ -99,7 +99,7 @@ class CategoryCacheService {
   }
 
   /// 更新缓存中的分类
-  void updateCategoryInCache(DbBookCategory category) {
+  void updateCategoryInCache(BookCategory category) {
     final index = _categories.indexWhere((c) => c.id == category.id);
     if (index != -1) {
       _categories[index] = category;
@@ -116,7 +116,7 @@ class CategoryCacheService {
   bool get isInitialized => _isInitialized;
 
   /// 获取默认分类
-  static List<DbBookCategory> getDefaultCategories() {
+  static List<BookCategory> getDefaultCategories() {
     return List.unmodifiable(_defaultCategories);
   }
 }

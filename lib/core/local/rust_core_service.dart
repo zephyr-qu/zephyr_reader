@@ -1,76 +1,95 @@
-/// Rust 核心解析服务
+/// Rust 核心服务
 ///
-/// 封装 Rust FFI 核心解析调用，提供文件解析、排版、流式读取等功能
+/// 封装 Rust FFI 核心解析调用（解析、排版、分页、文件读取）
 library;
 
 import 'package:injectable/injectable.dart';
-import 'package:zephyr_reader/src/rust/api/core.dart' as rust;
-import 'package:zephyr_reader/src/rust/ffi/types.dart';
-import 'package:zephyr_reader/src/rust/stream/page_stream.dart';
+import 'package:zephyr_reader/src/rust/api.dart' as api;
+import 'package:zephyr_reader/src/rust/api/book.dart' as book;
+import 'package:zephyr_reader/src/rust/api/file.dart' as file;
+import 'package:zephyr_reader/src/rust/api/typeset.dart' as typeset;
+import 'package:zephyr_reader/src/rust/domain/parser.dart';
+import 'package:zephyr_reader/src/rust/domain/types.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/text/pagination.dart';
 
 @LazySingleton()
 class RustCoreService {
-  String testConnection() => rust.testConnection();
+  // ==================== 连接测试 ====================
 
-  rust.ApiResult setAllowedBaseDir(String baseDir) =>
-      rust.setAllowedBaseDir(baseDir: baseDir);
+  String testConnection() => api.testConnection();
 
-  List<String> getSupportedFormats() => rust.getSupportedFormats();
+  // ==================== 格式检测 ====================
 
-  bool supportsFormat(String format) => rust.supportsFormat(format: format);
+  List<String> getSupportedFormats() => book.getSupportedFormats();
 
-  rust.ApiResultParseResult parseBook(String filePath) =>
-      rust.parseBook(filePath: filePath);
+  bool supportsFormat(String format) =>
+      book.supportsFormat(format: format);
 
-  rust.ApiResultBookMetadata extractMetadata(String filePath) =>
-      rust.extractMetadata(filePath: filePath);
+  // ==================== 书籍解析 ====================
 
-  rust.ApiResultString extractChapter({
-    required String filePath,
-    required int chapterId,
-  }) => rust.extractChapter(filePath: filePath, chapterId: chapterId);
+  Future<ParseBookResult> parseBook(String filePath) async =>
+      book.parseBook(filePath: filePath);
 
-  rust.ApiResultVecPageContent getTxtChapterContent({
-    required String filePath,
-    required int chapterIndex,
-    required TypesetConfig config,
-  }) => rust.getTxtChapterContent(
-    filePath: filePath,
-    chapterIndex: chapterIndex,
-    config: config,
-  );
+  Future<BookMetadata> extractMetadata(String filePath) async =>
+      book.extractMetadata(filePath: filePath);
 
-  rust.ApiResultString typesetText({
-    required String content,
-    required String language,
-    required TypesetConfig config,
-  }) => rust.typesetText(content: content, language: language, config: config);
+  Future<ChapterContent> getChapter(
+    String filePath,
+    int chapterIndex, {
+    TypesetConfig? config,
+  }) async =>
+      book.getChapter(
+        filePath: filePath,
+        chapterIndex: chapterIndex,
+        config: config,
+      );
 
-  rust.ApiResultI64 getFileSize(String filePath) =>
-      rust.getFileSize(filePath: filePath);
+  // ==================== 分页 ====================
 
-  rust.ApiResultString readFileChunk({
-    required String filePath,
-    required int startPos,
-    required int chunkSize,
-  }) => rust.readFileChunk(
-    filePath: filePath,
-    startPos: startPos,
-    chunkSize: chunkSize,
-  );
+  Future<List<PageContent>> paginateAllContent(
+    String filePath,
+    int chapterIndex,
+    TypesetConfig config,
+  ) async =>
+      await book.paginateAllContent(
+        filePath: filePath,
+        chapterIndex: chapterIndex,
+        config: config,
+      );
 
-  PageStreamer createPageStreamer({
-    required String content,
-    required TypesetConfig config,
-  }) => rust.createPageStreamer(content: content, config: config);
+  Future<PageStreamer> createPageStreamer(
+    String filePath,
+    int chapterIndex,
+    TypesetConfig config,
+  ) async =>
+      book.createPageStreamer(
+        filePath: filePath,
+        chapterIndex: chapterIndex,
+        config: config,
+      );
 
-  List<PageContent> paginateAllContent({
-    required String content,
-    required int chapterId,
-    required TypesetConfig config,
-  }) => rust.paginateAllContent(
-    content: content,
-    chapterId: chapterId,
-    config: config,
-  );
+  // ==================== 排版 ====================
+
+  Future<String> typesetText(
+    String content,
+    TypesetConfig config,
+  ) async =>
+      typeset.typesetText(content: content, config: config);
+
+  // ==================== 文件操作 ====================
+
+  Future<int> getFileSize(String filePath) async =>
+      await file.getFileSize(filePath: filePath);
+
+  Future<String> readFileChunk(
+    String filePath,
+    int startPos,
+    int chunkSize,
+  ) async =>
+      file.readFileChunk(
+        filePath: filePath,
+        startPos: startPos,
+        chunkSize: chunkSize,
+      );
 }

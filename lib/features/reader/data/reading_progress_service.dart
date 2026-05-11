@@ -9,6 +9,7 @@ library;
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/error/app_error.dart';
 import 'package:zephyr_reader/core/local/rust_storage_service.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 阅读进度数据
 class ReadingProgressData {
@@ -49,8 +50,9 @@ class ReadingProgressData {
 /// 阅读进度服务
 @injectable
 class ReadingProgressService {
-  final _storage = RustStorageService();
+  final RustStorageService _storage;
   ReadingProgressData? _currentProgress;
+  ReadingProgressService(this._storage);
 
   Future<Result<void>> updateReadingProgress({
     required String bookId,
@@ -60,21 +62,24 @@ class ReadingProgressService {
     int readingTimeSeconds = 0,
   }) async {
     return Result.guardAsync(() async {
-      await _storage.saveReadingProgress(
+      final now = DateTime.now();
+      final progress = (pageIndex + 1) / (totalPages > 0 ? totalPages : 1);
+      await _storage.saveReadingProgress(ReadingProgress(
         bookId: bookId,
         chapterIndex: chapterId,
         charOffset: 0,
-        pageIndex: pageIndex,
-        totalPages: totalPages,
+        progress: progress.clamp(0.0, 1.0),
         readingTimeSeconds: readingTimeSeconds,
-      );
+        lastReadAt: now,
+        isCompleted: progress >= 1.0,
+      ));
       _currentProgress = ReadingProgressData(
         bookId: bookId,
         chapterIndex: chapterId,
         pageIndex: pageIndex,
         totalPages: totalPages,
         readingTimeSeconds: readingTimeSeconds,
-        lastReadAt: DateTime.now(),
+        lastReadAt: now,
       );
     });
   }
@@ -84,13 +89,13 @@ class ReadingProgressService {
       if (_currentProgress != null && _currentProgress!.bookId == bookId) {
         return _currentProgress;
       }
-      final progress = _storage.getReadingProgress(bookId);
+      final progress = await _storage.getReadingProgress(bookId);
       if (progress == null) return null;
       _currentProgress = ReadingProgressData(
         bookId: bookId,
         chapterIndex: progress.chapterIndex,
-        pageIndex: progress.pageIndex,
-        totalPages: progress.totalPages,
+        pageIndex: 0,
+        totalPages: 0,
         readingTimeSeconds: progress.readingTimeSeconds.toInt(),
         lastReadAt: progress.lastReadAt,
       );
@@ -102,7 +107,7 @@ class ReadingProgressService {
 
   Future<Result<void>> clearReadingProgress(String bookId) async {
     return Result.guardAsync(() async {
-      _storage.clearReadingProgress(bookId);
+      await _storage.clearReadingProgress(bookId);
       if (_currentProgress?.bookId == bookId) {
         _currentProgress = null;
       }
@@ -111,17 +116,17 @@ class ReadingProgressService {
 
   Future<Result<List<ReadingProgressData>>> getAllReadingProgress() async {
     return Result.guardAsync(() async {
-      final books = _storage.getAllBooks();
+      final books = await _storage.getAllBooks();
       final result = <ReadingProgressData>[];
       for (final book in books) {
-        final progress = _storage.getReadingProgress(book.bookId);
+        final progress = await _storage.getReadingProgress(book.bookId);
         if (progress != null) {
           result.add(
             ReadingProgressData(
               bookId: book.bookId,
               chapterIndex: progress.chapterIndex,
-              pageIndex: progress.pageIndex,
-              totalPages: progress.totalPages,
+              pageIndex: 0,
+              totalPages: 0,
               readingTimeSeconds: progress.readingTimeSeconds.toInt(),
               lastReadAt: progress.lastReadAt,
             ),

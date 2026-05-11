@@ -24,7 +24,7 @@ class BookCard extends StatelessWidget {
   });
 
   /// 书籍信息
-  final rust_models.DbBookRecord book;
+  final rust_models.Book book;
 
   /// 视图模式
   final BookshelfViewMode viewMode;
@@ -114,7 +114,7 @@ class BookCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    book.author,
+                    book.author ?? '',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -211,7 +211,7 @@ class BookCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    book.author,
+                    book.author ?? '',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -340,11 +340,11 @@ class BookCard extends StatelessWidget {
 
   Color _getFormatColor(ThemeData theme) {
     switch (book.format) {
-      case rust_models.DbBookFormat.txt:
+      case rust_models.BookFormat.txt:
         return theme.colorScheme.primary;
-      case rust_models.DbBookFormat.epub:
+      case rust_models.BookFormat.epub:
         return theme.colorScheme.secondary;
-      case rust_models.DbBookFormat.pdf:
+      case rust_models.BookFormat.pdf:
         return theme.colorScheme.tertiary;
     }
   }
@@ -352,7 +352,7 @@ class BookCard extends StatelessWidget {
   /// 显示重命名对话框
   Future<void> _showRenameDialog(
     BuildContext context,
-    rust_models.DbBookRecord book,
+    rust_models.Book book,
   ) async {
     final controller = TextEditingController(text: book.title);
 
@@ -405,7 +405,7 @@ class BookCard extends StatelessWidget {
   /// 显示删除确认对话
   Future<void> _showDeleteConfirm(
     BuildContext context,
-    rust_models.DbBookRecord book,
+    rust_models.Book book,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,

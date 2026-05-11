@@ -276,7 +276,7 @@ pub fn greet(name: String) -> String {
 
 /// 解析 TXT 文件
 #[flutter_rust_bridge::frb(async)]
-pub fn parse_txt_file(file_path: String) -> Result<BookInfo, ParserError> {
+pub fn parse_txt_file(file_path: String) -> Result<BookInfo, AppError> {
     // 实现解析逻辑
 }
 ```

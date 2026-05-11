@@ -8,36 +8,37 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 @Injectable(as: BookmarkRepository)
 class RustBookmarkRepository implements BookmarkRepository {
-  final _storage = RustStorageService();
+  final RustStorageService _storage;
+  RustBookmarkRepository(this._storage);
 
   @override
-  Future<List<DbBookmark>> getBookmarksByBookId(String bookId) async {
+  Future<List<Bookmark>> getBookmarksByBookId(String bookId) async {
     return _storage.getBookmarks('book_$bookId');
   }
 
   @override
-  Future<List<DbBookmark>> getBookmarksByChapterId(int chapterId) async {
+  Future<List<Bookmark>> getBookmarksByChapterId(int chapterId) async {
     // 需要 bookId 参数才能查 Rust API；上层应在调用前用 getBookmarksByBookId 再过滤
     return [];
   }
 
   @override
-  Future<DbBookmark?> getBookmarkById(String bookmarkId) async {
+  Future<Bookmark?> getBookmarkById(String bookmarkId) async {
     try {
-      return _storage.getBookmarkById(bookmarkId);
+      return _storage.getBookmark(bookmarkId);
     } catch (_) {
       return null;
     }
   }
 
   @override
-  Future<DbBookmark?> addBookmark({
+  Future<Bookmark?> addBookmark({
     required String bookId,
     required int chapterId,
     required int pageIndex,
     required String title,
   }) async {
-    final bookmark = DbBookmark(
+    final bookmark = Bookmark(
       id: 'bookmark_${DateTime.now().millisecondsSinceEpoch}',
       bookId: 'book_$bookId',
       chapterIndex: chapterId,
@@ -52,7 +53,7 @@ class RustBookmarkRepository implements BookmarkRepository {
   @override
   Future<bool> deleteBookmark(String bookmarkId) async {
     try {
-      _storage.deleteBookmark(bookmarkId);
+      await _storage.deleteBookmark(bookmarkId);
       return true;
     } catch (_) {
       return false;

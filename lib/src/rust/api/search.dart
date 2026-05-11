@@ -3,27 +3,19 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import '../domain/error.dart';
+import '../domain/types.dart';
 import '../frb_generated.dart';
-import 'core.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `get_search_engine`
 
-/// 初始化搜索引擎（需要数据库路径）
-Future<ApiResult> initSearchEngine({required String dbPath}) =>
-    RustLib.instance.api.crateApiSearchInitSearchEngine(dbPath: dbPath);
+/// 初始化搜索引擎
+Future<void> initSearchEngine() =>
+    RustLib.instance.api.crateApiSearchInitSearchEngine();
 
 /// 索引章节内容
-///
-/// 将指定章节的文本内容添加到搜索索引中。
-///
-/// # 参数
-///
-/// * `book_id` - 书籍唯一标识
-/// * `chapter_id` - 章节ID
-/// * `chapter_title` - 章节标题
-/// * `content` - 章节文本内容
-Future<ApiResult> indexChapterContent({
+Future<void> indexChapterContent({
   required String bookId,
   required int chapterId,
   required String chapterTitle,
@@ -36,15 +28,7 @@ Future<ApiResult> indexChapterContent({
 );
 
 /// 在书籍中搜索
-///
-/// 在指定书籍的索引中搜索关键词，返回匹配的搜索结果。
-///
-/// # 参数
-///
-/// * `book_id` - 书籍唯一标识
-/// * `query` - 搜索关键词
-/// * `limit` - 返回结果数量限制
-ApiResultVecSearchResult searchInBook({
+Future<List<SearchResult>> searchInBook({
   required String bookId,
   required String query,
   required int limit,
@@ -54,19 +38,10 @@ ApiResultVecSearchResult searchInBook({
   limit: limit,
 );
 
-/// 删除指定书籍的所有搜索索引
-///
-/// 当书籍被删除时调用，防止搜索索引孤立。
-///
-/// # 参数
-///
-/// * `book_id` - 书籍唯一标识
-ApiResult deleteBookSearchIndex({required String bookId}) =>
-    RustLib.instance.api.crateApiSearchDeleteBookSearchIndex(bookId: bookId);
-
 /// 清除所有搜索索引
-Future<ApiResult> clearAllSearchIndex() =>
+Future<void> clearAllSearchIndex() =>
     RustLib.instance.api.crateApiSearchClearAllSearchIndex();
 
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < Vec < SearchResult > >>>
-abstract class ApiResultVecSearchResult implements RustOpaqueInterface {}
+/// 删除某本书的搜索索引
+Future<void> deleteBookSearchIndex({required String bookId}) =>
+    RustLib.instance.api.crateApiSearchDeleteBookSearchIndex(bookId: bookId);

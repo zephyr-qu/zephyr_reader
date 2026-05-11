@@ -11,13 +11,13 @@ class BookshelfViewModel {
   final BookRepository _repo;
 
   /// 所有书籍
-  final books = asyncSignal<List<DbBookRecord>>(AsyncState.loading());
+  final books = asyncSignal<List<Book>>(AsyncState.loading());
 
   /// 所有分类（立即从缓存获取）
-  final categories = signal<List<DbBookCategory>>([]);
+  final categories = signal<List<BookCategory>>([]);
 
   /// 当前选中的分类
-  final selectedCategory = signal<DbBookCategory?>(null);
+  final selectedCategory = signal<BookCategory?>(null);
 
   /// 搜索关键词
   final searchKeyword = signal<String>('');
@@ -25,11 +25,17 @@ class BookshelfViewModel {
   /// 是否在搜索模式
   final isSearching = signal<bool>(false);
 
+  void Function()? _disposeEffect;
+
   BookshelfViewModel(this._repo) {
     _loadCategories();
-    effect(() {
+    _disposeEffect = effect(() {
       loadBooks();
     });
+  }
+
+  void dispose() {
+    _disposeEffect?.call();
   }
 
   Future<void> _loadCategories() async {
@@ -49,7 +55,7 @@ class BookshelfViewModel {
   Future<void> loadBooks() async {
     books.value = AsyncState.loading();
     try {
-      List<DbBookRecord> data;
+      List<Book> data;
 
       if (isSearching.value && searchKeyword.value.isNotEmpty) {
         data = await _repo.searchBooks(searchKeyword.value);
@@ -64,7 +70,7 @@ class BookshelfViewModel {
   }
 
   /// 切换分类
-  void selectCategory(DbBookCategory category) {
+  void selectCategory(BookCategory category) {
     selectedCategory.value = category;
     isSearching.value = false;
     searchKeyword.value = '';
@@ -99,7 +105,7 @@ class BookshelfViewModel {
   }
 
   /// 获取书籍详情
-  Future<DbBookRecord?> getBookDetail(String id) async {
+  Future<Book?> getBookDetail(String id) async {
     return await _repo.getBookById(id);
   }
 
@@ -112,7 +118,7 @@ class BookshelfViewModel {
     int sortOrder = 0,
   }) async {
     try {
-      final category = DbBookCategory(
+      final category = BookCategory(
         id: 'cat_${DateTime.now().millisecondsSinceEpoch}',
         name: name,
         color: color,
@@ -131,7 +137,7 @@ class BookshelfViewModel {
   }
 
   /// 更新分类
-  Future<bool> updateCategory(DbBookCategory category) async {
+  Future<bool> updateCategory(BookCategory category) async {
     try {
       await _repo.updateCategory(category);
       await _loadCategories();

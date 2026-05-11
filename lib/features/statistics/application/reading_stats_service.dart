@@ -63,14 +63,16 @@ class ReadingStatsService {
     Logging.debug('结束阅读会话：$_currentSessionId, 时长=$duration秒, 阅读字符=$charsRead');
 
     try {
-      await _storage.recordReadingSession(
+      await _storage.recordReadingSession(ReadingSession(
+        id: 'session_${now.millisecondsSinceEpoch}',
         bookId: _currentBookId!,
         chapterIndex: _currentChapterIndex!,
-        startOffset: _sessionStartCharOffset!,
-        endOffset: currentCharOffset,
+        startCharOffset: _sessionStartCharOffset!,
+        endCharOffset: currentCharOffset,
+        startedAt: _sessionStartTime!,
+        endedAt: now,
         durationSeconds: duration,
-        charactersRead: charsRead,
-      );
+      ));
     } catch (e) {
       Logging.debug('保存阅读会话失败: $e');
     }
@@ -85,7 +87,7 @@ class ReadingStatsService {
   bool get isSessionActive => _currentSessionId != null;
 
   /// 获取每日阅读统计
-  Future<List<DbDailyReadingStats>> getDailyRecords({int days = 7}) async {
+  Future<List<ReadingStats>> getDailyRecords({int days = 7}) async {
     try {
       final now = DateTime.now();
       final start = now.subtract(Duration(days: days));
@@ -100,10 +102,56 @@ class ReadingStatsService {
     }
   }
 
-  /// 获取全局统计
-  Future<DbGlobalStats?> getGlobalStats() async {
+  /// 获取今日阅读数据
+  Future<(int seconds, int characters)> getTodayReadingData() async {
     try {
-      return  _storage.getGlobalReadingStats();
+      final now = DateTime.now();
+      final today = _formatDate(now);
+      final records = await _storage.getReadingStatsRange(
+        startDate: today,
+        endDate: today,
+      );
+      int totalSeconds = 0;
+      int totalChars = 0;
+      for (final r in records) {
+        totalSeconds += r.readingTimeSeconds;
+        totalChars += r.charactersRead;
+      }
+      return (totalSeconds, totalChars);
+    } catch (e) {
+      Logging.debug('获取今日数据异常: $e');
+      return (0, 0);
+    }
+  }
+
+  /// 获取连续阅读天数
+  Future<int> getConsecutiveReadingDays() async {
+    try {
+      final stats = await _storage.getGlobalReadingStats();
+      return stats.consecutiveReadingDays;
+    } catch (e) {
+      Logging.debug('获取连续阅读天数异常: $e');
+      return 0;
+    }
+  }
+
+  /// 获取阅读速度（字符/分钟）
+  Future<double> getReadingSpeed() async {
+    try {
+      final stats = await _storage.getGlobalReadingStats();
+      final minutes = stats.totalReadingTimeSeconds / 60;
+      if (minutes <= 0) return 0;
+      return stats.totalCharactersRead / minutes;
+    } catch (e) {
+      Logging.debug('获取阅读速度异常: $e');
+      return 0;
+    }
+  }
+
+  /// 获取全局统计
+  Future<GlobalStats?> getGlobalStats() async {
+    try {
+      return await _storage.getGlobalReadingStats();
     } catch (e) {
       Logging.debug('获取全局统计异常: $e');
       return null;
@@ -111,7 +159,7 @@ class ReadingStatsService {
   }
 
   /// 获取阅读统计数据
-  Future<List<DbDailyReadingStats>> getReadingStats({
+  Future<List<ReadingStats>> getReadingStats({
     DateTime? startDate,
     DateTime? endDate,
   }) async {
@@ -131,7 +179,7 @@ class ReadingStatsService {
   }
 
   /// 获取阅读会话历史
-  Future<List<DbReadingSession>> getSessionHistory({
+  Future<List<ReadingSession>> getSessionHistory({
     required String bookId,
     int limit = 100,
   }) async {

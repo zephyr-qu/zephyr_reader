@@ -5,463 +5,107 @@
 
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+part 'models.freezed.dart';
 
-/// 书籍分类
-class DbBookCategory {
-  final String id;
-  final String name;
-  final String? description;
-  final String color;
-  final int sortOrder;
-  final bool isSystem;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-
-  const DbBookCategory({
-    required this.id,
-    required this.name,
-    this.description,
-    required this.color,
-    required this.sortOrder,
-    required this.isSystem,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  @override
-  int get hashCode =>
-      id.hashCode ^
-      name.hashCode ^
-      description.hashCode ^
-      color.hashCode ^
-      sortOrder.hashCode ^
-      isSystem.hashCode ^
-      createdAt.hashCode ^
-      updatedAt.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is DbBookCategory &&
-          runtimeType == other.runtimeType &&
-          id == other.id &&
-          name == other.name &&
-          description == other.description &&
-          color == other.color &&
-          sortOrder == other.sortOrder &&
-          isSystem == other.isSystem &&
-          createdAt == other.createdAt &&
-          updatedAt == other.updatedAt;
+@freezed
+sealed class Book with _$Book {
+  const factory Book({
+    required String bookId,
+    required String filePath,
+    String? fileHash,
+    required PlatformInt64 fileSize,
+    PlatformInt64? fileMtime,
+    required String title,
+    String? author,
+    String? description,
+    String? coverPath,
+    required int chapterCount,
+    required PlatformInt64 totalCharacters,
+    required BookFormat format,
+    required DateTime addedAt,
+    DateTime? lastOpenedAt,
+    required BookStatus status,
+    required bool isPinned,
+  }) = _Book;
 }
 
-/// 书籍格式
-enum DbBookFormat { txt, epub, pdf }
-
-/// 书籍元数据
-class DbBookRecord {
-  final String bookId;
-  final String filePath;
-  final PlatformInt64 fileSize;
-  final String title;
-  final String author;
-  final String? description;
-  final String? coverPath;
-  final int chapterCount;
-  final PlatformInt64 totalCharacters;
-  final DbBookFormat format;
-  final DateTime addedAt;
-  final DateTime? lastOpenedAt;
-  final DbBookStatus status;
-  final bool isPinned;
-
-  const DbBookRecord({
-    required this.bookId,
-    required this.filePath,
-    required this.fileSize,
-    required this.title,
-    required this.author,
-    this.description,
-    this.coverPath,
-    required this.chapterCount,
-    required this.totalCharacters,
-    required this.format,
-    required this.addedAt,
-    this.lastOpenedAt,
-    required this.status,
-    required this.isPinned,
-  });
-
-  @override
-  int get hashCode =>
-      bookId.hashCode ^
-      filePath.hashCode ^
-      fileSize.hashCode ^
-      title.hashCode ^
-      author.hashCode ^
-      description.hashCode ^
-      coverPath.hashCode ^
-      chapterCount.hashCode ^
-      totalCharacters.hashCode ^
-      format.hashCode ^
-      addedAt.hashCode ^
-      lastOpenedAt.hashCode ^
-      status.hashCode ^
-      isPinned.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is DbBookRecord &&
-          runtimeType == other.runtimeType &&
-          bookId == other.bookId &&
-          filePath == other.filePath &&
-          fileSize == other.fileSize &&
-          title == other.title &&
-          author == other.author &&
-          description == other.description &&
-          coverPath == other.coverPath &&
-          chapterCount == other.chapterCount &&
-          totalCharacters == other.totalCharacters &&
-          format == other.format &&
-          addedAt == other.addedAt &&
-          lastOpenedAt == other.lastOpenedAt &&
-          status == other.status &&
-          isPinned == other.isPinned;
+@freezed
+sealed class BookCategory with _$BookCategory {
+  const factory BookCategory({
+    required String id,
+    required String name,
+    String? description,
+    required String color,
+    required int sortOrder,
+    required bool isSystem,
+    required DateTime createdAt,
+    DateTime? updatedAt,
+  }) = _BookCategory;
 }
 
-/// 书籍阅读状态
-enum DbBookStatus { reading, completed, dropped, planned }
+enum BookFormat { txt, epub, pdf }
 
-/// 书签（数据库模型）
-///
-/// 纯位置标记，仅记录阅读位置，不包含内容注释
-class DbBookmark {
-  final String id;
-  final String bookId;
-  final int chapterIndex;
-  final PlatformInt64 charOffset;
-  final String title;
-  final DateTime createdAt;
+enum BookStatus { reading, completed, dropped, planned }
 
-  const DbBookmark({
-    required this.id,
-    required this.bookId,
-    required this.chapterIndex,
-    required this.charOffset,
-    required this.title,
-    required this.createdAt,
-  });
-
-  @override
-  int get hashCode =>
-      id.hashCode ^
-      bookId.hashCode ^
-      chapterIndex.hashCode ^
-      charOffset.hashCode ^
-      title.hashCode ^
-      createdAt.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is DbBookmark &&
-          runtimeType == other.runtimeType &&
-          id == other.id &&
-          bookId == other.bookId &&
-          chapterIndex == other.chapterIndex &&
-          charOffset == other.charOffset &&
-          title == other.title &&
-          createdAt == other.createdAt;
+@freezed
+sealed class Bookmark with _$Bookmark {
+  const factory Bookmark({
+    required String id,
+    required String bookId,
+    required int chapterIndex,
+    String? chapterId,
+    required PlatformInt64 charOffset,
+    required String title,
+    required DateTime createdAt,
+  }) = _Bookmark;
 }
 
-/// 章节元数据
-class DbChapter {
-  final String id;
-  final String bookId;
-  final String title;
-  final String contentFile;
-  final int chapterIndex;
-  final PlatformInt64 wordCount;
-  final DateTime cachedAt;
-
-  /// 层级深度（0 = 顶层，1 = 子章节，…）
-  final int level;
-
-  const DbChapter({
-    required this.id,
-    required this.bookId,
-    required this.title,
-    required this.contentFile,
-    required this.chapterIndex,
-    required this.wordCount,
-    required this.cachedAt,
-    required this.level,
-  });
-
-  @override
-  int get hashCode =>
-      id.hashCode ^
-      bookId.hashCode ^
-      title.hashCode ^
-      contentFile.hashCode ^
-      chapterIndex.hashCode ^
-      wordCount.hashCode ^
-      cachedAt.hashCode ^
-      level.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is DbChapter &&
-          runtimeType == other.runtimeType &&
-          id == other.id &&
-          bookId == other.bookId &&
-          title == other.title &&
-          contentFile == other.contentFile &&
-          chapterIndex == other.chapterIndex &&
-          wordCount == other.wordCount &&
-          cachedAt == other.cachedAt &&
-          level == other.level;
+@freezed
+sealed class Chapter with _$Chapter {
+  const factory Chapter({
+    required String id,
+    required String bookId,
+    required String title,
+    required String contentFile,
+    required int chapterIndex,
+    required PlatformInt64 wordCount,
+    required DateTime cachedAt,
+    required int level,
+    required PlatformInt64 startIndex,
+    required PlatformInt64 endIndex,
+    required PlatformInt64 contentLength,
+  }) = _Chapter;
 }
 
-/// 每日阅读统计
-class DbDailyReadingStats {
-  final String date;
-  final PlatformInt64 totalReadingTimeSeconds;
-  final PlatformInt64 totalCharactersRead;
-  final List<String> booksRead;
-  final int sessionCount;
-  final int chaptersRead;
-  final int pagesRead;
-
-  const DbDailyReadingStats({
-    required this.date,
-    required this.totalReadingTimeSeconds,
-    required this.totalCharactersRead,
-    required this.booksRead,
-    required this.sessionCount,
-    required this.chaptersRead,
-    required this.pagesRead,
-  });
-
-  @override
-  int get hashCode =>
-      date.hashCode ^
-      totalReadingTimeSeconds.hashCode ^
-      totalCharactersRead.hashCode ^
-      booksRead.hashCode ^
-      sessionCount.hashCode ^
-      chaptersRead.hashCode ^
-      pagesRead.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is DbDailyReadingStats &&
-          runtimeType == other.runtimeType &&
-          date == other.date &&
-          totalReadingTimeSeconds == other.totalReadingTimeSeconds &&
-          totalCharactersRead == other.totalCharactersRead &&
-          booksRead == other.booksRead &&
-          sessionCount == other.sessionCount &&
-          chaptersRead == other.chaptersRead &&
-          pagesRead == other.pagesRead;
+/// 全局阅读统计汇总
+@freezed
+sealed class GlobalStats with _$GlobalStats {
+  const factory GlobalStats({
+    required PlatformInt64 totalReadingTimeSeconds,
+    required PlatformInt64 totalCharactersRead,
+    required int booksReadCount,
+    required int booksCompletedCount,
+    required int consecutiveReadingDays,
+    required PlatformInt64 todayReadingTimeSeconds,
+    required PlatformInt64 todayCharactersRead,
+    required double averageReadingSpeed,
+    required int totalBooksCount,
+    required int totalNotesCount,
+    required int totalBookmarksCount,
+  }) = _GlobalStats;
 }
 
-/// 排版缓存值
-class DbLayoutCache {
-  final List<(PlatformInt64, PlatformInt64)> pageOffsets;
-  final int totalPages;
-  final DateTime createdAt;
-
-  const DbLayoutCache({
-    required this.pageOffsets,
-    required this.totalPages,
-    required this.createdAt,
-  });
-
-  @override
-  int get hashCode =>
-      pageOffsets.hashCode ^ totalPages.hashCode ^ createdAt.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is DbLayoutCache &&
-          runtimeType == other.runtimeType &&
-          pageOffsets == other.pageOffsets &&
-          totalPages == other.totalPages &&
-          createdAt == other.createdAt;
+@freezed
+sealed class LayoutCache with _$LayoutCache {
+  const factory LayoutCache({
+    required List<(PlatformInt64, PlatformInt64)> pageOffsets,
+    required int totalPages,
+    required DateTime createdAt,
+  }) = _LayoutCache;
 }
 
-/// 笔记（数据库模型）
-class DbNote {
-  final String id;
-  final String bookId;
-  final int chapterIndex;
-  final PlatformInt64 charOffset;
-  final PlatformInt64 length;
-  final DbNoteType noteType;
-  final String content;
-  final String? selectedText;
-  final int? highlightColor;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-
-  const DbNote({
-    required this.id,
-    required this.bookId,
-    required this.chapterIndex,
-    required this.charOffset,
-    required this.length,
-    required this.noteType,
-    required this.content,
-    this.selectedText,
-    this.highlightColor,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  @override
-  int get hashCode =>
-      id.hashCode ^
-      bookId.hashCode ^
-      chapterIndex.hashCode ^
-      charOffset.hashCode ^
-      length.hashCode ^
-      noteType.hashCode ^
-      content.hashCode ^
-      selectedText.hashCode ^
-      highlightColor.hashCode ^
-      createdAt.hashCode ^
-      updatedAt.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is DbNote &&
-          runtimeType == other.runtimeType &&
-          id == other.id &&
-          bookId == other.bookId &&
-          chapterIndex == other.chapterIndex &&
-          charOffset == other.charOffset &&
-          length == other.length &&
-          noteType == other.noteType &&
-          content == other.content &&
-          selectedText == other.selectedText &&
-          highlightColor == other.highlightColor &&
-          createdAt == other.createdAt &&
-          updatedAt == other.updatedAt;
-}
-
-/// 笔记类型
-enum DbNoteType { highlight, annotation }
-
-/// 阅读进度（数据库模型）
-class DbReadingProgress {
-  final String bookId;
-  final int chapterIndex;
-  final PlatformInt64 charOffset;
-  final int pageIndex;
-  final int totalPages;
-  final double progress;
-  final PlatformInt64 readingTimeSeconds;
-  final DateTime lastReadAt;
-  final bool isCompleted;
-
-  const DbReadingProgress({
-    required this.bookId,
-    required this.chapterIndex,
-    required this.charOffset,
-    required this.pageIndex,
-    required this.totalPages,
-    required this.progress,
-    required this.readingTimeSeconds,
-    required this.lastReadAt,
-    required this.isCompleted,
-  });
-
-  @override
-  int get hashCode =>
-      bookId.hashCode ^
-      chapterIndex.hashCode ^
-      charOffset.hashCode ^
-      pageIndex.hashCode ^
-      totalPages.hashCode ^
-      progress.hashCode ^
-      readingTimeSeconds.hashCode ^
-      lastReadAt.hashCode ^
-      isCompleted.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is DbReadingProgress &&
-          runtimeType == other.runtimeType &&
-          bookId == other.bookId &&
-          chapterIndex == other.chapterIndex &&
-          charOffset == other.charOffset &&
-          pageIndex == other.pageIndex &&
-          totalPages == other.totalPages &&
-          progress == other.progress &&
-          readingTimeSeconds == other.readingTimeSeconds &&
-          lastReadAt == other.lastReadAt &&
-          isCompleted == other.isCompleted;
-}
-
-/// 阅读会话记录
-class DbReadingSession {
-  final String id;
-  final String bookId;
-  final int chapterIndex;
-  final PlatformInt64 startCharOffset;
-  final PlatformInt64 endCharOffset;
-  final DateTime startedAt;
-  final DateTime endedAt;
-  final PlatformInt64 durationSeconds;
-  final PlatformInt64 charactersRead;
-
-  const DbReadingSession({
-    required this.id,
-    required this.bookId,
-    required this.chapterIndex,
-    required this.startCharOffset,
-    required this.endCharOffset,
-    required this.startedAt,
-    required this.endedAt,
-    required this.durationSeconds,
-    required this.charactersRead,
-  });
-
-  @override
-  int get hashCode =>
-      id.hashCode ^
-      bookId.hashCode ^
-      chapterIndex.hashCode ^
-      startCharOffset.hashCode ^
-      endCharOffset.hashCode ^
-      startedAt.hashCode ^
-      endedAt.hashCode ^
-      durationSeconds.hashCode ^
-      charactersRead.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is DbReadingSession &&
-          runtimeType == other.runtimeType &&
-          id == other.id &&
-          bookId == other.bookId &&
-          chapterIndex == other.chapterIndex &&
-          startCharOffset == other.startCharOffset &&
-          endCharOffset == other.endCharOffset &&
-          startedAt == other.startedAt &&
-          endedAt == other.endedAt &&
-          durationSeconds == other.durationSeconds &&
-          charactersRead == other.charactersRead;
-}
-
-/// 排版缓存键（内部使用，不暴露给 FFI）
+/// 排版缓存键（内部使用，不暴露给 domain）
 class LayoutCacheKey {
   final String bookId;
   final int chapterIndex;
@@ -485,4 +129,75 @@ class LayoutCacheKey {
           bookId == other.bookId &&
           chapterIndex == other.chapterIndex &&
           configHash == other.configHash;
+}
+
+@freezed
+sealed class Note with _$Note {
+  const factory Note({
+    required String id,
+    required String bookId,
+    required int chapterIndex,
+    String? chapterId,
+    required PlatformInt64 charOffset,
+    required PlatformInt64 length,
+    required NoteType noteType,
+    required String content,
+    String? selectedText,
+    int? highlightColor,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) = _Note;
+}
+
+/// 笔记统计
+@freezed
+sealed class NoteStats with _$NoteStats {
+  const factory NoteStats({
+    required int totalCount,
+    required int highlightCount,
+    required int annotationCount,
+  }) = _NoteStats;
+}
+
+enum NoteType { highlight, annotation }
+
+@freezed
+sealed class ReadingProgress with _$ReadingProgress {
+  const factory ReadingProgress({
+    required String bookId,
+    required int chapterIndex,
+    String? chapterId,
+    required PlatformInt64 charOffset,
+    required double progress,
+    required PlatformInt64 readingTimeSeconds,
+    required DateTime lastReadAt,
+    required bool isCompleted,
+  }) = _ReadingProgress;
+}
+
+@freezed
+sealed class ReadingSession with _$ReadingSession {
+  const factory ReadingSession({
+    required String id,
+    required String bookId,
+    required int chapterIndex,
+    String? chapterId,
+    required PlatformInt64 startCharOffset,
+    required PlatformInt64 endCharOffset,
+    required DateTime startedAt,
+    required DateTime endedAt,
+    required PlatformInt64 durationSeconds,
+  }) = _ReadingSession;
+}
+
+/// 每日阅读统计（按书聚合）
+@freezed
+sealed class ReadingStats with _$ReadingStats {
+  const factory ReadingStats({
+    required String bookId,
+    required String date,
+    required PlatformInt64 readingTimeSeconds,
+    required PlatformInt64 charactersRead,
+    required int sessionCount,
+  }) = _ReadingStats;
 }

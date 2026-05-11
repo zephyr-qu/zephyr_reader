@@ -3,25 +3,32 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
-import '../ffi/types.dart';
+import '../domain/error.dart';
+import '../domain/types.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 /// 对齐双语文本（基于相似度匹配）
 ///
 /// 使用编辑距离计算句子相似度，通过贪心+窗口搜索算法
-/// 自动匹配中英文对应的句子。
+/// 自动匹配中英文对应的句子
 ///
 /// # 参数
 ///
 /// * `chinese_content` - 中文文本内容
 /// * `english_content` - 英文文本内容
-/// * `min_similarity` - 最小相似度阈值 (0.0 - 1.0)，低于此值不匹配
+/// * `min_similarity` - 最小相似度阈值 (0.3 - 1.0)，低于此值不匹配
+///
+///   传入的值会被 clamp 到 `[0.3, 1.0]` 区间，0.3 以下会静默提升到 0.3
 ///
 /// # 返回值
 ///
 /// 返回对齐结果，包含匹配的片段对和未匹配的片段
-ApiResultBilingualAlignment alignBilingualContent({
+///
+/// # 长度限制
+///
+/// 中英文文本**合计**不得超过 2MB，超限返回错误。
+Future<BilingualAlignment> alignBilingualContent({
   required String chineseContent,
   required String englishContent,
   required double minSimilarity,
@@ -44,6 +51,10 @@ ApiResultBilingualAlignment alignBilingualContent({
 /// # 返回值
 ///
 /// 返回对齐结果，句子按位置一一配对
+///
+/// # 长度限制
+///
+/// 中英文文本**合计**不得超过 2MB，超限返回错误。
 BilingualAlignment simpleBilingualAlign({
   required String chineseContent,
   required String englishContent,
@@ -51,6 +62,3 @@ BilingualAlignment simpleBilingualAlign({
   chineseContent: chineseContent,
   englishContent: englishContent,
 );
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < BilingualAlignment >>>
-abstract class ApiResultBilingualAlignment implements RustOpaqueInterface {}

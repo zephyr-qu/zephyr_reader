@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/reader/data/note_service.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -21,8 +22,8 @@ class NoteManagePage extends StatefulWidget {
 }
 
 class _NoteManagePageState extends State<NoteManagePage> {
-  final _noteService = NoteService.instance;
-  List<DbNote> _notes = [];
+  final _noteService = getIt<NoteService>();
+  List<Note> _notes = [];
   bool _loading = true;
 
   @override
@@ -31,14 +32,14 @@ class _NoteManagePageState extends State<NoteManagePage> {
     _loadNotes();
   }
 
-  void _loadNotes() {
+  Future<void> _loadNotes() async {
     setState(() => _loading = true);
     try {
-      _notes = _noteService.getNotes(widget.bookId);
+      _notes = await _noteService.getNotes(widget.bookId);
     } catch (_) {
       _notes = [];
     }
-    setState(() => _loading = false);
+    if (mounted) setState(() => _loading = false);
   }
 
   @override
@@ -66,10 +67,10 @@ class _NoteManagePageState extends State<NoteManagePage> {
                     final note = _notes[index];
                     return ListTile(
                       leading: Icon(
-                        note.noteType == DbNoteType.highlight
+                        note.noteType == NoteType.highlight
                             ? Icons.highlight
                             : Icons.notes,
-                        color: note.noteType == DbNoteType.highlight
+                        color: note.noteType == NoteType.highlight
                             ? Colors.amber
                             : Colors.blue,
                       ),

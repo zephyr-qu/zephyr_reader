@@ -49,7 +49,7 @@ class FullTextSearchService {
       }
 
       // 初始化 Rust 搜索引擎
-      await rust_search.initSearchEngine(dbPath: dbPath);
+      await rust_search.initSearchEngine();
 
       _initialized = true;
       debugPrint('搜索索引初始化完成：$dbPath');
@@ -95,20 +95,19 @@ class FullTextSearchService {
     }
 
     try {
-      final result = rust_search.searchInBook(
+      final results = await rust_search.searchInBook(
         bookId: bookId,
         query: query,
         limit: limit,
       );
-      final rawList = (result as dynamic).value as List<dynamic>? ?? [];
-      return rawList.map((item) {
+      return results.map((item) {
         return SearchHit(
           bookId: bookId,
-          chapterId: (item.chapterId ?? item.chapter_id ?? 0) as int,
-          chapterTitle: (item.chapterTitle ?? item.chapter_title ?? '') as String,
-          snippet: (item.snippet ?? '') as String,
-          position: (item.position ?? 0) as int,
-          score: (item.score ?? 0.0).toDouble(),
+          chapterId: item.chapterId,
+          chapterTitle: item.chapterTitle,
+          snippet: item.snippet,
+          position: item.position.toInt(),
+          score: item.score,
         );
       }).toList();
     } catch (e) {
@@ -118,24 +117,23 @@ class FullTextSearchService {
   }
 
   /// 删除书籍索引
-  void deleteBookIndex(String bookId) {
+  Future<void> deleteBookIndex(String bookId) async {
     if (!_initialized) return;
 
     try {
-      // Rust API 目前没有单独的 delete_book_index 函数
-      // 可以通过重新索引或删除整个索引来实现
-      debugPrint('删除书籍索引（待 Rust API 完善）：bookId=$bookId');
+      await rust_search.deleteBookSearchIndex(bookId: bookId);
+      debugPrint('删除书籍索引：bookId=$bookId');
     } catch (e) {
       debugPrint('删除索引失败：$e');
     }
   }
 
   /// 清除所有索引
-  void clearAll() {
+  Future<void> clearAll() async {
     if (!_initialized) return;
 
     try {
-      rust_search.clearAllSearchIndex();
+      await rust_search.clearAllSearchIndex();
       debugPrint('清除所有索引完成');
     } catch (e) {
       debugPrint('清除索引失败：$e');

@@ -84,7 +84,7 @@ class StatisticsPage extends HookWidget {
   }
 
   /// 准备图表数据
-  List<ChartData> _prepareChartData(List<DbDailyReadingStats> records) {
+  List<ChartData> _prepareChartData(List<ReadingStats> records) {
     final weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
     final now = DateTime.now();
     final data = <ChartData>[];
@@ -99,22 +99,20 @@ class StatisticsPage extends HookWidget {
       // 查找对应日期的记录
       final record = records.firstWhere(
         (r) => r.date == dateStr,
-        orElse: () => DbDailyReadingStats(
+        orElse: () => ReadingStats(
+          bookId: '',
           date: dateStr,
-          totalReadingTimeSeconds: 0,
-          totalCharactersRead: 0,
-          booksRead: [],
+          readingTimeSeconds: 0,
+          charactersRead: 0,
           sessionCount: 0,
-          chaptersRead: 0,
-          pagesRead: 0,
         ),
       );
 
       data.add(
         ChartData(
           day: weekdays[weekdayIndex],
-          hours: record.totalReadingTimeSeconds.toDouble() / 3600,
-          characters: record.totalCharactersRead.toInt(),
+          hours: record.readingTimeSeconds.toDouble() / 3600,
+          characters: record.charactersRead.toInt(),
         ),
       );
     }
@@ -126,7 +124,7 @@ class StatisticsPage extends HookWidget {
   List<Widget> _buildPhoneLayout(
     BuildContext context,
     ThemeData theme,
-    DbGlobalStats? stats,
+    GlobalStats? stats,
     List<ChartData> chartData,
   ) {
     return [
@@ -154,7 +152,7 @@ class StatisticsPage extends HookWidget {
   List<Widget> _buildTabletLayout(
     BuildContext context,
     ThemeData theme,
-    DbGlobalStats? stats,
+    GlobalStats? stats,
     List<ChartData> chartData,
   ) {
     final spacing = LayoutBreakpoints.getSpacing(context);
@@ -205,7 +203,7 @@ class StatisticsPage extends HookWidget {
     );
   }
 
-  Widget _buildOverviewCard(BuildContext context, DbGlobalStats? stats) {
+  Widget _buildOverviewCard(BuildContext context, GlobalStats? stats) {
     final theme = Theme.of(context);
     final isTabletOrDesktop =
         LayoutBreakpoints.getDeviceType(context) != DeviceType.phone;
@@ -562,7 +560,7 @@ class StatisticsPage extends HookWidget {
     );
   }
 
-  Widget _buildDetailedStats(BuildContext context, DbGlobalStats? stats) {
+  Widget _buildDetailedStats(BuildContext context, GlobalStats? stats) {
     final theme = Theme.of(context);
     final isTabletOrDesktop =
         LayoutBreakpoints.getDeviceType(context) != DeviceType.phone;

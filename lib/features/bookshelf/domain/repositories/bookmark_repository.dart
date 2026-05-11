@@ -3,16 +3,16 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 /// 书签数据仓库接口
 abstract class BookmarkRepository {
   /// 获取书籍的所有书签
-  Future<List<DbBookmark>> getBookmarksByBookId(String bookId);
+  Future<List<Bookmark>> getBookmarksByBookId(String bookId);
 
   /// 获取章节的所有书签
-  Future<List<DbBookmark>> getBookmarksByChapterId(int chapterId);
+  Future<List<Bookmark>> getBookmarksByChapterId(int chapterId);
 
   /// 根据 ID 获取书签
-  Future<DbBookmark?> getBookmarkById(String bookmarkId);
+  Future<Bookmark?> getBookmarkById(String bookmarkId);
 
   /// 添加书签
-  Future<DbBookmark?> addBookmark({
+  Future<Bookmark?> addBookmark({
     required String bookId,
     required int chapterId,
     required int pageIndex,

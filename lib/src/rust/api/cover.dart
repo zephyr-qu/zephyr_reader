@@ -3,14 +3,14 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import '../domain/error.dart';
 import '../frb_generated.dart';
-import 'core.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 /// 提取书籍封面
 ///
 /// 自动检测文件类型并提取封面图片，保存到指定目录。
-ApiResultString extractBookCover({
+Future<String> extractBookCover({
   required String filePath,
   required String outputDir,
 }) => RustLib.instance.api.crateApiCoverExtractBookCover(

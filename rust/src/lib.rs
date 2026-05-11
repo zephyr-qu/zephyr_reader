@@ -2,14 +2,15 @@
 //! 高性能双语文本解析引擎
 
 use once_cell::sync::OnceCell;
-
+mod frb_generated;
 pub mod api;
-pub mod ffi;
+pub mod domain;
+pub mod init;
 pub mod parser;
 pub mod search;
 pub mod storage;
-pub mod stream;
-pub mod text_process;
+pub mod text;
+pub mod utils;
 
 // Rayon 全局线程池初始化状态
 static RAYON_INIT: OnceCell<()> = OnceCell::new();
@@ -29,4 +30,3 @@ pub fn init_rayon_pool() {
             });
     });
 }
-// mod frb_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not be accurate, and you can change it according to your needs. */

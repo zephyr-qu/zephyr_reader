@@ -114,7 +114,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     );
   }
 
-  Widget _buildCategoryTile(DbBookCategory category, ThemeData theme) {
+  Widget _buildCategoryTile(BookCategory category, ThemeData theme) {
     return Card(
       key: ValueKey(category.id),
       margin: const EdgeInsets.only(bottom: 8),
@@ -163,7 +163,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
   }
 
   Future<void> _onReorder(int oldIndex, int newIndex) async {
-    final categories = List<DbBookCategory>.from(_vm.categories.value);
+    final categories = List<BookCategory>.from(_vm.categories.value);
     if (newIndex > oldIndex) {
       newIndex -= 1;
     }
@@ -174,7 +174,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     for (int i = 0; i < categories.length; i++) {
       if (categories[i].sortOrder != i) {
         final oldCategory = categories[i];
-        final updated = DbBookCategory(
+        final updated = BookCategory(
           id: oldCategory.id,
           name: oldCategory.name,
           color: oldCategory.color,
@@ -304,7 +304,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     );
   }
 
-  void _showEditCategoryDialog(DbBookCategory category) {
+  void _showEditCategoryDialog(BookCategory category) {
     _nameController.text = category.name;
     String selectedColor = category.color;
 
@@ -392,7 +392,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                 }
 
                 final oldCategory = category;
-                final updated = DbBookCategory(
+                final updated = BookCategory(
                   id: oldCategory.id,
                   name: name,
                   color: selectedColor,
@@ -424,7 +424,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     );
   }
 
-  void _showDeleteConfirm(DbBookCategory category) {
+  void _showDeleteConfirm(BookCategory category) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

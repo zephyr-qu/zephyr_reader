@@ -6,22 +6,24 @@
 // Static analysis wrongly picks the IO variant, thus ignore this
 // ignore_for_file: argument_type_not_assignable
 
+import 'api.dart';
 import 'api/bilingual.dart';
-import 'api/core.dart';
+import 'api/book.dart';
 import 'api/cover.dart';
 import 'api/epub.dart';
-import 'api/incremental.dart';
+import 'api/file.dart';
 import 'api/search.dart';
-import 'api/security.dart';
 import 'api/storage.dart';
+import 'api/typeset.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'ffi/error.dart';
-import 'ffi/types.dart';
+import 'domain/error.dart';
+import 'domain/parser.dart';
+import 'domain/types.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_web.dart';
 import 'storage/models.dart';
-import 'stream/page_stream.dart';
+import 'text/pagination.dart';
 
 abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustLibApiImplPlatform({
@@ -32,322 +34,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   });
 
   CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultBilingualAlignmentPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBilingualAlignment;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultBookMetadataPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultCacheStatsPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultCacheStats;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultDbDailyReadingStatsPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultDbGlobalStatsPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultDbNotePtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultEpubMetadataPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultLocalBookInfoPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultNoteStatsPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultNoteStats;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultOptionDbBookCategoryPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultOptionDbBookRecordPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultOptionDbBookmarkPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultOptionDbChapterPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultOptionDbLayoutCachePtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultOptionDbReadingProgressPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultParseResultPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultRichChapterContentPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultStringPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultVecDbBookCategoryPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultVecDbBookRecordPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultVecDbBookmarkPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultVecDbChapterPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultVecDbDailyReadingStatsPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultVecDbNotePtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultVecDbReadingSessionPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultVecPageContentPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultVecRichParagraphPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultVecSearchResultPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultI32Ptr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti32;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultI64Ptr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ApiResultUsizePtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize;
+  get rust_arc_decrement_strong_count_PageStreamerPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer;
 
   @protected
-  ApiResult
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultBilingualAlignment
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBilingualAlignment(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultBookMetadata
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultCacheStats
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultCacheStats(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultDbDailyReadingStats
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultDbGlobalStats
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultDbNote
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultEpubMetadata
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultLocalBookInfo
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultNoteStats
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultNoteStats(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultOptionDbBookCategory
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultOptionDbBookRecord
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultOptionDbBookmark
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultOptionDbChapter
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultOptionDbLayoutCache
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultOptionDbReadingProgress
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultParseResult
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultRichChapterContent
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultString
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecDbBookCategory
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecDbBookRecord
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecDbBookmark
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecDbChapter
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecDbDailyReadingStats
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecDbNote
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecDbReadingSession
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecPageContent
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecRichParagraph
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecSearchResult
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultI32
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti32(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultI64
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultUsize
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+  PageStreamer
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
     dynamic raw,
   );
 
@@ -355,194 +47,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DateTime dco_decode_Chrono_Utc(dynamic raw);
 
   @protected
-  ApiResult
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultBilingualAlignment
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBilingualAlignment(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultBookMetadata
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultCacheStats
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultCacheStats(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultDbDailyReadingStats
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultDbGlobalStats
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultDbNote
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultEpubMetadata
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultLocalBookInfo
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultNoteStats
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultNoteStats(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultOptionDbBookCategory
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultOptionDbBookRecord
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultOptionDbBookmark
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultOptionDbChapter
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultOptionDbLayoutCache
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultOptionDbReadingProgress
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultParseResult
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultRichChapterContent
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultString
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecDbBookCategory
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecDbBookRecord
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecDbBookmark
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecDbChapter
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecDbDailyReadingStats
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecDbNote
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecDbReadingSession
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecPageContent
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecRichParagraph
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultVecSearchResult
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultI32
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti32(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultI64
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-    dynamic raw,
-  );
-
-  @protected
-  ApiResultUsize
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+  PageStreamer
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
     dynamic raw,
   );
 
@@ -553,7 +59,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AlignedSegment dco_decode_aligned_segment(dynamic raw);
 
   @protected
+  AppError dco_decode_app_error(dynamic raw);
+
+  @protected
   BilingualAlignment dco_decode_bilingual_alignment(dynamic raw);
+
+  @protected
+  Book dco_decode_book(dynamic raw);
+
+  @protected
+  BookCategory dco_decode_book_category(dynamic raw);
+
+  @protected
+  BookFormat dco_decode_book_format(dynamic raw);
+
+  @protected
+  BookMetadata dco_decode_book_metadata(dynamic raw);
+
+  @protected
+  BookStatus dco_decode_book_status(dynamic raw);
+
+  @protected
+  Bookmark dco_decode_bookmark(dynamic raw);
 
   @protected
   bool dco_decode_bool(dynamic raw);
@@ -562,81 +89,64 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DateTime dco_decode_box_autoadd_Chrono_Utc(dynamic raw);
 
   @protected
-  DbBookCategory dco_decode_box_autoadd_db_book_category(dynamic raw);
+  Book dco_decode_box_autoadd_book(dynamic raw);
 
   @protected
-  DbBookRecord dco_decode_box_autoadd_db_book_record(dynamic raw);
+  BookCategory dco_decode_box_autoadd_book_category(dynamic raw);
 
   @protected
-  DbBookmark dco_decode_box_autoadd_db_bookmark(dynamic raw);
+  Bookmark dco_decode_box_autoadd_bookmark(dynamic raw);
 
   @protected
-  DbDailyReadingStats dco_decode_box_autoadd_db_daily_reading_stats(
-    dynamic raw,
-  );
-
-  @protected
-  DbLayoutCache dco_decode_box_autoadd_db_layout_cache(dynamic raw);
-
-  @protected
-  DbNote dco_decode_box_autoadd_db_note(dynamic raw);
-
-  @protected
-  DbNoteType dco_decode_box_autoadd_db_note_type(dynamic raw);
-
-  @protected
-  DbReadingProgress dco_decode_box_autoadd_db_reading_progress(dynamic raw);
-
-  @protected
-  DbReadingSession dco_decode_box_autoadd_db_reading_session(dynamic raw);
+  Chapter dco_decode_box_autoadd_chapter(dynamic raw);
 
   @protected
   int dco_decode_box_autoadd_i_32(dynamic raw);
 
   @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
+
+  @protected
+  LayoutCache dco_decode_box_autoadd_layout_cache(dynamic raw);
+
+  @protected
   LayoutCacheKey dco_decode_box_autoadd_layout_cache_key(dynamic raw);
+
+  @protected
+  Note dco_decode_box_autoadd_note(dynamic raw);
+
+  @protected
+  NoteType dco_decode_box_autoadd_note_type(dynamic raw);
+
+  @protected
+  ReadingProgress dco_decode_box_autoadd_reading_progress(dynamic raw);
+
+  @protected
+  ReadingSession dco_decode_box_autoadd_reading_session(dynamic raw);
+
+  @protected
+  ReadingStats dco_decode_box_autoadd_reading_stats(dynamic raw);
 
   @protected
   TypesetConfig dco_decode_box_autoadd_typeset_config(dynamic raw);
 
   @protected
-  DbBookCategory dco_decode_db_book_category(dynamic raw);
+  Chapter dco_decode_chapter(dynamic raw);
 
   @protected
-  DbBookFormat dco_decode_db_book_format(dynamic raw);
+  ChapterContent dco_decode_chapter_content(dynamic raw);
 
   @protected
-  DbBookRecord dco_decode_db_book_record(dynamic raw);
+  EpubMetadata dco_decode_epub_metadata(dynamic raw);
 
   @protected
-  DbBookStatus dco_decode_db_book_status(dynamic raw);
-
-  @protected
-  DbBookmark dco_decode_db_bookmark(dynamic raw);
-
-  @protected
-  DbChapter dco_decode_db_chapter(dynamic raw);
-
-  @protected
-  DbDailyReadingStats dco_decode_db_daily_reading_stats(dynamic raw);
-
-  @protected
-  DbLayoutCache dco_decode_db_layout_cache(dynamic raw);
-
-  @protected
-  DbNote dco_decode_db_note(dynamic raw);
-
-  @protected
-  DbNoteType dco_decode_db_note_type(dynamic raw);
-
-  @protected
-  DbReadingProgress dco_decode_db_reading_progress(dynamic raw);
-
-  @protected
-  DbReadingSession dco_decode_db_reading_session(dynamic raw);
+  EpubTocItem dco_decode_epub_toc_item(dynamic raw);
 
   @protected
   double dco_decode_f_32(dynamic raw);
+
+  @protected
+  GlobalStats dco_decode_global_stats(dynamic raw);
 
   @protected
   int dco_decode_i_32(dynamic raw);
@@ -648,6 +158,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LanguageType dco_decode_language_type(dynamic raw);
 
   @protected
+  LayoutCache dco_decode_layout_cache(dynamic raw);
+
+  @protected
   LayoutCacheKey dco_decode_layout_cache_key(dynamic raw);
 
   @protected
@@ -657,10 +170,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<AlignedSegment> dco_decode_list_aligned_segment(dynamic raw);
 
   @protected
-  List<DbBookmark> dco_decode_list_db_bookmark(dynamic raw);
+  List<Book> dco_decode_list_book(dynamic raw);
 
   @protected
-  List<DbChapter> dco_decode_list_db_chapter(dynamic raw);
+  List<BookCategory> dco_decode_list_book_category(dynamic raw);
+
+  @protected
+  List<Bookmark> dco_decode_list_bookmark(dynamic raw);
+
+  @protected
+  List<Chapter> dco_decode_list_chapter(dynamic raw);
+
+  @protected
+  List<EpubTocItem> dco_decode_list_epub_toc_item(dynamic raw);
+
+  @protected
+  List<Note> dco_decode_list_note(dynamic raw);
 
   @protected
   List<PageContent> dco_decode_list_page_content(dynamic raw);
@@ -669,12 +194,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<ReadingSession> dco_decode_list_reading_session(dynamic raw);
+
+  @protected
+  List<ReadingStats> dco_decode_list_reading_stats(dynamic raw);
+
+  @protected
   List<(PlatformInt64, PlatformInt64)> dco_decode_list_record_i_64_i_64(
     dynamic raw,
   );
-
-  @protected
-  List<(BigInt, BigInt)> dco_decode_list_record_usize_usize(dynamic raw);
 
   @protected
   List<RichParagraph> dco_decode_list_rich_paragraph(dynamic raw);
@@ -683,37 +211,85 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<RichTextSpan> dco_decode_list_rich_text_span(dynamic raw);
 
   @protected
+  List<SearchResult> dco_decode_list_search_result(dynamic raw);
+
+  @protected
+  Note dco_decode_note(dynamic raw);
+
+  @protected
+  NoteStats dco_decode_note_stats(dynamic raw);
+
+  @protected
+  NoteType dco_decode_note_type(dynamic raw);
+
+  @protected
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
   DateTime? dco_decode_opt_box_autoadd_Chrono_Utc(dynamic raw);
 
   @protected
-  DbNoteType? dco_decode_opt_box_autoadd_db_note_type(dynamic raw);
+  Book? dco_decode_opt_box_autoadd_book(dynamic raw);
+
+  @protected
+  BookCategory? dco_decode_opt_box_autoadd_book_category(dynamic raw);
+
+  @protected
+  Bookmark? dco_decode_opt_box_autoadd_bookmark(dynamic raw);
+
+  @protected
+  Chapter? dco_decode_opt_box_autoadd_chapter(dynamic raw);
 
   @protected
   int? dco_decode_opt_box_autoadd_i_32(dynamic raw);
 
   @protected
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+  @protected
+  LayoutCache? dco_decode_opt_box_autoadd_layout_cache(dynamic raw);
+
+  @protected
+  NoteType? dco_decode_opt_box_autoadd_note_type(dynamic raw);
+
+  @protected
+  ReadingProgress? dco_decode_opt_box_autoadd_reading_progress(dynamic raw);
+
+  @protected
+  TypesetConfig? dco_decode_opt_box_autoadd_typeset_config(dynamic raw);
+
+  @protected
   PageContent dco_decode_page_content(dynamic raw);
 
   @protected
-  PageStreamer dco_decode_page_streamer(dynamic raw);
+  ParseBookResult dco_decode_parse_book_result(dynamic raw);
 
   @protected
-  ParserError dco_decode_parser_error(dynamic raw);
+  ParseResult dco_decode_parse_result(dynamic raw);
+
+  @protected
+  ReadingProgress dco_decode_reading_progress(dynamic raw);
+
+  @protected
+  ReadingSession dco_decode_reading_session(dynamic raw);
+
+  @protected
+  ReadingStats dco_decode_reading_stats(dynamic raw);
 
   @protected
   (PlatformInt64, PlatformInt64) dco_decode_record_i_64_i_64(dynamic raw);
 
   @protected
-  (BigInt, BigInt) dco_decode_record_usize_usize(dynamic raw);
+  RichChapterContent dco_decode_rich_chapter_content(dynamic raw);
 
   @protected
   RichParagraph dco_decode_rich_paragraph(dynamic raw);
 
   @protected
   RichTextSpan dco_decode_rich_text_span(dynamic raw);
+
+  @protected
+  SearchResult dco_decode_search_result(dynamic raw);
 
   @protected
   TypesetConfig dco_decode_typeset_config(dynamic raw);
@@ -728,194 +304,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BigInt dco_decode_usize(dynamic raw);
 
   @protected
-  ApiResult
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultBilingualAlignment
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBilingualAlignment(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultBookMetadata
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultCacheStats
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultCacheStats(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultDbDailyReadingStats
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultDbGlobalStats
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultDbNote
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultEpubMetadata
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultLocalBookInfo
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultNoteStats
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultNoteStats(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultOptionDbBookCategory
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultOptionDbBookRecord
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultOptionDbBookmark
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultOptionDbChapter
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultOptionDbLayoutCache
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultOptionDbReadingProgress
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultParseResult
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultRichChapterContent
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultString
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecDbBookCategory
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecDbBookRecord
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecDbBookmark
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecDbChapter
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecDbDailyReadingStats
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecDbNote
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecDbReadingSession
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecPageContent
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecRichParagraph
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecSearchResult
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultI32
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti32(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultI64
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultUsize
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+  PageStreamer
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
     SseDeserializer deserializer,
   );
 
@@ -923,194 +313,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DateTime sse_decode_Chrono_Utc(SseDeserializer deserializer);
 
   @protected
-  ApiResult
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultBilingualAlignment
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBilingualAlignment(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultBookMetadata
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultCacheStats
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultCacheStats(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultDbDailyReadingStats
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultDbGlobalStats
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultDbNote
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultEpubMetadata
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultLocalBookInfo
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultNoteStats
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultNoteStats(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultOptionDbBookCategory
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultOptionDbBookRecord
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultOptionDbBookmark
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultOptionDbChapter
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultOptionDbLayoutCache
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultOptionDbReadingProgress
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultParseResult
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultRichChapterContent
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultString
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecDbBookCategory
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecDbBookRecord
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecDbBookmark
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecDbChapter
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecDbDailyReadingStats
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecDbNote
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecDbReadingSession
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecPageContent
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecRichParagraph
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultVecSearchResult
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultI32
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti32(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultI64
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ApiResultUsize
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+  PageStreamer
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
     SseDeserializer deserializer,
   );
 
@@ -1121,9 +325,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AlignedSegment sse_decode_aligned_segment(SseDeserializer deserializer);
 
   @protected
+  AppError sse_decode_app_error(SseDeserializer deserializer);
+
+  @protected
   BilingualAlignment sse_decode_bilingual_alignment(
     SseDeserializer deserializer,
   );
+
+  @protected
+  Book sse_decode_book(SseDeserializer deserializer);
+
+  @protected
+  BookCategory sse_decode_book_category(SseDeserializer deserializer);
+
+  @protected
+  BookFormat sse_decode_book_format(SseDeserializer deserializer);
+
+  @protected
+  BookMetadata sse_decode_book_metadata(SseDeserializer deserializer);
+
+  @protected
+  BookStatus sse_decode_book_status(SseDeserializer deserializer);
+
+  @protected
+  Bookmark sse_decode_bookmark(SseDeserializer deserializer);
 
   @protected
   bool sse_decode_bool(SseDeserializer deserializer);
@@ -1132,49 +357,51 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DateTime sse_decode_box_autoadd_Chrono_Utc(SseDeserializer deserializer);
 
   @protected
-  DbBookCategory sse_decode_box_autoadd_db_book_category(
+  Book sse_decode_box_autoadd_book(SseDeserializer deserializer);
+
+  @protected
+  BookCategory sse_decode_box_autoadd_book_category(
     SseDeserializer deserializer,
   );
 
   @protected
-  DbBookRecord sse_decode_box_autoadd_db_book_record(
-    SseDeserializer deserializer,
-  );
+  Bookmark sse_decode_box_autoadd_bookmark(SseDeserializer deserializer);
 
   @protected
-  DbBookmark sse_decode_box_autoadd_db_bookmark(SseDeserializer deserializer);
-
-  @protected
-  DbDailyReadingStats sse_decode_box_autoadd_db_daily_reading_stats(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  DbLayoutCache sse_decode_box_autoadd_db_layout_cache(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  DbNote sse_decode_box_autoadd_db_note(SseDeserializer deserializer);
-
-  @protected
-  DbNoteType sse_decode_box_autoadd_db_note_type(SseDeserializer deserializer);
-
-  @protected
-  DbReadingProgress sse_decode_box_autoadd_db_reading_progress(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  DbReadingSession sse_decode_box_autoadd_db_reading_session(
-    SseDeserializer deserializer,
-  );
+  Chapter sse_decode_box_autoadd_chapter(SseDeserializer deserializer);
 
   @protected
   int sse_decode_box_autoadd_i_32(SseDeserializer deserializer);
 
   @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
+  LayoutCache sse_decode_box_autoadd_layout_cache(SseDeserializer deserializer);
+
+  @protected
   LayoutCacheKey sse_decode_box_autoadd_layout_cache_key(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  Note sse_decode_box_autoadd_note(SseDeserializer deserializer);
+
+  @protected
+  NoteType sse_decode_box_autoadd_note_type(SseDeserializer deserializer);
+
+  @protected
+  ReadingProgress sse_decode_box_autoadd_reading_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ReadingSession sse_decode_box_autoadd_reading_session(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ReadingStats sse_decode_box_autoadd_reading_stats(
     SseDeserializer deserializer,
   );
 
@@ -1184,47 +411,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  DbBookCategory sse_decode_db_book_category(SseDeserializer deserializer);
+  Chapter sse_decode_chapter(SseDeserializer deserializer);
 
   @protected
-  DbBookFormat sse_decode_db_book_format(SseDeserializer deserializer);
+  ChapterContent sse_decode_chapter_content(SseDeserializer deserializer);
 
   @protected
-  DbBookRecord sse_decode_db_book_record(SseDeserializer deserializer);
+  EpubMetadata sse_decode_epub_metadata(SseDeserializer deserializer);
 
   @protected
-  DbBookStatus sse_decode_db_book_status(SseDeserializer deserializer);
-
-  @protected
-  DbBookmark sse_decode_db_bookmark(SseDeserializer deserializer);
-
-  @protected
-  DbChapter sse_decode_db_chapter(SseDeserializer deserializer);
-
-  @protected
-  DbDailyReadingStats sse_decode_db_daily_reading_stats(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  DbLayoutCache sse_decode_db_layout_cache(SseDeserializer deserializer);
-
-  @protected
-  DbNote sse_decode_db_note(SseDeserializer deserializer);
-
-  @protected
-  DbNoteType sse_decode_db_note_type(SseDeserializer deserializer);
-
-  @protected
-  DbReadingProgress sse_decode_db_reading_progress(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  DbReadingSession sse_decode_db_reading_session(SseDeserializer deserializer);
+  EpubTocItem sse_decode_epub_toc_item(SseDeserializer deserializer);
 
   @protected
   double sse_decode_f_32(SseDeserializer deserializer);
+
+  @protected
+  GlobalStats sse_decode_global_stats(SseDeserializer deserializer);
 
   @protected
   int sse_decode_i_32(SseDeserializer deserializer);
@@ -1234,6 +436,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LanguageType sse_decode_language_type(SseDeserializer deserializer);
+
+  @protected
+  LayoutCache sse_decode_layout_cache(SseDeserializer deserializer);
 
   @protected
   LayoutCacheKey sse_decode_layout_cache_key(SseDeserializer deserializer);
@@ -1247,10 +452,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  List<DbBookmark> sse_decode_list_db_bookmark(SseDeserializer deserializer);
+  List<Book> sse_decode_list_book(SseDeserializer deserializer);
 
   @protected
-  List<DbChapter> sse_decode_list_db_chapter(SseDeserializer deserializer);
+  List<BookCategory> sse_decode_list_book_category(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<Bookmark> sse_decode_list_bookmark(SseDeserializer deserializer);
+
+  @protected
+  List<Chapter> sse_decode_list_chapter(SseDeserializer deserializer);
+
+  @protected
+  List<EpubTocItem> sse_decode_list_epub_toc_item(SseDeserializer deserializer);
+
+  @protected
+  List<Note> sse_decode_list_note(SseDeserializer deserializer);
 
   @protected
   List<PageContent> sse_decode_list_page_content(SseDeserializer deserializer);
@@ -1259,12 +478,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
-  List<(PlatformInt64, PlatformInt64)> sse_decode_list_record_i_64_i_64(
+  List<ReadingSession> sse_decode_list_reading_session(
     SseDeserializer deserializer,
   );
 
   @protected
-  List<(BigInt, BigInt)> sse_decode_list_record_usize_usize(
+  List<ReadingStats> sse_decode_list_reading_stats(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<(PlatformInt64, PlatformInt64)> sse_decode_list_record_i_64_i_64(
     SseDeserializer deserializer,
   );
 
@@ -1279,27 +503,80 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<SearchResult> sse_decode_list_search_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  Note sse_decode_note(SseDeserializer deserializer);
+
+  @protected
+  NoteStats sse_decode_note_stats(SseDeserializer deserializer);
+
+  @protected
+  NoteType sse_decode_note_type(SseDeserializer deserializer);
+
+  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
   DateTime? sse_decode_opt_box_autoadd_Chrono_Utc(SseDeserializer deserializer);
 
   @protected
-  DbNoteType? sse_decode_opt_box_autoadd_db_note_type(
+  Book? sse_decode_opt_box_autoadd_book(SseDeserializer deserializer);
+
+  @protected
+  BookCategory? sse_decode_opt_box_autoadd_book_category(
     SseDeserializer deserializer,
   );
+
+  @protected
+  Bookmark? sse_decode_opt_box_autoadd_bookmark(SseDeserializer deserializer);
+
+  @protected
+  Chapter? sse_decode_opt_box_autoadd_chapter(SseDeserializer deserializer);
 
   @protected
   int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer);
 
   @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
+  LayoutCache? sse_decode_opt_box_autoadd_layout_cache(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  NoteType? sse_decode_opt_box_autoadd_note_type(SseDeserializer deserializer);
+
+  @protected
+  ReadingProgress? sse_decode_opt_box_autoadd_reading_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  TypesetConfig? sse_decode_opt_box_autoadd_typeset_config(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PageContent sse_decode_page_content(SseDeserializer deserializer);
 
   @protected
-  PageStreamer sse_decode_page_streamer(SseDeserializer deserializer);
+  ParseBookResult sse_decode_parse_book_result(SseDeserializer deserializer);
 
   @protected
-  ParserError sse_decode_parser_error(SseDeserializer deserializer);
+  ParseResult sse_decode_parse_result(SseDeserializer deserializer);
+
+  @protected
+  ReadingProgress sse_decode_reading_progress(SseDeserializer deserializer);
+
+  @protected
+  ReadingSession sse_decode_reading_session(SseDeserializer deserializer);
+
+  @protected
+  ReadingStats sse_decode_reading_stats(SseDeserializer deserializer);
 
   @protected
   (PlatformInt64, PlatformInt64) sse_decode_record_i_64_i_64(
@@ -1307,13 +584,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  (BigInt, BigInt) sse_decode_record_usize_usize(SseDeserializer deserializer);
+  RichChapterContent sse_decode_rich_chapter_content(
+    SseDeserializer deserializer,
+  );
 
   @protected
   RichParagraph sse_decode_rich_paragraph(SseDeserializer deserializer);
 
   @protected
   RichTextSpan sse_decode_rich_text_span(SseDeserializer deserializer);
+
+  @protected
+  SearchResult sse_decode_search_result(SseDeserializer deserializer);
 
   @protected
   TypesetConfig sse_decode_typeset_config(SseDeserializer deserializer);
@@ -1352,6 +634,64 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  JSAny cst_encode_app_error(AppError raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    if (raw is AppError_FileNotFound) {
+      return [0, cst_encode_String(raw.path)].jsify()!;
+    }
+    if (raw is AppError_FileReadError) {
+      return [
+        1,
+        cst_encode_String(raw.path),
+        cst_encode_String(raw.details),
+      ].jsify()!;
+    }
+    if (raw is AppError_UnsupportedFormat) {
+      return [2, cst_encode_String(raw.format)].jsify()!;
+    }
+    if (raw is AppError_EpubParseError) {
+      return [3, cst_encode_String(raw.reason)].jsify()!;
+    }
+    if (raw is AppError_PdfParseError) {
+      return [4, cst_encode_String(raw.reason)].jsify()!;
+    }
+    if (raw is AppError_ChapterExtractError) {
+      return [
+        5,
+        cst_encode_i_32(raw.index),
+        cst_encode_String(raw.reason),
+      ].jsify()!;
+    }
+    if (raw is AppError_TypesetConfigError) {
+      return [6, cst_encode_String(raw.reason)].jsify()!;
+    }
+    if (raw is AppError_DatabaseError) {
+      return [7, cst_encode_String(raw.reason)].jsify()!;
+    }
+    if (raw is AppError_SearchError) {
+      return [8, cst_encode_String(raw.reason)].jsify()!;
+    }
+    if (raw is AppError_SecurityError) {
+      return [
+        9,
+        cst_encode_String(raw.reason),
+        cst_encode_String(raw.path),
+      ].jsify()!;
+    }
+    if (raw is AppError_InvalidInput) {
+      return [10, cst_encode_String(raw.reason)].jsify()!;
+    }
+    if (raw is AppError_InternalError) {
+      return [11, cst_encode_String(raw.reason)].jsify()!;
+    }
+    if (raw is AppError_Other) {
+      return [12, cst_encode_String(raw.field0)].jsify()!;
+    }
+
+    throw Exception('unreachable');
+  }
+
+  @protected
   JSAny cst_encode_bilingual_alignment(BilingualAlignment raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
@@ -1362,85 +702,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  JSAny cst_encode_box_autoadd_Chrono_Utc(DateTime raw) {
+  JSAny cst_encode_book(Book raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_Chrono_Utc(raw);
+    return [
+      cst_encode_String(raw.bookId),
+      cst_encode_String(raw.filePath),
+      cst_encode_opt_String(raw.fileHash),
+      cst_encode_i_64(raw.fileSize),
+      cst_encode_opt_box_autoadd_i_64(raw.fileMtime),
+      cst_encode_String(raw.title),
+      cst_encode_opt_String(raw.author),
+      cst_encode_opt_String(raw.description),
+      cst_encode_opt_String(raw.coverPath),
+      cst_encode_i_32(raw.chapterCount),
+      cst_encode_i_64(raw.totalCharacters),
+      cst_encode_book_format(raw.format),
+      cst_encode_Chrono_Utc(raw.addedAt),
+      cst_encode_opt_box_autoadd_Chrono_Utc(raw.lastOpenedAt),
+      cst_encode_book_status(raw.status),
+      cst_encode_bool(raw.isPinned),
+    ].jsify()!;
   }
 
   @protected
-  JSAny cst_encode_box_autoadd_db_book_category(DbBookCategory raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_db_book_category(raw);
-  }
-
-  @protected
-  JSAny cst_encode_box_autoadd_db_book_record(DbBookRecord raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_db_book_record(raw);
-  }
-
-  @protected
-  JSAny cst_encode_box_autoadd_db_bookmark(DbBookmark raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_db_bookmark(raw);
-  }
-
-  @protected
-  JSAny cst_encode_box_autoadd_db_daily_reading_stats(DbDailyReadingStats raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_db_daily_reading_stats(raw);
-  }
-
-  @protected
-  JSAny cst_encode_box_autoadd_db_layout_cache(DbLayoutCache raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_db_layout_cache(raw);
-  }
-
-  @protected
-  JSAny cst_encode_box_autoadd_db_note(DbNote raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_db_note(raw);
-  }
-
-  @protected
-  int cst_encode_box_autoadd_db_note_type(DbNoteType raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_db_note_type(raw);
-  }
-
-  @protected
-  JSAny cst_encode_box_autoadd_db_reading_progress(DbReadingProgress raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_db_reading_progress(raw);
-  }
-
-  @protected
-  JSAny cst_encode_box_autoadd_db_reading_session(DbReadingSession raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_db_reading_session(raw);
-  }
-
-  @protected
-  int cst_encode_box_autoadd_i_32(int raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_i_32(raw);
-  }
-
-  @protected
-  JSAny cst_encode_box_autoadd_layout_cache_key(LayoutCacheKey raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_layout_cache_key(raw);
-  }
-
-  @protected
-  JSAny cst_encode_box_autoadd_typeset_config(TypesetConfig raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_typeset_config(raw);
-  }
-
-  @protected
-  JSAny cst_encode_db_book_category(DbBookCategory raw) {
+  JSAny cst_encode_book_category(BookCategory raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
       cst_encode_String(raw.id),
@@ -1450,38 +735,33 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_i_32(raw.sortOrder),
       cst_encode_bool(raw.isSystem),
       cst_encode_Chrono_Utc(raw.createdAt),
-      cst_encode_Chrono_Utc(raw.updatedAt),
+      cst_encode_opt_box_autoadd_Chrono_Utc(raw.updatedAt),
     ].jsify()!;
   }
 
   @protected
-  JSAny cst_encode_db_book_record(DbBookRecord raw) {
+  JSAny cst_encode_book_metadata(BookMetadata raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
-      cst_encode_String(raw.bookId),
-      cst_encode_String(raw.filePath),
-      cst_encode_i_64(raw.fileSize),
       cst_encode_String(raw.title),
       cst_encode_String(raw.author),
       cst_encode_opt_String(raw.description),
       cst_encode_opt_String(raw.coverPath),
+      cst_encode_opt_box_autoadd_i_32(raw.publishYear),
+      cst_encode_opt_String(raw.language),
       cst_encode_i_32(raw.chapterCount),
       cst_encode_i_64(raw.totalCharacters),
-      cst_encode_db_book_format(raw.format),
-      cst_encode_Chrono_Utc(raw.addedAt),
-      cst_encode_opt_box_autoadd_Chrono_Utc(raw.lastOpenedAt),
-      cst_encode_db_book_status(raw.status),
-      cst_encode_bool(raw.isPinned),
     ].jsify()!;
   }
 
   @protected
-  JSAny cst_encode_db_bookmark(DbBookmark raw) {
+  JSAny cst_encode_bookmark(Bookmark raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
       cst_encode_String(raw.id),
       cst_encode_String(raw.bookId),
       cst_encode_i_32(raw.chapterIndex),
+      cst_encode_opt_String(raw.chapterId),
       cst_encode_i_64(raw.charOffset),
       cst_encode_String(raw.title),
       cst_encode_Chrono_Utc(raw.createdAt),
@@ -1489,7 +769,97 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  JSAny cst_encode_db_chapter(DbChapter raw) {
+  JSAny cst_encode_box_autoadd_Chrono_Utc(DateTime raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_Chrono_Utc(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_book(Book raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_book(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_book_category(BookCategory raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_book_category(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_bookmark(Bookmark raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_bookmark(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_chapter(Chapter raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_chapter(raw);
+  }
+
+  @protected
+  int cst_encode_box_autoadd_i_32(int raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_i_64(PlatformInt64 raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_64(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_layout_cache(LayoutCache raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_layout_cache(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_layout_cache_key(LayoutCacheKey raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_layout_cache_key(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_note(Note raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_note(raw);
+  }
+
+  @protected
+  int cst_encode_box_autoadd_note_type(NoteType raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_note_type(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_reading_progress(ReadingProgress raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_reading_progress(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_reading_session(ReadingSession raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_reading_session(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_reading_stats(ReadingStats raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_reading_stats(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_typeset_config(TypesetConfig raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_typeset_config(raw);
+  }
+
+  @protected
+  JSAny cst_encode_chapter(Chapter raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
       cst_encode_String(raw.id),
@@ -1500,80 +870,62 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_i_64(raw.wordCount),
       cst_encode_Chrono_Utc(raw.cachedAt),
       cst_encode_i_32(raw.level),
+      cst_encode_i_64(raw.startIndex),
+      cst_encode_i_64(raw.endIndex),
+      cst_encode_i_64(raw.contentLength),
     ].jsify()!;
   }
 
   @protected
-  JSAny cst_encode_db_daily_reading_stats(DbDailyReadingStats raw) {
+  JSAny cst_encode_chapter_content(ChapterContent raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    if (raw is ChapterContent_Raw) {
+      return [0, cst_encode_String(raw.field0)].jsify()!;
+    }
+    if (raw is ChapterContent_Pages) {
+      return [1, cst_encode_list_page_content(raw.field0)].jsify()!;
+    }
+
+    throw Exception('unreachable');
+  }
+
+  @protected
+  JSAny cst_encode_epub_metadata(EpubMetadata raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
-      cst_encode_String(raw.date),
+      cst_encode_String(raw.title),
+      cst_encode_String(raw.author),
+      cst_encode_opt_String(raw.coverPath),
+      cst_encode_list_epub_toc_item(raw.toc),
+      cst_encode_list_String(raw.spine),
+    ].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_epub_toc_item(EpubTocItem raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_String(raw.label),
+      cst_encode_String(raw.href),
+      cst_encode_i_32(raw.level),
+    ].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_global_stats(GlobalStats raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
       cst_encode_i_64(raw.totalReadingTimeSeconds),
       cst_encode_i_64(raw.totalCharactersRead),
-      cst_encode_list_String(raw.booksRead),
-      cst_encode_i_32(raw.sessionCount),
-      cst_encode_i_32(raw.chaptersRead),
-      cst_encode_i_32(raw.pagesRead),
-    ].jsify()!;
-  }
-
-  @protected
-  JSAny cst_encode_db_layout_cache(DbLayoutCache raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return [
-      cst_encode_list_record_i_64_i_64(raw.pageOffsets),
-      cst_encode_i_32(raw.totalPages),
-      cst_encode_Chrono_Utc(raw.createdAt),
-    ].jsify()!;
-  }
-
-  @protected
-  JSAny cst_encode_db_note(DbNote raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return [
-      cst_encode_String(raw.id),
-      cst_encode_String(raw.bookId),
-      cst_encode_i_32(raw.chapterIndex),
-      cst_encode_i_64(raw.charOffset),
-      cst_encode_i_64(raw.length),
-      cst_encode_db_note_type(raw.noteType),
-      cst_encode_String(raw.content),
-      cst_encode_opt_String(raw.selectedText),
-      cst_encode_opt_box_autoadd_i_32(raw.highlightColor),
-      cst_encode_Chrono_Utc(raw.createdAt),
-      cst_encode_Chrono_Utc(raw.updatedAt),
-    ].jsify()!;
-  }
-
-  @protected
-  JSAny cst_encode_db_reading_progress(DbReadingProgress raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return [
-      cst_encode_String(raw.bookId),
-      cst_encode_i_32(raw.chapterIndex),
-      cst_encode_i_64(raw.charOffset),
-      cst_encode_i_32(raw.pageIndex),
-      cst_encode_i_32(raw.totalPages),
-      cst_encode_f_32(raw.progress),
-      cst_encode_i_64(raw.readingTimeSeconds),
-      cst_encode_Chrono_Utc(raw.lastReadAt),
-      cst_encode_bool(raw.isCompleted),
-    ].jsify()!;
-  }
-
-  @protected
-  JSAny cst_encode_db_reading_session(DbReadingSession raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return [
-      cst_encode_String(raw.id),
-      cst_encode_String(raw.bookId),
-      cst_encode_i_32(raw.chapterIndex),
-      cst_encode_i_64(raw.startCharOffset),
-      cst_encode_i_64(raw.endCharOffset),
-      cst_encode_Chrono_Utc(raw.startedAt),
-      cst_encode_Chrono_Utc(raw.endedAt),
-      cst_encode_i_64(raw.durationSeconds),
-      cst_encode_i_64(raw.charactersRead),
+      cst_encode_i_32(raw.booksReadCount),
+      cst_encode_i_32(raw.booksCompletedCount),
+      cst_encode_i_32(raw.consecutiveReadingDays),
+      cst_encode_i_64(raw.todayReadingTimeSeconds),
+      cst_encode_i_64(raw.todayCharactersRead),
+      cst_encode_f_32(raw.averageReadingSpeed),
+      cst_encode_i_32(raw.totalBooksCount),
+      cst_encode_i_32(raw.totalNotesCount),
+      cst_encode_i_32(raw.totalBookmarksCount),
     ].jsify()!;
   }
 
@@ -1581,6 +933,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   JSAny cst_encode_i_64(PlatformInt64 raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return castNativeBigInt(raw);
+  }
+
+  @protected
+  JSAny cst_encode_layout_cache(LayoutCache raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_list_record_i_64_i_64(raw.pageOffsets),
+      cst_encode_i_32(raw.totalPages),
+      cst_encode_Chrono_Utc(raw.createdAt),
+    ].jsify()!;
   }
 
   @protected
@@ -1606,15 +968,39 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  JSAny cst_encode_list_db_bookmark(List<DbBookmark> raw) {
+  JSAny cst_encode_list_book(List<Book> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw.map(cst_encode_db_bookmark).toList().jsify()!;
+    return raw.map(cst_encode_book).toList().jsify()!;
   }
 
   @protected
-  JSAny cst_encode_list_db_chapter(List<DbChapter> raw) {
+  JSAny cst_encode_list_book_category(List<BookCategory> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw.map(cst_encode_db_chapter).toList().jsify()!;
+    return raw.map(cst_encode_book_category).toList().jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_list_bookmark(List<Bookmark> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.map(cst_encode_bookmark).toList().jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_list_chapter(List<Chapter> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.map(cst_encode_chapter).toList().jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_list_epub_toc_item(List<EpubTocItem> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.map(cst_encode_epub_toc_item).toList().jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_list_note(List<Note> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.map(cst_encode_note).toList().jsify()!;
   }
 
   @protected
@@ -1630,17 +1016,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  JSAny cst_encode_list_reading_session(List<ReadingSession> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.map(cst_encode_reading_session).toList().jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_list_reading_stats(List<ReadingStats> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.map(cst_encode_reading_stats).toList().jsify()!;
+  }
+
+  @protected
   JSAny cst_encode_list_record_i_64_i_64(
     List<(PlatformInt64, PlatformInt64)> raw,
   ) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw.map(cst_encode_record_i_64_i_64).toList().jsify()!;
-  }
-
-  @protected
-  JSAny cst_encode_list_record_usize_usize(List<(BigInt, BigInt)> raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw.map(cst_encode_record_usize_usize).toList().jsify()!;
   }
 
   @protected
@@ -1656,6 +1048,41 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  JSAny cst_encode_list_search_result(List<SearchResult> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.map(cst_encode_search_result).toList().jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_note(Note raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_String(raw.id),
+      cst_encode_String(raw.bookId),
+      cst_encode_i_32(raw.chapterIndex),
+      cst_encode_opt_String(raw.chapterId),
+      cst_encode_i_64(raw.charOffset),
+      cst_encode_i_64(raw.length),
+      cst_encode_note_type(raw.noteType),
+      cst_encode_String(raw.content),
+      cst_encode_opt_String(raw.selectedText),
+      cst_encode_opt_box_autoadd_i_32(raw.highlightColor),
+      cst_encode_Chrono_Utc(raw.createdAt),
+      cst_encode_Chrono_Utc(raw.updatedAt),
+    ].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_note_stats(NoteStats raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_i_32(raw.totalCount),
+      cst_encode_i_32(raw.highlightCount),
+      cst_encode_i_32(raw.annotationCount),
+    ].jsify()!;
+  }
+
+  @protected
   String? cst_encode_opt_String(String? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? null : cst_encode_String(raw);
@@ -1668,15 +1095,63 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  int? cst_encode_opt_box_autoadd_db_note_type(DbNoteType? raw) {
+  JSAny? cst_encode_opt_box_autoadd_book(Book? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw == null ? null : cst_encode_box_autoadd_db_note_type(raw);
+    return raw == null ? null : cst_encode_box_autoadd_book(raw);
+  }
+
+  @protected
+  JSAny? cst_encode_opt_box_autoadd_book_category(BookCategory? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_box_autoadd_book_category(raw);
+  }
+
+  @protected
+  JSAny? cst_encode_opt_box_autoadd_bookmark(Bookmark? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_box_autoadd_bookmark(raw);
+  }
+
+  @protected
+  JSAny? cst_encode_opt_box_autoadd_chapter(Chapter? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_box_autoadd_chapter(raw);
   }
 
   @protected
   int? cst_encode_opt_box_autoadd_i_32(int? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? null : cst_encode_box_autoadd_i_32(raw);
+  }
+
+  @protected
+  JSAny? cst_encode_opt_box_autoadd_i_64(PlatformInt64? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_box_autoadd_i_64(raw);
+  }
+
+  @protected
+  JSAny? cst_encode_opt_box_autoadd_layout_cache(LayoutCache? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_box_autoadd_layout_cache(raw);
+  }
+
+  @protected
+  int? cst_encode_opt_box_autoadd_note_type(NoteType? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_box_autoadd_note_type(raw);
+  }
+
+  @protected
+  JSAny? cst_encode_opt_box_autoadd_reading_progress(ReadingProgress? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_box_autoadd_reading_progress(raw);
+  }
+
+  @protected
+  JSAny? cst_encode_opt_box_autoadd_typeset_config(TypesetConfig? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_box_autoadd_typeset_config(raw);
   }
 
   @protected
@@ -1691,80 +1166,64 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  JSAny cst_encode_page_streamer(PageStreamer raw) {
+  JSAny cst_encode_parse_book_result(ParseBookResult raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
-      cst_encode_list_String(raw.lines),
-      cst_encode_usize(raw.currentPage),
-      cst_encode_usize(raw.linesPerPage),
-      cst_encode_list_record_usize_usize(raw.lineOffsets),
+      cst_encode_parse_result(raw.parseResult),
+      cst_encode_bool(raw.persistenceSucceeded),
     ].jsify()!;
   }
 
   @protected
-  JSAny cst_encode_parser_error(ParserError raw) {
+  JSAny cst_encode_parse_result(ParseResult raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    if (raw is ParserError_FileNotFound) {
-      return [
-        0,
-        cst_encode_String(raw.path),
-        cst_encode_String(raw.reason),
-      ].jsify()!;
-    }
-    if (raw is ParserError_FileReadError) {
-      return [
-        1,
-        cst_encode_String(raw.path),
-        cst_encode_String(raw.message),
-      ].jsify()!;
-    }
-    if (raw is ParserError_EncodingError) {
-      return [2, cst_encode_String(raw.field0)].jsify()!;
-    }
-    if (raw is ParserError_EpubParseError) {
-      return [3, cst_encode_String(raw.field0)].jsify()!;
-    }
-    if (raw is ParserError_PdfParseError) {
-      return [4, cst_encode_String(raw.field0)].jsify()!;
-    }
-    if (raw is ParserError_TxtParseError) {
-      return [5, cst_encode_String(raw.field0)].jsify()!;
-    }
-    if (raw is ParserError_ChapterExtractError) {
-      return [6, cst_encode_String(raw.field0)].jsify()!;
-    }
-    if (raw is ParserError_Typeset) {
-      return [7, cst_encode_String(raw.field0)].jsify()!;
-    }
-    if (raw is ParserError_StreamError) {
-      return [8, cst_encode_String(raw.field0)].jsify()!;
-    }
-    if (raw is ParserError_UnsupportedFormat) {
-      return [9, cst_encode_String(raw.field0)].jsify()!;
-    }
-    if (raw is ParserError_FileWriteError) {
-      return [10, cst_encode_String(raw.field0)].jsify()!;
-    }
-    if (raw is ParserError_InternalError) {
-      return [11, cst_encode_String(raw.field0)].jsify()!;
-    }
-    if (raw is ParserError_ConfigError) {
-      return [12, cst_encode_String(raw.field0)].jsify()!;
-    }
-    if (raw is ParserError_PageExtractError) {
-      return [13, cst_encode_String(raw.field0)].jsify()!;
-    }
-    if (raw is ParserError_TextExtractError) {
-      return [14, cst_encode_String(raw.field0)].jsify()!;
-    }
-    if (raw is ParserError_Other) {
-      return [15, cst_encode_String(raw.field0)].jsify()!;
-    }
-    if (raw is ParserError_SecurityError) {
-      return [16, cst_encode_String(raw.field0)].jsify()!;
-    }
+    return [
+      cst_encode_book(raw.bookInfo),
+      cst_encode_list_chapter(raw.chapters),
+    ].jsify()!;
+  }
 
-    throw Exception('unreachable');
+  @protected
+  JSAny cst_encode_reading_progress(ReadingProgress raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_String(raw.bookId),
+      cst_encode_i_32(raw.chapterIndex),
+      cst_encode_opt_String(raw.chapterId),
+      cst_encode_i_64(raw.charOffset),
+      cst_encode_f_32(raw.progress),
+      cst_encode_i_64(raw.readingTimeSeconds),
+      cst_encode_Chrono_Utc(raw.lastReadAt),
+      cst_encode_bool(raw.isCompleted),
+    ].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_reading_session(ReadingSession raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_String(raw.id),
+      cst_encode_String(raw.bookId),
+      cst_encode_i_32(raw.chapterIndex),
+      cst_encode_opt_String(raw.chapterId),
+      cst_encode_i_64(raw.startCharOffset),
+      cst_encode_i_64(raw.endCharOffset),
+      cst_encode_Chrono_Utc(raw.startedAt),
+      cst_encode_Chrono_Utc(raw.endedAt),
+      cst_encode_i_64(raw.durationSeconds),
+    ].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_reading_stats(ReadingStats raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_String(raw.bookId),
+      cst_encode_String(raw.date),
+      cst_encode_i_64(raw.readingTimeSeconds),
+      cst_encode_i_64(raw.charactersRead),
+      cst_encode_i_32(raw.sessionCount),
+    ].jsify()!;
   }
 
   @protected
@@ -1774,9 +1233,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  JSAny cst_encode_record_usize_usize((BigInt, BigInt) raw) {
+  JSAny cst_encode_rich_chapter_content(RichChapterContent raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return [cst_encode_usize(raw.$1), cst_encode_usize(raw.$2)].jsify()!;
+    return [
+      cst_encode_String(raw.chapterId),
+      cst_encode_list_rich_paragraph(raw.paragraphs),
+      cst_encode_i_64(raw.totalCharacters),
+    ].jsify()!;
   }
 
   @protected
@@ -1827,6 +1290,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  JSAny cst_encode_search_result(SearchResult raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_i_32(raw.chapterId),
+      cst_encode_String(raw.chapterTitle),
+      cst_encode_String(raw.snippet),
+      cst_encode_i_64(raw.position),
+      cst_encode_f_32(raw.score),
+      cst_encode_i_64(raw.charOffset),
+    ].jsify()!;
+  }
+
+  @protected
   JSAny cst_encode_typeset_config(TypesetConfig raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
@@ -1851,399 +1327,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
-    ApiResult raw,
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
+    PageStreamer raw,
   );
 
   @protected
   int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBilingualAlignment(
-    ApiResultBilingualAlignment raw,
+  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
+    PageStreamer raw,
   );
 
   @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
-    ApiResultBookMetadata raw,
-  );
+  int cst_encode_book_format(BookFormat raw);
 
   @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultCacheStats(
-    ApiResultCacheStats raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
-    ApiResultDbDailyReadingStats raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
-    ApiResultDbGlobalStats raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
-    ApiResultDbNote raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-    ApiResultEpubMetadata raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-    ApiResultLocalBookInfo raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultNoteStats(
-    ApiResultNoteStats raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
-    ApiResultOptionDbBookCategory raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
-    ApiResultOptionDbBookRecord raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
-    ApiResultOptionDbBookmark raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
-    ApiResultOptionDbChapter raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
-    ApiResultOptionDbLayoutCache raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
-    ApiResultOptionDbReadingProgress raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-    ApiResultParseResult raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-    ApiResultRichChapterContent raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-    ApiResultString raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
-    ApiResultVecDbBookCategory raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
-    ApiResultVecDbBookRecord raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
-    ApiResultVecDbBookmark raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
-    ApiResultVecDbChapter raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
-    ApiResultVecDbDailyReadingStats raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
-    ApiResultVecDbNote raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
-    ApiResultVecDbReadingSession raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
-    ApiResultVecPageContent raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
-    ApiResultVecRichParagraph raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
-    ApiResultVecSearchResult raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti32(
-    ApiResultI32 raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-    ApiResultI64 raw,
-  );
-
-  @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
-    ApiResultUsize raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
-    ApiResult raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBilingualAlignment(
-    ApiResultBilingualAlignment raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
-    ApiResultBookMetadata raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultCacheStats(
-    ApiResultCacheStats raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
-    ApiResultDbDailyReadingStats raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
-    ApiResultDbGlobalStats raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
-    ApiResultDbNote raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-    ApiResultEpubMetadata raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-    ApiResultLocalBookInfo raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultNoteStats(
-    ApiResultNoteStats raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
-    ApiResultOptionDbBookCategory raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
-    ApiResultOptionDbBookRecord raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
-    ApiResultOptionDbBookmark raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
-    ApiResultOptionDbChapter raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
-    ApiResultOptionDbLayoutCache raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
-    ApiResultOptionDbReadingProgress raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-    ApiResultParseResult raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-    ApiResultRichChapterContent raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-    ApiResultString raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
-    ApiResultVecDbBookCategory raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
-    ApiResultVecDbBookRecord raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
-    ApiResultVecDbBookmark raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
-    ApiResultVecDbChapter raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
-    ApiResultVecDbDailyReadingStats raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
-    ApiResultVecDbNote raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
-    ApiResultVecDbReadingSession raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
-    ApiResultVecPageContent raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
-    ApiResultVecRichParagraph raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
-    ApiResultVecSearchResult raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti32(
-    ApiResultI32 raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-    ApiResultI64 raw,
-  );
-
-  @protected
-  int
-  cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
-    ApiResultUsize raw,
-  );
+  int cst_encode_book_status(BookStatus raw);
 
   @protected
   bool cst_encode_bool(bool raw);
-
-  @protected
-  int cst_encode_db_book_format(DbBookFormat raw);
-
-  @protected
-  int cst_encode_db_book_status(DbBookStatus raw);
-
-  @protected
-  int cst_encode_db_note_type(DbNoteType raw);
 
   @protected
   double cst_encode_f_32(double raw);
@@ -2255,6 +1356,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int cst_encode_language_type(LanguageType raw);
 
   @protected
+  int cst_encode_note_type(NoteType raw);
+
+  @protected
   int cst_encode_u_8(int raw);
 
   @protected
@@ -2262,225 +1366,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
-    ApiResult self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBilingualAlignment(
-    ApiResultBilingualAlignment self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
-    ApiResultBookMetadata self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultCacheStats(
-    ApiResultCacheStats self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
-    ApiResultDbDailyReadingStats self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
-    ApiResultDbGlobalStats self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
-    ApiResultDbNote self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-    ApiResultEpubMetadata self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-    ApiResultLocalBookInfo self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultNoteStats(
-    ApiResultNoteStats self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
-    ApiResultOptionDbBookCategory self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
-    ApiResultOptionDbBookRecord self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
-    ApiResultOptionDbBookmark self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
-    ApiResultOptionDbChapter self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
-    ApiResultOptionDbLayoutCache self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
-    ApiResultOptionDbReadingProgress self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-    ApiResultParseResult self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-    ApiResultRichChapterContent self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-    ApiResultString self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
-    ApiResultVecDbBookCategory self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
-    ApiResultVecDbBookRecord self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
-    ApiResultVecDbBookmark self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
-    ApiResultVecDbChapter self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
-    ApiResultVecDbDailyReadingStats self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
-    ApiResultVecDbNote self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
-    ApiResultVecDbReadingSession self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
-    ApiResultVecPageContent self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
-    ApiResultVecRichParagraph self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
-    ApiResultVecSearchResult self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti32(
-    ApiResultI32 self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-    ApiResultI64 self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
-    ApiResultUsize self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
+    PageStreamer self,
     SseSerializer serializer,
   );
 
@@ -2489,225 +1376,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
-    ApiResult self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBilingualAlignment(
-    ApiResultBilingualAlignment self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
-    ApiResultBookMetadata self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultCacheStats(
-    ApiResultCacheStats self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
-    ApiResultDbDailyReadingStats self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
-    ApiResultDbGlobalStats self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
-    ApiResultDbNote self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-    ApiResultEpubMetadata self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-    ApiResultLocalBookInfo self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultNoteStats(
-    ApiResultNoteStats self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
-    ApiResultOptionDbBookCategory self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
-    ApiResultOptionDbBookRecord self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
-    ApiResultOptionDbBookmark self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
-    ApiResultOptionDbChapter self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
-    ApiResultOptionDbLayoutCache self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
-    ApiResultOptionDbReadingProgress self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-    ApiResultParseResult self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-    ApiResultRichChapterContent self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-    ApiResultString self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
-    ApiResultVecDbBookCategory self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
-    ApiResultVecDbBookRecord self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
-    ApiResultVecDbBookmark self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
-    ApiResultVecDbChapter self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
-    ApiResultVecDbDailyReadingStats self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
-    ApiResultVecDbNote self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
-    ApiResultVecDbReadingSession self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
-    ApiResultVecPageContent self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
-    ApiResultVecRichParagraph self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
-    ApiResultVecSearchResult self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti32(
-    ApiResultI32 self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-    ApiResultI64 self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
-    ApiResultUsize self,
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
+    PageStreamer self,
     SseSerializer serializer,
   );
 
@@ -2721,10 +1391,31 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_app_error(AppError self, SseSerializer serializer);
+
+  @protected
   void sse_encode_bilingual_alignment(
     BilingualAlignment self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_book(Book self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_book_category(BookCategory self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_book_format(BookFormat self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_book_metadata(BookMetadata self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_book_status(BookStatus self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_bookmark(Bookmark self, SseSerializer serializer);
 
   @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
@@ -2736,62 +1427,65 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_box_autoadd_db_book_category(
-    DbBookCategory self,
+  void sse_encode_box_autoadd_book(Book self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_book_category(
+    BookCategory self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_box_autoadd_db_book_record(
-    DbBookRecord self,
-    SseSerializer serializer,
-  );
+  void sse_encode_box_autoadd_bookmark(Bookmark self, SseSerializer serializer);
 
   @protected
-  void sse_encode_box_autoadd_db_bookmark(
-    DbBookmark self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_box_autoadd_db_daily_reading_stats(
-    DbDailyReadingStats self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_box_autoadd_db_layout_cache(
-    DbLayoutCache self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_box_autoadd_db_note(DbNote self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_box_autoadd_db_note_type(
-    DbNoteType self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_box_autoadd_db_reading_progress(
-    DbReadingProgress self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_box_autoadd_db_reading_session(
-    DbReadingSession self,
-    SseSerializer serializer,
-  );
+  void sse_encode_box_autoadd_chapter(Chapter self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_layout_cache(
+    LayoutCache self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_layout_cache_key(
     LayoutCacheKey self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_note(Note self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_note_type(
+    NoteType self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_reading_progress(
+    ReadingProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_reading_session(
+    ReadingSession self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_reading_stats(
+    ReadingStats self,
     SseSerializer serializer,
   );
 
@@ -2802,55 +1496,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_db_book_category(
-    DbBookCategory self,
+  void sse_encode_chapter(Chapter self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_chapter_content(
+    ChapterContent self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_db_book_format(DbBookFormat self, SseSerializer serializer);
+  void sse_encode_epub_metadata(EpubMetadata self, SseSerializer serializer);
 
   @protected
-  void sse_encode_db_book_record(DbBookRecord self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_db_book_status(DbBookStatus self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_db_bookmark(DbBookmark self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_db_chapter(DbChapter self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_db_daily_reading_stats(
-    DbDailyReadingStats self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_db_layout_cache(DbLayoutCache self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_db_note(DbNote self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_db_note_type(DbNoteType self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_db_reading_progress(
-    DbReadingProgress self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_db_reading_session(
-    DbReadingSession self,
-    SseSerializer serializer,
-  );
+  void sse_encode_epub_toc_item(EpubTocItem self, SseSerializer serializer);
 
   @protected
   void sse_encode_f_32(double self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_global_stats(GlobalStats self, SseSerializer serializer);
 
   @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
@@ -2860,6 +1524,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_language_type(LanguageType self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_layout_cache(LayoutCache self, SseSerializer serializer);
 
   @protected
   void sse_encode_layout_cache_key(
@@ -2877,16 +1544,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_list_db_bookmark(
-    List<DbBookmark> self,
+  void sse_encode_list_book(List<Book> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_book_category(
+    List<BookCategory> self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_list_db_chapter(
-    List<DbChapter> self,
+  void sse_encode_list_bookmark(List<Bookmark> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_chapter(List<Chapter> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_epub_toc_item(
+    List<EpubTocItem> self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_list_note(List<Note> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_page_content(
@@ -2901,14 +1580,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_list_record_i_64_i_64(
-    List<(PlatformInt64, PlatformInt64)> self,
+  void sse_encode_list_reading_session(
+    List<ReadingSession> self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_list_record_usize_usize(
-    List<(BigInt, BigInt)> self,
+  void sse_encode_list_reading_stats(
+    List<ReadingStats> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_record_i_64_i_64(
+    List<(PlatformInt64, PlatformInt64)> self,
     SseSerializer serializer,
   );
 
@@ -2925,6 +1610,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_search_result(
+    List<SearchResult> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_note(Note self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_note_stats(NoteStats self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_note_type(NoteType self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
@@ -2934,8 +1634,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_opt_box_autoadd_db_note_type(
-    DbNoteType? self,
+  void sse_encode_opt_box_autoadd_book(Book? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_book_category(
+    BookCategory? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bookmark(
+    Bookmark? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_chapter(
+    Chapter? self,
     SseSerializer serializer,
   );
 
@@ -2943,13 +1658,61 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_layout_cache(
+    LayoutCache? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_note_type(
+    NoteType? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_reading_progress(
+    ReadingProgress? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_typeset_config(
+    TypesetConfig? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_page_content(PageContent self, SseSerializer serializer);
 
   @protected
-  void sse_encode_page_streamer(PageStreamer self, SseSerializer serializer);
+  void sse_encode_parse_book_result(
+    ParseBookResult self,
+    SseSerializer serializer,
+  );
 
   @protected
-  void sse_encode_parser_error(ParserError self, SseSerializer serializer);
+  void sse_encode_parse_result(ParseResult self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_reading_progress(
+    ReadingProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_reading_session(
+    ReadingSession self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_reading_stats(ReadingStats self, SseSerializer serializer);
 
   @protected
   void sse_encode_record_i_64_i_64(
@@ -2958,8 +1721,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_record_usize_usize(
-    (BigInt, BigInt) self,
+  void sse_encode_rich_chapter_content(
+    RichChapterContent self,
     SseSerializer serializer,
   );
 
@@ -2968,6 +1731,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_rich_text_span(RichTextSpan self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_search_result(SearchResult self, SseSerializer serializer);
 
   @protected
   void sse_encode_typeset_config(TypesetConfig self, SseSerializer serializer);
@@ -2987,310 +1753,376 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 class RustLibWire implements BaseWire {
   RustLibWire.fromExternalLibrary(ExternalLibrary lib);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__bilingual__align_bilingual_content(
+  void wire__crate__api__bilingual__align_bilingual_content(
+    NativePortType port_,
     String chinese_content,
     String english_content,
     double min_similarity,
   ) => wasmModule.wire__crate__api__bilingual__align_bilingual_content(
+    port_,
     chinese_content,
     english_content,
     min_similarity,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__assign_category_to_book(
+  void wire__crate__api__storage__assign_category_to_book(
+    NativePortType port_,
     String book_id,
     String category_id,
   ) => wasmModule.wire__crate__api__storage__assign_category_to_book(
+    port_,
     book_id,
     category_id,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__cleanup_expired_layout_cache(JSAny max_age_days) =>
-      wasmModule.wire__crate__api__storage__cleanup_expired_layout_cache(
-        max_age_days,
-      );
+  void wire__crate__api__storage__cleanup_expired_layout_cache(
+    NativePortType port_,
+    JSAny max_age_days,
+  ) => wasmModule.wire__crate__api__storage__cleanup_expired_layout_cache(
+    port_,
+    max_age_days,
+  );
 
   void wire__crate__api__search__clear_all_search_index(NativePortType port_) =>
       wasmModule.wire__crate__api__search__clear_all_search_index(port_);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__clear_categories_for_book(String book_id) =>
-      wasmModule.wire__crate__api__storage__clear_categories_for_book(book_id);
+  void wire__crate__api__storage__clear_categories_for_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__storage__clear_categories_for_book(
+    port_,
+    book_id,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__incremental__clear_incremental_parser_cache() => wasmModule
-      .wire__crate__api__incremental__clear_incremental_parser_cache();
+  void wire__crate__api__storage__clear_layout_cache(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__storage__clear_layout_cache(port_, book_id);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__clear_layout_cache(String book_id) =>
-      wasmModule.wire__crate__api__storage__clear_layout_cache(book_id);
+  void wire__crate__api__storage__clear_reading_progress(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__storage__clear_reading_progress(
+    port_,
+    book_id,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__clear_reading_progress(String book_id) =>
-      wasmModule.wire__crate__api__storage__clear_reading_progress(book_id);
+  void wire__crate__api__storage__create_bookmark(
+    NativePortType port_,
+    JSAny bookmark,
+  ) => wasmModule.wire__crate__api__storage__create_bookmark(port_, bookmark);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__create_bookmark(JSAny bookmark) =>
-      wasmModule.wire__crate__api__storage__create_bookmark(bookmark);
+  void wire__crate__api__storage__create_note(
+    NativePortType port_,
+    JSAny note,
+  ) => wasmModule.wire__crate__api__storage__create_note(port_, note);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__create_note(JSAny note) =>
-      wasmModule.wire__crate__api__storage__create_note(note);
+  void wire__crate__api__book__create_page_streamer(
+    NativePortType port_,
+    String file_path,
+    int chapter_index,
+    JSAny config,
+  ) => wasmModule.wire__crate__api__book__create_page_streamer(
+    port_,
+    file_path,
+    chapter_index,
+    config,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__create_page_streamer(String content, JSAny config) =>
-      wasmModule.wire__crate__api__core__create_page_streamer(content, config);
+  void wire__crate__api__storage__delete_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__storage__delete_book(port_, book_id);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_book(String book_id) =>
-      wasmModule.wire__crate__api__storage__delete_book(book_id);
+  void wire__crate__api__search__delete_book_search_index(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__search__delete_book_search_index(
+    port_,
+    book_id,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_book_completely(String book_id) =>
-      wasmModule.wire__crate__api__storage__delete_book_completely(book_id);
+  void wire__crate__api__storage__delete_bookmark(
+    NativePortType port_,
+    String bookmark_id,
+  ) =>
+      wasmModule.wire__crate__api__storage__delete_bookmark(port_, bookmark_id);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__search__delete_book_search_index(String book_id) =>
-      wasmModule.wire__crate__api__search__delete_book_search_index(book_id);
+  void wire__crate__api__storage__delete_bookmarks_by_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__storage__delete_bookmarks_by_book(
+    port_,
+    book_id,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_bookmark(String bookmark_id) =>
-      wasmModule.wire__crate__api__storage__delete_bookmark(bookmark_id);
+  void wire__crate__api__storage__delete_category(
+    NativePortType port_,
+    String category_id,
+  ) =>
+      wasmModule.wire__crate__api__storage__delete_category(port_, category_id);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_bookmarks_by_book(String book_id) =>
-      wasmModule.wire__crate__api__storage__delete_bookmarks_by_book(book_id);
+  void wire__crate__api__storage__delete_chapters_by_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__storage__delete_chapters_by_book(
+    port_,
+    book_id,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_category(String category_id) =>
-      wasmModule.wire__crate__api__storage__delete_category(category_id);
+  void wire__crate__api__storage__delete_note(
+    NativePortType port_,
+    String note_id,
+  ) => wasmModule.wire__crate__api__storage__delete_note(port_, note_id);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_chapters_by_book(String book_id) =>
-      wasmModule.wire__crate__api__storage__delete_chapters_by_book(book_id);
+  void wire__crate__api__storage__delete_notes_by_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__storage__delete_notes_by_book(
+    port_,
+    book_id,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_note(String note_id) =>
-      wasmModule.wire__crate__api__storage__delete_note(note_id);
+  void wire__crate__api__storage__delete_sessions_by_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__storage__delete_sessions_by_book(
+    port_,
+    book_id,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_notes_by_book(String book_id) =>
-      wasmModule.wire__crate__api__storage__delete_notes_by_book(book_id);
+  void wire__crate__api__storage__export_database(
+    NativePortType port_,
+    String dest_path,
+  ) => wasmModule.wire__crate__api__storage__export_database(port_, dest_path);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_sessions_by_book(String book_id) =>
-      wasmModule.wire__crate__api__storage__delete_sessions_by_book(book_id);
-
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__cover__extract_book_cover(
+  void wire__crate__api__cover__extract_book_cover(
+    NativePortType port_,
     String file_path,
     String output_dir,
   ) => wasmModule.wire__crate__api__cover__extract_book_cover(
+    port_,
     file_path,
     output_dir,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__extract_chapter(String file_path, int chapter_id) =>
-      wasmModule.wire__crate__api__core__extract_chapter(file_path, chapter_id);
+  void wire__crate__api__book__extract_metadata(
+    NativePortType port_,
+    String file_path,
+  ) => wasmModule.wire__crate__api__book__extract_metadata(port_, file_path);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__extract_metadata(String file_path) =>
-      wasmModule.wire__crate__api__core__extract_metadata(file_path);
+  void wire__crate__api__storage__get_all_books(NativePortType port_) =>
+      wasmModule.wire__crate__api__storage__get_all_books(port_);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_all_books() =>
-      wasmModule.wire__crate__api__storage__get_all_books();
+  void wire__crate__api__storage__get_all_categories(NativePortType port_) =>
+      wasmModule.wire__crate__api__storage__get_all_categories(port_);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_all_categories() =>
-      wasmModule.wire__crate__api__storage__get_all_categories();
+  void wire__crate__api__storage__get_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__storage__get_book(port_, book_id);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_book(String book_id) =>
-      wasmModule.wire__crate__api__storage__get_book(book_id);
+  void wire__crate__api__storage__get_book_count(NativePortType port_) =>
+      wasmModule.wire__crate__api__storage__get_book_count(port_);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_book_count() =>
-      wasmModule.wire__crate__api__storage__get_book_count();
+  void wire__crate__api__storage__get_bookmark(
+    NativePortType port_,
+    String bookmark_id,
+  ) => wasmModule.wire__crate__api__storage__get_bookmark(port_, bookmark_id);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_bookmark(String bookmark_id) =>
-      wasmModule.wire__crate__api__storage__get_bookmark(bookmark_id);
+  void wire__crate__api__storage__get_bookmark_stats(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__storage__get_bookmark_stats(port_, book_id);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_bookmark_stats(String book_id) =>
-      wasmModule.wire__crate__api__storage__get_bookmark_stats(book_id);
+  void wire__crate__api__storage__get_bookmarks(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__storage__get_bookmarks(port_, book_id);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_bookmarks(String book_id) =>
-      wasmModule.wire__crate__api__storage__get_bookmarks(book_id);
+  void wire__crate__api__storage__get_books_by_status(
+    NativePortType port_,
+    int status,
+  ) => wasmModule.wire__crate__api__storage__get_books_by_status(port_, status);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_books_by_status(int status) =>
-      wasmModule.wire__crate__api__storage__get_books_by_status(status);
-
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_books_paginated(
+  void wire__crate__api__storage__get_books_paginated(
+    NativePortType port_,
     int limit,
     int offset,
     String? sort_by,
     String? sort_order,
   ) => wasmModule.wire__crate__api__storage__get_books_paginated(
+    port_,
     limit,
     offset,
     sort_by,
     sort_order,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_categories_for_book(String book_id) =>
-      wasmModule.wire__crate__api__storage__get_categories_for_book(book_id);
+  void wire__crate__api__storage__get_categories_for_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__storage__get_categories_for_book(
+    port_,
+    book_id,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_category(String category_id) =>
-      wasmModule.wire__crate__api__storage__get_category(category_id);
+  void wire__crate__api__storage__get_category(
+    NativePortType port_,
+    String category_id,
+  ) => wasmModule.wire__crate__api__storage__get_category(port_, category_id);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_chapter_by_index(
+  void wire__crate__api__book__get_chapter(
+    NativePortType port_,
+    String file_path,
+    int chapter_index,
+    JSAny? config,
+  ) => wasmModule.wire__crate__api__book__get_chapter(
+    port_,
+    file_path,
+    chapter_index,
+    config,
+  );
+
+  void wire__crate__api__storage__get_chapter_by_index(
+    NativePortType port_,
     String book_id,
     int chapter_index,
   ) => wasmModule.wire__crate__api__storage__get_chapter_by_index(
+    port_,
     book_id,
     chapter_index,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_chapters_by_book(String book_id) =>
-      wasmModule.wire__crate__api__storage__get_chapters_by_book(book_id);
-
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__epub__get_epub_chapter_content(
-    String file_path,
-    int chapter_id,
-    JSAny config,
-  ) => wasmModule.wire__crate__api__epub__get_epub_chapter_content(
-    file_path,
-    chapter_id,
-    config,
+  void wire__crate__api__storage__get_chapters_by_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__storage__get_chapters_by_book(
+    port_,
+    book_id,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__epub__get_epub_chapter_rich_content(
+  void wire__crate__api__epub__get_epub_chapter_rich_content(
+    NativePortType port_,
     String file_path,
-    int chapter_id,
+    int chapter_index,
     JSAny config,
   ) => wasmModule.wire__crate__api__epub__get_epub_chapter_rich_content(
+    port_,
     file_path,
-    chapter_id,
+    chapter_index,
     config,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__epub__get_epub_metadata(String file_path) =>
-      wasmModule.wire__crate__api__epub__get_epub_metadata(file_path);
+  void wire__crate__api__epub__get_epub_metadata(
+    NativePortType port_,
+    String file_path,
+  ) => wasmModule.wire__crate__api__epub__get_epub_metadata(port_, file_path);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__get_file_size(String file_path) =>
-      wasmModule.wire__crate__api__core__get_file_size(file_path);
+  void wire__crate__api__file__get_file_size(
+    NativePortType port_,
+    String file_path,
+  ) => wasmModule.wire__crate__api__file__get_file_size(port_, file_path);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_global_reading_stats() =>
-      wasmModule.wire__crate__api__storage__get_global_reading_stats();
+  void wire__crate__api__storage__get_global_reading_stats(
+    NativePortType port_,
+  ) => wasmModule.wire__crate__api__storage__get_global_reading_stats(port_);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__incremental__get_incremental_parser_stats() =>
-      wasmModule.wire__crate__api__incremental__get_incremental_parser_stats();
-
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_layout_cache(
+  void wire__crate__api__storage__get_layout_cache(
+    NativePortType port_,
     String book_id,
     int chapter_index,
     String config_hash,
   ) => wasmModule.wire__crate__api__storage__get_layout_cache(
+    port_,
     book_id,
     chapter_index,
     config_hash,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_note_stats(String book_id) =>
-      wasmModule.wire__crate__api__storage__get_note_stats(book_id);
+  void wire__crate__api__storage__get_note_stats(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__storage__get_note_stats(port_, book_id);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_notes(String book_id, int? note_type) =>
-      wasmModule.wire__crate__api__storage__get_notes(book_id, note_type);
+  void wire__crate__api__storage__get_notes(
+    NativePortType port_,
+    String book_id,
+    int? note_type,
+  ) => wasmModule.wire__crate__api__storage__get_notes(
+    port_,
+    book_id,
+    note_type,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_pinned_books() =>
-      wasmModule.wire__crate__api__storage__get_pinned_books();
+  void wire__crate__api__storage__get_pinned_books(NativePortType port_) =>
+      wasmModule.wire__crate__api__storage__get_pinned_books(port_);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_reading_progress(String book_id) =>
-      wasmModule.wire__crate__api__storage__get_reading_progress(book_id);
+  void wire__crate__api__storage__get_reading_progress(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__storage__get_reading_progress(
+    port_,
+    book_id,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_reading_sessions(
+  void wire__crate__api__storage__get_reading_sessions(
+    NativePortType port_,
     String book_id,
     JSAny limit,
   ) => wasmModule.wire__crate__api__storage__get_reading_sessions(
+    port_,
     book_id,
     limit,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_reading_stats_range(
+  void wire__crate__api__storage__get_reading_stats_range(
+    NativePortType port_,
     String start_date,
     String end_date,
   ) => wasmModule.wire__crate__api__storage__get_reading_stats_range(
+    port_,
     start_date,
     end_date,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_recent_sessions(JSAny limit) =>
-      wasmModule.wire__crate__api__storage__get_recent_sessions(limit);
+  void wire__crate__api__storage__get_recent_sessions(
+    NativePortType port_,
+    JSAny limit,
+  ) => wasmModule.wire__crate__api__storage__get_recent_sessions(port_, limit);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_recently_read_books(JSAny limit) =>
-      wasmModule.wire__crate__api__storage__get_recently_read_books(limit);
+  void wire__crate__api__storage__get_recently_read_books(
+    NativePortType port_,
+    JSAny limit,
+  ) => wasmModule.wire__crate__api__storage__get_recently_read_books(
+    port_,
+    limit,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_sessions_by_date_range(
+  void wire__crate__api__storage__get_sessions_by_date_range(
+    NativePortType port_,
     String book_id,
     String start_date,
     String end_date,
   ) => wasmModule.wire__crate__api__storage__get_sessions_by_date_range(
+    port_,
     book_id,
     start_date,
     end_date,
   );
 
   JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__get_supported_formats() =>
-      wasmModule.wire__crate__api__core__get_supported_formats();
+  wire__crate__api__book__get_supported_formats() =>
+      wasmModule.wire__crate__api__book__get_supported_formats();
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_today_reading_stats() =>
-      wasmModule.wire__crate__api__storage__get_today_reading_stats();
+  void wire__crate__api__storage__get_today_reading_stats(
+    NativePortType port_,
+  ) => wasmModule.wire__crate__api__storage__get_today_reading_stats(port_);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__get_txt_chapter_content(
-    String file_path,
-    int chapter_index,
-    JSAny config,
-  ) => wasmModule.wire__crate__api__core__get_txt_chapter_content(
-    file_path,
-    chapter_index,
-    config,
-  );
-
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__import_bookmarks(JSAny bookmarks) =>
-      wasmModule.wire__crate__api__storage__import_bookmarks(bookmarks);
+  void wire__crate__api__storage__import_bookmarks(
+    NativePortType port_,
+    JSAny bookmarks,
+  ) => wasmModule.wire__crate__api__storage__import_bookmarks(port_, bookmarks);
 
   void wire__crate__api__search__index_chapter_content(
     NativePortType port_,
@@ -3306,30 +2138,18 @@ class RustLibWire implements BaseWire {
     content,
   );
 
-  void wire__crate__api__core__init_app(NativePortType port_) =>
-      wasmModule.wire__crate__api__core__init_app(port_);
+  void wire__crate__api__search__init_search_engine(NativePortType port_) =>
+      wasmModule.wire__crate__api__search__init_search_engine(port_);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__incremental__init_incremental_parser() =>
-      wasmModule.wire__crate__api__incremental__init_incremental_parser();
-
-  void wire__crate__api__search__init_search_engine(
+  void wire__crate__api__book__paginate_all_content(
     NativePortType port_,
-    String db_path,
-  ) => wasmModule.wire__crate__api__search__init_search_engine(port_, db_path);
-
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__epub__is_epub_file(String file_path) =>
-      wasmModule.wire__crate__api__epub__is_epub_file(file_path);
-
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__paginate_all_content(
-    String content,
-    int chapter_id,
+    String file_path,
+    int chapter_index,
     JSAny config,
-  ) => wasmModule.wire__crate__api__core__paginate_all_content(
-    content,
-    chapter_id,
+  ) => wasmModule.wire__crate__api__book__paginate_all_content(
+    port_,
+    file_path,
+    chapter_index,
     config,
   );
 
@@ -3344,94 +2164,118 @@ class RustLibWire implements BaseWire {
     config,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__parse_book(String file_path) =>
-      wasmModule.wire__crate__api__core__parse_book(file_path);
+  void wire__crate__api__book__parse_book(
+    NativePortType port_,
+    String file_path,
+  ) => wasmModule.wire__crate__api__book__parse_book(port_, file_path);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__epub__parse_epub_chapter_rich(
+  void wire__crate__api__epub__parse_epub_chapter_rich(
+    NativePortType port_,
     String file_path,
     int chapter_index,
   ) => wasmModule.wire__crate__api__epub__parse_epub_chapter_rich(
+    port_,
     file_path,
     chapter_index,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__incremental__parse_local_book_incremental(
-    String file_path,
-  ) => wasmModule.wire__crate__api__incremental__parse_local_book_incremental(
-    file_path,
-  );
-
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__read_file_chunk(
+  void wire__crate__api__file__read_file_chunk(
+    NativePortType port_,
     String file_path,
     JSAny start_pos,
     JSAny chunk_size,
-  ) => wasmModule.wire__crate__api__core__read_file_chunk(
+  ) => wasmModule.wire__crate__api__file__read_file_chunk(
+    port_,
     file_path,
     start_pos,
     chunk_size,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__record_reading_session(JSAny session) =>
-      wasmModule.wire__crate__api__storage__record_reading_session(session);
+  void wire__crate__api__storage__record_reading_session(
+    NativePortType port_,
+    JSAny session,
+  ) => wasmModule.wire__crate__api__storage__record_reading_session(
+    port_,
+    session,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__remove_category_from_book(
+  void wire__crate__api__storage__remove_category_from_book(
+    NativePortType port_,
     String book_id,
     String category_id,
   ) => wasmModule.wire__crate__api__storage__remove_category_from_book(
+    port_,
     book_id,
     category_id,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__save_book(JSAny book) =>
-      wasmModule.wire__crate__api__storage__save_book(book);
+  void wire__crate__api__storage__restore_database(
+    NativePortType port_,
+    String backup_path,
+  ) => wasmModule.wire__crate__api__storage__restore_database(
+    port_,
+    backup_path,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__save_category(JSAny category) =>
-      wasmModule.wire__crate__api__storage__save_category(category);
+  void wire__crate__api__storage__save_book(NativePortType port_, JSAny book) =>
+      wasmModule.wire__crate__api__storage__save_book(port_, book);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__save_chapters(String book_id, JSAny chapters) =>
-      wasmModule.wire__crate__api__storage__save_chapters(book_id, chapters);
+  void wire__crate__api__storage__save_category(
+    NativePortType port_,
+    JSAny category,
+  ) => wasmModule.wire__crate__api__storage__save_category(port_, category);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__save_layout_cache(JSAny cache, JSAny key) =>
-      wasmModule.wire__crate__api__storage__save_layout_cache(cache, key);
+  void wire__crate__api__storage__save_chapters(
+    NativePortType port_,
+    String book_id,
+    JSAny chapters,
+  ) => wasmModule.wire__crate__api__storage__save_chapters(
+    port_,
+    book_id,
+    chapters,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__save_reading_progress(JSAny progress) =>
-      wasmModule.wire__crate__api__storage__save_reading_progress(progress);
+  void wire__crate__api__storage__save_layout_cache(
+    NativePortType port_,
+    JSAny cache,
+    JSAny key,
+  ) => wasmModule.wire__crate__api__storage__save_layout_cache(
+    port_,
+    cache,
+    key,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__search_books(String keyword) =>
-      wasmModule.wire__crate__api__storage__search_books(keyword);
+  void wire__crate__api__storage__save_reading_progress(
+    NativePortType port_,
+    JSAny progress,
+  ) => wasmModule.wire__crate__api__storage__save_reading_progress(
+    port_,
+    progress,
+  );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__search__search_in_book(
+  void wire__crate__api__storage__search_books(
+    NativePortType port_,
+    String keyword,
+  ) => wasmModule.wire__crate__api__storage__search_books(port_, keyword);
+
+  void wire__crate__api__search__search_in_book(
+    NativePortType port_,
     String book_id,
     String query,
     int limit,
   ) => wasmModule.wire__crate__api__search__search_in_book(
+    port_,
     book_id,
     query,
     limit,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__set_allowed_base_dir(String base_dir) =>
-      wasmModule.wire__crate__api__core__set_allowed_base_dir(base_dir);
-
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__set_categories_for_book(
+  void wire__crate__api__storage__set_categories_for_book(
+    NativePortType port_,
     String book_id,
     JSAny category_ids,
   ) => wasmModule.wire__crate__api__storage__set_categories_for_book(
+    port_,
     book_id,
     category_ids,
   );
@@ -3450,570 +2294,76 @@ class RustLibWire implements BaseWire {
       wasmModule.wire__crate__api__cover__supports_cover_extraction(file_path);
 
   JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__supports_format(String format) =>
-      wasmModule.wire__crate__api__core__supports_format(format);
+  wire__crate__api__book__supports_format(String format) =>
+      wasmModule.wire__crate__api__book__supports_format(format);
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__sync_bookmarks(
+  void wire__crate__api__storage__sync_bookmarks(
+    NativePortType port_,
     JSAny local_bookmarks,
     JSAny remote_bookmarks,
   ) => wasmModule.wire__crate__api__storage__sync_bookmarks(
+    port_,
     local_bookmarks,
     remote_bookmarks,
   );
 
   JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__test_connection() =>
-      wasmModule.wire__crate__api__core__test_connection();
+  wire__crate__api__test_connection() =>
+      wasmModule.wire__crate__api__test_connection();
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__typeset_text(
+  void wire__crate__api__typeset__typeset_text(
+    NativePortType port_,
     String content,
-    String language,
     JSAny config,
-  ) => wasmModule.wire__crate__api__core__typeset_text(
+  ) => wasmModule.wire__crate__api__typeset__typeset_text(
+    port_,
     content,
-    language,
     config,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__update_book(JSAny book) =>
-      wasmModule.wire__crate__api__storage__update_book(book);
-
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__update_book_pin(String book_id, bool is_pinned) =>
-      wasmModule.wire__crate__api__storage__update_book_pin(book_id, is_pinned);
-
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__update_book_status(String book_id, int status) =>
-      wasmModule.wire__crate__api__storage__update_book_status(book_id, status);
-
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__update_daily_stats(JSAny stats) =>
-      wasmModule.wire__crate__api__storage__update_daily_stats(stats);
-
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__update_note(JSAny note) =>
-      wasmModule.wire__crate__api__storage__update_note(note);
-
-  void wire__crate__api__security__validate_file_path(
+  void wire__crate__api__storage__update_book_pin(
     NativePortType port_,
-    String file_path,
-  ) => wasmModule.wire__crate__api__security__validate_file_path(
+    String book_id,
+    bool is_pinned,
+  ) => wasmModule.wire__crate__api__storage__update_book_pin(
     port_,
-    file_path,
+    book_id,
+    is_pinned,
   );
 
+  void wire__crate__api__storage__update_book_status(
+    NativePortType port_,
+    String book_id,
+    int status,
+  ) => wasmModule.wire__crate__api__storage__update_book_status(
+    port_,
+    book_id,
+    status,
+  );
+
+  void wire__crate__api__storage__update_daily_stats(
+    NativePortType port_,
+    JSAny stats,
+  ) => wasmModule.wire__crate__api__storage__update_daily_stats(port_, stats);
+
+  void wire__crate__api__storage__update_note(
+    NativePortType port_,
+    JSAny note,
+  ) => wasmModule.wire__crate__api__storage__update_note(port_, note);
+
   void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
     int ptr,
   ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
         ptr,
       );
 
   void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
     int ptr,
   ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBilingualAlignment(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBilingualAlignment(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBilingualAlignment(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBilingualAlignment(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultCacheStats(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultCacheStats(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultCacheStats(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultCacheStats(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultNoteStats(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultNoteStats(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultNoteStats(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultNoteStats(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti32(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti32(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti32(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti32(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-        ptr,
-      );
-
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
         ptr,
       );
 }
@@ -4024,218 +2374,278 @@ external RustLibWasmModule get wasmModule;
 @JS()
 @anonymous
 extension type RustLibWasmModule._(JSObject _) implements JSObject {
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__bilingual__align_bilingual_content(
+  external void wire__crate__api__bilingual__align_bilingual_content(
+    NativePortType port_,
     String chinese_content,
     String english_content,
     double min_similarity,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__assign_category_to_book(
+  external void wire__crate__api__storage__assign_category_to_book(
+    NativePortType port_,
     String book_id,
     String category_id,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__cleanup_expired_layout_cache(JSAny max_age_days);
+  external void wire__crate__api__storage__cleanup_expired_layout_cache(
+    NativePortType port_,
+    JSAny max_age_days,
+  );
 
   external void wire__crate__api__search__clear_all_search_index(
     NativePortType port_,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__clear_categories_for_book(String book_id);
+  external void wire__crate__api__storage__clear_categories_for_book(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__incremental__clear_incremental_parser_cache();
+  external void wire__crate__api__storage__clear_layout_cache(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__clear_layout_cache(String book_id);
+  external void wire__crate__api__storage__clear_reading_progress(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__clear_reading_progress(String book_id);
+  external void wire__crate__api__storage__create_bookmark(
+    NativePortType port_,
+    JSAny bookmark,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__create_bookmark(JSAny bookmark);
+  external void wire__crate__api__storage__create_note(
+    NativePortType port_,
+    JSAny note,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__create_note(JSAny note);
+  external void wire__crate__api__book__create_page_streamer(
+    NativePortType port_,
+    String file_path,
+    int chapter_index,
+    JSAny config,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__create_page_streamer(String content, JSAny config);
+  external void wire__crate__api__storage__delete_book(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_book(String book_id);
+  external void wire__crate__api__search__delete_book_search_index(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_book_completely(String book_id);
+  external void wire__crate__api__storage__delete_bookmark(
+    NativePortType port_,
+    String bookmark_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__search__delete_book_search_index(String book_id);
+  external void wire__crate__api__storage__delete_bookmarks_by_book(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_bookmark(String bookmark_id);
+  external void wire__crate__api__storage__delete_category(
+    NativePortType port_,
+    String category_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_bookmarks_by_book(String book_id);
+  external void wire__crate__api__storage__delete_chapters_by_book(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_category(String category_id);
+  external void wire__crate__api__storage__delete_note(
+    NativePortType port_,
+    String note_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_chapters_by_book(String book_id);
+  external void wire__crate__api__storage__delete_notes_by_book(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_note(String note_id);
+  external void wire__crate__api__storage__delete_sessions_by_book(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_notes_by_book(String book_id);
+  external void wire__crate__api__storage__export_database(
+    NativePortType port_,
+    String dest_path,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__delete_sessions_by_book(String book_id);
-
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__cover__extract_book_cover(
+  external void wire__crate__api__cover__extract_book_cover(
+    NativePortType port_,
     String file_path,
     String output_dir,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__extract_chapter(String file_path, int chapter_id);
+  external void wire__crate__api__book__extract_metadata(
+    NativePortType port_,
+    String file_path,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__extract_metadata(String file_path);
+  external void wire__crate__api__storage__get_all_books(NativePortType port_);
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_all_books();
+  external void wire__crate__api__storage__get_all_categories(
+    NativePortType port_,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_all_categories();
+  external void wire__crate__api__storage__get_book(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_book(String book_id);
+  external void wire__crate__api__storage__get_book_count(NativePortType port_);
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_book_count();
+  external void wire__crate__api__storage__get_bookmark(
+    NativePortType port_,
+    String bookmark_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_bookmark(String bookmark_id);
+  external void wire__crate__api__storage__get_bookmark_stats(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_bookmark_stats(String book_id);
+  external void wire__crate__api__storage__get_bookmarks(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_bookmarks(String book_id);
+  external void wire__crate__api__storage__get_books_by_status(
+    NativePortType port_,
+    int status,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_books_by_status(int status);
-
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_books_paginated(
+  external void wire__crate__api__storage__get_books_paginated(
+    NativePortType port_,
     int limit,
     int offset,
     String? sort_by,
     String? sort_order,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_categories_for_book(String book_id);
+  external void wire__crate__api__storage__get_categories_for_book(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_category(String category_id);
+  external void wire__crate__api__storage__get_category(
+    NativePortType port_,
+    String category_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_chapter_by_index(
+  external void wire__crate__api__book__get_chapter(
+    NativePortType port_,
+    String file_path,
+    int chapter_index,
+    JSAny? config,
+  );
+
+  external void wire__crate__api__storage__get_chapter_by_index(
+    NativePortType port_,
     String book_id,
     int chapter_index,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_chapters_by_book(String book_id);
+  external void wire__crate__api__storage__get_chapters_by_book(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__epub__get_epub_chapter_content(
+  external void wire__crate__api__epub__get_epub_chapter_rich_content(
+    NativePortType port_,
     String file_path,
-    int chapter_id,
+    int chapter_index,
     JSAny config,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__epub__get_epub_chapter_rich_content(
+  external void wire__crate__api__epub__get_epub_metadata(
+    NativePortType port_,
     String file_path,
-    int chapter_id,
-    JSAny config,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__epub__get_epub_metadata(String file_path);
+  external void wire__crate__api__file__get_file_size(
+    NativePortType port_,
+    String file_path,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__get_file_size(String file_path);
+  external void wire__crate__api__storage__get_global_reading_stats(
+    NativePortType port_,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_global_reading_stats();
-
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__incremental__get_incremental_parser_stats();
-
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_layout_cache(
+  external void wire__crate__api__storage__get_layout_cache(
+    NativePortType port_,
     String book_id,
     int chapter_index,
     String config_hash,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_note_stats(String book_id);
+  external void wire__crate__api__storage__get_note_stats(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_notes(String book_id, int? note_type);
+  external void wire__crate__api__storage__get_notes(
+    NativePortType port_,
+    String book_id,
+    int? note_type,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_pinned_books();
+  external void wire__crate__api__storage__get_pinned_books(
+    NativePortType port_,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_reading_progress(String book_id);
+  external void wire__crate__api__storage__get_reading_progress(
+    NativePortType port_,
+    String book_id,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_reading_sessions(String book_id, JSAny limit);
+  external void wire__crate__api__storage__get_reading_sessions(
+    NativePortType port_,
+    String book_id,
+    JSAny limit,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_reading_stats_range(
+  external void wire__crate__api__storage__get_reading_stats_range(
+    NativePortType port_,
     String start_date,
     String end_date,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_recent_sessions(JSAny limit);
+  external void wire__crate__api__storage__get_recent_sessions(
+    NativePortType port_,
+    JSAny limit,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_recently_read_books(JSAny limit);
+  external void wire__crate__api__storage__get_recently_read_books(
+    NativePortType port_,
+    JSAny limit,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_sessions_by_date_range(
+  external void wire__crate__api__storage__get_sessions_by_date_range(
+    NativePortType port_,
     String book_id,
     String start_date,
     String end_date,
   );
 
   external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__get_supported_formats();
+  wire__crate__api__book__get_supported_formats();
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__get_today_reading_stats();
-
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__get_txt_chapter_content(
-    String file_path,
-    int chapter_index,
-    JSAny config,
+  external void wire__crate__api__storage__get_today_reading_stats(
+    NativePortType port_,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__import_bookmarks(JSAny bookmarks);
+  external void wire__crate__api__storage__import_bookmarks(
+    NativePortType port_,
+    JSAny bookmarks,
+  );
 
   external void wire__crate__api__search__index_chapter_content(
     NativePortType port_,
@@ -4245,23 +2655,14 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     String content,
   );
 
-  external void wire__crate__api__core__init_app(NativePortType port_);
-
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__incremental__init_incremental_parser();
-
   external void wire__crate__api__search__init_search_engine(
     NativePortType port_,
-    String db_path,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__epub__is_epub_file(String file_path);
-
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__paginate_all_content(
-    String content,
-    int chapter_id,
+  external void wire__crate__api__book__paginate_all_content(
+    NativePortType port_,
+    String file_path,
+    int chapter_index,
     JSAny config,
   );
 
@@ -4272,64 +2673,81 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     JSAny config,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__parse_book(String file_path);
+  external void wire__crate__api__book__parse_book(
+    NativePortType port_,
+    String file_path,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__epub__parse_epub_chapter_rich(
+  external void wire__crate__api__epub__parse_epub_chapter_rich(
+    NativePortType port_,
     String file_path,
     int chapter_index,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__incremental__parse_local_book_incremental(String file_path);
-
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__read_file_chunk(
+  external void wire__crate__api__file__read_file_chunk(
+    NativePortType port_,
     String file_path,
     JSAny start_pos,
     JSAny chunk_size,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__record_reading_session(JSAny session);
+  external void wire__crate__api__storage__record_reading_session(
+    NativePortType port_,
+    JSAny session,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__remove_category_from_book(
+  external void wire__crate__api__storage__remove_category_from_book(
+    NativePortType port_,
     String book_id,
     String category_id,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__save_book(JSAny book);
+  external void wire__crate__api__storage__restore_database(
+    NativePortType port_,
+    String backup_path,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__save_category(JSAny category);
+  external void wire__crate__api__storage__save_book(
+    NativePortType port_,
+    JSAny book,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__save_chapters(String book_id, JSAny chapters);
+  external void wire__crate__api__storage__save_category(
+    NativePortType port_,
+    JSAny category,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__save_layout_cache(JSAny cache, JSAny key);
+  external void wire__crate__api__storage__save_chapters(
+    NativePortType port_,
+    String book_id,
+    JSAny chapters,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__save_reading_progress(JSAny progress);
+  external void wire__crate__api__storage__save_layout_cache(
+    NativePortType port_,
+    JSAny cache,
+    JSAny key,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__search_books(String keyword);
+  external void wire__crate__api__storage__save_reading_progress(
+    NativePortType port_,
+    JSAny progress,
+  );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__search__search_in_book(
+  external void wire__crate__api__storage__search_books(
+    NativePortType port_,
+    String keyword,
+  );
+
+  external void wire__crate__api__search__search_in_book(
+    NativePortType port_,
     String book_id,
     String query,
     int limit,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__set_allowed_base_dir(String base_dir);
-
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__set_categories_for_book(
+  external void wire__crate__api__storage__set_categories_for_book(
+    NativePortType port_,
     String book_id,
     JSAny category_ids,
   );
@@ -4344,361 +2762,52 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
   wire__crate__api__cover__supports_cover_extraction(String file_path);
 
   external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__supports_format(String format);
+  wire__crate__api__book__supports_format(String format);
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__sync_bookmarks(
+  external void wire__crate__api__storage__sync_bookmarks(
+    NativePortType port_,
     JSAny local_bookmarks,
     JSAny remote_bookmarks,
   );
 
   external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__test_connection();
+  wire__crate__api__test_connection();
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__core__typeset_text(
+  external void wire__crate__api__typeset__typeset_text(
+    NativePortType port_,
     String content,
-    String language,
     JSAny config,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__update_book(JSAny book);
-
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__update_book_pin(String book_id, bool is_pinned);
-
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__update_book_status(String book_id, int status);
-
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__update_daily_stats(JSAny stats);
-
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__storage__update_note(JSAny note);
-
-  external void wire__crate__api__security__validate_file_path(
+  external void wire__crate__api__storage__update_book_pin(
     NativePortType port_,
-    String file_path,
+    String book_id,
+    bool is_pinned,
+  );
+
+  external void wire__crate__api__storage__update_book_status(
+    NativePortType port_,
+    String book_id,
+    int status,
+  );
+
+  external void wire__crate__api__storage__update_daily_stats(
+    NativePortType port_,
+    JSAny stats,
+  );
+
+  external void wire__crate__api__storage__update_note(
+    NativePortType port_,
+    JSAny note,
   );
 
   external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
     int ptr,
   );
 
   external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResult(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBilingualAlignment(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBilingualAlignment(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultBookMetadata(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultCacheStats(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultCacheStats(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbDailyReadingStats(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbGlobalStats(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultDbNote(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultEpubMetadata(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultLocalBookInfo(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultNoteStats(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultNoteStats(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookCategory(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookRecord(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbBookmark(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbChapter(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbLayoutCache(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultOptionDbReadingProgress(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultParseResult(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultRichChapterContent(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultString(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookCategory(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookRecord(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbBookmark(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbChapter(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbDailyReadingStats(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbNote(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecDbReadingSession(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecPageContent(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecRichParagraph(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultVecSearchResult(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti32(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti32(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResulti64(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerApiResultusize(
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
     int ptr,
   );
 }

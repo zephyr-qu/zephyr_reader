@@ -1,23 +1,19 @@
 //! 封面提取 API
 //!
 //! 提供统一的封面提取入口，支持 EPUB、PDF 等多种格式。
-use crate::api::security::validate_file_path;
-use crate::ffi::{ApiResult, ParserError};
+
+use crate::domain::AppError;
 use crate::parser::get_cover_registry;
+use crate::utils::security::validate_file_path_async;
 use flutter_rust_bridge::frb;
 use std::path::Path;
 
 /// 提取书籍封面
 ///
 /// 自动检测文件类型并提取封面图片，保存到指定目录。
-#[frb(sync)]
-pub fn extract_book_cover(file_path: String, output_dir: String) -> ApiResult<String> {
-    let validated_path = validate_file_path(&file_path)?;
-
-    if !Path::new(&validated_path).exists() {
-        return Err(ParserError::file_not_found(&validated_path));
-    }
-
+#[frb]
+pub async fn extract_book_cover(file_path: String, output_dir: String) -> Result<String, AppError> {
+    let validated_path = validate_file_path_async(&file_path).await?;
     let registry = get_cover_registry();
     registry.extract_cover(&validated_path, &output_dir)
 }

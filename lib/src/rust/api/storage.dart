@@ -3,295 +3,36 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import '../domain/error.dart';
 import '../frb_generated.dart';
 import '../storage/models.dart';
-import 'core.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-/// 获取所有书籍
-ApiResultVecDbBookRecord getAllBooks() =>
+Future<List<Book>> getAllBooks() =>
     RustLib.instance.api.crateApiStorageGetAllBooks();
 
-/// 保存书籍
-ApiResult saveBook({required DbBookRecord book}) =>
+Future<void> saveBook({required Book book}) =>
     RustLib.instance.api.crateApiStorageSaveBook(book: book);
 
-/// 删除书籍
-ApiResult deleteBook({required String bookId}) =>
+Future<void> deleteBook({required String bookId}) =>
     RustLib.instance.api.crateApiStorageDeleteBook(bookId: bookId);
 
-/// 搜索书籍
-ApiResultVecDbBookRecord searchBooks({required String keyword}) =>
+Future<List<Book>> searchBooks({required String keyword}) =>
     RustLib.instance.api.crateApiStorageSearchBooks(keyword: keyword);
 
-/// 获取章节列表
-ApiResultVecDbChapter getChaptersByBook({required String bookId}) =>
-    RustLib.instance.api.crateApiStorageGetChaptersByBook(bookId: bookId);
-
-/// 保存章节列表
-ApiResult saveChapters({
-  required String bookId,
-  required List<DbChapter> chapters,
-}) => RustLib.instance.api.crateApiStorageSaveChapters(
-  bookId: bookId,
-  chapters: chapters,
-);
-
-/// 删除书籍的所有章节
-ApiResult deleteChaptersByBook({required String bookId}) =>
-    RustLib.instance.api.crateApiStorageDeleteChaptersByBook(bookId: bookId);
-
-/// 获取阅读进度
-ApiResultOptionDbReadingProgress getReadingProgress({required String bookId}) =>
-    RustLib.instance.api.crateApiStorageGetReadingProgress(bookId: bookId);
-
-/// 保存阅读进度
-ApiResult saveReadingProgress({required DbReadingProgress progress}) =>
-    RustLib.instance.api.crateApiStorageSaveReadingProgress(progress: progress);
-
-/// 清除阅读进度
-ApiResult clearReadingProgress({required String bookId}) =>
-    RustLib.instance.api.crateApiStorageClearReadingProgress(bookId: bookId);
-
-/// 获取书签列表
-ApiResultVecDbBookmark getBookmarks({required String bookId}) =>
-    RustLib.instance.api.crateApiStorageGetBookmarks(bookId: bookId);
-
-/// 创建书签
-ApiResult createBookmark({required DbBookmark bookmark}) =>
-    RustLib.instance.api.crateApiStorageCreateBookmark(bookmark: bookmark);
-
-/// 删除书签
-ApiResult deleteBookmark({required String bookmarkId}) =>
-    RustLib.instance.api.crateApiStorageDeleteBookmark(bookmarkId: bookmarkId);
-
-/// 记录阅读会话
-ApiResult recordReadingSession({required DbReadingSession session}) =>
-    RustLib.instance.api.crateApiStorageRecordReadingSession(session: session);
-
-/// 获取今日统计
-ApiResultDbDailyReadingStats getTodayReadingStats() =>
-    RustLib.instance.api.crateApiStorageGetTodayReadingStats();
-
-/// 获取日期范围统计
-ApiResultVecDbDailyReadingStats getReadingStatsRange({
-  required String startDate,
-  required String endDate,
-}) => RustLib.instance.api.crateApiStorageGetReadingStatsRange(
-  startDate: startDate,
-  endDate: endDate,
-);
-
-/// 获取全局统计
-ApiResultDbGlobalStats getGlobalReadingStats() =>
-    RustLib.instance.api.crateApiStorageGetGlobalReadingStats();
-
-/// 获取所有分类
-ApiResultVecDbBookCategory getAllCategories() =>
-    RustLib.instance.api.crateApiStorageGetAllCategories();
-
-/// 保存分类
-ApiResult saveCategory({required DbBookCategory category}) =>
-    RustLib.instance.api.crateApiStorageSaveCategory(category: category);
-
-/// 删除分类
-ApiResult deleteCategory({required String categoryId}) =>
-    RustLib.instance.api.crateApiStorageDeleteCategory(categoryId: categoryId);
-
-/// 获取书籍的分类
-ApiResultVecDbBookCategory getCategoriesForBook({required String bookId}) =>
-    RustLib.instance.api.crateApiStorageGetCategoriesForBook(bookId: bookId);
-
-/// 分配分类到书籍
-ApiResult assignCategoryToBook({
-  required String bookId,
-  required String categoryId,
-}) => RustLib.instance.api.crateApiStorageAssignCategoryToBook(
-  bookId: bookId,
-  categoryId: categoryId,
-);
-
-/// 移除书籍的分类
-ApiResult removeCategoryFromBook({
-  required String bookId,
-  required String categoryId,
-}) => RustLib.instance.api.crateApiStorageRemoveCategoryFromBook(
-  bookId: bookId,
-  categoryId: categoryId,
-);
-
-/// 设置书籍的分类列表
-ApiResult setCategoriesForBook({
-  required String bookId,
-  required List<String> categoryIds,
-}) => RustLib.instance.api.crateApiStorageSetCategoriesForBook(
-  bookId: bookId,
-  categoryIds: categoryIds,
-);
-
-/// 保存排版缓存
-ApiResult saveLayoutCache({
-  required DbLayoutCache cache,
-  required LayoutCacheKey key,
-}) =>
-    RustLib.instance.api.crateApiStorageSaveLayoutCache(cache: cache, key: key);
-
-/// 获取排版缓存
-ApiResultOptionDbLayoutCache getLayoutCache({
-  required String bookId,
-  required int chapterIndex,
-  required String configHash,
-}) => RustLib.instance.api.crateApiStorageGetLayoutCache(
-  bookId: bookId,
-  chapterIndex: chapterIndex,
-  configHash: configHash,
-);
-
-/// 清除书籍排版缓存
-ApiResult clearLayoutCache({required String bookId}) =>
-    RustLib.instance.api.crateApiStorageClearLayoutCache(bookId: bookId);
-
-/// 清理过期排版缓存
-ApiResultUsize cleanupExpiredLayoutCache({required PlatformInt64 maxAgeDays}) =>
-    RustLib.instance.api.crateApiStorageCleanupExpiredLayoutCache(
-      maxAgeDays: maxAgeDays,
-    );
-
-/// 根据 ID 获取书籍
-ApiResultOptionDbBookRecord getBook({required String bookId}) =>
+Future<Book?> getBook({required String bookId}) =>
     RustLib.instance.api.crateApiStorageGetBook(bookId: bookId);
 
-/// 按状态筛选书籍
-ApiResultVecDbBookRecord getBooksByStatus({required DbBookStatus status}) =>
+Future<List<Book>> getBooksByStatus({required BookStatus status}) =>
     RustLib.instance.api.crateApiStorageGetBooksByStatus(status: status);
 
-/// 获取置顶书籍
-ApiResultVecDbBookRecord getPinnedBooks() =>
+Future<List<Book>> getPinnedBooks() =>
     RustLib.instance.api.crateApiStorageGetPinnedBooks();
 
-/// 获取最近阅读的书籍
-ApiResultVecDbBookRecord getRecentlyReadBooks({required BigInt limit}) =>
+Future<List<Book>> getRecentlyReadBooks({required BigInt limit}) =>
     RustLib.instance.api.crateApiStorageGetRecentlyReadBooks(limit: limit);
 
-/// 获取单个书签详情
-ApiResultOptionDbBookmark getBookmark({required String bookmarkId}) =>
-    RustLib.instance.api.crateApiStorageGetBookmark(bookmarkId: bookmarkId);
-
-/// 删除书籍的所有书签
-ApiResult deleteBookmarksByBook({required String bookId}) =>
-    RustLib.instance.api.crateApiStorageDeleteBookmarksByBook(bookId: bookId);
-
-/// 导入书签列表（upsert）
-ApiResult importBookmarks({required List<DbBookmark> bookmarks}) =>
-    RustLib.instance.api.crateApiStorageImportBookmarks(bookmarks: bookmarks);
-
-/// 获取书籍的阅读会话列表
-ApiResultVecDbReadingSession getReadingSessions({
-  required String bookId,
-  required BigInt limit,
-}) => RustLib.instance.api.crateApiStorageGetReadingSessions(
-  bookId: bookId,
-  limit: limit,
-);
-
-/// 获取日期范围内的阅读会话
-ApiResultVecDbReadingSession getSessionsByDateRange({
-  required String bookId,
-  required String startDate,
-  required String endDate,
-}) => RustLib.instance.api.crateApiStorageGetSessionsByDateRange(
-  bookId: bookId,
-  startDate: startDate,
-  endDate: endDate,
-);
-
-/// 获取最近的阅读会话（跨书籍）
-ApiResultVecDbReadingSession getRecentSessions({required BigInt limit}) =>
-    RustLib.instance.api.crateApiStorageGetRecentSessions(limit: limit);
-
-/// 删除书籍的所有阅读会话
-ApiResult deleteSessionsByBook({required String bookId}) =>
-    RustLib.instance.api.crateApiStorageDeleteSessionsByBook(bookId: bookId);
-
-/// 获取单个分类详情
-ApiResultOptionDbBookCategory getCategory({required String categoryId}) =>
-    RustLib.instance.api.crateApiStorageGetCategory(categoryId: categoryId);
-
-/// 清除书籍的所有分类关系
-ApiResult clearCategoriesForBook({required String bookId}) =>
-    RustLib.instance.api.crateApiStorageClearCategoriesForBook(bookId: bookId);
-
-/// 获取指定章节
-ApiResultOptionDbChapter getChapterByIndex({
-  required String bookId,
-  required int chapterIndex,
-}) => RustLib.instance.api.crateApiStorageGetChapterByIndex(
-  bookId: bookId,
-  chapterIndex: chapterIndex,
-);
-
-/// 同步书签（本地与远端合并，返回合并后列表）
-ApiResultVecDbBookmark syncBookmarks({
-  required List<DbBookmark> localBookmarks,
-  required List<DbBookmark> remoteBookmarks,
-}) => RustLib.instance.api.crateApiStorageSyncBookmarks(
-  localBookmarks: localBookmarks,
-  remoteBookmarks: remoteBookmarks,
-);
-
-/// 获取书签统计（总数）
-ApiResultI32 getBookmarkStats({required String bookId}) =>
-    RustLib.instance.api.crateApiStorageGetBookmarkStats(bookId: bookId);
-
-/// 创建笔记
-ApiResultDbNote createNote({required DbNote note}) =>
-    RustLib.instance.api.crateApiStorageCreateNote(note: note);
-
-/// 获取笔记列表
-ApiResultVecDbNote getNotes({required String bookId, DbNoteType? noteType}) =>
-    RustLib.instance.api.crateApiStorageGetNotes(
-      bookId: bookId,
-      noteType: noteType,
-    );
-
-/// 删除笔记
-ApiResult deleteNote({required String noteId}) =>
-    RustLib.instance.api.crateApiStorageDeleteNote(noteId: noteId);
-
-ApiResult updateDailyStats({required DbDailyReadingStats stats}) =>
-    RustLib.instance.api.crateApiStorageUpdateDailyStats(stats: stats);
-
-/// 更新书籍信息（显式语义，与 save_book 行为一致）
-ApiResult updateBook({required DbBookRecord book}) =>
-    RustLib.instance.api.crateApiStorageUpdateBook(book: book);
-
-/// 更新书籍阅读状态
-ApiResult updateBookStatus({
-  required String bookId,
-  required DbBookStatus status,
-}) => RustLib.instance.api.crateApiStorageUpdateBookStatus(
-  bookId: bookId,
-  status: status,
-);
-
-/// 更新书籍置顶状态
-ApiResult updateBookPin({required String bookId, required bool isPinned}) =>
-    RustLib.instance.api.crateApiStorageUpdateBookPin(
-      bookId: bookId,
-      isPinned: isPinned,
-    );
-
-/// 分页获取书籍
-///
-/// 支持排序和分页，避免一次性加载全部书籍。
-///
-/// # 参数
-///
-/// * `limit` - 每页数量
-/// * `offset` - 偏移量
-/// * `sort_by` - 排序字段（title, added_at, last_opened_at, file_size）
-/// * `sort_order` - 排序方向（asc, desc）
-ApiResultVecDbBookRecord getBooksPaginated({
+Future<List<Book>> getBooksPaginated({
   required int limit,
   required int offset,
   String? sortBy,
@@ -303,83 +44,216 @@ ApiResultVecDbBookRecord getBooksPaginated({
   sortOrder: sortOrder,
 );
 
-/// 获取书籍总数
-ApiResultI64 getBookCount() =>
+Future<PlatformInt64> getBookCount() =>
     RustLib.instance.api.crateApiStorageGetBookCount();
 
-/// 彻底删除书籍（清理所有关联数据）
-///
-/// 删除书籍及其所有关联数据：阅读进度、书签、笔记、章节、
-/// 阅读会话、同步记录、分类关联、排版缓存和搜索索引。
-ApiResult deleteBookCompletely({required String bookId}) =>
-    RustLib.instance.api.crateApiStorageDeleteBookCompletely(bookId: bookId);
+Future<ReadingProgress?> getReadingProgress({required String bookId}) =>
+    RustLib.instance.api.crateApiStorageGetReadingProgress(bookId: bookId);
 
-/// 更新笔记
-ApiResult updateNote({required DbNote note}) =>
+Future<void> saveReadingProgress({required ReadingProgress progress}) =>
+    RustLib.instance.api.crateApiStorageSaveReadingProgress(progress: progress);
+
+Future<void> clearReadingProgress({required String bookId}) =>
+    RustLib.instance.api.crateApiStorageClearReadingProgress(bookId: bookId);
+
+Future<List<Bookmark>> getBookmarks({required String bookId}) =>
+    RustLib.instance.api.crateApiStorageGetBookmarks(bookId: bookId);
+
+Future<void> createBookmark({required Bookmark bookmark}) =>
+    RustLib.instance.api.crateApiStorageCreateBookmark(bookmark: bookmark);
+
+Future<void> deleteBookmark({required String bookmarkId}) =>
+    RustLib.instance.api.crateApiStorageDeleteBookmark(bookmarkId: bookmarkId);
+
+Future<Bookmark?> getBookmark({required String bookmarkId}) =>
+    RustLib.instance.api.crateApiStorageGetBookmark(bookmarkId: bookmarkId);
+
+Future<void> deleteBookmarksByBook({required String bookId}) =>
+    RustLib.instance.api.crateApiStorageDeleteBookmarksByBook(bookId: bookId);
+
+Future<void> importBookmarks({required List<Bookmark> bookmarks}) =>
+    RustLib.instance.api.crateApiStorageImportBookmarks(bookmarks: bookmarks);
+
+Future<List<Bookmark>> syncBookmarks({
+  required List<Bookmark> localBookmarks,
+  required List<Bookmark> remoteBookmarks,
+}) => RustLib.instance.api.crateApiStorageSyncBookmarks(
+  localBookmarks: localBookmarks,
+  remoteBookmarks: remoteBookmarks,
+);
+
+Future<int> getBookmarkStats({required String bookId}) =>
+    RustLib.instance.api.crateApiStorageGetBookmarkStats(bookId: bookId);
+
+Future<void> recordReadingSession({required ReadingSession session}) =>
+    RustLib.instance.api.crateApiStorageRecordReadingSession(session: session);
+
+Future<List<ReadingSession>> getReadingSessions({
+  required String bookId,
+  required BigInt limit,
+}) => RustLib.instance.api.crateApiStorageGetReadingSessions(
+  bookId: bookId,
+  limit: limit,
+);
+
+Future<List<ReadingSession>> getSessionsByDateRange({
+  required String bookId,
+  required String startDate,
+  required String endDate,
+}) => RustLib.instance.api.crateApiStorageGetSessionsByDateRange(
+  bookId: bookId,
+  startDate: startDate,
+  endDate: endDate,
+);
+
+Future<List<ReadingSession>> getRecentSessions({required BigInt limit}) =>
+    RustLib.instance.api.crateApiStorageGetRecentSessions(limit: limit);
+
+Future<void> deleteSessionsByBook({required String bookId}) =>
+    RustLib.instance.api.crateApiStorageDeleteSessionsByBook(bookId: bookId);
+
+Future<List<ReadingStats>> getTodayReadingStats() =>
+    RustLib.instance.api.crateApiStorageGetTodayReadingStats();
+
+Future<List<ReadingStats>> getReadingStatsRange({
+  required String startDate,
+  required String endDate,
+}) => RustLib.instance.api.crateApiStorageGetReadingStatsRange(
+  startDate: startDate,
+  endDate: endDate,
+);
+
+Future<GlobalStats> getGlobalReadingStats() =>
+    RustLib.instance.api.crateApiStorageGetGlobalReadingStats();
+
+Future<void> updateDailyStats({required ReadingStats stats}) =>
+    RustLib.instance.api.crateApiStorageUpdateDailyStats(stats: stats);
+
+Future<List<Chapter>> getChaptersByBook({required String bookId}) =>
+    RustLib.instance.api.crateApiStorageGetChaptersByBook(bookId: bookId);
+
+Future<void> saveChapters({
+  required String bookId,
+  required List<Chapter> chapters,
+}) => RustLib.instance.api.crateApiStorageSaveChapters(
+  bookId: bookId,
+  chapters: chapters,
+);
+
+Future<void> deleteChaptersByBook({required String bookId}) =>
+    RustLib.instance.api.crateApiStorageDeleteChaptersByBook(bookId: bookId);
+
+Future<Chapter?> getChapterByIndex({
+  required String bookId,
+  required int chapterIndex,
+}) => RustLib.instance.api.crateApiStorageGetChapterByIndex(
+  bookId: bookId,
+  chapterIndex: chapterIndex,
+);
+
+Future<List<BookCategory>> getAllCategories() =>
+    RustLib.instance.api.crateApiStorageGetAllCategories();
+
+Future<void> saveCategory({required BookCategory category}) =>
+    RustLib.instance.api.crateApiStorageSaveCategory(category: category);
+
+Future<void> deleteCategory({required String categoryId}) =>
+    RustLib.instance.api.crateApiStorageDeleteCategory(categoryId: categoryId);
+
+Future<BookCategory?> getCategory({required String categoryId}) =>
+    RustLib.instance.api.crateApiStorageGetCategory(categoryId: categoryId);
+
+Future<List<BookCategory>> getCategoriesForBook({required String bookId}) =>
+    RustLib.instance.api.crateApiStorageGetCategoriesForBook(bookId: bookId);
+
+Future<void> assignCategoryToBook({
+  required String bookId,
+  required String categoryId,
+}) => RustLib.instance.api.crateApiStorageAssignCategoryToBook(
+  bookId: bookId,
+  categoryId: categoryId,
+);
+
+Future<void> removeCategoryFromBook({
+  required String bookId,
+  required String categoryId,
+}) => RustLib.instance.api.crateApiStorageRemoveCategoryFromBook(
+  bookId: bookId,
+  categoryId: categoryId,
+);
+
+Future<void> setCategoriesForBook({
+  required String bookId,
+  required List<String> categoryIds,
+}) => RustLib.instance.api.crateApiStorageSetCategoriesForBook(
+  bookId: bookId,
+  categoryIds: categoryIds,
+);
+
+Future<void> clearCategoriesForBook({required String bookId}) =>
+    RustLib.instance.api.crateApiStorageClearCategoriesForBook(bookId: bookId);
+
+Future<void> saveLayoutCache({
+  required LayoutCache cache,
+  required LayoutCacheKey key,
+}) =>
+    RustLib.instance.api.crateApiStorageSaveLayoutCache(cache: cache, key: key);
+
+Future<LayoutCache?> getLayoutCache({
+  required String bookId,
+  required int chapterIndex,
+  required String configHash,
+}) => RustLib.instance.api.crateApiStorageGetLayoutCache(
+  bookId: bookId,
+  chapterIndex: chapterIndex,
+  configHash: configHash,
+);
+
+Future<void> clearLayoutCache({required String bookId}) =>
+    RustLib.instance.api.crateApiStorageClearLayoutCache(bookId: bookId);
+
+Future<BigInt> cleanupExpiredLayoutCache({required PlatformInt64 maxAgeDays}) =>
+    RustLib.instance.api.crateApiStorageCleanupExpiredLayoutCache(
+      maxAgeDays: maxAgeDays,
+    );
+
+Future<void> updateBookStatus({
+  required String bookId,
+  required BookStatus status,
+}) => RustLib.instance.api.crateApiStorageUpdateBookStatus(
+  bookId: bookId,
+  status: status,
+);
+
+Future<void> updateBookPin({required String bookId, required bool isPinned}) =>
+    RustLib.instance.api.crateApiStorageUpdateBookPin(
+      bookId: bookId,
+      isPinned: isPinned,
+    );
+
+Future<Note> createNote({required Note note}) =>
+    RustLib.instance.api.crateApiStorageCreateNote(note: note);
+
+Future<void> updateNote({required Note note}) =>
     RustLib.instance.api.crateApiStorageUpdateNote(note: note);
 
-/// 删除书籍的所有笔记
-ApiResult deleteNotesByBook({required String bookId}) =>
+Future<List<Note>> getNotes({required String bookId, NoteType? noteType}) =>
+    RustLib.instance.api.crateApiStorageGetNotes(
+      bookId: bookId,
+      noteType: noteType,
+    );
+
+Future<void> deleteNote({required String noteId}) =>
+    RustLib.instance.api.crateApiStorageDeleteNote(noteId: noteId);
+
+Future<void> deleteNotesByBook({required String bookId}) =>
     RustLib.instance.api.crateApiStorageDeleteNotesByBook(bookId: bookId);
 
-/// 获取笔记统计
-ApiResultNoteStats getNoteStats({required String bookId}) =>
+Future<NoteStats> getNoteStats({required String bookId}) =>
     RustLib.instance.api.crateApiStorageGetNoteStats(bookId: bookId);
 
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < DbDailyReadingStats >>>
-abstract class ApiResultDbDailyReadingStats implements RustOpaqueInterface {}
+Future<void> exportDatabase({required String destPath}) =>
+    RustLib.instance.api.crateApiStorageExportDatabase(destPath: destPath);
 
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < DbGlobalStats >>>
-abstract class ApiResultDbGlobalStats implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < DbNote >>>
-abstract class ApiResultDbNote implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < NoteStats >>>
-abstract class ApiResultNoteStats implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < Option < DbBookCategory > >>>
-abstract class ApiResultOptionDbBookCategory implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < Option < DbBookRecord > >>>
-abstract class ApiResultOptionDbBookRecord implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < Option < DbBookmark > >>>
-abstract class ApiResultOptionDbBookmark implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < Option < DbChapter > >>>
-abstract class ApiResultOptionDbChapter implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < Option < DbLayoutCache > >>>
-abstract class ApiResultOptionDbLayoutCache implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < Option < DbReadingProgress > >>>
-abstract class ApiResultOptionDbReadingProgress
-    implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < Vec < DbBookCategory > >>>
-abstract class ApiResultVecDbBookCategory implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < Vec < DbBookRecord > >>>
-abstract class ApiResultVecDbBookRecord implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < Vec < DbBookmark > >>>
-abstract class ApiResultVecDbBookmark implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < Vec < DbChapter > >>>
-abstract class ApiResultVecDbChapter implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < Vec < DbDailyReadingStats > >>>
-abstract class ApiResultVecDbDailyReadingStats implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < Vec < DbNote > >>>
-abstract class ApiResultVecDbNote implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < Vec < DbReadingSession > >>>
-abstract class ApiResultVecDbReadingSession implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < i32 >>>
-abstract class ApiResultI32 implements RustOpaqueInterface {}
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiResult < usize >>>
-abstract class ApiResultUsize implements RustOpaqueInterface {}
+Future<void> restoreDatabase({required String backupPath}) =>
+    RustLib.instance.api.crateApiStorageRestoreDatabase(backupPath: backupPath);

@@ -7,13 +7,13 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 /// 书签管理组件
 class BookmarkWidget extends StatelessWidget {
   /// 书签列表
-  final List<DbBookmark> bookmarks;
+  final List<Bookmark> bookmarks;
 
   /// 主题模式
   final ThemeMode themeMode;
 
   /// 书签选中回调
-  final ValueChanged<DbBookmark> onBookmarkSelected;
+  final ValueChanged<Bookmark> onBookmarkSelected;
 
   /// 添加书签回调
   final VoidCallback? onAddBookmark;
@@ -136,7 +136,7 @@ class BookmarkWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildBookmarkItem(DbBookmark bookmark, Color textColor) {
+  Widget _buildBookmarkItem(Bookmark bookmark, Color textColor) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListTile(
@@ -215,7 +215,7 @@ class BookmarkWidget extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirm(BuildContext context, DbBookmark bookmark) {
+  void _showDeleteConfirm(BuildContext context, Bookmark bookmark) {
     final textColor = _getTextColor(themeMode);
 
     showDialog(
