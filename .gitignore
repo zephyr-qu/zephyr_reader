@@ -12,7 +12,7 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
-
+rust
 # IntelliJ related
 *.iml
 *.ipr
@@ -20,7 +20,9 @@ migrate_working_dir/
 .idea/
 .iflow/
 .qoder/
+.trae
 .trae/
+.env
 integration_test
 
 # The .vscode folder contains launch configuration and tasks you configure in

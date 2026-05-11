@@ -17,10 +17,7 @@ import 'package:zephyr_reader/core/local/file_storage.dart' as _i772;
 import 'package:zephyr_reader/core/local/rust_core_service.dart' as _i607;
 import 'package:zephyr_reader/core/local/rust_cover_service.dart' as _i14;
 import 'package:zephyr_reader/core/local/rust_epub_service.dart' as _i633;
-import 'package:zephyr_reader/core/local/rust_incremental_service.dart'
-    as _i895;
 import 'package:zephyr_reader/core/local/rust_search_service.dart' as _i148;
-import 'package:zephyr_reader/core/local/rust_security_service.dart' as _i426;
 import 'package:zephyr_reader/core/local/rust_storage_service.dart' as _i169;
 import 'package:zephyr_reader/core/network/network_module.dart' as _i510;
 import 'package:zephyr_reader/core/reader/reader_config.dart' as _i849;
@@ -50,8 +47,6 @@ import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_
     as _i265;
 import 'package:zephyr_reader/features/bookshelf/application/services/category_cache_service.dart'
     as _i702;
-import 'package:zephyr_reader/features/bookshelf/application/states/bookshelf_state.dart'
-    as _i895;
 import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_book_repository.dart'
     as _i682;
 import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_bookmark_repository.dart'
@@ -68,18 +63,13 @@ import 'package:zephyr_reader/features/reader/application/reader_view_model.dart
     as _i335;
 import 'package:zephyr_reader/features/reader/application/services/chapter_content_service.dart'
     as _i817;
-import 'package:zephyr_reader/features/reader/application/services/rust_pagination_service.dart'
-    as _i973;
-import 'package:zephyr_reader/features/reader/data/bookmark_service.dart'
-    as _i874;
 import 'package:zephyr_reader/features/reader/data/custom_font_service.dart'
     as _i601;
 import 'package:zephyr_reader/features/reader/data/layout_cache_service.dart'
     as _i365;
+import 'package:zephyr_reader/features/reader/data/note_service.dart' as _i759;
 import 'package:zephyr_reader/features/reader/data/reading_progress_service.dart'
     as _i189;
-import 'package:zephyr_reader/features/reader/data/reading_stats_service.dart'
-    as _i152;
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart'
     as _i1054;
 import 'package:zephyr_reader/features/reader/domain/repositories/reader_repository.dart'
@@ -112,13 +102,10 @@ extension GetItInjectableX on _i174.GetIt {
       preResolve: true,
     );
     gh.factory<_i715.BookImportService>(() => _i715.BookImportService());
-    gh.factory<_i895.BookshelfState>(() => _i895.BookshelfState());
-    gh.factory<_i874.BookmarkService>(() => _i874.BookmarkService());
-    gh.factory<_i365.LayoutCacheService>(() => _i365.LayoutCacheService());
-    gh.factory<_i189.ReadingProgressService>(
-      () => _i189.ReadingProgressService(),
+    gh.factory<_i817.ChapterContentService>(
+      () => _i817.ChapterContentService(),
     );
-    gh.factory<_i152.ReadingStatsService>(() => _i152.ReadingStatsService());
+    gh.singleton<_i169.RustStorageService>(() => _i169.RustStorageService());
     gh.lazySingletonAsync<_i772.FileStorage>(() {
       final i = _i772.FileStorage();
       return i.init().then((_) => i);
@@ -126,37 +113,19 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i607.RustCoreService>(() => _i607.RustCoreService());
     gh.lazySingleton<_i14.RustCoverService>(() => _i14.RustCoverService());
     gh.lazySingleton<_i633.RustEpubService>(() => _i633.RustEpubService());
-    gh.lazySingleton<_i895.RustIncrementalService>(
-      () => _i895.RustIncrementalService(),
-    );
     gh.lazySingleton<_i148.RustSearchService>(() => _i148.RustSearchService());
-    gh.lazySingleton<_i426.RustSecurityService>(
-      () => _i426.RustSecurityService(),
-    );
     gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
     gh.lazySingleton<_i702.CategoryCacheService>(
       () => _i702.CategoryCacheService(),
     );
-    gh.factory<_i821.ChapterRepository>(() => _i454.RustChapterRepository());
-    gh.factory<_i1052.BookmarkRepository>(() => _i565.RustBookmarkRepository());
     gh.lazySingleton<_i384.SearchRepository>(() => _i584.SearchService());
     gh.factory<_i1.SearchViewModel>(
       () => _i1.SearchViewModel(gh<_i384.SearchRepository>()),
     );
     gh.factory<_i569.ArticleApi>(() => _i569.ArticleApi(gh<_i361.Dio>()));
     gh.factory<_i60.AuthApi>(() => _i60.AuthApi(gh<_i361.Dio>()));
-    gh.factory<_i537.ReaderRepository>(() => _i1054.RustReaderRepository());
     gh.lazySingleton<_i29.ArticleRepository>(
       () => _i582.ArticleService(gh<_i569.ArticleApi>()),
-    );
-    gh.factory<_i134.BookRepository>(() => _i682.RustBookRepository());
-    gh.factory<_i377.BookshelfService>(
-      () => _i377.BookshelfService(
-        gh<_i134.BookRepository>(),
-        gh<_i895.BookshelfState>(),
-        gh<_i821.ChapterRepository>(),
-        gh<_i1052.BookmarkRepository>(),
-      ),
     );
     gh.lazySingleton<_i878.AuthRepository>(
       () => _i738.AuthService(gh<_i60.AuthApi>()),
@@ -176,17 +145,35 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i556.ArticleViewModel>(
       () => _i556.ArticleViewModel(gh<_i29.ArticleRepository>()),
     );
-    gh.factory<_i973.RustPaginationService>(
-      () => _i973.RustPaginationService(gh<_i607.RustCoreService>()),
+    gh.factory<_i821.ChapterRepository>(
+      () => _i454.RustChapterRepository(gh<_i169.RustStorageService>()),
+    );
+    gh.factory<_i365.LayoutCacheService>(
+      () => _i365.LayoutCacheService(gh<_i169.RustStorageService>()),
+    );
+    gh.factory<_i759.NoteService>(
+      () => _i759.NoteService(gh<_i169.RustStorageService>()),
+    );
+    gh.factory<_i189.ReadingProgressService>(
+      () => _i189.ReadingProgressService(gh<_i169.RustStorageService>()),
     );
     gh.lazySingleton<_i1072.ReadingStatsService>(
       () => _i1072.ReadingStatsService(gh<_i169.RustStorageService>()),
+    );
+    gh.factory<_i1052.BookmarkRepository>(
+      () => _i565.RustBookmarkRepository(gh<_i169.RustStorageService>()),
+    );
+    gh.factory<_i134.BookRepository>(
+      () => _i682.RustBookRepository(gh<_i169.RustStorageService>()),
     );
     gh.factory<_i563.AuthViewModel>(
       () => _i563.AuthViewModel(gh<_i878.AuthRepository>()),
     );
     gh.lazySingletonAsync<_i499.SyncRepository>(
       () async => _i456.SyncService(await getAsync<_i772.FileStorage>()),
+    );
+    gh.factory<_i537.ReaderRepository>(
+      () => _i1054.RustReaderRepository(gh<_i169.RustStorageService>()),
     );
     gh.singleton<_i849.ReaderConfig>(
       () => _i849.ReaderConfig(gh<_i460.SharedPreferences>()),
@@ -200,11 +187,15 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i601.CustomFontService>(),
       ),
     );
-    gh.factory<_i817.ChapterContentService>(
-      () => _i817.ChapterContentService(gh<_i973.RustPaginationService>()),
-    );
     gh.factory<_i790.BookshelfViewModel>(
       () => _i790.BookshelfViewModel(gh<_i134.BookRepository>()),
+    );
+    gh.factory<_i377.BookshelfService>(
+      () => _i377.BookshelfService(
+        gh<_i134.BookRepository>(),
+        gh<_i821.ChapterRepository>(),
+        gh<_i1052.BookmarkRepository>(),
+      ),
     );
     gh.factory<_i335.ReaderViewModel>(
       () => _i335.ReaderViewModel(

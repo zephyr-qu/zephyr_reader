@@ -7,16 +7,20 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use serde::{de::DeserializeOwned, Serialize};
 
+use super::models::{LayoutCache, LayoutCacheKey};
+
 /// KV 存储封装
 pub struct KvStore {
     db: sled::Db,
+    layout_cache: sled::Tree,
 }
 
 impl KvStore {
     /// 打开或创建 KV 存储
     pub fn new(path: impl AsRef<Path>) -> Result<Self> {
         let db = sled::open(path).context("Failed to open sled database")?;
-        Ok(Self { db })
+        let layout_cache = db.open_tree("layout_cache")?;
+         Ok(Self { db, layout_cache })
     }
 
     /// 存储序列化值
@@ -97,6 +101,50 @@ impl KvStore {
     pub fn size_on_disk(&self) -> Result<u64> {
         Ok(self.db.size_on_disk()?)
     }
+
+    /// 存储排版缓存
+    pub fn save_layout_cache(&self, key: &LayoutCacheKey, value: &LayoutCache) -> Result<()> {
+        let bytes = bincode::serialize(value).context("Failed to serialize value")?;
+        self.layout_cache.insert(key.to_string(), bytes)?;
+        Ok(())
+    }
+
+    /// 获取排版缓存
+    pub fn get_layout_cache(&self, key: &LayoutCacheKey) -> Result<Option<LayoutCache>> {
+        match self.layout_cache.get(key.to_string())? {
+            Some(bytes) => {
+                let value = bincode::deserialize(&bytes).context("Failed to deserialize value")?;
+                Ok(Some(value))
+            }
+            None => Ok(None),
+        }
+    }
+
+    /// 删除书籍的所有排版缓存
+    pub fn delete_book_layout_cache(&self, book_id: &str) -> Result<()> {
+        let prefix = format!("v1:{}:", book_id);
+        for key in self.layout_cache.scan_prefix(prefix.as_bytes()).keys() {
+            let key = key.context("Failed to read key")?;
+            self.layout_cache.remove(key)?;
+        }
+        Ok(())
+    }
+
+    /// 清理过期缓存
+    pub fn cleanup_expired_cache(&self, max_age_days: i64) -> Result<usize> {
+        let cutoff = chrono::Utc::now() - chrono::Duration::days(max_age_days);
+        let mut count = 0;
+        for item in self.layout_cache.iter() {
+            let (key, value) = item.context("Failed to read from sled")?;
+            if let Ok(cache) = bincode::deserialize::<LayoutCache>(&value) {
+                if cache.created_at < cutoff {
+                    self.layout_cache.remove(key)?;
+                    count += 1;
+                }
+            }
+        }
+        Ok(count)
+    }
 }
 
 /// 树包装器（命名空间）
@@ -131,53 +179,6 @@ impl TreeWrapper {
     }
 }
 
-// ==================== 排版缓存专用 API ====================
-
-use super::models::{DbLayoutCache, LayoutCacheKey};
-
-impl KvStore {
-    /// 存储排版缓存
-    pub fn save_layout_cache(&self, key: &LayoutCacheKey, value: &DbLayoutCache) -> Result<()> {
-        let tree = self.open_tree("layout_cache")?;
-        tree.put(key.to_string(), value)
-    }
-
-    /// 获取排版缓存
-    pub fn get_layout_cache(&self, key: &LayoutCacheKey) -> Result<Option<DbLayoutCache>> {
-        let tree = self.open_tree("layout_cache")?;
-        tree.get(key.to_string())
-    }
-
-    /// 删除书籍的所有排版缓存
-    pub fn delete_book_layout_cache(&self, book_id: &str) -> Result<()> {
-        let tree = self.db.open_tree("layout_cache")?;
-        let prefix = format!("{}:", book_id);
-        for key in tree.scan_prefix(prefix.as_bytes()).keys() {
-            let key = key.context("Failed to read key")?;
-            tree.remove(key)?;
-        }
-        Ok(())
-    }
-
-    /// 清理过期缓存（超过 N 天）
-    pub fn cleanup_expired_cache(&self, max_age_days: i64) -> Result<usize> {
-        let cutoff = chrono::Utc::now() - chrono::Duration::days(max_age_days);
-        let tree = self.db.open_tree("layout_cache")?;
-
-        let mut count = 0;
-        for item in tree.iter() {
-            let (key, value) = item.context("Failed to read from sled")?;
-            if let Ok(cache) = bincode::deserialize::<DbLayoutCache>(&value) {
-                if cache.created_at < cutoff {
-                    tree.remove(key)?;
-                    count += 1;
-                }
-            }
-        }
-
-        Ok(count)
-    }
-}
 
 #[cfg(test)]
 mod tests {

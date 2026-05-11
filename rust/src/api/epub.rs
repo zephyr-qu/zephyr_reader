@@ -3,10 +3,10 @@
 //! 提供 EPUB 特有的功能，如富文本章节解析。
 //! 通用解析功能请使用 core::parse_book。
 
-use crate::api::security::validate_file_path;
-pub use crate::ffi::{
-    ApiResult, EpubMetadata, PageContent, RichChapterContent, RichParagraph, TypesetConfig,
-};
+
+pub(crate) use crate::domain::AppError;
+pub use crate::domain::{EpubMetadata, PageContent, RichChapterContent, RichParagraph, TypesetConfig};
+use crate::utils::security::validate_file_path_async;
 use flutter_rust_bridge::frb;
 
 /// 快速获取 EPUB 元数据
@@ -19,10 +19,10 @@ use flutter_rust_bridge::frb;
 ///
 /// # 返回值
 /// * `Ok(EpubMetadata)` - 元数据（包含标题、作者、封面、目录、阅读顺序）
-/// * `Err(ParserError)` - 解析失败（文件不存在、格式错误等）
-#[frb(sync)]
-pub fn get_epub_metadata(file_path: String) -> ApiResult<EpubMetadata> {
-    let validated_path = validate_file_path(&file_path)?;
+/// * `Err(AppError)` - 解析失败（文件不存在、格式错误等）
+#[frb]
+pub async fn get_epub_metadata(file_path: String) -> Result<EpubMetadata, AppError> {
+    let validated_path = validate_file_path_async(&file_path).await?;
     crate::parser::epub::unzip::get_epub_metadata(&validated_path)
 }
 
@@ -32,30 +32,13 @@ pub fn get_epub_metadata(file_path: String) -> ApiResult<EpubMetadata> {
 ///
 /// **注意**: 这是一个 EPUB 特有的功能，用于需要保留 HTML 格式的场景。
 /// 普通文本解析请使用 `core::extract_chapter`。
-#[frb(sync)]
-pub fn parse_epub_chapter_rich(
+#[frb]
+pub async fn parse_epub_chapter_rich(
     file_path: String,
     chapter_index: i32,
-) -> ApiResult<RichChapterContent> {
-    let validated_path = validate_file_path(&file_path)?;
+) -> Result<RichChapterContent, AppError> {
+    let validated_path = validate_file_path_async(&file_path).await?;
     crate::parser::epub::parse::get_chapter_content_rich(&validated_path, chapter_index)
-}
-
-/// 获取 EPUB 章节内容（使用排版配置）
-///
-/// **注意**: 这是一个 EPUB 特有的功能。
-/// 通用章节内容获取请使用 `core::extract_chapter`。
-#[frb(sync)]
-pub fn get_epub_chapter_content(
-    file_path: String,
-    chapter_id: i32,
-    config: TypesetConfig,
-) -> ApiResult<Vec<PageContent>> {
-    let config = config.validate_and_fix();
-    let validated_path = validate_file_path(&file_path)?;
-    let pages =
-        crate::parser::epub::parse::get_chapter_content(&validated_path, chapter_id, &config)?;
-    Ok(pages)
 }
 
 /// 获取 EPUB 章节富文本内容（带排版）
@@ -64,23 +47,23 @@ pub fn get_epub_chapter_content(
 ///
 /// # 参数
 /// * `file_path` - EPUB 文件路径
-/// * `chapter_id` - 章节 ID
+/// * `chapter_index` - 章节索引
 /// * `config` - 排版配置
 ///
 /// # 返回值
 /// * `Ok(Vec<RichParagraph>)` - 排版后的富文本段落
-/// * `Err(ParserError)` - 解析失败
-#[frb(sync)]
-pub fn get_epub_chapter_rich_content(
+/// * `Err(AppError)` - 解析失败
+#[frb]
+pub async fn get_epub_chapter_rich_content(
     file_path: String,
-    chapter_id: i32,
+    chapter_index: i32,
     config: TypesetConfig,
-) -> ApiResult<Vec<RichParagraph>> {
+) -> Result<Vec<RichParagraph>, AppError> {
     let config = config.validate_and_fix();
-    let validated_path = validate_file_path(&file_path)?;
+    let validated_path = validate_file_path_async(&file_path).await?;
     crate::parser::epub::parse::get_chapter_content_rich_with_typeset(
         &validated_path,
-        chapter_id,
+        chapter_index,
         &config,
     )
 }
@@ -106,12 +89,3 @@ pub fn paginate_epub_rich_content(
     crate::parser::epub::parse::paginate_rich_content(&paragraphs, chapter_index, &config)
 }
 
-/// 检查文件是否为 EPUB 格式
-#[frb(sync)]
-pub fn is_epub_file(file_path: String) -> bool {
-    std::path::Path::new(&file_path)
-        .extension()
-        .and_then(|e| e.to_str())
-        .map(|s| s.eq_ignore_ascii_case("epub"))
-        .unwrap_or(false)
-}

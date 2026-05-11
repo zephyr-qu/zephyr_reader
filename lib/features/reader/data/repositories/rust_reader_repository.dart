@@ -10,11 +10,12 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 @Injectable(as: ReaderRepository)
 class RustReaderRepository implements ReaderRepository {
-  final _storage = RustStorageService();
+  final RustStorageService _storage;
+  RustReaderRepository(this._storage);
 
   @override
-  Future<DbChapter?> getChapter(int bookId, int chapterIndex) async {
-    final chapters = _storage.getChaptersByBook('book_$bookId');
+  Future<Chapter?> getChapter(int bookId, int chapterIndex) async {
+    final chapters = await _storage.getChaptersByBook('book_$bookId');
     try {
       return chapters.firstWhere((c) => c.chapterIndex == chapterIndex);
     } catch (_) {
@@ -23,7 +24,7 @@ class RustReaderRepository implements ReaderRepository {
   }
 
   @override
-  Future<List<DbChapter>> getChapters(int bookId) async {
+  Future<List<Chapter>> getChapters(int bookId) async {
     return _storage.getChaptersByBook('book_$bookId');
   }
 
@@ -34,18 +35,21 @@ class RustReaderRepository implements ReaderRepository {
     int position,
     int duration,
   ) async {
-    await _storage.recordReadingSession(
+    final now = DateTime.now();
+    await _storage.recordReadingSession(ReadingSession(
+      id: 'session_${now.millisecondsSinceEpoch}',
       bookId: 'book_$bookId',
       chapterIndex: chapterId,
-      startOffset: 0,
-      endOffset: position,
+      startCharOffset: 0,
+      endCharOffset: position,
+      startedAt: now,
+      endedAt: now,
       durationSeconds: duration,
-      charactersRead: position,
-    );
+    ));
   }
 
   @override
-  Future<DbGlobalStats?> getReadingHistory(int bookId) async {
+  Future<GlobalStats?> getReadingHistory(int bookId) async {
     return _storage.getGlobalReadingStats();
   }
 
@@ -55,7 +59,7 @@ class RustReaderRepository implements ReaderRepository {
     int chapterId,
     int position,
   ) async {
-    final bookmark = DbBookmark(
+    final bookmark = Bookmark(
       id: 'bm_${DateTime.now().millisecondsSinceEpoch}',
       bookId: 'book_$bookId',
       chapterIndex: chapterId,
@@ -68,14 +72,14 @@ class RustReaderRepository implements ReaderRepository {
   }
 
   @override
-  Future<List<DbBookmark>> getBookmarks(String bookId) async {
+  Future<List<Bookmark>> getBookmarks(String bookId) async {
     return _storage.getBookmarks('book_$bookId');
   }
 
   @override
   Future<bool> deleteBookmark(int bookmarkId) async {
     try {
-      _storage.deleteBookmark('bm_$bookmarkId');
+      await _storage.deleteBookmark('bm_$bookmarkId');
       return true;
     } catch (_) {
       return false;

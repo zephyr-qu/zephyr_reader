@@ -6,10 +6,10 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 ///
 abstract class ReaderRepository {
   /// 获取章节
-  Future<DbChapter?> getChapter(int bookId, int chapterIndex);
+  Future<Chapter?> getChapter(int bookId, int chapterIndex);
 
   /// 获取章节列表
-  Future<List<DbChapter>> getChapters(int bookId);
+  Future<List<Chapter>> getChapters(int bookId);
 
   /// 保存阅读历史
   Future<void> saveReadingHistory(
@@ -20,7 +20,7 @@ abstract class ReaderRepository {
   );
 
   /// 获取阅读历史
-  Future<DbGlobalStats?> getReadingHistory(int bookId);
+  Future<GlobalStats?> getReadingHistory(int bookId);
 
   /// 添加书签
   Future<int> addBookmark(
@@ -30,7 +30,7 @@ abstract class ReaderRepository {
   );
 
   /// 获取书签列表
-  Future<List<DbBookmark>> getBookmarks(String bookId);
+  Future<List<Bookmark>> getBookmarks(String bookId);
 
   /// 删除书签
   Future<bool> deleteBookmark(int bookmarkId);

@@ -2,50 +2,39 @@
 library;
 
 import 'package:injectable/injectable.dart';
-import 'package:zephyr_reader/src/rust/api/core.dart' as rust_core;
 import 'package:zephyr_reader/src/rust/api/epub.dart' as rust;
-import 'package:zephyr_reader/src/rust/ffi/types.dart';
+import 'package:zephyr_reader/src/rust/domain/types.dart';
 
 @LazySingleton()
 class RustEpubService {
-  bool isEpubFile(String filePath) => rust.isEpubFile(filePath: filePath);
-
-  rust.ApiResultEpubMetadata getEpubMetadata(String filePath) =>
+  Future<EpubMetadata> getEpubMetadata(String filePath) async =>
       rust.getEpubMetadata(filePath: filePath);
 
-  rust.ApiResultRichChapterContent parseEpubChapterRich({
+  Future<RichChapterContent> parseEpubChapterRich({
     required String filePath,
     required int chapterIndex,
-  }) =>
-      rust.parseEpubChapterRich(filePath: filePath, chapterIndex: chapterIndex);
+  }) async =>
+      rust.parseEpubChapterRich(
+          filePath: filePath, chapterIndex: chapterIndex);
 
-  rust_core.ApiResultVecPageContent getEpubChapterContent({
+  Future<List<RichParagraph>> getEpubChapterRichContent({
     required String filePath,
-    required int chapterId,
+    required int chapterIndex,
     required TypesetConfig config,
-  }) => rust.getEpubChapterContent(
-    filePath: filePath,
-    chapterId: chapterId,
-    config: config,
-  );
-
-  rust.ApiResultVecRichParagraph getEpubChapterRichContent({
-    required String filePath,
-    required int chapterId,
-    required TypesetConfig config,
-  }) => rust.getEpubChapterRichContent(
-    filePath: filePath,
-    chapterId: chapterId,
-    config: config,
-  );
+  }) async =>
+      await rust.getEpubChapterRichContent(
+              filePath: filePath,
+              chapterIndex: chapterIndex,
+              config: config);
 
   List<PageContent> paginateEpubRichContent({
     required List<RichParagraph> paragraphs,
     required int chapterIndex,
     required TypesetConfig config,
-  }) => rust.paginateEpubRichContent(
-    paragraphs: paragraphs,
-    chapterIndex: chapterIndex,
-    config: config,
-  );
+  }) =>
+      rust.paginateEpubRichContent(
+        paragraphs: paragraphs,
+        chapterIndex: chapterIndex,
+        config: config,
+      );
 }

@@ -9,14 +9,15 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 /// 排版缓存结果
 class LayoutCacheResult {
   final bool hit;
-  final DbLayoutCache? cachedLayout;
+  final LayoutCache? cachedLayout;
 
   const LayoutCacheResult({required this.hit, required this.cachedLayout});
 }
 
 @injectable
 class LayoutCacheService {
-  final _storage = RustStorageService();
+  final RustStorageService _storage;
+  LayoutCacheService(this._storage);
 
   Future<void> saveLayoutCache({
     required int bookId,
@@ -26,13 +27,17 @@ class LayoutCacheService {
     required int totalPages,
   }) async {
     try {
-      await _storage.saveLayoutCache(
+      final cache = LayoutCache(
+        pageOffsets: pageOffsets.map((o) => (o.$1, o.$2)).toList(),
+        totalPages: totalPages,
+        createdAt: DateTime.now(),
+      );
+      final key = LayoutCacheKey(
         bookId: 'book_$bookId',
         chapterIndex: chapterId,
         configHash: configHash,
-        pageOffsets: pageOffsets,
-        totalPages: totalPages,
       );
+      await _storage.saveLayoutCache(cache: cache, key: key);
       debugPrint('保存排版缓存：book=$bookId, chapter=$chapterId, pages=$totalPages');
     } catch (e) {
       debugPrint('LayoutCacheService.saveLayoutCache error: $e');
@@ -63,7 +68,7 @@ class LayoutCacheService {
 
   Future<int> clearLayoutCache(int bookId) async {
     try {
-      _storage.clearLayoutCache('book_$bookId');
+      await _storage.clearLayoutCache('book_$bookId');
       return 0;
     } catch (e) {
       debugPrint('LayoutCacheService.clearLayoutCache error: $e');
@@ -80,9 +85,8 @@ class LayoutCacheService {
     }
   }
 
-  Future<List<DbLayoutCache>> getAllLayoutCache(int bookId) async {
+  Future<List<LayoutCache>> getAllLayoutCache(int bookId) async {
     try {
-      // Rust sled doesn't have a direct getAll method, return empty
       return [];
     } catch (e) {
       debugPrint('LayoutCacheService.getAllLayoutCache error: $e');

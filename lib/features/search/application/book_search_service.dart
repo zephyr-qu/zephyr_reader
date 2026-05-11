@@ -69,7 +69,7 @@ class BookSearchService {
   Future<void> indexBook(
     String bookId,
     String filePath,
-    List<DbChapter> chapters,
+    List<Chapter> chapters,
   ) async {
     if (_searchIndexPath == null) {
       await init();
@@ -118,26 +118,22 @@ class BookSearchService {
     }
 
     try {
-      // 使用独立的 search 模块进行搜索
-      final searchResults = _search.searchInBook(
+      final searchResults = await _search.searchInBook(
         bookId: bookId ?? '',
         query: query,
         limit: limit,
       );
 
-      // 转换 Rust 搜索结果为 SearchHit
-      final hits =
-          (searchResults as dynamic).value.map((result) {
-            return SearchHit(
-              bookId: result.bookId,
-              chapterIndex: result.chapterId.toInt(),
-              chapterTitle: result.chapterTitle,
-              snippet: result.snippet,
-              content: result.content,
-              rank: result.rank,
-            );
-          }).toList() ??
-          [];
+      final hits = searchResults.map((result) {
+        return SearchHit(
+          bookId: bookId ?? '',
+          chapterIndex: result.chapterId,
+          chapterTitle: result.chapterTitle,
+          snippet: result.snippet,
+          content: result.snippet,
+          rank: result.score,
+        );
+      }).toList();
 
       debugPrint('搜索完成：query=$query, 结果数=${hits.length}');
       return hits;

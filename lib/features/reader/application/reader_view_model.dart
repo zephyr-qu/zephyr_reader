@@ -43,7 +43,7 @@ class ReaderViewModel {
   final chapterIndex = signal<int>(0);
 
   /// 章节列表
-  final chapters = asyncSignal<List<DbChapter>>(AsyncState.data([]));
+  final chapters = asyncSignal<List<Chapter>>(AsyncState.data([]));
 
   /// 当前章节内容
   final chapterContent = asyncSignal<String>(AsyncState.data(''));
@@ -108,7 +108,7 @@ class ReaderViewModel {
   // ==================== 书签 ====================
 
   /// 书签列表
-  final bookmarks = asyncSignal<List<DbBookmark>>(AsyncState.data([]));
+  final bookmarks = asyncSignal<List<Bookmark>>(AsyncState.data([]));
 
   // ==================== 定时器 ====================
 
@@ -422,7 +422,7 @@ class ReaderViewModel {
   }
 
   /// 跳转到书签位置
-  Future<void> jumpToBookmark(DbBookmark bookmark) async {
+  Future<void> jumpToBookmark(Bookmark bookmark) async {
     if (bookmark.chapterIndex != chapterId.value) {
       await loadChapter(bookmark.chapterIndex);
     }
@@ -436,7 +436,7 @@ class ReaderViewModel {
   }
 
   /// 获取当前位置的书签（如果有）
-  DbBookmark? get currentBookmark {
+  Bookmark? get currentBookmark {
     final currentBookmarks = bookmarks.value.value ?? [];
     try {
       return currentBookmarks.firstWhere(

@@ -1,8 +1,8 @@
 //! TXT 文件编码检测与解码
 //! 支持 UTF-8, GBK, GB2312, Big5 等常见中文编码
 
-use crate::ffi::ParserError;
-use chardetng::EncodingDetector;
+use crate::domain::AppError;
+use chardetng::{EncodingDetector, Iso2022JpDetection, Utf8Detection};
 use encoding_rs::{Encoding, GB18030, UTF_16BE, UTF_16LE, UTF_8};
 use memmap2::Mmap;
 use std::fs::File;
@@ -16,17 +16,17 @@ const UTF16_BE_BOM: [u8; 2] = [0xFE, 0xFF];
 const MMAP_MAX_SIZE: u64 = 100 * 1024 * 1024;
 
 /// 检测文件编码（使用内存映射，高性能）
-pub fn detect_encoding(file_path: &str) -> Result<&'static Encoding, ParserError> {
+pub fn detect_encoding(file_path: &str) -> Result<&'static Encoding, AppError> {
     let file = File::open(file_path)
-        .map_err(|_e| ParserError::file_not_found(format!("无法打开文件：{}", file_path)))?;
+        .map_err(|_e| AppError::file_not_found(format!("无法打开文件：{}", file_path)))?;
 
     // 验证是否为常规文件（非目录、非符号链接等）
     let metadata = file
         .metadata()
-        .map_err(|e| ParserError::file_read_error(file_path, e.to_string()))?;
+        .map_err(|e| AppError::file_read_error(file_path, e.to_string()))?;
 
     if !metadata.is_file() {
-        return Err(ParserError::file_read_error(
+        return Err(AppError::file_read_error(
             file_path,
             "路径不是常规文件".to_string(),
         ));
@@ -38,7 +38,7 @@ pub fn detect_encoding(file_path: &str) -> Result<&'static Encoding, ParserError
         use std::os::unix::fs::FileTypeExt;
         let ft = metadata.file_type();
         if ft.is_fifo() || ft.is_socket() || ft.is_block_device() || ft.is_char_device() {
-            return Err(ParserError::file_read_error(
+            return Err(AppError::file_read_error(
                 file_path,
                 "不支持的文件类型（特殊设备）".to_string(),
             ));
@@ -52,7 +52,7 @@ pub fn detect_encoding(file_path: &str) -> Result<&'static Encoding, ParserError
 
     // 检查文件大小
     if metadata.len() > MMAP_MAX_SIZE {
-        return Err(ParserError::file_read_error(
+        return Err(AppError::file_read_error(
             file_path,
             format!(
                 "文件过大 ({}MB)，超过限制 {}MB",
@@ -64,7 +64,7 @@ pub fn detect_encoding(file_path: &str) -> Result<&'static Encoding, ParserError
 
     // 使用内存映射读取文件，避免一次性加载到内存
     let mmap = unsafe {
-        Mmap::map(&file).map_err(|e| ParserError::file_read_error(file_path, e.to_string()))?
+        Mmap::map(&file).map_err(|e| AppError::file_read_error(file_path, e.to_string()))?
     };
 
     if mmap.is_empty() {
@@ -77,7 +77,7 @@ pub fn detect_encoding(file_path: &str) -> Result<&'static Encoding, ParserError
 }
 
 /// 从字节数组检测编码
-pub fn detect_encoding_from_bytes(buffer: &[u8]) -> Result<&'static Encoding, ParserError> {
+pub fn detect_encoding_from_bytes(buffer: &[u8]) -> Result<&'static Encoding, AppError> {
     // 检查 BOM
     if buffer.starts_with(&UTF8_BOM) {
         return Ok(UTF_8);
@@ -90,11 +90,10 @@ pub fn detect_encoding_from_bytes(buffer: &[u8]) -> Result<&'static Encoding, Pa
     }
 
     // 使用 chardetng 检测编码
-    let mut detector = EncodingDetector::new();
+    let mut detector = EncodingDetector::new(Iso2022JpDetection::Deny);
     detector.feed(buffer, buffer.len() < 1024);
 
-    // 信任 chardetng 的检测结果
-    let detected = detector.guess(None, true);
+    let detected = detector.guess(None, Utf8Detection::Allow);
 
     // 如果检测为 UTF-8，验证其有效性
     if detected == UTF_8 {
@@ -116,12 +115,12 @@ pub fn detect_encoding_from_bytes(buffer: &[u8]) -> Result<&'static Encoding, Pa
 }
 
 /// 解码文件内容（使用内存映射优化，高性能）
-pub fn decode_file(file_path: &str) -> Result<String, ParserError> {
+pub fn decode_file(file_path: &str) -> Result<String, AppError> {
     let file = File::open(file_path)
-        .map_err(|e| ParserError::file_read_error(file_path, e.to_string()))?;
+        .map_err(|e| AppError::file_read_error(file_path, e.to_string()))?;
 
     let mmap = unsafe {
-        Mmap::map(&file).map_err(|e| ParserError::file_read_error(file_path, e.to_string()))?
+        Mmap::map(&file).map_err(|e| AppError::file_read_error(file_path, e.to_string()))?
     };
 
     if mmap.is_empty() {

@@ -7,7 +7,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 /// 章节列表组件
 class ChapterListWidget extends StatelessWidget {
   /// 章节列表
-  final List<DbChapter> chapters;
+  final List<Chapter> chapters;
 
   /// 当前章节 ID
   final String currentChapterId;

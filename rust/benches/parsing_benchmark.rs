@@ -11,7 +11,9 @@
 //! 报告位于 `target/criterion/report/index.html`
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use rust_lib_zephyr_reader::{api, ffi::TypesetConfig};
+use rust_lib_zephyr_reader::api;
+use rust_lib_zephyr_reader::domain::{LanguageType, TypesetConfig};
+use rust_lib_zephyr_reader::text::paginate_all;
 use std::fs;
 use std::hint::black_box;
 use std::time::Duration;
@@ -35,6 +37,7 @@ fn bench_txt_parsing(c: &mut Criterion) {
     let mut group = c.benchmark_group("txt_parsing");
     group.sample_size(10);
     group.measurement_time(Duration::from_secs(30));
+    let rt = tokio::runtime::Runtime::new().unwrap();
 
     for size in [1, 10, 50].iter() {
         let text = generate_chinese_text(*size);
@@ -48,7 +51,9 @@ fn bench_txt_parsing(c: &mut Criterion) {
             &file_path,
             |b, path| {
                 b.iter(|| {
-                    let _ = api::parse_book(black_box(path.to_string_lossy().to_string()));
+                    rt.block_on(async {
+                        let _ = api::parse_book(black_box(path.to_string_lossy().to_string())).await;
+                    })
                 })
             },
         );
@@ -67,7 +72,9 @@ fn bench_txt_parsing(c: &mut Criterion) {
             &file_path,
             |b, path| {
                 b.iter(|| {
-                    let _ = api::parse_book(black_box(path.to_string_lossy().to_string()));
+                    rt.block_on(async {
+                        let _ = api::parse_book(black_box(path.to_string_lossy().to_string())).await;
+                    })
                 })
             },
         );
@@ -83,6 +90,7 @@ fn bench_typesetting(c: &mut Criterion) {
     let mut group = c.benchmark_group("typesetting");
     group.sample_size(10);
     group.measurement_time(Duration::from_secs(30));
+    let rt = tokio::runtime::Runtime::new().unwrap();
 
     let config = TypesetConfig {
         page_width: 1080,
@@ -92,7 +100,7 @@ fn bench_typesetting(c: &mut Criterion) {
         letter_spacing: 0.0,
         paragraph_spacing: 1.0,
         first_line_indent: 2,
-        language: rust_lib_zephyr_reader::ffi::LanguageType::Auto,
+        language: LanguageType::Auto,
         enable_hyphenation: false,
         hyphenation_language: Some("en".to_string()),
     };
@@ -106,11 +114,12 @@ fn bench_typesetting(c: &mut Criterion) {
             &text,
             |b, text| {
                 b.iter(|| {
-                    let _ = api::typeset_text(
-                        black_box(text.clone()),
-                        black_box("auto".to_string()),
-                        black_box(config.clone()),
-                    );
+                    rt.block_on(async {
+                        let _ = api::typeset_text(
+                            black_box(text.clone()),
+                            black_box(config.clone()),
+                        );
+                    })
                 })
             },
         );
@@ -119,7 +128,7 @@ fn bench_typesetting(c: &mut Criterion) {
     group.finish();
 }
 
-/// 基准测试：分页处理
+/// 基准测试：分页处理（直接调用 paginate_all 测量纯计算性能）
 fn bench_pagination(c: &mut Criterion) {
     let mut group = c.benchmark_group("pagination");
     group.sample_size(10);
@@ -133,7 +142,7 @@ fn bench_pagination(c: &mut Criterion) {
         letter_spacing: 0.0,
         paragraph_spacing: 1.0,
         first_line_indent: 2,
-        language: rust_lib_zephyr_reader::ffi::LanguageType::Auto,
+        language: LanguageType::Auto,
         enable_hyphenation: false,
         hyphenation_language: Some("en".to_string()),
     };
@@ -147,7 +156,7 @@ fn bench_pagination(c: &mut Criterion) {
             &text,
             |b, text| {
                 b.iter(|| {
-                    let _ = api::paginate_all_content(
+                    let _ = paginate_all(
                         black_box(text.clone()),
                         black_box(0),
                         black_box(config.clone()),
@@ -165,6 +174,7 @@ fn bench_file_size(c: &mut Criterion) {
     let mut group = c.benchmark_group("file_size");
     group.sample_size(10);
     group.measurement_time(Duration::from_secs(10));
+    let rt = tokio::runtime::Runtime::new().unwrap();
 
     let temp_dir = std::env::temp_dir();
     let file_path = temp_dir.join("bench_file_size.txt");
@@ -172,7 +182,9 @@ fn bench_file_size(c: &mut Criterion) {
 
     group.bench_function("get_file_size", |b| {
         b.iter(|| {
-            let _ = api::get_file_size(black_box(file_path.to_string_lossy().to_string()));
+            rt.block_on(async {
+                let _ = api::get_file_size(black_box(file_path.to_string_lossy().to_string())).await;
+            })
         })
     });
 
@@ -185,6 +197,7 @@ fn bench_chunk_read(c: &mut Criterion) {
     let mut group = c.benchmark_group("chunk_read");
     group.sample_size(10);
     group.measurement_time(Duration::from_secs(10));
+    let rt = tokio::runtime::Runtime::new().unwrap();
 
     let temp_dir = std::env::temp_dir();
     let file_path = temp_dir.join("bench_chunk_read.txt");
@@ -192,21 +205,25 @@ fn bench_chunk_read(c: &mut Criterion) {
 
     group.bench_function("read_1kb_chunk", |b| {
         b.iter(|| {
-            let _ = api::read_file_chunk(
-                black_box(file_path.to_string_lossy().to_string()),
-                black_box(0),
-                black_box(1024),
-            );
+            rt.block_on(async {
+                let _ = api::read_file_chunk(
+                    black_box(file_path.to_string_lossy().to_string()),
+                    black_box(0),
+                    black_box(1024),
+                ).await;
+            })
         })
     });
 
     group.bench_function("read_10kb_chunk", |b| {
         b.iter(|| {
-            let _ = api::read_file_chunk(
-                black_box(file_path.to_string_lossy().to_string()),
-                black_box(0),
-                black_box(10 * 1024),
-            );
+            rt.block_on(async {
+                let _ = api::read_file_chunk(
+                    black_box(file_path.to_string_lossy().to_string()),
+                    black_box(0),
+                    black_box(10 * 1024),
+                ).await;
+            })
         })
     });
 

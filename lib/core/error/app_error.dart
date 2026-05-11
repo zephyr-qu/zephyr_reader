@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/error.dart' as rust_error;
+
 /// 应用错误类型
 ///
 /// 定义所有可能的错误分类，便于统一处理和用户提示
@@ -188,6 +190,56 @@ class AppError implements Exception {
   }) {
     // 如果已经是 AppError，直接返回
     if (error is AppError) return error;
+
+    // Rust AppError 类型安全转换
+    if (error is rust_error.AppError) {
+      return error.when(
+        fileNotFound: (path) => AppError(
+          type: ErrorType.file, message: 'File not found: $path',
+          originalError: error, extraData: {'path': path},
+        ),
+        fileReadError: (path, details) => AppError(
+          type: ErrorType.file, message: details,
+          originalError: error, extraData: {'path': path},
+        ),
+        unsupportedFormat: (format) => AppError(
+          type: ErrorType.parse, message: 'Unsupported format: $format',
+          originalError: error,
+        ),
+        epubParseError: (reason) => AppError(
+          type: ErrorType.parse, message: reason, originalError: error,
+        ),
+        pdfParseError: (reason) => AppError(
+          type: ErrorType.parse, message: reason, originalError: error,
+        ),
+        chapterExtractError: (index, reason) => AppError(
+          type: ErrorType.parse, message: reason,
+          originalError: error, extraData: {'chapterIndex': index},
+        ),
+        typesetConfigError: (reason) => AppError(
+          type: ErrorType.parse, message: reason, originalError: error,
+        ),
+        databaseError: (reason) => AppError(
+          type: ErrorType.database, message: reason, originalError: error,
+        ),
+        searchError: (reason) => AppError(
+          type: ErrorType.database, message: reason, originalError: error,
+        ),
+        securityError: (reason, path) => AppError(
+          type: ErrorType.permission, message: reason,
+          originalError: error, extraData: {'path': path},
+        ),
+        invalidInput: (reason) => AppError(
+          type: ErrorType.validation, message: reason, originalError: error,
+        ),
+        internalError: (reason) => AppError(
+          type: ErrorType.unknown, message: reason, originalError: error,
+        ),
+        other: (message) => AppError(
+          type: ErrorType.unknown, message: message, originalError: error,
+        ),
+      );
+    }
 
     // 根据异常类型判断
     final errorString = error.toString().toLowerCase();

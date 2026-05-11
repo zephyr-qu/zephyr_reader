@@ -2,31 +2,37 @@
 library;
 
 import 'package:injectable/injectable.dart';
-import 'package:zephyr_reader/src/rust/api/core.dart' as rust_core;
 import 'package:zephyr_reader/src/rust/api/search.dart' as rust;
+import 'package:zephyr_reader/src/rust/domain/types.dart';
 
 @LazySingleton()
 class RustSearchService {
-  Future<rust_core.ApiResult> init(String dbPath) =>
-      rust.initSearchEngine(dbPath: dbPath);
+  Future<void> init() async =>
+      await rust.initSearchEngine();
 
-  Future<rust_core.ApiResult> indexChapterContent({
+  Future<void> indexChapterContent({
     required String bookId,
     required int chapterId,
     required String chapterTitle,
     required String content,
-  }) => rust.indexChapterContent(
-    bookId: bookId,
-    chapterId: chapterId,
-    chapterTitle: chapterTitle,
-    content: content,
-  );
+  }) async =>
+      await rust.indexChapterContent(
+              bookId: bookId,
+              chapterId: chapterId,
+              chapterTitle: chapterTitle,
+              content: content)
+          ;
 
-  rust.ApiResultVecSearchResult searchInBook({
+  Future<List<SearchResult>> searchInBook({
     required String bookId,
     required String query,
     required int limit,
-  }) => rust.searchInBook(bookId: bookId, query: query, limit: limit);
+  }) async =>
+      rust.searchInBook(bookId: bookId, query: query, limit: limit);
 
-  Future<rust_core.ApiResult> clearAllSearchIndex() => rust.clearAllSearchIndex();
+  Future<void> clearAllSearchIndex() async =>
+      await rust.clearAllSearchIndex();
+
+  Future<void> deleteBookSearchIndex(String bookId) async =>
+      await rust.deleteBookSearchIndex(bookId: bookId);
 }

@@ -28,7 +28,7 @@ class BookDetailPage extends StatelessWidget {
           _buildAppBar(context, theme, deviceType),
           SliverPadding(
             padding: pagePadding,
-            sliver: FutureBuilder<DbBookRecord?>(
+            sliver: FutureBuilder<Book?>(
               key: ValueKey(bookId),
               future: vm.getBookDetail(bookId),
               builder: (context, snapshot) {
@@ -185,7 +185,7 @@ class BookDetailPage extends StatelessWidget {
 
   Widget _buildPhoneLayout(
     BuildContext context,
-    DbBookRecord book,
+    Book book,
     ThemeData theme,
   ) {
     final spacing = LayoutBreakpoints.getSpacing(context);
@@ -207,7 +207,7 @@ class BookDetailPage extends StatelessWidget {
 
   Widget _buildTabletLayout(
     BuildContext context,
-    DbBookRecord book,
+    Book book,
     ThemeData theme,
   ) {
     final spacing = LayoutBreakpoints.getSpacing(context);
@@ -244,7 +244,7 @@ class BookDetailPage extends StatelessWidget {
 
   Widget _buildHeroSection(
     BuildContext context,
-    DbBookRecord book,
+    Book book,
     ThemeData theme,
   ) {
     final deviceType = LayoutBreakpoints.getDeviceType(context);
@@ -325,7 +325,7 @@ class BookDetailPage extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      book.author,
+                      book.author ?? '',
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -363,7 +363,7 @@ class BookDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoSection(DbBookRecord book, ThemeData theme) {
+  Widget _buildInfoSection(Book book, ThemeData theme) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -443,7 +443,7 @@ class BookDetailPage extends StatelessWidget {
   }
 
   Widget _buildDescriptionSection(
-    DbBookRecord book,
+    Book book,
     ThemeData theme,
   ) {
     if (book.description == null || book.description!.isEmpty) {
@@ -487,7 +487,7 @@ class BookDetailPage extends StatelessWidget {
 
   Widget _buildChaptersSection(
     BuildContext context,
-    DbBookRecord book,
+    Book book,
     ThemeData theme,
   ) {
     final deviceType = LayoutBreakpoints.getDeviceType(context);
@@ -539,7 +539,7 @@ class BookDetailPage extends StatelessWidget {
   Widget _buildChapterItem(
     BuildContext context,
     int index,
-    DbBookRecord book,
+    Book book,
     ThemeData theme,
     bool isDesktop,
   ) {
@@ -612,7 +612,7 @@ class BookDetailPage extends StatelessWidget {
 
   void _startReading(
     BuildContext context,
-    DbBookRecord book, {
+    Book book, {
     int? chapterIndex,
   }) {
     final targetChapter = chapterIndex ?? 1;

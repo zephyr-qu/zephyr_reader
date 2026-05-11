@@ -1,30 +1,18 @@
 //! TXT 文件解析
 //! 负责章节提取、内容分段
-//!
-//! 支持并行章节解析（使用 rayon），提升大文件解析性能。
 
-use once_cell::sync::Lazy;
-use regex::Regex;
 use std::path::Path;
-use uuid::Uuid;
 
 use super::decode;
-use crate::ffi::{
-    ApiResult, BookInfo, ChapterInfo, PageContent, ParseConfig, ParseResult, ParserError,
-    TypesetConfig,
+use crate::domain::{
+     PageContent, ParseConfig, ParseResult, AppError, TypesetConfig,
 };
-use crate::parser::parallel::validate_chapters_parallel;
-use crate::text_process::{chapter_detect, typeset};
-
-/// 中文章节匹配模式
-static CHAPTER_PATTERN_ZH: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(
-        r"(?m)^(第 [零〇一二三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟]+[章回卷节部篇集]|序 [言引]|楔子 | 尾声 | 完结 | 番外 | 正文 [.\s]*\d+)"
-    ).expect("CHAPTER_PATTERN_ZH 正则表达式编译失败 - 检查模式语法")
-});
+use crate::storage::models::{Book, Chapter, BookFormat};
+use crate::text::constants::CHAPTER_PATTERN_ZH;
+use crate::text::{chapter_detect, typeset};
 
 /// 解析 TXT 文件
-pub fn parse_txt(file_path: String) -> ApiResult<ParseResult> {
+pub fn parse_txt(file_path: String) -> Result<ParseResult,AppError> {
     parse_txt_with_config(file_path, ParseConfig::default())
 }
 
@@ -40,14 +28,17 @@ pub fn parse_txt(file_path: String) -> ApiResult<ParseResult> {
 /// # 返回值
 ///
 /// * `Ok(ParseResult)` - 解析成功，包含书籍信息和章节列表
-/// * `Err(ParserError)` - 解析失败
-pub fn parse_txt_with_config(file_path: String, _config: ParseConfig) -> ApiResult<ParseResult> {
+/// * `Err(AppError)` - 解析失败
+pub fn parse_txt_with_config(file_path: String, _config: ParseConfig) -> Result<ParseResult,AppError> {
     let start_time = std::time::Instant::now();
-    tracing::info!("开始解析 TXT 文件：{}", file_path);
+    tracing::info!(
+        "开始解析 TXT 文件：{}",
+        file_path
+    );
 
     // 检查文件是否存在
     if !Path::new(&file_path).exists() {
-        return Err(ParserError::file_not_found(&file_path));
+        return Err(AppError::file_not_found(&file_path));
     }
     tracing::debug!("文件存在性检查通过：{}", file_path);
 
@@ -57,18 +48,12 @@ pub fn parse_txt_with_config(file_path: String, _config: ParseConfig) -> ApiResu
     tracing::debug!("文件解码完成，字符数：{}", total_chars);
 
     // 提取章节
-    let mut chapters = extract_chapters(&content);
+    let chapters = extract_chapters(&content);
     let chapter_count = chapters.len() as i32;
     tracing::debug!("章节提取完成，章节数：{}", chapter_count);
 
-    // 并行验证章节（大文件优化）
-    if chapter_count > 5 {
-        chapters = validate_chapters_parallel(chapters, &content, 0);
-        tracing::debug!("并行验证完成，有效章节数：{}", chapters.len());
-    }
-
     // 生成书籍 ID
-    let book_id = Uuid::new_v4().to_string();
+    let book_id = uuid::Uuid::new_v4().to_string();
 
     // 提取书名（从文件名或第一章标题）
     let file_name = Path::new(&file_path)
@@ -82,15 +67,23 @@ pub fn parse_txt_with_config(file_path: String, _config: ParseConfig) -> ApiResu
         .map(|c| c.title.clone())
         .unwrap_or(file_name);
 
-    let book_info = BookInfo {
+    let book_info = Book {
         book_id,
+        file_path: file_path.clone(),
         title,
-        author: "未知作者".to_string(),
+        author: Some("未知作者".to_string()),
         chapter_count: chapters.len() as i32,
         total_characters: total_chars,
-        file_path,
-        file_type: "txt".to_string(),
         cover_path: None,
+        file_hash: None,
+        file_size: 0,
+        file_mtime: None,
+        description: None,
+        format: BookFormat::Txt,
+        added_at: chrono::Utc::now(),
+        last_opened_at: None,
+        status: crate::storage::models::BookStatus::Reading,
+        is_pinned: false,
     };
 
     let elapsed = start_time.elapsed();
@@ -109,11 +102,11 @@ pub fn parse_txt_with_config(file_path: String, _config: ParseConfig) -> ApiResu
 
 /// 从内容中提取章节
 ///
-/// **重要**：返回的 `ChapterInfo.start_index` 和 `end_index` 是**字节偏移**（而非字符索引）。
+/// **重要**：返回的 `Chapter.start_index` 和 `end_index` 是**字节偏移**（而非字符索引）。
 /// 在使用这些值切片内容时，必须确保在 UTF-8 字符边界处截断。
-fn extract_chapters(content: &str) -> Vec<ChapterInfo> {
-    let mut chapters: Vec<ChapterInfo> = Vec::new();
-    let mut chapter_id = 0;
+fn extract_chapters(content: &str) -> Vec<Chapter> {
+    let mut chapters: Vec<Chapter> = Vec::new();
+    let mut chapter_index = 0i32;
 
     // 使用通用章节检测
     let detected = chapter_detect::extract_chapters(content, 1000);
@@ -129,7 +122,7 @@ fn extract_chapters(content: &str) -> Vec<ChapterInfo> {
         if let Some(m) = cap.get(0) {
             let start = m.start() as i64;
 
-            if chapter_id > 0 && last_end > 0 {
+            if chapter_index > 0 && last_end > 0 {
                 // 更新上一章的结束位置
                 if let Some(last) = chapters.last_mut() {
                     last.end_index = start;
@@ -137,30 +130,38 @@ fn extract_chapters(content: &str) -> Vec<ChapterInfo> {
                 }
             }
 
-            chapters.push(ChapterInfo {
-                chapter_id: uuid::Uuid::new_v4().to_string(),
+            chapters.push(Chapter {
+                id: uuid::Uuid::new_v4().to_string(),
+                book_id: String::new(),
+                content_file: String::new(),
                 title: m.as_str().trim().to_string(),
                 start_index: start,
                 end_index: content.len() as i64,
                 content_length: content.len() as i64 - start,
-                index: chapter_id,
+                chapter_index,
+                word_count: 0,
+                cached_at: chrono::Utc::now(),
                 level: 0,
             });
 
-            chapter_id += 1;
+            chapter_index += 1;
             last_end = start;
         }
     }
 
     // 如果没有匹配到任何章节，将整个文件作为一章
     if chapters.is_empty() {
-        chapters.push(ChapterInfo {
-            chapter_id: uuid::Uuid::new_v4().to_string(),
+        chapters.push(Chapter {
+            id: uuid::Uuid::new_v4().to_string(),
+            book_id: String::new(),
+            content_file: String::new(),
             title: "全文".to_string(),
             start_index: 0,
             end_index: content.len() as i64,
             content_length: content.len() as i64,
-            index: 0,
+            chapter_index: 0,
+            word_count: 0,
+            cached_at: chrono::Utc::now(),
             level: 0,
         });
     }
@@ -173,14 +174,14 @@ pub fn get_chapter_content(
     file_path: &str,
     chapter_index: i32,
     config: &TypesetConfig,
-) -> ApiResult<Vec<PageContent>> {
+) -> Result<Vec<PageContent>,AppError> {
     let content = decode::decode_file(file_path)?;
     let chapters = extract_chapters(&content);
 
     let chapter = chapters
         .iter()
-        .find(|c| c.index == chapter_index)
-        .ok_or_else(|| ParserError::ChapterExtractError(format!("未找到章节 {}", chapter_index)))?;
+        .find(|c| c.chapter_index == chapter_index)
+        .ok_or_else(|| AppError::chapter_extract_error(chapter_index, format!("未找到章节 {}", chapter_index)))?;
 
     // 提取章节内容
     // 注意：extract_chapters 返回的 start_index/end_index 是字节偏移（来自 regex::Match::start/end）
@@ -199,10 +200,9 @@ pub fn get_chapter_content(
     let typeset_content =
         typeset::typeset_content(chapter_text.to_string(), "auto".to_string(), config.clone())?;
 
-    // 根据字体大小和行间距估算每页行数
-    let lines_per_page = (config.page_height as f32 / config.font_size as f32 / config.line_spacing) as usize;
-    let lines_per_page = lines_per_page.max(1);
-    let pages = simple_paginate(&typeset_content, chapter.index, lines_per_page);
+    // 简单分页（实际应该根据像素计算）
+    let lines_per_page = (config.page_height as usize / 20).max(1);
+    let pages = simple_paginate(&typeset_content, chapter.chapter_index, lines_per_page);
 
     Ok(pages)
 }
@@ -265,7 +265,7 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(
-            matches!(err, ParserError::FileNotFound { .. }),
+            matches!(err, AppError::FileNotFound { .. }),
             "Expected FileNotFound error, got: {:?}",
             err
         );
@@ -282,7 +282,7 @@ mod tests {
         let result = parse_txt(file_path.to_str().unwrap().to_string());
         assert!(result.is_ok());
         let parse_result = result.unwrap();
-        assert_eq!(parse_result.book_info.file_type, "txt");
+        assert_eq!(parse_result.book_info.format, BookFormat::Txt);
         assert!(parse_result.book_info.title.contains("第一章"));
         assert_eq!(parse_result.chapters.len(), 1);
     }

@@ -479,7 +479,7 @@ class BookshelfPage extends StatelessWidget {
 
   Widget _buildBookCard(
     BuildContext context,
-    DbBookRecord book,
+    Book book,
     DeviceType deviceType,
   ) {
     final theme = Theme.of(context);
@@ -629,7 +629,7 @@ class BookshelfPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    book.author,
+                    book.author ?? '',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -729,7 +729,7 @@ class BookshelfPage extends StatelessWidget {
     );
   }
 
-  void _showBookOptions(BuildContext context, DbBookRecord book) {
+  void _showBookOptions(BuildContext context, Book book) {
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -793,7 +793,7 @@ class BookshelfPage extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirm(BuildContext context, DbBookRecord book) {
+  void _showDeleteConfirm(BuildContext context, Book book) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
