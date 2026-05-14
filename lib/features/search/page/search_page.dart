@@ -3,9 +3,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
-import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart';
+import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_book_repository.dart';
 import 'package:zephyr_reader/features/search/application/search_view_model.dart';
-import 'package:zephyr_reader/features/search/domain/repositories/search_repository.dart';
+import 'package:zephyr_reader/features/search/data/search_service.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/core/presentation/widgets/ui_components.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -658,8 +658,8 @@ class _SearchPageState extends State<SearchPage> {
               Navigator.pop(context);
 
               // 添加到书架
-              final bookshelfService = GetIt.I.get<BookshelfService>();
-              final book = await bookshelfService.addBook(
+              final repo = GetIt.I.get<BookRepository>();
+              final book = await repo.createBook(
                 title: result.title,
                 author: result.author,
                 filePath: result.id,

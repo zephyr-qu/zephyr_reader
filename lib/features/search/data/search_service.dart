@@ -1,11 +1,29 @@
 import 'package:injectable/injectable.dart';
 
-import '../domain/repositories/search_repository.dart';
+/// 搜索结果模型
+class SearchResult {
+  final String id;
+  final String title;
+  final String author;
+  final String? coverUrl;
+  final String? description;
+  final int totalChapters;
+  final String source;
+
+  SearchResult({
+    required this.id,
+    required this.title,
+    required this.author,
+    this.coverUrl,
+    this.description,
+    required this.totalChapters,
+    required this.source,
+  });
+}
 
 /// 搜索服务实现（示例，实际需要对接具体的小说源）
-@LazySingleton(as: SearchRepository)
-class SearchService implements SearchRepository {
-  @override
+@LazySingleton()
+class SearchRepository {
   Future<List<SearchResult>> search(
     String keyword, {
     int page = 1,
@@ -19,7 +37,6 @@ class SearchService implements SearchRepository {
     return [];
   }
 
-  @override
   Future<SearchResult?> getDetail(String id) async {
     // 模拟网络请求延迟
     await Future.delayed(const Duration(milliseconds: 300));
@@ -28,7 +45,6 @@ class SearchService implements SearchRepository {
     return null;
   }
 
-  @override
   Future<List<String>> getChapters(String id) async {
     // 模拟网络请求延迟
     await Future.delayed(const Duration(milliseconds: 300));

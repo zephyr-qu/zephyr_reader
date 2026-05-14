@@ -1,7 +1,7 @@
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
-import '../domain/repositories/search_repository.dart';
+import '../data/search_service.dart';
 
 /// 搜索视图模型
 @injectable

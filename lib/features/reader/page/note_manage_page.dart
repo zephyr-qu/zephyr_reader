@@ -3,7 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
-import 'package:zephyr_reader/features/reader/data/note_service.dart';
+import 'package:zephyr_reader/features/reader/data/note_repository.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 笔记管理页面
@@ -22,7 +22,7 @@ class NoteManagePage extends StatefulWidget {
 }
 
 class _NoteManagePageState extends State<NoteManagePage> {
-  final _noteService = getIt<NoteService>();
+  final _noteService = getIt<NoteRepository>();
   List<Note> _notes = [];
   bool _loading = true;
 

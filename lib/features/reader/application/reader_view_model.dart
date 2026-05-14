@@ -3,13 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart';
-import 'package:zephyr_reader/features/reader/application/services/chapter_content_service.dart';
-import 'package:zephyr_reader/features/reader/data/reading_progress_service.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../../core/reader/reader_config.dart';
-import '../domain/repositories/reader_repository.dart';
+import '../data/repositories/rust_reader_repository.dart';
 
 /// 阅读模式
 enum ReadingMode {
@@ -27,9 +24,6 @@ enum ReadingMode {
 class ReaderViewModel {
   final ReaderRepository _repo;
   final ReaderConfig _config;
-  final ChapterContentService _contentService;
-  final ReadingProgressService _progressService;
-  final BookshelfService _bookshelfService;
 
   // ==================== 书籍状态 ====================
 
@@ -119,9 +113,6 @@ class ReaderViewModel {
   ReaderViewModel(
     this._repo,
     this._config,
-    this._contentService,
-    this._progressService,
-    this._bookshelfService,
   ) {
     // 从配置加载设置
     _loadSettings();
@@ -199,7 +190,8 @@ class ReaderViewModel {
   Future<void> loadChapters() async {
     chapters.value = AsyncState.loading();
     try {
-      final data = await _bookshelfService.getBookChapters(bookId.value);
+      final bookIdInt = int.tryParse(bookId.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      final data = await _repo.getChapters(bookIdInt);
       chapters.value = AsyncState.data(data);
     } catch (e) {
       chapters.value = AsyncState.error(e);
@@ -209,9 +201,8 @@ class ReaderViewModel {
 
   /// 加载上次的阅读进度
   Future<void> _loadLastProgress() async {
-    final result = await _progressService.loadReadingProgress(bookId.value);
-    if (result.isSuccess) {
-      final progress = result.value;
+    try {
+      final progress = await _repo.loadReadingProgress(bookId.value);
       if (progress != null) {
         chapterIndex.value = progress.chapterIndex;
         pageIndex.value = progress.pageIndex;
@@ -221,6 +212,8 @@ class ReaderViewModel {
         // 更新章节 ID 信号（兼容旧代码）
         chapterId.value = progress.chapterIndex;
       }
+    } catch (_) {
+      // 进度加载失败，使用默认值
     }
   }
 
@@ -232,13 +225,13 @@ class ReaderViewModel {
 
     try {
       // 使用内容服务加载
-      final content = await _contentService.loadChapterContent(
+      final content = await _repo.loadChapterContent(
         bookId.value,
         chapterId,
       );
 
       // 计算分页
-      final pages = await _contentService.calculatePages(
+      final pages = await _repo.calculatePages(
         bookId: bookId.value,
         chapterId: chapterId,
         fontSize: fontSize.value,
@@ -346,15 +339,16 @@ class ReaderViewModel {
 
   /// 保存阅读进度
   Future<void> _saveProgress() async {
-    final result = await _progressService.updateReadingProgress(
-      bookId: bookId.value,
-      chapterId: chapterId.value,
-      pageIndex: pageIndex.value,
-      totalPages: totalPages.value,
-      readingTimeSeconds: readingDuration.value,
-    );
-    if (result.isFailure) {
-      debugPrint('ReaderViewModel._saveProgress error: ${result.error}');
+    try {
+      await _repo.updateReadingProgress(
+        bookId: bookId.value,
+        chapterId: chapterId.value,
+        pageIndex: pageIndex.value,
+        totalPages: totalPages.value,
+        readingTimeSeconds: readingDuration.value,
+      );
+    } catch (e) {
+      debugPrint('ReaderViewModel._saveProgress error: $e');
     }
   }
 

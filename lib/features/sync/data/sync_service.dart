@@ -4,18 +4,46 @@ import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/local/file_storage.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 
-import '../domain/repositories/sync_repository.dart';
+/// 同步状态
+enum SyncStatus {
+  idle('空闲'),
+  syncing('同步中'),
+  success('同步成功'),
+  failed('同步失败'),
+  offline('离线');
+
+  final String displayName;
+  const SyncStatus(this.displayName);
+}
+
+/// 同步任务
+class SyncTask {
+  final String id;
+  final String type;
+  final Map<String, dynamic> data;
+  final DateTime createdAt;
+  SyncStatus status;
+  String? errorMessage;
+
+  SyncTask({
+    required this.id,
+    required this.type,
+    required this.data,
+    required this.createdAt,
+    this.status = SyncStatus.idle,
+    this.errorMessage,
+  });
+}
 
 /// 同步服务实现
-@LazySingleton(as: SyncRepository)
-class SyncService implements SyncRepository {
+@LazySingleton()
+class SyncRepository {
   final FileStorage _fileStorage;
 
   static const String _syncQueueFile = 'sync_queue.json';
 
-  SyncService(this._fileStorage);
+  SyncRepository(this._fileStorage);
 
-  @override
   Future<List<SyncTask>> getPendingTasks() async {
     try {
       final content = await _fileStorage.readString(_syncQueueFile);
@@ -43,14 +71,12 @@ class SyncService implements SyncRepository {
     }
   }
 
-  @override
   Future<void> addTask(SyncTask task) async {
     final tasks = await getPendingTasks();
     tasks.add(task);
     await _saveTasks(tasks);
   }
 
-  @override
   Future<SyncStatus> sync() async {
     final tasks = await getPendingTasks();
     if (tasks.isEmpty) {
@@ -172,7 +198,6 @@ class SyncService implements SyncRepository {
     );
   }
 
-  @override
   Future<void> clearCompleted() async {
     final tasks = await getPendingTasks();
     final pending = tasks

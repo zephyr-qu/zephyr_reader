@@ -5,10 +5,8 @@ import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
-import 'package:zephyr_reader/features/bookshelf/application/services/book_import_service.dart';
-import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_service.dart';
-import 'package:zephyr_reader/features/bookshelf/application/services/bookshelf_settings_service.dart';
-import 'package:zephyr_reader/features/bookshelf/domain/models/import_task.dart';
+import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_book_repository.dart';
+
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/core/presentation/widgets/ui_components.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -161,11 +159,10 @@ class BookshelfPage extends StatelessWidget {
   }
 
   Future<void> _showImportDialog(BuildContext context) async {
-    final importService = getIt<BookImportService>();
-    final bookshelfService = getIt<BookshelfService>();
+    final repo = getIt<BookRepository>();
 
     // 直接打开文件选择器
-    final files = await importService.selectFiles(
+    final files = await repo.selectFiles(
       allowMultiple: false,
       allowedExtensions: ['txt', 'epub', 'pdf'],
     );
@@ -190,19 +187,21 @@ class BookshelfPage extends StatelessWidget {
             Text('正在导入"${file.name}"...'),
           ],
         ),
-        duration: const Duration(seconds: 5),
+        duration: const Duration(days: 365),
       ),
     );
 
     try {
-      // 导入文件并解析
-      final task = await importService.importFile(file);
+      Logging.info('[导入UI] 用户选择文件: name=${file.name}, path=$filePath, size=${file.size}');
 
-      if (task.status != ImportTaskStatus.completed) {
+      final book = await repo.importBook(file);
+
+      if (book == null) {
         if (!context.mounted) return;
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('导入失败：${task.error ?? '未知错误'}'),
+            content: const Text('导入失败'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
@@ -210,10 +209,9 @@ class BookshelfPage extends StatelessWidget {
         return;
       }
 
-      // 添加到书架
-      final book = await bookshelfService.addBookFromImportTask(task);
-
-      if (book != null && context.mounted) {
+      if (context.mounted) {
+        Logging.info('[导入UI] 添加书籍到书架成功: bookId=${book.bookId}, title=${book.title}');
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('成功添加"${book.title}"到书架'),
@@ -230,8 +228,10 @@ class BookshelfPage extends StatelessWidget {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, st) {
+      Logging.error('[导入UI] 导入过程异常: fileName=${file.name}', exception: e, stackTrace: st);
       if (!context.mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('导入失败：$e'),
@@ -759,8 +759,8 @@ class BookshelfPage extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 context.pushNamed(
-                  RouteNames.bookDetail,
-                  pathParameters: {'id': book.bookId},
+                  RouteNames.reader,
+                  pathParameters: {'bookId': book.bookId, 'chapterId': '1'},
                 );
               },
             ),
@@ -827,7 +827,6 @@ class BookshelfPage extends StatelessWidget {
     BuildContext context,
     BookshelfViewModel vm,
   ) {
-    final settingsService = getIt<BookshelfSettingsService>();
 
     showDialog(
       context: context,
@@ -850,9 +849,9 @@ class BookshelfPage extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   title: const Text('显示阅读进度'),
                   trailing: Switch(
-                    value: settingsService.showReadingProgress.value,
+                    value: vm.showReadingProgress.value,
                     onChanged: (value) {
-                      settingsService.setShowReadingProgress(value);
+                      vm.setShowReadingProgress(value);
                     },
                   ),
                 ),
@@ -860,9 +859,9 @@ class BookshelfPage extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   title: const Text('显示最近阅读'),
                   trailing: Switch(
-                    value: settingsService.showRecentReading.value,
+                    value: vm.showRecentReading.value,
                     onChanged: (value) {
-                      settingsService.setShowRecentReading(value);
+                      vm.setShowRecentReading(value);
                     },
                   ),
                 ),
@@ -878,14 +877,14 @@ class BookshelfPage extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   title: const Text('默认排序方式'),
                   subtitle: Text(
-                    settingsService.defaultSortType.value.displayName,
+                    vm.defaultSortType.value.displayName,
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () async {
-                    final selectedType = await settingsService
+                    final selectedType = await vm
                         .showSortTypeDialog(context);
                     if (selectedType != null) {
-                      await settingsService.setDefaultSortType(selectedType);
+                      await vm.setDefaultSortType(selectedType);
                     }
                   },
                 ),

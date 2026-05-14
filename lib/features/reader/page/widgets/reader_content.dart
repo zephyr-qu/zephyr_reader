@@ -11,7 +11,7 @@ import 'package:get_it/get_it.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
 import '../../application/reader_view_model.dart';
-import '../../application/services/chapter_content_service.dart';
+import '../../data/repositories/rust_reader_repository.dart';
 
 /// 阅读器内容组件
 class ReaderContent extends HookWidget {
@@ -77,15 +77,15 @@ class ReaderContent extends HookWidget {
     // 滚动控制器（滚动模式）
     final scrollController = useScrollController();
 
-    // 获取服务
-    final contentService = useMemoized(
-      () => GetIt.I.get<ChapterContentService>(),
+    // 获取阅读仓库
+    final repo = useMemoized(
+      () => GetIt.I.get<ReaderRepository>(),
     );
 
     // 加载章节内容
     useEffect(() {
       _loadChapterContent(
-        contentService,
+        repo,
         content,
         isLoading,
         error,
@@ -267,9 +267,9 @@ class ReaderContent extends HookWidget {
     final padding = 16.0;
 
     // 使用缓存的分页数据（由 ReaderPage 的 ViewModel 计算）
-    // 这里从 contentService 获取缓存的页面
-    final contentService = GetIt.I.get<ChapterContentService>();
-    final cachedPages = contentService.getCachedPages(bookId, chapterId);
+    // 这里获取缓存的分页数据
+    final repo = GetIt.I.get<ReaderRepository>();
+    final cachedPages = repo.getCachedPages(bookId, chapterId);
 
     if (cachedPages != null && cachedPages.isNotEmpty) {
       return PageView.builder(
@@ -439,7 +439,7 @@ class ReaderContent extends HookWidget {
   }
 
   Future<void> _loadChapterContent(
-    ChapterContentService contentService,
+    ReaderRepository repo,
     Signal<String> content,
     Signal<bool> isLoading,
     Signal<String?> error,
@@ -450,7 +450,7 @@ class ReaderContent extends HookWidget {
       error.value = null;
 
       // 从服务加载章节内容
-      final contentText = await contentService.loadChapterContent(
+      final contentText = await repo.loadChapterContent(
         bookId,
         chapterId,
       );
