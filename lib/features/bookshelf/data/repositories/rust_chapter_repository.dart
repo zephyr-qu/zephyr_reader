@@ -3,27 +3,23 @@ library;
 
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/local/rust_storage_service.dart';
-import 'package:zephyr_reader/features/bookshelf/domain/repositories/chapter_repository.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-@Injectable(as: ChapterRepository)
-class RustChapterRepository implements ChapterRepository {
+@Injectable()
+class ChapterRepository {
   final RustStorageService _storage;
-  RustChapterRepository(this._storage);
+  ChapterRepository(this._storage);
 
-  @override
+  
   Future<List<Chapter>> getChaptersByBookId(int bookId) async {
-    final rustChapters = await _storage.getChaptersByBook('book_$bookId');
-    return rustChapters.map(_chapterFromRust).toList();
+    return _storage.getChaptersByBook('book_$bookId');
   }
 
-  @override
   Future<Chapter?> getChapterByIndex(int bookId, int chapterIndex) async {
     final chapters = await getChaptersByBookId(bookId);
     return chapters.where((c) => c.chapterIndex == chapterIndex).firstOrNull;
   }
 
-  @override
   Future<Chapter?> getChapterById(String chapterId) async {
     final chapters = await getChaptersByBookId(
       int.tryParse(chapterId.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
@@ -31,51 +27,14 @@ class RustChapterRepository implements ChapterRepository {
     return chapters.where((c) => c.id == chapterId).firstOrNull;
   }
 
-  @override
   Future<int> insertChapters(List<Chapter> chapters) async {
     if (chapters.isEmpty) return 0;
-    final bookId = chapters.first.bookId;
-    final bookIdStr = 'book_$bookId';
-    final rustChapters = chapters
-        .map(
-          (c) => Chapter(
-            id: 'chapter_${c.id}',
-            bookId: bookIdStr,
-            title: c.title,
-            contentFile: c.contentFile,
-            chapterIndex: c.chapterIndex,
-            wordCount: c.wordCount,
-            cachedAt: c.cachedAt,
-            startIndex: c.startIndex,
-            endIndex: c.endIndex,
-            contentLength: c.contentLength,
-            level: c.level,
-          ),
-        )
-        .toList();
-    await _storage.saveChapters(bookIdStr, rustChapters);
+    await _storage.saveChapters(chapters.first.bookId, chapters);
     return chapters.length;
   }
 
-  @override
   Future<int> deleteChaptersByBookId(int bookId) async {
     await _storage.deleteChaptersByBook('book_$bookId');
     return 0;
-  }
-
-  Chapter _chapterFromRust(Chapter rustChapter) {
-    return Chapter(
-      id: rustChapter.id,
-      bookId: rustChapter.bookId,
-      title: rustChapter.title,
-      contentFile: rustChapter.contentFile,
-      chapterIndex: rustChapter.chapterIndex,
-      wordCount: rustChapter.wordCount,
-      cachedAt: rustChapter.cachedAt,
-      startIndex: rustChapter.startIndex,
-      endIndex: rustChapter.endIndex,
-      contentLength: rustChapter.contentLength,
-      level: rustChapter.level,
-    );
   }
 }

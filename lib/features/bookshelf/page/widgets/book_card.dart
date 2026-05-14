@@ -9,7 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart' as rust_models;
 import 'package:zephyr_reader/features/bookshelf/domain/models/bookshelf_filter.dart';
 
-import '../../application/services/bookshelf_service.dart';
+import '../../data/repositories/rust_book_repository.dart';
 
 /// 书籍卡片
 class BookCard extends StatelessWidget {
@@ -382,8 +382,8 @@ class BookCard extends StatelessWidget {
     );
 
     if (confirmed == true && controller.text.isNotEmpty) {
-      final bookshelfService = GetIt.I.get<BookshelfService>();
-      final updated = await bookshelfService.updateBookTitle(
+      final repo = GetIt.I.get<BookRepository>();
+      final updated = await repo.updateBookTitle(
         book.bookId,
         controller.text,
       );
@@ -429,8 +429,8 @@ class BookCard extends StatelessWidget {
     );
 
     if (confirmed == true) {
-      final bookshelfService = GetIt.I.get<BookshelfService>();
-      final deleted = await bookshelfService.deleteBook(book.bookId);
+      final repo = GetIt.I.get<BookRepository>();
+      final deleted = await repo.deleteBook(book.bookId);
 
       if (!context.mounted) return;
 

@@ -8,10 +8,6 @@
 //! - 排版缓存 (sled KV)
 //! - 同步状态 (SQLite)
 
-use std::path::Path;
-
-use anyhow::{Context, Result};
-
 pub mod db;
 pub mod kv_store;
 pub mod models;
@@ -19,20 +15,12 @@ pub mod repos;
 
 pub use db::StorageManager;
 
-// ==================== 全局存储实例 ====================
-
+use anyhow::{Context, Result};
 use once_cell::sync::OnceCell;
 
-static STORAGE: OnceCell<StorageManager> = OnceCell::new();
+// ==================== 全局存储实例 ====================
 
-/// 初始化全局存储
-pub async fn init_storage(data_dir: impl AsRef<Path>) -> Result<()> {
-    let manager = StorageManager::new(data_dir).await?;
-    STORAGE
-        .set(manager)
-        .map_err(|_| anyhow::anyhow!("Storage already initialized"))?;
-    Ok(())
-}
+pub(crate) static STORAGE: OnceCell<StorageManager> = OnceCell::new();
 
 /// 获取全局存储实例
 pub fn storage() -> Option<&'static StorageManager> {

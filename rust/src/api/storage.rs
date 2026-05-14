@@ -2,7 +2,8 @@ use flutter_rust_bridge::frb;
 
 
 use crate::domain::AppError;
-use crate::storage::{ensure_storage, init_storage as rust_init_storage};
+use crate::init::init_storage as rust_init_storage;
+use crate::storage::ensure_storage;
 use crate::storage::repos::{
     BookRepository, BookmarkRepository, CategoryRepository, ChapterRepository,
     LayoutCacheRepository, NoteRepository, ProgressRepository, SessionRepository, StatsRepository,
