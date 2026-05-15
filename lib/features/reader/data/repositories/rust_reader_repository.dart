@@ -1,10 +1,12 @@
 /// 阅读器仓库
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
+import 'package:zephyr_reader/core/local/rust_core_service.dart';
 import 'package:zephyr_reader/core/local/rust_epub_service.dart';
 import 'package:zephyr_reader/core/local/rust_storage_service.dart';
 import 'package:zephyr_reader/src/rust/domain/types.dart';
@@ -44,11 +46,13 @@ class ReadingProgressData {
 class ReaderRepository {
   final RustStorageService _storage;
   final RustEpubService _epubService;
+  final RustCoreService _coreService;
   final Map<String, Map<int, ChapterCacheItem>> _cache = {};
   static const int maxCacheSize = 10;
   ReadingProgressData? _currentProgress;
+  final Map<String, Map<int, List<RichParagraph>>> _richParaCache = {};
 
-  ReaderRepository(this._storage, this._epubService);
+  ReaderRepository(this._storage, this._epubService, this._coreService);
 
   Future<EpubMetadata?> getEpubMetadata(String filePath) async {
     try {
@@ -81,7 +85,7 @@ class ReaderRepository {
     final now = DateTime.now();
     await _storage.recordReadingSession(ReadingSession(
       id: 'session_${now.millisecondsSinceEpoch}',
-      bookId: 'book_$bookId',
+      bookId: bookId,
       chapterIndex: chapterId,
       startCharOffset: 0,
       endCharOffset: position,
@@ -102,7 +106,7 @@ class ReaderRepository {
   ) async {
     final bookmark = Bookmark(
       id: 'bm_${DateTime.now().millisecondsSinceEpoch}',
-      bookId: 'book_$bookId',
+      bookId: bookId,
       chapterIndex: chapterId,
       charOffset: position,
       title: '书签',
@@ -113,7 +117,7 @@ class ReaderRepository {
   }
 
   Future<List<Bookmark>> getBookmarks(String bookId) async {
-    return _storage.getBookmarks('book_$bookId');
+    return _storage.getBookmarks(bookId);
   }
 
   Future<bool> deleteBookmark(int bookmarkId) async {
@@ -134,23 +138,135 @@ class ReaderRepository {
   // ===== From ChapterContentService =====
 
   Future<String> loadChapterContent(String bookId, int chapterId, {String? contentFilePath}) async {
+    debugPrint('loadChapterContent >>> bookId=$bookId chapterId=$chapterId contentFilePath=$contentFilePath');
     final cacheKey = bookId.toString();
     if (_cache.containsKey(cacheKey) && _cache[cacheKey]!.containsKey(chapterId)) {
-      return _cache[cacheKey]![chapterId]!.content;
+      final cached = _cache[cacheKey]![chapterId]!;
+      debugPrint('loadChapterContent <<< cache hit, content len=${cached.content.length}');
+      return cached.content;
     }
     try {
-      String content;
+      String content = '';
+      String? source;
+
       if (contentFilePath != null && contentFilePath.isNotEmpty) {
-        content = '';
-      } else {
-        throw Exception('章节文件路径未提供');
+        final file = File(contentFilePath);
+        if (await file.exists()) {
+          content = await file.readAsString();
+          source = contentFilePath;
+          debugPrint('loadChapterContent 从 contentFilePath 读取: path=$contentFilePath len=${content.length}');
+        } else {
+          debugPrint('loadChapterContent contentFilePath 不存在: $contentFilePath');
+        }
       }
-      if (content.isEmpty) throw Exception('Rust API 返回空内容');
+
+      if (content.isEmpty) {
+        final chapters = await _storage.getChaptersByBook(bookId);
+        debugPrint('loadChapterContent 查询 chapters 表: bookId=$bookId 总数=${chapters.length}');
+        final ch = chapters.where((c) => c.chapterIndex == chapterId).firstOrNull;
+        if (ch != null) {
+          debugPrint('loadChapterContent 找到章节: contentFile=${ch.contentFile} startIndex=${ch.startIndex} endIndex=${ch.endIndex}');
+          if (ch.contentFile.isNotEmpty) {
+            final isEpub = ch.contentFile.toLowerCase().endsWith('.epub');
+            if (isEpub) {
+              try {
+                try {
+                  final meta = await _epubService.getEpubMetadata(ch.contentFile);
+                  debugPrint('loadChapterContent EPUB 诊断: spine=${meta.spine.length} items');
+                  for (int i = 0; i < meta.spine.length && i < 15; i++) {
+                    debugPrint('loadChapterContent EPUB 诊断:   spine[$i]=${meta.spine[i]}');
+                  }
+                  debugPrint('loadChapterContent EPUB 诊断: toc=${meta.toc.length} items');
+                  for (final item in meta.toc) {
+                    debugPrint('loadChapterContent EPUB 诊断:   toc label="${item.label}" href="${item.href}" level=${item.level}');
+                  }
+                } catch (e) {
+                  debugPrint('loadChapterContent EPUB 诊断 获取 metadata 失败: $e');
+                }
+                // 对比: 通用路径能否读到内容
+                try {
+                  final raw = await _coreService.getChapter(ch.contentFile, chapterId);
+                  debugPrint('loadChapterContent EPUB 诊断 coreService.getChapter: type=${raw.runtimeType}');
+                } catch (e) {
+                  debugPrint('loadChapterContent EPUB 诊断 coreService.getChapter 失败: $e');
+                }
+                const config = TypesetConfig(
+                  pageWidth: 400,
+                  pageHeight: 600,
+                  fontSize: 16,
+                  lineSpacing: 1.6,
+                  letterSpacing: 0,
+                  paragraphSpacing: 16,
+                  firstLineIndent: 2,
+                  language: LanguageType.chinese,
+                  enableHyphenation: false,
+                );
+                final paragraphs = await _epubService.getEpubChapterRichContent(
+                  filePath: ch.contentFile,
+                  chapterIndex: chapterId,
+                  config: config,
+                );
+                debugPrint('loadChapterContent EPUB getEpubChapterRichContent: paragraphs=${paragraphs.length}');
+                if (paragraphs.isNotEmpty) {
+                  final firstParaSpans = paragraphs.first.spans;
+                  debugPrint('loadChapterContent first para: spans=${firstParaSpans.length} indent=${paragraphs.first.indent} isHeading=${paragraphs.first.isHeading}');
+                  if (firstParaSpans.isNotEmpty) {
+                    debugPrint('loadChapterContent first span text="${firstParaSpans.first.text.substring(0, (firstParaSpans.first.text.length).clamp(0, 80))}"');
+                  }
+                }
+                _richParaCache.putIfAbsent(cacheKey, () => {});
+                _richParaCache[cacheKey]![chapterId] = paragraphs;
+                content = _richParagraphsToPlainText(paragraphs);
+                source = 'RichEpubAPI(${ch.contentFile})';
+                debugPrint('loadChapterContent EPUB rich typeset 成功: len=${content.length}');
+              } catch (e) {
+                debugPrint('loadChapterContent EPUB rich typeset 失败: $e');
+              }
+            }
+            if (content.isEmpty && !isEpub) {
+              final file = File(ch.contentFile);
+              if (await file.exists()) {
+                if (ch.endIndex > ch.startIndex) {
+                  final raf = await file.open(mode: FileMode.read);
+                  await raf.setPosition(ch.startIndex);
+                  final bytes = await raf.read(ch.endIndex - ch.startIndex);
+                  await raf.close();
+                  content = utf8.decode(bytes, allowMalformed: true);
+                  source = '${ch.contentFile}[${ch.startIndex}-${ch.endIndex}]';
+                  debugPrint('loadChapterContent 按字节范围读取: $source len=${content.length}');
+                } else {
+                  content = await file.readAsString();
+                  source = ch.contentFile;
+                  debugPrint('loadChapterContent 读取完整文件: ${ch.contentFile} len=${content.length}');
+                }
+              } else {
+                debugPrint('loadChapterContent contentFile 不存在: ${ch.contentFile}');
+              }
+            }
+          }
+        } else {
+          debugPrint('loadChapterContent 未找到 chapterId=$chapterId 对应的章节');
+        }
+      }
+
+      if (content.isEmpty) {
+        debugPrint('loadChapterContent <<< 章节内容为空, 抛出异常');
+        throw Exception('章节内容为空');
+      }
       _updateCache(cacheKey, chapterId, content, []);
+      debugPrint('loadChapterContent <<< 成功, source=$source len=${content.length}');
       return content;
     } catch (e) {
+      debugPrint('loadChapterContent <<< 异常: $e');
       throw Exception('加载章节内容失败：$e');
     }
+  }
+
+  String _richParagraphsToPlainText(List<RichParagraph> paragraphs) {
+    return paragraphs
+        .map((p) => p.spans.map((s) => s.text).join())
+        .where((t) => t.isNotEmpty)
+        .join('\n\n');
   }
 
   Future<List<PageInfo>> calculatePages({
@@ -164,6 +280,35 @@ class ReaderRepository {
     }
     final content = await loadChapterContent(bookId, chapterId);
     try {
+      final richParas = _richParaCache[cacheKey]?[chapterId];
+      if (richParas != null && richParas.isNotEmpty) {
+        final config = TypesetConfig(
+          pageWidth: (width - padding * 2).round().clamp(100, 2000),
+          pageHeight: (height - padding * 2).round().clamp(100, 2000),
+          fontSize: fontSize.round().clamp(8, 72),
+          lineSpacing: lineHeight,
+          letterSpacing: 0,
+          paragraphSpacing: 16,
+          firstLineIndent: 0,
+          language: LanguageType.chinese,
+          enableHyphenation: false,
+        );
+        final pageContents = _epubService.paginateEpubRichContent(
+          paragraphs: richParas,
+          chapterIndex: chapterId,
+          config: config,
+        );
+        final pages = pageContents
+            .map((pc) => PageInfo(
+                  pageIndex: pc.pageIndex,
+                  content: pc.content,
+                  startOffset: 0,
+                  endOffset: pc.content.length,
+                ))
+            .toList();
+        if (pages.isNotEmpty) _updateCache(cacheKey, chapterId, content, pages);
+        return pages;
+      }
       final pages = _fallbackPaginateContent(content);
       if (pages.isNotEmpty) _updateCache(cacheKey, chapterId, content, pages);
       return pages;
@@ -209,8 +354,14 @@ class ReaderRepository {
     if (oldestKey != null) _cache.remove(oldestKey);
   }
 
-  void clearBookCache(int bookId) => _cache.remove(bookId.toString());
-  void clearAllCache() => _cache.clear();
+  void clearBookCache(int bookId) {
+    _cache.remove(bookId.toString());
+    _richParaCache.remove(bookId.toString());
+  }
+  void clearAllCache() {
+    _cache.clear();
+    _richParaCache.clear();
+  }
 
   String? getCachedContent(int bookId, int chapterId) {
     final cacheKey = bookId.toString();

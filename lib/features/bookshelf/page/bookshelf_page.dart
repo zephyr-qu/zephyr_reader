@@ -9,6 +9,7 @@ import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_book_repository.dart';
+import 'package:zephyr_reader/core/local/rust_cover_service.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -44,9 +45,6 @@ class BookshelfPage extends HookWidget {
                   if (v.isEmpty && vm.isSearching.value) vm.stopSearch();
                   if (v.isNotEmpty && !vm.isSearching.value) vm.startSearch();
                 },
-                onSubmitted: (v) {
-                  if (v.isEmpty && vm.isSearching.value) vm.stopSearch();
-                },
               )
             : const Text('书架'),
         actions: [
@@ -68,14 +66,10 @@ class BookshelfPage extends HookWidget {
               icon: const Icon(Icons.more_horiz),
               onSelected: (value) {
                 switch (value) {
-                  case 'import':
-                    _showImportDialog(context, vm);
-                  case 'scan':
-                    _showScanDialog(context, vm);
-                  case 'settings':
-                    _showSettingsSheet(context, vm);
-                  case 'batch':
-                    batchMode.value = true;
+                  case 'import': _showImportDialog(context, vm);
+                  case 'scan': _showScanDialog(context, vm);
+                  case 'settings': _showSettingsSheet(context, vm);
+                  case 'batch': batchMode.value = true;
                 }
               },
               itemBuilder: (context) => [
@@ -161,13 +155,16 @@ class BookshelfPage extends HookWidget {
             child: Watch.builder(builder: (context) {
               final async = vm.books.value;
               if (async.isLoading) return const Center(child: CircularProgressIndicator(strokeWidth: 2));
-              if (async.hasError) return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              if (async.hasError) {
+                return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                 const Text('加载失败', style: TextStyle(color: DesignTokens.textSecondary)),
                 const SizedBox(height: 8),
                 TextButton(onPressed: vm.loadBooks, child: const Text('重试')),
               ]));
+              }
               final books = async.value ?? [];
-              if (books.isEmpty) return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              if (books.isEmpty) {
+                return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.book_outlined, size: 48, color: theme.colorScheme.onSurfaceVariant),
                 const SizedBox(height: 16),
                 const Text('书架空空如也', style: TextStyle(fontSize: 16, color: DesignTokens.textSecondary)),
@@ -178,51 +175,53 @@ class BookshelfPage extends HookWidget {
                   label: const Text('导入书籍'),
                 ),
               ]));
-              return Padding(
-                padding: EdgeInsets.fromLTRB(24, 20, 24, batchMode.value ? 80 : 0),
-                child: GridView.builder(
-                  physics: const BouncingScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    childAspectRatio: 0.55,
-                    crossAxisSpacing: 14,
-                    mainAxisSpacing: 18,
-                  ),
-                  itemCount: books.length,
-                  itemBuilder: (context, index) {
-                    final book = books[index];
-                    final selected = selectedIds.value.contains(book.bookId);
-                    return GestureDetector(
-                      onTap: batchMode.value
-                          ? () {
-                              if (selected) {
-                                selectedIds.value = selectedIds.value.where((id) => id != book.bookId).toSet();
-                              } else {
-                                selectedIds.value = {...selectedIds.value, book.bookId};
+              }
+              return RefreshIndicator(
+                onRefresh: vm.loadBooks,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(24, 20, 24, batchMode.value ? 80 : 0),
+                  child: GridView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      childAspectRatio: 0.55,
+                      crossAxisSpacing: 14,
+                      mainAxisSpacing: 18,
+                    ),
+                    itemCount: books.length,
+                    itemBuilder: (context, index) {
+                      final book = books[index];
+                      final selected = selectedIds.value.contains(book.bookId);
+                      return GestureDetector(
+                        onTap: batchMode.value
+                            ? () {
+                                if (selected) {
+                                  selectedIds.value = selectedIds.value.where((id) => id != book.bookId).toSet();
+                                } else {
+                                  selectedIds.value = {...selectedIds.value, book.bookId};
+                                }
                               }
-                            }
-                          : () => context.pushNamed(RouteNames.bookDetail, pathParameters: {'id': book.bookId}),
-                      onLongPress: () {
-                        if (!batchMode.value) {
-                          _showBookActions(context, vm, book);
-                        }
-                      },
-                      child: Stack(
-                        children: [
-                          _BookCover(book: book, theme: theme, statusLabel: _statusLabel(book.status.name)),
-                          if (batchMode.value)
-                            Positioned(
-                              top: 4, right: 4,
-                              child: Icon(
-                                selected ? Icons.check_circle : Icons.radio_button_unchecked,
-                                color: selected ? DesignTokens.primary : Colors.white.withValues(alpha: 0.6),
-                                size: 22,
+                            : () => context.pushNamed(RouteNames.bookDetail, pathParameters: {'id': book.bookId}),
+                        onLongPress: () {
+                          if (!batchMode.value) _showBookActions(context, vm, book);
+                        },
+                        child: Stack(
+                          children: [
+                            _BookCover(book: book, theme: theme, statusLabel: _statusLabel(book.status.name)),
+                            if (batchMode.value)
+                              Positioned(
+                                top: 4, right: 4,
+                                child: Icon(
+                                  selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                                  color: selected ? DesignTokens.primary : Colors.white.withValues(alpha: 0.6),
+                                  size: 22,
+                                ),
                               ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               );
             }),
@@ -240,36 +239,90 @@ class BookshelfPage extends HookWidget {
                 child: Row(
                   children: [
                     Text('已选 ${selectedIds.value.length} 本',
-                      style: const TextStyle(fontSize: 14, color: DesignTokens.textPrimary),
-                    ),
+                      style: const TextStyle(fontSize: 14, color: DesignTokens.textPrimary)),
                     const Spacer(),
                     TextButton(
                       onPressed: () { selectedIds.value = {}; batchMode.value = false; },
                       child: const Text('取消'),
                     ),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      onPressed: selectedIds.value.isEmpty ? null : () async {
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (c) => AlertDialog(
+                    PopupMenuButton<String>(
+                      onSelected: (action) async {
+                        if (action == 'delete') {
+                          final confirmed = await showDialog<bool>(context: context, builder: (c) => AlertDialog(
                             title: const Text('删除书籍'),
                             content: Text('确定要删除选中的 ${selectedIds.value.length} 本书吗？'),
                             actions: [
                               TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('取消')),
                               FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('删除')),
                             ],
-                          ),
-                        );
-                        if (confirmed == true) {
-                          for (final id in selectedIds.value) {
-                            await vm.deleteBook(id);
+                          ));
+                          if (confirmed == true) {
+                            for (final id in selectedIds.value) { await vm.deleteBook(id); }
+                            selectedIds.value = {};
+                            batchMode.value = false;
                           }
-                          selectedIds.value = {};
-                          batchMode.value = false;
+                        } else if (action == 'category') {
+                          final allCats = vm.categories.value;
+                          final tempIds = <String>{};
+                          final changed = await showDialog<bool>(context: context, builder: (c) => StatefulBuilder(
+                            builder: (c, setDialogState) => AlertDialog(
+                            title: const Text('移动分类'),
+                            content: Column(mainAxisSize: MainAxisSize.min,
+                              children: allCats.map((cat) => CheckboxListTile(
+                                title: Text(cat.name),
+                                value: tempIds.contains(cat.id),
+                                onChanged: (v) {
+                                  if (v == true) { tempIds.add(cat.id); } else { tempIds.remove(cat.id); }
+                                  setDialogState(() {});
+                                },
+                              )).toList(),
+                            ),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('取消')),
+                              FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('应用')),
+                            ],
+                          )));
+                          if (changed == true) {
+                            for (final id in selectedIds.value) {
+                              await vm.updateBookCategories(id, tempIds.toList());
+                            }
+                          }
+                        } else if (action == 'status') {
+                          await showDialog(context: context, builder: (c) => AlertDialog(
+                            title: const Text('更改状态'),
+                            content: Column(mainAxisSize: MainAxisSize.min, children: [
+                              ListTile(title: const Text('阅读中'), onTap: () => Navigator.pop(c, 'reading')),
+                              ListTile(title: const Text('未开始'), onTap: () => Navigator.pop(c, 'planned')),
+                              ListTile(title: const Text('已读完'), onTap: () => Navigator.pop(c, 'completed')),
+                            ]),
+                          )).then((status) async {
+                            if (status != null) {
+                              final repo = getIt<BookRepository>();
+                              for (final id in selectedIds.value) {
+                                await repo.updateBookStatus(id, status);
+                              }
+                              await vm.loadBooks();
+                            }
+                          });
                         }
                       },
-                      child: const Text('删除'),
+                      itemBuilder: (c) => [
+                        const PopupMenuItem(value: 'delete', child: ListTile(
+                          leading: Icon(Icons.delete_outline, color: Colors.red),
+                          title: Text('删除', style: TextStyle(color: Colors.red)),
+                          contentPadding: EdgeInsets.zero, dense: true,
+                        )),
+                        const PopupMenuItem(value: 'category', child: ListTile(
+                          leading: Icon(Icons.category),
+                          title: Text('移动分类'),
+                          contentPadding: EdgeInsets.zero, dense: true,
+                        )),
+                        const PopupMenuItem(value: 'status', child: ListTile(
+                          leading: Icon(Icons.check_circle_outline),
+                          title: Text('更改状态'),
+                          contentPadding: EdgeInsets.zero, dense: true,
+                        )),
+                      ],
                     ),
                   ],
                 ),
@@ -286,62 +339,82 @@ class BookshelfPage extends HookWidget {
         ListTile(
           leading: const Icon(Icons.category),
           title: const Text('编辑分类'),
-          onTap: () { Navigator.pop(c, 'category'); },
+          onTap: () => Navigator.pop(c, 'category'),
         ),
         ListTile(
           leading: const Icon(Icons.check_circle_outline, color: DesignTokens.primary),
           title: Text(book.status == BookStatus.reading ? '标记为未开始' : '标记为阅读中'),
-          onTap: () { Navigator.pop(c, 'status'); },
+          onTap: () => Navigator.pop(c, 'status'),
         ),
+        if (book.coverPath == null)
+          ListTile(
+            leading: const Icon(Icons.image_outlined),
+            title: const Text('补提取封面'),
+            onTap: () => Navigator.pop(c, 'cover'),
+          ),
       ]),
     );
     if (result == 'category') {
       final allCats = vm.categories.value;
-      // categories are book-agnostic in the current model, show all
+      final currentIds = await vm.getBookCategoryIds(book.bookId);
+      final tempSelected = Set<String>.from(currentIds);
       final selected = await showDialog<Set<String>>(
         context: context,
-        builder: (c) {
-          final tempSelected = useState<Set<String>>({});
-          return AlertDialog(
-            title: const Text('选择分类'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: allCats.map((cat) => CheckboxListTile(
-                title: Text(cat.name),
-                value: tempSelected.value.contains(cat.id),
-                onChanged: (v) {
-                  if (v == true) {
-                    tempSelected.value = {...tempSelected.value, cat.id};
-                  } else {
-                    tempSelected.value = tempSelected.value.where((id) => id != cat.id).toSet();
-                  }
-                },
-              )).toList(),
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(c), child: const Text('取消')),
-              FilledButton(onPressed: () => Navigator.pop(c, tempSelected.value), child: const Text('确定')),
-            ],
-          );
-        },
+        builder: (c) => StatefulBuilder(builder: (c, setDialogState) => AlertDialog(
+          title: const Text('选择分类'),
+          content: Column(mainAxisSize: MainAxisSize.min,
+            children: allCats.map((cat) => CheckboxListTile(
+              title: Text(cat.name),
+              value: tempSelected.contains(cat.id),
+              onChanged: (v) {
+                if (v == true) { tempSelected.add(cat.id); } else { tempSelected.remove(cat.id); }
+                setDialogState(() {});
+              },
+            )).toList(),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c), child: const Text('取消')),
+            FilledButton(onPressed: () => Navigator.pop(c, Set.from(tempSelected)), child: const Text('确定')),
+          ],
+        )),
       );
       if (selected != null) {
         await vm.updateBookCategories(book.bookId, selected.toList());
       }
     } else if (result == 'status') {
-      final newStatus = book.status == BookStatus.reading ? BookStatus.planned : BookStatus.reading;
       final repo = getIt<BookRepository>();
+      final newStatus = book.status == BookStatus.reading ? BookStatus.planned : BookStatus.reading;
       await repo.updateBookStatus(book.bookId, newStatus.name);
       await vm.loadBooks();
+    } else if (result == 'cover') {
+      if (await _reExtractCover(context, book)) await vm.loadBooks();
     }
+  }
+
+  Future<bool> _reExtractCover(BuildContext context, Book book) async {
+    final repo = getIt<BookRepository>();
+    final coverService = getIt<RustCoverService>();
+    if (!coverService.supportsCoverExtraction(book.filePath)) return false;
+    final coverPath = await coverService.extractBookCover(
+      filePath: book.filePath, outputDir: '/',
+    );
+    if (coverPath.isEmpty) return false;
+    final updated = Book(
+      bookId: book.bookId, filePath: book.filePath,
+      fileHash: book.fileHash, fileSize: book.fileSize, fileMtime: book.fileMtime,
+      title: book.title, author: book.author, description: book.description,
+      coverPath: coverPath, chapterCount: book.chapterCount,
+      totalCharacters: book.totalCharacters, format: book.format,
+      addedAt: book.addedAt, lastOpenedAt: book.lastOpenedAt,
+      status: book.status, isPinned: book.isPinned,
+    );
+    await repo.updateBook(updated);
+    return true;
   }
 
   Future<void> _showImportDialog(BuildContext context, BookshelfViewModel vm) async {
     final repo = getIt<BookRepository>();
-    final files = await repo.selectFiles(
-      allowMultiple: false,
-      allowedExtensions: ['txt', 'epub', 'pdf'],
-    );
+    final files = await repo.selectFiles(allowMultiple: false, allowedExtensions: ['txt', 'epub', 'pdf']);
     if (files == null || files.isEmpty || !context.mounted) return;
     try {
       final book = await repo.importBook(files.first);
@@ -349,16 +422,14 @@ class BookshelfPage extends HookWidget {
         await vm.loadBooks();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('已导入：${book.title}'), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
-          );
+          SnackBar(content: Text('已导入：${book.title}'), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
+        );
         }
       }
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导入失败：$e'), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
-        );
-      }
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('导入失败：$e'), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
+      );
     }
   }
 
@@ -366,23 +437,24 @@ class BookshelfPage extends HookWidget {
     final repo = getIt<BookRepository>();
     final folder = await repo.selectFolder();
     if (folder == null || !context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('正在扫描文件夹...'), duration: Duration(seconds: 1)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('正在扫描文件夹...'), duration: Duration(seconds: 1)),
+    );
     final files = await repo.scanFolder(folder);
     if (files.isEmpty) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未找到书籍文件')));
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('未找到书籍文件')),
+      );
       return;
     }
     var count = 0;
     for (final file in files) {
-      final book = await repo.importBook(file);
-      if (book != null) count++;
+      if (await repo.importBook(file) != null) count++;
     }
     await vm.loadBooks();
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('扫描完成，导入了 $count 本书'), behavior: SnackBarBehavior.floating),
-      );
-    }
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('扫描完成，导入了 $count 本书'), behavior: SnackBarBehavior.floating),
+    );
   }
 
   void _showSettingsSheet(BuildContext context, BookshelfViewModel vm) {
@@ -473,9 +545,7 @@ class _BookCover extends StatelessWidget {
           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: DesignTokens.textPrimary, height: 1.3),
         ),
         const SizedBox(height: 2),
-        Text(statusLabel,
-          style: const TextStyle(fontSize: 11, color: DesignTokens.textSecondary),
-        ),
+        Text(statusLabel, style: const TextStyle(fontSize: 11, color: DesignTokens.textSecondary)),
       ],
     );
   }

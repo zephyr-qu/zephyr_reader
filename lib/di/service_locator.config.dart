@@ -77,15 +77,16 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i148.RustSearchService>(() => _i148.RustSearchService());
     gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
     gh.lazySingleton<_i584.SearchRepository>(() => _i584.SearchRepository());
-    gh.factory<_i569.ArticleApi>(() => _i569.ArticleApi(gh<_i361.Dio>()));
-    gh.factory<_i601.FontRepository>(
-      () => _i601.FontRepository(gh<_i460.SharedPreferences>()),
-    );
     gh.factory<_i1054.ReaderRepository>(
       () => _i1054.ReaderRepository(
         gh<_i169.RustStorageService>(),
         gh<_i633.RustEpubService>(),
+        gh<_i607.RustCoreService>(),
       ),
+    );
+    gh.factory<_i569.ArticleApi>(() => _i569.ArticleApi(gh<_i361.Dio>()));
+    gh.factory<_i601.FontRepository>(
+      () => _i601.FontRepository(gh<_i460.SharedPreferences>()),
     );
     gh.factory<_i565.BookmarkRepository>(
       () => _i565.BookmarkRepository(gh<_i169.RustStorageService>()),

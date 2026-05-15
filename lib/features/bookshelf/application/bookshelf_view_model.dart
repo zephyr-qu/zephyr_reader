@@ -99,9 +99,32 @@ class BookshelfViewModel {
         }
       }
 
+      data = List.from(data);
+      data.sort((a, b) {
+        switch (defaultSortType.value) {
+          case BookshelfSortType.title:
+            return a.title.compareTo(b.title);
+          case BookshelfSortType.author:
+            return (a.author ?? '').compareTo(b.author ?? '');
+          case BookshelfSortType.lastRead:
+            return -(a.lastOpenedAt ?? DateTime(2000)).compareTo(b.lastOpenedAt ?? DateTime(2000));
+          case BookshelfSortType.progress:
+          case BookshelfSortType.createdAt:
+            return -(a.addedAt).compareTo(b.addedAt);
+        }
+      });
+
       books.value = AsyncState.data(data);
     } catch (e) {
       books.value = AsyncState.error(e);
+    }
+  }
+
+  Future<Set<String>> getBookCategoryIds(String bookId) async {
+    try {
+      return await _repo.getBookCategoryIds(bookId);
+    } catch (_) {
+      return {};
     }
   }
 

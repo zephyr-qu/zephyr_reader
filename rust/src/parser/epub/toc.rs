@@ -3,45 +3,45 @@
 
 use super::unzip::EpubFile;
 use crate::storage::models::Chapter;
-use std::collections::HashMap;
 
 /// 从 EPUB 中提取章节信息（支持多级目录）
 pub fn extract_chapters_from_epub(epub_file: &mut EpubFile) -> Vec<Chapter> {
     let toc = epub_file.toc();
     let spine = epub_file.spine();
 
+    tracing::info!("[extract_chapters_from_epub] spine 总数: {}, toc 总数: {}", spine.len(), toc.len());
+
     if toc.is_empty() {
         // 如果没有目录，使用 spine 生成简单章节
-        return generate_chapters_from_spine(&spine);
+        let chapters = generate_chapters_from_spine(&spine);
+        tracing::info!("[extract_chapters_from_epub] 无 TOC，从 spine 生成 {} 章节", chapters.len());
+        return chapters;
     }
-
-    // 构建 href 到索引的映射
-    let href_map: HashMap<&str, usize> = spine
-        .iter()
-        .enumerate()
-        .map(|(i, h)| (h.as_str(), i))
-        .collect();
 
     let mut chapters = Vec::new();
     let mut chapter_id = 0i32;
 
-    extract_toc_items(&toc, &href_map, &mut chapters, &mut chapter_id);
+    extract_toc_items(epub_file, &toc, &mut chapters, &mut chapter_id);
+
+    tracing::info!("[extract_chapters_from_epub] 从 TOC 解析出 {} 章节", chapters.len());
+    for ch in &chapters {
+        tracing::info!("[extract_chapters_from_epub]   章[{}]: title={:?}, start_index={}", ch.chapter_index, ch.title, ch.start_index);
+    }
 
     chapters
 }
 
 fn extract_toc_items(
+    epub_file: &EpubFile,
     items: &[(String, String)],
-    href_map: &HashMap<&str, usize>,
     chapters: &mut Vec<Chapter>,
     chapter_id: &mut i32,
 ) {
     for (title, href) in items {
         let pure_href = href.split('#').next().unwrap_or(href);
 
-        let index = href_map
-            .get(pure_href)
-            .copied()
+        let index = epub_file
+            .find_spine_index_by_toc_href(pure_href)
             .unwrap_or(*chapter_id as usize);
 
         chapters.push(Chapter {

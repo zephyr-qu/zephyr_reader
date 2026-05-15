@@ -11,11 +11,11 @@ class NoteRepository {
   NoteRepository(this._storage);
 
   Future<NoteStats> getNoteStats(String bookId) async {
-    return _storage.getNoteStats('book_$bookId');
+    return _storage.getNoteStats(bookId);
   }
 
   Future<List<Note>> getNotes(String bookId, {NoteType? noteType}) async {
-    return _storage.getNotes('book_$bookId', noteType: noteType);
+    return _storage.getNotes(bookId, noteType: noteType);
   }
 
   Future<Note> createNote(Note note) async {

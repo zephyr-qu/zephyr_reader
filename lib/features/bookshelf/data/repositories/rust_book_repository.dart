@@ -117,16 +117,12 @@ class BookRepository {
     await _storage.setCategoriesForBook(bookId, categoryIds);
   }
 
-  // ===== From BookshelfService =====
-
-  BookFormat _parseBookFormat(String format) {
-    switch (format.toLowerCase()) {
-      case 'epub':
-        return BookFormat.epub;
-      case 'pdf':
-        return BookFormat.pdf;
-      default:
-        return BookFormat.txt;
+  Future<Set<String>> getBookCategoryIds(String bookId) async {
+    try {
+      final cats = await _storage.getCategoriesForBook(bookId);
+      return cats.map((c) => c.id).toSet();
+    } catch (_) {
+      return {};
     }
   }
 
@@ -241,40 +237,6 @@ class BookRepository {
     }
   }
 
-  Future<bool> updateReadingProgress({
-    required String bookId,
-    required String chapterId,
-    required int currentPage,
-    required int totalPages,
-    required double progress,
-  }) async {
-    try {
-      final book = await getBookById(bookId);
-      if (book == null) return false;
-      final updated = Book(
-        bookId: book.bookId,
-        filePath: book.filePath,
-        fileSize: book.fileSize,
-        title: book.title,
-        author: book.author,
-        description: book.description,
-        coverPath: book.coverPath,
-        chapterCount: book.chapterCount,
-        totalCharacters: book.totalCharacters,
-        format: book.format,
-        addedAt: book.addedAt,
-        lastOpenedAt: book.lastOpenedAt,
-        status: book.status,
-        isPinned: book.isPinned,
-      );
-      await updateBook(updated);
-      return true;
-    } catch (e) {
-      Logging.debug('BookRepository.updateReadingProgress error: $e');
-      return false;
-    }
-  }
-
   // ===== From BookImportService =====
 
   Future<List<PlatformFile>?> selectFiles({
@@ -357,10 +319,12 @@ class BookRepository {
         filePath: filePath,
         format: _parseBookFormat(format),
         fileSize: file.size,
+        fileHash: bookInfo.fileHash,
+        fileMtime: bookInfo.fileMtime,
         chapterCount: bookInfo.chapterCount,
-        totalCharacters: bookInfo.chapterCount,
+        totalCharacters: bookInfo.totalCharacters,
         coverPath: bookInfo.coverPath,
-        description: null,
+        description: bookInfo.description,
         addedAt: DateTime.now(),
         status: BookStatus.planned,
         isPinned: false,
@@ -447,6 +411,14 @@ class BookRepository {
     } catch (e, st) {
       Logging.error('Rust解析失败: filePath=$filePath', exception: e, stackTrace: st);
       return null;
+    }
+  }
+
+  BookFormat _parseBookFormat(String format) {
+    switch (format.toLowerCase()) {
+      case 'epub': return BookFormat.epub;
+      case 'pdf': return BookFormat.pdf;
+      default: return BookFormat.txt;
     }
   }
 }
