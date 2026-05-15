@@ -56,9 +56,12 @@ impl EpubFile {
             return Err(AppError::file_not_found(file_path));
         }
 
+        tracing::info!("[EpubFile::open] 打开 EPUB: {}", file_path);
         let doc = EpubDoc::new(file_path).map_err(|e| {
             AppError::file_read_error(file_path, format!("EPUB 解析失败：{}", e))
         })?;
+        tracing::info!("[EpubFile::open] 成功: metadata={}, resources={}, spine={}, toc={}",
+            doc.metadata.len(), doc.resources.len(), doc.spine.len(), doc.toc.len());
 
         Ok(Self {
             doc,
@@ -103,15 +106,17 @@ impl EpubFile {
     pub fn read_resource(&mut self, href: &str) -> Result<String, AppError> {
         // 检查缓存（先克隆内容以避免借用冲突）
         if let Some(cached) = self.cache.get(href).cloned() {
+            tracing::debug!("[read_resource] 缓存命中: href={}", href);
             return self.decode_content(&cached);
         }
 
         // 查找资源
-        let (resource_href, _resource) =
+        let (resource_href, resource) =
             find_resource_by_href_or_path(&self.doc.resources, href)
                 .ok_or_else(|| AppError::epub_parse_error(format!("资源不存在：{}", href)))?;
 
         let resource_href: String = resource_href.clone();
+        tracing::debug!("[read_resource] 资源查找成功: href={resource_href}, path={:?}", resource.path);
 
         // 设置当前章节到该资源
         let index = self
@@ -120,12 +125,15 @@ impl EpubFile {
             .iter()
             .position(|item: &SpineItem| item.idref == resource_href);
         if let Some(idx) = index {
+            tracing::debug!("[read_resource] spine 索引: {idx}");
             let _ = self.doc.set_current_chapter(idx);
 
             // 读取内容 - epub 2.x 返回 (Vec<u8>, String) 元组
-            let (content, _charset) = self.doc.get_current().ok_or_else(|| {
+            let (content, charset) = self.doc.get_current().ok_or_else(|| {
                 AppError::epub_parse_error("读取资源失败：无法获取当前内容".to_string())
             })?;
+
+            tracing::debug!("[read_resource] 读取成功: {} bytes, charset={:?}", content.len(), charset);
 
             // 缓存内容（只缓存字节）
             self.cache.put(href.to_string(), content.clone());
@@ -133,6 +141,7 @@ impl EpubFile {
             return self.decode_content(&content);
         }
 
+        tracing::warn!("[read_resource] 无法在 spine 中找到资源: {}", resource_href);
         Err(AppError::epub_parse_error(format!(
             "无法定位资源：{}",
             href
@@ -252,6 +261,27 @@ impl EpubFile {
                 (href.clone(), filename)
             })
             .collect()
+    }
+
+    /// 通过 TOC href 查找对应的 spine 索引
+    ///
+    /// TOC 中的 href 是文件路径（如 "text/part0000.html"），
+    /// 而 spine 中存的是 resource ID（如 "id5"），
+    /// 需要通过 manifest 中的 resource path 做桥接。
+    pub fn find_spine_index_by_toc_href(&self, toc_href: &str) -> Option<usize> {
+        let pure_href = toc_href.split('#').next().unwrap_or(toc_href);
+        // 在 resources 中找 path 结尾匹配 TOC href 的条目
+        let resource_id = self
+            .doc
+            .resources
+            .iter()
+            .find(|(_, res)| res.path.to_string_lossy().ends_with(pure_href))
+            .map(|(id, _)| id.clone())?;
+        // 在 spine 中找 idref 匹配该 resource ID 的位置
+        self.doc
+            .spine
+            .iter()
+            .position(|item| item.idref == resource_id)
     }
 
     /// 判断资源是否为图片

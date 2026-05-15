@@ -182,6 +182,7 @@ fn read_chapter_content(epub_file: &mut EpubFile, chapter: &Chapter) -> Result<S
             format!("章节索引超出范围：{}", chapter.start_index),
         )
     })?;
+    tracing::debug!("[read_chapter_content] spine href={}, start_index={}", href, chapter.start_index);
 
     epub_file.read_resource(href)
 }
@@ -234,10 +235,11 @@ fn paginate_content(content: &str, chapter_index: i32, config: &TypesetConfig) -
 /// * `Ok(RichChapterContent)` - 富文本章节内容
 /// * `Err(AppError)` - 解析失败
 pub fn get_chapter_content_rich(file_path: &str, chapter_id: i32) -> Result<RichChapterContent,AppError> {
-    tracing::debug!("读取 EPUB 章节 {} 富文本内容：{}", chapter_id, file_path);
+    tracing::info!("[get_chapter_content_rich] 开始: file_path={}, chapter_id={}", file_path, chapter_id);
 
     let mut epub_file = EpubFile::open(file_path)?;
     let chapters = extract_chapters_from_epub(&mut epub_file);
+    tracing::info!("[get_chapter_content_rich] 章节总数: {}, 查找 chapter_id={}", chapters.len(), chapter_id);
 
     let chapter = chapters
         .iter()
@@ -245,18 +247,29 @@ pub fn get_chapter_content_rich(file_path: &str, chapter_id: i32) -> Result<Rich
         .ok_or_else(|| {
             AppError::chapter_extract_error(chapter_id, format!("未找到章节 {}", chapter_id))
         })?;
+    tracing::info!("[get_chapter_content_rich] 找到章节: id={}, title={}, start_index={}",
+        chapter.id, chapter.title, chapter.start_index);
 
     // 读取章节 HTML 内容
     let html_content = read_chapter_content(&mut epub_file, chapter)?;
+    tracing::info!("[get_chapter_content_rich] HTML 内容长度: {} bytes", html_content.len());
+    tracing::debug!("[get_chapter_content_rich] HTML 前 200 字符: {:?}", &html_content.chars().take(200).collect::<String>());
 
     // 使用 html5ever 解析 HTML 为富文本
     let paragraphs = rich_text::parse_html_to_rich_text(&html_content)?;
+    tracing::info!("[get_chapter_content_rich] 解析结果: {} 段落", paragraphs.len());
+    if let Some(first) = paragraphs.first() {
+        tracing::info!("[get_chapter_content_rich] 首段落: spans={}, indent={}, is_heading={}, text={:?}",
+            first.spans.len(), first.indent, first.is_heading,
+            &first.full_text().chars().take(80).collect::<String>());
+    }
 
     // 计算总字符数
     let total_characters = paragraphs
         .iter()
         .map(|p| p.full_text().chars().count() as i64)
         .sum();
+    tracing::info!("[get_chapter_content_rich] 完成: total_characters={}", total_characters);
 
     Ok(RichChapterContent {
         chapter_id: chapter.id.clone(),

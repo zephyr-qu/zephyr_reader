@@ -211,8 +211,8 @@ class AppThemes {
         overlayColor: Color(0x1A07D2D7),
       ),
 
-      extensions: [
-        const AppThemeExtension(
+      extensions: const [
+        AppThemeExtension(
           primaryContainer: DesignTokens.primaryContainer,
           secondaryContainer: DesignTokens.secondary,
           surfaceVariant: DesignTokens.surface,
@@ -420,8 +420,8 @@ class AppThemes {
         overlayColor: Color(0x1A07D2D7),
       ),
 
-      extensions: [
-        const AppThemeExtension(
+      extensions: const [
+        AppThemeExtension(
           primaryContainer: Color(0xFF004D4D),
           secondaryContainer: Color(0xFF4DD0E1),
           surfaceVariant: DesignTokens.surfaceDark,
