@@ -4,58 +4,34 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
-/// 渐变卡片 - 带有渐变背景和动画效果
+/// 简约卡片 - 纯色背景 + 细边框
 class GradientCard extends StatelessWidget {
   final Widget child;
-  final List<Color>? gradientColors;
   final double borderRadius;
   final EdgeInsets padding;
   final VoidCallback? onTap;
-  final BoxShadow? customShadow;
 
   const GradientCard({
     super.key,
     required this.child,
-    this.gradientColors,
-    this.borderRadius = 20,
+    this.borderRadius = 12,
     this.padding = const EdgeInsets.all(24),
     this.onTap,
-    this.customShadow,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final defaultGradient =
-        gradientColors ??
-        [
-          theme.colorScheme.primary.withValues(alpha: 0.15),
-          theme.colorScheme.secondary.withValues(alpha: 0.1),
-        ];
-
-    final defaultShadow =
-        customShadow ??
-        BoxShadow(
-          color: theme.colorScheme.primary.withValues(alpha: 0.1),
-          blurRadius: 20,
-          offset: const Offset(0, 4),
-        );
 
     final card = Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: defaultGradient,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.2),
-          width: 1,
+          color: theme.colorScheme.outlineVariant,
+          width: 0.5,
         ),
-        boxShadow: [defaultShadow],
       ),
       child: Padding(padding: padding, child: child),
     );
@@ -68,7 +44,7 @@ class GradientCard extends StatelessWidget {
   }
 }
 
-/// 统计项卡片 - 用于展示统计数据
+/// 统计项卡片 - 简约风格
 class StatCard extends StatelessWidget {
   final String label;
   final String value;
@@ -89,50 +65,32 @@ class StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final statItem = Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: color, size: 28),
-              )
-              .animate()
-              .scale(duration: 400.ms, curve: Curves.easeOutBack)
-              .then()
-              .shake(duration: 600.ms, hz: 2),
-          const SizedBox(height: 12),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              value,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+    final statItem = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: 24),
+        const SizedBox(height: 8),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
           ),
-        ],
-      ),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
 
     if (onTap != null) {
@@ -143,7 +101,7 @@ class StatCard extends StatelessWidget {
   }
 }
 
-/// 带图标的选择器芯片
+/// 图标选择芯片 — 简约风格
 class IconChoiceChip extends StatelessWidget {
   final String label;
   final IconData? icon;
@@ -169,15 +127,15 @@ class IconChoiceChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          color: selected ? color.withValues(alpha: 0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: selected
                 ? color
                 : theme.colorScheme.outline.withValues(alpha: 0.3),
-            width: selected ? 2 : 1,
+            width: selected ? 1.5 : 0.5,
           ),
         ),
         child: Row(
@@ -186,10 +144,10 @@ class IconChoiceChip extends StatelessWidget {
             if (icon != null) ...[
               Icon(
                 icon,
-                size: 18,
+                size: 16,
                 color: selected
                     ? color
-                    : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
               const SizedBox(width: 6),
             ],
@@ -198,7 +156,7 @@ class IconChoiceChip extends StatelessWidget {
               style: theme.textTheme.labelLarge?.copyWith(
                 color: selected
                     ? color
-                    : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
@@ -209,7 +167,7 @@ class IconChoiceChip extends StatelessWidget {
   }
 }
 
-/// 带进度条的卡片
+/// 带进度条的卡片 — 简约风格
 class ProgressCard extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -235,33 +193,34 @@ class ProgressCard extends StatelessWidget {
     final theme = Theme.of(context);
     final color = progressColor ?? theme.colorScheme.primary;
 
-    final card = Card(
+    final card = Container(
       margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant,
+          width: 0.5,
+        ),
+      ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               if (icon != null) ...[
                 Container(
-                  width: 56,
-                  height: 56,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.primaryContainer,
-                        theme.colorScheme.secondaryContainer,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(icon, color: color, size: 28),
+                  child: Icon(icon, color: color, size: 22),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
               ],
               Expanded(
                 child: Column(
@@ -275,54 +234,33 @@ class ProgressCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.6,
-                        ),
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Row(
                       children: [
                         Expanded(
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: Stack(
-                              children: [
-                                Container(
-                                  height: 6,
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.outlineVariant,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                ),
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 500),
-                                  height: 6,
-                                  width:
-                                      MediaQuery.of(context).size.width *
-                                      progress.clamp(0, 1),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        color,
-                                        color.withValues(alpha: 0.7),
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                ),
-                              ],
+                            borderRadius: BorderRadius.circular(2),
+                            child: LinearProgressIndicator(
+                              value: progress.clamp(0, 1),
+                              backgroundColor:
+                                  theme.colorScheme.outlineVariant,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(color),
+                              minHeight: 3,
                             ),
                           ),
                         ),
                         if (progressLabel != null) ...[
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 10),
                           Text(
                             progressLabel!,
                             style: theme.textTheme.bodySmall?.copyWith(
@@ -335,15 +273,6 @@ class ProgressCard extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.play_arrow_rounded, color: color, size: 20),
               ),
             ],
           ),
@@ -428,7 +357,7 @@ class EmptyState extends StatelessWidget {
   }
 }
 
-/// 分段选择器
+/// 分段选择器 — 简约风格
 class SegmentedChoice<T> extends StatelessWidget {
   final Map<T, String> options;
   final T value;
@@ -448,10 +377,13 @@ class SegmentedChoice<T> extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant,
+          width: 0.5,
+        ),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: options.entries.map((entry) {
@@ -461,12 +393,12 @@ class SegmentedChoice<T> extends StatelessWidget {
               onTap: () => onValueChanged(entry.key),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? theme.colorScheme.primary
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -474,7 +406,7 @@ class SegmentedChoice<T> extends StatelessWidget {
                     if (isSelected && selectedIcon != null) ...[
                       Icon(
                         selectedIcon,
-                        size: 16,
+                        size: 14,
                         color: theme.colorScheme.onPrimary,
                       ),
                       const SizedBox(width: 4),
@@ -534,7 +466,7 @@ class LoadingCard extends StatelessWidget {
   }
 }
 
-/// 阅读器设置滑块
+/// 阅读器设置滑块 — 简约风格
 class ReaderSlider extends StatelessWidget {
   final String label;
   final String valueLabel;
@@ -570,8 +502,8 @@ class ReaderSlider extends StatelessWidget {
             Row(
               children: [
                 if (icon != null) ...[
-                  Icon(icon, size: 18, color: theme.colorScheme.primary),
-                  const SizedBox(width: 8),
+                  Icon(icon, size: 16, color: theme.colorScheme.primary),
+                  const SizedBox(width: 6),
                 ],
                 Text(
                   label,
@@ -581,34 +513,27 @@ class ReaderSlider extends StatelessWidget {
                 ),
               ],
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                valueLabel,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
+            Text(
+              valueLabel,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         SliderTheme(
           data: SliderThemeData(
-            trackHeight: 4,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
+            trackHeight: 2,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
             activeTrackColor: theme.colorScheme.primary,
             inactiveTrackColor: theme.colorScheme.primary.withValues(
-              alpha: 0.3,
+              alpha: 0.2,
             ),
             thumbColor: theme.colorScheme.primary,
-            overlayColor: theme.colorScheme.primary.withValues(alpha: 0.2),
+            overlayColor: theme.colorScheme.primary.withValues(alpha: 0.15),
           ),
           child: Slider(
             value: value,
@@ -623,7 +548,7 @@ class ReaderSlider extends StatelessWidget {
   }
 }
 
-/// 阅读器主题选择器
+/// 阅读器主题选择器 — 简约风格
 class ReaderThemeSelector extends StatelessWidget {
   final ThemeMode selectedTheme;
   final ValueChanged<ThemeMode> onThemeChanged;
@@ -654,17 +579,17 @@ class ReaderThemeSelector extends StatelessWidget {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               margin: EdgeInsets.only(right: t == themes.last ? 0 : 8),
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? theme.colorScheme.primary.withValues(alpha: 0.15)
-                    : theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
+                    ? theme.colorScheme.primary.withValues(alpha: 0.1)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isSelected
                       ? theme.colorScheme.primary
-                      : theme.colorScheme.outline.withValues(alpha: 0.3),
-                  width: isSelected ? 2 : 1,
+                      : theme.colorScheme.outlineVariant,
+                  width: 0.5,
                 ),
               ),
               child: Column(
@@ -674,9 +599,9 @@ class ReaderThemeSelector extends StatelessWidget {
                     color: isSelected
                         ? theme.colorScheme.primary
                         : theme.colorScheme.onSurfaceVariant,
-                    size: 24,
+                    size: 22,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Text(
                     t['label'] as String,
                     style: theme.textTheme.labelSmall?.copyWith(

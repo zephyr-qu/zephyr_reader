@@ -11,8 +11,10 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/features/reader/data/custom_font_service.dart';
 
-/// 阅读设置页面
 class ReadingSettingsPage extends StatefulHookWidget {
   const ReadingSettingsPage({super.key});
 
@@ -63,6 +65,8 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage>
                 suffix: 'x${lineHeight.value.toStringAsFixed(1)}',
                 onChanged: (v) => lineHeight.value = v,
               ),
+              const Divider(height: 1),
+              _buildFontSelector(context),
             ],
           ),
 
@@ -179,8 +183,6 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage>
     required String title,
     required List<Widget> children,
   }) {
-    final theme = Theme.of(context);
-
     if (children.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -189,21 +191,12 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage>
         if (title.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(
-              title,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
+            child: Text(title,
+              style: const TextStyle(fontSize: 12, color: DesignTokens.textSecondary, letterSpacing: 0.5),
             ),
           ),
         ],
-        ColoredBox(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.3,
-          ),
-          child: Column(children: children),
-        ),
+        Column(children: children),
       ],
     );
   }
@@ -229,6 +222,34 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage>
         onChanged: onChanged,
       ),
       trailing: Text(suffix, style: Theme.of(context).textTheme.bodySmall),
+    );
+  }
+
+  Widget _buildFontSelector(BuildContext context) {
+    final fontRepo = getIt<FontRepository>();
+    return ListTile(
+      title: Text(fontRepo.currentFont.value?.name ?? '系统默认'),
+      trailing: const Icon(Icons.chevron_right, size: 18, color: DesignTokens.textSecondary),
+      onTap: () {
+        showModalBottomSheet<String>(
+          context: context,
+          builder: (c) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: fontRepo.availableFonts.value.map((font) =>
+              ListTile(
+                title: Text(font.name),
+                trailing: fontRepo.currentFont.value?.id == font.id
+                  ? const Icon(Icons.check, size: 18, color: DesignTokens.primary)
+                  : null,
+                onTap: () {
+                  fontRepo.setCurrentFont(font.id);
+                  Navigator.pop(c, font.id);
+                },
+              ),
+            ).toList(),
+          ),
+        );
+      },
     );
   }
 

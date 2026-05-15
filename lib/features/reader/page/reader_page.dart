@@ -102,6 +102,7 @@ class ReaderPage extends StatelessWidget {
                           progress: vm.progressText,
                           themeMode: themeMode,
                           hasBookmark: vm.hasBookmarkAtCurrentPosition,
+                          bookId: bookId,
                           onClose: () => context.pop(),
                           onToggleToolbar: vm.toggleToolbar,
                           onShowCatalog: vm.toggleCatalog,
@@ -183,10 +184,10 @@ class ReaderPage extends StatelessWidget {
   Color _getBackgroundColor(ThemeMode themeMode) {
     switch (themeMode) {
       case ThemeMode.dark:
-        return const Color(0xFF1a1a1a);
+        return const Color(0xFF0A0A0A);
       case ThemeMode.light:
       default:
-        return const Color(0xFFF5F5DC); // 米黄色护眼背景
+        return const Color(0xFFFAFAFA);
     }
   }
 }

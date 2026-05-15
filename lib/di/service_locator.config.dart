@@ -27,10 +27,6 @@ import 'package:zephyr_reader/features/article/application/article_view_model.da
 import 'package:zephyr_reader/features/article/data/article_api.dart' as _i569;
 import 'package:zephyr_reader/features/article/data/article_service.dart'
     as _i582;
-import 'package:zephyr_reader/features/auth/application/auth_view_model.dart'
-    as _i563;
-import 'package:zephyr_reader/features/auth/data/auth_api.dart' as _i60;
-import 'package:zephyr_reader/features/auth/data/auth_service.dart' as _i738;
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart'
     as _i790;
 import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_book_repository.dart'
@@ -82,9 +78,14 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
     gh.lazySingleton<_i584.SearchRepository>(() => _i584.SearchRepository());
     gh.factory<_i569.ArticleApi>(() => _i569.ArticleApi(gh<_i361.Dio>()));
-    gh.factory<_i60.AuthApi>(() => _i60.AuthApi(gh<_i361.Dio>()));
     gh.factory<_i601.FontRepository>(
       () => _i601.FontRepository(gh<_i460.SharedPreferences>()),
+    );
+    gh.factory<_i1054.ReaderRepository>(
+      () => _i1054.ReaderRepository(
+        gh<_i169.RustStorageService>(),
+        gh<_i633.RustEpubService>(),
+      ),
     );
     gh.factory<_i565.BookmarkRepository>(
       () => _i565.BookmarkRepository(gh<_i169.RustStorageService>()),
@@ -95,9 +96,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i820.NoteRepository>(
       () => _i820.NoteRepository(gh<_i169.RustStorageService>()),
     );
-    gh.factory<_i1054.ReaderRepository>(
-      () => _i1054.ReaderRepository(gh<_i169.RustStorageService>()),
-    );
     gh.lazySingleton<_i1072.ReadingStatsService>(
       () => _i1072.ReadingStatsService(gh<_i169.RustStorageService>()),
     );
@@ -107,6 +105,7 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i454.ChapterRepository>(),
         gh<_i565.BookmarkRepository>(),
         gh<_i607.RustCoreService>(),
+        gh<_i14.RustCoverService>(),
       ),
     );
     gh.factory<_i1.SearchViewModel>(
@@ -117,9 +116,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingletonAsync<_i456.SyncRepository>(
       () async => _i456.SyncRepository(await getAsync<_i772.FileStorage>()),
-    );
-    gh.lazySingleton<_i738.AuthRepository>(
-      () => _i738.AuthRepository(gh<_i60.AuthApi>()),
     );
     gh.lazySingleton<_i582.ArticleRepository>(
       () => _i582.ArticleRepository(gh<_i569.ArticleApi>()),
@@ -133,17 +129,15 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i460.SharedPreferences>(),
       ),
     );
-    gh.factory<_i556.ArticleViewModel>(
-      () => _i556.ArticleViewModel(gh<_i582.ArticleRepository>()),
-    );
-    gh.factory<_i563.AuthViewModel>(
-      () => _i563.AuthViewModel(gh<_i738.AuthRepository>()),
-    );
     gh.factory<_i335.ReaderViewModel>(
       () => _i335.ReaderViewModel(
         gh<_i1054.ReaderRepository>(),
         gh<_i849.ReaderConfig>(),
+        gh<_i1072.ReadingStatsService>(),
       ),
+    );
+    gh.factory<_i556.ArticleViewModel>(
+      () => _i556.ArticleViewModel(gh<_i582.ArticleRepository>()),
     );
     return this;
   }

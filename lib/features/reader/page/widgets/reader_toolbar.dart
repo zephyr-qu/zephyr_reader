@@ -3,34 +3,20 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:go_router/go_router.dart';
+import 'package:zephyr_reader/core/routing/route_constants.dart';
 
 /// 阅读器顶部工具栏组件
 class ReaderToolbar extends HookWidget {
-  /// 书籍/章节标题
   final String title;
-
-  /// 进度文本
   final String progress;
-
-  /// 主题模式
   final ThemeMode themeMode;
-
-  /// 当前页面是否有书签
   final bool hasBookmark;
-
-  /// 关闭回调
+  final String bookId;
   final VoidCallback? onClose;
-
-  /// 切换工具栏回调
   final VoidCallback? onToggleToolbar;
-
-  /// 显示章节列表回调
   final VoidCallback? onShowCatalog;
-
-  /// 显示书签列表回调
   final VoidCallback? onShowBookmarks;
-
-  /// 快速添加/删除书签回调
   final VoidCallback? onToggleBookmark;
 
   const ReaderToolbar({
@@ -39,6 +25,7 @@ class ReaderToolbar extends HookWidget {
     this.progress = '',
     required this.themeMode,
     this.hasBookmark = false,
+    required this.bookId,
     this.onClose,
     this.onToggleToolbar,
     this.onShowCatalog,
@@ -49,11 +36,11 @@ class ReaderToolbar extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final textColor = themeMode == ThemeMode.dark
-        ? Colors.grey[300]!
-        : Colors.black87;
+        ? const Color(0xFFF2F2F2)
+        : const Color(0xFF1A1A1A);
     final backgroundColor = themeMode == ThemeMode.dark
-        ? const Color(0xFF1a1a1a)
-        : const Color(0xFFF5F5DC);
+        ? const Color(0xFF0A0A0A)
+        : const Color(0xFFFAFAFA);
 
     return Container(
       color: backgroundColor,
@@ -110,6 +97,21 @@ class ReaderToolbar extends HookWidget {
                 onPressed: onShowBookmarks,
                 tooltip: '书签（长按快速添加/删除）',
               ),
+            ),
+            // 书签管理
+            IconButton(
+              icon: Icon(Icons.bookmarks_outlined, color: textColor, size: 20),
+              onPressed: () => context.pushNamed(RouteNames.bookmarkManage,
+                pathParameters: {'bookId': bookId}),
+              tooltip: '书签管理',
+            ),
+            // 笔记管理
+            IconButton(
+              icon: Icon(Icons.note_alt_outlined, color: textColor, size: 20),
+              onPressed: () => context.pushNamed(RouteNames.noteManage,
+                pathParameters: {'bookId': bookId},
+                queryParameters: {'title': title}),
+              tooltip: '笔记管理',
             ),
           ],
         ),

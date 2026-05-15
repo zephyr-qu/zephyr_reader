@@ -5,9 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// 阅读器主题
 enum ReaderTheme {
-  light('light', '日间', Colors.white, Colors.black87),
-  dark('dark', '夜间', Color(0xFF1a1a1a), Color(0xFFe0e0e0)),
-  sepia('sepia', '护眼', Color(0xFFf4ecd8), Color(0xFF5c4b37));
+  light('light', '日间', Colors.white, Color(0xFF1A1C1E)),
+  dark('dark', '夜间', Color(0xFF0A0F10), Color(0xFFE4E7E7)),
+  sepia('sepia', '护眼', Color(0xFFF8F4EA), Color(0xFF4A3F35));
 
   final String id;
   final String displayName;

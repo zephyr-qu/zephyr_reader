@@ -91,7 +91,12 @@ class BookshelfViewModel {
       if (isSearching.value && searchKeyword.value.isNotEmpty) {
         data = await _repo.searchBooks(searchKeyword.value);
       } else {
-        data = await _repo.getAllBooks();
+        final cat = selectedCategory.value;
+        if (cat != null) {
+          data = await _repo.getBooksByCategory(cat);
+        } else {
+          data = await _repo.getAllBooks();
+        }
       }
 
       books.value = AsyncState.data(data);
@@ -101,7 +106,7 @@ class BookshelfViewModel {
   }
 
   /// 切换分类
-  void selectCategory(BookCategory category) {
+  void selectCategory(BookCategory? category) {
     selectedCategory.value = category;
     isSearching.value = false;
     searchKeyword.value = '';
@@ -213,8 +218,6 @@ class BookshelfViewModel {
       return false;
     }
   }
-
-  // ===== From BookshelfSettingsService =====
 
   static const String _keyShowReadingProgress = 'bookshelf.show_reading_progress';
   static const String _keyShowRecentReading = 'bookshelf.show_recent_reading';

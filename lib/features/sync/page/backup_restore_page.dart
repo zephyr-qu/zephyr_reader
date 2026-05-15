@@ -11,19 +11,18 @@ import '../application/services/advanced_webdav_sync_service.dart';
 
 /// 备份与恢复页面
 class BackupRestorePage extends HookWidget {
-  final AdvancedWebDavSyncService syncService;
-
-  const BackupRestorePage({super.key, required this.syncService});
+  const BackupRestorePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final syncService = useMemoized(() => AdvancedWebDavSyncService());
     final backups = useState<List<BackupInfo>>([]);
     final isBackingUp = useState(false);
     final isRestoring = useState(false);
     final restoringBackup = useState<BackupInfo?>(null);
 
     useEffect(() {
-      _loadBackups(backups);
+      _loadBackups(syncService, backups);
       return null;
     }, []);
 
@@ -33,7 +32,7 @@ class BackupRestorePage extends HookWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => _loadBackups(backups),
+            onPressed: () => _loadBackups(syncService, backups),
             tooltip: '刷新',
           ),
         ],
@@ -44,12 +43,9 @@ class BackupRestorePage extends HookWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 创建备份卡片
-            _buildCreateBackupCard(context, isBackingUp, backups),
+            _buildCreateBackupCard(syncService, context, isBackingUp, backups),
             const SizedBox(height: 24),
-            // 备份列表
-            _buildBackupListCard(
-              context,
-              backups,
+            _buildBackupListCard(syncService, context, backups,
               isRestoring,
               restoringBackup,
             ),
@@ -62,7 +58,10 @@ class BackupRestorePage extends HookWidget {
     );
   }
 
-  Future<void> _loadBackups(ValueNotifier<List<BackupInfo>> backups) async {
+  Future<void> _loadBackups(
+    AdvancedWebDavSyncService syncService,
+    ValueNotifier<List<BackupInfo>> backups,
+  ) async {
     try {
       final backupList = syncService.getBackups();
       backups.value = backupList;
@@ -73,6 +72,7 @@ class BackupRestorePage extends HookWidget {
   }
 
   Widget _buildCreateBackupCard(
+    AdvancedWebDavSyncService syncService,
     BuildContext context,
     ValueNotifier<bool> isBackingUp,
     ValueNotifier<List<BackupInfo>> backups,
@@ -104,10 +104,10 @@ class BackupRestorePage extends HookWidget {
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
+                child: ElevatedButton.icon(
                 onPressed: isBackingUp.value
                     ? null
-                    : () => _createBackup(context, isBackingUp, backups),
+                    : () => _createBackup(syncService, context, isBackingUp, backups),
                 icon: isBackingUp.value
                     ? const SizedBox(
                         width: 16,
@@ -125,6 +125,7 @@ class BackupRestorePage extends HookWidget {
   }
 
   Widget _buildBackupListCard(
+    AdvancedWebDavSyncService syncService,
     BuildContext context,
     ValueNotifier<List<BackupInfo>> backups,
     ValueNotifier<bool> isRestoring,
@@ -165,10 +166,7 @@ class BackupRestorePage extends HookWidget {
                     return Column(
                       children: [
                         _buildBackupListItem(
-                          context,
-                          backup,
-                          isRestoring,
-                          restoringBackup,
+                          syncService, context, backup, isRestoring, restoringBackup,
                         ),
                         if (index < backupList.length - 1)
                           const Divider(height: 1),
@@ -185,6 +183,7 @@ class BackupRestorePage extends HookWidget {
   }
 
   Widget _buildBackupListItem(
+    AdvancedWebDavSyncService syncService,
     BuildContext context,
     BackupInfo backup,
     ValueNotifier<bool> isRestoring,
@@ -215,9 +214,9 @@ class BackupRestorePage extends HookWidget {
       trailing: PopupMenuButton<String>(
         onSelected: (value) {
           if (value == 'restore') {
-            _restoreBackup(context, backup, isRestoring, restoringBackup);
+            _restoreBackup(syncService, context, backup, isRestoring, restoringBackup);
           } else if (value == 'delete') {
-            _deleteBackup(context, backup);
+            _deleteBackup(syncService, context, backup);
           }
         },
         itemBuilder: (context) => [
@@ -312,6 +311,7 @@ class BackupRestorePage extends HookWidget {
   }
 
   Future<void> _createBackup(
+    AdvancedWebDavSyncService syncService,
     BuildContext context,
     ValueNotifier<bool> isBackingUp,
     ValueNotifier<List<BackupInfo>> backups,
@@ -336,8 +336,7 @@ class BackupRestorePage extends HookWidget {
         ),
       );
 
-      // 刷新备份列表
-      _loadBackups(backups).ignore();
+      _loadBackups(syncService, backups).ignore();
     } catch (e) {
       if (!context.mounted) return;
 
@@ -350,12 +349,12 @@ class BackupRestorePage extends HookWidget {
   }
 
   Future<void> _restoreBackup(
+    AdvancedWebDavSyncService syncService,
     BuildContext context,
     BackupInfo backup,
     ValueNotifier<bool> isRestoring,
     ValueNotifier<BackupInfo?> restoringBackup,
   ) async {
-    // 确认对话框
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -412,7 +411,11 @@ class BackupRestorePage extends HookWidget {
     }
   }
 
-  Future<void> _deleteBackup(BuildContext context, BackupInfo backup) async {
+  Future<void> _deleteBackup(
+    AdvancedWebDavSyncService syncService,
+    BuildContext context,
+    BackupInfo backup,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
