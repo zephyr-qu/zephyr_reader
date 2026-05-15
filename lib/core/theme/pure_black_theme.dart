@@ -14,9 +14,9 @@ class PureBlackTheme {
 
   static const Color textSecondary = Color(0xFF9CA3AF);
 
-  static const Color primary = Color(0xFF5EEAD4);
+  static const Color primary = Color(0xFF07D2D7);
 
-  static const Color primaryContainer = Color(0xFF115E59);
+  static const Color primaryContainer = Color(0xFF004D4D);
 
   static const Color error = Color(0xFFF87171);
 

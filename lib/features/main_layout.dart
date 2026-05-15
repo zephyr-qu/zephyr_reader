@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/features/bookshelf/page/bookshelf_page.dart';
 import 'package:zephyr_reader/features/home/page/home_page.dart';
@@ -137,25 +137,20 @@ class _MainLayoutState extends State<MainLayout> {
     final isExtended = deviceType == DeviceType.desktop;
 
     return Container(
-      width: isExtended ? 220 : 80,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(2, 0),
-          ),
-        ],
+      width: isExtended ? 200 : 72,
+      decoration: const BoxDecoration(
+        border: Border(
+          right: BorderSide(color: DesignTokens.divider, width: 0.5),
+        ),
       ),
       child: SafeArea(
         child: Column(
           children: [
             _buildLogo(context, deviceType, theme),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 children: BottomNavItem.values.asMap().entries.map((entry) {
                   final index = entry.key;
                   final navItem = entry.value;
@@ -174,7 +169,7 @@ class _MainLayoutState extends State<MainLayout> {
           ],
         ),
       ),
-    ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.05, end: 0);
+    );
   }
 
   Widget _buildLogo(
@@ -185,42 +180,21 @@ class _MainLayoutState extends State<MainLayout> {
     final isExtended = deviceType == DeviceType.desktop;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      padding: EdgeInsets.symmetric(vertical: 24, horizontal: isExtended ? 16 : 12),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  theme.colorScheme.primary,
-                  theme.colorScheme.secondary,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.auto_stories_rounded,
-              color: Colors.white,
-              size: 24,
-            ),
+          Icon(
+            Icons.auto_stories_rounded,
+            color: theme.colorScheme.primary,
+            size: 24,
           ),
           if (isExtended) ...[
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Text(
               'Zephyr',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                letterSpacing: -0.5,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.3,
               ),
             ),
           ],
@@ -239,62 +213,31 @@ class _MainLayoutState extends State<MainLayout> {
   ) {
     final isSelected = index == currentIndex;
 
+    final activeColor = theme.colorScheme.primary;
+    final inactiveColor = theme.colorScheme.onSurfaceVariant;
+
     return GestureDetector(
       onTap: () => context.go(navItem.route),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: EdgeInsets.symmetric(
-          horizontal: isExtended ? 16 : 0,
-          vertical: 12,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? theme.colorScheme.primaryContainer
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         child: Row(
           children: [
-            SizedBox(width: isExtended ? 0 : 28),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? theme.colorScheme.primary.withValues(alpha: 0.15)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                isSelected ? navItem.activeIcon : navItem.icon,
-                color: isSelected
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurfaceVariant,
-                size: 22,
-              ),
+            Icon(
+              isSelected ? navItem.activeIcon : navItem.icon,
+              color: isSelected ? activeColor : inactiveColor,
+              size: 22,
             ),
             if (isExtended) ...[
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Text(
                 navItem.label,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: isSelected
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isSelected ? activeColor : inactiveColor,
+                  fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
                 ),
               ),
             ],
-            if (isExtended) const Spacer(),
-            if (isExtended && isSelected)
-              Container(
-                width: 4,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
           ],
         ),
       ),
@@ -307,53 +250,18 @@ class _MainLayoutState extends State<MainLayout> {
     bool isExtended,
   ) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('设置功能开发中')));
-              },
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.settings_outlined,
-                  color: theme.colorScheme.onSurfaceVariant,
-                  size: 22,
-                ),
-              ),
-            ),
+          IconButton(
+            icon: Icon(Icons.settings_outlined,
+              color: theme.colorScheme.onSurfaceVariant, size: 20),
+            onPressed: () {},
+            tooltip: '设置',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
-          if (isExtended) const SizedBox(width: 12),
-          if (isExtended)
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('通知功能开发中')));
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.notifications_outlined,
-                    color: theme.colorScheme.onSurfaceVariant,
-                    size: 22,
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -365,73 +273,29 @@ class _MainLayoutState extends State<MainLayout> {
     ThemeData theme,
   ) {
     return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: DesignTokens.divider, width: 0.5),
+        ),
       ),
       child: SafeArea(
         child: NavigationBar(
-          height: 72,
+          height: 56,
           selectedIndex: currentIndex,
           elevation: 0,
           indicatorColor: Colors.transparent,
-          indicatorShape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
+          backgroundColor: theme.colorScheme.surface,
           onDestinationSelected: (index) {
             context.go(BottomNavItem.values[index].route);
           },
           destinations: BottomNavItem.values.map((navItem) {
             return NavigationDestination(
-              icon: _buildNavIcon(
-                context,
-                navItem.icon,
-                navItem.activeIcon,
-                false,
-                theme,
-              ),
-              selectedIcon: _buildNavIcon(
-                context,
-                navItem.icon,
-                navItem.activeIcon,
-                true,
-                theme,
-              ),
+              icon: Icon(navItem.icon, size: 22),
+              selectedIcon: Icon(navItem.activeIcon, size: 22),
               label: navItem.label,
             );
           }).toList(),
         ),
-      ),
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
-  }
-
-  Widget _buildNavIcon(
-    BuildContext context,
-    IconData icon,
-    IconData activeIcon,
-    bool isSelected,
-    ThemeData theme,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? theme.colorScheme.primaryContainer
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Icon(
-        isSelected ? activeIcon : icon,
-        color: isSelected
-            ? theme.colorScheme.primary
-            : theme.colorScheme.onSurfaceVariant,
-        size: 22,
       ),
     );
   }

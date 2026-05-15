@@ -49,11 +49,11 @@ class ReaderBottomToolbar extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final textColor = themeMode == ThemeMode.dark
-        ? Colors.grey[300]!
-        : Colors.black87;
+        ? const Color(0xFFF2F2F2)
+        : const Color(0xFF1A1A1A);
     final backgroundColor = themeMode == ThemeMode.dark
-        ? const Color(0xFF1a1a1a)
-        : const Color(0xFFF5F5DC);
+        ? const Color(0xFF0A0A0A)
+        : const Color(0xFFFAFAFA);
 
     final hasPreviousChapter = onPreviousChapter != null;
     final hasNextChapter = onNextChapter != null;

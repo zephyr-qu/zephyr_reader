@@ -1,21 +1,16 @@
-/// 笔记管理页面
 library;
 
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/reader/data/note_repository.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-/// 笔记管理页面
 class NoteManagePage extends StatefulWidget {
   final String bookId;
   final String bookTitle;
 
-  const NoteManagePage({
-    super.key,
-    required this.bookId,
-    required this.bookTitle,
-  });
+  const NoteManagePage({super.key, required this.bookId, required this.bookTitle});
 
   @override
   State<NoteManagePage> createState() => _NoteManagePageState();
@@ -45,44 +40,56 @@ class _NoteManagePageState extends State<NoteManagePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${widget.bookTitle} - 笔记'),
-      ),
+      appBar: AppBar(title: Text('${widget.bookTitle} - 笔记')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _notes.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.note_alt_outlined, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text('暂无笔记', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                      Icon(Icons.note_alt_outlined, size: 64, color: DesignTokens.textSecondary.withValues(alpha: 0.3)),
+                      const SizedBox(height: 16),
+                      const Text('暂无笔记', style: TextStyle(fontSize: 16, color: DesignTokens.textPrimary)),
                     ],
                   ),
                 )
               : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   itemCount: _notes.length,
                   itemBuilder: (context, index) {
                     final note = _notes[index];
-                    return ListTile(
-                      leading: Icon(
-                        note.noteType == NoteType.highlight
-                            ? Icons.highlight
-                            : Icons.notes,
-                        color: note.noteType == NoteType.highlight
-                            ? Colors.amber
-                            : Colors.blue,
+                    return Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: const BoxDecoration(
+                        border: Border(bottom: BorderSide(color: DesignTokens.divider, width: 0.5)),
                       ),
-                      title: Text(
-                        note.selectedText ?? note.content,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(
-                        '第 ${note.chapterIndex + 1} 章 · ${note.content.isNotEmpty ? note.content : ""}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            note.noteType == NoteType.highlight ? Icons.highlight : Icons.notes,
+                            size: 18,
+                            color: note.noteType == NoteType.highlight
+                              ? DesignTokens.primary : DesignTokens.textSecondary,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(note.selectedText ?? note.content,
+                                  maxLines: 2, overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 14, color: DesignTokens.textPrimary),
+                                ),
+                                const SizedBox(height: 4),
+                                Text('第 ${note.chapterIndex + 1} 章',
+                                  style: const TextStyle(fontSize: 12, color: DesignTokens.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },

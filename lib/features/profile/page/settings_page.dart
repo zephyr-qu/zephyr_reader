@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/theme/theme_manager.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -14,6 +16,56 @@ class SettingsPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 16),
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('快捷主题',
+                  style: TextStyle(fontSize: 12, color: DesignTokens.textSecondary, letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: AppThemeType.values.map((type) {
+                    final selected = ThemeManager.instance.themeType.value == type;
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () => ThemeManager.instance.setThemeType(type),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 32, height: 32,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: _themePreviewColor(type),
+                                border: Border.all(
+                                  color: selected ? DesignTokens.primary : DesignTokens.divider,
+                                  width: selected ? 2.5 : 1,
+                                ),
+                              ),
+                              child: selected
+                                ? Icon(Icons.check, size: 14,
+                                    color: type == AppThemeType.light || type == AppThemeType.eyeProtection
+                                      ? DesignTokens.primary : Colors.white)
+                                : null,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(type.label,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: selected ? DesignTokens.primary : DesignTokens.textSecondary,
+                                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
           _buildSettingsSection(
             context,
             icon: Icons.menu_book,
@@ -34,6 +86,13 @@ class SettingsPage extends StatelessWidget {
             title: '应用设置',
             subtitle: '语言、同步、存储、备份',
             onTap: () => context.push(RoutePaths.appSettings),
+          ),
+          _buildSettingsSection(
+            context,
+            icon: Icons.sync_rounded,
+            title: '数据同步',
+            subtitle: 'WebDAV 云端同步',
+            onTap: () => context.push(RoutePaths.sync),
           ),
           const SizedBox(height: 24),
           _buildSettingsSection(
@@ -77,6 +136,21 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
+  Color _themePreviewColor(AppThemeType type) {
+    switch (type) {
+      case AppThemeType.light:
+        return const Color(0xFFF5F5F5);
+      case AppThemeType.dark:
+        return const Color(0xFF2D2D2D);
+      case AppThemeType.pureDark:
+        return const Color(0xFF000000);
+      case AppThemeType.eyeProtection:
+        return const Color(0xFFF5E6C8);
+      case AppThemeType.system:
+        return const Color(0xFFB0B0B0);
+    }
+  }
+
   Widget _buildSettingsSection(
     BuildContext context, {
     required IconData icon,
@@ -86,20 +160,21 @@ class SettingsPage extends StatelessWidget {
   }) {
     final theme = Theme.of(context);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant,
+          width: 0.5,
+        ),
+      ),
       child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            icon,
-            color: theme.colorScheme.onPrimaryContainer,
-            size: 24,
-          ),
+        leading: Icon(
+          icon,
+          color: theme.colorScheme.primary,
+          size: 22,
         ),
         title: Text(
           title,
@@ -110,12 +185,13 @@ class SettingsPage extends StatelessWidget {
         subtitle: Text(
           subtitle,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
         trailing: Icon(
           Icons.chevron_right,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+          size: 20,
         ),
         onTap: onTap,
       ),

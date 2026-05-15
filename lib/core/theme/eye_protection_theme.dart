@@ -21,13 +21,11 @@ class EyeProtectionTheme {
   static const Color textSecondary = Color(0xFF6B7280);
 
   /// 主色（柔和绿
-  static const Color primary = Color(0xFF86EFAC);
+  static const Color primary = Color(0xFF07D2D7);
 
-  /// 主色
-  static const Color primaryDark = Color(0xFF10B981);
+  static const Color primaryDark = Color(0xFF00979C);
 
-  /// 主色容器
-  static const Color primaryContainer = Color(0xFFD1FAE5);
+  static const Color primaryContainer = Color(0xFFD2FAFB);
 
   /// 成功
   static const Color success = Color(0xFF10B981);

@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
 import 'package:zephyr_reader/core/local/rust_core_service.dart';
+import 'package:zephyr_reader/core/local/rust_cover_service.dart';
 import 'package:zephyr_reader/core/local/rust_storage_service.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_bookmark_repository.dart';
@@ -20,11 +21,13 @@ class BookRepository {
   final ChapterRepository _chapterRepo;
   final BookmarkRepository _bookmarkRepo;
   final RustCoreService _core;
+  final RustCoverService _coverService;
   BookRepository(
     this._storage,
     this._chapterRepo,
     this._bookmarkRepo,
     this._core,
+    this._coverService,
   );
 
   Future<List<Book>> getAllBooks() async {
@@ -363,6 +366,21 @@ class BookRepository {
         isPinned: false,
       );
       await addBook(book);
+
+      if (book.coverPath == null && _coverService.supportsCoverExtraction(filePath)) {
+        final coverDir = p.dirname(p.dirname(filePath));
+        final coverPath = await _coverService.extractBookCover(filePath: filePath, outputDir: coverDir);
+        final updated = Book(
+          bookId: book.bookId, filePath: book.filePath,
+            fileHash: book.fileHash, fileSize: book.fileSize, fileMtime: book.fileMtime,
+            title: book.title, author: book.author, description: book.description,
+            coverPath: coverPath, chapterCount: book.chapterCount,
+            totalCharacters: book.totalCharacters, format: book.format,
+            addedAt: book.addedAt, lastOpenedAt: book.lastOpenedAt,
+            status: book.status, isPinned: book.isPinned,
+          );
+          await updateBook(updated);
+      }
 
       if (rustChapters.isNotEmpty) {
         final chapters = rustChapters.map((ch) => Chapter(

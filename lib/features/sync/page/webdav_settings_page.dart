@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 
 import '../application/services/enhanced_webdav_sync_service.dart';
 import '../application/services/webdav_config_service.dart';
 import '../application/services/webdav_sync_service.dart';
+import '../application/sync_view_model.dart';
 import 'conflict_resolution_page.dart';
 
 /// WebDAV 同步设置页面
@@ -21,15 +23,16 @@ class WebDavSettingsPage extends HookWidget {
       () => WebDavConfigService(prefs: GetIt.I<SharedPreferences>()),
     );
     final syncService = useMemoized(() => EnhancedWebDavSyncService());
+    final syncVm = useMemoized(() => getIt<SyncViewModel>());
     final isConfigured = useState(false);
     final isTesting = useState(false);
     final testResult = useState<bool?>(null);
     final lastSyncTime = useState<DateTime?>(null);
     final syncStatus = useState('未配置');
 
-    // 加载配置状态
     useEffect(() {
       _loadConfigStatus(configService, isConfigured, lastSyncTime, syncStatus);
+      syncVm.loadPendingTasks();
       return null;
     }, []);
 

@@ -123,44 +123,32 @@ class ThemeManager {
     await setCustomPrimaryColor(null);
   }
 
-  /// 获取所有可用的主题预设
+  /// 获取所有可用的主题预设（精简为 4 个）
   List<ThemePreset> getAvailablePresets() {
     return [
       const ThemePreset(
-        id: 'default_teal',
-        name: '清新青绿',
-        primaryColor: Color(0xFF2DD4BF),
-        description: '清新主题，清新活跃',
+        id: 'gleam_cyan',
+        name: '莹光青',
+        primaryColor: Color(0xFF07D2D7),
+        description: '清新现代（默认）',
       ),
       const ThemePreset(
-        id: 'ocean_blue',
-        name: '海洋',
+        id: 'night_blue',
+        name: '静夜蓝',
         primaryColor: Color(0xFF3B82F6),
-        description: '沉稳专业',
+        description: '沉稳专注',
       ),
       const ThemePreset(
-        id: 'forest_green',
-        name: '森林',
-        primaryColor: Color(0xFF10B981),
-        description: '自然护眼',
+        id: 'warm_amber',
+        name: '暖枫',
+        primaryColor: Color(0xFFF59E0B),
+        description: '温暖舒适',
       ),
       const ThemePreset(
-        id: 'sunset_orange',
-        name: '日落',
-        primaryColor: Color(0xFFF97316),
-        description: '温暖活力',
-      ),
-      const ThemePreset(
-        id: 'royal_purple',
-        name: '贵族',
+        id: 'mist_violet',
+        name: '薄雾紫',
         primaryColor: Color(0xFF8B5CF6),
         description: '优雅神秘',
-      ),
-      const ThemePreset(
-        id: 'rose_pink',
-        name: '玫瑰',
-        primaryColor: Color(0xFFEC4899),
-        description: '浪漫温馨',
       ),
     ];
   }

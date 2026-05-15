@@ -4,8 +4,8 @@ import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/local/file_storage.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 
-/// 同步状态
-enum SyncStatus {
+/// 同步队列状态
+enum SyncQueueStatus {
   idle('空闲'),
   syncing('同步中'),
   success('同步成功'),
@@ -13,7 +13,7 @@ enum SyncStatus {
   offline('离线');
 
   final String displayName;
-  const SyncStatus(this.displayName);
+  const SyncQueueStatus(this.displayName);
 }
 
 /// 同步任务
@@ -22,7 +22,7 @@ class SyncTask {
   final String type;
   final Map<String, dynamic> data;
   final DateTime createdAt;
-  SyncStatus status;
+  SyncQueueStatus status;
   String? errorMessage;
 
   SyncTask({
@@ -30,7 +30,7 @@ class SyncTask {
     required this.type,
     required this.data,
     required this.createdAt,
-    this.status = SyncStatus.idle,
+    this.status = SyncQueueStatus.idle,
     this.errorMessage,
   });
 }
@@ -57,9 +57,9 @@ class SyncRepository {
               type: item['type'],
               data: Map<String, dynamic>.from(item['data']),
               createdAt: DateTime.parse(item['createdAt']),
-              status: SyncStatus.values.firstWhere(
+              status: SyncQueueStatus.values.firstWhere(
                 (s) => s.name == item['status'],
-                orElse: () => SyncStatus.idle,
+                orElse: () => SyncQueueStatus.idle,
               ),
               errorMessage: item['errorMessage'],
             ),
@@ -77,27 +77,24 @@ class SyncRepository {
     await _saveTasks(tasks);
   }
 
-  Future<SyncStatus> sync() async {
+  Future<SyncQueueStatus> sync() async {
     final tasks = await getPendingTasks();
     if (tasks.isEmpty) {
-      return SyncStatus.idle;
+      return SyncQueueStatus.idle;
     }
 
     var hasError = false;
 
     for (var task in tasks) {
-      task.status = SyncStatus.syncing;
+      task.status = SyncQueueStatus.syncing;
       await _saveTasks(tasks);
 
       try {
-        // 根据任务类型执行实际同步逻辑
         await _executeSyncTask(task);
-
-        // 标记为成功
-        task.status = SyncStatus.success;
+        task.status = SyncQueueStatus.success;
       } catch (e, stackTrace) {
         hasError = true;
-        task.status = SyncStatus.failed;
+        task.status = SyncQueueStatus.failed;
         task.errorMessage = e.toString();
         Logging.error(
           'Sync task failed: ${task.type}',
@@ -109,10 +106,9 @@ class SyncRepository {
       await _saveTasks(tasks);
     }
 
-    // 清理已完成的任务
     await clearCompleted();
 
-    return hasError ? SyncStatus.failed : SyncStatus.success;
+    return hasError ? SyncQueueStatus.failed : SyncQueueStatus.success;
   }
 
   /// 执行单个同步任务
@@ -203,8 +199,8 @@ class SyncRepository {
     final pending = tasks
         .where(
           (task) =>
-              task.status == SyncStatus.idle ||
-              task.status == SyncStatus.failed,
+              task.status == SyncQueueStatus.idle ||
+              task.status == SyncQueueStatus.failed,
         )
         .toList();
     await _saveTasks(pending);

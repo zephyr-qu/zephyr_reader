@@ -13,7 +13,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/utils/cache_utils.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/backup_dialog.dart';
-import 'package:zephyr_reader/features/sync/application/services/backup_service_types.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 
 /// 应用设置页面
@@ -28,7 +27,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
   final cacheSize = useSignal<String>('计算中...');
   final isClearing = useSignal(false);
 
-  final backupRestoreService = useMemoized(() => BackupRestoreService());
   final isBackingUp = useSignal(false);
   final isRestoring = useSignal(false);
 
@@ -78,38 +76,17 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
   }
 
   Future<void> _createBackup() async {
-    // 显示备份对话框
     final selectedTypes = await _showBackupTypeDialog();
     if (selectedTypes == null || selectedTypes.isEmpty) return;
 
     isBackingUp.value = true;
     try {
-      final backupInfo = await backupRestoreService.createBackup(
-        types: selectedTypes,
-      );
-
-      if (mounted) {
-        if (backupInfo != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('备份创建成功：${backupInfo.fileSizeFormatted}'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('备份创建失败'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      }
-    } catch (e) {
+      // TODO: implement via Rust API
+      await Future.delayed(const Duration(milliseconds: 500));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('备份创建失败：$e'),
+          const SnackBar(
+            content: Text('备份功能待实现'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -120,61 +97,14 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
   }
 
   Future<void> _restoreBackup() async {
-    // 显示备份列表
-    final backups = backupRestoreService.backups.value;
-    if (backups.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('暂无备份记录')));
-      }
-      return;
-    }
-
-    final selectedBackup = await showRestoreBackupDialog(context, backups);
-    if (selectedBackup == null) return;
-
-    // 确认恢复
-    // ignore: use_build_context_synchronously
-    final confirmed = await showRestoreConfirmDialog(context, selectedBackup);
-    await _handleRestoreConfirmation(confirmed, selectedBackup);
-  }
-
-  Future<void> _handleRestoreConfirmation(
-    bool confirmed,
-    selectedBackup,
-  ) async {
-    if (!confirmed) return;
-    if (!mounted) return;
-
     isRestoring.value = true;
     try {
-      final success = await backupRestoreService.restoreBackup(
-        selectedBackup.id,
-      );
-
-      if (mounted) {
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('数据恢复成功'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('数据恢复失败'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      }
-    } catch (e) {
+      // TODO: implement via Rust API
+      await Future.delayed(const Duration(milliseconds: 500));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('数据恢复失败：$e'),
+          const SnackBar(
+            content: Text('恢复功能待实现'),
             behavior: SnackBarBehavior.floating,
           ),
         );

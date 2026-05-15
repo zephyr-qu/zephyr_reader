@@ -251,20 +251,20 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
   Color _getTextColor(ThemeMode themeMode) {
     switch (themeMode) {
       case ThemeMode.dark:
-        return Colors.grey[300]!;
+        return const Color(0xFFF2F2F2);
       case ThemeMode.light:
       default:
-        return Colors.black87;
+        return const Color(0xFF1A1A1A);
     }
   }
 
   Color _getBackgroundColor(ThemeMode themeMode) {
     switch (themeMode) {
       case ThemeMode.dark:
-        return const Color(0xFF1a1a1a);
+        return const Color(0xFF0A0A0A);
       case ThemeMode.light:
       default:
-        return const Color(0xFFF5F5DC);
+        return const Color(0xFFFAFAFA);
     }
   }
 }

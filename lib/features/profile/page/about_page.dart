@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/features/profile/page/user_agreement_page.dart';
 import 'package:zephyr_reader/features/profile/page/privacy_policy_page.dart';
 
@@ -255,8 +256,6 @@ class AboutPage extends HookWidget {
     required String title,
     required List<Widget> children,
   }) {
-    final theme = Theme.of(context);
-
     if (children.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -264,20 +263,11 @@ class AboutPage extends HookWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text(
-            title,
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
+          child: Text(title,
+            style: const TextStyle(fontSize: 12, color: DesignTokens.textSecondary, letterSpacing: 0.5),
           ),
         ),
-        ColoredBox(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.3,
-          ),
-          child: Column(children: children),
-        ),
+        Column(children: children),
       ],
     );
   }

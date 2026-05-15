@@ -12,17 +12,16 @@ import '../application/services/webdav_sync_service.dart';
 
 /// 同步历史页面
 class SyncHistoryPage extends HookWidget {
-  final AdvancedWebDavSyncService syncService;
-
-  const SyncHistoryPage({super.key, required this.syncService});
+  const SyncHistoryPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final syncService = useMemoized(() => AdvancedWebDavSyncService());
     final history = useState<List<SyncHistoryRecord>>([]);
     final selectedFilter = useState<SyncStatus?>(null);
 
     useEffect(() {
-      _loadHistory(history);
+      _loadHistory(syncService, history);
       return null;
     }, []);
 
@@ -44,12 +43,12 @@ class SyncHistoryPage extends HookWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => _loadHistory(history),
+            onPressed: () => _loadHistory(syncService, history),
             tooltip: '刷新',
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
-            onPressed: () => _clearHistory(context, history),
+            onPressed: () => _clearHistory(syncService, context, history),
             tooltip: '清除历史',
           ),
         ],
@@ -72,6 +71,7 @@ class SyncHistoryPage extends HookWidget {
   }
 
   Future<void> _loadHistory(
+    AdvancedWebDavSyncService syncService,
     ValueNotifier<List<SyncHistoryRecord>> history,
   ) async {
     final historyList = syncService.getHistory(limit: 100);
@@ -322,6 +322,7 @@ class SyncHistoryPage extends HookWidget {
   }
 
   Future<void> _clearHistory(
+    AdvancedWebDavSyncService syncService,
     BuildContext context,
     ValueNotifier<List<SyncHistoryRecord>> history,
   ) async {

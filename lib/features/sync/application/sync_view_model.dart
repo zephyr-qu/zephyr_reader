@@ -8,36 +8,29 @@ import '../data/sync_service.dart';
 class SyncViewModel {
   final SyncRepository _repo;
 
-  /// 同步状态
-  final syncStatus = signal<SyncStatus>(SyncStatus.idle);
-
-  /// 待同步任务数
+  final syncStatus = signal<SyncQueueStatus>(SyncQueueStatus.idle);
   final pendingTaskCount = signal<int>(0);
-
-  /// 是否正在同步
   final isSyncing = signal<bool>(false);
 
   SyncViewModel(this._repo);
 
-  /// 加载待同步任务
   Future<void> loadPendingTasks() async {
     final tasks = await _repo.getPendingTasks();
     pendingTaskCount.value = tasks.length;
   }
 
-  /// 执行同步
   Future<void> sync() async {
     if (isSyncing.value) return;
 
     isSyncing.value = true;
-    syncStatus.value = SyncStatus.syncing;
+    syncStatus.value = SyncQueueStatus.syncing;
 
     try {
       final status = await _repo.sync();
       syncStatus.value = status;
       await loadPendingTasks();
     } catch (e) {
-      syncStatus.value = SyncStatus.failed;
+      syncStatus.value = SyncQueueStatus.failed;
     } finally {
       isSyncing.value = false;
     }

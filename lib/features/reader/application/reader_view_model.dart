@@ -6,6 +6,7 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../../core/reader/reader_config.dart';
+import '../../statistics/application/reading_stats_service.dart';
 import '../data/repositories/rust_reader_repository.dart';
 
 /// 阅读模式
@@ -24,6 +25,7 @@ enum ReadingMode {
 class ReaderViewModel {
   final ReaderRepository _repo;
   final ReaderConfig _config;
+  final ReadingStatsService _statsService;
 
   // ==================== 书籍状态 ====================
 
@@ -113,6 +115,7 @@ class ReaderViewModel {
   ReaderViewModel(
     this._repo,
     this._config,
+    this._statsService,
   ) {
     // 从配置加载设置
     _loadSettings();
@@ -313,18 +316,19 @@ class ReaderViewModel {
     if (isReading.value) return;
     isReading.value = true;
 
+    _statsService.startReadingSession(bookId.value, chapterIndex.value, 0);
+
     _readingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       readingDuration.value++;
     });
   }
 
-  /// 停止阅读计时
   Future<void> stopReading() async {
     if (!isReading.value) return;
     isReading.value = false;
     _readingTimer?.cancel();
 
-    // 保存阅读时长
+    _statsService.discardCurrentSession();
     await _saveProgress();
     readingDuration.value = 0;
   }

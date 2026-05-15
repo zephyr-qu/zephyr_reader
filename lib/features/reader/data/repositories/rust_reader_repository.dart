@@ -5,7 +5,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
+import 'package:zephyr_reader/core/local/rust_epub_service.dart';
 import 'package:zephyr_reader/core/local/rust_storage_service.dart';
+import 'package:zephyr_reader/src/rust/domain/types.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 分页信息
@@ -41,11 +43,20 @@ class ReadingProgressData {
 @Injectable()
 class ReaderRepository {
   final RustStorageService _storage;
+  final RustEpubService _epubService;
   final Map<String, Map<int, ChapterCacheItem>> _cache = {};
   static const int maxCacheSize = 10;
   ReadingProgressData? _currentProgress;
 
-  ReaderRepository(this._storage);
+  ReaderRepository(this._storage, this._epubService);
+
+  Future<EpubMetadata?> getEpubMetadata(String filePath) async {
+    try {
+      return await _epubService.getEpubMetadata(filePath);
+    } catch (_) {
+      return null;
+    }
+  }
 
   
   Future<Chapter?> getChapter(int bookId, int chapterIndex) async {

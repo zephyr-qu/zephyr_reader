@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/core/theme/app_theme.dart';
+import 'package:zephyr_reader/core/theme/auto_theme_service.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
@@ -12,6 +14,26 @@ class MyApp extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final themeManager = ThemeManager.instance;
+
+    useEffect(() {
+      themeManager.init();
+      return null;
+    }, []);
+
+    useEffect(() {
+      SharedPreferences.getInstance().then((prefs) {
+        final autoTheme = AutoThemeService(prefs);
+        effect(() {
+          if (autoTheme.autoThemeEnabled.value) {
+            themeManager.setThemeType(
+              autoTheme.isDarkModeTime ? AppThemeType.dark : AppThemeType.light,
+            );
+          }
+        });
+      });
+      return null;
+    }, []);
+
     return Watch.builder(
       builder: (context) {
         return MaterialApp.router(
