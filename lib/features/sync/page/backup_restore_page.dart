@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../../../../core/utils/logging.dart';
-import '../application/services/advanced_webdav_sync_service.dart';
+import '../application/services/webdav_sync_service.dart';
 
 /// 备份与恢复页面
 class BackupRestorePage extends HookWidget {

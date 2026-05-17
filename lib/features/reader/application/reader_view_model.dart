@@ -5,8 +5,12 @@ import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+import 'package:zephyr_reader/core/local/rust_bilingual_service.dart';
+import 'package:zephyr_reader/src/rust/domain/types.dart';
+
 import '../../../core/reader/reader_config.dart';
 import '../../statistics/application/reading_stats_service.dart';
+import '../data/note_repository.dart';
 import '../data/repositories/rust_reader_repository.dart';
 
 /// 阅读模式
@@ -16,6 +20,18 @@ enum ReadingMode {
 
   /// 左右翻页
   pagination,
+
+  /// 双语对照
+  bilingual,
+}
+
+/// 书写方向
+enum WritingDirection {
+  /// 横排
+  horizontal,
+
+  /// 竖排 (top-to-bottom, right-to-left)
+  vertical,
 }
 
 /// 阅读器视图模型
@@ -26,14 +42,12 @@ class ReaderViewModel {
   final ReaderRepository _repo;
   final ReaderConfig _config;
   final ReadingStatsService _statsService;
+  final NoteRepository _noteRepo;
 
   // ==================== 书籍状态 ====================
 
   /// 当前书籍 ID
   final bookId = signal<String>('0');
-
-  /// 当前章节 ID
-  final chapterId = signal<int>(0);
 
   /// 当前章节索引（从 0 开始）
   final chapterIndex = signal<int>(0);
@@ -68,7 +82,7 @@ class ReaderViewModel {
   final showBookmarks = signal<bool>(false);
 
   /// 是否显示工具栏
-  final showToolbar = signal<bool>(true);
+  final showToolbar = signal<bool>(false);
 
   /// 阅读模式
   final readingMode = signal<ReadingMode>(ReadingMode.pagination);
@@ -93,6 +107,59 @@ class ReaderViewModel {
   /// 自动滚动触发器
   final autoScrollTick = signal<int>(0);
 
+  /// 字间距
+  final letterSpacing = signal<double>(0.0);
+
+  /// 段间距
+  final paragraphSpacing = signal<double>(12.0);
+
+  /// 页边距
+  final pageMargin = signal<double>(16.0);
+
+  /// 书写方向 (horizontal / vertical)
+  final writingDirection = signal<WritingDirection>(WritingDirection.horizontal);
+
+  /// 阅读背景色预设 (0=默认, 1=羊皮纸, 2=奶油, 3=护眼绿, 4=灰色)
+  final readerBgColorIndex = signal<int>(0);
+
+  /// 亮度覆盖层透明度 (0.0=正常, 1.0=全黑)
+  final brightnessOverlay = signal<double>(0.0);
+
+  // ==================== 页面内搜索 ====================
+
+  final showSearch = signal<bool>(false);
+  final searchQuery = signal<String>('');
+  final searchMatches = signal<int>(0);
+  final searchCurrentIndex = signal<int>(0);
+  final searchMatchParagraph = signal<int>(-1);
+
+  void toggleSearch() {
+    showSearch.value = !showSearch.value;
+    if (!showSearch.value) {
+      searchQuery.value = '';
+      searchMatches.value = 0;
+      searchCurrentIndex.value = 0;
+      searchMatchParagraph.value = -1;
+    }
+  }
+
+  void updateSearch(String query, {int matches = 0, int currentIndex = 0, int paragraphIndex = -1}) {
+    searchQuery.value = query;
+    searchMatches.value = matches;
+    searchCurrentIndex.value = currentIndex.clamp(0, (matches - 1).clamp(0, 999999));
+    searchMatchParagraph.value = paragraphIndex;
+  }
+
+  void nextSearchMatch() {
+    if (searchMatches.value <= 0) return;
+    searchCurrentIndex.value = (searchCurrentIndex.value + 1) % searchMatches.value;
+  }
+
+  void prevSearchMatch() {
+    if (searchMatches.value <= 0) return;
+    searchCurrentIndex.value = (searchCurrentIndex.value - 1 + searchMatches.value) % searchMatches.value;
+  }
+
   // ==================== 阅读统计 ====================
 
   /// 阅读时长（秒）
@@ -106,16 +173,50 @@ class ReaderViewModel {
   /// 书签列表
   final bookmarks = asyncSignal<List<Bookmark>>(AsyncState.data([]));
 
+  // ==================== 双语对照 ====================
+
+  /// 双语对齐结果
+  final bilingualAlignment = signal<BilingualAlignment?>(null);
+
+  /// 对照译文内容（由外部设置）
+  final translationContent = signal<String>('');
+
+  /// 双语对齐是否正在加载
+  final isBilingualLoading = signal<bool>(false);
+
+  /// 双语对齐错误
+  final bilingualError = signal<String?>(null);
+
+  // ==================== 划词批注 ====================
+
+  /// 当前选中的文本
+  final selectedText = signal<String>('');
+
+  /// 当前选中的起始偏移（在整个章节内容中的位置）
+  final selectionStart = signal<int>(0);
+
+  /// 当前选中的结束偏移
+  final selectionEnd = signal<int>(0);
+
+  /// 是否显示批注工具栏
+  final showSelectionToolbar = signal<bool>(false);
+
+  /// 当前章节的高亮列表
+  final highlights = signal<List<Note>>([]);
+
   // ==================== 定时器 ====================
 
   Timer? _readingTimer;
   Timer? _saveTimer;
+  final RustBilingualService _bilingualService;
   final List<void Function()> _disposers = [];
 
   ReaderViewModel(
     this._repo,
     this._config,
     this._statsService,
+    this._noteRepo,
+    this._bilingualService,
   ) {
     // 从配置加载设置
     _loadSettings();
@@ -150,6 +251,8 @@ class ReaderViewModel {
     }
   }
 
+  static const int _preloadCount = 3;
+
   /// 初始化阅读器
   Future<void> initialize(String bookId, {int initialChapterId = 0}) async {
     this.bookId.value = bookId;
@@ -167,10 +270,12 @@ class ReaderViewModel {
       // 加载初始章节
       final chaptersList = chapters.value.value;
       if (chaptersList != null && chaptersList.isNotEmpty) {
-        final targetChapterId = initialChapterId > 0
+        final targetChapterIndex = initialChapterId > 0
             ? initialChapterId
-            : int.tryParse(chaptersList.first.id) ?? 0;
-        await loadChapter(targetChapterId);
+            : chapterIndex.value;
+        await loadChapter(targetChapterIndex);
+        // 预加载前后章节
+        _prefetchChapters(targetChapterIndex);
       }
 
       // 加载书签
@@ -211,9 +316,6 @@ class ReaderViewModel {
         pageIndex.value = progress.pageIndex;
         totalPages.value = progress.totalPages;
         readingDuration.value = progress.readingTimeSeconds.toInt();
-
-        // 更新章节 ID 信号（兼容旧代码）
-        chapterId.value = progress.chapterIndex;
       }
     } catch (_) {
       // 进度加载失败，使用默认值
@@ -221,8 +323,7 @@ class ReaderViewModel {
   }
 
   /// 加载章节内容
-  Future<void> loadChapter(int chapterId) async {
-    this.chapterId.value = chapterId;
+  Future<void> loadChapter(int chapterIndex) async {
     chapterContent.value = AsyncState.loading();
     isLoading.value = true;
 
@@ -230,13 +331,13 @@ class ReaderViewModel {
       // 使用内容服务加载
       final content = await _repo.loadChapterContent(
         bookId.value,
-        chapterId,
+        chapterIndex,
       );
 
       // 计算分页
       final pages = await _repo.calculatePages(
         bookId: bookId.value,
-        chapterId: chapterId,
+        chapterId: chapterIndex,
         fontSize: fontSize.value,
         lineHeight: lineHeight.value,
         width: pageWidth.value,
@@ -248,10 +349,19 @@ class ReaderViewModel {
       totalPages.value = pages.length;
 
       // 更新章节索引
-      chapterIndex.value = chapterId;
+      this.chapterIndex.value = chapterIndex;
 
       // 保存阅读历史
-      await _repo.saveReadingHistory(bookId.value, chapterId, 0, 0);
+      await _repo.saveReadingHistory(bookId.value, chapterIndex, 0, 0);
+
+      // 加载当前章节的高亮
+      await loadHighlights();
+
+      // 章节级 GC：只保留前后 5 章
+      _repo.gcChapterCache(bookId.value, chapterIndex);
+
+      // 预加载前后章节（不阻塞 UI）
+      _prefetchChapters(chapterIndex);
     } catch (e) {
       chapterContent.value = AsyncState.error(e);
       error.value = '章节加载失败：$e';
@@ -269,6 +379,20 @@ class ReaderViewModel {
 
     this.pageIndex.value = pageIndex;
     await _saveProgress();
+  }
+
+  /// 预加载前后章节到缓存
+  void _prefetchChapters(int centerIndex) {
+    final chapterList = chapters.value.value ?? [];
+    if (chapterList.isEmpty) return;
+
+    final start = (centerIndex - _preloadCount).clamp(0, chapterList.length - 1);
+    final end = (centerIndex + _preloadCount).clamp(0, chapterList.length - 1);
+
+    for (int i = start; i <= end; i++) {
+      if (i == centerIndex) continue;
+      _repo.preloadChapter(bookId.value, i);
+    }
   }
 
   /// 上一章
@@ -316,6 +440,7 @@ class ReaderViewModel {
     if (isReading.value) return;
     isReading.value = true;
 
+    _readingTimer?.cancel();
     _statsService.startReadingSession(bookId.value, chapterIndex.value, 0);
 
     _readingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -346,7 +471,7 @@ class ReaderViewModel {
     try {
       await _repo.updateReadingProgress(
         bookId: bookId.value,
-        chapterId: chapterId.value,
+        chapterId: chapterIndex.value,
         pageIndex: pageIndex.value,
         totalPages: totalPages.value,
         readingTimeSeconds: readingDuration.value,
@@ -396,7 +521,7 @@ class ReaderViewModel {
   /// 添加书签
   Future<bool> addBookmark() async {
     try {
-      await _repo.addBookmark(bookId.value, chapterId.value, pageIndex.value);
+      await _repo.addBookmark(bookId.value, chapterIndex.value, pageIndex.value);
       await loadBookmarks();
       return true;
     } catch (e) {
@@ -406,7 +531,7 @@ class ReaderViewModel {
   }
 
   /// 删除书签
-  Future<bool> deleteBookmark(int bookmarkId) async {
+  Future<bool> deleteBookmark(String bookmarkId) async {
     try {
       final success = await _repo.deleteBookmark(bookmarkId);
       if (success) {
@@ -421,7 +546,7 @@ class ReaderViewModel {
 
   /// 跳转到书签位置
   Future<void> jumpToBookmark(Bookmark bookmark) async {
-    if (bookmark.chapterIndex != chapterId.value) {
+    if (bookmark.chapterIndex != chapterIndex.value) {
       await loadChapter(bookmark.chapterIndex);
     }
     showBookmarks.value = false;
@@ -430,7 +555,7 @@ class ReaderViewModel {
   /// 检查当前位置是否已有书签
   bool get hasBookmarkAtCurrentPosition {
     final currentBookmarks = bookmarks.value.value ?? [];
-    return currentBookmarks.any((b) => b.chapterIndex == chapterId.value);
+    return currentBookmarks.any((b) => b.chapterIndex == chapterIndex.value);
   }
 
   /// 获取当前位置的书签（如果有）
@@ -438,7 +563,7 @@ class ReaderViewModel {
     final currentBookmarks = bookmarks.value.value ?? [];
     try {
       return currentBookmarks.firstWhere(
-        (b) => b.chapterIndex == chapterId.value,
+        (b) => b.chapterIndex == chapterIndex.value,
       );
     } catch (_) {
       return null;
@@ -449,9 +574,114 @@ class ReaderViewModel {
   Future<bool> toggleBookmarkAtCurrentPosition() async {
     final existing = currentBookmark;
     if (existing != null) {
-      return await deleteBookmark(existing.id.hashCode);
+      return await deleteBookmark(existing.id);
     } else {
       return await addBookmark();
+    }
+  }
+
+  // ==================== 划词批注 ====================
+
+  /// 加载当前章节的高亮和批注
+  Future<void> loadHighlights() async {
+    try {
+      final allNotes = await _noteRepo.getNotes(bookId.value);
+      final chapterNotes = allNotes
+          .where((n) => n.chapterIndex == chapterIndex.value)
+          .toList();
+      highlights.value = chapterNotes;
+    } catch (_) {
+      highlights.value = [];
+    }
+  }
+
+  /// 更新选中文本
+  void updateSelection(String text, int start, int end) {
+    if (text.isEmpty || start == end) {
+      clearSelection();
+      return;
+    }
+    selectedText.value = text;
+    selectionStart.value = start;
+    selectionEnd.value = end;
+    showSelectionToolbar.value = true;
+  }
+
+  /// 清除选中
+  void clearSelection() {
+    selectedText.value = '';
+    selectionStart.value = 0;
+    selectionEnd.value = 0;
+    showSelectionToolbar.value = false;
+  }
+
+  /// 保存高亮
+  Future<void> saveHighlight() async {
+    if (selectedText.value.isEmpty) return;
+    try {
+      final note = Note(
+        id: 'note_${DateTime.now().millisecondsSinceEpoch}_${chapterIndex.value}_${selectionStart.value}',
+        bookId: bookId.value,
+        chapterIndex: chapterIndex.value,
+        charOffset: selectionStart.value,
+        length: selectionEnd.value - selectionStart.value,
+        noteType: NoteType.highlight,
+        content: selectedText.value,
+        selectedText: selectedText.value,
+        highlightColor: 0xFFFFEB3B,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await _noteRepo.createNote(note);
+      await loadHighlights();
+      clearSelection();
+    } catch (e) {
+      debugPrint('saveHighlight error: $e');
+    }
+  }
+
+  /// 保存笔记
+  Future<void> saveAnnotation(String annotationContent) async {
+    if (selectedText.value.isEmpty || annotationContent.isEmpty) return;
+    try {
+      final note = Note(
+        id: 'note_${DateTime.now().millisecondsSinceEpoch}_${chapterIndex.value}_${selectionStart.value}',
+        bookId: bookId.value,
+        chapterIndex: chapterIndex.value,
+        charOffset: selectionStart.value,
+        length: selectionEnd.value - selectionStart.value,
+        noteType: NoteType.annotation,
+        content: annotationContent,
+        selectedText: selectedText.value,
+        highlightColor: null,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await _noteRepo.createNote(note);
+      await loadHighlights();
+      clearSelection();
+    } catch (e) {
+      debugPrint('saveAnnotation error: $e');
+    }
+  }
+
+  /// 删除高亮/笔记
+  Future<void> deleteNote(String noteId) async {
+    try {
+      await _noteRepo.deleteNote(noteId);
+      await loadHighlights();
+    } catch (e) {
+      debugPrint('deleteNote error: $e');
+    }
+  }
+
+  /// 更新笔记内容
+  Future<void> updateNote(Note note) async {
+    try {
+      await _noteRepo.updateNote(note);
+      await loadHighlights();
+    } catch (e) {
+      debugPrint('updateNote error: $e');
     }
   }
 
@@ -480,9 +710,71 @@ class ReaderViewModel {
     await _config.setTheme(readerTheme);
   }
 
+  /// 更新字间距
+  void setLetterSpacing(double spacing) {
+    letterSpacing.value = spacing;
+  }
+
+  /// 更新段间距
+  void setParagraphSpacing(double spacing) {
+    paragraphSpacing.value = spacing;
+  }
+
+  /// 更新页边距
+  void setPageMargin(double margin) {
+    pageMargin.value = margin;
+  }
+
+  /// 更新书写方向
+  void setWritingDirection(WritingDirection direction) {
+    writingDirection.value = direction;
+  }
+
+  /// 更新阅读背景色
+  void setReaderBgColor(int index) {
+    readerBgColorIndex.value = index;
+  }
+
+  /// 更新亮度
+  void setBrightness(double value) {
+    brightnessOverlay.value = value.clamp(0.0, 1.0);
+  }
+
   /// 更新阅读模式
   void setReadingMode(ReadingMode mode) {
     readingMode.value = mode;
+    if (mode == ReadingMode.bilingual) {
+      _runBilingualAlignment();
+    }
+  }
+
+  /// 执行双语对齐
+  Future<void> _runBilingualAlignment() async {
+    if (translationContent.value.isEmpty) return;
+    isBilingualLoading.value = true;
+    bilingualError.value = null;
+    try {
+      final currentContent = chapterContent.value.value ?? '';
+      if (currentContent.isEmpty) return;
+      final result = await _bilingualService.alignBilingualContent(
+        chineseContent: currentContent,
+        englishContent: translationContent.value,
+        minSimilarity: 0.5,
+      );
+      bilingualAlignment.value = result;
+    } catch (e) {
+      bilingualError.value = '双语对齐失败：$e';
+    } finally {
+      isBilingualLoading.value = false;
+    }
+  }
+
+  /// 设置对照译文内容并自动对齐
+  void setTranslationContent(String content) {
+    translationContent.value = content;
+    if (readingMode.value == ReadingMode.bilingual) {
+      _runBilingualAlignment();
+    }
   }
 
   /// 获取阅读进度百分比

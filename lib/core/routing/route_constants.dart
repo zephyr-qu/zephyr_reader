@@ -34,6 +34,9 @@ abstract class RoutePaths {
 
   // 书签管理
   static const String bookmarkManage = '/reader/:bookId/bookmarks';
+
+  // 生词本
+  static const String vocabulary = '/vocabulary';
 }
 
 abstract class RouteNames {
@@ -72,4 +75,7 @@ abstract class RouteNames {
 
   // 书签管理
   static const String bookmarkManage = 'bookmarkManage';
+
+  // 生词本
+  static const String vocabulary = 'vocabulary';
 }

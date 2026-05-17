@@ -176,25 +176,6 @@ class RustStorageService {
 
   // ==================== Layout Cache ====================
 
-  Future<void> saveLayoutCache({
-    required LayoutCache cache,
-    required LayoutCacheKey key,
-  }) async =>
-      await rust_storage.saveLayoutCache(cache: cache, key: key);
-
-  Future<LayoutCache?> getLayoutCache({
-    required String bookId,
-    required int chapterIndex,
-    required String configHash,
-  }) async =>
-      await rust_storage.getLayoutCache(bookId: bookId, chapterIndex: chapterIndex, configHash: configHash);
-
-  Future<void> clearLayoutCache(String bookId) async =>
-      await rust_storage.clearLayoutCache(bookId: bookId);
-
-  Future<BigInt> cleanupExpiredLayoutCache(int maxAgeDays) async =>
-      await rust_storage.cleanupExpiredLayoutCache(maxAgeDays: maxAgeDays);
-
   // ==================== Notes ====================
 
   Future<Note> createNote(Note note) async => await rust_storage.createNote(note: note);

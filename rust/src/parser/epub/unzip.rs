@@ -84,13 +84,12 @@ impl EpubFile {
         get_metadata_first(&self.doc.metadata, "cover")
     }
 
-    /// 获取目录（NCX/Nav），支持多级嵌套
-    pub fn toc(&self) -> Vec<(String, String)> {
-        self.doc
-            .toc
-            .iter()
-            .map(|nav| (nav.label.clone(), nav.content.to_string_lossy().to_string()))
-            .collect()
+    /// 获取目录（NCX/Nav），扁平化为 (label, href, level) 三元组
+    /// level 从 1 开始（1 = 顶级章节）
+    pub fn toc(&self) -> Vec<(String, String, i32)> {
+        let mut result = Vec::new();
+        flatten_toc(&self.doc.toc, 1, &mut result);
+        result
     }
 
     /// 获取 spine（阅读顺序）
@@ -182,21 +181,23 @@ impl EpubFile {
         let (resource_href, _resource) = find_resource_by_href_or_path(&self.doc.resources, href)?;
         let resource_href: String = resource_href.clone();
 
-        // 设置当前章节到该资源
-        let index = self
+        // 先尝试从 spine 读取（适用于章节等文本资源）
+        if let Some(index) = self
             .doc
             .spine
             .iter()
-            .position(|item: &SpineItem| item.idref == resource_href)?;
-        let _ = self.doc.set_current_chapter(index);
-
-        // 读取内容 - epub 2.x 返回 (Vec<u8>, String) 元组
-        let (content, _charset) = self.doc.get_current()?;
-
-        // 缓存内容
-        self.cache.put(href.to_string(), content.clone());
-
-        Some(content)
+            .position(|item: &SpineItem| item.idref == resource_href)
+        {
+            let _ = self.doc.set_current_chapter(index);
+            let (content, _charset) = self.doc.get_current()?;
+            self.cache.put(href.to_string(), content.clone());
+            Some(content)
+        } else {
+            // 不在 spine 中（如封面图片），直接从 archive 读取
+            let (content, _mime) = self.doc.get_resource(&resource_href)?;
+            self.cache.put(href.to_string(), content.clone());
+            Some(content)
+        }
     }
 
     /// 读取封面图片
@@ -296,6 +297,21 @@ impl EpubFile {
         }
     }
 }
+/// 递归展开 NavPoint 树为扁平列表 (label, href, level)
+fn flatten_toc(
+    navpoints: &[epub::doc::NavPoint],
+    level: i32,
+    result: &mut Vec<(String, String, i32)>,
+) {
+    for nav in navpoints {
+        let href = nav.content.to_string_lossy().to_string();
+        result.push((nav.label.clone(), href, level));
+        if !nav.children.is_empty() {
+            flatten_toc(&nav.children, level + 1, result);
+        }
+    }
+}
+
 fn is_image_extension(path: &str) -> bool {
     matches!(
         path.rsplit('.').next().unwrap_or(""),
@@ -322,7 +338,7 @@ pub fn get_epub_metadata(file_path: &str) -> Result<EpubMetadata,AppError> {
     let toc = epub_file
         .toc()
         .into_iter()
-        .map(|(label, href)| crate::domain::EpubTocItem { label, href, level: 1 })
+        .map(|(label, href, level)| crate::domain::EpubTocItem { label, href, level })
         .collect();
     let spine = epub_file.spine();
 

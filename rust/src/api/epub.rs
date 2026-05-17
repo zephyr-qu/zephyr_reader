@@ -5,7 +5,7 @@
 
 
 pub(crate) use crate::domain::AppError;
-pub use crate::domain::{EpubMetadata, PageContent, RichChapterContent, RichParagraph, TypesetConfig};
+pub use crate::domain::{EpubMetadata, RichParagraph, TypesetConfig};
 use crate::utils::security::validate_file_path_async;
 use flutter_rust_bridge::frb;
 
@@ -24,21 +24,6 @@ use flutter_rust_bridge::frb;
 pub async fn get_epub_metadata(file_path: String) -> Result<EpubMetadata, AppError> {
     let validated_path = validate_file_path_async(&file_path).await?;
     crate::parser::epub::unzip::get_epub_metadata(&validated_path)
-}
-
-/// 解析 EPUB 章节（富文本）
-///
-/// 解析 EPUB 章节内容为富文本格式，保留 HTML 标签用于显示。
-///
-/// **注意**: 这是一个 EPUB 特有的功能，用于需要保留 HTML 格式的场景。
-/// 普通文本解析请使用 `core::extract_chapter`。
-#[frb]
-pub async fn parse_epub_chapter_rich(
-    file_path: String,
-    chapter_index: i32,
-) -> Result<RichChapterContent, AppError> {
-    let validated_path = validate_file_path_async(&file_path).await?;
-    crate::parser::epub::parse::get_chapter_content_rich(&validated_path, chapter_index)
 }
 
 /// 获取 EPUB 章节富文本内容（带排版）
@@ -68,24 +53,5 @@ pub async fn get_epub_chapter_rich_content(
     )
 }
 
-/// 将 EPUB 章节富文本分页
-///
-/// 将富文本段落分割为适合阅读的页面。
-///
-/// # 参数
-/// * `paragraphs` - 富文本段落列表
-/// * `chapter_index` - 章节索引
-/// * `config` - 排版配置
-///
-/// # 返回值
-/// * `Vec<PageContent>` - 分页后的页面列表
-#[frb(sync)]
-pub fn paginate_epub_rich_content(
-    paragraphs: Vec<RichParagraph>,
-    chapter_index: i32,
-    config: TypesetConfig,
-) -> Vec<PageContent> {
-    let config = config.validate_and_fix();
-    crate::parser::epub::parse::paginate_rich_content(&paragraphs, chapter_index, &config)
-}
+
 

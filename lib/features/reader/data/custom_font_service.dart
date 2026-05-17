@@ -13,6 +13,7 @@ library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -39,12 +40,57 @@ class FontRepository {
   /// 字体加载完成标志
   final isLoaded = signal(false);
 
+  /// 已注册到 Flutter 的字体系列名
+  final _registeredFamilies = <String>{};
+
   static const String _keyCurrentFont = 'custom_font.current';
 
   /// 初始化字体服务
   Future<void> _initialize() async {
     await loadFonts();
+    await _registerFonts();
     isLoaded.value = true;
+  }
+
+  /// 获取当前字体的系列名（用于 TextStyle.fontFamily）
+  String get currentFontFamily {
+    final font = currentFont.value;
+    if (font == null) return 'Noto Sans SC';
+    return familyNameFor(font);
+  }
+
+  /// 获取字体系列名
+  String familyNameFor(FontInfo font) {
+    if (font.isBuiltIn) {
+      switch (font.id) {
+        case 'serif': return 'serif';
+        case 'sans': return 'sans-serif';
+        case 'mono': return 'monospace';
+        case 'kai': return 'KaiTi';
+        default: return 'Noto Sans SC';
+      }
+    }
+    final name = p.basenameWithoutExtension(font.path ?? font.name);
+    return 'custom_$name';
+  }
+
+  /// 注册所有自定义字体到 Flutter FontLoader
+  Future<void> _registerFonts() async {
+    for (final font in availableFonts.value) {
+      if (font.isBuiltIn || font.path == null) continue;
+      final family = familyNameFor(font);
+      if (_registeredFamilies.contains(family)) continue;
+      final file = File(font.path!);
+      if (!await file.exists()) continue;
+      try {
+        final data = await file.readAsBytes();
+        final loader = FontLoader(family)..addFont(Future.value(data.buffer.asByteData()));
+        await loader.load();
+        _registeredFamilies.add(family);
+      } catch (e) {
+        debugPrint('字体注册失败 $family: $e');
+      }
+    }
   }
 
   /// 加载字体
@@ -145,6 +191,7 @@ class FontRepository {
 
     await fontFile.copy(destPath);
     await loadFonts();
+    await _registerFonts();
 
     final fontName = p.basename(destPath);
     return FontInfo(

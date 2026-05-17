@@ -10,13 +10,6 @@ class RustEpubService {
   Future<EpubMetadata> getEpubMetadata(String filePath) async =>
       rust.getEpubMetadata(filePath: filePath);
 
-  Future<RichChapterContent> parseEpubChapterRich({
-    required String filePath,
-    required int chapterIndex,
-  }) async =>
-      rust.parseEpubChapterRich(
-          filePath: filePath, chapterIndex: chapterIndex);
-
   Future<List<RichParagraph>> getEpubChapterRichContent({
     required String filePath,
     required int chapterIndex,
@@ -27,14 +20,4 @@ class RustEpubService {
               chapterIndex: chapterIndex,
               config: config);
 
-  List<PageContent> paginateEpubRichContent({
-    required List<RichParagraph> paragraphs,
-    required int chapterIndex,
-    required TypesetConfig config,
-  }) =>
-      rust.paginateEpubRichContent(
-        paragraphs: paragraphs,
-        chapterIndex: chapterIndex,
-        config: config,
-      );
 }

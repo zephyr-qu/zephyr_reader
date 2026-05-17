@@ -1,6 +1,9 @@
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/reader/data/note_repository.dart';
@@ -37,10 +40,67 @@ class _NoteManagePageState extends State<NoteManagePage> {
     if (mounted) setState(() => _loading = false);
   }
 
+  String _formatNotesAsMarkdown() {
+    final buf = StringBuffer();
+    buf.writeln('# ${widget.bookTitle} - 读书笔记');
+    buf.writeln('---');
+    buf.writeln();
+    for (int i = 0; i < _notes.length; i++) {
+      final n = _notes[i];
+      buf.writeln('## ${n.noteType == NoteType.highlight ? "高亮" : "笔记"} #${i + 1}');
+      buf.writeln();
+      buf.writeln('- **章节**: 第 ${n.chapterIndex + 1} 章');
+      if (n.selectedText != null && n.selectedText!.isNotEmpty) {
+        buf.writeln('- **原文**: "${n.selectedText}"');
+      }
+      buf.writeln('- **时间**: ${n.createdAt.toLocal().toString().substring(0, 19)}');
+      buf.writeln();
+      if (n.content.isNotEmpty && n.content != (n.selectedText ?? '')) {
+        buf.writeln('> ${n.content}');
+        buf.writeln();
+      }
+      buf.writeln('---');
+      buf.writeln();
+    }
+    buf.writeln();
+    buf.writeln('*由 Zephyr Reader 导出*');
+    return buf.toString();
+  }
+
+  Future<void> _exportMarkdown(BuildContext context) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final filename = '${widget.bookTitle}_读书笔记_${DateTime.now().millisecondsSinceEpoch}.md';
+      final file = File('${dir.path}/$filename');
+      await file.writeAsString(_formatNotesAsMarkdown());
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已导出到: ${file.path}'), duration: const Duration(seconds: 4)),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导出失败: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.bookTitle} - 笔记')),
+      appBar: AppBar(
+        title: Text('${widget.bookTitle} - 笔记'),
+        actions: [
+          if (!_loading && _notes.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.file_download_outlined),
+              tooltip: '导出 Markdown',
+              onPressed: () => _exportMarkdown(context),
+            ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _notes.isEmpty

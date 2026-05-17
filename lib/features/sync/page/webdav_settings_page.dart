@@ -7,8 +7,6 @@ import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 
-import '../application/services/enhanced_webdav_sync_service.dart';
-import '../application/services/webdav_config_service.dart';
 import '../application/services/webdav_sync_service.dart';
 import '../application/sync_view_model.dart';
 import 'conflict_resolution_page.dart';

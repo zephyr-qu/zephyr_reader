@@ -5,17 +5,17 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import 'package:zephyr_reader/core/local/rust_search_service.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import '../../../../core/routing/route_constants.dart';
 import '../application/services/full_text_search_service.dart';
 
 class BookSearchPage extends HookWidget {
-  const BookSearchPage({super.key});
+  final String bookId;
+  const BookSearchPage({super.key, this.bookId = ''});
 
   @override
   Widget build(BuildContext context) {
-    final searchService = useMemoized(() => FullTextSearchService(getIt<RustSearchService>()));
+    final searchService = useMemoized(() => getIt<FullTextSearchService>());
     final searchResults = useSignal<List<SearchHit>>([]);
     final isSearching = useSignal(false);
     final searchQuery = useSignal('');
@@ -130,7 +130,7 @@ class BookSearchPage extends HookWidget {
     isSearching.value = true;
     error.value = null;
     try {
-      searchResults.value = await searchService.search(bookId: '', query: searchQuery.value);
+      searchResults.value = await searchService.search(bookId: bookId, query: searchQuery.value);
     } catch (e) {
       error.value = e.toString();
     } finally {

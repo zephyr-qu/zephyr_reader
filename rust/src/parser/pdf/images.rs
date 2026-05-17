@@ -5,7 +5,7 @@
 use pdfium_render::prelude::*;
 use std::path::Path;
 
-use crate::domain::{ EpubImageInfo, AppError};
+use crate::domain::AppError;
 
 /// 从 PDF 文件中提取封面图像
 ///
@@ -202,105 +202,6 @@ let dynamic_image = bitmap
     );
 
     Ok(data)
-}
-
-/// 从 PDF 页面中提取图像
-///
-/// 渲染指定页面为图像，并返回页面图像信息。
-/// 由于 PDF 内部图像提取需要复杂的对象遍历，
-/// 此函数采用渲染方式获取页面图像。
-///
-/// # 参数
-/// * `file_path` - PDF 文件路径
-/// * `page_index` - 页面索引（从 0 开始）
-///
-/// # 返回值
-/// * `Ok(Vec<EpubImageInfo>)` - 图像信息列表（通常每页返回一个渲染图像）
-/// * `Err(AppError)` - 提取失败
-pub fn get_page_images(file_path: &str, page_index: u32) -> Result<Vec<EpubImageInfo>,AppError> {
-    if !Path::new(file_path).exists() {
-        return Err(AppError::file_not_found(file_path));
-    }
-
-    // 初始化 Pdfium
-    let pdfium = Pdfium;
-
-    // 打开 PDF 文件
-    let pdf = pdfium
-        .load_pdf_from_file(file_path, None)
-        .map_err(|e| AppError::pdf_parse_error(format!("加载 PDF 文件失败：{}", e)))?;
-
-    // 验证页面索引
-    let page_count = pdf.pages().len() as u32;
-    if page_count == 0 {
-        return Err(AppError::pdf_parse_error("PDF 文件没有页面".to_string()));
-    }
-    if page_index >= page_count {
-        return Err(AppError::pdf_parse_error(format!(
-            "页面索引超出范围：{} (总共 {} 页)",
-            page_index, page_count
-        )));
-    }
-
-    // 获取指定页面
-    let page = pdf
-        .pages()
-        .get(page_index as PdfPageIndex)
-        .map_err(|e| AppError::pdf_parse_error(format!("获取页面失败：{}", e)))?;
-
-    // 获取页面尺寸信息
-    let page_width = page.width().value.ceil() as i32;
-    let page_height = page.height().value.ceil() as i32;
-
-    // 生成页面图像信息
-    let href = format!("page_{}", page_index);
-    let filename = format!("page_{}.png", page_index);
-
-    let image_info = EpubImageInfo {
-        href,
-        filename,
-        format: crate::domain::ImageFormat::Png,
-        size_bytes: -1, // 渲染前无法知道文件大小
-        width: Some(page_width),
-        height: Some(page_height),
-    };
-
-    tracing::info!(
-        "从 PDF 页面 {} 获取图像信息：{}x{}",
-        page_index,
-        page_width,
-        page_height
-    );
-
-    Ok(vec![image_info])
-}
-
-/// 获取 PDF 中所有页面的图像总数
-///
-/// 返回 PDF 文件的总页数（每页视为一个图像）。
-///
-/// # 参数
-/// * `file_path` - PDF 文件路径
-///
-/// # 返回值
-/// 总页数（视为图像总数）
-pub fn count_total_images(file_path: &str) -> i32 {
-    if !Path::new(file_path).exists() {
-        return 0;
-    }
-
-    let pdfium = Pdfium;
-    let pdf = match pdfium.load_pdf_from_file(file_path, None) {
-        Ok(p) => p,
-        Err(e) => {
-            tracing::warn!("加载 PDF 失败，无法统计图像数量：{}", e);
-            return 0;
-        }
-    };
-
-    let page_count = pdf.pages().len() as i32;
-    tracing::debug!("PDF 文件 {} 中共有 {} 页（图像）", file_path, page_count);
-    page_count
 }
 
 #[cfg(test)]

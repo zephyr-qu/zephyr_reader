@@ -7,31 +7,27 @@ import '../../application/reader_view_model.dart';
 
 /// 阅读器设置面板
 class ReaderSettingsPanel extends StatefulWidget {
-  /// 主题模式
   final ThemeMode themeMode;
-
-  /// 阅读模式
   final ReadingMode readingMode;
-
-  /// 字体大小
   final double fontSize;
-
-  /// 行间距
   final double lineHeight;
+  final double letterSpacing;
+  final double paragraphSpacing;
+  final double pageMargin;
+  final WritingDirection writingDirection;
 
-  /// 阅读模式变化回调
   final ValueChanged<ReadingMode> onReadingModeChanged;
-
-  /// 字体大小变化回调
   final ValueChanged<double> onFontSizeChanged;
-
-  /// 行间距变化回调
   final ValueChanged<double> onLineHeightChanged;
-
-  /// 主题变化回调
   final ValueChanged<ThemeMode> onThemeChanged;
-
-  /// 关闭回调
+  final ValueChanged<double> onLetterSpacingChanged;
+  final ValueChanged<double> onParagraphSpacingChanged;
+  final ValueChanged<double> onPageMarginChanged;
+  final ValueChanged<WritingDirection> onWritingDirectionChanged;
+  final int readerBgColorIndex;
+  final ValueChanged<int> onReaderBgColorChanged;
+  final double brightnessValue;
+  final ValueChanged<double> onBrightnessChanged;
   final VoidCallback onClose;
 
   const ReaderSettingsPanel({
@@ -40,10 +36,22 @@ class ReaderSettingsPanel extends StatefulWidget {
     required this.readingMode,
     required this.fontSize,
     required this.lineHeight,
+    required this.letterSpacing,
+    required this.paragraphSpacing,
+    required this.pageMargin,
+    required this.writingDirection,
     required this.onReadingModeChanged,
     required this.onFontSizeChanged,
     required this.onLineHeightChanged,
     required this.onThemeChanged,
+    required this.onLetterSpacingChanged,
+    required this.onParagraphSpacingChanged,
+    required this.onPageMarginChanged,
+    required this.onWritingDirectionChanged,
+    required this.readerBgColorIndex,
+    required this.onReaderBgColorChanged,
+    required this.brightnessValue,
+    required this.onBrightnessChanged,
     required this.onClose,
   });
 
@@ -120,6 +128,16 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
                           ),
                           textColor: textColor,
                         ),
+                        const SizedBox(width: 16),
+                        _buildChoiceChip(
+                          label: '对照',
+                          selected:
+                              widget.readingMode == ReadingMode.bilingual,
+                          onTap: () => widget.onReadingModeChanged(
+                            ReadingMode.bilingual,
+                          ),
+                          textColor: textColor,
+                        ),
                       ],
                     ),
                   ),
@@ -191,6 +209,135 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  // 书写方向
+                  _buildSettingSection(
+                    title: '书写方向',
+                    child: Row(
+                      children: [
+                        _buildChoiceChip(
+                          label: '横排',
+                          selected: widget.writingDirection == WritingDirection.horizontal,
+                          onTap: () => widget.onWritingDirectionChanged(WritingDirection.horizontal),
+                          textColor: textColor,
+                        ),
+                        const SizedBox(width: 16),
+                        _buildChoiceChip(
+                          label: '竖排',
+                          selected: widget.writingDirection == WritingDirection.vertical,
+                          onTap: () => widget.onWritingDirectionChanged(WritingDirection.vertical),
+                          textColor: textColor,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // 字间距
+                  _buildSettingSection(
+                    title: '字间距：${widget.letterSpacing.toStringAsFixed(1)}',
+                    child: Column(
+                      children: [
+                        Slider(
+                          value: widget.letterSpacing,
+                          min: 0,
+                          max: 8,
+                          divisions: 16,
+                          onChanged: widget.onLetterSpacingChanged,
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('常规', style: TextStyle(color: textColor)),
+                            Text('宽松', style: TextStyle(color: textColor)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // 段间距
+                  _buildSettingSection(
+                    title: '段间距：${widget.paragraphSpacing.toStringAsFixed(0)}',
+                    child: Column(
+                      children: [
+                        Slider(
+                          value: widget.paragraphSpacing,
+                          min: 4,
+                          max: 32,
+                          divisions: 14,
+                          onChanged: widget.onParagraphSpacingChanged,
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('小', style: TextStyle(color: textColor)),
+                            Text('大', style: TextStyle(color: textColor)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // 页边距
+                  _buildSettingSection(
+                    title: '页边距：${widget.pageMargin.toStringAsFixed(0)}',
+                    child: Column(
+                      children: [
+                        Slider(
+                          value: widget.pageMargin,
+                          min: 8,
+                          max: 40,
+                          divisions: 16,
+                          onChanged: widget.onPageMarginChanged,
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('窄', style: TextStyle(color: textColor)),
+                            Text('宽', style: TextStyle(color: textColor)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // 阅读背景色
+                  _buildSettingSection(
+                    title: '阅读背景色',
+                    child: Wrap(
+                      spacing: 8,
+                      children: [
+                        _buildColorChip('默认', 0, textColor),
+                        _buildColorChip('羊皮纸', 1, textColor),
+                        _buildColorChip('奶油', 2, textColor),
+                        _buildColorChip('护眼绿', 3, textColor),
+                        _buildColorChip('灰色', 4, textColor),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // 亮度
+                  _buildSettingSection(
+                    title: '亮度：${((1 - widget.brightnessValue) * 100).toStringAsFixed(0)}%',
+                    child: Column(
+                      children: [
+                        Slider(
+                          value: 1 - widget.brightnessValue,
+                          min: 0.3,
+                          max: 1.0,
+                          divisions: 14,
+                          onChanged: (v) => widget.onBrightnessChanged(1 - v),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('暗', style: TextStyle(color: textColor)),
+                            Text('亮', style: TextStyle(color: textColor)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -217,6 +364,24 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
         const SizedBox(height: 12),
         child,
       ],
+    );
+  }
+
+  static const _bgColors = [Color(0xFFFAFAFA), Color(0xFFF5F0E8), Color(0xFFFFF8E7), Color(0xFFC7EDCC), Color(0xFFF0F0F0)];
+
+  Widget _buildColorChip(String label, int index, Color textColor) {
+    final selected = widget.readerBgColorIndex == index;
+    return GestureDetector(
+      onTap: () => widget.onReaderBgColorChanged(index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? _bgColors[index] : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: selected ? _bgColors[index] : textColor.withValues(alpha: 0.5), width: 1.5),
+        ),
+        child: Text(label, style: TextStyle(fontSize: 13, color: selected ? Colors.black87 : textColor)),
+      ),
     );
   }
 

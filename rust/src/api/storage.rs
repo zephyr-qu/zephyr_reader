@@ -11,8 +11,7 @@ use crate::storage::repos::{
 
 pub use crate::storage::models::{
     BookCategory, Book, BookStatus, Bookmark, Chapter, GlobalStats,
-    LayoutCache, Note, NoteType, ReadingProgress, ReadingSession, ReadingStats,
-    LayoutCacheKey, NoteStats,
+    Note, NoteType, ReadingProgress, ReadingSession, ReadingStats, NoteStats,
 };
 
 // ==================== 存储初始化 ====================
@@ -31,17 +30,6 @@ macro_rules! async_storage {
             .pool()
             .map_err(|e| AppError::database_error(e.to_string()))?;
         $op(&pool).await
-            .map_err(|e| AppError::database_error(e.to_string()))
-    }};
-}
-
-macro_rules! async_storage_kv {
-    ($op:expr) => {{
-        let storage = ensure_storage()
-            .map_err(|e| AppError::database_error(e.to_string()))?;
-        let kv = storage.kv();
-        let repo = LayoutCacheRepository::new(kv);
-        $op(&repo)
             .map_err(|e| AppError::database_error(e.to_string()))
     }};
 }
@@ -282,32 +270,6 @@ pub async fn set_categories_for_book(book_id: String, category_ids: Vec<String>)
 
 pub async fn clear_categories_for_book(book_id: String) -> Result<(), AppError> {
     async_storage!(|pool| CategoryRepository::clear_categories_for_book(pool, &book_id))
-}
-
-// ==================== 排版缓存操作 ====================
-
-pub async fn save_layout_cache(cache: LayoutCache, key: LayoutCacheKey) -> Result<(), AppError> {
-    async_storage_kv!(|repo: &LayoutCacheRepository| repo.save_layout_cache(&cache, &key))
-}
-
-pub async fn get_layout_cache(
-    book_id: String,
-    chapter_index: i32,
-    config_hash: String,
-) -> Result<Option<LayoutCache>, AppError> {
-    async_storage_kv!(|repo: &LayoutCacheRepository| repo.get_cached_layout(
-        &book_id,
-        chapter_index,
-        &config_hash
-    ))
-}
-
-pub async fn clear_layout_cache(book_id: String) -> Result<(), AppError> {
-    async_storage_kv!(|repo: &LayoutCacheRepository| repo.invalidate_book_cache(&book_id))
-}
-
-pub async fn cleanup_expired_layout_cache(max_age_days: i64) -> Result<usize, AppError> {
-    async_storage_kv!(|repo: &LayoutCacheRepository| repo.cleanup_expired(max_age_days))
 }
 
 // ==================== 书籍扩展操作 ====================

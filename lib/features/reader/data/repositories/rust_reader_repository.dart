@@ -16,9 +16,10 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 class PageInfo {
   final int pageIndex;
   final String content;
+  final TextSpan? richContent;
   final int startOffset;
   final int endOffset;
-  PageInfo({required this.pageIndex, required this.content, required this.startOffset, required this.endOffset});
+  PageInfo({required this.pageIndex, required this.content, this.richContent, required this.startOffset, required this.endOffset});
 }
 
 /// 章节内容缓存项
@@ -48,9 +49,10 @@ class ReaderRepository {
   final RustEpubService _epubService;
   final RustCoreService _coreService;
   final Map<String, Map<int, ChapterCacheItem>> _cache = {};
+  final Map<String, Map<int, TextSpan>> _richContentCache = {};
+  final Map<String, Map<int, List<RichParagraph>>> _richParagraphCache = {};
   static const int maxCacheSize = 10;
   ReadingProgressData? _currentProgress;
-  final Map<String, Map<int, List<RichParagraph>>> _richParaCache = {};
 
   ReaderRepository(this._storage, this._epubService, this._coreService);
 
@@ -120,9 +122,9 @@ class ReaderRepository {
     return _storage.getBookmarks(bookId);
   }
 
-  Future<bool> deleteBookmark(int bookmarkId) async {
+  Future<bool> deleteBookmark(String bookmarkId) async {
     try {
-      await _storage.deleteBookmark('bm_$bookmarkId');
+      await _storage.deleteBookmark(bookmarkId);
       return true;
     } catch (_) {
       return false;
@@ -163,9 +165,17 @@ class ReaderRepository {
       if (content.isEmpty) {
         final chapters = await _storage.getChaptersByBook(bookId);
         debugPrint('loadChapterContent 查询 chapters 表: bookId=$bookId 总数=${chapters.length}');
-        final ch = chapters.where((c) => c.chapterIndex == chapterId).firstOrNull;
+        for (int i = 0; i < chapters.length && i < 10; i++) {
+          debugPrint('loadChapterContent   chapter[$i]: idx=${chapters[i].chapterIndex} title="${chapters[i].title}"');
+        }
+        var ch = chapters.where((c) => c.chapterIndex == chapterId).firstOrNull;
+        if (ch == null && chapters.isNotEmpty) {
+          debugPrint('loadChapterContent chapterId=$chapterId 未找到，使用 chapters[0] (idx=${chapters.first.chapterIndex})');
+          ch = chapters.first;
+        }
         if (ch != null) {
-          debugPrint('loadChapterContent 找到章节: contentFile=${ch.contentFile} startIndex=${ch.startIndex} endIndex=${ch.endIndex}');
+          chapterId = ch.chapterIndex;
+          debugPrint('loadChapterContent 找到章节: chapterIndex=$chapterId contentFile=${ch.contentFile} startIndex=${ch.startIndex} endIndex=${ch.endIndex}');
           if (ch.contentFile.isNotEmpty) {
             final isEpub = ch.contentFile.toLowerCase().endsWith('.epub');
             if (isEpub) {
@@ -214,9 +224,12 @@ class ReaderRepository {
                     debugPrint('loadChapterContent first span text="${firstParaSpans.first.text.substring(0, (firstParaSpans.first.text.length).clamp(0, 80))}"');
                   }
                 }
-                _richParaCache.putIfAbsent(cacheKey, () => {});
-                _richParaCache[cacheKey]![chapterId] = paragraphs;
-                content = _richParagraphsToPlainText(paragraphs);
+                final (richSpan, plainText) = _richParagraphsToRichText(paragraphs);
+                content = plainText;
+                _richContentCache[cacheKey] ??= {};
+                _richContentCache[cacheKey]![chapterId] = richSpan;
+                _richParagraphCache[cacheKey] ??= {};
+                _richParagraphCache[cacheKey]![chapterId] = paragraphs;
                 source = 'RichEpubAPI(${ch.contentFile})';
                 debugPrint('loadChapterContent EPUB rich typeset 成功: len=${content.length}');
               } catch (e) {
@@ -262,11 +275,93 @@ class ReaderRepository {
     }
   }
 
-  String _richParagraphsToPlainText(List<RichParagraph> paragraphs) {
-    return paragraphs
-        .map((p) => p.spans.map((s) => s.text).join())
-        .where((t) => t.isNotEmpty)
-        .join('\n\n');
+  TextStyle _spanToStyle(RichTextSpan span) {
+    final base = span.when(
+      plain: (text, fontSize, color) => const TextStyle(),
+      bold: (text, fontSize, color) => const TextStyle(fontWeight: FontWeight.bold),
+      italic: (text, fontSize, color) => const TextStyle(fontStyle: FontStyle.italic),
+      boldItalic: (text, fontSize, color) =>
+          const TextStyle(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
+      underline: (text, fontSize, color) =>
+          const TextStyle(decoration: TextDecoration.underline),
+      strikethrough: (text, fontSize, color) =>
+          const TextStyle(decoration: TextDecoration.lineThrough),
+      code: (text, fontSize, color) => const TextStyle(fontFamily: 'monospace'),
+      link: (text, url, fontSize, color) =>
+          const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+    );
+    if (span.fontSize == null && span.color == null) return base;
+    return base.copyWith(
+      fontSize: span.fontSize,
+      color: span.color != null ? _parseCssColor(span.color!) : null,
+    );
+  }
+
+  Color? _parseCssColor(String hex) {
+    try {
+      final h = hex.replaceFirst('#', '');
+      if (h.length == 6) {
+        final r = int.parse(h.substring(0, 2), radix: 16);
+        final g = int.parse(h.substring(2, 4), radix: 16);
+        final b = int.parse(h.substring(4, 6), radix: 16);
+        return Color.fromARGB(255, r, g, b);
+      }
+      if (h.length == 3) {
+        final r = int.parse(h[0] * 2, radix: 16);
+        final g = int.parse(h[1] * 2, radix: 16);
+        final b = int.parse(h[2] * 2, radix: 16);
+        return Color.fromARGB(255, r, g, b);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// 生成段落级样式（CSS block 属性 + 标题回退）
+  TextStyle _paragraphBlockStyle(RichParagraph p, {required double baseFontSize, required double baseLineHeight}) {
+    TextStyle style = TextStyle(fontSize: baseFontSize, height: baseLineHeight);
+    if (p.lineHeight != null) {
+      style = style.copyWith(height: p.lineHeight);
+    }
+    if (p.isHeading && p.headingLevel > 0) {
+      final headingFs = switch (p.headingLevel) { 1 => 24.0, 2 => 20.0, 3 => 18.0, 4 => 16.0, _ => 14.0 };
+      if (style.fontSize == null || style.fontSize == baseFontSize) {
+        style = style.copyWith(fontSize: headingFs);
+      }
+      style = style.copyWith(fontWeight: FontWeight.bold);
+    }
+    return style;
+  }
+
+  /// 将 RichParagraph 列表转换为 TextSpan 树（保留样式），同时返回纯文本
+  (TextSpan, String) _richParagraphsToRichText(List<RichParagraph> paragraphs,
+      {double baseFontSize = 16, double baseLineHeight = 1.6}) {
+    final children = <InlineSpan>[];
+    final plainParts = <String>[];
+    for (int i = 0; i < paragraphs.length; i++) {
+      final p = paragraphs[i];
+      if (p.isImage) continue;
+
+      final paraText = p.spans.map((s) => s.text).join();
+      if (paraText.isEmpty) continue;
+
+      final blockStyle = _paragraphBlockStyle(p, baseFontSize: baseFontSize, baseLineHeight: baseLineHeight);
+      final spanChildren = p.spans
+          .map((s) => TextSpan(text: s.text, style: _spanToStyle(s)))
+          .toList();
+
+      if (blockStyle != const TextStyle()) {
+        children.add(TextSpan(style: blockStyle, children: spanChildren));
+      } else {
+        children.addAll(spanChildren);
+      }
+      plainParts.add(paraText);
+
+      if (i < paragraphs.length - 1) {
+        children.add(const TextSpan(text: '\n\n'));
+      }
+    }
+    final plain = plainParts.where((t) => t.isNotEmpty).join('\n\n');
+    return (TextSpan(children: children), plain);
   }
 
   Future<List<PageInfo>> calculatePages({
@@ -276,60 +371,82 @@ class ReaderRepository {
   }) async {
     final cacheKey = bookId.toString();
     if (_cache.containsKey(cacheKey) && _cache[cacheKey]!.containsKey(chapterId)) {
-      return _cache[cacheKey]![chapterId]!.pages;
+      final cached = _cache[cacheKey]![chapterId]!;
+      if (cached.pages.isNotEmpty) return cached.pages;
     }
     final content = await loadChapterContent(bookId, chapterId);
-    try {
-      final richParas = _richParaCache[cacheKey]?[chapterId];
-      if (richParas != null && richParas.isNotEmpty) {
-        final config = TypesetConfig(
-          pageWidth: (width - padding * 2).round().clamp(100, 2000),
-          pageHeight: (height - padding * 2).round().clamp(100, 2000),
-          fontSize: fontSize.round().clamp(8, 72),
-          lineSpacing: lineHeight,
-          letterSpacing: 0,
-          paragraphSpacing: 16,
-          firstLineIndent: 0,
-          language: LanguageType.chinese,
-          enableHyphenation: false,
-        );
-        final pageContents = _epubService.paginateEpubRichContent(
-          paragraphs: richParas,
-          chapterIndex: chapterId,
-          config: config,
-        );
-        final pages = pageContents
-            .map((pc) => PageInfo(
-                  pageIndex: pc.pageIndex,
-                  content: pc.content,
-                  startOffset: 0,
-                  endOffset: pc.content.length,
-                ))
-            .toList();
-        if (pages.isNotEmpty) _updateCache(cacheKey, chapterId, content, pages);
-        return pages;
-      }
-      final pages = _fallbackPaginateContent(content);
-      if (pages.isNotEmpty) _updateCache(cacheKey, chapterId, content, pages);
-      return pages;
-    } catch (e) {
-      debugPrint('ReaderRepository.calculatePages error: $e');
-      return _fallbackPaginateContent(content);
-    }
+
+    // 统一走字符估算分页：毫秒级完成，SelectableText 渲染时自行精确换行
+    final pages = _paginateApproximate(
+      content,
+      fontSize: fontSize,
+      lineHeight: lineHeight,
+      width: width,
+      height: height,
+      padding: padding,
+    );
+
+    if (pages.isNotEmpty) _updateCache(cacheKey, chapterId, content, pages);
+    return pages;
   }
 
-  List<PageInfo> _fallbackPaginateContent(String content) {
-    const int charsPerPage = 2000;
+  /// 字符估算分页（无需 TextPainter，毫秒级）
+  List<PageInfo> _paginateApproximate(
+    String content, {
+    required double fontSize,
+    required double lineHeight,
+    required double width,
+    required double height,
+    required double padding,
+  }) {
+    final maxWidth = width - padding * 2;
+    final availableHeight = height - padding * 2;
+    final charsPerLine = (maxWidth / fontSize).floor().clamp(10, 200);
+    final linesPerPage = (availableHeight / (fontSize * lineHeight)).floor().clamp(1, 100);
+    final charsPerPage = charsPerLine * linesPerPage;
+
     final pages = <PageInfo>[];
     var offset = 0;
     var pageIndex = 0;
+
     while (offset < content.length) {
-      final endOffset = (offset + charsPerPage).clamp(0, content.length);
-      pages.add(PageInfo(pageIndex: pageIndex, content: content.substring(offset, endOffset), startOffset: offset, endOffset: endOffset));
-      offset = endOffset;
+      var end = offset + charsPerPage;
+      if (end >= content.length) {
+        end = content.length;
+      } else {
+        // 在段落边界处断开，避免断词
+        final searchStart = (end - (charsPerLine ~/ 2)).clamp(0, content.length);
+        final newlinePos = content.lastIndexOf('\n', end);
+        if (newlinePos > searchStart) {
+          end = newlinePos + 1;
+        } else {
+          final paraBreak = content.lastIndexOf('\n\n', end);
+          if (paraBreak > searchStart) {
+            end = paraBreak + 2;
+          }
+        }
+      }
+
+      pages.add(PageInfo(
+        pageIndex: pageIndex,
+        content: content.substring(offset, end),
+        richContent: null,
+        startOffset: offset,
+        endOffset: end,
+      ));
+      offset = end;
       pageIndex++;
     }
-    if (pages.isEmpty) pages.add(PageInfo(pageIndex: 0, content: content, startOffset: 0, endOffset: content.length));
+
+    if (pages.isEmpty) {
+      pages.add(PageInfo(
+        pageIndex: 0,
+        content: content,
+        richContent: null,
+        startOffset: 0,
+        endOffset: content.length,
+      ));
+    }
     return pages;
   }
 
@@ -354,13 +471,29 @@ class ReaderRepository {
     if (oldestKey != null) _cache.remove(oldestKey);
   }
 
+  /// 预加载章节内容到缓存（静默失败，不抛异常）
+  Future<void> preloadChapter(String bookId, int chapterId) async {
+    final cacheKey = bookId.toString();
+    if (_cache.containsKey(cacheKey) && _cache[cacheKey]!.containsKey(chapterId)) {
+      return;
+    }
+    try {
+      await loadChapterContent(bookId, chapterId);
+    } catch (_) {
+      // 预加载失败静默忽略
+    }
+  }
+
   void clearBookCache(int bookId) {
-    _cache.remove(bookId.toString());
-    _richParaCache.remove(bookId.toString());
+    final key = bookId.toString();
+    _cache.remove(key);
+    _richContentCache.remove(key);
+    _richParagraphCache.remove(key);
   }
   void clearAllCache() {
     _cache.clear();
-    _richParaCache.clear();
+    _richContentCache.clear();
+    _richParagraphCache.clear();
   }
 
   String? getCachedContent(int bookId, int chapterId) {
@@ -371,12 +504,40 @@ class ReaderRepository {
     return null;
   }
 
+  TextSpan? getCachedRichTextSpan(String bookId, int chapterId) {
+    return _richContentCache[bookId]?[chapterId];
+  }
+
+  List<RichParagraph>? getCachedRichParagraphs(String bookId, int chapterId) {
+    return _richParagraphCache[bookId]?[chapterId];
+  }
+
   List<PageInfo>? getCachedPages(String bookId, int chapterId) {
     final cacheKey = bookId.toString();
     if (_cache.containsKey(cacheKey) && _cache[cacheKey]!.containsKey(chapterId)) {
       return _cache[cacheKey]![chapterId]!.pages;
     }
     return null;
+  }
+
+  /// 章节级 GC：只保留当前章节前后 N 章的缓存
+  void gcChapterCache(String bookId, int currentChapter, {int keepRange = 5}) {
+    final key = bookId.toString();
+    final minKeep = currentChapter - keepRange;
+    final maxKeep = currentChapter + keepRange;
+
+    void clean(Map map) {
+      final bookCache = map[key];
+      if (bookCache == null) return;
+      bookCache.removeWhere((k, _) {
+        final ci = k as int;
+        return ci < minKeep || ci > maxKeep;
+      });
+    }
+
+    clean(_cache);
+    clean(_richContentCache);
+    clean(_richParagraphCache);
   }
 
   String? getPageContent(int bookId, int chapterId, int pageIndex) {

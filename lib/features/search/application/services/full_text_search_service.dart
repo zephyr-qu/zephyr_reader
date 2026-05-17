@@ -3,6 +3,7 @@ library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/core/local/rust_search_service.dart';
@@ -25,6 +26,7 @@ class SearchHit {
   });
 }
 
+@Singleton()
 class FullTextSearchService {
   final RustSearchService _searchService;
   bool _initialized = false;

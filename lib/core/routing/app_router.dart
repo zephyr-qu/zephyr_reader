@@ -25,6 +25,7 @@ import 'package:zephyr_reader/features/profile/page/settings_page.dart';
 import 'package:zephyr_reader/features/sync/page/webdav_settings_page.dart';
 import 'package:zephyr_reader/features/sync/page/sync_history_page.dart';
 import 'package:zephyr_reader/features/sync/page/backup_restore_page.dart';
+import 'package:zephyr_reader/features/vocabulary/page/vocabulary_page.dart';
 
 final router = GoRouter(
   initialLocation: RoutePaths.splash,
@@ -115,7 +116,7 @@ final router = GoRouter(
       path: RoutePaths.reader,
       builder: (_, state) {
         final bookId = state.pathParameters['bookId'] ?? '0';
-        final chapterId = int.parse(state.pathParameters['chapterId'] ?? '1');
+        final chapterId = int.parse(state.pathParameters['chapterId'] ?? '0');
         return ReaderPage(bookId: bookId, initialChapterId: chapterId);
       },
     ),
@@ -162,7 +163,10 @@ final router = GoRouter(
     GoRoute(
       name: RouteNames.bookSearch,
       path: RoutePaths.bookSearch,
-      builder: (_, _) => const BookSearchPage(),
+      builder: (_, state) {
+        final bookId = state.uri.queryParameters['bookId'] ?? '';
+        return BookSearchPage(bookId: bookId);
+      },
     ),
 
     // 阅读统计详情
@@ -191,6 +195,13 @@ final router = GoRouter(
         final bookId = state.pathParameters['bookId'] ?? '';
         return BookmarkManagePage(bookId: bookId);
       },
+    ),
+
+    // 生词本
+    GoRoute(
+      name: RouteNames.vocabulary,
+      path: RoutePaths.vocabulary,
+      builder: (_, _) => const VocabularyPage(),
     ),
 
     // Splash 页面（独立页面，不使用 MainLayout）

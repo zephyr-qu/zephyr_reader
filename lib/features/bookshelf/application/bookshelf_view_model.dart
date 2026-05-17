@@ -40,6 +40,9 @@ class BookshelfViewModel {
   /// 当前选中的分类
   final selectedCategory = signal<BookCategory?>(null);
 
+  /// 当前选中的阅读状态
+  final selectedStatus = signal<BookStatus?>(null);
+
   /// 搜索关键词
   final searchKeyword = signal<String>('');
 
@@ -73,9 +76,6 @@ class BookshelfViewModel {
     try {
       final data = await _repo.getAllCategories();
       categories.value = data;
-      if (selectedCategory.value == null && data.isNotEmpty) {
-        selectedCategory.value = data.first;
-      }
     } catch (e, stack) {
       debugPrint('BookshelfViewModel._loadCategories error: $e\n$stack');
       categories.value = [];
@@ -92,8 +92,14 @@ class BookshelfViewModel {
         data = await _repo.searchBooks(searchKeyword.value);
       } else {
         final cat = selectedCategory.value;
-        if (cat != null) {
+        final status = selectedStatus.value;
+        if (cat != null && status != null) {
           data = await _repo.getBooksByCategory(cat);
+          data = data.where((b) => b.status == status).toList();
+        } else if (cat != null) {
+          data = await _repo.getBooksByCategory(cat);
+        } else if (status != null) {
+          data = await _repo.getBooksByStatus(status);
         } else {
           data = await _repo.getAllBooks();
         }
@@ -131,6 +137,13 @@ class BookshelfViewModel {
   /// 切换分类
   void selectCategory(BookCategory? category) {
     selectedCategory.value = category;
+    isSearching.value = false;
+    searchKeyword.value = '';
+  }
+
+  /// 切换状态筛选
+  void selectStatus(BookStatus? status) {
+    selectedStatus.value = status;
     isSearching.value = false;
     searchKeyword.value = '';
   }

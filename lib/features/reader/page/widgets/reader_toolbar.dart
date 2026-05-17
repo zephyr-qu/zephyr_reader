@@ -18,6 +18,8 @@ class ReaderToolbar extends HookWidget {
   final VoidCallback? onShowCatalog;
   final VoidCallback? onShowBookmarks;
   final VoidCallback? onToggleBookmark;
+  final VoidCallback? onShowSearch;
+  final VoidCallback? onShowNotes;
 
   const ReaderToolbar({
     super.key,
@@ -31,6 +33,8 @@ class ReaderToolbar extends HookWidget {
     this.onShowCatalog,
     this.onShowBookmarks,
     this.onToggleBookmark,
+    this.onShowSearch,
+    this.onShowNotes,
   });
 
   @override
@@ -105,13 +109,29 @@ class ReaderToolbar extends HookWidget {
                 pathParameters: {'bookId': bookId}),
               tooltip: '书签管理',
             ),
-            // 笔记管理
+            // 全书搜索
+            IconButton(
+              icon: ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [Color(0xFF4FC3F7), Color(0xFF7E57C2)],
+                ).createShader(bounds),
+                child: const Icon(Icons.search, color: Colors.white, size: 20),
+              ),
+              onPressed: () => context.pushNamed(RouteNames.bookSearch,
+                queryParameters: {'bookId': bookId}),
+              tooltip: '全书搜索',
+            ),
+            // 笔记侧边栏
             IconButton(
               icon: Icon(Icons.note_alt_outlined, color: textColor, size: 20),
-              onPressed: () => context.pushNamed(RouteNames.noteManage,
-                pathParameters: {'bookId': bookId},
-                queryParameters: {'title': title}),
-              tooltip: '笔记管理',
+              onPressed: onShowNotes,
+              tooltip: '笔记侧边栏',
+            ),
+            // 章节内搜索
+            IconButton(
+              icon: const Icon(Icons.find_in_page, color: Colors.orange, size: 20),
+              onPressed: onShowSearch,
+              tooltip: '章节内搜索',
             ),
           ],
         ),

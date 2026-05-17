@@ -16,6 +16,71 @@ pub fn parse_txt(file_path: String) -> Result<ParseResult,AppError> {
     parse_txt_with_config(file_path, ParseConfig::default())
 }
 
+/// 从 TXT 文件内容头部提取元数据
+///
+/// 扫描前 100 行，识别常见的元数据标记：
+/// - `书名[：:]xxx`
+/// - `作者[：:]xxx`
+/// - `简介[：:]xxx` / `内容简介[：:]xxx`
+fn extract_metadata_from_content(content: &str) -> (Option<String>, Option<String>, Option<String>) {
+    let mut title = None;
+    let mut author = None;
+    let mut description = None;
+
+    for line in content.lines().take(100) {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+
+        if title.is_none() {
+            if let Some(val) = extract_kv(line, &["书名", "書名"]) {
+                title = Some(val);
+                continue;
+            }
+        }
+
+        if author.is_none() {
+            if let Some(val) = extract_kv(line, &["作者"]) {
+                author = Some(val);
+                continue;
+            }
+        }
+
+        if description.is_none() {
+            if let Some(val) = extract_kv(line, &["简介", "簡介", "内容简介", "內容簡介", "内容提要"]) {
+                description = Some(val);
+            }
+        }
+
+        if title.is_some() && author.is_some() && description.is_some() {
+            break;
+        }
+    }
+
+    (title, author, description)
+}
+
+/// 从一行中提取键值对的值部分
+///
+/// 例如 `extract_kv("书名：三体", &["书名"])` → `Some("三体")`
+fn extract_kv<'a>(line: &'a str, keys: &[&str]) -> Option<String> {
+    for key in keys {
+        if let Some(rest) = line.strip_prefix(key) {
+            let rest = rest.trim();
+            let val = rest
+                .strip_prefix(':')
+                .or_else(|| rest.strip_prefix('：'))
+                .unwrap_or(rest)
+                .trim();
+            if !val.is_empty() {
+                return Some(val.to_string());
+            }
+        }
+    }
+    None
+}
+
 /// 解析 TXT 文件（带配置）
 ///
 /// 支持并行解析配置，适用于大文件优化。
@@ -47,38 +112,39 @@ pub fn parse_txt_with_config(file_path: String, _config: ParseConfig) -> Result<
     let total_chars = content.chars().count() as i64;
     tracing::debug!("文件解码完成，字符数：{}", total_chars);
 
-    // 提取章节
-    let chapters = extract_chapters(&content);
-    let chapter_count = chapters.len() as i32;
-    tracing::debug!("章节提取完成，章节数：{}", chapter_count);
-
-    // 生成书籍 ID
-    let book_id = uuid::Uuid::new_v4().to_string();
-
-    // 提取书名（从文件名或第一章标题）
+    // 提取文件名（用于书名回退）
     let file_name = Path::new(&file_path)
         .file_stem()
         .and_then(|s| s.to_str())
         .unwrap_or("未知书籍")
         .to_string();
 
-    let title = chapters
-        .first()
-        .map(|c| c.title.clone())
-        .unwrap_or(file_name);
+    // 从文件头部提取元数据
+    let (meta_title, meta_author, meta_description) = extract_metadata_from_content(&content);
+
+    // 书名优先级：元数据标题 > 文件名
+    let title = meta_title.unwrap_or_else(|| file_name);
+    // 作者优先级：元数据作者 > 默认作者
+    let author = meta_author.unwrap_or_else(|| "未知作者".to_string());
+
+    // 提取章节
+    let chapters = extract_chapters(&content);
+    tracing::debug!("章节提取完成，章节数：{}", chapters.len());
+
+    let book_id = uuid::Uuid::new_v4().to_string();
 
     let book_info = Book {
         book_id,
         file_path: file_path.clone(),
         title,
-        author: Some("未知作者".to_string()),
+        author: Some(author),
         chapter_count: chapters.len() as i32,
         total_characters: total_chars,
         cover_path: None,
         file_hash: None,
         file_size: 0,
         file_mtime: None,
-        description: None,
+        description: meta_description,
         format: BookFormat::Txt,
         added_at: chrono::Utc::now(),
         last_opened_at: None,
@@ -283,8 +349,37 @@ mod tests {
         assert!(result.is_ok());
         let parse_result = result.unwrap();
         assert_eq!(parse_result.book_info.format, BookFormat::Txt);
-        assert!(parse_result.book_info.title.contains("第一章"));
+        // 无元数据时，书名回退到文件名
+        assert_eq!(parse_result.book_info.title, "test");
         assert_eq!(parse_result.chapters.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_txt_with_metadata() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("三体.txt");
+        let content = "书名：三体\n作者：刘慈欣\n\n这是正文内容。";
+        fs::write(&file_path, content).unwrap();
+
+        let result = parse_txt(file_path.to_str().unwrap().to_string());
+        assert!(result.is_ok());
+        let parse_result = result.unwrap();
+        assert_eq!(parse_result.book_info.title, "三体");
+        assert_eq!(parse_result.book_info.author.unwrap(), "刘慈欣");
+    }
+
+    #[test]
+    fn test_parse_txt_with_metadata_ascii_colon() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("novel.txt");
+        let content = "书名:三体\n作者:刘慈欣\n\n正文内容。";
+        fs::write(&file_path, content).unwrap();
+
+        let result = parse_txt(file_path.to_str().unwrap().to_string());
+        assert!(result.is_ok());
+        let parse_result = result.unwrap();
+        assert_eq!(parse_result.book_info.title, "三体");
+        assert_eq!(parse_result.book_info.author.unwrap(), "刘慈欣");
     }
 
     #[test]
