@@ -33,6 +33,12 @@ class ReaderBottomToolbar extends HookWidget {
   /// 显示设置回调
   final VoidCallback? onShowSettings;
 
+  /// TTS 朗读切换
+  final VoidCallback? onTtsToggle;
+
+  /// TTS 是否正在播放
+  final bool isTtsPlaying;
+
   const ReaderBottomToolbar({
     super.key,
     required this.currentChapterId,
@@ -44,6 +50,8 @@ class ReaderBottomToolbar extends HookWidget {
     this.onPreviousPage,
     this.onNextPage,
     this.onShowSettings,
+    this.onTtsToggle,
+    this.isTtsPlaying = false,
   });
 
   @override
@@ -119,6 +127,13 @@ class ReaderBottomToolbar extends HookWidget {
                   label: '设置',
                   onPressed: onShowSettings,
                   textColor: textColor,
+                ),
+                // 朗读
+                _buildButton(
+                  icon: isTtsPlaying ? Icons.volume_up : Icons.volume_up_outlined,
+                  label: '朗读',
+                  onPressed: onTtsToggle,
+                  textColor: isTtsPlaying ? Colors.green : textColor,
                 ),
                 // 下一页
                 _buildButton(

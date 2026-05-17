@@ -49,7 +49,7 @@ impl BookParser for TxtParser {
         Ok(BookMetadata {
             title: result.book_info.title,
             author: result.book_info.author.unwrap_or_default(),
-            description: None,
+            description: result.book_info.description,
             cover_path: None,
             publish_year: None,
             language: None,
@@ -142,8 +142,8 @@ mod tests {
     #[test]
     fn test_txt_parser_extract_metadata() {
         let temp_dir = TempDir::new().unwrap();
-        let file_path = temp_dir.path().join("test.txt");
-        let content = "第一章 开始\n这是测试内容。";
+        let file_path = temp_dir.path().join("三体.txt");
+        let content = "书名：三体\n作者：刘慈欣\n\n第一章 开始\n这是测试内容。";
         fs::write(&file_path, content).unwrap();
 
         let parser = TxtParser::new();
@@ -151,9 +151,28 @@ mod tests {
             .extract_metadata(file_path.to_str().unwrap())
             .unwrap();
 
-        assert!(metadata.title.contains("第一章"));
+        assert_eq!(metadata.title, "三体");
+        assert_eq!(metadata.author, "刘慈欣");
         assert_eq!(metadata.chapter_count, 1);
         assert!(metadata.total_characters > 0);
+    }
+
+    #[test]
+    fn test_txt_parser_extract_metadata_filename_fallback() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("novel.txt");
+        let content = "这是纯文本内容，没有章节标题也没有元数据。";
+        fs::write(&file_path, content).unwrap();
+
+        let parser = TxtParser::new();
+        let metadata = parser
+            .extract_metadata(file_path.to_str().unwrap())
+            .unwrap();
+
+        // 无元数据时使用文件名作为书名
+        assert_eq!(metadata.title, "novel");
+        assert_eq!(metadata.author, "未知作者");
+        assert_eq!(metadata.chapter_count, 1);
     }
 
     #[test]

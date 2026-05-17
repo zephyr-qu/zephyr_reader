@@ -63,7 +63,7 @@ class BookDetailPage extends StatelessWidget {
                   child: book.coverPath != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.file(File(book.coverPath!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _coverPlaceholder(theme)),
+                          child: Image.file(File(book.coverPath!), fit: BoxFit.cover, errorBuilder: (_, _, _) => _coverPlaceholder(theme)),
                         )
                       : _coverPlaceholder(theme),
                 ),
@@ -89,7 +89,7 @@ class BookDetailPage extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () => context.pushNamed(
                     RouteNames.reader,
-                    pathParameters: {'bookId': book.bookId, 'chapterId': '1'},
+                    pathParameters: {'bookId': book.bookId, 'chapterId': '0'},
                   ),
                   child: const Text('开始阅读'),
                 ),

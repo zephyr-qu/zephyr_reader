@@ -4,7 +4,15 @@ import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-
+extension _BookCategoryColor on BookCategory {
+  Color? get colorValue {
+    if (color.isEmpty) return null;
+    final hex = color.replaceFirst('#', '');
+    if (hex.length == 6) return Color(int.parse(hex, radix: 16) | 0xFF000000);
+    if (hex.length == 8) return Color(int.parse(hex, radix: 16));
+    return null;
+  }
+}
 /// 分类管理页面
 class CategoryManagementPage extends StatefulWidget {
   const CategoryManagementPage({super.key});
@@ -123,7 +131,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            // color: category.colorValue,
+            color: category.colorValue,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(

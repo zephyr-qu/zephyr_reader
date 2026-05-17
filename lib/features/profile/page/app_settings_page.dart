@@ -14,6 +14,10 @@ import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/utils/cache_utils.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/backup_dialog.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
+import 'package:zephyr_reader/core/local/rust_storage_service.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:file_picker/file_picker.dart';
 
 /// 应用设置页面
 class AppSettingsPage extends StatefulHookWidget {
@@ -81,12 +85,24 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
 
     isBackingUp.value = true;
     try {
-      // TODO: implement via Rust API
-      await Future.delayed(const Duration(milliseconds: 500));
+      final dir = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final destPath = '${dir.path}/backup_$timestamp.db';
+      final storage = getIt<RustStorageService>();
+      await storage.exportDatabase(destPath);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('备份功能待实现'),
+          SnackBar(
+            content: Text('备份已保存: $destPath'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('备份失败: $e'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -99,12 +115,31 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
   Future<void> _restoreBackup() async {
     isRestoring.value = true;
     try {
-      // TODO: implement via Rust API
-      await Future.delayed(const Duration(milliseconds: 500));
+      final result = await FilePicker.pickFiles(type: FileType.any);
+      if (result == null || result.files.isEmpty) {
+        isRestoring.value = false;
+        return;
+      }
+      final filePath = result.files.single.path;
+      if (filePath == null) {
+        isRestoring.value = false;
+        return;
+      }
+      final storage = getIt<RustStorageService>();
+      await storage.restoreDatabase(filePath);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('恢复功能待实现'),
+            content: Text('数据恢复成功，请重启应用'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('恢复失败: $e'),
             behavior: SnackBarBehavior.floating,
           ),
         );

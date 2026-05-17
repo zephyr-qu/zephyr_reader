@@ -196,30 +196,6 @@ Future<void> setCategoriesForBook({
 Future<void> clearCategoriesForBook({required String bookId}) =>
     RustLib.instance.api.crateApiStorageClearCategoriesForBook(bookId: bookId);
 
-Future<void> saveLayoutCache({
-  required LayoutCache cache,
-  required LayoutCacheKey key,
-}) =>
-    RustLib.instance.api.crateApiStorageSaveLayoutCache(cache: cache, key: key);
-
-Future<LayoutCache?> getLayoutCache({
-  required String bookId,
-  required int chapterIndex,
-  required String configHash,
-}) => RustLib.instance.api.crateApiStorageGetLayoutCache(
-  bookId: bookId,
-  chapterIndex: chapterIndex,
-  configHash: configHash,
-);
-
-Future<void> clearLayoutCache({required String bookId}) =>
-    RustLib.instance.api.crateApiStorageClearLayoutCache(bookId: bookId);
-
-Future<BigInt> cleanupExpiredLayoutCache({required PlatformInt64 maxAgeDays}) =>
-    RustLib.instance.api.crateApiStorageCleanupExpiredLayoutCache(
-      maxAgeDays: maxAgeDays,
-    );
-
 Future<void> updateBookStatus({
   required String bookId,
   required BookStatus status,

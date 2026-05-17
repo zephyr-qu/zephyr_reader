@@ -2,9 +2,8 @@ use chrono::{DateTime, Utc};
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 
-/// 排版缓存键（内部使用，不暴露给 domain）
+/// 排版缓存键（内部使用）
 #[derive(Debug, Clone)]
-#[frb]
 pub struct LayoutCacheKey {
     pub book_id: String,
     pub chapter_index: i32,
@@ -94,6 +93,8 @@ pub struct Note {
     pub content: String,
     pub selected_text: Option<String>,
     pub highlight_color: Option<i32>,
+    pub paired_note_id: Option<String>,
+    pub language: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -119,6 +120,8 @@ impl Note {
             content: String::new(),
             selected_text: Some(selected_text.to_string()),
             highlight_color: Some(color),
+            paired_note_id: None,
+            language: None,
             created_at: now,
             updated_at: now,
         }
@@ -143,6 +146,8 @@ impl Note {
             content: content.to_string(),
             selected_text: selected_text.map(String::from),
             highlight_color: None,
+            paired_note_id: None,
+            language: None,
             created_at: now,
             updated_at: now,
         }
@@ -226,7 +231,6 @@ pub struct GlobalStats {
 // ==================== 排版缓存 ====================
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[frb(dart_metadata=("freezed"))]
 pub struct LayoutCache {
     pub page_offsets: Vec<(i64, i64)>,
     pub total_pages: i32,

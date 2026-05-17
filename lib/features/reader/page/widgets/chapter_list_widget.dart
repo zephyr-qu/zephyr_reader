@@ -1,30 +1,19 @@
-/// 章节列表组件
 library;
 
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-/// 章节列表组件
 class ChapterListWidget extends StatelessWidget {
-  /// 章节列表
   final List<Chapter> chapters;
-
-  /// 当前章节 ID
-  final String currentChapterId;
-
-  /// 主题模式
+  final int currentChapterIndex;
   final ThemeMode themeMode;
-
-  /// 章节选中回调
-  final ValueChanged<String> onChapterSelected;
-
-  /// 关闭回调
+  final ValueChanged<int> onChapterSelected;
   final VoidCallback onClose;
 
   const ChapterListWidget({
     super.key,
     required this.chapters,
-    required this.currentChapterId,
+    required this.currentChapterIndex,
     required this.themeMode,
     required this.onChapterSelected,
     required this.onClose,
@@ -40,7 +29,6 @@ class ChapterListWidget extends StatelessWidget {
       child: SafeArea(
         child: Column(
           children: [
-            // 标题栏
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -79,19 +67,18 @@ class ChapterListWidget extends StatelessWidget {
                 ],
               ),
             ),
-            // 章节列表
             Expanded(
               child: ListView.builder(
                 itemCount: chapters.length,
                 itemBuilder: (context, index) {
                   final chapter = chapters[index];
-                  final isCurrent = chapter.id == currentChapterId;
+                  final isCurrent = chapter.chapterIndex == currentChapterIndex;
 
-                  final indent = chapter.level * 16.0;
+                  final indent = (chapter.level - 1) * 16.0;
 
                   return ListTile(
                     contentPadding: EdgeInsets.only(
-                      left: 16.0 + indent,
+                      left: 16.0 + indent.clamp(0, 64),
                       right: 16.0,
                     ),
                     title: Text(
@@ -115,7 +102,7 @@ class ChapterListWidget extends StatelessWidget {
                             ),
                           )
                         : null,
-                    onTap: () => onChapterSelected(chapter.id),
+                    onTap: () => onChapterSelected(chapter.chapterIndex),
                   );
                 },
               ),
@@ -146,3 +133,4 @@ class ChapterListWidget extends StatelessWidget {
     }
   }
 }
+

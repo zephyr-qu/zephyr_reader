@@ -24,22 +24,27 @@ class ThemeSettingsPage extends HookWidget {
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Text('主题模式', style: TextStyle(fontSize: 12, color: DesignTokens.textSecondary, letterSpacing: 0.5)),
           ),
-          RadioListTile<ThemeMode>(
-            title: const Text('跟随系统'), value: ThemeMode.system,
-            groupValue: themeMode.value, onChanged: (v) { if (v != null) themeMode.value = v; },
-            contentPadding: EdgeInsets.zero, dense: true,
-          ),
-          const Divider(height: 0.5, indent: 16),
-          RadioListTile<ThemeMode>(
-            title: const Text('浅色模式'), value: ThemeMode.light,
-            groupValue: themeMode.value, onChanged: (v) { if (v != null) themeMode.value = v; },
-            contentPadding: EdgeInsets.zero, dense: true,
-          ),
-          const Divider(height: 0.5, indent: 16),
-          RadioListTile<ThemeMode>(
-            title: const Text('深色模式'), value: ThemeMode.dark,
-            groupValue: themeMode.value, onChanged: (v) { if (v != null) themeMode.value = v; },
-            contentPadding: EdgeInsets.zero, dense: true,
+          RadioGroup<ThemeMode>(
+            groupValue: themeMode.value,
+            onChanged: (v) { if (v != null) themeMode.value = v; },
+            child: const Column(
+              children: [
+                RadioListTile<ThemeMode>(
+                  title: Text('跟随系统'), value: ThemeMode.system,
+                  contentPadding: EdgeInsets.zero, dense: true,
+                ),
+                Divider(height: 0.5, indent: 16),
+                RadioListTile<ThemeMode>(
+                  title: Text('浅色模式'), value: ThemeMode.light,
+                  contentPadding: EdgeInsets.zero, dense: true,
+                ),
+                Divider(height: 0.5, indent: 16),
+                RadioListTile<ThemeMode>(
+                  title: Text('深色模式'), value: ThemeMode.dark,
+                  contentPadding: EdgeInsets.zero, dense: true,
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
           const Padding(

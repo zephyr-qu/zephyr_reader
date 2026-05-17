@@ -6,12 +6,14 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/core/local/rust_core_service.dart';
 import 'package:zephyr_reader/core/local/rust_cover_service.dart';
 import 'package:zephyr_reader/core/local/rust_storage_service.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_bookmark_repository.dart';
 import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_chapter_repository.dart';
+import 'package:zephyr_reader/features/search/application/services/full_text_search_service.dart';
 import 'package:zephyr_reader/src/rust/domain/types.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -22,12 +24,14 @@ class BookRepository {
   final BookmarkRepository _bookmarkRepo;
   final RustCoreService _core;
   final RustCoverService _coverService;
+  final FullTextSearchService _searchService;
   BookRepository(
     this._storage,
     this._chapterRepo,
     this._bookmarkRepo,
     this._core,
     this._coverService,
+    this._searchService,
   );
 
   Future<List<Book>> getAllBooks() async {
@@ -312,6 +316,9 @@ class BookRepository {
       final bookInfo = parseResult.parseResult.bookInfo;
       final rustChapters = parseResult.parseResult.chapters;
 
+      final parserCoverPath = bookInfo.coverPath != null && File(bookInfo.coverPath!).existsSync()
+          ? bookInfo.coverPath
+          : null;
       final book = Book(
         bookId: 'book_${DateTime.now().millisecondsSinceEpoch}',
         title: bookInfo.title,
@@ -323,7 +330,7 @@ class BookRepository {
         fileMtime: bookInfo.fileMtime,
         chapterCount: bookInfo.chapterCount,
         totalCharacters: bookInfo.totalCharacters,
-        coverPath: bookInfo.coverPath,
+        coverPath: parserCoverPath,
         description: bookInfo.description,
         addedAt: DateTime.now(),
         status: BookStatus.planned,
@@ -331,19 +338,26 @@ class BookRepository {
       );
       await addBook(book);
 
-      if (book.coverPath == null && _coverService.supportsCoverExtraction(filePath)) {
-        final coverDir = p.dirname(p.dirname(filePath));
-        final coverPath = await _coverService.extractBookCover(filePath: filePath, outputDir: coverDir);
-        final updated = Book(
-          bookId: book.bookId, filePath: book.filePath,
-            fileHash: book.fileHash, fileSize: book.fileSize, fileMtime: book.fileMtime,
-            title: book.title, author: book.author, description: book.description,
-            coverPath: coverPath, chapterCount: book.chapterCount,
-            totalCharacters: book.totalCharacters, format: book.format,
-            addedAt: book.addedAt, lastOpenedAt: book.lastOpenedAt,
-            status: book.status, isPinned: book.isPinned,
-          );
-          await updateBook(updated);
+      if (_coverService.supportsCoverExtraction(filePath)) {
+        try {
+          final appDir = await getApplicationDocumentsDirectory();
+          final coverDir = p.join(appDir.path, 'zephyr_reader', 'covers');
+          final coverPath = await _coverService.extractBookCover(filePath: filePath, outputDir: coverDir);
+          if (coverPath.isNotEmpty) {
+            final updated = Book(
+              bookId: book.bookId, filePath: book.filePath,
+                fileHash: book.fileHash, fileSize: book.fileSize, fileMtime: book.fileMtime,
+                title: book.title, author: book.author, description: book.description,
+                coverPath: coverPath, chapterCount: book.chapterCount,
+                totalCharacters: book.totalCharacters, format: book.format,
+                addedAt: book.addedAt, lastOpenedAt: book.lastOpenedAt,
+                status: book.status, isPinned: book.isPinned,
+              );
+              await updateBook(updated);
+          }
+        } catch (e) {
+          Logging.debug('importBook cover extraction failed: $e');
+        }
       }
 
       if (rustChapters.isNotEmpty) {
@@ -361,6 +375,25 @@ class BookRepository {
           level: ch.level,
         )).toList();
         await _chapterRepo.insertChapters(chapters);
+        for (final ch in chapters) {
+          try {
+            final chapterContent = await _core.getChapter(
+              filePath, ch.chapterIndex,
+            );
+            final text = chapterContent.when(
+              raw: (t) => t,
+              pages: (pages) => pages.map((p) => p.content).join(' '),
+            );
+            await _searchService.indexChapter(
+              bookId: book.bookId,
+              chapterId: ch.chapterIndex,
+              chapterTitle: ch.title,
+              content: text,
+            );
+          } catch (e) {
+            Logging.error('indexChapter失败: id=${ch.id}', exception: e);
+          }
+        }
       }
 
       return book;

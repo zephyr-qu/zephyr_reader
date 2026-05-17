@@ -25,4 +25,8 @@ class NoteRepository {
   Future<void> deleteNote(String noteId) async {
     await _storage.deleteNote(noteId);
   }
+
+  Future<void> updateNote(Note note) async {
+    await _storage.updateNote(note);
+  }
 }

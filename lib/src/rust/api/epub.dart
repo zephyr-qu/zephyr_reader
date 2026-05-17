@@ -22,20 +22,6 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 Future<EpubMetadata> getEpubMetadata({required String filePath}) =>
     RustLib.instance.api.crateApiEpubGetEpubMetadata(filePath: filePath);
 
-/// 解析 EPUB 章节（富文本）
-///
-/// 解析 EPUB 章节内容为富文本格式，保留 HTML 标签用于显示。
-///
-/// **注意**: 这是一个 EPUB 特有的功能，用于需要保留 HTML 格式的场景。
-/// 普通文本解析请使用 `core::extract_chapter`。
-Future<RichChapterContent> parseEpubChapterRich({
-  required String filePath,
-  required int chapterIndex,
-}) => RustLib.instance.api.crateApiEpubParseEpubChapterRich(
-  filePath: filePath,
-  chapterIndex: chapterIndex,
-);
-
 /// 获取 EPUB 章节富文本内容（带排版）
 ///
 /// 解析 EPUB 章节为富文本格式，并应用排版配置（首行缩进、标点优化等）。
@@ -54,27 +40,6 @@ Future<List<RichParagraph>> getEpubChapterRichContent({
   required TypesetConfig config,
 }) => RustLib.instance.api.crateApiEpubGetEpubChapterRichContent(
   filePath: filePath,
-  chapterIndex: chapterIndex,
-  config: config,
-);
-
-/// 将 EPUB 章节富文本分页
-///
-/// 将富文本段落分割为适合阅读的页面。
-///
-/// # 参数
-/// * `paragraphs` - 富文本段落列表
-/// * `chapter_index` - 章节索引
-/// * `config` - 排版配置
-///
-/// # 返回值
-/// * `Vec<PageContent>` - 分页后的页面列表
-List<PageContent> paginateEpubRichContent({
-  required List<RichParagraph> paragraphs,
-  required int chapterIndex,
-  required TypesetConfig config,
-}) => RustLib.instance.api.crateApiEpubPaginateEpubRichContent(
-  paragraphs: paragraphs,
   chapterIndex: chapterIndex,
   config: config,
 );

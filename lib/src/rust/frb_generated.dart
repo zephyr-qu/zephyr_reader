@@ -5,13 +5,16 @@
 
 import 'api.dart';
 import 'api/bilingual.dart';
+import 'api/bilingual_highlight.dart';
 import 'api/book.dart';
 import 'api/cover.dart';
+import 'api/dictionary.dart';
 import 'api/epub.dart';
 import 'api/file.dart';
 import 'api/search.dart';
 import 'api/storage.dart';
 import 'api/typeset.dart';
+import 'api/vocabulary.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'domain/error.dart';
@@ -77,7 +80,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 432364834;
+  int get rustContentHash => -1159309152;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -89,6 +92,16 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
+  Future<VocabEntry> crateApiVocabularyAddVocabularyWord({
+    required String word,
+    required String pinyin,
+    required String translation,
+    String? contextSentence,
+    String? bookId,
+    PlatformInt64? chapterIndex,
+    PlatformInt64? charOffset,
+  });
+
   Future<BilingualAlignment> crateApiBilingualAlignBilingualContent({
     required String chineseContent,
     required String englishContent,
@@ -100,17 +113,28 @@ abstract class RustLibApi extends BaseApi {
     required String categoryId,
   });
 
-  Future<BigInt> crateApiStorageCleanupExpiredLayoutCache({
-    required PlatformInt64 maxAgeDays,
-  });
-
   Future<void> crateApiSearchClearAllSearchIndex();
 
   Future<void> crateApiStorageClearCategoriesForBook({required String bookId});
 
-  Future<void> crateApiStorageClearLayoutCache({required String bookId});
-
   Future<void> crateApiStorageClearReadingProgress({required String bookId});
+
+  Future<BilingualHighlightPair>
+  crateApiBilingualHighlightCreateBilingualHighlightPair({
+    required String sourceBookId,
+    required int sourceChapterIndex,
+    required PlatformInt64 sourceCharOffset,
+    required PlatformInt64 sourceLength,
+    required String sourceSelectedText,
+    required String sourceLanguage,
+    required String targetBookId,
+    required int targetChapterIndex,
+    required PlatformInt64 targetCharOffset,
+    required PlatformInt64 targetLength,
+    required String targetSelectedText,
+    required String targetLanguage,
+    required int highlightColor,
+  });
 
   Future<void> crateApiStorageCreateBookmark({required Bookmark bookmark});
 
@@ -120,6 +144,10 @@ abstract class RustLibApi extends BaseApi {
     required String filePath,
     required int chapterIndex,
     required TypesetConfig config,
+  });
+
+  Future<void> crateApiBilingualHighlightDeleteBilingualHighlightPair({
+    required String noteId,
   });
 
   Future<void> crateApiStorageDeleteBook({required String bookId});
@@ -140,6 +168,8 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiStorageDeleteSessionsByBook({required String bookId});
 
+  Future<void> crateApiVocabularyDeleteVocabularyWord({required String id});
+
   Future<void> crateApiStorageExportDatabase({required String destPath});
 
   Future<String> crateApiCoverExtractBookCover({
@@ -149,9 +179,20 @@ abstract class RustLibApi extends BaseApi {
 
   Future<BookMetadata> crateApiBookExtractMetadata({required String filePath});
 
+  Future<List<DictEntry>> crateApiDictionaryFuzzySearchDictionary({
+    required String prefix,
+    required int limit,
+  });
+
   Future<List<Book>> crateApiStorageGetAllBooks();
 
   Future<List<BookCategory>> crateApiStorageGetAllCategories();
+
+  Future<List<BilingualHighlightPair>>
+  crateApiBilingualHighlightGetBilingualHighlightPairs({
+    required String bookId,
+    required int chapterIndex,
+  });
 
   Future<Book?> crateApiStorageGetBook({required String bookId});
 
@@ -197,6 +238,8 @@ abstract class RustLibApi extends BaseApi {
     required String bookId,
   });
 
+  Future<DictInfo> crateApiDictionaryGetDictionaryInfo();
+
   Future<List<RichParagraph>> crateApiEpubGetEpubChapterRichContent({
     required String filePath,
     required int chapterIndex,
@@ -208,12 +251,6 @@ abstract class RustLibApi extends BaseApi {
   Future<PlatformInt64> crateApiFileGetFileSize({required String filePath});
 
   Future<GlobalStats> crateApiStorageGetGlobalReadingStats();
-
-  Future<LayoutCache?> crateApiStorageGetLayoutCache({
-    required String bookId,
-    required int chapterIndex,
-    required String configHash,
-  });
 
   Future<NoteStats> crateApiStorageGetNoteStats({required String bookId});
 
@@ -256,6 +293,13 @@ abstract class RustLibApi extends BaseApi {
 
   Future<List<ReadingStats>> crateApiStorageGetTodayReadingStats();
 
+  Future<VocabStats> crateApiVocabularyGetVocabularyStats();
+
+  Future<List<VocabEntry>> crateApiVocabularyGetVocabularyWords({
+    String? bookId,
+    String? status,
+  });
+
   Future<void> crateApiStorageImportBookmarks({
     required List<Bookmark> bookmarks,
   });
@@ -267,9 +311,13 @@ abstract class RustLibApi extends BaseApi {
     required String content,
   });
 
+  Future<void> crateApiDictionaryInitDictionary({required String path});
+
   Future<void> crateApiSearchInitSearchEngine();
 
   Future<void> crateApiStorageInitStorage({required String dataDir});
+
+  Future<List<DictEntry>> crateApiDictionaryLookupWord({required String word});
 
   Future<List<PageContent>> crateApiBookPaginateAllContent({
     required String filePath,
@@ -277,18 +325,7 @@ abstract class RustLibApi extends BaseApi {
     required TypesetConfig config,
   });
 
-  List<PageContent> crateApiEpubPaginateEpubRichContent({
-    required List<RichParagraph> paragraphs,
-    required int chapterIndex,
-    required TypesetConfig config,
-  });
-
   Future<ParseBookResult> crateApiBookParseBook({required String filePath});
-
-  Future<RichChapterContent> crateApiEpubParseEpubChapterRich({
-    required String filePath,
-    required int chapterIndex,
-  });
 
   Future<String> crateApiFileReadFileChunk({
     required String filePath,
@@ -316,22 +353,28 @@ abstract class RustLibApi extends BaseApi {
     required List<Chapter> chapters,
   });
 
-  Future<void> crateApiStorageSaveLayoutCache({
-    required LayoutCache cache,
-    required LayoutCacheKey key,
-  });
-
   Future<void> crateApiStorageSaveReadingProgress({
     required ReadingProgress progress,
   });
 
   Future<List<Book>> crateApiStorageSearchBooks({required String keyword});
 
+  Future<List<DictEntry>> crateApiDictionarySearchDictionaryDefinitions({
+    required String query,
+    required int limit,
+  });
+
   Future<List<SearchResult>> crateApiSearchSearchInBook({
     required String bookId,
     required String query,
     required int limit,
   });
+
+  Future<List<VocabEntry>> crateApiVocabularySearchVocabulary({
+    required String query,
+  });
+
+  Future<List<String>> crateApiDictionarySegmentText({required String text});
 
   Future<void> crateApiStorageSetCategoriesForBook({
     required String bookId,
@@ -373,6 +416,11 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiStorageUpdateNote({required Note note});
 
+  Future<void> crateApiVocabularyUpdateVocabularyStatus({
+    required String id,
+    required String status,
+  });
+
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_PageStreamer;
 
@@ -389,6 +437,70 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required super.generalizedFrbRustBinding,
     required super.portManager,
   });
+
+  @override
+  Future<VocabEntry> crateApiVocabularyAddVocabularyWord({
+    required String word,
+    required String pinyin,
+    required String translation,
+    String? contextSentence,
+    String? bookId,
+    PlatformInt64? chapterIndex,
+    PlatformInt64? charOffset,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(word);
+          final arg1 = cst_encode_String(pinyin);
+          final arg2 = cst_encode_String(translation);
+          final arg3 = cst_encode_opt_String(contextSentence);
+          final arg4 = cst_encode_opt_String(bookId);
+          final arg5 = cst_encode_opt_box_autoadd_i_64(chapterIndex);
+          final arg6 = cst_encode_opt_box_autoadd_i_64(charOffset);
+          return wire.wire__crate__api__vocabulary__add_vocabulary_word(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+            arg4,
+            arg5,
+            arg6,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_vocab_entry,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiVocabularyAddVocabularyWordConstMeta,
+        argValues: [
+          word,
+          pinyin,
+          translation,
+          contextSentence,
+          bookId,
+          chapterIndex,
+          charOffset,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiVocabularyAddVocabularyWordConstMeta =>
+      const TaskConstMeta(
+        debugName: 'add_vocabulary_word',
+        argNames: [
+          'word',
+          'pinyin',
+          'translation',
+          'contextSentence',
+          'bookId',
+          'chapterIndex',
+          'charOffset',
+        ],
+      );
 
   @override
   Future<BilingualAlignment> crateApiBilingualAlignBilingualContent({
@@ -460,36 +572,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<BigInt> crateApiStorageCleanupExpiredLayoutCache({
-    required PlatformInt64 maxAgeDays,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_i_64(maxAgeDays);
-          return wire.wire__crate__api__storage__cleanup_expired_layout_cache(
-            port_,
-            arg0,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_usize,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageCleanupExpiredLayoutCacheConstMeta,
-        argValues: [maxAgeDays],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageCleanupExpiredLayoutCacheConstMeta =>
-      const TaskConstMeta(
-        debugName: 'cleanup_expired_layout_cache',
-        argNames: ['maxAgeDays'],
-      );
-
-  @override
   Future<void> crateApiSearchClearAllSearchIndex() {
     return handler.executeNormal(
       NormalTask(
@@ -539,34 +621,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<void> crateApiStorageClearLayoutCache({required String bookId}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__storage__clear_layout_cache(
-            port_,
-            arg0,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageClearLayoutCacheConstMeta,
-        argValues: [bookId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageClearLayoutCacheConstMeta =>
-      const TaskConstMeta(
-        debugName: 'clear_layout_cache',
-        argNames: ['bookId'],
-      );
-
-  @override
   Future<void> crateApiStorageClearReadingProgress({required String bookId}) {
     return handler.executeNormal(
       NormalTask(
@@ -592,6 +646,104 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(
         debugName: 'clear_reading_progress',
         argNames: ['bookId'],
+      );
+
+  @override
+  Future<BilingualHighlightPair>
+  crateApiBilingualHighlightCreateBilingualHighlightPair({
+    required String sourceBookId,
+    required int sourceChapterIndex,
+    required PlatformInt64 sourceCharOffset,
+    required PlatformInt64 sourceLength,
+    required String sourceSelectedText,
+    required String sourceLanguage,
+    required String targetBookId,
+    required int targetChapterIndex,
+    required PlatformInt64 targetCharOffset,
+    required PlatformInt64 targetLength,
+    required String targetSelectedText,
+    required String targetLanguage,
+    required int highlightColor,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(sourceBookId);
+          final arg1 = cst_encode_i_32(sourceChapterIndex);
+          final arg2 = cst_encode_i_64(sourceCharOffset);
+          final arg3 = cst_encode_i_64(sourceLength);
+          final arg4 = cst_encode_String(sourceSelectedText);
+          final arg5 = cst_encode_String(sourceLanguage);
+          final arg6 = cst_encode_String(targetBookId);
+          final arg7 = cst_encode_i_32(targetChapterIndex);
+          final arg8 = cst_encode_i_64(targetCharOffset);
+          final arg9 = cst_encode_i_64(targetLength);
+          final arg10 = cst_encode_String(targetSelectedText);
+          final arg11 = cst_encode_String(targetLanguage);
+          final arg12 = cst_encode_i_32(highlightColor);
+          return wire
+              .wire__crate__api__bilingual_highlight__create_bilingual_highlight_pair(
+                port_,
+                arg0,
+                arg1,
+                arg2,
+                arg3,
+                arg4,
+                arg5,
+                arg6,
+                arg7,
+                arg8,
+                arg9,
+                arg10,
+                arg11,
+                arg12,
+              );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_bilingual_highlight_pair,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta:
+            kCrateApiBilingualHighlightCreateBilingualHighlightPairConstMeta,
+        argValues: [
+          sourceBookId,
+          sourceChapterIndex,
+          sourceCharOffset,
+          sourceLength,
+          sourceSelectedText,
+          sourceLanguage,
+          targetBookId,
+          targetChapterIndex,
+          targetCharOffset,
+          targetLength,
+          targetSelectedText,
+          targetLanguage,
+          highlightColor,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiBilingualHighlightCreateBilingualHighlightPairConstMeta =>
+      const TaskConstMeta(
+        debugName: 'create_bilingual_highlight_pair',
+        argNames: [
+          'sourceBookId',
+          'sourceChapterIndex',
+          'sourceCharOffset',
+          'sourceLength',
+          'sourceSelectedText',
+          'sourceLanguage',
+          'targetBookId',
+          'targetChapterIndex',
+          'targetCharOffset',
+          'targetLength',
+          'targetSelectedText',
+          'targetLanguage',
+          'highlightColor',
+        ],
       );
 
   @override
@@ -673,6 +825,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(
         debugName: 'create_page_streamer',
         argNames: ['filePath', 'chapterIndex', 'config'],
+      );
+
+  @override
+  Future<void> crateApiBilingualHighlightDeleteBilingualHighlightPair({
+    required String noteId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(noteId);
+          return wire
+              .wire__crate__api__bilingual_highlight__delete_bilingual_highlight_pair(
+                port_,
+                arg0,
+              );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta:
+            kCrateApiBilingualHighlightDeleteBilingualHighlightPairConstMeta,
+        argValues: [noteId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiBilingualHighlightDeleteBilingualHighlightPairConstMeta =>
+      const TaskConstMeta(
+        debugName: 'delete_bilingual_highlight_pair',
+        argNames: ['noteId'],
       );
 
   @override
@@ -910,6 +1095,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<void> crateApiVocabularyDeleteVocabularyWord({required String id}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(id);
+          return wire.wire__crate__api__vocabulary__delete_vocabulary_word(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiVocabularyDeleteVocabularyWordConstMeta,
+        argValues: [id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiVocabularyDeleteVocabularyWordConstMeta =>
+      const TaskConstMeta(
+        debugName: 'delete_vocabulary_word',
+        argNames: ['id'],
+      );
+
+  @override
   Future<void> crateApiStorageExportDatabase({required String destPath}) {
     return handler.executeNormal(
       NormalTask(
@@ -990,6 +1203,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<List<DictEntry>> crateApiDictionaryFuzzySearchDictionary({
+    required String prefix,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(prefix);
+          final arg1 = cst_encode_i_32(limit);
+          return wire.wire__crate__api__dictionary__fuzzy_search_dictionary(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_dict_entry,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDictionaryFuzzySearchDictionaryConstMeta,
+        argValues: [prefix, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDictionaryFuzzySearchDictionaryConstMeta =>
+      const TaskConstMeta(
+        debugName: 'fuzzy_search_dictionary',
+        argNames: ['prefix', 'limit'],
+      );
+
+  @override
   Future<List<Book>> crateApiStorageGetAllBooks() {
     return handler.executeNormal(
       NormalTask(
@@ -1030,6 +1276,43 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiStorageGetAllCategoriesConstMeta =>
       const TaskConstMeta(debugName: 'get_all_categories', argNames: []);
+
+  @override
+  Future<List<BilingualHighlightPair>>
+  crateApiBilingualHighlightGetBilingualHighlightPairs({
+    required String bookId,
+    required int chapterIndex,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          return wire
+              .wire__crate__api__bilingual_highlight__get_bilingual_highlight_pairs(
+                port_,
+                arg0,
+                arg1,
+              );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_bilingual_highlight_pair,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta:
+            kCrateApiBilingualHighlightGetBilingualHighlightPairsConstMeta,
+        argValues: [bookId, chapterIndex],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiBilingualHighlightGetBilingualHighlightPairsConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_bilingual_highlight_pairs',
+        argNames: ['bookId', 'chapterIndex'],
+      );
 
   @override
   Future<Book?> crateApiStorageGetBook({required String bookId}) {
@@ -1368,6 +1651,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<DictInfo> crateApiDictionaryGetDictionaryInfo() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__dictionary__get_dictionary_info(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_dict_info,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDictionaryGetDictionaryInfoConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDictionaryGetDictionaryInfoConstMeta =>
+      const TaskConstMeta(debugName: 'get_dictionary_info', argNames: []);
+
+  @override
   Future<List<RichParagraph>> crateApiEpubGetEpubChapterRichContent({
     required String filePath,
     required int chapterIndex,
@@ -1472,42 +1776,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiStorageGetGlobalReadingStatsConstMeta =>
       const TaskConstMeta(debugName: 'get_global_reading_stats', argNames: []);
-
-  @override
-  Future<LayoutCache?> crateApiStorageGetLayoutCache({
-    required String bookId,
-    required int chapterIndex,
-    required String configHash,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          final arg1 = cst_encode_i_32(chapterIndex);
-          final arg2 = cst_encode_String(configHash);
-          return wire.wire__crate__api__storage__get_layout_cache(
-            port_,
-            arg0,
-            arg1,
-            arg2,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_opt_box_autoadd_layout_cache,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetLayoutCacheConstMeta,
-        argValues: [bookId, chapterIndex, configHash],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetLayoutCacheConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_layout_cache',
-        argNames: ['bookId', 'chapterIndex', 'configHash'],
-      );
 
   @override
   Future<NoteStats> crateApiStorageGetNoteStats({required String bookId}) {
@@ -1815,6 +2083,60 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: 'get_today_reading_stats', argNames: []);
 
   @override
+  Future<VocabStats> crateApiVocabularyGetVocabularyStats() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__vocabulary__get_vocabulary_stats(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_vocab_stats,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiVocabularyGetVocabularyStatsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiVocabularyGetVocabularyStatsConstMeta =>
+      const TaskConstMeta(debugName: 'get_vocabulary_stats', argNames: []);
+
+  @override
+  Future<List<VocabEntry>> crateApiVocabularyGetVocabularyWords({
+    String? bookId,
+    String? status,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_opt_String(bookId);
+          final arg1 = cst_encode_opt_String(status);
+          return wire.wire__crate__api__vocabulary__get_vocabulary_words(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_vocab_entry,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiVocabularyGetVocabularyWordsConstMeta,
+        argValues: [bookId, status],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiVocabularyGetVocabularyWordsConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_vocabulary_words',
+        argNames: ['bookId', 'status'],
+      );
+
+  @override
   Future<void> crateApiStorageImportBookmarks({
     required List<Bookmark> bookmarks,
   }) {
@@ -1881,6 +2203,31 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<void> crateApiDictionaryInitDictionary({required String path}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(path);
+          return wire.wire__crate__api__dictionary__init_dictionary(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDictionaryInitDictionaryConstMeta,
+        argValues: [path],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDictionaryInitDictionaryConstMeta =>
+      const TaskConstMeta(debugName: 'init_dictionary', argNames: ['path']);
+
+  @override
   Future<void> crateApiSearchInitSearchEngine() {
     return handler.executeNormal(
       NormalTask(
@@ -1924,6 +2271,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: 'init_storage', argNames: ['dataDir']);
 
   @override
+  Future<List<DictEntry>> crateApiDictionaryLookupWord({required String word}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(word);
+          return wire.wire__crate__api__dictionary__lookup_word(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_dict_entry,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDictionaryLookupWordConstMeta,
+        argValues: [word],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDictionaryLookupWordConstMeta =>
+      const TaskConstMeta(debugName: 'lookup_word', argNames: ['word']);
+
+  @override
   Future<List<PageContent>> crateApiBookPaginateAllContent({
     required String filePath,
     required int chapterIndex,
@@ -1960,41 +2329,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  List<PageContent> crateApiEpubPaginateEpubRichContent({
-    required List<RichParagraph> paragraphs,
-    required int chapterIndex,
-    required TypesetConfig config,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final arg0 = cst_encode_list_rich_paragraph(paragraphs);
-          final arg1 = cst_encode_i_32(chapterIndex);
-          final arg2 = cst_encode_box_autoadd_typeset_config(config);
-          return wire.wire__crate__api__epub__paginate_epub_rich_content(
-            arg0,
-            arg1,
-            arg2,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_page_content,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiEpubPaginateEpubRichContentConstMeta,
-        argValues: [paragraphs, chapterIndex, config],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiEpubPaginateEpubRichContentConstMeta =>
-      const TaskConstMeta(
-        debugName: 'paginate_epub_rich_content',
-        argNames: ['paragraphs', 'chapterIndex', 'config'],
-      );
-
-  @override
   Future<ParseBookResult> crateApiBookParseBook({required String filePath}) {
     return handler.executeNormal(
       NormalTask(
@@ -2015,39 +2349,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiBookParseBookConstMeta =>
       const TaskConstMeta(debugName: 'parse_book', argNames: ['filePath']);
-
-  @override
-  Future<RichChapterContent> crateApiEpubParseEpubChapterRich({
-    required String filePath,
-    required int chapterIndex,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(filePath);
-          final arg1 = cst_encode_i_32(chapterIndex);
-          return wire.wire__crate__api__epub__parse_epub_chapter_rich(
-            port_,
-            arg0,
-            arg1,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_rich_chapter_content,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiEpubParseEpubChapterRichConstMeta,
-        argValues: [filePath, chapterIndex],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiEpubParseEpubChapterRichConstMeta =>
-      const TaskConstMeta(
-        debugName: 'parse_epub_chapter_rich',
-        argNames: ['filePath', 'chapterIndex'],
-      );
 
   @override
   Future<String> crateApiFileReadFileChunk({
@@ -2250,39 +2551,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<void> crateApiStorageSaveLayoutCache({
-    required LayoutCache cache,
-    required LayoutCacheKey key,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_box_autoadd_layout_cache(cache);
-          final arg1 = cst_encode_box_autoadd_layout_cache_key(key);
-          return wire.wire__crate__api__storage__save_layout_cache(
-            port_,
-            arg0,
-            arg1,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageSaveLayoutCacheConstMeta,
-        argValues: [cache, key],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageSaveLayoutCacheConstMeta =>
-      const TaskConstMeta(
-        debugName: 'save_layout_cache',
-        argNames: ['cache', 'key'],
-      );
-
-  @override
   Future<void> crateApiStorageSaveReadingProgress({
     required ReadingProgress progress,
   }) {
@@ -2335,6 +2603,40 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: 'search_books', argNames: ['keyword']);
 
   @override
+  Future<List<DictEntry>> crateApiDictionarySearchDictionaryDefinitions({
+    required String query,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(query);
+          final arg1 = cst_encode_i_32(limit);
+          return wire
+              .wire__crate__api__dictionary__search_dictionary_definitions(
+                port_,
+                arg0,
+                arg1,
+              );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_dict_entry,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDictionarySearchDictionaryDefinitionsConstMeta,
+        argValues: [query, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDictionarySearchDictionaryDefinitionsConstMeta =>
+      const TaskConstMeta(
+        debugName: 'search_dictionary_definitions',
+        argNames: ['query', 'limit'],
+      );
+
+  @override
   Future<List<SearchResult>> crateApiSearchSearchInBook({
     required String bookId,
     required String query,
@@ -2368,6 +2670,55 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     debugName: 'search_in_book',
     argNames: ['bookId', 'query', 'limit'],
   );
+
+  @override
+  Future<List<VocabEntry>> crateApiVocabularySearchVocabulary({
+    required String query,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(query);
+          return wire.wire__crate__api__vocabulary__search_vocabulary(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_vocab_entry,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiVocabularySearchVocabularyConstMeta,
+        argValues: [query],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiVocabularySearchVocabularyConstMeta =>
+      const TaskConstMeta(debugName: 'search_vocabulary', argNames: ['query']);
+
+  @override
+  Future<List<String>> crateApiDictionarySegmentText({required String text}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(text);
+          return wire.wire__crate__api__dictionary__segment_text(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_String,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDictionarySegmentTextConstMeta,
+        argValues: [text],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDictionarySegmentTextConstMeta =>
+      const TaskConstMeta(debugName: 'segment_text', argNames: ['text']);
 
   @override
   Future<void> crateApiStorageSetCategoriesForBook({
@@ -2680,6 +3031,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiStorageUpdateNoteConstMeta =>
       const TaskConstMeta(debugName: 'update_note', argNames: ['note']);
 
+  @override
+  Future<void> crateApiVocabularyUpdateVocabularyStatus({
+    required String id,
+    required String status,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(id);
+          final arg1 = cst_encode_String(status);
+          return wire.wire__crate__api__vocabulary__update_vocabulary_status(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiVocabularyUpdateVocabularyStatusConstMeta,
+        argValues: [id, status],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiVocabularyUpdateVocabularyStatusConstMeta =>
+      const TaskConstMeta(
+        debugName: 'update_vocabulary_status',
+        argNames: ['id', 'status'],
+      );
+
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_PageStreamer => wire
       .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer;
@@ -2787,6 +3171,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       segments: dco_decode_list_aligned_segment(arr[0]),
       unmatchedChinese: dco_decode_list_String(arr[1]),
       unmatchedEnglish: dco_decode_list_String(arr[2]),
+    );
+  }
+
+  @protected
+  BilingualHighlightPair dco_decode_bilingual_highlight_pair(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BilingualHighlightPair(
+      sourceNote: dco_decode_note(arr[0]),
+      targetNote: dco_decode_opt_box_autoadd_note(arr[1]),
     );
   }
 
@@ -2918,6 +3314,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  double dco_decode_box_autoadd_f_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as double;
+  }
+
+  @protected
   int dco_decode_box_autoadd_i_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
@@ -2927,18 +3329,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_i_64(raw);
-  }
-
-  @protected
-  LayoutCache dco_decode_box_autoadd_layout_cache(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_layout_cache(raw);
-  }
-
-  @protected
-  LayoutCacheKey dco_decode_box_autoadd_layout_cache_key(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_layout_cache_key(raw);
   }
 
   @protected
@@ -3009,6 +3399,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       default:
         throw Exception('unreachable');
     }
+  }
+
+  @protected
+  DictEntry dco_decode_dict_entry(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return DictEntry(
+      simplified: dco_decode_String(arr[0]),
+      traditional: dco_decode_String(arr[1]),
+      pinyin: dco_decode_String(arr[2]),
+      definitions: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
+  DictInfo dco_decode_dict_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return DictInfo(
+      version: dco_decode_String(arr[0]),
+      source: dco_decode_String(arr[1]),
+      entryCount: dco_decode_i_64(arr[2]),
+    );
   }
 
   @protected
@@ -3085,32 +3502,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  LayoutCache dco_decode_layout_cache(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
-    return LayoutCache(
-      pageOffsets: dco_decode_list_record_i_64_i_64(arr[0]),
-      totalPages: dco_decode_i_32(arr[1]),
-      createdAt: dco_decode_Chrono_Utc(arr[2]),
-    );
-  }
-
-  @protected
-  LayoutCacheKey dco_decode_layout_cache_key(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
-    return LayoutCacheKey(
-      bookId: dco_decode_String(arr[0]),
-      chapterIndex: dco_decode_i_32(arr[1]),
-      configHash: dco_decode_String(arr[2]),
-    );
-  }
-
-  @protected
   List<String> dco_decode_list_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_String).toList();
@@ -3120,6 +3511,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<AlignedSegment> dco_decode_list_aligned_segment(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_aligned_segment).toList();
+  }
+
+  @protected
+  List<BilingualHighlightPair> dco_decode_list_bilingual_highlight_pair(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bilingual_highlight_pair)
+        .toList();
   }
 
   @protected
@@ -3144,6 +3545,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<Chapter> dco_decode_list_chapter(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_chapter).toList();
+  }
+
+  @protected
+  List<DictEntry> dco_decode_list_dict_entry(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_dict_entry).toList();
   }
 
   @protected
@@ -3183,14 +3590,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  List<(PlatformInt64, PlatformInt64)> dco_decode_list_record_i_64_i_64(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_record_i_64_i_64).toList();
-  }
-
-  @protected
   List<RichParagraph> dco_decode_list_rich_paragraph(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_rich_paragraph).toList();
@@ -3209,11 +3608,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<VocabEntry> dco_decode_list_vocab_entry(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_vocab_entry).toList();
+  }
+
+  @protected
   Note dco_decode_note(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 12)
-      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    if (arr.length != 14)
+      throw Exception('unexpected arr length: expect 14 but see ${arr.length}');
     return Note(
       id: dco_decode_String(arr[0]),
       bookId: dco_decode_String(arr[1]),
@@ -3225,8 +3630,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       content: dco_decode_String(arr[7]),
       selectedText: dco_decode_opt_String(arr[8]),
       highlightColor: dco_decode_opt_box_autoadd_i_32(arr[9]),
-      createdAt: dco_decode_Chrono_Utc(arr[10]),
-      updatedAt: dco_decode_Chrono_Utc(arr[11]),
+      pairedNoteId: dco_decode_opt_String(arr[10]),
+      language: dco_decode_opt_String(arr[11]),
+      createdAt: dco_decode_Chrono_Utc(arr[12]),
+      updatedAt: dco_decode_Chrono_Utc(arr[13]),
     );
   }
 
@@ -3286,6 +3693,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  double? dco_decode_opt_box_autoadd_f_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_f_32(raw);
+  }
+
+  @protected
   int? dco_decode_opt_box_autoadd_i_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_i_32(raw);
@@ -3298,9 +3711,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  LayoutCache? dco_decode_opt_box_autoadd_layout_cache(dynamic raw) {
+  Note? dco_decode_opt_box_autoadd_note(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_layout_cache(raw);
+    return raw == null ? null : dco_decode_box_autoadd_note(raw);
   }
 
   @protected
@@ -3412,40 +3825,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  (PlatformInt64, PlatformInt64) dco_decode_record_i_64_i_64(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 2) {
-      throw Exception('Expected 2 elements, got ${arr.length}');
-    }
-    return (dco_decode_i_64(arr[0]), dco_decode_i_64(arr[1]));
-  }
-
-  @protected
-  RichChapterContent dco_decode_rich_chapter_content(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
-    return RichChapterContent(
-      chapterId: dco_decode_String(arr[0]),
-      paragraphs: dco_decode_list_rich_paragraph(arr[1]),
-      totalCharacters: dco_decode_i_64(arr[2]),
-    );
-  }
-
-  @protected
   RichParagraph dco_decode_rich_paragraph(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return RichParagraph(
       spans: dco_decode_list_rich_text_span(arr[0]),
       indent: dco_decode_u_8(arr[1]),
       isHeading: dco_decode_bool(arr[2]),
       headingLevel: dco_decode_u_8(arr[3]),
       className: dco_decode_opt_String(arr[4]),
+      textAlign: dco_decode_opt_String(arr[5]),
+      lineHeight: dco_decode_opt_box_autoadd_f_32(arr[6]),
+      isImage: dco_decode_bool(arr[7]),
+      imageSrc: dco_decode_opt_String(arr[8]),
+      imageData: dco_decode_list_prim_u_8_strict(arr[9]),
+      imageAlt: dco_decode_opt_String(arr[10]),
     );
   }
 
@@ -3454,23 +3850,53 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
       case 0:
-        return RichTextSpan_Plain(text: dco_decode_String(raw[1]));
+        return RichTextSpan_Plain(
+          text: dco_decode_String(raw[1]),
+          fontSize: dco_decode_opt_box_autoadd_f_32(raw[2]),
+          color: dco_decode_opt_String(raw[3]),
+        );
       case 1:
-        return RichTextSpan_Bold(text: dco_decode_String(raw[1]));
+        return RichTextSpan_Bold(
+          text: dco_decode_String(raw[1]),
+          fontSize: dco_decode_opt_box_autoadd_f_32(raw[2]),
+          color: dco_decode_opt_String(raw[3]),
+        );
       case 2:
-        return RichTextSpan_Italic(text: dco_decode_String(raw[1]));
+        return RichTextSpan_Italic(
+          text: dco_decode_String(raw[1]),
+          fontSize: dco_decode_opt_box_autoadd_f_32(raw[2]),
+          color: dco_decode_opt_String(raw[3]),
+        );
       case 3:
-        return RichTextSpan_BoldItalic(text: dco_decode_String(raw[1]));
+        return RichTextSpan_BoldItalic(
+          text: dco_decode_String(raw[1]),
+          fontSize: dco_decode_opt_box_autoadd_f_32(raw[2]),
+          color: dco_decode_opt_String(raw[3]),
+        );
       case 4:
-        return RichTextSpan_Underline(text: dco_decode_String(raw[1]));
+        return RichTextSpan_Underline(
+          text: dco_decode_String(raw[1]),
+          fontSize: dco_decode_opt_box_autoadd_f_32(raw[2]),
+          color: dco_decode_opt_String(raw[3]),
+        );
       case 5:
-        return RichTextSpan_Strikethrough(text: dco_decode_String(raw[1]));
+        return RichTextSpan_Strikethrough(
+          text: dco_decode_String(raw[1]),
+          fontSize: dco_decode_opt_box_autoadd_f_32(raw[2]),
+          color: dco_decode_opt_String(raw[3]),
+        );
       case 6:
-        return RichTextSpan_Code(text: dco_decode_String(raw[1]));
+        return RichTextSpan_Code(
+          text: dco_decode_String(raw[1]),
+          fontSize: dco_decode_opt_box_autoadd_f_32(raw[2]),
+          color: dco_decode_opt_String(raw[3]),
+        );
       case 7:
         return RichTextSpan_Link(
           text: dco_decode_String(raw[1]),
           url: dco_decode_String(raw[2]),
+          fontSize: dco_decode_opt_box_autoadd_f_32(raw[3]),
+          color: dco_decode_opt_String(raw[4]),
         );
       default:
         throw Exception('unreachable');
@@ -3529,6 +3955,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BigInt dco_decode_usize(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeU64(raw);
+  }
+
+  @protected
+  VocabEntry dco_decode_vocab_entry(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    return VocabEntry(
+      id: dco_decode_String(arr[0]),
+      word: dco_decode_String(arr[1]),
+      pinyin: dco_decode_String(arr[2]),
+      translation: dco_decode_String(arr[3]),
+      contextSentence: dco_decode_opt_String(arr[4]),
+      bookId: dco_decode_opt_String(arr[5]),
+      chapterIndex: dco_decode_opt_box_autoadd_i_64(arr[6]),
+      charOffset: dco_decode_opt_box_autoadd_i_64(arr[7]),
+      createdAt: dco_decode_String(arr[8]),
+      reviewCount: dco_decode_i_32(arr[9]),
+      lastReviewedAt: dco_decode_opt_String(arr[10]),
+      status: dco_decode_String(arr[11]),
+    );
+  }
+
+  @protected
+  VocabStats dco_decode_vocab_stats(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return VocabStats(
+      totalWords: dco_decode_i_64(arr[0]),
+      learningCount: dco_decode_i_64(arr[1]),
+      knownCount: dco_decode_i_64(arr[2]),
+      masteredCount: dco_decode_i_64(arr[3]),
+    );
   }
 
   @protected
@@ -3654,6 +4116,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       segments: var_segments,
       unmatchedChinese: var_unmatchedChinese,
       unmatchedEnglish: var_unmatchedEnglish,
+    );
+  }
+
+  @protected
+  BilingualHighlightPair sse_decode_bilingual_highlight_pair(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_sourceNote = sse_decode_note(deserializer);
+    final var_targetNote = sse_decode_opt_box_autoadd_note(deserializer);
+    return BilingualHighlightPair(
+      sourceNote: var_sourceNote,
+      targetNote: var_targetNote,
     );
   }
 
@@ -3818,6 +4293,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  double sse_decode_box_autoadd_f_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_f_32(deserializer));
+  }
+
+  @protected
   int sse_decode_box_autoadd_i_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_i_32(deserializer));
@@ -3827,22 +4308,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_i_64(deserializer));
-  }
-
-  @protected
-  LayoutCache sse_decode_box_autoadd_layout_cache(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_layout_cache(deserializer));
-  }
-
-  @protected
-  LayoutCacheKey sse_decode_box_autoadd_layout_cache_key(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_layout_cache_key(deserializer));
   }
 
   @protected
@@ -3936,6 +4401,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  DictEntry sse_decode_dict_entry(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_simplified = sse_decode_String(deserializer);
+    final var_traditional = sse_decode_String(deserializer);
+    final var_pinyin = sse_decode_String(deserializer);
+    final var_definitions = sse_decode_String(deserializer);
+    return DictEntry(
+      simplified: var_simplified,
+      traditional: var_traditional,
+      pinyin: var_pinyin,
+      definitions: var_definitions,
+    );
+  }
+
+  @protected
+  DictInfo sse_decode_dict_info(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_version = sse_decode_String(deserializer);
+    final var_source = sse_decode_String(deserializer);
+    final var_entryCount = sse_decode_i_64(deserializer);
+    return DictInfo(
+      version: var_version,
+      source: var_source,
+      entryCount: var_entryCount,
+    );
+  }
+
+  @protected
   EpubMetadata sse_decode_epub_metadata(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     final var_title = sse_decode_String(deserializer);
@@ -4016,32 +4509,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  LayoutCache sse_decode_layout_cache(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_pageOffsets = sse_decode_list_record_i_64_i_64(deserializer);
-    final var_totalPages = sse_decode_i_32(deserializer);
-    final var_createdAt = sse_decode_Chrono_Utc(deserializer);
-    return LayoutCache(
-      pageOffsets: var_pageOffsets,
-      totalPages: var_totalPages,
-      createdAt: var_createdAt,
-    );
-  }
-
-  @protected
-  LayoutCacheKey sse_decode_layout_cache_key(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_bookId = sse_decode_String(deserializer);
-    final var_chapterIndex = sse_decode_i_32(deserializer);
-    final var_configHash = sse_decode_String(deserializer);
-    return LayoutCacheKey(
-      bookId: var_bookId,
-      chapterIndex: var_chapterIndex,
-      configHash: var_configHash,
-    );
-  }
-
-  @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -4063,6 +4530,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final ans_ = <AlignedSegment>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_aligned_segment(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BilingualHighlightPair> sse_decode_list_bilingual_highlight_pair(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <BilingualHighlightPair>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bilingual_highlight_pair(deserializer));
     }
     return ans_;
   }
@@ -4113,6 +4594,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final ans_ = <Chapter>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_chapter(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<DictEntry> sse_decode_list_dict_entry(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <DictEntry>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_dict_entry(deserializer));
     }
     return ans_;
   }
@@ -4191,20 +4684,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  List<(PlatformInt64, PlatformInt64)> sse_decode_list_record_i_64_i_64(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <(PlatformInt64, PlatformInt64)>[];
-    for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_record_i_64_i_64(deserializer));
-    }
-    return ans_;
-  }
-
-  @protected
   List<RichParagraph> sse_decode_list_rich_paragraph(
     SseDeserializer deserializer,
   ) {
@@ -4247,6 +4726,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<VocabEntry> sse_decode_list_vocab_entry(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <VocabEntry>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_vocab_entry(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   Note sse_decode_note(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     final var_id = sse_decode_String(deserializer);
@@ -4259,6 +4750,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final var_content = sse_decode_String(deserializer);
     final var_selectedText = sse_decode_opt_String(deserializer);
     final var_highlightColor = sse_decode_opt_box_autoadd_i_32(deserializer);
+    final var_pairedNoteId = sse_decode_opt_String(deserializer);
+    final var_language = sse_decode_opt_String(deserializer);
     final var_createdAt = sse_decode_Chrono_Utc(deserializer);
     final var_updatedAt = sse_decode_Chrono_Utc(deserializer);
     return Note(
@@ -4272,6 +4765,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       content: var_content,
       selectedText: var_selectedText,
       highlightColor: var_highlightColor,
+      pairedNoteId: var_pairedNoteId,
+      language: var_language,
       createdAt: var_createdAt,
       updatedAt: var_updatedAt,
     );
@@ -4368,6 +4863,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  double? sse_decode_opt_box_autoadd_f_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_f_32(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -4390,13 +4896,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  LayoutCache? sse_decode_opt_box_autoadd_layout_cache(
-    SseDeserializer deserializer,
-  ) {
+  Note? sse_decode_opt_box_autoadd_note(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_layout_cache(deserializer));
+      return (sse_decode_box_autoadd_note(deserializer));
     } else {
       return null;
     }
@@ -4539,31 +5043,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  (PlatformInt64, PlatformInt64) sse_decode_record_i_64_i_64(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_field0 = sse_decode_i_64(deserializer);
-    final var_field1 = sse_decode_i_64(deserializer);
-    return (var_field0, var_field1);
-  }
-
-  @protected
-  RichChapterContent sse_decode_rich_chapter_content(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_chapterId = sse_decode_String(deserializer);
-    final var_paragraphs = sse_decode_list_rich_paragraph(deserializer);
-    final var_totalCharacters = sse_decode_i_64(deserializer);
-    return RichChapterContent(
-      chapterId: var_chapterId,
-      paragraphs: var_paragraphs,
-      totalCharacters: var_totalCharacters,
-    );
-  }
-
-  @protected
   RichParagraph sse_decode_rich_paragraph(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     final var_spans = sse_decode_list_rich_text_span(deserializer);
@@ -4571,12 +5050,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final var_isHeading = sse_decode_bool(deserializer);
     final var_headingLevel = sse_decode_u_8(deserializer);
     final var_className = sse_decode_opt_String(deserializer);
+    final var_textAlign = sse_decode_opt_String(deserializer);
+    final var_lineHeight = sse_decode_opt_box_autoadd_f_32(deserializer);
+    final var_isImage = sse_decode_bool(deserializer);
+    final var_imageSrc = sse_decode_opt_String(deserializer);
+    final var_imageData = sse_decode_list_prim_u_8_strict(deserializer);
+    final var_imageAlt = sse_decode_opt_String(deserializer);
     return RichParagraph(
       spans: var_spans,
       indent: var_indent,
       isHeading: var_isHeading,
       headingLevel: var_headingLevel,
       className: var_className,
+      textAlign: var_textAlign,
+      lineHeight: var_lineHeight,
+      isImage: var_isImage,
+      imageSrc: var_imageSrc,
+      imageData: var_imageData,
+      imageAlt: var_imageAlt,
     );
   }
 
@@ -4588,29 +5079,78 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     switch (tag_) {
       case 0:
         final var_text = sse_decode_String(deserializer);
-        return RichTextSpan_Plain(text: var_text);
+        final var_fontSize = sse_decode_opt_box_autoadd_f_32(deserializer);
+        final var_color = sse_decode_opt_String(deserializer);
+        return RichTextSpan_Plain(
+          text: var_text,
+          fontSize: var_fontSize,
+          color: var_color,
+        );
       case 1:
         final var_text = sse_decode_String(deserializer);
-        return RichTextSpan_Bold(text: var_text);
+        final var_fontSize = sse_decode_opt_box_autoadd_f_32(deserializer);
+        final var_color = sse_decode_opt_String(deserializer);
+        return RichTextSpan_Bold(
+          text: var_text,
+          fontSize: var_fontSize,
+          color: var_color,
+        );
       case 2:
         final var_text = sse_decode_String(deserializer);
-        return RichTextSpan_Italic(text: var_text);
+        final var_fontSize = sse_decode_opt_box_autoadd_f_32(deserializer);
+        final var_color = sse_decode_opt_String(deserializer);
+        return RichTextSpan_Italic(
+          text: var_text,
+          fontSize: var_fontSize,
+          color: var_color,
+        );
       case 3:
         final var_text = sse_decode_String(deserializer);
-        return RichTextSpan_BoldItalic(text: var_text);
+        final var_fontSize = sse_decode_opt_box_autoadd_f_32(deserializer);
+        final var_color = sse_decode_opt_String(deserializer);
+        return RichTextSpan_BoldItalic(
+          text: var_text,
+          fontSize: var_fontSize,
+          color: var_color,
+        );
       case 4:
         final var_text = sse_decode_String(deserializer);
-        return RichTextSpan_Underline(text: var_text);
+        final var_fontSize = sse_decode_opt_box_autoadd_f_32(deserializer);
+        final var_color = sse_decode_opt_String(deserializer);
+        return RichTextSpan_Underline(
+          text: var_text,
+          fontSize: var_fontSize,
+          color: var_color,
+        );
       case 5:
         final var_text = sse_decode_String(deserializer);
-        return RichTextSpan_Strikethrough(text: var_text);
+        final var_fontSize = sse_decode_opt_box_autoadd_f_32(deserializer);
+        final var_color = sse_decode_opt_String(deserializer);
+        return RichTextSpan_Strikethrough(
+          text: var_text,
+          fontSize: var_fontSize,
+          color: var_color,
+        );
       case 6:
         final var_text = sse_decode_String(deserializer);
-        return RichTextSpan_Code(text: var_text);
+        final var_fontSize = sse_decode_opt_box_autoadd_f_32(deserializer);
+        final var_color = sse_decode_opt_String(deserializer);
+        return RichTextSpan_Code(
+          text: var_text,
+          fontSize: var_fontSize,
+          color: var_color,
+        );
       case 7:
         final var_text = sse_decode_String(deserializer);
         final var_url = sse_decode_String(deserializer);
-        return RichTextSpan_Link(text: var_text, url: var_url);
+        final var_fontSize = sse_decode_opt_box_autoadd_f_32(deserializer);
+        final var_color = sse_decode_opt_String(deserializer);
+        return RichTextSpan_Link(
+          text: var_text,
+          url: var_url,
+          fontSize: var_fontSize,
+          color: var_color,
+        );
       default:
         throw UnimplementedError('');
     }
@@ -4677,6 +5217,52 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BigInt sse_decode_usize(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getBigUint64();
+  }
+
+  @protected
+  VocabEntry sse_decode_vocab_entry(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_id = sse_decode_String(deserializer);
+    final var_word = sse_decode_String(deserializer);
+    final var_pinyin = sse_decode_String(deserializer);
+    final var_translation = sse_decode_String(deserializer);
+    final var_contextSentence = sse_decode_opt_String(deserializer);
+    final var_bookId = sse_decode_opt_String(deserializer);
+    final var_chapterIndex = sse_decode_opt_box_autoadd_i_64(deserializer);
+    final var_charOffset = sse_decode_opt_box_autoadd_i_64(deserializer);
+    final var_createdAt = sse_decode_String(deserializer);
+    final var_reviewCount = sse_decode_i_32(deserializer);
+    final var_lastReviewedAt = sse_decode_opt_String(deserializer);
+    final var_status = sse_decode_String(deserializer);
+    return VocabEntry(
+      id: var_id,
+      word: var_word,
+      pinyin: var_pinyin,
+      translation: var_translation,
+      contextSentence: var_contextSentence,
+      bookId: var_bookId,
+      chapterIndex: var_chapterIndex,
+      charOffset: var_charOffset,
+      createdAt: var_createdAt,
+      reviewCount: var_reviewCount,
+      lastReviewedAt: var_lastReviewedAt,
+      status: var_status,
+    );
+  }
+
+  @protected
+  VocabStats sse_decode_vocab_stats(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_totalWords = sse_decode_i_64(deserializer);
+    final var_learningCount = sse_decode_i_64(deserializer);
+    final var_knownCount = sse_decode_i_64(deserializer);
+    final var_masteredCount = sse_decode_i_64(deserializer);
+    return VocabStats(
+      totalWords: var_totalWords,
+      learningCount: var_learningCount,
+      knownCount: var_knownCount,
+      masteredCount: var_masteredCount,
+    );
   }
 
   @protected
@@ -4871,6 +5457,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bilingual_highlight_pair(
+    BilingualHighlightPair self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_note(self.sourceNote, serializer);
+    sse_encode_opt_box_autoadd_note(self.targetNote, serializer);
+  }
+
+  @protected
   void sse_encode_book(Book self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.bookId, serializer);
@@ -4987,6 +5583,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_f_32(double self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_f_32(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self, serializer);
@@ -4999,24 +5601,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_64(self, serializer);
-  }
-
-  @protected
-  void sse_encode_box_autoadd_layout_cache(
-    LayoutCache self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_layout_cache(self, serializer);
-  }
-
-  @protected
-  void sse_encode_box_autoadd_layout_cache_key(
-    LayoutCacheKey self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_layout_cache_key(self, serializer);
   }
 
   @protected
@@ -5103,6 +5687,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_dict_entry(DictEntry self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.simplified, serializer);
+    sse_encode_String(self.traditional, serializer);
+    sse_encode_String(self.pinyin, serializer);
+    sse_encode_String(self.definitions, serializer);
+  }
+
+  @protected
+  void sse_encode_dict_info(DictInfo self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.version, serializer);
+    sse_encode_String(self.source, serializer);
+    sse_encode_i_64(self.entryCount, serializer);
+  }
+
+  @protected
   void sse_encode_epub_metadata(EpubMetadata self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.title, serializer);
@@ -5161,25 +5762,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_layout_cache(LayoutCache self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_list_record_i_64_i_64(self.pageOffsets, serializer);
-    sse_encode_i_32(self.totalPages, serializer);
-    sse_encode_Chrono_Utc(self.createdAt, serializer);
-  }
-
-  @protected
-  void sse_encode_layout_cache_key(
-    LayoutCacheKey self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.bookId, serializer);
-    sse_encode_i_32(self.chapterIndex, serializer);
-    sse_encode_String(self.configHash, serializer);
-  }
-
-  @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
@@ -5197,6 +5779,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_aligned_segment(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bilingual_highlight_pair(
+    List<BilingualHighlightPair> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bilingual_highlight_pair(item, serializer);
     }
   }
 
@@ -5236,6 +5830,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_chapter(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_dict_entry(
+    List<DictEntry> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_dict_entry(item, serializer);
     }
   }
 
@@ -5307,18 +5913,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_list_record_i_64_i_64(
-    List<(PlatformInt64, PlatformInt64)> self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.length, serializer);
-    for (final item in self) {
-      sse_encode_record_i_64_i_64(item, serializer);
-    }
-  }
-
-  @protected
   void sse_encode_list_rich_paragraph(
     List<RichParagraph> self,
     SseSerializer serializer,
@@ -5355,6 +5949,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_vocab_entry(
+    List<VocabEntry> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_vocab_entry(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_note(Note self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.id, serializer);
@@ -5367,6 +5973,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.content, serializer);
     sse_encode_opt_String(self.selectedText, serializer);
     sse_encode_opt_box_autoadd_i_32(self.highlightColor, serializer);
+    sse_encode_opt_String(self.pairedNoteId, serializer);
+    sse_encode_opt_String(self.language, serializer);
     sse_encode_Chrono_Utc(self.createdAt, serializer);
     sse_encode_Chrono_Utc(self.updatedAt, serializer);
   }
@@ -5458,6 +6066,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_f_32(double? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_f_32(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -5481,15 +6099,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_opt_box_autoadd_layout_cache(
-    LayoutCache? self,
-    SseSerializer serializer,
-  ) {
+  void sse_encode_opt_box_autoadd_note(Note? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     sse_encode_bool(self != null, serializer);
     if (self != null) {
-      sse_encode_box_autoadd_layout_cache(self, serializer);
+      sse_encode_box_autoadd_note(self, serializer);
     }
   }
 
@@ -5602,27 +6217,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_record_i_64_i_64(
-    (PlatformInt64, PlatformInt64) self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_64(self.$1, serializer);
-    sse_encode_i_64(self.$2, serializer);
-  }
-
-  @protected
-  void sse_encode_rich_chapter_content(
-    RichChapterContent self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.chapterId, serializer);
-    sse_encode_list_rich_paragraph(self.paragraphs, serializer);
-    sse_encode_i_64(self.totalCharacters, serializer);
-  }
-
-  @protected
   void sse_encode_rich_paragraph(RichParagraph self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_rich_text_span(self.spans, serializer);
@@ -5630,37 +6224,92 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self.isHeading, serializer);
     sse_encode_u_8(self.headingLevel, serializer);
     sse_encode_opt_String(self.className, serializer);
+    sse_encode_opt_String(self.textAlign, serializer);
+    sse_encode_opt_box_autoadd_f_32(self.lineHeight, serializer);
+    sse_encode_bool(self.isImage, serializer);
+    sse_encode_opt_String(self.imageSrc, serializer);
+    sse_encode_list_prim_u_8_strict(self.imageData, serializer);
+    sse_encode_opt_String(self.imageAlt, serializer);
   }
 
   @protected
   void sse_encode_rich_text_span(RichTextSpan self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     switch (self) {
-      case RichTextSpan_Plain(text: final text):
+      case RichTextSpan_Plain(
+        text: final text,
+        fontSize: final fontSize,
+        color: final color,
+      ):
         sse_encode_i_32(0, serializer);
         sse_encode_String(text, serializer);
-      case RichTextSpan_Bold(text: final text):
+        sse_encode_opt_box_autoadd_f_32(fontSize, serializer);
+        sse_encode_opt_String(color, serializer);
+      case RichTextSpan_Bold(
+        text: final text,
+        fontSize: final fontSize,
+        color: final color,
+      ):
         sse_encode_i_32(1, serializer);
         sse_encode_String(text, serializer);
-      case RichTextSpan_Italic(text: final text):
+        sse_encode_opt_box_autoadd_f_32(fontSize, serializer);
+        sse_encode_opt_String(color, serializer);
+      case RichTextSpan_Italic(
+        text: final text,
+        fontSize: final fontSize,
+        color: final color,
+      ):
         sse_encode_i_32(2, serializer);
         sse_encode_String(text, serializer);
-      case RichTextSpan_BoldItalic(text: final text):
+        sse_encode_opt_box_autoadd_f_32(fontSize, serializer);
+        sse_encode_opt_String(color, serializer);
+      case RichTextSpan_BoldItalic(
+        text: final text,
+        fontSize: final fontSize,
+        color: final color,
+      ):
         sse_encode_i_32(3, serializer);
         sse_encode_String(text, serializer);
-      case RichTextSpan_Underline(text: final text):
+        sse_encode_opt_box_autoadd_f_32(fontSize, serializer);
+        sse_encode_opt_String(color, serializer);
+      case RichTextSpan_Underline(
+        text: final text,
+        fontSize: final fontSize,
+        color: final color,
+      ):
         sse_encode_i_32(4, serializer);
         sse_encode_String(text, serializer);
-      case RichTextSpan_Strikethrough(text: final text):
+        sse_encode_opt_box_autoadd_f_32(fontSize, serializer);
+        sse_encode_opt_String(color, serializer);
+      case RichTextSpan_Strikethrough(
+        text: final text,
+        fontSize: final fontSize,
+        color: final color,
+      ):
         sse_encode_i_32(5, serializer);
         sse_encode_String(text, serializer);
-      case RichTextSpan_Code(text: final text):
+        sse_encode_opt_box_autoadd_f_32(fontSize, serializer);
+        sse_encode_opt_String(color, serializer);
+      case RichTextSpan_Code(
+        text: final text,
+        fontSize: final fontSize,
+        color: final color,
+      ):
         sse_encode_i_32(6, serializer);
         sse_encode_String(text, serializer);
-      case RichTextSpan_Link(text: final text, url: final url):
+        sse_encode_opt_box_autoadd_f_32(fontSize, serializer);
+        sse_encode_opt_String(color, serializer);
+      case RichTextSpan_Link(
+        text: final text,
+        url: final url,
+        fontSize: final fontSize,
+        color: final color,
+      ):
         sse_encode_i_32(7, serializer);
         sse_encode_String(text, serializer);
         sse_encode_String(url, serializer);
+        sse_encode_opt_box_autoadd_f_32(fontSize, serializer);
+        sse_encode_opt_String(color, serializer);
     }
   }
 
@@ -5705,6 +6354,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_usize(BigInt self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putBigUint64(self);
+  }
+
+  @protected
+  void sse_encode_vocab_entry(VocabEntry self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.word, serializer);
+    sse_encode_String(self.pinyin, serializer);
+    sse_encode_String(self.translation, serializer);
+    sse_encode_opt_String(self.contextSentence, serializer);
+    sse_encode_opt_String(self.bookId, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.chapterIndex, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.charOffset, serializer);
+    sse_encode_String(self.createdAt, serializer);
+    sse_encode_i_32(self.reviewCount, serializer);
+    sse_encode_opt_String(self.lastReviewedAt, serializer);
+    sse_encode_String(self.status, serializer);
+  }
+
+  @protected
+  void sse_encode_vocab_stats(VocabStats self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.totalWords, serializer);
+    sse_encode_i_64(self.learningCount, serializer);
+    sse_encode_i_64(self.knownCount, serializer);
+    sse_encode_i_64(self.masteredCount, serializer);
   }
 }
 

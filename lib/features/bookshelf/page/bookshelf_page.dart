@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
@@ -95,45 +97,31 @@ class BookshelfPage extends HookWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
             child: Watch.builder(builder: (context) {
-              final categories = vm.categories.value;
+              final status = vm.selectedStatus.value;
+              const tabs = <_StatusTab>[
+                _StatusTab(null, '全部'),
+                _StatusTab(BookStatus.planned, '未开始'),
+                _StatusTab(BookStatus.reading, '阅读中'),
+                _StatusTab(BookStatus.completed, '已读完'),
+              ];
               return SizedBox(
                 height: 28,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
-                  itemCount: categories.length + 1,
+                  itemCount: tabs.length,
                   separatorBuilder: (_, _) => const SizedBox(width: 16),
                   itemBuilder: (context, index) {
-                    if (index == 0) {
-                      final allSelected = vm.selectedCategory.value == null;
-                      return GestureDetector(
-                        onTap: () => vm.selectCategory(null),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('全部', style: TextStyle(
-                              fontSize: 14,
-                              color: allSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-                              fontWeight: allSelected ? FontWeight.w500 : FontWeight.w400,
-                            )),
-                            if (allSelected)
-                              Container(height: 1.5, margin: const EdgeInsets.only(top: 4), color: theme.colorScheme.primary)
-                            else
-                              const SizedBox(height: 5.5),
-                          ],
-                        ),
-                      );
-                    }
-                    final category = categories[index - 1];
-                    final isSelected = vm.selectedCategory.value?.id == category.id;
+                    final tab = tabs[index];
+                    final isSelected = status == tab.status;
                     return GestureDetector(
-                      onTap: () => vm.selectCategory(category),
+                      onTap: () => vm.selectStatus(tab.status),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(category.name, style: TextStyle(
+                          Text(tab.label, style: TextStyle(
                             fontSize: 14,
                             color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                             fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
@@ -150,6 +138,48 @@ class BookshelfPage extends HookWidget {
               );
             }),
           ),
+          Watch.builder(builder: (context) {
+            final categories = vm.categories.value;
+            if (categories.isEmpty) return const SizedBox(height: 8);
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(24, 10, 24, 8),
+              child: SizedBox(
+                height: 26,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: categories.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final category = categories[index];
+                    final isSelected = vm.selectedCategory.value?.id == category.id;
+                    return GestureDetector(
+                      onTap: () => vm.selectCategory(isSelected ? null : category),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected ? theme.colorScheme.primaryContainer : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.outlineVariant,
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(category.name, style: TextStyle(
+                          fontSize: 12,
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurfaceVariant,
+                        )),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          }),
           const Divider(height: 0.5),
           Expanded(
             child: Watch.builder(builder: (context) {
@@ -357,6 +387,7 @@ class BookshelfPage extends HookWidget {
     if (result == 'category') {
       final allCats = vm.categories.value;
       final currentIds = await vm.getBookCategoryIds(book.bookId);
+      if (!context.mounted) return;
       final tempSelected = Set<String>.from(currentIds);
       final selected = await showDialog<Set<String>>(
         context: context,
@@ -387,6 +418,7 @@ class BookshelfPage extends HookWidget {
       await repo.updateBookStatus(book.bookId, newStatus.name);
       await vm.loadBooks();
     } else if (result == 'cover') {
+      if (!context.mounted) return;
       if (await _reExtractCover(context, book)) await vm.loadBooks();
     }
   }
@@ -395,8 +427,10 @@ class BookshelfPage extends HookWidget {
     final repo = getIt<BookRepository>();
     final coverService = getIt<RustCoverService>();
     if (!coverService.supportsCoverExtraction(book.filePath)) return false;
+    final appDir = await getApplicationDocumentsDirectory();
+    final coverDir = p.join(appDir.path, 'zephyr_reader', 'covers');
     final coverPath = await coverService.extractBookCover(
-      filePath: book.filePath, outputDir: '/',
+      filePath: book.filePath, outputDir: coverDir,
     );
     if (coverPath.isEmpty) return false;
     final updated = Book(
@@ -427,9 +461,11 @@ class BookshelfPage extends HookWidget {
         }
       }
     } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('导入失败：$e'), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导入失败：$e'), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
+        );
+      }
     }
   }
 
@@ -442,9 +478,11 @@ class BookshelfPage extends HookWidget {
     );
     final files = await repo.scanFolder(folder);
     if (files.isEmpty) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('未找到书籍文件')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('未找到书籍文件')),
+        );
+      }
       return;
     }
     var count = 0;
@@ -452,9 +490,11 @@ class BookshelfPage extends HookWidget {
       if (await repo.importBook(file) != null) count++;
     }
     await vm.loadBooks();
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('扫描完成，导入了 $count 本书'), behavior: SnackBarBehavior.floating),
-    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('扫描完成，导入了 $count 本书'), behavior: SnackBarBehavior.floating),
+      );
+    }
   }
 
   void _showSettingsSheet(BuildContext context, BookshelfViewModel vm) {
@@ -534,7 +574,7 @@ class _BookCover extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     child: Image.file(File(book.coverPath!), fit: BoxFit.cover,
                       width: double.infinity, height: double.infinity,
-                      errorBuilder: (_, __, ___) => _placeholder(),
+                      errorBuilder: (_, _, _) => _placeholder(),
                     ),
                   )
                 : _placeholder(),
@@ -553,4 +593,10 @@ class _BookCover extends StatelessWidget {
   Widget _placeholder() => Center(
     child: Icon(Icons.book_rounded, size: 28, color: theme.colorScheme.primary.withValues(alpha: 0.4)),
   );
+}
+
+class _StatusTab {
+  final BookStatus? status;
+  final String label;
+  const _StatusTab(this.status, this.label);
 }

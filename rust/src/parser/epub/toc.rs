@@ -10,6 +10,9 @@ pub fn extract_chapters_from_epub(epub_file: &mut EpubFile) -> Vec<Chapter> {
     let spine = epub_file.spine();
 
     tracing::info!("[extract_chapters_from_epub] spine 总数: {}, toc 总数: {}", spine.len(), toc.len());
+    for (i, (label, href, lvl)) in toc.iter().enumerate() {
+        tracing::info!("[extract_chapters_from_epub]   toc[{i}]: label={label:?} href={href:?} level={lvl}");
+    }
 
     if toc.is_empty() {
         // 如果没有目录，使用 spine 生成简单章节
@@ -33,11 +36,13 @@ pub fn extract_chapters_from_epub(epub_file: &mut EpubFile) -> Vec<Chapter> {
 
 fn extract_toc_items(
     epub_file: &EpubFile,
-    items: &[(String, String)],
+    items: &[(String, String, i32)],
     chapters: &mut Vec<Chapter>,
     chapter_id: &mut i32,
 ) {
-    for (title, href) in items {
+    let spine_len = epub_file.spine().len();
+
+    for (title, href, level) in items {
         let pure_href = href.split('#').next().unwrap_or(href);
 
         let index = epub_file
@@ -49,16 +54,32 @@ fn extract_toc_items(
             book_id: String::new(),
             title: title.to_string(),
             start_index: index as i64,
-            end_index: (index + 1) as i64,
+            end_index: 0,
             content_length: 0,
             chapter_index: *chapter_id,
-            level: 0,
+            level: *level,
             content_file: String::new(),
             word_count: 0,
             cached_at: chrono::Utc::now(),
         });
 
         *chapter_id += 1;
+    }
+
+    // 按 spine 顺序计算 end_index：
+    // 每个章节从它的 start_index 覆盖到下一个章节的 start_index，
+    // 这样 TOC 未列出的 spine 资源（如分片文件）会被合并到前一个章节
+    let mut sorted: Vec<usize> = (0..chapters.len()).collect();
+    sorted.sort_by_key(|&i| chapters[i].start_index);
+
+    for pos in 0..sorted.len() {
+        let idx = sorted[pos];
+        let end = if pos + 1 < sorted.len() {
+            chapters[sorted[pos + 1]].start_index
+        } else {
+            spine_len as i64
+        };
+        chapters[idx].end_index = end;
     }
 }
 

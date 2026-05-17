@@ -1,10 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:zephyr_reader/core/local/rust_storage_service.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final _storage = getIt<RustStorageService>();
+  List<Book> _recentBooks = [];
+  GlobalStats? _stats;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final results = await Future.wait([
+        _storage.getRecentlyReadBooks(4),
+        _storage.getGlobalReadingStats(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _recentBooks = results[0] as List<Book>;
+          _stats = results[1] as GlobalStats?;
+          _loaded = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _loaded = true);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,14 +62,7 @@ class HomePage extends StatelessWidget {
       greeting = '晚上好';
     }
 
-    final recentBooks = [
-      {'title': '三体', 'author': '刘慈欣', 'progress': 0.65, 'label': '已读 65% · 第 45 章'},
-      {'title': '活着', 'author': '余华', 'progress': 0.30, 'label': '已读 30% · 第 12 章'},
-      {'title': '百年孤独', 'author': '马尔克斯', 'progress': 0.15, 'label': '已读 15% · 第 5 章'},
-      {'title': '围城', 'author': '钱钟书', 'progress': 0.80, 'label': '已读 80% · 第 32 章'},
-    ];
-
-    final currentBook = recentBooks.isNotEmpty ? recentBooks[0] : null;
+    final currentBook = _recentBooks.isNotEmpty ? _recentBooks[0] : null;
 
     return Scaffold(
       body: CustomScrollView(
@@ -53,11 +85,11 @@ class HomePage extends StatelessWidget {
                   const SizedBox(height: 24),
                   Row(
                     children: [
-                      Expanded(child: _statCard(theme, '12', '阅读天数')),
+                      Expanded(child: _statCard(theme, '${_stats?.consecutiveReadingDays ?? 0}', '连续天数')),
                       const SizedBox(width: 10),
-                      Expanded(child: _statCard(theme, '8.5h', '阅读时长')),
+                      Expanded(child: _statCard(theme, '${_stats?.totalBooksCount ?? 0}', '藏书')),
                       const SizedBox(width: 10),
-                      Expanded(child: _statCard(theme, '3', '已读完')),
+                      Expanded(child: _statCard(theme, '${_stats?.booksCompletedCount ?? 0}', '已读完')),
                     ],
                   ),
                 ],
@@ -85,14 +117,20 @@ class HomePage extends StatelessWidget {
                   const SizedBox(height: 16),
                   SizedBox(
                     height: 140,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: recentBooks.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 14),
-                      itemBuilder: (context, index) {
-                        return _recentCard(context, recentBooks[index]);
-                      },
-                    ),
+                    child: _recentBooks.isEmpty
+                        ? Center(
+                            child: Text(_loaded ? '暂无阅读记录' : '加载中…',
+                              style: const TextStyle(color: DesignTokens.textSecondary),
+                            ),
+                          )
+                        : ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _recentBooks.length,
+                            separatorBuilder: (_, _) => const SizedBox(width: 14),
+                            itemBuilder: (context, index) {
+                              return _recentCard(context, _recentBooks[index]);
+                            },
+                          ),
                   ),
                 ],
               ),
@@ -126,7 +164,7 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildHero(BuildContext context, ThemeData theme, Map<String, dynamic> book) {
+  Widget _buildHero(BuildContext context, ThemeData theme, Book book) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -152,28 +190,14 @@ class HomePage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(book['title'] as String,
+                Text(book.title,
                   maxLines: 1, overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600,
                     color: DesignTokens.textPrimary),
                 ),
                 const SizedBox(height: 4),
-                Text(book['author'] as String,
+                Text(book.author ?? '未知作者',
                   style: const TextStyle(fontSize: 12, color: DesignTokens.textSecondary),
-                ),
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: LinearProgressIndicator(
-                    value: book['progress'] as double,
-                    minHeight: 3,
-                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
-                    valueColor: const AlwaysStoppedAnimation(DesignTokens.primary),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(book['label'] as String,
-                  style: const TextStyle(fontSize: 11, color: DesignTokens.textSecondary),
                 ),
                 const SizedBox(height: 14),
                 SizedBox(
@@ -196,7 +220,7 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _recentCard(BuildContext context, Map<String, dynamic> book) {
+  Widget _recentCard(BuildContext context, Book book) {
     final theme = Theme.of(context);
     return GestureDetector(
       onTap: () => context.pushNamed(RouteNames.bookshelf),
@@ -216,7 +240,7 @@ class HomePage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text(book['title'] as String,
+            Text(book.title,
               maxLines: 2, overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12, height: 1.3, color: DesignTokens.textPrimary),
             ),

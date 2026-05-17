@@ -172,19 +172,38 @@ pub fn get_chapter_content(
     Ok(pages)
 }
 
-/// 读取章节内容
+/// 读取章节内容，合并 start_index..end_index 范围内的所有 spine 资源
+///
+/// EPUB 的正文常被切分为多个 HTML 文件（如 part0005_split_000.html ~ part0005_split_002.html），
+/// 但这些分片在 TOC 中可能只有一条记录。通过合并连续 spine 资源，确保完整内容被加载。
 fn read_chapter_content(epub_file: &mut EpubFile, chapter: &Chapter) -> Result<String,AppError> {
-    // EPUB 章节的 start_index 存储的是 spine 中的索引
     let spine = epub_file.spine();
-    let href = spine.get(chapter.start_index as usize).ok_or_else(|| {
-        AppError::chapter_extract_error(
-            chapter.start_index as i32,
-            format!("章节索引超出范围：{}", chapter.start_index),
-        )
-    })?;
-    tracing::debug!("[read_chapter_content] spine href={}, start_index={}", href, chapter.start_index);
+    let start = chapter.start_index as usize;
+    let end = (chapter.end_index as usize).min(spine.len());
+    let end = end.max(start + 1);
 
-    epub_file.read_resource(href)
+    let mut contents = Vec::new();
+    for i in start..end {
+        let href = spine.get(i).ok_or_else(|| {
+            AppError::chapter_extract_error(
+                i as i32,
+                format!("spine 索引超出范围：{}", i),
+            )
+        })?;
+        tracing::debug!("[read_chapter_content] reading spine[{}] href={}", i, href);
+        match epub_file.read_resource(href) {
+            Ok(text) => contents.push(text),
+            Err(e) => tracing::warn!("[read_chapter_content] spine[{}] 读取失败: {}", i, e),
+        }
+    }
+
+    if contents.is_empty() {
+        return Err(AppError::chapter_extract_error(
+            chapter.chapter_index, "章节内容为空",
+        ));
+    }
+
+    Ok(contents.join("\n"))
 }
 
 /// 分页处理
@@ -256,8 +275,22 @@ pub fn get_chapter_content_rich(file_path: &str, chapter_id: i32) -> Result<Rich
     tracing::debug!("[get_chapter_content_rich] HTML 前 200 字符: {:?}", &html_content.chars().take(200).collect::<String>());
 
     // 使用 html5ever 解析 HTML 为富文本
-    let paragraphs = rich_text::parse_html_to_rich_text(&html_content)?;
+    let mut paragraphs = rich_text::parse_html_to_rich_text(&html_content)?;
     tracing::info!("[get_chapter_content_rich] 解析结果: {} 段落", paragraphs.len());
+
+    // 解析图片：遍历段落，加载图片数据
+    for p in &mut paragraphs {
+        if p.is_image {
+            if let Some(src) = &p.image_src {
+                if let Some(bytes) = epub_file.read_resource_bytes(src) {
+                    p.image_data = bytes;
+                    tracing::info!("[get_chapter_content_rich] 加载图片: src={}, size={} bytes", src, p.image_data.len());
+                } else {
+                    tracing::warn!("[get_chapter_content_rich] 无法加载图片: src={}", src);
+                }
+            }
+        }
+    }
     if let Some(first) = paragraphs.first() {
         tracing::info!("[get_chapter_content_rich] 首段落: spans={}, indent={}, is_heading={}, text={:?}",
             first.spans.len(), first.indent, first.is_heading,
@@ -314,81 +347,6 @@ pub fn get_chapter_content_rich_with_typeset(
     Ok(optimized_paragraphs)
 }
 
-/// 将富文本内容分页
-///
-/// 根据排版配置，将富文本段落分割为适合阅读的页面。
-///
-/// # 参数
-///
-/// * `paragraphs` - 富文本段落列表
-/// * `chapter_id` - 章节 ID
-/// * `config` - 排版配置
-///
-/// # 返回值
-///
-/// 返回分页后的页面列表（每个页面包含纯文本内容）
-pub fn paginate_rich_content(
-    paragraphs: &[RichParagraph],
-    chapter_index: i32,
-    config: &TypesetConfig,
-) -> Vec<PageContent> {
-    // 估算每页可容纳的字符数
-    let chars_per_page =
-        ((config.page_height as f32 / config.font_size as f32 / config.line_spacing)
-            * (config.page_width as f32 / config.font_size as f32)) as usize;
-    let chars_per_page = chars_per_page.max(EPUB_MIN_CHARS_PER_PAGE); // 至少 EPUB_MIN_CHARS_PER_PAGE 字符每页
-
-    let mut pages = Vec::new();
-    let mut current_page_content = String::new();
-    let mut current_page_chars = 0;
-    let mut page_index = 0;
-
-    for paragraph in paragraphs.iter() {
-        let para_text = paragraph.full_text();
-        let para_chars = para_text.chars().count();
-
-        if current_page_chars > 0 && current_page_chars + para_chars > chars_per_page {
-            pages.push(PageContent {
-                chapter_index,
-                page_index,
-                content: current_page_content.clone(),
-                is_last_page: false,
-            });
-            page_index += 1;
-            current_page_content = String::new();
-            current_page_chars = 0;
-        }
-
-        if !current_page_content.is_empty() {
-            current_page_content.push_str("\n\n");
-        }
-        current_page_content.push_str(&para_text);
-        current_page_chars += para_chars;
-    }
-
-    // 循环结束后统一处理最后一页
-    if !current_page_content.is_empty() {
-        pages.push(PageContent {
-            chapter_index,
-            page_index,
-            content: current_page_content,
-            is_last_page: true,
-        });
-    }
-
-    // 处理空内容
-    if pages.is_empty() {
-        pages.push(PageContent {
-            chapter_index,
-            page_index: 0,
-            content: String::new(),
-            is_last_page: true,
-        });
-    }
-
-    pages
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -443,54 +401,4 @@ mod tests {
         assert!(pages[0].is_last_page);
     }
 
-    // ==================== 富文本测试 ====================
-
-    #[test]
-    fn test_paginate_rich_content_empty() {
-        let config = TypesetConfig::default();
-        let paragraphs = vec![];
-        let pages = paginate_rich_content(&paragraphs, 0, &config);
-        assert_eq!(pages.len(), 1);
-        assert!(pages[0].is_last_page);
-    }
-
-    #[test]
-    fn test_paginate_rich_content_single_paragraph() {
-        let config = TypesetConfig::default();
-        let paragraphs = vec![RichParagraph::plain("这是一个测试段落。".to_string(), 2)];
-        let pages = paginate_rich_content(&paragraphs, 0, &config);
-        assert_eq!(pages.len(), 1);
-        assert!(pages[0].content.contains("这是一个测试段落"));
-        assert!(pages[0].is_last_page);
-    }
-
-    #[test]
-    fn test_paginate_rich_content_multiple_pages() {
-        let config = TypesetConfig {
-            page_height: 800,
-            page_width: 600,
-            font_size: 16,
-            line_spacing: 1.5,
-            ..Default::default()
-        };
-
-        // 创建多个长段落，测试分页
-        let paragraphs: Vec<RichParagraph> = (0..10)
-            .map(|i| {
-                RichParagraph::plain(
-                    format!("这是第 {} 个段落，包含大量文本用于测试分页功能。", i),
-                    2,
-                )
-            })
-            .collect();
-
-        let pages = paginate_rich_content(&paragraphs, 0, &config);
-        assert!(!pages.is_empty());
-        // 验证最后一页标记
-        assert!(pages.last().unwrap().is_last_page);
-        // 验证第一页不是最后一页
-        if pages.len() > 1 {
-            assert!(!pages[0].is_last_page);
-        }
-    }
 }

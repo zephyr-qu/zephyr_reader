@@ -97,41 +97,6 @@ sealed class GlobalStats with _$GlobalStats {
 }
 
 @freezed
-sealed class LayoutCache with _$LayoutCache {
-  const factory LayoutCache({
-    required List<(PlatformInt64, PlatformInt64)> pageOffsets,
-    required int totalPages,
-    required DateTime createdAt,
-  }) = _LayoutCache;
-}
-
-/// 排版缓存键（内部使用，不暴露给 domain）
-class LayoutCacheKey {
-  final String bookId;
-  final int chapterIndex;
-  final String configHash;
-
-  const LayoutCacheKey({
-    required this.bookId,
-    required this.chapterIndex,
-    required this.configHash,
-  });
-
-  @override
-  int get hashCode =>
-      bookId.hashCode ^ chapterIndex.hashCode ^ configHash.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is LayoutCacheKey &&
-          runtimeType == other.runtimeType &&
-          bookId == other.bookId &&
-          chapterIndex == other.chapterIndex &&
-          configHash == other.configHash;
-}
-
-@freezed
 sealed class Note with _$Note {
   const factory Note({
     required String id,
@@ -144,6 +109,8 @@ sealed class Note with _$Note {
     required String content,
     String? selectedText,
     int? highlightColor,
+    String? pairedNoteId,
+    String? language,
     required DateTime createdAt,
     required DateTime updatedAt,
   }) = _Note;

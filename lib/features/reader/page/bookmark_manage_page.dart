@@ -181,7 +181,7 @@ class BookmarkManagePage extends HookWidget {
                   ),
                 );
                 if (confirmed == true) {
-                  await vm.deleteBookmark(bookmark.id.hashCode);
+                  await vm.deleteBookmark(bookmark.id);
                 }
               },
               onLongPress: () {
@@ -216,7 +216,7 @@ class BookmarkManagePage extends HookWidget {
     if (confirmed == true) {
       var successCount = 0;
       for (final id in bookmarkIds) {
-        if (await vm.deleteBookmark(id.hashCode)) successCount++;
+        if (await vm.deleteBookmark(id)) successCount++;
       }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -242,7 +242,7 @@ class BookmarkManagePage extends HookWidget {
       final bookmarks = vm.bookmarks.value.value ?? [];
       var successCount = 0;
       for (final b in bookmarks) {
-        if (await vm.deleteBookmark(b.id.hashCode)) successCount++;
+        if (await vm.deleteBookmark(b.id)) successCount++;
       }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已清空 $successCount 个书签')));
