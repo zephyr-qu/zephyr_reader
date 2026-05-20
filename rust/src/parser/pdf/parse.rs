@@ -8,12 +8,10 @@ use uuid::Uuid;
 use super::metadata::extract_metadata_from_path;
 use super::text::estimate_total_chars;
 
+use super::DEFAULT_PAGES_PER_CHAPTER;
 use crate::storage::models::{Book, Chapter, BookFormat};
 use crate::domain::{ ParseResult, AppError};
 use crate::utils::security::validate_file_path;
-
-/// 默认每章包含的页数
-const DEFAULT_PAGES_PER_CHAPTER: usize = 10;
 
 /// 解析 PDF 文件
 ///
@@ -148,7 +146,7 @@ pub async fn async_parse_pdf_file(file_path: String) -> Result<ParseResult,AppEr
 
     // 1. 等待任务完成，处理 JoinError (例如线程被取消)
     let result = handle.await.map_err(|e| {
-        AppError::Other(format!("异步任务执行失败: {}", e))
+        AppError::other(format!("异步任务执行失败: {}", e))
     })?;
 
     // 2. 处理 catch_unwind 的结果

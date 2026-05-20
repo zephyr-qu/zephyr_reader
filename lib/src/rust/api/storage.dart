@@ -222,6 +222,16 @@ Future<List<Note>> getNotes({required String bookId, NoteType? noteType}) =>
       noteType: noteType,
     );
 
+Future<List<Note>> getNotesInChapter({
+  required String bookId,
+  required int chapterIndex,
+  NoteType? noteType,
+}) => RustLib.instance.api.crateApiStorageGetNotesInChapter(
+  bookId: bookId,
+  chapterIndex: chapterIndex,
+  noteType: noteType,
+);
+
 Future<void> deleteNote({required String noteId}) =>
     RustLib.instance.api.crateApiStorageDeleteNote(noteId: noteId);
 

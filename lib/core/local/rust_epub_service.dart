@@ -14,10 +14,9 @@ class RustEpubService {
     required String filePath,
     required int chapterIndex,
     required TypesetConfig config,
-  }) async =>
-      await rust.getEpubChapterRichContent(
-              filePath: filePath,
-              chapterIndex: chapterIndex,
-              config: config);
-
+  }) async => await rust.getEpubChapterRichContent(
+    filePath: filePath,
+    chapterIndex: chapterIndex,
+    config: config,
+  );
 }

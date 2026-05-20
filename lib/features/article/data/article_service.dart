@@ -9,24 +9,7 @@ class ArticleRepository {
   @factoryMethod
   ArticleRepository(this._api);
 
-  Future<List<Article>> getArticles() async {
-    try {
-      final result = await _api.getArticles();
-      return result;
-    } on Exception {
-      rethrow;
-    } catch (e) {
-      throw Exception(e.toString());
-    }
-  }
+  Future<List<Article>> getArticles() async => _api.getArticles();
 
-  Future<Article> getArticle(int id) async {
-    try {
-      return await _api.getArticle(id);
-    } on Exception {
-      rethrow;
-    } catch (e) {
-      throw Exception(e.toString());
-    }
-  }
+  Future<Article> getArticle(int id) async => _api.getArticle(id);
 }

@@ -1,11 +1,11 @@
-/// 阅读器设置面板
 library;
 
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import '../../application/reader_view_model.dart';
 
-/// 阅读器设置面板
 class ReaderSettingsPanel extends StatefulWidget {
   final ThemeMode themeMode;
   final ReadingMode readingMode;
@@ -60,283 +60,125 @@ class ReaderSettingsPanel extends StatefulWidget {
 }
 
 class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
+  static const _bgColors = [
+    Color(0xFFFAFAFA),
+    Color(0xFFF5F0E8),
+    Color(0xFFFFF8E7),
+    Color(0xFFC7EDCC),
+    Color(0xFFF0F0F0),
+  ];
+
+  Color get _textColor => widget.themeMode == ThemeMode.dark
+      ? const Color(0xFFE8E6E1)
+      : const Color(0xFF2C2C2C);
+
+  Color get _mutedColor => widget.themeMode == ThemeMode.dark
+      ? const Color(0xFF6B6B76)
+      : const Color(0xFF9C9C9C);
+
+  Color get _bgColor => widget.themeMode == ThemeMode.dark
+      ? const Color(0xFF111118)
+      : const Color(0xFFF8F6F0);
+
   @override
   Widget build(BuildContext context) {
-    final textColor = _getTextColor(widget.themeMode);
-    final backgroundColor = _getBackgroundColor(widget.themeMode);
+    final accentColor = DesignTokens.warmAccent;
 
     return Container(
-      color: backgroundColor,
+      color: _bgColor,
       child: SafeArea(
         child: Column(
           children: [
-            // 标题栏
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: textColor.withValues(alpha: 0.1),
-                    width: 1,
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    '设置',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: Icon(Icons.close, color: textColor),
-                    onPressed: widget.onClose,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-            ),
-            // 设置内容
+            _buildHeader(accentColor),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                 children: [
-                  // 阅读模式
-                  _buildSettingSection(
+                  _buildSectionHeader(
+                    icon: PhosphorIconsRegular.palette,
+                    title: '外观主题',
+                  ),
+                  _buildSliderTile(
+                    label: '亮度',
+                    value: 1 - widget.brightnessValue,
+                    min: 0.3,
+                    max: 1.0,
+                    divisions: 14,
+                    display:
+                        '${((1 - widget.brightnessValue) * 100).toStringAsFixed(0)}%',
+                    onChanged: (v) => widget.onBrightnessChanged(1 - v),
+                    accentColor: accentColor,
+                  ),
+                  const SizedBox(height: 4),
+                  _buildThemeSelector(accentColor),
+                  const SizedBox(height: 4),
+                  _buildBgColorPicker(accentColor),
+                  const Divider(height: 20, indent: 16, endIndent: 16),
+                  _buildSectionHeader(
+                    icon: PhosphorIconsRegular.bookOpenText,
                     title: '阅读模式',
-                    child: Row(
-                      children: [
-                        _buildChoiceChip(
-                          label: '滚动',
-                          selected: widget.readingMode == ReadingMode.scroll,
-                          onTap: () =>
-                              widget.onReadingModeChanged(ReadingMode.scroll),
-                          textColor: textColor,
-                        ),
-                        const SizedBox(width: 16),
-                        _buildChoiceChip(
-                          label: '分页',
-                          selected:
-                              widget.readingMode == ReadingMode.pagination,
-                          onTap: () => widget.onReadingModeChanged(
-                            ReadingMode.pagination,
-                          ),
-                          textColor: textColor,
-                        ),
-                        const SizedBox(width: 16),
-                        _buildChoiceChip(
-                          label: '对照',
-                          selected:
-                              widget.readingMode == ReadingMode.bilingual,
-                          onTap: () => widget.onReadingModeChanged(
-                            ReadingMode.bilingual,
-                          ),
-                          textColor: textColor,
-                        ),
-                      ],
-                    ),
                   ),
-                  const SizedBox(height: 24),
-                  // 字体大小
-                  _buildSettingSection(
-                    title: '字体大小：${widget.fontSize.toStringAsFixed(1)}',
-                    child: Column(
-                      children: [
-                        Slider(
-                          value: widget.fontSize,
-                          min: 12,
-                          max: 32,
-                          divisions: 20,
-                          onChanged: widget.onFontSizeChanged,
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('小', style: TextStyle(color: textColor)),
-                            Text('大', style: TextStyle(color: textColor)),
-                          ],
-                        ),
-                      ],
-                    ),
+                  _buildModeSelector(accentColor),
+                  const Divider(height: 20, indent: 16, endIndent: 16),
+                  _buildSectionHeader(
+                    icon: PhosphorIconsRegular.paragraph,
+                    title: '版面布局',
                   ),
-                  const SizedBox(height: 24),
-                  // 行间距
-                  _buildSettingSection(
-                    title: '行间距：${widget.lineHeight.toStringAsFixed(1)}',
-                    child: Column(
-                      children: [
-                        Slider(
-                          value: widget.lineHeight,
-                          min: 1.0,
-                          max: 3.0,
-                          divisions: 20,
-                          onChanged: widget.onLineHeightChanged,
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('密', style: TextStyle(color: textColor)),
-                            Text('疏', style: TextStyle(color: textColor)),
-                          ],
-                        ),
-                      ],
-                    ),
+                  _buildWritingDirectionSelector(accentColor),
+                  _buildSliderTile(
+                    label: '字间距',
+                    value: widget.letterSpacing,
+                    min: 0,
+                    max: 8,
+                    divisions: 16,
+                    display: widget.letterSpacing.toStringAsFixed(1),
+                    onChanged: widget.onLetterSpacingChanged,
+                    accentColor: accentColor,
                   ),
-                  const SizedBox(height: 24),
-                  // 主题
-                  _buildSettingSection(
-                    title: '主题',
-                    child: Row(
-                      children: [
-                        _buildChoiceChip(
-                          label: '浅色',
-                          selected: widget.themeMode == ThemeMode.light,
-                          onTap: () => widget.onThemeChanged(ThemeMode.light),
-                          textColor: textColor,
-                        ),
-                        const SizedBox(width: 16),
-                        _buildChoiceChip(
-                          label: '深色',
-                          selected: widget.themeMode == ThemeMode.dark,
-                          onTap: () => widget.onThemeChanged(ThemeMode.dark),
-                          textColor: textColor,
-                        ),
-                      ],
-                    ),
+                  _buildSliderTile(
+                    label: '段间距',
+                    value: widget.paragraphSpacing,
+                    min: 4,
+                    max: 32,
+                    divisions: 14,
+                    display: widget.paragraphSpacing.toStringAsFixed(0),
+                    onChanged: widget.onParagraphSpacingChanged,
+                    accentColor: accentColor,
                   ),
-                  const SizedBox(height: 24),
-                  // 书写方向
-                  _buildSettingSection(
-                    title: '书写方向',
-                    child: Row(
-                      children: [
-                        _buildChoiceChip(
-                          label: '横排',
-                          selected: widget.writingDirection == WritingDirection.horizontal,
-                          onTap: () => widget.onWritingDirectionChanged(WritingDirection.horizontal),
-                          textColor: textColor,
-                        ),
-                        const SizedBox(width: 16),
-                        _buildChoiceChip(
-                          label: '竖排',
-                          selected: widget.writingDirection == WritingDirection.vertical,
-                          onTap: () => widget.onWritingDirectionChanged(WritingDirection.vertical),
-                          textColor: textColor,
-                        ),
-                      ],
-                    ),
+                  _buildSliderTile(
+                    label: '页边距',
+                    value: widget.pageMargin,
+                    min: 8,
+                    max: 40,
+                    divisions: 16,
+                    display: '${widget.pageMargin.toStringAsFixed(0)}px',
+                    onChanged: widget.onPageMarginChanged,
+                    accentColor: accentColor,
                   ),
-                  const SizedBox(height: 24),
-                  // 字间距
-                  _buildSettingSection(
-                    title: '字间距：${widget.letterSpacing.toStringAsFixed(1)}',
-                    child: Column(
-                      children: [
-                        Slider(
-                          value: widget.letterSpacing,
-                          min: 0,
-                          max: 8,
-                          divisions: 16,
-                          onChanged: widget.onLetterSpacingChanged,
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('常规', style: TextStyle(color: textColor)),
-                            Text('宽松', style: TextStyle(color: textColor)),
-                          ],
-                        ),
-                      ],
-                    ),
+                  const Divider(height: 20, indent: 16, endIndent: 16),
+                  _buildSectionHeader(
+                    icon: PhosphorIconsRegular.textT,
+                    title: '文字排版',
                   ),
-                  const SizedBox(height: 24),
-                  // 段间距
-                  _buildSettingSection(
-                    title: '段间距：${widget.paragraphSpacing.toStringAsFixed(0)}',
-                    child: Column(
-                      children: [
-                        Slider(
-                          value: widget.paragraphSpacing,
-                          min: 4,
-                          max: 32,
-                          divisions: 14,
-                          onChanged: widget.onParagraphSpacingChanged,
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('小', style: TextStyle(color: textColor)),
-                            Text('大', style: TextStyle(color: textColor)),
-                          ],
-                        ),
-                      ],
-                    ),
+                  _buildSliderTile(
+                    label: '字体大小',
+                    value: widget.fontSize,
+                    min: 12,
+                    max: 32,
+                    divisions: 20,
+                    display: '${widget.fontSize.toStringAsFixed(0)}px',
+                    onChanged: widget.onFontSizeChanged,
+                    accentColor: accentColor,
                   ),
-                  const SizedBox(height: 24),
-                  // 页边距
-                  _buildSettingSection(
-                    title: '页边距：${widget.pageMargin.toStringAsFixed(0)}',
-                    child: Column(
-                      children: [
-                        Slider(
-                          value: widget.pageMargin,
-                          min: 8,
-                          max: 40,
-                          divisions: 16,
-                          onChanged: widget.onPageMarginChanged,
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('窄', style: TextStyle(color: textColor)),
-                            Text('宽', style: TextStyle(color: textColor)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // 阅读背景色
-                  _buildSettingSection(
-                    title: '阅读背景色',
-                    child: Wrap(
-                      spacing: 8,
-                      children: [
-                        _buildColorChip('默认', 0, textColor),
-                        _buildColorChip('羊皮纸', 1, textColor),
-                        _buildColorChip('奶油', 2, textColor),
-                        _buildColorChip('护眼绿', 3, textColor),
-                        _buildColorChip('灰色', 4, textColor),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // 亮度
-                  _buildSettingSection(
-                    title: '亮度：${((1 - widget.brightnessValue) * 100).toStringAsFixed(0)}%',
-                    child: Column(
-                      children: [
-                        Slider(
-                          value: 1 - widget.brightnessValue,
-                          min: 0.3,
-                          max: 1.0,
-                          divisions: 14,
-                          onChanged: (v) => widget.onBrightnessChanged(1 - v),
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('暗', style: TextStyle(color: textColor)),
-                            Text('亮', style: TextStyle(color: textColor)),
-                          ],
-                        ),
-                      ],
-                    ),
+                  _buildSliderTile(
+                    label: '行间距',
+                    value: widget.lineHeight,
+                    min: 1.0,
+                    max: 3.0,
+                    divisions: 20,
+                    display: widget.lineHeight.toStringAsFixed(1),
+                    onChanged: widget.onLineHeightChanged,
+                    accentColor: accentColor,
                   ),
                 ],
               ),
@@ -347,89 +189,374 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
     );
   }
 
-  Widget _buildSettingSection({required String title, required Widget child}) {
-    final textColor = _getTextColor(widget.themeMode);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+  Widget _buildHeader(Color accentColor) {
+    return GestureDetector(
+      onVerticalDragEnd: (details) {
+        if (details.primaryVelocity != null && details.primaryVelocity! > 300) {
+          widget.onClose();
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+        child: Center(
+          child: Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: _mutedColor.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
         ),
-        const SizedBox(height: 12),
-        child,
-      ],
-    );
-  }
-
-  static const _bgColors = [Color(0xFFFAFAFA), Color(0xFFF5F0E8), Color(0xFFFFF8E7), Color(0xFFC7EDCC), Color(0xFFF0F0F0)];
-
-  Widget _buildColorChip(String label, int index, Color textColor) {
-    final selected = widget.readerBgColorIndex == index;
-    return GestureDetector(
-      onTap: () => widget.onReaderBgColorChanged(index),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? _bgColors[index] : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: selected ? _bgColors[index] : textColor.withValues(alpha: 0.5), width: 1.5),
-        ),
-        child: Text(label, style: TextStyle(fontSize: 13, color: selected ? Colors.black87 : textColor)),
       ),
     );
   }
 
-  Widget _buildChoiceChip({
+  Widget _buildSectionHeader({
+    required IconData icon,
+    required String title,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 14, 4, 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 15, color: _mutedColor),
+          const SizedBox(width: 6),
+          Text(
+            title,
+            style: TextStyle(
+              color: _mutedColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModeSelector(Color accentColor) {
+    final modes = [
+      (ReadingMode.scroll, '滚动', PhosphorIconsRegular.arrowsDownUp),
+      (ReadingMode.pageTurn, '翻页', PhosphorIconsRegular.book),
+      (ReadingMode.pagination, '分页', PhosphorIconsFill.bookOpenText),
+      (ReadingMode.bilingual, '对照', PhosphorIconsRegular.translate),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      child: Wrap(
+        spacing: 4,
+        runSpacing: 4,
+        children: modes.map((m) {
+          final isSelected = widget.readingMode == m.$1;
+          return GestureDetector(
+            onTap: () => widget.onReadingModeChanged(m.$1),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? accentColor.withValues(alpha: 0.1)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isSelected
+                      ? accentColor
+                      : _mutedColor.withValues(alpha: 0.2),
+                  width: isSelected ? 1.5 : 0.5,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    m.$3,
+                    size: 14,
+                    color: isSelected ? accentColor : _mutedColor,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    m.$2,
+                    style: TextStyle(
+                      color: isSelected ? accentColor : _textColor,
+                      fontSize: 12,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildWritingDirectionSelector(Color accentColor) {
+    final directions = [
+      (WritingDirection.horizontal, '横排', PhosphorIconsRegular.textT),
+      (WritingDirection.vertical, '竖排', PhosphorIconsRegular.textAa),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      child: Row(
+        children: directions.map((d) {
+          final isSelected = widget.writingDirection == d.$1;
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: GestureDetector(
+                onTap: () => widget.onWritingDirectionChanged(d.$1),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(vertical: 7),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? accentColor.withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isSelected
+                          ? accentColor
+                          : _mutedColor.withValues(alpha: 0.2),
+                      width: isSelected ? 1.5 : 0.5,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        d.$3,
+                        size: 14,
+                        color: isSelected ? accentColor : _mutedColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        d.$2,
+                        style: TextStyle(
+                          color: isSelected ? accentColor : _textColor,
+                          fontSize: 12,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildThemeSelector(Color accentColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildChip(
+              label: '浅色',
+              icon: PhosphorIconsRegular.sun,
+              selected: widget.themeMode == ThemeMode.light,
+              accentColor: accentColor,
+              onTap: () => widget.onThemeChanged(ThemeMode.light),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _buildChip(
+              label: '深色',
+              icon: PhosphorIconsRegular.moon,
+              selected: widget.themeMode == ThemeMode.dark,
+              accentColor: accentColor,
+              onTap: () => widget.onThemeChanged(ThemeMode.dark),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChip({
     required String label,
+    required IconData icon,
     required bool selected,
+    required Color accentColor,
     required VoidCallback onTap,
-    required Color textColor,
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 7),
         decoration: BoxDecoration(
           color: selected
-              ? textColor.withValues(alpha: 0.2)
+              ? accentColor.withValues(alpha: 0.1)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: textColor, width: 1.5),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: textColor,
-            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: selected ? accentColor : _mutedColor.withValues(alpha: 0.2),
+            width: selected ? 1.5 : 0.5,
           ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: selected ? accentColor : _mutedColor),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? accentColor : _textColor,
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Color _getTextColor(ThemeMode themeMode) {
-    switch (themeMode) {
-      case ThemeMode.dark:
-        return const Color(0xFFF2F2F2);
-      case ThemeMode.light:
-      default:
-        return const Color(0xFF1A1A1A);
-    }
+  Widget _buildBgColorPicker(Color accentColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '阅读背景',
+            style: TextStyle(
+              color: _mutedColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: List.generate(_bgColors.length, (i) {
+              final isDark = _bgColors[i].computeLuminance() < 0.5;
+              return GestureDetector(
+                onTap: () => widget.onReaderBgColorChanged(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: _bgColors[i],
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: widget.readerBgColorIndex == i
+                          ? accentColor
+                          : _mutedColor.withValues(alpha: 0.15),
+                      width: widget.readerBgColorIndex == i ? 2.5 : 1,
+                    ),
+                    boxShadow: widget.readerBgColorIndex == i
+                        ? [
+                            BoxShadow(
+                              color: accentColor.withValues(alpha: 0.2),
+                              blurRadius: 4,
+                              spreadRadius: 0,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: widget.readerBgColorIndex == i
+                      ? Icon(
+                          PhosphorIconsBold.check,
+                          size: 16,
+                          color: isDark ? Colors.white : Colors.black54,
+                        )
+                      : null,
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
   }
 
-  Color _getBackgroundColor(ThemeMode themeMode) {
-    switch (themeMode) {
-      case ThemeMode.dark:
-        return const Color(0xFF0A0A0A);
-      case ThemeMode.light:
-      default:
-        return const Color(0xFFFAFAFA);
-    }
+  Widget _buildSliderTile({
+    required String label,
+    required double value,
+    required double min,
+    required double max,
+    required int divisions,
+    required String display,
+    required ValueChanged<double> onChanged,
+    required Color accentColor,
+    Widget? preview,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: _textColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: Text(
+                  display,
+                  style: TextStyle(
+                    color: accentColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SliderTheme(
+            data: SliderThemeData(
+              trackHeight: 2,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+              activeTrackColor: accentColor,
+              inactiveTrackColor: _mutedColor.withValues(alpha: 0.12),
+              thumbColor: accentColor,
+              overlayColor: accentColor.withValues(alpha: 0.08),
+            ),
+            child: Slider(
+              value: value,
+              min: min,
+              max: max,
+              divisions: divisions,
+              onChanged: onChanged,
+            ),
+          ),
+          if (preview != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2, bottom: 2),
+              child: preview,
+            ),
+        ],
+      ),
+    );
   }
 }

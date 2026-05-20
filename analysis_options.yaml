@@ -35,6 +35,11 @@ linter:
     - unawaited_futures           # 未 await 的 Future 需要标记
 
 analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
   exclude:
     - '**/*.g.dart'
     - '**/*.freezed.dart'

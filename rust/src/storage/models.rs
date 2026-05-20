@@ -22,13 +22,15 @@ impl std::fmt::Display for LayoutCacheKey {
 
 // ==================== 阅读进度 ====================
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[frb(dart_metadata=("freezed"))]
 pub struct ReadingProgress {
     pub book_id: String,
     pub chapter_index: i32,
     pub chapter_id: Option<String>,
     pub char_offset: i64,
+    pub page_index: i32,
+    pub total_pages: i32,
     pub progress: f32,
     pub reading_time_seconds: i64,
     pub last_read_at: DateTime<Utc>,
@@ -42,6 +44,8 @@ impl ReadingProgress {
             chapter_index: 0,
             chapter_id: None,
             char_offset: 0,
+            page_index: 0,
+            total_pages: 0,
             progress: 0.0,
             reading_time_seconds: 0,
             last_read_at: chrono::Utc::now(),
@@ -52,7 +56,7 @@ impl ReadingProgress {
 
 // ==================== 书签 ====================
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[frb(dart_metadata=("freezed"))]
 pub struct Bookmark {
     pub id: String,
@@ -80,7 +84,7 @@ impl Bookmark {
 
 // ==================== 笔记 ====================
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[frb(dart_metadata=("freezed"))]
 pub struct Note {
     pub id: String,
@@ -184,7 +188,7 @@ impl std::str::FromStr for NoteType {
 
 // ==================== 阅读会话 ====================
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[frb(dart_metadata=("freezed"))]
 pub struct ReadingSession {
     pub id: String,
@@ -212,7 +216,7 @@ pub struct ReadingStats {
 }
 
 /// 全局阅读统计汇总
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[frb(non_opaque, dart_metadata=("freezed"))]
 pub struct GlobalStats {
     pub total_reading_time_seconds: i64,
@@ -326,7 +330,7 @@ pub struct Book {
     pub is_pinned: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(dart_metadata=("freezed"))]
 pub struct Chapter {
     pub id: String,
@@ -338,19 +342,16 @@ pub struct Chapter {
     pub cached_at: DateTime<Utc>,
     pub level: i32,
     /// 章节在源文件中的起始偏移（字节），仅解析时使用
-    #[sqlx(default)]
     pub start_index: i64,
     /// 章节在源文件中的结束偏移（字节），仅解析时使用
-    #[sqlx(default)]
     pub end_index: i64,
     /// 章节内容长度（字节），仅解析时使用
-    #[sqlx(default)]
     pub content_length: i64,
 }
 
 // ==================== 分类 ====================
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(dart_metadata=("freezed"))]
 pub struct BookCategory {
     pub id: String,
@@ -363,10 +364,38 @@ pub struct BookCategory {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
+// ==================== 生词本 ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[frb(non_opaque)]
+pub struct VocabEntry {
+    pub id: String,
+    pub word: String,
+    pub pinyin: String,
+    pub translation: String,
+    pub context_sentence: Option<String>,
+    pub book_id: Option<String>,
+    pub chapter_index: Option<i64>,
+    pub char_offset: Option<i64>,
+    pub created_at: DateTime<Utc>,
+    pub review_count: i32,
+    pub last_reviewed_at: Option<DateTime<Utc>>,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[frb(non_opaque)]
+pub struct VocabStats {
+    pub total_words: i64,
+    pub learning_count: i64,
+    pub known_count: i64,
+    pub mastered_count: i64,
+}
+
 // ==================== 统计辅助 ====================
 
 /// 笔记统计
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque, dart_metadata=("freezed"))]
 pub struct NoteStats {
     pub total_count: i32,

@@ -66,13 +66,7 @@ class WebDavConfig {
   }
 }
 
-enum SyncStatus {
-  idle,
-  syncing,
-  success,
-  failed,
-  conflict,
-}
+enum SyncStatus { idle, syncing, success, failed, conflict }
 
 enum SyncDataType {
   readingProgress('reading_progress.json'),
@@ -84,23 +78,11 @@ enum SyncDataType {
   const SyncDataType(this.filename);
 }
 
-enum SyncDirection {
-  upload,
-  download,
-  both,
-}
+enum SyncDirection { upload, download, both }
 
-enum SyncOperation {
-  create,
-  update,
-  delete,
-}
+enum SyncOperation { create, update, delete }
 
-enum ConflictResolution {
-  useLocal,
-  useRemote,
-  merge,
-}
+enum ConflictResolution { useLocal, useRemote, merge }
 
 class SyncDataItem {
   final SyncDataType type;
@@ -154,10 +136,10 @@ class RemoteFileInfo {
 
   factory RemoteFileInfo.fromWebDavFile(dynamic file) {
     return RemoteFileInfo(
-      name: file.name ?? p.basename(file.path ?? ''),
-      size: file.size ?? 0,
-      modified: file.modified ?? DateTime(1970),
-      isDirectory: file.type == 'directory',
+      name: (file.name as String?) ?? p.basename((file.path as String?) ?? ''),
+      size: (file.size as int?) ?? 0,
+      modified: (file.modified as DateTime?) ?? DateTime(1970),
+      isDirectory: (file.type as String?) == 'directory',
     );
   }
 
@@ -680,7 +662,7 @@ class WebDavClientService {
     }
   }
 
-  Future<void> mkdir(String path, {dynamic cancelToken}) async {
+  Future<void> mkdir(String path, {CancelToken? cancelToken}) async {
     try {
       _checkInitialized();
       await _client!.mkdir(path, cancelToken);
@@ -690,7 +672,7 @@ class WebDavClientService {
     }
   }
 
-  Future<void> mkdirAll(String path, {dynamic cancelToken}) async {
+  Future<void> mkdirAll(String path, {CancelToken? cancelToken}) async {
     try {
       _checkInitialized();
       await _client!.mkdirAll(path, cancelToken);
@@ -700,7 +682,7 @@ class WebDavClientService {
     }
   }
 
-  Future<void> remove(String path, {dynamic cancelToken}) async {
+  Future<void> remove(String path, {CancelToken? cancelToken}) async {
     try {
       _checkInitialized();
       await _client!.remove(path, cancelToken);
@@ -714,7 +696,7 @@ class WebDavClientService {
     String oldPath,
     String newPath,
     bool overwrite, {
-    dynamic cancelToken,
+    CancelToken? cancelToken,
   }) async {
     try {
       _checkInitialized();
@@ -729,7 +711,7 @@ class WebDavClientService {
     String sourcePath,
     String destPath,
     bool overwrite, {
-    dynamic cancelToken,
+    CancelToken? cancelToken,
   }) async {
     try {
       _checkInitialized();
@@ -743,7 +725,7 @@ class WebDavClientService {
   Future<List<int>> read(
     String path, {
     void Function(int, int)? onProgress,
-    dynamic cancelToken,
+    CancelToken? cancelToken,
   }) async {
     try {
       _checkInitialized();
@@ -762,7 +744,7 @@ class WebDavClientService {
     String remotePath,
     String localPath, {
     void Function(int, int)? onProgress,
-    dynamic cancelToken,
+    CancelToken? cancelToken,
   }) async {
     try {
       _checkInitialized();
@@ -782,7 +764,7 @@ class WebDavClientService {
     String localPath,
     String remotePath, {
     void Function(int, int)? onProgress,
-    dynamic cancelToken,
+    CancelToken? cancelToken,
   }) async {
     try {
       _checkInitialized();
@@ -802,7 +784,7 @@ class WebDavClientService {
     String remotePath,
     Uint8List data, {
     void Function(int, int)? onProgress,
-    dynamic cancelToken,
+    CancelToken? cancelToken,
   }) async {
     try {
       _checkInitialized();
@@ -1148,7 +1130,8 @@ class WebDavSyncService {
               _emitEvent(
                 SyncEvent(
                   type: SyncEventType.progress,
-                  message: '同步${_getDataTypeName(dataType)}: ${progress.toStringAsFixed(0)}%',
+                  message:
+                      '同步${_getDataTypeName(dataType)}: ${progress.toStringAsFixed(0)}%',
                   dataType: dataType,
                   progress: progress.toInt(),
                   total: 100,
@@ -1745,7 +1728,7 @@ class WebDavSyncService {
     if (localExists && remoteExists) {
       final localStat = await localFile.stat();
       final remoteModified = remoteFile.modified;
-      return localStat.modified.isAfter(remoteModified);
+      return localStat.modified.isAfter(remoteModified as DateTime);
     }
 
     return false;
@@ -1903,7 +1886,7 @@ class WebDavSyncService {
 
         final localFile = await _getLocalFile(dataType);
         await localFile.parent.create(recursive: true);
-        await localFile.writeAsString(entry.value, flush: true);
+        await localFile.writeAsString(entry.value as String, flush: true);
       }
 
       _emitEvent(SyncEvent(type: SyncEventType.completed, message: '备份恢复成功'));
@@ -2223,7 +2206,7 @@ class WebDavSyncService {
       final entries = await _client!.readDir(parentDir);
       for (final entry in entries) {
         if (entry.name == fileName) {
-          final modified = entry.modified ?? DateTime(1970);
+          final modified = (entry.modified as DateTime?) ?? DateTime(1970);
           return WebDavFileInfo(modified: modified);
         }
       }
@@ -2399,8 +2382,5 @@ class EnhancedWebDavSyncService extends WebDavSyncService {
 }
 
 class AdvancedWebDavSyncService extends WebDavSyncService {
-  AdvancedWebDavSyncService({
-    super.config,
-    super.client,
-  });
+  AdvancedWebDavSyncService({super.config, super.client});
 }

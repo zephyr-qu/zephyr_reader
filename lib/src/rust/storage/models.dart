@@ -135,6 +135,8 @@ sealed class ReadingProgress with _$ReadingProgress {
     required int chapterIndex,
     String? chapterId,
     required PlatformInt64 charOffset,
+    required int pageIndex,
+    required int totalPages,
     required double progress,
     required PlatformInt64 readingTimeSeconds,
     required DateTime lastReadAt,
@@ -167,4 +169,98 @@ sealed class ReadingStats with _$ReadingStats {
     required PlatformInt64 charactersRead,
     required int sessionCount,
   }) = _ReadingStats;
+}
+
+class VocabEntry {
+  final String id;
+  final String word;
+  final String pinyin;
+  final String translation;
+  final String? contextSentence;
+  final String? bookId;
+  final PlatformInt64? chapterIndex;
+  final PlatformInt64? charOffset;
+  final DateTime createdAt;
+  final int reviewCount;
+  final DateTime? lastReviewedAt;
+  final String status;
+
+  const VocabEntry({
+    required this.id,
+    required this.word,
+    required this.pinyin,
+    required this.translation,
+    this.contextSentence,
+    this.bookId,
+    this.chapterIndex,
+    this.charOffset,
+    required this.createdAt,
+    required this.reviewCount,
+    this.lastReviewedAt,
+    required this.status,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      word.hashCode ^
+      pinyin.hashCode ^
+      translation.hashCode ^
+      contextSentence.hashCode ^
+      bookId.hashCode ^
+      chapterIndex.hashCode ^
+      charOffset.hashCode ^
+      createdAt.hashCode ^
+      reviewCount.hashCode ^
+      lastReviewedAt.hashCode ^
+      status.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is VocabEntry &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          word == other.word &&
+          pinyin == other.pinyin &&
+          translation == other.translation &&
+          contextSentence == other.contextSentence &&
+          bookId == other.bookId &&
+          chapterIndex == other.chapterIndex &&
+          charOffset == other.charOffset &&
+          createdAt == other.createdAt &&
+          reviewCount == other.reviewCount &&
+          lastReviewedAt == other.lastReviewedAt &&
+          status == other.status;
+}
+
+class VocabStats {
+  final PlatformInt64 totalWords;
+  final PlatformInt64 learningCount;
+  final PlatformInt64 knownCount;
+  final PlatformInt64 masteredCount;
+
+  const VocabStats({
+    required this.totalWords,
+    required this.learningCount,
+    required this.knownCount,
+    required this.masteredCount,
+  });
+
+  @override
+  int get hashCode =>
+      totalWords.hashCode ^
+      learningCount.hashCode ^
+      knownCount.hashCode ^
+      masteredCount.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is VocabStats &&
+          runtimeType == other.runtimeType &&
+          totalWords == other.totalWords &&
+          learningCount == other.learningCount &&
+          knownCount == other.knownCount &&
+          masteredCount == other.masteredCount;
 }

@@ -29,12 +29,18 @@ class DictionaryService {
     return dict_api.lookupWord(word: word);
   }
 
-  Future<List<dict_api.DictEntry>> fuzzySearch(String prefix, {int limit = 10}) async {
+  Future<List<dict_api.DictEntry>> fuzzySearch(
+    String prefix, {
+    int limit = 10,
+  }) async {
     await ensureInitialized();
     return dict_api.fuzzySearchDictionary(prefix: prefix, limit: limit);
   }
 
-  Future<List<dict_api.DictEntry>> searchDefinitions(String query, {int limit = 10}) async {
+  Future<List<dict_api.DictEntry>> searchDefinitions(
+    String query, {
+    int limit = 10,
+  }) async {
     await ensureInitialized();
     return dict_api.searchDictionaryDefinitions(query: query, limit: limit);
   }

@@ -4,6 +4,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../../../../core/utils/logging.dart';
@@ -31,7 +32,7 @@ class BackupRestorePage extends HookWidget {
         title: const Text('备份与恢复'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(PhosphorIconsRegular.arrowsClockwise),
             onPressed: () => _loadBackups(syncService, backups),
             tooltip: '刷新',
           ),
@@ -45,7 +46,10 @@ class BackupRestorePage extends HookWidget {
             // 创建备份卡片
             _buildCreateBackupCard(syncService, context, isBackingUp, backups),
             const SizedBox(height: 24),
-            _buildBackupListCard(syncService, context, backups,
+            _buildBackupListCard(
+              syncService,
+              context,
+              backups,
               isRestoring,
               restoringBackup,
             ),
@@ -86,7 +90,7 @@ class BackupRestorePage extends HookWidget {
             Row(
               children: [
                 Icon(
-                  Icons.backup,
+                  PhosphorIconsRegular.cloudArrowUp,
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 12),
@@ -104,17 +108,22 @@ class BackupRestorePage extends HookWidget {
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-                child: ElevatedButton.icon(
+              child: ElevatedButton.icon(
                 onPressed: isBackingUp.value
                     ? null
-                    : () => _createBackup(syncService, context, isBackingUp, backups),
+                    : () => _createBackup(
+                        syncService,
+                        context,
+                        isBackingUp,
+                        backups,
+                      ),
                 icon: isBackingUp.value
                     ? const SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.backup),
+                    : const Icon(PhosphorIconsRegular.cloudArrowUp),
                 label: Text(isBackingUp.value ? '正在创建备份...' : '立即备份'),
               ),
             ),
@@ -166,7 +175,11 @@ class BackupRestorePage extends HookWidget {
                     return Column(
                       children: [
                         _buildBackupListItem(
-                          syncService, context, backup, isRestoring, restoringBackup,
+                          syncService,
+                          context,
+                          backup,
+                          isRestoring,
+                          restoringBackup,
                         ),
                         if (index < backupList.length - 1)
                           const Divider(height: 1),
@@ -194,7 +207,7 @@ class BackupRestorePage extends HookWidget {
 
     return ListTile(
       leading: Icon(
-        Icons.folder,
+        PhosphorIconsRegular.folder,
         color: isRestoringThis ? Colors.orange : Colors.blue,
       ),
       title: Text(backup.formattedTime),
@@ -214,7 +227,13 @@ class BackupRestorePage extends HookWidget {
       trailing: PopupMenuButton<String>(
         onSelected: (value) {
           if (value == 'restore') {
-            _restoreBackup(syncService, context, backup, isRestoring, restoringBackup);
+            _restoreBackup(
+              syncService,
+              context,
+              backup,
+              isRestoring,
+              restoringBackup,
+            );
           } else if (value == 'delete') {
             _deleteBackup(syncService, context, backup);
           }
@@ -223,14 +242,18 @@ class BackupRestorePage extends HookWidget {
           const PopupMenuItem(
             value: 'restore',
             child: Row(
-              children: [Icon(Icons.restore), SizedBox(width: 8), Text('恢复')],
+              children: [
+                Icon(PhosphorIconsRegular.clockCounterClockwise),
+                SizedBox(width: 8),
+                Text('恢复'),
+              ],
             ),
           ),
           const PopupMenuItem(
             value: 'delete',
             child: Row(
               children: [
-                Icon(Icons.delete, color: Colors.red),
+                Icon(PhosphorIconsRegular.trash, color: Colors.red),
                 SizedBox(width: 8),
                 Text('删除', style: TextStyle(color: Colors.red)),
               ],
@@ -253,11 +276,23 @@ class BackupRestorePage extends HookWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            _buildHelpItem('备份内容', '包括阅读进度、书签、书架和设置等所有数据', Icons.info_outline),
+            _buildHelpItem(
+              '备份内容',
+              '包括阅读进度、书签、书架和设置等所有数据',
+              PhosphorIconsRegular.info,
+            ),
             const SizedBox(height: 12),
-            _buildHelpItem('备份位置', '备份文件存储在本地设备，建议定期导出到安全位置', Icons.folder),
+            _buildHelpItem(
+              '备份位置',
+              '备份文件存储在本地设备，建议定期导出到安全位置',
+              PhosphorIconsRegular.folder,
+            ),
             const SizedBox(height: 12),
-            _buildHelpItem('恢复数据', '恢复操作会覆盖当前数据，请谨慎操作', Icons.warning_amber),
+            _buildHelpItem(
+              '恢复数据',
+              '恢复操作会覆盖当前数据，请谨慎操作',
+              PhosphorIconsFill.warning,
+            ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
@@ -267,7 +302,10 @@ class BackupRestorePage extends HookWidget {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.lightbulb, color: Colors.amber.shade700),
+                  Icon(
+                    PhosphorIconsRegular.lightbulb,
+                    color: Colors.amber.shade700,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

@@ -20,6 +20,7 @@ class ReadingStatsService {
   int? _currentChapterIndex;
   DateTime? _sessionStartTime;
   int? _sessionStartCharOffset;
+  int? _currentCharOffset;
 
   /// 开始阅读会话
   String startReadingSession(
@@ -34,6 +35,7 @@ class ReadingStatsService {
     _currentChapterIndex = chapterIndex;
     _sessionStartTime = DateTime.now();
     _sessionStartCharOffset = startCharOffset;
+    _currentCharOffset = startCharOffset;
 
     Logging.debug(
       '开始阅读会话：$sessionId, book=$bookId, chapter=$chapterIndex, offset=$startCharOffset',
@@ -44,6 +46,7 @@ class ReadingStatsService {
   /// 更新阅读会话进度
   void updateProgress(int currentCharOffset) {
     if (_currentSessionId == null || _sessionStartTime == null) return;
+    _currentCharOffset = currentCharOffset;
   }
 
   /// 结束阅读会话
@@ -55,24 +58,32 @@ class ReadingStatsService {
       return;
     }
 
+    final effectiveCurrentOffset = _currentCharOffset ?? currentCharOffset;
     final now = DateTime.now();
     final duration = now.difference(_sessionStartTime!).inSeconds;
-    final charactersRead = currentCharOffset - _sessionStartCharOffset!;
+    final charactersRead = effectiveCurrentOffset - _sessionStartCharOffset!;
     final charsRead = charactersRead > 0 ? charactersRead : 0;
+
+    if (duration < 2 && charsRead <= 0) {
+      _clearSession();
+      return;
+    }
 
     Logging.debug('结束阅读会话：$_currentSessionId, 时长=$duration秒, 阅读字符=$charsRead');
 
     try {
-      await _storage.recordReadingSession(ReadingSession(
-        id: 'session_${now.millisecondsSinceEpoch}',
-        bookId: _currentBookId!,
-        chapterIndex: _currentChapterIndex!,
-        startCharOffset: _sessionStartCharOffset!,
-        endCharOffset: currentCharOffset,
-        startedAt: _sessionStartTime!,
-        endedAt: now,
-        durationSeconds: duration,
-      ));
+      await _storage.recordReadingSession(
+        ReadingSession(
+          id: 'session_${now.millisecondsSinceEpoch}',
+          bookId: _currentBookId!,
+          chapterIndex: _currentChapterIndex!,
+          startCharOffset: _sessionStartCharOffset!,
+          endCharOffset: effectiveCurrentOffset,
+          startedAt: _sessionStartTime!,
+          endedAt: now,
+          durationSeconds: duration,
+        ),
+      );
     } catch (e) {
       Logging.debug('保存阅读会话失败: $e');
     }
@@ -184,7 +195,7 @@ class ReadingStatsService {
     int limit = 100,
   }) async {
     try {
-      return _storage.getReadingSessions('book_$bookId', limit: limit);
+      return _storage.getReadingSessions(bookId, limit: limit);
     } catch (e) {
       Logging.debug('获取会话历史异常: $e');
       return [];
@@ -202,6 +213,7 @@ class ReadingStatsService {
     _currentChapterIndex = null;
     _sessionStartTime = null;
     _sessionStartCharOffset = null;
+    _currentCharOffset = null;
   }
 
   String _formatDate(DateTime date) {

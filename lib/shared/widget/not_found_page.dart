@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 
 class NotFoundPage extends StatelessWidget {
@@ -15,7 +16,11 @@ class NotFoundPage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+            const Icon(
+              PhosphorIconsRegular.warningCircle,
+              size: 64,
+              color: Colors.grey,
+            ),
             const SizedBox(height: 16),
             Text('未找到页面: $path'),
             const SizedBox(height: 16),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -7,7 +8,9 @@ import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/article/application/article_view_model.dart';
 import 'package:zephyr_reader/features/article/domain/models/article.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
-import 'package:zephyr_reader/core/presentation/widgets/ui_components.dart';
+import 'package:zephyr_reader/core/presentation/widgets/states.dart';
+import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 /// 文章列表页面
 class ArticleListPage extends StatelessWidget {
@@ -21,7 +24,7 @@ class ArticleListPage extends StatelessWidget {
 
     return Scaffold(
       body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
+        physics: adaptiveScrollPhysics(context),
         slivers: [
           // 顶部 AppBar - 带书架/文章切换
           _buildAppBar(context, theme, deviceType),
@@ -58,7 +61,9 @@ class ArticleListPage extends StatelessWidget {
           ),
           // 斜线分隔符
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: EdgeInsets.symmetric(
+              horizontal: DesignTokens.spacing(Spacing.sm),
+            ),
             child: Text(
               '/',
               style: theme.textTheme.titleMedium?.copyWith(
@@ -83,11 +88,15 @@ class ArticleListPage extends StatelessWidget {
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.search_rounded),
+          icon: const Icon(PhosphorIconsRegular.magnifyingGlass),
           onPressed: () => context.pushNamed(RouteNames.search),
           tooltip: '搜索文章',
         ),
-        SizedBox(width: deviceType == DeviceType.desktop ? 16 : 8),
+        SizedBox(
+          width: deviceType == DeviceType.desktop
+              ? DesignTokens.spacing(Spacing.md)
+              : DesignTokens.spacing(Spacing.sm),
+        ),
       ],
     );
   }
@@ -110,7 +119,9 @@ class ArticleListPage extends StatelessWidget {
           if (async.isLoading) {
             return SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
-                return _buildSkeletonCard(context, index);
+                return RepaintBoundary(
+                  child: _buildSkeletonCard(context, index),
+                );
               }, childCount: 5),
             );
           }
@@ -121,9 +132,9 @@ class ArticleListPage extends StatelessWidget {
               hasScrollBody: false,
               child: Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(32),
+                  padding: EdgeInsets.all(DesignTokens.spacing(Spacing.xl)),
                   child: EmptyState(
-                    icon: Icons.error_outline,
+                    icon: PhosphorIconsRegular.warningCircle,
                     title: '加载失败',
                     subtitle: async.error?.toString() ?? '未知错误',
                     actionLabel: '重试',
@@ -142,9 +153,9 @@ class ArticleListPage extends StatelessWidget {
               hasScrollBody: false,
               child: Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(32),
+                  padding: EdgeInsets.all(DesignTokens.spacing(Spacing.xl)),
                   child: EmptyState(
-                    icon: Icons.article_outlined,
+                    icon: PhosphorIconsRegular.fileText,
                     title: '暂无文章',
                     subtitle: '文章列表空空如也',
                     actionLabel: '刷新',
@@ -160,10 +171,12 @@ class ArticleListPage extends StatelessWidget {
             delegate: SliverChildBuilderDelegate((context, index) {
               if (index >= articles.length) return const SizedBox.shrink();
               final article = articles[index];
-              return _buildArticleCard(context, article, theme, index)
-                  .animate()
-                  .fadeIn(delay: (100 * index).ms, duration: 400.ms)
-                  .slideY(begin: 0.05, end: 0);
+              return RepaintBoundary(
+                child: _buildArticleCard(context, article, theme, index)
+                    .animate()
+                    .fadeIn(delay: (100 * index).ms, duration: 400.ms)
+                    .slideY(begin: 0.05, end: 0),
+              );
             }, childCount: articles.length),
           );
         },
@@ -175,11 +188,11 @@ class ArticleListPage extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.only(bottom: DesignTokens.spacing(Spacing.md)),
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(DesignTokens.spacing(Spacing.md)),
           child: Row(
             children: [
               // 封面骨架
@@ -191,7 +204,7 @@ class ArticleListPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: DesignTokens.spacing(Spacing.md)),
               // 内容骨架
               Expanded(
                 child: Column(
@@ -205,7 +218,7 @@ class ArticleListPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: DesignTokens.spacing(Spacing.sm)),
                     Container(
                       height: 14,
                       width: 120,
@@ -214,7 +227,7 @@ class ArticleListPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: DesignTokens.spacing(Spacing.md)),
                     Row(
                       children: [
                         Container(
@@ -256,13 +269,15 @@ class ArticleListPage extends StatelessWidget {
     final isDesktop = deviceType == DeviceType.desktop;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.only(bottom: DesignTokens.spacing(Spacing.md)),
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => context.push('/articles/${article.id}'),
           child: Padding(
-            padding: EdgeInsets.all(isDesktop ? 20 : 16),
+            padding: EdgeInsets.all(
+              isDesktop ? 20 : DesignTokens.spacing(Spacing.md),
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -281,6 +296,8 @@ class ArticleListPage extends StatelessWidget {
                             fit: BoxFit.cover,
                             width: double.infinity,
                             height: double.infinity,
+                            cacheWidth: 120,
+                            cacheHeight: 80,
                             errorBuilder: (context, error, stackTrace) {
                               return _buildCoverPlaceholder(theme, isDesktop);
                             },
@@ -304,7 +321,7 @@ class ArticleListPage extends StatelessWidget {
                         : _buildCoverPlaceholder(theme, isDesktop),
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: DesignTokens.spacing(Spacing.md)),
                 // 文章内容
                 Expanded(
                   child: Column(
@@ -320,7 +337,7 @@ class ArticleListPage extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: DesignTokens.spacing(Spacing.sm)),
                       // 摘要
                       Text(
                         article.summary,
@@ -337,23 +354,27 @@ class ArticleListPage extends StatelessWidget {
                         children: [
                           // 作者
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: DesignTokens.spacing(Spacing.sm),
+                              vertical: DesignTokens.spacing(Spacing.xs),
                             ),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(
+                                DesignTokens.radius(RadiusSize.sm),
+                              ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  Icons.person_rounded,
+                                  PhosphorIconsRegular.user,
                                   size: 12,
                                   color: theme.colorScheme.primary,
                                 ),
-                                const SizedBox(width: 4),
+                                SizedBox(
+                                  width: DesignTokens.spacing(Spacing.xs),
+                                ),
                                 Flexible(
                                   child: Text(
                                     article.author,
@@ -368,26 +389,30 @@ class ArticleListPage extends StatelessWidget {
                               ],
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: DesignTokens.spacing(Spacing.sm)),
                           // 阅读时长
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: DesignTokens.spacing(Spacing.sm),
+                              vertical: DesignTokens.spacing(Spacing.xs),
                             ),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.tertiaryContainer,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(
+                                DesignTokens.radius(RadiusSize.sm),
+                              ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  Icons.timer_outlined,
+                                  PhosphorIconsRegular.clock,
                                   size: 12,
                                   color: theme.colorScheme.tertiary,
                                 ),
-                                const SizedBox(width: 4),
+                                SizedBox(
+                                  width: DesignTokens.spacing(Spacing.xs),
+                                ),
                                 Text(
                                   '${article.readDuration}分钟',
                                   style: theme.textTheme.labelSmall?.copyWith(
@@ -401,7 +426,7 @@ class ArticleListPage extends StatelessWidget {
                           const Spacer(),
                           // 箭头
                           Icon(
-                            Icons.arrow_forward_ios_rounded,
+                            PhosphorIconsLight.caretRight,
                             size: 14,
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -421,7 +446,7 @@ class ArticleListPage extends StatelessWidget {
   Widget _buildCoverPlaceholder(ThemeData theme, bool isDesktop) {
     return Center(
       child: Icon(
-        Icons.article_outlined,
+        PhosphorIconsRegular.fileText,
         size: isDesktop ? 48 : 36,
         color: theme.colorScheme.primary.withValues(alpha: 0.5),
       ),

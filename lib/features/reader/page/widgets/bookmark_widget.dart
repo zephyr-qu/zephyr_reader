@@ -2,6 +2,8 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 书签管理组件
@@ -46,7 +48,7 @@ class BookmarkWidget extends StatelessWidget {
           children: [
             // 标题栏
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(DesignTokens.spacing(Spacing.md)),
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
@@ -67,22 +69,19 @@ class BookmarkWidget extends StatelessWidget {
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: Icon(Icons.add, color: textColor),
+                    icon: Icon(PhosphorIconsRegular.plus, color: textColor),
                     onPressed: () {
                       if (onAddBookmark != null) {
                         _showAddBookmarkDialog(context, textColor);
                       }
                     },
                     tooltip: '添加书签',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: DesignTokens.spacing(Spacing.md)),
                   IconButton(
-                    icon: Icon(Icons.close, color: textColor),
+                    icon: Icon(PhosphorIconsLight.x, color: textColor),
                     onPressed: onClose,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                    tooltip: '关闭',
                   ),
                 ],
               ),
@@ -111,11 +110,11 @@ class BookmarkWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.bookmark_outline,
+            PhosphorIconsRegular.bookmarkSimple,
             size: 64,
             color: textColor.withValues(alpha: 0.3),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: DesignTokens.spacing(Spacing.md)),
           Text(
             '暂无书签',
             style: TextStyle(
@@ -123,7 +122,7 @@ class BookmarkWidget extends StatelessWidget {
               fontSize: 16,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: DesignTokens.spacing(Spacing.sm)),
           Text(
             '点击右上角添加书签',
             style: TextStyle(
@@ -138,9 +137,15 @@ class BookmarkWidget extends StatelessWidget {
 
   Widget _buildBookmarkItem(Bookmark bookmark, Color textColor) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: EdgeInsets.symmetric(
+        horizontal: DesignTokens.spacing(Spacing.md),
+        vertical: DesignTokens.spacing(Spacing.sm),
+      ),
       child: ListTile(
-        leading: const Icon(Icons.bookmark, color: Colors.blue),
+        leading: const Icon(
+          PhosphorIconsFill.bookmarkSimple,
+          color: Colors.blue,
+        ),
         title: Text(
           bookmark.title.isNotEmpty ? bookmark.title : '书签',
           style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
@@ -168,13 +173,16 @@ class BookmarkWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.navigation, color: Colors.blue),
+              icon: const Icon(
+                PhosphorIconsRegular.compass,
+                color: Colors.blue,
+              ),
               onPressed: () => onBookmarkSelected(bookmark),
               tooltip: '跳转',
             ),
             Builder(
               builder: (context) => IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                icon: const Icon(PhosphorIconsRegular.trash, color: Colors.red),
                 onPressed: () => _showDeleteConfirm(context, bookmark),
                 tooltip: '删除',
               ),

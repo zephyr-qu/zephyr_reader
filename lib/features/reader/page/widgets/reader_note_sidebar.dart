@@ -1,9 +1,11 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/reader/data/note_repository.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class ReaderNoteSidebar extends StatefulWidget {
@@ -11,7 +13,12 @@ class ReaderNoteSidebar extends StatefulWidget {
   final String bookTitle;
   final void Function(int chapterIndex, int charOffset)? onNoteTap;
 
-  const ReaderNoteSidebar({super.key, required this.bookId, required this.bookTitle, this.onNoteTap});
+  const ReaderNoteSidebar({
+    super.key,
+    required this.bookId,
+    required this.bookTitle,
+    this.onNoteTap,
+  });
 
   @override
   State<ReaderNoteSidebar> createState() => _ReaderNoteSidebarState();
@@ -40,6 +47,7 @@ class _ReaderNoteSidebarState extends State<ReaderNoteSidebar> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -47,85 +55,154 @@ class _ReaderNoteSidebarState extends State<ReaderNoteSidebar> {
           children: [
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 16, 8, 12),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: DesignTokens.divider)),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                DesignTokens.spacing(Spacing.md),
+                DesignTokens.spacing(Spacing.sm),
+                12,
+              ),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: theme.dividerColor)),
               ),
               child: Row(
                 children: [
-                  const Text('笔记与标注',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: DesignTokens.textPrimary),
+                  Text(
+                    '笔记与标注',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.refresh, size: 20),
+                    icon: const Icon(
+                      PhosphorIconsRegular.arrowClockwise,
+                      size: 20,
+                    ),
                     onPressed: _loadNotes,
+                    tooltip: '刷新',
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 20),
+                    icon: const Icon(PhosphorIconsLight.x, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
+                    tooltip: '关闭',
                   ),
                 ],
               ),
             ),
             Expanded(
               child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _notes.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : _notes.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.note_alt_outlined, size: 48,
-                            color: DesignTokens.textSecondary.withValues(alpha: 0.3)),
+                          Icon(
+                            PhosphorIconsRegular.note,
+                            size: 48,
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.3),
+                          ),
                           const SizedBox(height: 12),
-                          const Text('暂无笔记', style: TextStyle(fontSize: 14, color: DesignTokens.textPrimary)),
+                          Text(
+                            '暂无笔记',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
                         ],
                       ),
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: DesignTokens.spacing(Spacing.md),
+                      ),
                       itemCount: _notes.length,
                       itemBuilder: (context, index) {
                         final note = _notes[index];
                         return InkWell(
                           onTap: () {
                             Navigator.of(context).pop();
-                            widget.onNoteTap?.call(note.chapterIndex, note.charOffset.toInt());
+                            widget.onNoteTap?.call(
+                              note.chapterIndex,
+                              note.charOffset.toInt(),
+                            );
                           },
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: const BoxDecoration(
-                              border: Border(bottom: BorderSide(color: DesignTokens.divider, width: 0.5)),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: theme.dividerColor,
+                                  width: 0.5,
+                                ),
+                              ),
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Icon(
-                                  note.noteType == NoteType.highlight ? Icons.highlight : Icons.notes,
-                                  size: 16, color: note.noteType == NoteType.highlight
-                                    ? DesignTokens.primary : DesignTokens.textSecondary,
+                                  note.noteType == NoteType.highlight
+                                      ? PhosphorIconsRegular.highlighter
+                                      : PhosphorIconsRegular.note,
+                                  size: 16,
+                                  color: note.noteType == NoteType.highlight
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.onSurfaceVariant,
                                 ),
-                                const SizedBox(width: 8),
+                                SizedBox(
+                                  width: DesignTokens.spacing(Spacing.sm),
+                                ),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(note.selectedText ?? note.content,
-                                        maxLines: 2, overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontSize: 13, color: DesignTokens.textPrimary),
+                                      Text(
+                                        note.selectedText ?? note.content,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: theme.colorScheme.onSurface,
+                                        ),
                                       ),
-                                      if (note.noteType == NoteType.annotation && note.content.isNotEmpty
-                                        && note.content != (note.selectedText ?? ''))
+                                      if (note.noteType ==
+                                              NoteType.annotation &&
+                                          note.content.isNotEmpty &&
+                                          note.content !=
+                                              (note.selectedText ?? ''))
                                         Padding(
-                                          padding: const EdgeInsets.only(top: 4),
-                                          child: Text(note.content,
-                                            maxLines: 2, overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(fontSize: 12, color: DesignTokens.textSecondary.withValues(alpha: 0.7))),
+                                          padding: EdgeInsets.only(
+                                            top: DesignTokens.spacing(
+                                              Spacing.xs,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            note.content,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant
+                                                  .withValues(alpha: 0.7),
+                                            ),
+                                          ),
                                         ),
                                       const SizedBox(height: 2),
-                                      Text('第 ${note.chapterIndex + 1} 章',
-                                        style: const TextStyle(fontSize: 11, color: DesignTokens.textSecondary),
+                                      Text(
+                                        '第 ${note.chapterIndex + 1} 章',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: theme
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
                                       ),
                                     ],
                                   ),

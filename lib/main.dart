@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/app.dart';
@@ -14,10 +12,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init();
   final appDir = await getApplicationDocumentsDirectory();
-  final dataDir = Directory('${appDir.path}/zephyr_reader');
-  if (dataDir.existsSync()) {
-    dataDir.deleteSync(recursive: true);
-  }
   await storage.initStorage(dataDir: '${appDir.path}/zephyr_reader/data');
   await AppConfig.instance.init();
   await configureDependencies();

@@ -9,6 +9,7 @@ pub mod text;
 use std::path::Path;
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use flutter_rust_bridge::frb;
 
 use crate::domain::{ ParseResult, AppError};
@@ -20,6 +21,9 @@ pub use parse::get_pdf_metadata;
 pub use parse::parse_pdf;
 pub use text::get_chapter_text;
 pub use text::get_pdf_page_text;
+
+/// 默认每章包含的页数
+pub const DEFAULT_PAGES_PER_CHAPTER: usize = 10;
 
 /// PDF 文件解析器
 #[frb(opaque)]
@@ -37,6 +41,7 @@ impl Default for PdfParser {
     }
 }
 
+#[async_trait]
 impl BookParser for PdfParser {
     fn name(&self) -> &str {
         "PDF Parser"
@@ -46,43 +51,54 @@ impl BookParser for PdfParser {
         vec!["pdf"]
     }
 
-    fn parse(&self, file_path: &str) -> Result<ParseResult,AppError> {
-        parse_pdf(file_path.to_string())
+    async fn parse(&self, file_path: &str) -> Result<ParseResult,AppError> {
+        let fp = file_path.to_string();
+        tokio::task::spawn_blocking(move || parse_pdf(fp))
+            .await
+            .map_err(|e| AppError::internal(format!("PDF 解析任务失败: {}", e)))?
     }
 
-    fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata,AppError> {
-        if !Path::new(file_path).exists() {
-            return Err(AppError::file_not_found(file_path));
-        }
+    async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata,AppError> {
+        let fp = file_path.to_string();
+        tokio::task::spawn_blocking(move || -> Result<BookMetadata, AppError> {
+            if !Path::new(&fp).exists() {
+                return Err(AppError::file_not_found(&fp));
+            }
 
-        let metadata = get_pdf_metadata(file_path.to_string());
+            let metadata = get_pdf_metadata(fp.clone());
 
-        let title = metadata.title.clone().unwrap_or_else(|| {
-            Path::new(file_path)
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .unwrap_or("未知书籍")
-                .to_string()
-        });
+            let title = metadata.title.clone().unwrap_or_else(|| {
+                Path::new(&fp)
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("未知书籍")
+                    .to_string()
+            });
 
-        Ok(BookMetadata {
-            title,
-            author: metadata.author.unwrap_or_else(|| "未知作者".to_string()),
-            description: None,
-            cover_path: None,
-            publish_year: None,
-            language: None,
-            chapter_count: metadata.page_count,
-            total_characters: 0,
+            Ok(BookMetadata {
+                title,
+                author: metadata.author.unwrap_or_else(|| "未知作者".to_string()),
+                description: None,
+                cover_path: None,
+                publish_year: None,
+                language: None,
+                chapter_count: metadata.page_count,
+                total_characters: 0,
+            })
         })
+            .await
+            .map_err(|e| AppError::internal(format!("PDF 元数据提取失败: {}", e)))?
     }
 
-    fn extract_chapter(&self, file_path: &str, chapter_index: i32) -> Result<String,AppError> {
-        let pages_per_chapter = 10;
-        let start_page = (chapter_index as usize * pages_per_chapter) as u32;
-        let end_page = ((chapter_index as usize + 1) * pages_per_chapter) as u32;
-
-        get_chapter_text(file_path, start_page as usize, end_page as usize)
+    async fn extract_chapter(&self, file_path: &str, chapter_index: i32) -> Result<String,AppError> {
+        let fp = file_path.to_string();
+        tokio::task::spawn_blocking(move || {
+            let start_page = (chapter_index as usize * DEFAULT_PAGES_PER_CHAPTER) as u32;
+            let end_page = ((chapter_index as usize + 1) * DEFAULT_PAGES_PER_CHAPTER) as u32;
+            get_chapter_text(&fp, start_page as usize, end_page as usize)
+        })
+            .await
+            .map_err(|e| AppError::internal(format!("PDF 章节提取失败: {}", e)))?
     }
 }
 
@@ -115,10 +131,10 @@ mod tests {
         assert!(!parser.supports_format("txt"));
     }
 
-    #[test]
-    fn test_pdf_parser_parse_file_not_found() {
+    #[tokio::test]
+    async fn test_pdf_parser_parse_file_not_found() {
         let parser = PdfParser::new();
-        let result = parser.parse("non_existent.pdf");
+        let result = parser.parse("non_existent.pdf").await;
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(

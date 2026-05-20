@@ -1,194 +1,213 @@
-/// 阅读器底部工具栏
 library;
 
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
-/// 阅读器底部工具栏组件
-class ReaderBottomToolbar extends HookWidget {
-  /// 当前章节 ID
-  final int currentChapterId;
-
-  /// 当前页码
+class ReaderBottomToolbar extends StatelessWidget {
   final int currentPageIndex;
-
-  /// 总页数
   final int totalPages;
-
-  /// 主题模式
   final ThemeMode themeMode;
-
-  /// 上一章回调
-  final VoidCallback? onPreviousChapter;
-
-  /// 下一章回调
-  final VoidCallback? onNextChapter;
-
-  /// 上一页回调
-  final VoidCallback? onPreviousPage;
-
-  /// 下一页回调
-  final VoidCallback? onNextPage;
-
-  /// 显示设置回调
-  final VoidCallback? onShowSettings;
-
-  /// TTS 朗读切换
-  final VoidCallback? onTtsToggle;
-
-  /// TTS 是否正在播放
   final bool isTtsPlaying;
+
+  final VoidCallback? onShowCatalog;
+  final VoidCallback? onShowNotes;
+  final VoidCallback? onShowSettings;
+  final VoidCallback? onTtsToggle;
 
   const ReaderBottomToolbar({
     super.key,
-    required this.currentChapterId,
     required this.currentPageIndex,
     required this.totalPages,
     required this.themeMode,
-    this.onPreviousChapter,
-    this.onNextChapter,
-    this.onPreviousPage,
-    this.onNextPage,
+    this.isTtsPlaying = false,
+    this.onShowCatalog,
+    this.onShowNotes,
     this.onShowSettings,
     this.onTtsToggle,
-    this.isTtsPlaying = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final textColor = themeMode == ThemeMode.dark
-        ? const Color(0xFFF2F2F2)
-        : const Color(0xFF1A1A1A);
-    final backgroundColor = themeMode == ThemeMode.dark
-        ? const Color(0xFF0A0A0A)
-        : const Color(0xFFFAFAFA);
+    final isDark = themeMode == ThemeMode.dark;
+    final textColor = isDark
+        ? const Color(0xFFE8E6E1)
+        : const Color(0xFF2C2C2C);
+    final accentColor = DesignTokens.warmAccent;
 
-    final hasPreviousChapter = onPreviousChapter != null;
-    final hasNextChapter = onNextChapter != null;
-    final canPreviousPage = currentPageIndex > 0;
-    final canNextPage = currentPageIndex < totalPages - 1;
-
-    return Container(
-      color: backgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 进度条
-            Row(
-              children: [
-                Text(
-                  '第 ${currentChapterId + 1} 章',
-                  style: TextStyle(color: textColor, fontSize: 12),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: LinearProgressIndicator(
-                      value: totalPages > 0
-                          ? (currentPageIndex + 1) / totalPages
-                          : 0,
-                      backgroundColor: textColor.withValues(alpha: 0.3),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        textColor.withValues(alpha: 0.8),
-                      ),
-                    ),
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  _BarButton(
+                    icon: PhosphorIconsLight.listBullets,
+                    onTap: onShowCatalog,
+                    color: textColor,
+                    tooltip: '目录',
                   ),
-                ),
-                Text(
-                  '$currentPageIndex / $totalPages',
-                  style: TextStyle(color: textColor, fontSize: 12),
-                ),
-              ],
+                  _BarButton(
+                    icon: PhosphorIconsLight.notePencil,
+                    onTap: onShowNotes,
+                    color: textColor,
+                    tooltip: '笔记',
+                  ),
+                  const Spacer(),
+                  _ProgressBadge(
+                    pageIndex: currentPageIndex,
+                    totalPages: totalPages,
+                    accentColor: accentColor,
+                  ),
+                  const Spacer(),
+                  _BarButton(
+                    icon: PhosphorIconsLight.gearSix,
+                    onTap: onShowSettings,
+                    color: accentColor,
+                    tooltip: '设置',
+                  ),
+                  _BarButton(
+                    icon: isTtsPlaying
+                        ? PhosphorIconsLight.speakerHigh
+                        : PhosphorIconsLight.speakerNone,
+                    onTap: onTtsToggle,
+                    color: isTtsPlaying ? const Color(0xFF4CAF50) : textColor,
+                    tooltip: '朗读',
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            // 控制按钮
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                // 上一章
-                _buildButton(
-                  icon: Icons.skip_previous,
-                  label: '上一章',
-                  onPressed: hasPreviousChapter ? onPreviousChapter : null,
-                  textColor: textColor,
-                ),
-                // 上一页
-                _buildButton(
-                  icon: Icons.arrow_back_ios,
-                  label: '上一页',
-                  onPressed: canPreviousPage ? onPreviousPage : null,
-                  textColor: textColor,
-                ),
-                // 设置
-                _buildButton(
-                  icon: Icons.settings,
-                  label: '设置',
-                  onPressed: onShowSettings,
-                  textColor: textColor,
-                ),
-                // 朗读
-                _buildButton(
-                  icon: isTtsPlaying ? Icons.volume_up : Icons.volume_up_outlined,
-                  label: '朗读',
-                  onPressed: onTtsToggle,
-                  textColor: isTtsPlaying ? Colors.green : textColor,
-                ),
-                // 下一页
-                _buildButton(
-                  icon: Icons.arrow_forward_ios,
-                  label: '下一页',
-                  onPressed: canNextPage ? onNextPage : null,
-                  textColor: textColor,
-                ),
-                // 下一章
-                _buildButton(
-                  icon: Icons.skip_next,
-                  label: '下一章',
-                  onPressed: hasNextChapter ? onNextChapter : null,
-                  textColor: textColor,
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback? onPressed,
-    required Color textColor,
-  }) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: onPressed != null
-                  ? textColor
-                  : textColor.withValues(alpha: 0.3),
-              size: 24,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: onPressed != null
-                    ? textColor
-                    : textColor.withValues(alpha: 0.3),
-                fontSize: 11,
-              ),
-            ),
-          ],
+class _BarButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  final Color color;
+  final String? tooltip;
+
+  const _BarButton({
+    required this.icon,
+    this.onTap,
+    required this.color,
+    this.tooltip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip ?? '',
+      child: _PressScale(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Icon(icon, size: 20, color: color),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProgressBadge extends StatelessWidget {
+  final int pageIndex;
+  final int totalPages;
+  final Color accentColor;
+
+  const _ProgressBadge({
+    required this.pageIndex,
+    required this.totalPages,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+      decoration: BoxDecoration(
+        color: accentColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: accentColor.withValues(alpha: 0.15),
+          width: 0.5,
+        ),
+      ),
+      child: Text(
+        '${pageIndex + 1} / ${totalPages > 0 ? totalPages : 1}',
+        style: TextStyle(
+          color: accentColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _PressScale extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+
+  const _PressScale({required this.child, this.onTap});
+
+  @override
+  State<_PressScale> createState() => _PressScaleState();
+}
+
+class _PressScaleState extends State<_PressScale>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _anim = Tween(
+      begin: 1.0,
+      end: 0.92,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails _) => _ctrl.forward();
+  void _onTapUp(TapUpDetails _) {
+    _ctrl.reverse();
+    widget.onTap?.call();
+  }
+
+  void _onTapCancel() => _ctrl.reverse();
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (context, child) => Transform.scale(
+        scale: _anim.value,
+        child: GestureDetector(
+          onTapDown: _onTapDown,
+          onTapUp: _onTapUp,
+          onTapCancel: _onTapCancel,
+          child: widget.child,
         ),
       ),
     );

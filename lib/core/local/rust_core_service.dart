@@ -22,12 +22,11 @@ class RustCoreService {
 
   List<String> getSupportedFormats() => book.getSupportedFormats();
 
-  bool supportsFormat(String format) =>
-      book.supportsFormat(format: format);
+  bool supportsFormat(String format) => book.supportsFormat(format: format);
 
   // ==================== 书籍解析 ====================
 
-  Future<ParseBookResult> parseBook(String filePath) async =>
+  Future<ParseResult> parseBook(String filePath) async =>
       book.parseBook(filePath: filePath);
 
   Future<BookMetadata> extractMetadata(String filePath) async =>
@@ -37,12 +36,11 @@ class RustCoreService {
     String filePath,
     int chapterIndex, {
     TypesetConfig? config,
-  }) async =>
-      book.getChapter(
-        filePath: filePath,
-        chapterIndex: chapterIndex,
-        config: config,
-      );
+  }) async => book.getChapter(
+    filePath: filePath,
+    chapterIndex: chapterIndex,
+    config: config,
+  );
 
   // ==================== 分页 ====================
 
@@ -50,30 +48,25 @@ class RustCoreService {
     String filePath,
     int chapterIndex,
     TypesetConfig config,
-  ) async =>
-      await book.paginateAllContent(
-        filePath: filePath,
-        chapterIndex: chapterIndex,
-        config: config,
-      );
+  ) async => await book.paginateAllContent(
+    filePath: filePath,
+    chapterIndex: chapterIndex,
+    config: config,
+  );
 
   Future<PageStreamer> createPageStreamer(
     String filePath,
     int chapterIndex,
     TypesetConfig config,
-  ) async =>
-      book.createPageStreamer(
-        filePath: filePath,
-        chapterIndex: chapterIndex,
-        config: config,
-      );
+  ) async => book.createPageStreamer(
+    filePath: filePath,
+    chapterIndex: chapterIndex,
+    config: config,
+  );
 
   // ==================== 排版 ====================
 
-  Future<String> typesetText(
-    String content,
-    TypesetConfig config,
-  ) async =>
+  Future<String> typesetText(String content, TypesetConfig config) async =>
       typeset.typesetText(content: content, config: config);
 
   // ==================== 文件操作 ====================
@@ -85,10 +78,9 @@ class RustCoreService {
     String filePath,
     int startPos,
     int chunkSize,
-  ) async =>
-      file.readFileChunk(
-        filePath: filePath,
-        startPos: startPos,
-        chunkSize: chunkSize,
-      );
+  ) async => file.readFileChunk(
+    filePath: filePath,
+    startPos: startPos,
+    chunkSize: chunkSize,
+  );
 }

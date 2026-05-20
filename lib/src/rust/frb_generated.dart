@@ -80,7 +80,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -1159309152;
+  int get rustContentHash => 583713612;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -259,6 +259,12 @@ abstract class RustLibApi extends BaseApi {
     NoteType? noteType,
   });
 
+  Future<List<Note>> crateApiStorageGetNotesInChapter({
+    required String bookId,
+    required int chapterIndex,
+    NoteType? noteType,
+  });
+
   Future<List<Book>> crateApiStorageGetPinnedBooks();
 
   Future<ReadingProgress?> crateApiStorageGetReadingProgress({
@@ -325,7 +331,7 @@ abstract class RustLibApi extends BaseApi {
     required TypesetConfig config,
   });
 
-  Future<ParseBookResult> crateApiBookParseBook({required String filePath});
+  Future<ParseResult> crateApiBookParseBook({required String filePath});
 
   Future<String> crateApiFileReadFileChunk({
     required String filePath,
@@ -381,7 +387,7 @@ abstract class RustLibApi extends BaseApi {
     required List<String> categoryIds,
   });
 
-  BilingualAlignment crateApiBilingualSimpleBilingualAlign({
+  Future<BilingualAlignment> crateApiBilingualSimpleBilingualAlign({
     required String chineseContent,
     required String englishContent,
   });
@@ -1828,6 +1834,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<List<Note>> crateApiStorageGetNotesInChapter({
+    required String bookId,
+    required int chapterIndex,
+    NoteType? noteType,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_opt_box_autoadd_note_type(noteType);
+          return wire.wire__crate__api__storage__get_notes_in_chapter(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_note,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiStorageGetNotesInChapterConstMeta,
+        argValues: [bookId, chapterIndex, noteType],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageGetNotesInChapterConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_notes_in_chapter',
+        argNames: ['bookId', 'chapterIndex', 'noteType'],
+      );
+
+  @override
   Future<List<Book>> crateApiStorageGetPinnedBooks() {
     return handler.executeNormal(
       NormalTask(
@@ -2329,7 +2371,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<ParseBookResult> crateApiBookParseBook({required String filePath}) {
+  Future<ParseResult> crateApiBookParseBook({required String filePath}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -2337,7 +2379,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return wire.wire__crate__api__book__parse_book(port_, arg0);
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_parse_book_result,
+          decodeSuccessData: dco_decode_parse_result,
           decodeErrorData: dco_decode_app_error,
         ),
         constMeta: kCrateApiBookParseBookConstMeta,
@@ -2754,16 +2796,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  BilingualAlignment crateApiBilingualSimpleBilingualAlign({
+  Future<BilingualAlignment> crateApiBilingualSimpleBilingualAlign({
     required String chineseContent,
     required String englishContent,
   }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final arg0 = cst_encode_String(chineseContent);
           final arg1 = cst_encode_String(englishContent);
           return wire.wire__crate__api__bilingual__simple_bilingual_align(
+            port_,
             arg0,
             arg1,
           );
@@ -3749,18 +3792,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ParseBookResult dco_decode_parse_book_result(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
-    return ParseBookResult(
-      parseResult: dco_decode_parse_result(arr[0]),
-      persistenceSucceeded: dco_decode_bool(arr[1]),
-    );
-  }
-
-  @protected
   ParseResult dco_decode_parse_result(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -3776,17 +3807,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ReadingProgress dco_decode_reading_progress(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
     return ReadingProgress(
       bookId: dco_decode_String(arr[0]),
       chapterIndex: dco_decode_i_32(arr[1]),
       chapterId: dco_decode_opt_String(arr[2]),
       charOffset: dco_decode_i_64(arr[3]),
-      progress: dco_decode_f_32(arr[4]),
-      readingTimeSeconds: dco_decode_i_64(arr[5]),
-      lastReadAt: dco_decode_Chrono_Utc(arr[6]),
-      isCompleted: dco_decode_bool(arr[7]),
+      pageIndex: dco_decode_i_32(arr[4]),
+      totalPages: dco_decode_i_32(arr[5]),
+      progress: dco_decode_f_32(arr[6]),
+      readingTimeSeconds: dco_decode_i_64(arr[7]),
+      lastReadAt: dco_decode_Chrono_Utc(arr[8]),
+      isCompleted: dco_decode_bool(arr[9]),
     );
   }
 
@@ -3972,9 +4005,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       bookId: dco_decode_opt_String(arr[5]),
       chapterIndex: dco_decode_opt_box_autoadd_i_64(arr[6]),
       charOffset: dco_decode_opt_box_autoadd_i_64(arr[7]),
-      createdAt: dco_decode_String(arr[8]),
+      createdAt: dco_decode_Chrono_Utc(arr[8]),
       reviewCount: dco_decode_i_32(arr[9]),
-      lastReviewedAt: dco_decode_opt_String(arr[10]),
+      lastReviewedAt: dco_decode_opt_box_autoadd_Chrono_Utc(arr[10]),
       status: dco_decode_String(arr[11]),
     );
   }
@@ -4959,17 +4992,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ParseBookResult sse_decode_parse_book_result(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_parseResult = sse_decode_parse_result(deserializer);
-    final var_persistenceSucceeded = sse_decode_bool(deserializer);
-    return ParseBookResult(
-      parseResult: var_parseResult,
-      persistenceSucceeded: var_persistenceSucceeded,
-    );
-  }
-
-  @protected
   ParseResult sse_decode_parse_result(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     final var_bookInfo = sse_decode_book(deserializer);
@@ -4984,6 +5006,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final var_chapterIndex = sse_decode_i_32(deserializer);
     final var_chapterId = sse_decode_opt_String(deserializer);
     final var_charOffset = sse_decode_i_64(deserializer);
+    final var_pageIndex = sse_decode_i_32(deserializer);
+    final var_totalPages = sse_decode_i_32(deserializer);
     final var_progress = sse_decode_f_32(deserializer);
     final var_readingTimeSeconds = sse_decode_i_64(deserializer);
     final var_lastReadAt = sse_decode_Chrono_Utc(deserializer);
@@ -4993,6 +5017,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       chapterIndex: var_chapterIndex,
       chapterId: var_chapterId,
       charOffset: var_charOffset,
+      pageIndex: var_pageIndex,
+      totalPages: var_totalPages,
       progress: var_progress,
       readingTimeSeconds: var_readingTimeSeconds,
       lastReadAt: var_lastReadAt,
@@ -5230,9 +5256,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final var_bookId = sse_decode_opt_String(deserializer);
     final var_chapterIndex = sse_decode_opt_box_autoadd_i_64(deserializer);
     final var_charOffset = sse_decode_opt_box_autoadd_i_64(deserializer);
-    final var_createdAt = sse_decode_String(deserializer);
+    final var_createdAt = sse_decode_Chrono_Utc(deserializer);
     final var_reviewCount = sse_decode_i_32(deserializer);
-    final var_lastReviewedAt = sse_decode_opt_String(deserializer);
+    final var_lastReviewedAt = sse_decode_opt_box_autoadd_Chrono_Utc(
+      deserializer,
+    );
     final var_status = sse_decode_String(deserializer);
     return VocabEntry(
       id: var_id,
@@ -6157,16 +6185,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_parse_book_result(
-    ParseBookResult self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_parse_result(self.parseResult, serializer);
-    sse_encode_bool(self.persistenceSucceeded, serializer);
-  }
-
-  @protected
   void sse_encode_parse_result(ParseResult self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_book(self.bookInfo, serializer);
@@ -6183,6 +6201,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.chapterIndex, serializer);
     sse_encode_opt_String(self.chapterId, serializer);
     sse_encode_i_64(self.charOffset, serializer);
+    sse_encode_i_32(self.pageIndex, serializer);
+    sse_encode_i_32(self.totalPages, serializer);
     sse_encode_f_32(self.progress, serializer);
     sse_encode_i_64(self.readingTimeSeconds, serializer);
     sse_encode_Chrono_Utc(self.lastReadAt, serializer);
@@ -6367,9 +6387,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.bookId, serializer);
     sse_encode_opt_box_autoadd_i_64(self.chapterIndex, serializer);
     sse_encode_opt_box_autoadd_i_64(self.charOffset, serializer);
-    sse_encode_String(self.createdAt, serializer);
+    sse_encode_Chrono_Utc(self.createdAt, serializer);
     sse_encode_i_32(self.reviewCount, serializer);
-    sse_encode_opt_String(self.lastReviewedAt, serializer);
+    sse_encode_opt_box_autoadd_Chrono_Utc(self.lastReviewedAt, serializer);
     sse_encode_String(self.status, serializer);
   }
 

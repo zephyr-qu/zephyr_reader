@@ -39,6 +39,9 @@ class ThemeManager {
   /// 当前主题类型信号
   final themeType = signal<AppThemeType>(AppThemeType.system);
 
+  /// 当前语言信号（null = 跟随系统）
+  final locale = signal<String?>(null);
+
   /// 自定义主题色信号（允许用户自定义主色
   final customPrimaryColor = signal<Color?>(null);
 
@@ -76,6 +79,7 @@ class ThemeManager {
 
   static const String _keyThemeType = 'app.theme.type';
   static const String _keyCustomPrimaryColor = 'app.theme.custom_color';
+  static const String _keyLocale = 'app.locale';
 
   /// 初始化主题管理器
   Future<void> init() async {
@@ -98,7 +102,30 @@ class ThemeManager {
       customPrimaryColor.value = Color(colorValue);
     }
 
+    // 加载语言设置
+    final savedLocale = _prefs!.getString(_keyLocale);
+    if (savedLocale != null && ['zh', 'en'].contains(savedLocale)) {
+      locale.value = savedLocale;
+    }
+
     _initialized = true;
+  }
+
+  /// 设置语言
+  Future<void> setLocale(String? localeCode) async {
+    locale.value = localeCode;
+    if (localeCode != null) {
+      await _prefs?.setString(_keyLocale, localeCode);
+    } else {
+      await _prefs?.remove(_keyLocale);
+    }
+  }
+
+  /// 获取应用当前 Locale（null 表示跟随系统）
+  Locale? get appLocale {
+    final code = locale.value;
+    if (code == null) return null;
+    return Locale(code);
   }
 
   /// 设置主题类型

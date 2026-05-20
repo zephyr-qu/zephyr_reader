@@ -4,6 +4,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../application/services/webdav_sync_service.dart';
@@ -32,7 +33,7 @@ class ConflictResolutionPage extends HookWidget {
         actions: [
           if (selectedResolution.value != null)
             IconButton(
-              icon: const Icon(Icons.check),
+              icon: const Icon(PhosphorIconsBold.check),
               onPressed: () => _resolveConflict(
                 context,
                 selectedResolution.value!,
@@ -75,7 +76,7 @@ class ConflictResolutionPage extends HookWidget {
             Row(
               children: [
                 Icon(
-                  Icons.warning_amber_rounded,
+                  PhosphorIconsFill.warning,
                   color: Colors.orange.shade700,
                   size: 28,
                 ),
@@ -116,7 +117,7 @@ class ConflictResolutionPage extends HookWidget {
                 child: Row(
                   children: [
                     Icon(
-                      Icons.auto_awesome,
+                      PhosphorIconsRegular.sparkle,
                       size: 18,
                       color: Colors.blue.shade700,
                     ),
@@ -159,7 +160,7 @@ class ConflictResolutionPage extends HookWidget {
               ConflictResolution.useLocal,
               '使用本地版本',
               '将本地数据上传到服务器，覆盖远程版本',
-              Icons.cloud_upload,
+              PhosphorIconsRegular.cloudArrowUp,
               Colors.blue,
               selectedResolution,
             ),
@@ -169,7 +170,7 @@ class ConflictResolutionPage extends HookWidget {
               ConflictResolution.useRemote,
               '使用远程版本',
               '从服务器下载数据，覆盖本地版本',
-              Icons.cloud_download,
+              PhosphorIconsRegular.cloudArrowDown,
               Colors.green,
               selectedResolution,
             ),
@@ -179,7 +180,7 @@ class ConflictResolutionPage extends HookWidget {
               ConflictResolution.merge,
               '合并两个版本',
               '智能合并本地和远程数据（推荐）',
-              Icons.merge,
+              PhosphorIconsRegular.gitMerge,
               Colors.orange,
               selectedResolution,
             ),
@@ -238,7 +239,7 @@ class ConflictResolutionPage extends HookWidget {
                 ],
               ),
             ),
-            if (isSelected) Icon(Icons.check_circle, color: color),
+            if (isSelected) Icon(PhosphorIconsFill.checkCircle, color: color),
           ],
         ),
       ),
@@ -265,7 +266,7 @@ class ConflictResolutionPage extends HookWidget {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.phone_android, size: 18),
+                          Icon(PhosphorIconsRegular.deviceMobile, size: 18),
                           SizedBox(width: 8),
                           Text(
                             '本地数据',
@@ -303,7 +304,7 @@ class ConflictResolutionPage extends HookWidget {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.cloud, size: 18),
+                          Icon(PhosphorIconsRegular.cloud, size: 18),
                           SizedBox(width: 8),
                           Text(
                             '远程数据',
@@ -357,19 +358,19 @@ class ConflictResolutionPage extends HookWidget {
             _buildHelpItem(
               '使用本地版本',
               '当您在本地设备上进行了重要修改，且希望保留这些修改时使用。远程数据将被覆盖。',
-              Icons.info_outline,
+              PhosphorIconsRegular.info,
             ),
             const SizedBox(height: 12),
             _buildHelpItem(
               '使用远程版本',
               '当远程数据是最新的，或者您希望放弃本地修改时使用。本地数据将被覆盖。',
-              Icons.info_outline,
+              PhosphorIconsRegular.info,
             ),
             const SizedBox(height: 12),
             _buildHelpItem(
               '合并两个版本',
               '系统会智能合并本地和远程的数据。适用于两个设备都有不同修改的场景。',
-              Icons.auto_awesome,
+              PhosphorIconsRegular.sparkle,
             ),
             const SizedBox(height: 16),
             Container(
@@ -380,7 +381,10 @@ class ConflictResolutionPage extends HookWidget {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.lightbulb, color: Colors.amber.shade700),
+                  Icon(
+                    PhosphorIconsRegular.lightbulb,
+                    color: Colors.amber.shade700,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

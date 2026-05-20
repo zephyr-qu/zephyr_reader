@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -92,13 +93,13 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline, size: 64),
+                      const Icon(PhosphorIconsRegular.warningCircle, size: 64),
                       const SizedBox(height: 16),
                       Text('加载失败：${async.error}'),
                       const SizedBox(height: 24),
                       FilledButton.icon(
                         onPressed: () => _vm.loadDetail(widget.articleId),
-                        icon: const Icon(Icons.refresh),
+                        icon: const Icon(PhosphorIconsRegular.arrowsClockwise),
                         label: const Text('重试'),
                       ),
                     ],
@@ -113,13 +114,13 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.article_outlined, size: 64),
+                    const Icon(PhosphorIconsRegular.fileText, size: 64),
                     const SizedBox(height: 16),
                     Text('文章不存在', style: theme.textTheme.titleMedium),
                     const SizedBox(height: 24),
                     FilledButton.icon(
                       onPressed: () => context.go('/articles'),
-                      icon: const Icon(Icons.arrow_back),
+                      icon: const Icon(PhosphorIconsRegular.arrowLeft),
                       label: const Text('返回文章列表'),
                     ),
                   ],
@@ -188,7 +189,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.share_rounded),
+          icon: const Icon(PhosphorIconsRegular.shareNetwork),
           onPressed: () {
             ScaffoldMessenger.of(
               context,
@@ -197,13 +198,13 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
           tooltip: '分享',
         ),
         IconButton(
-          icon: const Icon(Icons.bookmark_border_rounded),
+          icon: const Icon(PhosphorIconsRegular.bookmarkSimple),
           onPressed: () {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Row(
                   children: [
-                    Icon(Icons.check_circle, color: Colors.white),
+                    Icon(PhosphorIconsFill.checkCircle, color: Colors.white),
                     SizedBox(width: 12),
                     Text('已收藏'),
                   ],
@@ -310,6 +311,10 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
     DeviceType deviceType,
   ) {
     final pagePadding = LayoutBreakpoints.getPagePadding(context);
+    final articleCoverCacheWidth =
+        ((MediaQuery.of(context).size.width - 32) *
+                MediaQuery.of(context).devicePixelRatio)
+            .ceil();
 
     return SingleChildScrollView(
       padding: pagePadding,
@@ -343,17 +348,17 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
             children: [
               _buildMetaChip(
                 context,
-                icon: Icons.calendar_today_rounded,
+                icon: PhosphorIconsRegular.calendarBlank,
                 label: article.publishedAt,
               ),
               _buildMetaChip(
                 context,
-                icon: Icons.timer_outlined,
+                icon: PhosphorIconsRegular.clock,
                 label: '${article.readDuration} 分钟',
               ),
               _buildMetaChip(
                 context,
-                icon: Icons.text_fields_rounded,
+                icon: PhosphorIconsRegular.textAa,
                 label: '${article.wordCount} 字',
               ),
             ],
@@ -369,6 +374,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                     article.coverUrl!,
                     width: double.infinity,
                     fit: BoxFit.cover,
+                    cacheWidth: articleCoverCacheWidth,
                     errorBuilder: (context, error, stackTrace) {
                       return _buildImagePlaceholder(theme);
                     },
@@ -479,7 +485,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.follow_the_signs_rounded),
+              icon: const Icon(PhosphorIconsRegular.userCirclePlus),
               onPressed: () {
                 ScaffoldMessenger.of(
                   context,
@@ -532,7 +538,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
       ),
       child: Center(
         child: Icon(
-          Icons.image_outlined,
+          PhosphorIconsRegular.image,
           size: 64,
           color: theme.colorScheme.primary.withValues(alpha: 0.5),
         ),
@@ -620,7 +626,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                 context,
               ).showSnackBar(const SnackBar(content: Text('点赞功能开发中')));
             },
-            icon: const Icon(Icons.favorite_border_rounded),
+            icon: const Icon(PhosphorIconsRegular.heart),
             label: const Text('点赞'),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -638,7 +644,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                 context,
               ).showSnackBar(const SnackBar(content: Text('评论功能开发中')));
             },
-            icon: const Icon(Icons.chat_bubble_outline_rounded),
+            icon: const Icon(PhosphorIconsRegular.chatCircle),
             label: const Text('评论'),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -656,7 +662,10 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                 SnackBar(
                   content: Row(
                     children: [
-                      const Icon(Icons.check_circle, color: Colors.white),
+                      const Icon(
+                        PhosphorIconsFill.checkCircle,
+                        color: Colors.white,
+                      ),
                       const SizedBox(width: 12),
                       Text('已收藏"${article.title}"'),
                     ],
@@ -665,7 +674,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                 ),
               );
             },
-            icon: const Icon(Icons.bookmark_rounded),
+            icon: const Icon(PhosphorIconsFill.bookmarkSimple),
             label: const Text('收藏'),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),

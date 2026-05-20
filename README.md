@@ -64,41 +64,40 @@ Zephyr Reader（Zephyr 阅读器）是一款基于 **Flutter + Rust** 架构开�
 ## 🏗️ 技术架构
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│              Flutter 应用层 (UI 与交互)                   │
-│  ├─ 页面层：书架、阅读页、设置页、导入页                  │
-│  ├─ 路由层：go_router 路由管理                            │
-│  ├─ 状态层：主题、设备、阅读设置状态管理                  │
-│  └─ 业务服务层：存储、桥接、同步、权限服务                │
-└───────────────────────────┬─────────────────────────────┘
-                            │ flutter_rust_bridge (FFI)
-┌───────────────────────────┴─────────────────────────────┐
-│              Rust 核心引擎层 (高性能计算)                  │
-│  ├─ FFI 接口层：标准化接口暴露                            │
-│  ├─ 解析层：TXT 解析、EPUB 解析、编码检测                  │
-│  ├─ 文本处理层：中英断行规则、混排优化、章节提取          │
-│  └─ 流式加载层：大文件分块读取、内容分页                  │
-└───────────────────────────┬─────────────────────────────┘
-                            │ 本地文件读写
-┌───────────────────────────┴─────────────────────────────┐
-│                本地数据层 (持久化存储)                     │
-│  ├─ 文档存储：APP 私有目录的书籍源文件                      │
-│  ├─ 键值存储：Hive，存储配置、进度、WebDAV 信息            │
-│  └─ 结构化存储：SQLite，存储书籍元数据、章节信息          │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                  Flutter 应用层 (UI)                       │
+│  ├─ lib/features/{reader,bookshelf,home,statistics,…}/   │
+│  │   └─ page/ application/ domain/ data/ (Clean Arch)    │
+│  ├─ 路由: go_router                                      │
+│  └─ 状态: signals + setState                             │
+├────────────────────── flutter_rust_bridge FFI ──────────┤
+│                  Rust 核心引擎 (高性能)                    │
+│  ├─ 解析: EPUB (xml+zip), TXT, PDF                      │
+│  ├─ 排版: 中英混排断行 + letter/paragraph/page margin   │
+│  ├─ 搜索: FTS5 全文索引                                  │
+│  ├─ 生词本: 词汇管理 + CC-CEDICT 词典 (124K entries)    │
+│  └─ 存储: sqlx SQLite + sled KV (排版缓存)              │
+├────────────────────────── 本地文件 ─────────────────────┤
+│              本地数据层 (Rust 管理)                       │
+│  ├─ SQLite: 书籍/章节/进度/笔记/统计/会话                │
+│  └─ sled KV: 排版缓存 (非 Hive)                          │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ### 技术栈
 
 | 层级 | 技术 | 说明 |
 |------|------|------|
-| **前端 UI** | Flutter 3.22.0+ | 跨平台 UI 框架 |
-| **后端逻辑** | Rust 1.75.0+ | 高性能文本解析引擎 |
-| **桥接层** | flutter_rust_bridge 2.0.0+ | FFI 桥接，自动生成绑定 |
-| **本地存储** | Hive 2.2.3 | 轻量级键值存储 |
+| **前端 UI** | Flutter 3.41.2+ | 跨平台 UI 框架 |
+| **后端逻辑** | Rust 1.80.0+ | 高性能文本解析引擎 |
+| **桥接层** | flutter_rust_bridge 2.12.0+ | FFI 桥接，自动生成绑定 |
+| **本地存储** | SQLite (sqlx) + sled KV | Rust 管理，Hive 已移除 |
+| **状态管理** | signals + signals_flutter | 响应式状态 |
+| **依赖注入** | injectable + getIt | DI 框架 |
+| **数据类** | freezed | 不可变数据模型 |
 | **路由管理** | go_router 14.0.0+ | 官方路由方案 |
 | **WebDAV** | webdav_client 1.2.0+ | 同步客户端 |
-| **支持平台** | Android 8.0+ | API 26+ |
+| **支持平台** | Android 8.0+ / iOS 15+ | API 26+ |
 
 ---
 
@@ -107,39 +106,42 @@ Zephyr Reader（Zephyr 阅读器）是一款基于 **Flutter + Rust** 架构开�
 ```
 zephyr_reader/
 ├── android/                 # Android 原生配置
-├── lib/                     # Flutter 主工程
+├── ios/                     # iOS 原生配置
+├── lib/                     # Flutter 主工程 (Clean Architecture)
 │   ├── main.dart            # 应用入口
 │   ├── app.dart             # 应用根组件
-│   ├── config/              # 全局配置（主题、路由、设备）
-│   ├── routes/              # 路由管理
-│   ├── common/              # 公共能力（工具、组件、扩展）
-│   ├── models/              # 数据模型
-│   ├── services/            # 业务服务层
-│   │   ├── rust_bridge/     # Flutter-Rust 桥接封装
-│   │   ├── storage/         # 本地存储服务
-│   │   ├── book/            # 书籍管理业务
-│   │   ├── read/            # 阅读核心业务
-│   │   └── webdav/          # WebDAV 同步服务
-│   ├── pages/               # 页面层（MVVM 结构）
-│   │   ├── home/            # 书架首页
-│   │   ├── reader/          # 核心阅读页
-│   │   ├── import/          # 书籍导入页
-│   │   └── setting/         # 全局设置页
-│   └── global/              # 全局状态管理
-├── native/reader_core/      # Rust 核心引擎
+│   ├── core/                # 共享基础设施
+│   │   ├── routing/         # go_router 路由
+│   │   ├── theme/           # 主题配置
+│   │   ├── local/           # Rust 桥接服务封装
+│   │   ├── reader/          # 阅读器通用配置
+│   │   └── utils/           # 工具函数
+│   ├── features/            # 功能模块
+│   │   ├── reader/          # 阅读器（页面、设置、搜索、词典）
+│   │   ├── bookshelf/       # 书架（导入、分类、详情）
+│   │   ├── home/            # 首页（最近阅读、统计概览）
+│   │   ├── statistics/      # 阅读统计（图表、日周月报）
+│   │   ├── profile/         # 个人设置
+│   │   ├── sync/            # WebDAV 同步 + 备份/还原
+│   │   └── vocabulary/      # 生词本（单词管理）
+│   ├── src/rust/            # FRB 自动生成（勿手动编辑）
+│   └── di/                  # 依赖注入（injectable + getIt）
+├── rust/                    # Rust 核心引擎
 │   ├── Cargo.toml           # Rust 依赖配置
 │   ├── flutter_rust_bridge.yaml
+│   ├── migrations/          # SQLite 迁移
 │   └── src/
 │       ├── lib.rs           # 库入口
-│       ├── ffi/             # FFI 接口层
-│       ├── parser/          # 解析核心层（TXT/EPUB）
-│       ├── text_process/    # 文本处理层（断行、排版）
-│       └── stream/          # 流式加载层
-├── assets/                  # 静态资源（字体、图标）
+│       ├── api/             # FRB 暴露接口层
+│       ├── parser/          # 解析器（TXT/EPUB/PDF）
+│       ├── storage/         # 存储（SQLite repos + sled KV）
+│       ├── search/          # FTS5 全文搜索
+│       ├── text/            # 文本处理（断行、排版）
+│       └── domain/          # 领域类型与错误
+├── assets/                  # 静态资源（dictionary.db, 图片）
 ├── test/                    # 单元测试
 ├── integration_test/        # 集成测试
 ├── pubspec.yaml             # Flutter 依赖配置
-├── Cargo.toml               # Rust 工作空间配置
 └── README.md                # 项目说明文档
 ```
 
@@ -149,10 +151,12 @@ zephyr_reader/
 
 ### 环境要求
 
-- **Flutter SDK**: 3.22.0+
-- **Rust**: 1.75.0+（最新稳定版）
+- **Flutter SDK**: 3.41.2+
+- **Rust**: 1.80.0+（最新稳定版）
 - **Android SDK**: API 26+（Android 8.0）
-- **Android Studio**: Hedgehog 或更高版本
+- **iOS**: 15.0+
+- **Android Studio / Xcode**: 最新稳定版
+- **flutter_rust_bridge_codegen**: 可选，仅在修改 Rust API 后重新生成绑定时需要
 
 ### 环境搭建
 

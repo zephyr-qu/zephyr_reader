@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/core/theme/app_theme.dart';
@@ -21,17 +22,26 @@ class MyApp extends HookWidget {
     }, []);
 
     useEffect(() {
+      final disposers = <void Function()>[];
       SharedPreferences.getInstance().then((prefs) {
         final autoTheme = AutoThemeService(prefs);
-        effect(() {
-          if (autoTheme.autoThemeEnabled.value) {
-            themeManager.setThemeType(
-              autoTheme.isDarkModeTime ? AppThemeType.dark : AppThemeType.light,
-            );
-          }
-        });
+        disposers.add(
+          effect(() {
+            if (autoTheme.autoThemeEnabled.value) {
+              themeManager.setThemeType(
+                autoTheme.isDarkModeTime
+                    ? AppThemeType.dark
+                    : AppThemeType.light,
+              );
+            }
+          }),
+        );
       });
-      return null;
+      return () {
+        for (final d in disposers) {
+          d();
+        }
+      };
     }, []);
 
     return Watch.builder(
@@ -42,6 +52,22 @@ class MyApp extends HookWidget {
           theme: AppThemes.lightTheme,
           darkTheme: AppThemes.darkTheme,
           themeMode: themeManager.themeMode,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('zh'), Locale('en')],
+          locale: themeManager.appLocale,
+          localeResolutionCallback: (locale, supportedLocales) {
+            if (locale == null) return null;
+            for (final supported in supportedLocales) {
+              if (supported.languageCode == locale.languageCode) {
+                return supported;
+              }
+            }
+            return const Locale('zh');
+          },
         );
       },
     );

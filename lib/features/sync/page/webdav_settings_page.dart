@@ -1,7 +1,10 @@
 /// WebDAV 同步设置页面
 library;
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -39,22 +42,29 @@ class WebDavSettingsPage extends HookWidget {
         title: const Text('数据同步'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(PhosphorIconsRegular.arrowsClockwise),
             onPressed: () => _loadConfigStatus(
               configService,
               isConfigured,
               lastSyncTime,
               syncStatus,
             ),
-            tooltip: '刷新状',
+            tooltip: '刷新状态',
           ),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // 同步状
-          _buildSyncStatusCard(context, lastSyncTime.value, syncStatus.value),
+          // 同步状态
+          _buildSyncStatusCard(
+            context,
+            lastSyncTime.value,
+            syncStatus.value,
+            isConfigured.value,
+            isTesting.value,
+            testResult.value,
+          ),
           const SizedBox(height: 24),
           // WebDAV 配置
           _buildWebDavConfigCard(
@@ -94,6 +104,9 @@ class WebDavSettingsPage extends HookWidget {
     BuildContext context,
     DateTime? lastSyncTime,
     String syncStatus,
+    bool isConfigured,
+    bool isTesting,
+    bool? testResult,
   ) {
     return Card(
       child: Padding(
@@ -104,13 +117,19 @@ class WebDavSettingsPage extends HookWidget {
             Row(
               children: [
                 Icon(
-                  Icons.cloud_sync,
+                  PhosphorIconsRegular.cloudCheck,
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 12),
                 const Text(
-                  '同步状',
+                  '同步状态',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                _ConnectionStatusDot(
+                  isConfigured: isConfigured,
+                  isTesting: isTesting,
+                  testResult: testResult,
                 ),
               ],
             ),
@@ -118,8 +137,6 @@ class WebDavSettingsPage extends HookWidget {
             Text(
               '最后同步时间：${lastSyncTime != null ? _formatDateTime(lastSyncTime) : "从未同步"}',
             ),
-            const SizedBox(height: 8),
-            Text('同步状态：$syncStatus'),
           ],
         ),
       ),
@@ -161,15 +178,21 @@ class WebDavSettingsPage extends HookWidget {
             const SizedBox(height: 16),
             if (isConfigured) ...[
               const ListTile(
-                leading: Icon(Icons.check_circle, color: Colors.green),
-                title: Text('已配WebDAV 服务'),
+                leading: Icon(
+                  PhosphorIconsFill.checkCircle,
+                  color: Colors.green,
+                ),
+                title: Text('已配置 WebDAV 服务'),
                 subtitle: Text('点击修改配置'),
               ),
             ] else ...[
               const ListTile(
-                leading: Icon(Icons.cloud_off, color: Colors.grey),
-                title: Text('未配WebDAV 服务'),
-                subtitle: Text('点击配置以启用同'),
+                leading: Icon(
+                  PhosphorIconsRegular.cloudSlash,
+                  color: Colors.grey,
+                ),
+                title: Text('未配置 WebDAV 服务'),
+                subtitle: Text('点击配置以启用同步'),
               ),
             ],
             const SizedBox(height: 8),
@@ -180,7 +203,7 @@ class WebDavSettingsPage extends HookWidget {
                     child: ElevatedButton.icon(
                       onPressed: () =>
                           _showConfigDialog(context, configService),
-                      icon: const Icon(Icons.add),
+                      icon: const Icon(PhosphorIconsRegular.plus),
                       label: const Text('配置 WebDAV'),
                     ),
                   )
@@ -189,7 +212,7 @@ class WebDavSettingsPage extends HookWidget {
                     child: OutlinedButton.icon(
                       onPressed: () =>
                           _showConfigDialog(context, configService),
-                      icon: const Icon(Icons.edit),
+                      icon: const Icon(PhosphorIconsRegular.pencilSimple),
                       label: const Text('修改配置'),
                     ),
                   ),
@@ -208,7 +231,7 @@ class WebDavSettingsPage extends HookWidget {
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.wifi),
+                        : const Icon(PhosphorIconsRegular.wifiHigh),
                     label: Text(
                       testResult.value == null
                           ? '测试连接'
@@ -250,7 +273,7 @@ class WebDavSettingsPage extends HookWidget {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result ? 'WebDAV 连接测试成功' : 'WebDAV 连接测试失败，请检查配'),
+          content: Text(result ? 'WebDAV 连接测试成功' : 'WebDAV 连接测试失败，请检查配置'),
           backgroundColor: result ? Colors.green : Colors.red,
         ),
       );
@@ -328,7 +351,7 @@ class WebDavSettingsPage extends HookWidget {
                   decoration: const InputDecoration(
                     labelText: '服务器地址',
                     hintText: 'https://dav.jianguoyun.com/dav',
-                    prefixIcon: Icon(Icons.cloud),
+                    prefixIcon: Icon(PhosphorIconsRegular.cloud),
                     border: OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.url,
@@ -338,7 +361,7 @@ class WebDavSettingsPage extends HookWidget {
                     }
                     if (!value.startsWith('http://') &&
                         !value.startsWith('https://')) {
-                      return '请输入完整的 URL（包http:// https://';
+                      return '请输入完整的 URL（包含 http:// 或 https://）';
                     }
                     return null;
                   },
@@ -348,7 +371,7 @@ class WebDavSettingsPage extends HookWidget {
                   controller: usernameController,
                   decoration: const InputDecoration(
                     labelText: '用户',
-                    prefixIcon: Icon(Icons.person),
+                    prefixIcon: Icon(PhosphorIconsRegular.user),
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
@@ -363,13 +386,13 @@ class WebDavSettingsPage extends HookWidget {
                   controller: passwordController,
                   decoration: const InputDecoration(
                     labelText: '密码',
-                    prefixIcon: Icon(Icons.lock),
+                    prefixIcon: Icon(PhosphorIconsRegular.lockSimple),
                     border: OutlineInputBorder(),
                   ),
                   obscureText: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return '请输入密';
+                      return '请输入密码';
                     }
                     return null;
                   },
@@ -380,15 +403,15 @@ class WebDavSettingsPage extends HookWidget {
                   decoration: const InputDecoration(
                     labelText: '远程目录',
                     hintText: '/zephyr_reader',
-                    prefixIcon: Icon(Icons.folder),
+                    prefixIcon: Icon(PhosphorIconsRegular.folder),
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return '请输入远程目';
+                      return '请输入远程目录';
                     }
                     if (!value.startsWith('/')) {
-                      return '远程目录应以 / 开';
+                      return '远程目录应以 / 开头';
                     }
                     return null;
                   },
@@ -409,7 +432,7 @@ class WebDavSettingsPage extends HookWidget {
                   Navigator.of(context).pop(true);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('配置已清'),
+                      content: Text('配置已清除'),
                       backgroundColor: Colors.orange,
                     ),
                   );
@@ -467,7 +490,7 @@ class WebDavSettingsPage extends HookWidget {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('WebDAV 配置已保'),
+            content: Text('WebDAV 配置已保存'),
             backgroundColor: Colors.green,
           ),
         );
@@ -475,7 +498,7 @@ class WebDavSettingsPage extends HookWidget {
         if (!context.mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('保存配置失败e'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('保存配置失败'), backgroundColor: Colors.red),
         );
       }
     }
@@ -506,7 +529,7 @@ class WebDavSettingsPage extends HookWidget {
             const SizedBox(height: 16),
             SwitchListTile(
               title: const Text('启用自动同步'),
-              subtitle: const Text('定期自动同步数据到云'),
+              subtitle: const Text('定期自动同步数据到云端'),
               value: autoSyncEnabled.value,
               onChanged: (value) async {
                 autoSyncEnabled.value = value;
@@ -517,7 +540,7 @@ class WebDavSettingsPage extends HookWidget {
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(value ? '自动同步已启' : '自动同步已禁'),
+                    content: Text(value ? '自动同步已启用' : '自动同步已禁用'),
                     backgroundColor: Colors.green,
                   ),
                 );
@@ -672,7 +695,10 @@ class WebDavSettingsPage extends HookWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.warning_amber, color: Colors.orange.shade700),
+                    Icon(
+                      PhosphorIconsFill.warning,
+                      color: Colors.orange.shade700,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       '存在 ${conflicts.length} 个冲突需要解决',
@@ -690,7 +716,7 @@ class WebDavSettingsPage extends HookWidget {
               const SizedBox(height: 16),
             ],
             ListTile(
-              leading: const Icon(Icons.cloud_upload),
+              leading: const Icon(PhosphorIconsRegular.cloudArrowUp),
               title: const Text('立即上传'),
               subtitle: const Text('将本地数据上传到服务器'),
               onTap: isSyncing.value
@@ -699,7 +725,7 @@ class WebDavSettingsPage extends HookWidget {
               enabled: !isSyncing.value,
             ),
             ListTile(
-              leading: const Icon(Icons.cloud_download),
+              leading: const Icon(PhosphorIconsRegular.cloudArrowDown),
               title: const Text('立即下载'),
               subtitle: const Text('从服务器下载数据到本地'),
               onTap: isSyncing.value
@@ -708,7 +734,7 @@ class WebDavSettingsPage extends HookWidget {
               enabled: !isSyncing.value,
             ),
             ListTile(
-              leading: const Icon(Icons.sync),
+              leading: const Icon(PhosphorIconsRegular.arrowsClockwise),
               title: const Text('双向同步'),
               subtitle: const Text('同步本地和服务器的数据'),
               onTap: isSyncing.value
@@ -733,7 +759,7 @@ class WebDavSettingsPage extends HookWidget {
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.warning_amber, color: Colors.orange.shade700),
+            Icon(PhosphorIconsFill.warning, color: Colors.orange.shade700),
             const SizedBox(width: 8),
             Text('需要同步冲突 (${conflicts.length})'),
           ],
@@ -748,7 +774,10 @@ class WebDavSettingsPage extends HookWidget {
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
-                  leading: Icon(Icons.warning, color: Colors.orange.shade700),
+                  leading: Icon(
+                    PhosphorIconsFill.warning,
+                    color: Colors.orange.shade700,
+                  ),
                   title: Text(_getDataTypeName(conflict.dataType)),
                   subtitle: Text(conflict.description),
                   trailing: conflict.autoResolution != null
@@ -833,9 +862,9 @@ class WebDavSettingsPage extends HookWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            const Text('支持WebDAV 服务'),
+            const Text('支持 WebDAV 服务'),
             const SizedBox(height: 8),
-            const Text('坚果'),
+            const Text('坚果云'),
             const Text('Nextcloud'),
             const Text('ownCloud'),
             const Text('Seafile'),
@@ -870,16 +899,16 @@ class WebDavSettingsPage extends HookWidget {
               SizedBox(height: 16),
               Text('如何配置', style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 8),
-              Text('1. 选择一WebDAV 服务提供商（如坚果云'),
-              Text('2. 获取 WebDAV 服务器地址、用户名和密'),
-              Text('3. 在配置页面填写相关信'),
+              Text('1. 选择一个 WebDAV 服务提供商（如坚果云）'),
+              Text('2. 获取 WebDAV 服务器地址、用户名和密码'),
+              Text('3. 在配置页面填写相关信息'),
               Text('4. 点击"测试连接"验证配置'),
               SizedBox(height: 16),
               Text('同步说明', style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 8),
               Text('上传：将本地数据上传到服务器'),
               Text('下载：从服务器下载数据到本地'),
-              Text('双向同步：自动处理冲突，保持数据一'),
+              Text('双向同步：自动处理冲突，保持数据一致'),
               SizedBox(height: 16),
               Text(
                 '注意事项',
@@ -889,10 +918,10 @@ class WebDavSettingsPage extends HookWidget {
                 ),
               ),
               SizedBox(height: 8),
-              Text('首次使用建议先上传本地数', style: TextStyle(color: Colors.red)),
+              Text('首次使用建议先上传本地数据', style: TextStyle(color: Colors.red)),
               Text('同步前请确保网络连接稳定', style: TextStyle(color: Colors.red)),
               Text(
-                '如遇冲突，系统会自动处理，但建议定期检查同步状',
+                '如遇冲突，系统会自动处理，但建议定期检查同步状态',
                 style: TextStyle(color: Colors.red),
               ),
             ],
@@ -901,9 +930,116 @@ class WebDavSettingsPage extends HookWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('知道'),
+            child: const Text('知道了'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ConnectionStatusDot extends StatefulWidget {
+  final bool isConfigured;
+  final bool isTesting;
+  final bool? testResult;
+
+  const _ConnectionStatusDot({
+    required this.isConfigured,
+    required this.isTesting,
+    required this.testResult,
+  });
+
+  @override
+  State<_ConnectionStatusDot> createState() => _ConnectionStatusDotState();
+}
+
+class _ConnectionStatusDotState extends State<_ConnectionStatusDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    if (widget.isTesting) {
+      _controller.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(_ConnectionStatusDot oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isTesting && !oldWidget.isTesting) {
+      _controller.repeat(reverse: true);
+    } else if (!widget.isTesting && oldWidget.isTesting) {
+      _controller.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    Color color;
+    bool pulse;
+    String tooltip;
+
+    if (widget.isTesting) {
+      color = Colors.amber;
+      pulse = true;
+      tooltip = '连接测试中…';
+    } else if (widget.testResult == true) {
+      color = Colors.green;
+      pulse = false;
+      tooltip = '连接正常';
+    } else if (widget.testResult == false) {
+      color = Colors.red;
+      pulse = false;
+      tooltip = '连接失败';
+    } else if (widget.isConfigured) {
+      color = theme.colorScheme.secondary;
+      pulse = false;
+      tooltip = '已配置（未测试）';
+    } else {
+      color = Colors.grey;
+      pulse = false;
+      tooltip = '未配置';
+    }
+
+    return Tooltip(
+      message: tooltip,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final opacity = pulse
+              ? (0.4 + 0.6 * (1 - math.cos(_controller.value * math.pi)) / 2)
+              : 1.0;
+          return Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: opacity),
+              shape: BoxShape.circle,
+              boxShadow: pulse
+                  ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.6 * opacity),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
+            ),
+          );
+        },
       ),
     );
   }

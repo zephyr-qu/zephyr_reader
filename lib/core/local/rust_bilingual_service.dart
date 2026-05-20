@@ -11,19 +11,17 @@ class RustBilingualService {
     required String chineseContent,
     required String englishContent,
     double minSimilarity = 0.5,
-  }) async =>
-      rust.alignBilingualContent(
-        chineseContent: chineseContent,
-        englishContent: englishContent,
-        minSimilarity: minSimilarity,
-      );
+  }) async => rust.alignBilingualContent(
+    chineseContent: chineseContent,
+    englishContent: englishContent,
+    minSimilarity: minSimilarity,
+  );
 
-  BilingualAlignment simpleBilingualAlign({
+  Future<BilingualAlignment> simpleBilingualAlign({
     required String chineseContent,
     required String englishContent,
-  }) =>
-      rust.simpleBilingualAlign(
-        chineseContent: chineseContent,
-        englishContent: englishContent,
-      );
+  }) async => rust.simpleBilingualAlign(
+    chineseContent: chineseContent,
+    englishContent: englishContent,
+  );
 }

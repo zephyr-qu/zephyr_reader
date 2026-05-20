@@ -10,7 +10,6 @@ class ChapterRepository {
   final RustStorageService _storage;
   ChapterRepository(this._storage);
 
-  
   Future<List<Chapter>> getChaptersByBookId(int bookId) async {
     return _storage.getChaptersByBook('book_$bookId');
   }

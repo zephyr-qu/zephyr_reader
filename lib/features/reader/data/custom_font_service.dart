@@ -63,11 +63,16 @@ class FontRepository {
   String familyNameFor(FontInfo font) {
     if (font.isBuiltIn) {
       switch (font.id) {
-        case 'serif': return 'serif';
-        case 'sans': return 'sans-serif';
-        case 'mono': return 'monospace';
-        case 'kai': return 'KaiTi';
-        default: return 'Noto Sans SC';
+        case 'serif':
+          return 'serif';
+        case 'sans':
+          return 'sans-serif';
+        case 'mono':
+          return 'monospace';
+        case 'kai':
+          return 'KaiTi';
+        default:
+          return 'Noto Sans SC';
       }
     }
     final name = p.basenameWithoutExtension(font.path ?? font.name);
@@ -84,7 +89,8 @@ class FontRepository {
       if (!await file.exists()) continue;
       try {
         final data = await file.readAsBytes();
-        final loader = FontLoader(family)..addFont(Future.value(data.buffer.asByteData()));
+        final loader = FontLoader(family)
+          ..addFont(Future.value(data.buffer.asByteData()));
         await loader.load();
         _registeredFamilies.add(family);
       } catch (e) {

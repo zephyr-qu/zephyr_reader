@@ -55,7 +55,7 @@ Future<BilingualAlignment> alignBilingualContent({
 /// # 长度限制
 ///
 /// 中英文文本**合计**不得超过 2MB，超限返回错误。
-BilingualAlignment simpleBilingualAlign({
+Future<BilingualAlignment> simpleBilingualAlign({
   required String chineseContent,
   required String englishContent,
 }) => RustLib.instance.api.crateApiBilingualSimpleBilingualAlign(

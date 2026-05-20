@@ -8,6 +8,7 @@ pub mod unzip;
 use std::path::Path;
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use flutter_rust_bridge::frb;
 
 use crate::domain::{ ParseResult, AppError};
@@ -31,6 +32,7 @@ impl Default for EpubParser {
     }
 }
 
+#[async_trait]
 impl BookParser for EpubParser {
     fn name(&self) -> &str {
         "EPUB Parser"
@@ -40,46 +42,59 @@ impl BookParser for EpubParser {
         vec!["epub"]
     }
 
-    fn parse(&self, file_path: &str) -> Result<ParseResult,AppError> {
-        parse_epub(file_path.to_string())
+    async fn parse(&self, file_path: &str) -> Result<ParseResult,AppError> {
+        let fp = file_path.to_string();
+        tokio::task::spawn_blocking(move || parse_epub(fp))
+            .await
+            .map_err(|e| AppError::internal(format!("EPUB 解析任务失败: {}", e)))?
     }
 
-    fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata,AppError> {
-        if !Path::new(file_path).exists() {
-            return Err(AppError::file_not_found(file_path));
-        }
+    async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata,AppError> {
+        let fp = file_path.to_string();
+        tokio::task::spawn_blocking(move || -> Result<BookMetadata, AppError> {
+            if !Path::new(&fp).exists() {
+                return Err(AppError::file_not_found(&fp));
+            }
 
-        let epub_file = unzip::EpubFile::open(file_path)?;
+            let epub_file = unzip::EpubFile::open(&fp)?;
 
-        Ok(BookMetadata {
-            title: epub_file.title(),
-            author: epub_file.author(),
-            description: None,
-            cover_path: epub_file.cover_path(),
-            publish_year: None,
-            language: None,
-            chapter_count: epub_file.spine().len() as i32,
-            total_characters: 0,
+            Ok(BookMetadata {
+                title: epub_file.title(),
+                author: epub_file.author(),
+                description: None,
+                cover_path: epub_file.cover_path(),
+                publish_year: None,
+                language: None,
+                chapter_count: epub_file.spine().len() as i32,
+                total_characters: 0,
+            })
         })
+            .await
+            .map_err(|e| AppError::internal(format!("EPUB 元数据提取失败: {}", e)))?
     }
 
-    fn extract_chapter(&self, file_path: &str, chapter_index: i32) -> Result<String,AppError> {
-        let mut epub_file = unzip::EpubFile::open(file_path)?;
-        let chapters = toc::extract_chapters_from_epub(&mut epub_file);
+    async fn extract_chapter(&self, file_path: &str, chapter_index: i32) -> Result<String,AppError> {
+        let fp = file_path.to_string();
+        tokio::task::spawn_blocking(move || -> Result<String, AppError> {
+            let mut epub_file = unzip::EpubFile::open(&fp)?;
+            let chapters = toc::extract_chapters_from_epub(&mut epub_file);
 
-        let chapter = chapters
-            .iter()
-            .find(|c| c.chapter_index == chapter_index)
-            .ok_or_else(|| {
-                AppError::chapter_extract_error(chapter_index, format!("未找到章节 {}", chapter_index))
+            let chapter = chapters
+                .iter()
+                .find(|c| c.chapter_index == chapter_index)
+                .ok_or_else(|| {
+                    AppError::chapter_extract_error(chapter_index, format!("未找到章节 {}", chapter_index))
+                })?;
+
+            let spine = epub_file.spine();
+            let href = spine.get(chapter.start_index as usize).ok_or_else(|| {
+                AppError::chapter_extract_error(chapter.chapter_index, format!("章节索引超出范围：{}", chapter.start_index))
             })?;
 
-        let spine = epub_file.spine();
-        let href = spine.get(chapter.start_index as usize).ok_or_else(|| {
-            AppError::chapter_extract_error(chapter.chapter_index, format!("章节索引超出范围：{}", chapter.start_index))
-        })?;
-
-        epub_file.read_resource(href)
+            epub_file.read_resource(href)
+        })
+            .await
+            .map_err(|e| AppError::internal(format!("EPUB 章节提取失败: {}", e)))?
     }
 }
 
@@ -112,10 +127,10 @@ mod tests {
         assert!(!parser.supports_format("txt"));
     }
 
-    #[test]
-    fn test_epub_parser_parse_file_not_found() {
+    #[tokio::test]
+    async fn test_epub_parser_parse_file_not_found() {
         let parser = EpubParser::new();
-        let result = parser.parse("non_existent.epub");
+        let result = parser.parse("non_existent.epub").await;
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(

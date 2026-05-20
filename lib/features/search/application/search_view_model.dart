@@ -37,14 +37,17 @@ class SearchViewModel {
     }
 
     isSearching.value = true;
-    results.value = AsyncState.loading();
 
     try {
+      final previous = loadMore
+          ? (results.value.value ?? [])
+          : <SearchResult>[];
+      results.value = AsyncState.loading();
+
       final data = await _repo.search(keyword.value, page: currentPage.value);
 
       if (loadMore) {
-        final current = results.value.value ?? [];
-        results.value = AsyncState.data([...current, ...data]);
+        results.value = AsyncState.data([...previous, ...data]);
       } else {
         results.value = AsyncState.data(data);
       }

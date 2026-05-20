@@ -1,25 +1,20 @@
-/// 应用设置页面 - 现代化设计
-///
-/// 提供应用级别的设置选项：
-/// - 主题设置
-/// - 语言设置
-/// - 通知设置
-/// - 存储管理
-/// - 备份与恢复
 library;
 
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/utils/cache_utils.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/backup_dialog.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/core/local/rust_storage_service.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/theme/theme_manager.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
 
-/// 应用设置页面
 class AppSettingsPage extends StatefulHookWidget {
   const AppSettingsPage({super.key});
 
@@ -28,11 +23,11 @@ class AppSettingsPage extends StatefulHookWidget {
 }
 
 class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
-  final cacheSize = useSignal<String>('计算中...');
-  final isClearing = useSignal(false);
-
-  final isBackingUp = useSignal(false);
-  final isRestoring = useSignal(false);
+  static const _kRadius8 = BorderRadius.all(Radius.circular(8));
+  late final cacheSize = createSignal<String>('计算中...');
+  late final isClearing = createSignal(false);
+  late final isBackingUp = createSignal(false);
+  late final isRestoring = createSignal(false);
 
   @override
   void didChangeDependencies() {
@@ -54,20 +49,16 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
     try {
       final bytes = await CacheUtils.clearCache();
       final sizeText = CacheUtils.formatCacheSize(bytes);
-
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('已清理 $sizeText 缓存'),
           behavior: SnackBarBehavior.floating,
         ),
       );
-
       await _loadCacheSize();
     } catch (e) {
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('清理缓存失败'),
@@ -82,7 +73,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
   Future<void> _createBackup() async {
     final selectedTypes = await _showBackupTypeDialog();
     if (selectedTypes == null || selectedTypes.isEmpty) return;
-
     isBackingUp.value = true;
     try {
       final dir = await getApplicationDocumentsDirectory();
@@ -151,7 +141,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
 
   Future<List<BackupType>?> _showBackupTypeDialog() async {
     final selectedTypes = <BackupType>[BackupType.all];
-
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -203,11 +192,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
         },
       ),
     );
-
-    if (result == true) {
-      return selectedTypes;
-    }
-
+    if (result == true) return selectedTypes;
     return null;
   }
 
@@ -228,115 +213,36 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
 
   @override
   Widget build(BuildContext context) {
-    // 设置状态
-    final themeMode = useSignal(0); // 0: 跟随系统，1: 浅色，2: 深色，3: 纯黑
-    final language = useSignal(0); // 0: 跟随系统，1: 简体中文，2: English
-    final autoSync = useSignal(false);
-    final syncInterval = useSignal(0); // 0: 手动，1: 每天，2: 每周
     final theme = Theme.of(context);
+    final tm = ThemeManager.instance;
+    final themeMode = useSignal(tm.themeType.value.index);
+    final localeCode = tm.locale.value;
+    final language = useSignal(
+      localeCode == null ? 0 : (localeCode == 'zh' ? 1 : 2),
+    );
+    final autoSync = useSignal(false);
+    final syncInterval = useSignal(0);
     final pagePadding = LayoutBreakpoints.getPagePadding(context);
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // AppBar
           const SliverAppBar(
             floating: true,
             title: Text('应用设置'),
             elevation: 0,
             scrolledUnderElevation: 2,
           ),
-
           SliverPadding(
             padding: pagePadding,
             sliver: SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 主题设置
-                  _buildSectionCard(
-                    context,
-                    icon: Icons.palette_rounded,
-                    title: '主题与外观',
-                    children: [_buildThemeSelector(context, themeMode)],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 语言设置
-                  _buildSectionCard(
-                    context,
-                    icon: Icons.language_rounded,
-                    title: '语言与地区',
-                    children: [
-                      _buildLanguageSelector(context, language),
-                      _buildDivider(),
-                      _buildRegionSelector(context),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 同步设置
-                  _buildSectionCard(
-                    context,
-                    icon: Icons.sync_rounded,
-                    title: '同步设置',
-                    children: [
-                      _buildSwitchSetting(
-                        context,
-                        icon: Icons.auto_awesome_rounded,
-                        title: '自动同步',
-                        subtitle: '定期同步阅读进度和书架',
-                        value: autoSync.value,
-                        onChanged: (v) => autoSync.value = v,
-                      ),
-                      _buildDivider(),
-                      _buildSyncFrequencySelector(context, syncInterval),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 存储管理
-                  _buildSectionCard(
-                    context,
-                    icon: Icons.storage_rounded,
-                    title: '存储管理',
-                    children: [
-                      _buildCacheCleaner(context),
-                      _buildDivider(),
-                      _buildStorageLocationSelector(context),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 备份与恢复
-                  _buildSectionCard(
-                    context,
-                    icon: Icons.backup_rounded,
-                    title: '备份与恢复',
-                    children: [
-                      _buildBackupItem(
-                        context,
-                        icon: Icons.cloud_upload_rounded,
-                        iconColor: theme.colorScheme.primary,
-                        title: '备份数据',
-                        subtitle: '备份书架、阅读进度和设置',
-                        isLoading: isBackingUp.value,
-                        onTap: _createBackup,
-                      ),
-                      _buildDivider(),
-                      _buildBackupItem(
-                        context,
-                        icon: Icons.cloud_download_rounded,
-                        iconColor: theme.colorScheme.secondary,
-                        title: '恢复数据',
-                        subtitle: '从备份文件恢复数据',
-                        isLoading: isRestoring.value,
-                        onTap: _restoreBackup,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                ],
+              child: _buildContent(
+                context,
+                theme,
+                themeMode,
+                language,
+                autoSync,
+                syncInterval,
               ),
             ),
           ),
@@ -345,123 +251,276 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
     );
   }
 
-  Widget _buildSectionCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required List<Widget> children,
-  }) {
-    final theme = Theme.of(context);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildContent(
+    BuildContext context,
+    ThemeData theme,
+    Signal<int> themeMode,
+    Signal<int> language,
+    Signal<bool> autoSync,
+    Signal<int> syncInterval,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildHero(context),
+        const SizedBox(height: 28),
+        _buildSection(
+          context,
+          icon: PhosphorIconsRegular.palette,
+          title: '主题与外观',
+          index: 0,
+          children: [_buildThemeSelector(context, themeMode)],
+        ),
+        const SizedBox(height: 20),
+        _buildSection(
+          context,
+          icon: PhosphorIconsRegular.globe,
+          title: '语言与地区',
+          index: 1,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.primary.withValues(alpha: 0.1),
-                        theme.colorScheme.secondary.withValues(alpha: 0.1),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: theme.colorScheme.primary, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            ...children,
+            _buildLanguageSelector(context, language),
+            _buildSeparator(),
+            _buildRegionSelector(context),
           ],
         ),
+        const SizedBox(height: 20),
+        _buildSection(
+          context,
+          icon: PhosphorIconsRegular.arrowsClockwise,
+          title: '同步设置',
+          index: 2,
+          children: [
+            _buildSwitchSetting(
+              context,
+              icon: PhosphorIconsRegular.sparkle,
+              title: '自动同步',
+              subtitle: '定期同步阅读进度和书架',
+              value: autoSync.value,
+              onChanged: (v) => autoSync.value = v,
+            ),
+            _buildSeparator(),
+            _buildSyncFrequencySelector(context, syncInterval),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _buildSection(
+          context,
+          icon: PhosphorIconsRegular.hardDrives,
+          title: '存储管理',
+          index: 3,
+          children: [
+            _buildCacheCleaner(context),
+            _buildSeparator(),
+            _buildStorageLocationSelector(context),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _buildSection(
+          context,
+          icon: PhosphorIconsRegular.cloudArrowUp,
+          title: '备份与恢复',
+          index: 4,
+          children: [
+            _buildBackupItem(
+              context,
+              icon: PhosphorIconsRegular.cloudArrowUp,
+              iconColor: DesignTokens.warmAccent,
+              title: '备份数据',
+              subtitle: '备份书架、阅读进度和设置',
+              isLoading: isBackingUp.value,
+              onTap: _createBackup,
+            ),
+            _buildSeparator(),
+            _buildBackupItem(
+              context,
+              icon: PhosphorIconsRegular.cloudArrowDown,
+              iconColor: theme.colorScheme.tertiary,
+              title: '恢复数据',
+              subtitle: '从备份文件恢复数据',
+              isLoading: isRestoring.value,
+              onTap: _restoreBackup,
+            ),
+          ],
+        ),
+        const SizedBox(height: 48),
+        _buildFooter(context),
+        const SizedBox(height: 32),
+      ],
+    );
+  }
+
+  Widget _buildHero(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            PhosphorIconsRegular.sliders,
+            size: 28,
+            color: DesignTokens.warmAccent,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '应用设置',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurface,
+              letterSpacing: -0.8,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '定制你的阅读体验',
+            style: TextStyle(
+              fontSize: 14,
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildDivider() {
-    return const Divider(height: 1);
+  Widget _buildSection(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required List<Widget> children,
+    required int index,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+              width: 0.5,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 3,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: DesignTokens.warmAccent,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Icon(icon, size: 18, color: DesignTokens.warmAccent),
+                    const SizedBox(width: 8),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurfaceVariant,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...children,
+              const SizedBox(height: 6),
+            ],
+          ),
+        )
+        .animate()
+        .fadeIn(duration: 400.ms, delay: (index * 80).ms)
+        .slideY(begin: 0.08, end: 0);
+  }
+
+  Widget _buildSeparator() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      height: 0.5,
+      color: const Color(0xFFE5E5EA).withValues(alpha: 0.5),
+    );
   }
 
   Widget _buildThemeSelector(BuildContext context, Signal<int> themeMode) {
     final theme = Theme.of(context);
     final options = [
-      {'label': '跟随系统', 'icon': Icons.auto_mode_rounded},
-      {'label': '浅色模式', 'icon': Icons.light_mode_rounded},
-      {'label': '深色模式', 'icon': Icons.dark_mode_rounded},
-      {'label': '纯黑模式', 'icon': Icons.brightness_2_rounded},
+      {'label': '跟随系统', 'icon': PhosphorIconsRegular.circleHalf},
+      {'label': '浅色模式', 'icon': PhosphorIconsRegular.sun},
+      {'label': '深色模式', 'icon': PhosphorIconsRegular.moon},
+      {'label': '纯黑模式', 'icon': PhosphorIconsRegular.moonStars},
     ];
 
-    return Column(
-      children: options.asMap().entries.map((entry) {
-        final index = entry.key;
-        final option = entry.value;
-        final isSelected = themeMode.value == index;
-
-        return Material(
-          color: isSelected
-              ? theme.colorScheme.primaryContainer
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            onTap: () => themeMode.value = index,
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: options.asMap().entries.map((entry) {
+          final index = entry.key;
+          final option = entry.value;
+          final isSelected = themeMode.value == index;
+          return GestureDetector(
+            onTap: () {
+              themeMode.value = index;
+              ThemeManager.instance.setThemeType(AppThemeType.values[index]);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? DesignTokens.warmAccentLight
+                    : Colors.transparent,
+                borderRadius: _kRadius8,
+                border: Border.all(
+                  color: isSelected
+                      ? DesignTokens.warmAccent
+                      : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  width: isSelected ? 1.5 : 0.5,
+                ),
+              ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? theme.colorScheme.primary.withValues(alpha: 0.2)
-                          : theme.colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      option['icon'] as IconData,
-                      color: isSelected
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurfaceVariant,
-                      size: 20,
-                    ),
+                  Icon(
+                    option['icon'] as IconData,
+                    size: 16,
+                    color: isSelected
+                        ? DesignTokens.warmAccent
+                        : theme.colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 6),
                   Text(
                     option['label'] as String,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: isSelected
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface,
+                    style: TextStyle(
+                      fontSize: 13,
                       fontWeight: isSelected
                           ? FontWeight.w600
-                          : FontWeight.normal,
+                          : FontWeight.w400,
+                      color: isSelected
+                          ? DesignTokens.warmAccent
+                          : theme.colorScheme.onSurface,
                     ),
-                  ),
-                  const Spacer(),
-                  RadioGroup(
-                    groupValue: themeMode.value,
-                    onChanged: (v) => themeMode.value = v ?? 0,
-                    child: Radio<int>(value: index),
                   ),
                 ],
               ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -473,117 +532,144 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
       {'label': 'English', 'flag': '🇺🇸'},
     ];
 
-    return Column(
-      children: options.asMap().entries.map((entry) {
-        final index = entry.key;
-        final option = entry.value;
-        final isSelected = language.value == index;
-
-        return Material(
-          color: isSelected
-              ? theme.colorScheme.primaryContainer
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            onTap: () => language.value = index,
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  Text(
-                    option['flag'] as String,
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    option['label'] as String,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: isSelected
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface,
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.normal,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Column(
+        children: options.asMap().entries.map((entry) {
+          final index = entry.key;
+          final option = entry.value;
+          final isSelected = language.value == index;
+          return Material(
+            color: isSelected
+                ? DesignTokens.warmAccentLight
+                : Colors.transparent,
+            borderRadius: _kRadius8,
+            child: InkWell(
+              onTap: () {
+                language.value = index;
+                final code = index == 0 ? null : (index == 1 ? 'zh' : 'en');
+                ThemeManager.instance.setLocale(code);
+              },
+              borderRadius: _kRadius8,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      option['flag'] as String,
+                      style: const TextStyle(fontSize: 20),
                     ),
-                  ),
-                  const Spacer(),
-                  RadioGroup(
-                    groupValue: language.value,
-                    onChanged: (v) => language.value = v ?? 0,
-                    child: Radio<int>(value: index),
-                  ),
-                ],
+                    const SizedBox(width: 10),
+                    Text(
+                      option['label'] as String,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: isSelected
+                            ? DesignTokens.warmAccent
+                            : theme.colorScheme.onSurface,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (isSelected)
+                      const Icon(
+                        PhosphorIconsBold.check,
+                        size: 18,
+                        color: DesignTokens.warmAccent,
+                      ),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 
   Widget _buildRegionSelector(BuildContext context) {
     final theme = Theme.of(context);
-
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Text('🇨🇳', style: TextStyle(fontSize: 20)),
-      ),
-      title: const Text('地区'),
-      subtitle: const Text('中国大陆'),
-      trailing: const Icon(Icons.chevron_right_rounded),
-      onTap: () async {
-        final regions = [
-          {'code': 'CN', 'name': '中国大陆', 'flag': '🇨🇳'},
-          {'code': 'HK', 'name': '中国香港', 'flag': '🇭🇰'},
-          {'code': 'TW', 'name': '中国台湾', 'flag': '🇹🇼'},
-          {'code': 'US', 'name': '美国', 'flag': '🇺🇸'},
-          {'code': 'GB', 'name': '英国', 'flag': '🇬🇧'},
-          {'code': 'JP', 'name': '日本', 'flag': '🇯🇵'},
-          {'code': 'KR', 'name': '韩国', 'flag': '🇰🇷'},
-          {'code': 'SG', 'name': '新加坡', 'flag': '🇸🇬'},
-          {'code': 'MY', 'name': '马来西亚', 'flag': '🇲🇾'},
-        ];
-
-        final selectedRegion = await showDialog<Map<String, String>>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('选择地区'),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: regions.length,
-                itemBuilder: (context, index) {
-                  final region = regions[index];
-                  return ListTile(
-                    leading: Text(
-                      region['flag']!,
-                      style: const TextStyle(fontSize: 24),
-                    ),
-                    title: Text(region['name']!),
-                    onTap: () => Navigator.pop(context, region),
-                  );
-                },
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('取消'),
-              ),
-            ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        leading: Container(
+          width: 36,
+          height: 36,
+          decoration: const BoxDecoration(
+            color: DesignTokens.warmAccentLight,
+            borderRadius: _kRadius8,
           ),
-        );
-
-        await _handleRegionSelection(selectedRegion);
-      },
+          child: const Center(
+            child: Text('🇨🇳', style: TextStyle(fontSize: 18)),
+          ),
+        ),
+        title: Text(
+          '地区',
+          style: TextStyle(fontSize: 15, color: theme.colorScheme.onSurface),
+        ),
+        subtitle: Text(
+          '中国大陆',
+          style: TextStyle(
+            fontSize: 13,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        trailing: Icon(
+          PhosphorIconsLight.caretRight,
+          size: 18,
+          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+        ),
+        onTap: () async {
+          final regions = [
+            {'code': 'CN', 'name': '中国大陆', 'flag': '🇨🇳'},
+            {'code': 'HK', 'name': '中国香港', 'flag': '🇭🇰'},
+            {'code': 'TW', 'name': '中国台湾', 'flag': '🇹🇼'},
+            {'code': 'US', 'name': '美国', 'flag': '🇺🇸'},
+            {'code': 'GB', 'name': '英国', 'flag': '🇬🇧'},
+            {'code': 'JP', 'name': '日本', 'flag': '🇯🇵'},
+            {'code': 'KR', 'name': '韩国', 'flag': '🇰🇷'},
+            {'code': 'SG', 'name': '新加坡', 'flag': '🇸🇬'},
+            {'code': 'MY', 'name': '马来西亚', 'flag': '🇲🇾'},
+          ];
+          final selectedRegion = await showDialog<Map<String, String>>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('选择地区'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: regions.length,
+                  itemBuilder: (context, index) {
+                    final region = regions[index];
+                    return ListTile(
+                      leading: Text(
+                        region['flag']!,
+                        style: const TextStyle(fontSize: 24),
+                      ),
+                      title: Text(region['name']!),
+                      onTap: () => Navigator.pop(context, region),
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('取消'),
+                ),
+              ],
+            ),
+          );
+          await _handleRegionSelection(selectedRegion);
+        },
+      ),
     );
   }
 
@@ -591,7 +677,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
     Map<String, String>? selectedRegion,
   ) async {
     if (selectedRegion == null) return;
-
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -608,64 +693,83 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
   ) {
     final theme = Theme.of(context);
     final options = [
-      {'label': '手动同步', 'icon': Icons.sync_disabled_rounded},
-      {'label': '每天一次', 'icon': Icons.sync_rounded},
-      {'label': '每周一次', 'icon': Icons.calendar_today_rounded},
+      {'label': '手动同步', 'icon': PhosphorIconsRegular.arrowsCounterClockwise},
+      {'label': '每天一次', 'icon': PhosphorIconsRegular.arrowsClockwise},
+      {'label': '每周一次', 'icon': PhosphorIconsRegular.calendar},
     ];
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () async {
-          final result = await showModalBottomSheet<int>(
-            context: context,
-            builder: (context) => SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: options.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final option = entry.value;
-                  return ListTile(
-                    leading: Icon(
-                      option['icon'] as IconData,
-                      color: theme.colorScheme.primary,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () async {
+            final result = await showModalBottomSheet<int>(
+              context: context,
+              builder: (context) => SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: options.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final option = entry.value;
+                    return ListTile(
+                      leading: Icon(
+                        option['icon'] as IconData,
+                        color: DesignTokens.warmAccent,
+                      ),
+                      title: Text(option['label'] as String),
+                      trailing: syncInterval.value == index
+                          ? const Icon(
+                              PhosphorIconsBold.check,
+                              size: 18,
+                              color: DesignTokens.warmAccent,
+                            )
+                          : null,
+                      onTap: () => Navigator.pop(context, index),
+                    );
+                  }).toList(),
+                ),
+              ),
+            );
+            if (result != null) syncInterval.value = result;
+          },
+          borderRadius: _kRadius8,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: const BoxDecoration(
+                    color: DesignTokens.warmAccentLight,
+                    borderRadius: _kRadius8,
+                  ),
+                  child: Icon(
+                    options[syncInterval.value]['icon'] as IconData,
+                    color: DesignTokens.warmAccent,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    options[syncInterval.value]['label'] as String,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: theme.colorScheme.onSurface,
                     ),
-                    title: Text(option['label'] as String),
-                    onTap: () => Navigator.pop(context, index),
-                  );
-                }).toList(),
-              ),
+                  ),
+                ),
+                Icon(
+                  PhosphorIconsLight.caretRight,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.5,
+                  ),
+                ),
+              ],
             ),
-          );
-          if (result != null) {
-            syncInterval.value = result;
-          }
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  options[syncInterval.value]['icon'] as IconData,
-                  color: theme.colorScheme.primary,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                options[syncInterval.value]['label'] as String,
-                style: theme.textTheme.bodyLarge,
-              ),
-              const Spacer(),
-              const Icon(Icons.chevron_right_rounded),
-            ],
           ),
         ),
       ),
@@ -674,69 +778,96 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
 
   Widget _buildCacheCleaner(BuildContext context) {
     final theme = Theme.of(context);
-
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              theme.colorScheme.primary.withValues(alpha: 0.1),
-              theme.colorScheme.secondary.withValues(alpha: 0.1),
-            ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        leading: Container(
+          width: 36,
+          height: 36,
+          decoration: const BoxDecoration(
+            color: DesignTokens.warmAccentLight,
+            borderRadius: _kRadius8,
           ),
-          borderRadius: BorderRadius.circular(12),
+          child: const Icon(
+            PhosphorIconsRegular.broom,
+            color: DesignTokens.warmAccent,
+            size: 18,
+          ),
         ),
-        child: Icon(
-          Icons.cleaning_services_rounded,
-          color: theme.colorScheme.primary,
-          size: 24,
+        title: Text(
+          '清理缓存',
+          style: TextStyle(fontSize: 15, color: theme.colorScheme.onSurface),
         ),
+        subtitle: Text(
+          cacheSize.value,
+          style: TextStyle(
+            fontSize: 13,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        trailing: isClearing.value
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: DesignTokens.warmAccent,
+                ),
+              )
+            : Icon(
+                PhosphorIconsLight.caretRight,
+                size: 18,
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.5,
+                ),
+              ),
+        onTap: isClearing.value ? null : _clearCache,
       ),
-      title: const Text('清理缓存'),
-      subtitle: Text(cacheSize.value),
-      trailing: isClearing.value
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(
-              Icons.chevron_right_rounded,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-            ),
-      onTap: isClearing.value ? null : _clearCache,
     );
   }
 
   Widget _buildStorageLocationSelector(BuildContext context) {
     final theme = Theme.of(context);
-
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        leading: Container(
+          width: 36,
+          height: 36,
+          decoration: const BoxDecoration(
+            color: DesignTokens.warmAccentLight,
+            borderRadius: _kRadius8,
+          ),
+          child: const Icon(
+            PhosphorIconsRegular.folder,
+            color: DesignTokens.warmAccent,
+            size: 18,
+          ),
         ),
-        child: Icon(
-          Icons.folder_rounded,
-          color: theme.colorScheme.primary,
-          size: 24,
+        title: Text(
+          '书籍存储位置',
+          style: TextStyle(fontSize: 15, color: theme.colorScheme.onSurface),
         ),
+        subtitle: const Text(
+          '内部存储/Documents/ZephyrReader/books',
+          style: TextStyle(fontSize: 12),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Icon(
+          PhosphorIconsLight.caretRight,
+          size: 18,
+          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+        ),
+        onTap: () => _showStorageLocationDialog(context),
       ),
-      title: const Text('书籍存储位置'),
-      subtitle: const Text('内部存储/Documents/ZephyrReader/books'),
-      trailing: const Icon(Icons.chevron_right_rounded),
-      onTap: () => _showStorageLocationDialog(context),
     );
   }
 
   Future<void> _showStorageLocationDialog(BuildContext context) async {
     final theme = Theme.of(context);
-
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -745,27 +876,25 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '当前存储路径',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: const BoxDecoration(
+                color: DesignTokens.warmAccentLight,
+                borderRadius: _kRadius8,
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.folder_outlined, size: 20),
+                  Icon(
+                    PhosphorIconsRegular.folder,
+                    size: 18,
+                    color: DesignTokens.warmAccent,
+                  ),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '内部存储/Documents/ZephyrReader/books',
-                      style: TextStyle(fontFamily: 'monospace'),
+                      style: TextStyle(fontSize: 13, fontFamily: 'monospace'),
                     ),
                   ),
                 ],
@@ -774,16 +903,20 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
             const SizedBox(height: 16),
             Text(
               '说明',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.primary,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              '由于 Android 系统限制，应用只能访问其私有目录。'
-              '书籍文件存储在应用私有目录中，卸载应用时会被清除。'
-              '如需备份，请使用 WebDAV 同步功能。',
-              style: TextStyle(fontSize: 14),
+            Text(
+              '由于 Android 系统限制，应用只能访问其私有目录。书籍文件存储在应用私有目录中，卸载应用时会被清除。如需备份，请使用 WebDAV 同步功能。',
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.colorScheme.onSurfaceVariant,
+                height: 1.5,
+              ),
             ),
           ],
         ),
@@ -807,41 +940,52 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
-
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              iconColor.withValues(alpha: 0.1),
-              iconColor.withValues(alpha: 0.2),
-            ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        leading: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.12),
+            borderRadius: _kRadius8,
           ),
-          borderRadius: BorderRadius.circular(12),
+          child: Icon(icon, color: iconColor, size: 18),
         ),
-        child: Icon(icon, color: iconColor, size: 24),
-      ),
-      title: Text(
-        title,
-        style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(subtitle),
-      trailing: isLoading
-          ? SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(iconColor),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 13,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        trailing: isLoading
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: iconColor,
+                ),
+              )
+            : Icon(
+                PhosphorIconsLight.caretRight,
+                size: 18,
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.5,
+                ),
               ),
-            )
-          : Icon(
-              Icons.chevron_right_rounded,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-            ),
-      onTap: isLoading ? null : onTap,
+        onTap: isLoading ? null : onTap,
+      ),
     );
   }
 
@@ -854,22 +998,82 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
     required ValueChanged<bool> onChanged,
   }) {
     final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        leading: icon != null
+            ? Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(
+                  color: DesignTokens.warmAccentLight,
+                  borderRadius: _kRadius8,
+                ),
+                child: Icon(icon, color: DesignTokens.warmAccent, size: 18),
+              )
+            : null,
+        title: Text(
+          title,
+          style: TextStyle(fontSize: 15, color: theme.colorScheme.onSurface),
+        ),
+        subtitle: subtitle != null
+            ? Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              )
+            : null,
+        trailing: Switch(
+          value: value,
+          onChanged: onChanged,
+          activeTrackColor: DesignTokens.warmAccent.withValues(alpha: 0.3),
+        ),
+      ),
+    );
+  }
 
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: icon != null
-          ? Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: theme.colorScheme.primary, size: 24),
-            )
-          : null,
-      title: Text(title),
-      subtitle: subtitle != null ? Text(subtitle) : null,
-      trailing: Switch(value: value, onChanged: onChanged),
+  Widget _buildFooter(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Column(
+        children: [
+          Container(
+            width: 32,
+            height: 3,
+            decoration: BoxDecoration(
+              color: DesignTokens.warmAccent.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Icon(
+            PhosphorIconsRegular.bookOpen,
+            size: 32,
+            color: DesignTokens.warmAccent.withValues(alpha: 0.3),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Zephyr Reader',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurfaceVariant,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '版本 1.0.0',
+            style: TextStyle(
+              fontSize: 12,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

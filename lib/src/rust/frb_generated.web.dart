@@ -274,9 +274,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PageContent dco_decode_page_content(dynamic raw);
 
   @protected
-  ParseBookResult dco_decode_parse_book_result(dynamic raw);
-
-  @protected
   ParseResult dco_decode_parse_result(dynamic raw);
 
   @protected
@@ -581,9 +578,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PageContent sse_decode_page_content(SseDeserializer deserializer);
-
-  @protected
-  ParseBookResult sse_decode_parse_book_result(SseDeserializer deserializer);
 
   @protected
   ParseResult sse_decode_parse_result(SseDeserializer deserializer);
@@ -1205,15 +1199,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  JSAny cst_encode_parse_book_result(ParseBookResult raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return [
-      cst_encode_parse_result(raw.parseResult),
-      cst_encode_bool(raw.persistenceSucceeded),
-    ].jsify()!;
-  }
-
-  @protected
   JSAny cst_encode_parse_result(ParseResult raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
@@ -1230,6 +1215,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_i_32(raw.chapterIndex),
       cst_encode_opt_String(raw.chapterId),
       cst_encode_i_64(raw.charOffset),
+      cst_encode_i_32(raw.pageIndex),
+      cst_encode_i_32(raw.totalPages),
       cst_encode_f_32(raw.progress),
       cst_encode_i_64(raw.readingTimeSeconds),
       cst_encode_Chrono_Utc(raw.lastReadAt),
@@ -1403,9 +1390,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_opt_String(raw.bookId),
       cst_encode_opt_box_autoadd_i_64(raw.chapterIndex),
       cst_encode_opt_box_autoadd_i_64(raw.charOffset),
-      cst_encode_String(raw.createdAt),
+      cst_encode_Chrono_Utc(raw.createdAt),
       cst_encode_i_32(raw.reviewCount),
-      cst_encode_opt_String(raw.lastReviewedAt),
+      cst_encode_opt_box_autoadd_Chrono_Utc(raw.lastReviewedAt),
       cst_encode_String(raw.status),
     ].jsify()!;
   }
@@ -1791,12 +1778,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_page_content(PageContent self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_parse_book_result(
-    ParseBookResult self,
-    SseSerializer serializer,
-  );
 
   @protected
   void sse_encode_parse_result(ParseResult self, SseSerializer serializer);
@@ -2221,6 +2202,18 @@ class RustLibWire implements BaseWire {
     note_type,
   );
 
+  void wire__crate__api__storage__get_notes_in_chapter(
+    NativePortType port_,
+    String book_id,
+    int chapter_index,
+    int? note_type,
+  ) => wasmModule.wire__crate__api__storage__get_notes_in_chapter(
+    port_,
+    book_id,
+    chapter_index,
+    note_type,
+  );
+
   void wire__crate__api__storage__get_pinned_books(NativePortType port_) =>
       wasmModule.wire__crate__api__storage__get_pinned_books(port_);
 
@@ -2464,11 +2457,12 @@ class RustLibWire implements BaseWire {
     category_ids,
   );
 
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__bilingual__simple_bilingual_align(
+  void wire__crate__api__bilingual__simple_bilingual_align(
+    NativePortType port_,
     String chinese_content,
     String english_content,
   ) => wasmModule.wire__crate__api__bilingual__simple_bilingual_align(
+    port_,
     chinese_content,
     english_content,
   );
@@ -2831,6 +2825,13 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     int? note_type,
   );
 
+  external void wire__crate__api__storage__get_notes_in_chapter(
+    NativePortType port_,
+    String book_id,
+    int chapter_index,
+    int? note_type,
+  );
+
   external void wire__crate__api__storage__get_pinned_books(
     NativePortType port_,
   );
@@ -3008,8 +3009,8 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     JSAny category_ids,
   );
 
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__bilingual__simple_bilingual_align(
+  external void wire__crate__api__bilingual__simple_bilingual_align(
+    NativePortType port_,
     String chinese_content,
     String english_content,
   );
