@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 extension _BookCategoryColor on BookCategory {
   Color? get colorValue {
@@ -13,6 +15,7 @@ extension _BookCategoryColor on BookCategory {
     return null;
   }
 }
+
 /// 分类管理页面
 class CategoryManagementPage extends StatefulWidget {
   const CategoryManagementPage({super.key});
@@ -69,7 +72,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
         title: const Text('标签管理'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_rounded),
+            icon: const Icon(PhosphorIconsRegular.plus),
             onPressed: _showAddCategoryDialog,
             tooltip: '添加标签',
           ),
@@ -85,18 +88,18 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.label_outline,
+                    PhosphorIconsRegular.tag,
                     size: 64,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: DesignTokens.spacing(Spacing.md)),
                   Text(
                     '暂无标签',
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: DesignTokens.spacing(Spacing.sm)),
                   Text(
                     '点击右上角添加标签',
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -109,7 +112,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
           }
 
           return ReorderableListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(DesignTokens.spacing(Spacing.md)),
             itemCount: categories.length,
             onReorder: _onReorder,
             itemBuilder: (context, index) {
@@ -125,17 +128,21 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
   Widget _buildCategoryTile(BookCategory category, ThemeData theme) {
     return Card(
       key: ValueKey(category.id),
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: EdgeInsets.only(bottom: DesignTokens.spacing(Spacing.sm)),
       child: ListTile(
         leading: Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
             color: category.colorValue,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(
+              DesignTokens.radius(RadiusSize.md),
+            ),
           ),
           child: Icon(
-            category.isSystem ? Icons.star_rounded : Icons.label_rounded,
+            category.isSystem
+                ? PhosphorIconsFill.star
+                : PhosphorIconsRegular.tag,
             color: Colors.white,
           ),
         ),
@@ -154,12 +161,12 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined),
+                    icon: const Icon(PhosphorIconsRegular.pencilSimpleLine),
                     onPressed: () => _showEditCategoryDialog(category),
                     tooltip: '编辑',
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline),
+                    icon: const Icon(PhosphorIconsRegular.trash),
                     onPressed: () => _showDeleteConfirm(category),
                     tooltip: '删除',
                     color: theme.colorScheme.error,
@@ -214,17 +221,17 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                 decoration: const InputDecoration(
                   labelText: '标签名称',
                   hintText: '输入标签名称',
-                  prefixIcon: Icon(Icons.label_outline),
+                  prefixIcon: Icon(PhosphorIconsRegular.tag),
                 ),
                 autofocus: true,
                 maxLength: 10,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: DesignTokens.spacing(Spacing.md)),
               const Text('选择颜色'),
               const SizedBox(height: 12),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: DesignTokens.spacing(Spacing.sm),
+                runSpacing: DesignTokens.spacing(Spacing.sm),
                 children: _colors.map((entry) {
                   final isSelected = selectedColor == entry.key;
                   return GestureDetector(
@@ -259,7 +266,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                       ),
                       child: isSelected
                           ? const Icon(
-                              Icons.check_rounded,
+                              PhosphorIconsBold.check,
                               color: Colors.white,
                               size: 20,
                             )
@@ -329,16 +336,16 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                 decoration: const InputDecoration(
                   labelText: '标签名称',
                   hintText: '输入标签名称',
-                  prefixIcon: Icon(Icons.label_outline),
+                  prefixIcon: Icon(PhosphorIconsRegular.tag),
                 ),
                 maxLength: 10,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: DesignTokens.spacing(Spacing.md)),
               const Text('选择颜色'),
               const SizedBox(height: 12),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: DesignTokens.spacing(Spacing.sm),
+                runSpacing: DesignTokens.spacing(Spacing.sm),
                 children: _colors.map((entry) {
                   final isSelected = selectedColor == entry.key;
                   return GestureDetector(
@@ -373,7 +380,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                       ),
                       child: isSelected
                           ? const Icon(
-                              Icons.check_rounded,
+                              PhosphorIconsBold.check,
                               color: Colors.white,
                               size: 20,
                             )

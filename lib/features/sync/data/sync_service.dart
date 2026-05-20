@@ -49,19 +49,19 @@ class SyncRepository {
       final content = await _fileStorage.readString(_syncQueueFile);
       if (content == null) return [];
 
-      final List<dynamic> json = jsonDecode(content);
+      final List<dynamic> json = jsonDecode(content) as List<dynamic>;
       return json
           .map(
             (item) => SyncTask(
-              id: item['id'],
-              type: item['type'],
-              data: Map<String, dynamic>.from(item['data']),
-              createdAt: DateTime.parse(item['createdAt']),
+              id: item['id'] as String,
+              type: item['type'] as String,
+              data: Map<String, dynamic>.from(item['data'] as Map),
+              createdAt: DateTime.parse(item['createdAt'] as String),
               status: SyncQueueStatus.values.firstWhere(
                 (s) => s.name == item['status'],
                 orElse: () => SyncQueueStatus.idle,
               ),
-              errorMessage: item['errorMessage'],
+              errorMessage: item['errorMessage'] as String?,
             ),
           )
           .toList();

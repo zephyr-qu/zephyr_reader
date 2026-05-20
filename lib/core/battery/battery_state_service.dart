@@ -1,72 +1,45 @@
-/// 电池状态服务
-///
-/// 使用 system_state 包检测电池充电状态
 library;
 
 import 'dart:io';
 
 import 'package:system_state/system_state.dart';
 
-/// 电池状态服务单例
 class BatteryStateService {
   BatteryStateService._internal();
 
   factory BatteryStateService() => _instance;
   static final BatteryStateService _instance = BatteryStateService._internal();
 
-  /// 检查是否正在充电
-  Future<bool> isCharging() async {
-    if (!Platform.isAndroid) {
-      return false;
-    }
+  Future<T> _guardAndroid<T>(Future<T> Function() fn, T defaultValue) async {
+    if (!Platform.isAndroid) return defaultValue;
     try {
-      final state = await SystemState.battery.getBatteryState();
-      return state.isCharging;
-    } catch (e) {
-      // 如果无法获取电池状态，默认返回 false
-      return false;
+      return await fn();
+    } catch (_) {
+      return defaultValue;
     }
   }
 
-  /// 获取当前电池电量 (0 - 100)
-  Future<int> getBatteryLevel() async {
-    if (!Platform.isAndroid) {
-      return 0;
-    }
-    try {
-      final state = await SystemState.battery.getBatteryState();
-      return state.batteryLevel;
-    } catch (e) {
-      return 0;
-    }
-  }
+  Future<bool> isCharging() async => _guardAndroid(
+    () async => (await SystemState.battery.getBatteryState()).isCharging,
+    false,
+  );
 
-  /// 获取电池状态
-  Future<BatteryState> getBatteryState() async {
-    if (!Platform.isAndroid) {
-      // 返回默认状态
-      return BatteryState.fromMap({
-        'batteryLevel': 0,
-        'temperature': 0.0,
-        'isCharging': false,
-      });
-    }
-    try {
-      return await SystemState.battery.getBatteryState();
-    } catch (e) {
-      return BatteryState.fromMap({
-        'batteryLevel': 0,
-        'temperature': 0.0,
-        'isCharging': false,
-      });
-    }
-  }
+  Future<int> getBatteryLevel() async => _guardAndroid(
+    () async => (await SystemState.battery.getBatteryState()).batteryLevel,
+    0,
+  );
 
-  /// 监听电池状态变化
+  Future<BatteryState> getBatteryState() async => _guardAndroid(
+    () async => await SystemState.battery.getBatteryState(),
+    BatteryState.fromMap({
+      'batteryLevel': 0,
+      'temperature': 0.0,
+      'isCharging': false,
+    }),
+  );
+
   void listen(void Function(BatteryState state) callback) {
-    if (!Platform.isAndroid) {
-      return;
-    }
+    if (!Platform.isAndroid) return;
     SystemState.battery.listen(callback);
   }
 }

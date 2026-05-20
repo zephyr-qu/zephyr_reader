@@ -10,9 +10,7 @@ class RustCoverService {
     required String filePath,
     required String outputDir,
   }) async =>
-      await rust.extractBookCover(
-              filePath: filePath, outputDir: outputDir)
-          ;
+      await rust.extractBookCover(filePath: filePath, outputDir: outputDir);
 
   bool supportsCoverExtraction(String filePath) =>
       rust.supportsCoverExtraction(filePath: filePath);

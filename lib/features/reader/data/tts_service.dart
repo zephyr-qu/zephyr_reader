@@ -2,15 +2,13 @@ library;
 
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:injectable/injectable.dart';
+import 'package:signals_flutter/signals_flutter.dart';
 
 @lazySingleton
 class TtsService {
   final FlutterTts _tts = FlutterTts();
-  bool _isPlaying = false;
-  bool _isPaused = false;
-
-  bool get isPlaying => _isPlaying;
-  bool get isPaused => _isPaused;
+  final isPlaying = signal<bool>(false);
+  final isPaused = signal<bool>(false);
 
   TtsService() {
     _init();
@@ -21,41 +19,41 @@ class TtsService {
     await _tts.setVolume(1.0);
     await _tts.setPitch(1.0);
     _tts.setCompletionHandler(() {
-      _isPlaying = false;
-      _isPaused = false;
+      isPlaying.value = false;
+      isPaused.value = false;
     });
     _tts.setErrorHandler((msg) {
-      _isPlaying = false;
-      _isPaused = false;
+      isPlaying.value = false;
+      isPaused.value = false;
     });
   }
 
   Future<void> speak(String text, {double rate = 0.5}) async {
     await stop();
-    _isPlaying = true;
-    _isPaused = false;
+    isPlaying.value = true;
+    isPaused.value = false;
     await _tts.setSpeechRate(rate);
     await _tts.speak(text);
   }
 
   Future<void> pause() async {
-    if (_isPlaying && !_isPaused) {
+    if (isPlaying.value && !isPaused.value) {
       await _tts.pause();
-      _isPaused = true;
+      isPaused.value = true;
     }
   }
 
   Future<void> resume() async {
-    if (_isPlaying && _isPaused) {
+    if (isPlaying.value && isPaused.value) {
       await _tts.speak('');
-      _isPaused = false;
+      isPaused.value = false;
     }
   }
 
   Future<void> stop() async {
     await _tts.stop();
-    _isPlaying = false;
-    _isPaused = false;
+    isPlaying.value = false;
+    isPaused.value = false;
   }
 
   Future<void> setRate(double rate) async {

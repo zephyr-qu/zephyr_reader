@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -113,7 +114,9 @@ class BookshelfViewModel {
           case BookshelfSortType.author:
             return (a.author ?? '').compareTo(b.author ?? '');
           case BookshelfSortType.lastRead:
-            return -(a.lastOpenedAt ?? DateTime(2000)).compareTo(b.lastOpenedAt ?? DateTime(2000));
+            return -(a.lastOpenedAt ?? DateTime(2000)).compareTo(
+              b.lastOpenedAt ?? DateTime(2000),
+            );
           case BookshelfSortType.progress:
           case BookshelfSortType.createdAt:
             return -(a.addedAt).compareTo(b.addedAt);
@@ -255,7 +258,8 @@ class BookshelfViewModel {
     }
   }
 
-  static const String _keyShowReadingProgress = 'bookshelf.show_reading_progress';
+  static const String _keyShowReadingProgress =
+      'bookshelf.show_reading_progress';
   static const String _keyShowRecentReading = 'bookshelf.show_recent_reading';
   static const String _keyDefaultSortType = 'bookshelf.default_sort_type';
 
@@ -293,7 +297,10 @@ class BookshelfViewModel {
             return ListTile(
               title: Text(type.displayName),
               trailing: defaultSortType.value == type
-                  ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+                  ? Icon(
+                      PhosphorIconsRegular.check,
+                      color: Theme.of(context).colorScheme.primary,
+                    )
                   : null,
               onTap: () => Navigator.pop(context, type),
             );

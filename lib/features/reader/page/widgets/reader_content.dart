@@ -1,17 +1,18 @@
-library;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:get_it/get_it.dart';
-
 import 'package:zephyr_reader/core/reader/font_config.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual_highlight.dart';
 import 'package:zephyr_reader/src/rust/domain/types.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-import '../../domain/services/highlight_painter.dart';
 import '../../application/reader_view_model.dart';
 import '../../data/repositories/rust_reader_repository.dart';
+import '../../domain/services/highlight_painter.dart';
+import '../../../../core/utils/adaptive_scroll_physics.dart';
 
 class ReaderContent extends HookWidget {
   final String bookId;
@@ -35,18 +36,24 @@ class ReaderContent extends HookWidget {
   final List<Note> highlights;
   final void Function(String text, int start, int end)? onSelectionChanged;
   final void Function(Note)? onHighlightTap;
+  final ValueChanged<Offset?>? onSelectionGlobalPosition;
   final String fontFamily;
   final String searchQuery;
   final bool searchMatchHighlight;
   final double letterSpacing;
   final double paragraphSpacing;
   final double pageMargin;
+  final int bgIndex;
   final WritingDirection writingDirection;
   final bool showVocabularyMark;
   final Set<String> vocabularyWords;
   final bool showSentenceSplit;
+  final int? jumpToCharOffset;
+  final ValueChanged<int>? onPositionChanged;
+  final VoidCallback? onJumpHandled;
 
-  Set<String> get _effectiveVocabWords => showVocabularyMark ? vocabularyWords : const {};
+  Set<String> get _effectiveVocabWords =>
+      showVocabularyMark ? vocabularyWords : const {};
 
   const ReaderContent({
     super.key,
@@ -71,6 +78,7 @@ class ReaderContent extends HookWidget {
     this.highlights = const [],
     this.onSelectionChanged,
     this.onHighlightTap,
+    this.onSelectionGlobalPosition,
     this.fontFamily = 'Noto Sans SC',
     this.searchQuery = '',
     this.searchMatchHighlight = false,
@@ -80,7 +88,11 @@ class ReaderContent extends HookWidget {
     this.writingDirection = WritingDirection.horizontal,
     this.showVocabularyMark = false,
     this.vocabularyWords = const {},
+    this.bgIndex = 0,
     this.showSentenceSplit = false,
+    this.jumpToCharOffset,
+    this.onPositionChanged,
+    this.onJumpHandled,
   });
 
   @override
@@ -111,7 +123,9 @@ class ReaderContent extends HookWidget {
         bilingualPairs.value = [];
         return null;
       }
-      getBilingualHighlightPairs(bookId: bookId, chapterIndex: chapterId).then((pairs) {
+      getBilingualHighlightPairs(bookId: bookId, chapterIndex: chapterId).then((
+        pairs,
+      ) {
         bilingualPairs.value = pairs;
       });
       return null;
@@ -130,7 +144,8 @@ class ReaderContent extends HookWidget {
             curve: Curves.easeInOut,
           );
         }
-      } else if (readingMode == ReadingMode.pagination && pageController.hasClients) {
+      } else if (readingMode == ReadingMode.pagination &&
+          pageController.hasClients) {
         final nextPage = pageIndex + 1;
         if (nextPage < totalPages) {
           pageController.animateToPage(
@@ -144,19 +159,112 @@ class ReaderContent extends HookWidget {
       return null;
     }, [autoScrollTick]);
 
+    useEffect(() {
+      if (readingMode == ReadingMode.pagination) {
+        return null;
+      }
+      void handleScroll() {
+        if (!scrollController.hasClients) {
+          return;
+        }
+        final maxExtent = scrollController.position.maxScrollExtent;
+        final ratio = maxExtent <= 0
+            ? 0.0
+            : (scrollController.offset / maxExtent);
+        final offset = (ratio * content.length).round().clamp(
+          0,
+          content.length,
+        );
+        onPositionChanged?.call(offset);
+      }
+
+      scrollController.addListener(handleScroll);
+      return () => scrollController.removeListener(handleScroll);
+    }, [scrollController, readingMode, content]);
+
+    useEffect(() {
+      if (jumpToCharOffset == null) {
+        return null;
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (readingMode == ReadingMode.pagination) {
+          final pages = repo.getCachedPages(bookId, chapterId);
+          if (pages != null && pages.isNotEmpty) {
+            final targetIndex = _findPageIndexForOffset(
+              pages,
+              jumpToCharOffset!,
+            );
+            if (pageController.hasClients) {
+              pageController.jumpToPage(targetIndex);
+            }
+            onPageChanged?.call(targetIndex);
+            onPositionChanged?.call(pages[targetIndex].startOffset);
+          }
+        } else if (scrollController.hasClients) {
+          final maxExtent = scrollController.position.maxScrollExtent;
+          final ratio = content.isEmpty
+              ? 0.0
+              : (jumpToCharOffset! / content.length);
+          final target = (maxExtent * ratio).clamp(0.0, maxExtent);
+          scrollController.animateTo(
+            target,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+          );
+          onPositionChanged?.call(jumpToCharOffset!.clamp(0, content.length));
+        }
+        onJumpHandled?.call();
+      });
+      return null;
+    }, [jumpToCharOffset, readingMode, bookId, chapterId, content]);
+
+    final contentWidget = _buildContent(
+      context,
+      content,
+      isLoading,
+      error,
+      textColor,
+      backgroundColor,
+      pageController,
+      scrollController,
+      repo,
+      bilingualPairs.value,
+    );
+
+    final prevPageIndex = useRef(pageIndex);
+    final isForward = pageIndex >= prevPageIndex.value;
+    prevPageIndex.value = pageIndex;
+
+    final usePageKey = readingMode != ReadingMode.pagination;
+    final contentKey = isLoading
+        ? const ValueKey('loading')
+        : error != null
+        ? const ValueKey('error')
+        : usePageKey
+        ? ValueKey('${readingMode}_${content.length}_$pageIndex')
+        : ValueKey('${readingMode}_${content.length}');
+
     return Container(
       color: backgroundColor,
-      child: _buildContent(
-        context,
-        content,
-        isLoading,
-        error,
-        textColor,
-        backgroundColor,
-        pageController,
-        scrollController,
-        repo,
-        bilingualPairs.value,
+      child: RepaintBoundary(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) {
+            final offset = isForward
+                ? const Offset(0.3, 0)
+                : const Offset(-0.3, 0);
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: offset,
+                end: Offset.zero,
+              ).animate(animation),
+              child: FadeTransition(opacity: animation, child: child),
+            );
+          },
+          child: KeyedSubtree(key: contentKey, child: contentWidget),
+        ),
       ),
     );
   }
@@ -182,14 +290,19 @@ class ReaderContent extends HookWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
-            const SizedBox(height: 16),
-            Text(error, style: const TextStyle(fontSize: 16), textAlign: TextAlign.center),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: onRetry,
-              child: const Text('重新加载'),
+            Icon(
+              PhosphorIconsRegular.warningCircle,
+              size: 64,
+              color: Colors.red[300],
             ),
+            const SizedBox(height: 16),
+            Text(
+              error,
+              style: const TextStyle(fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(onPressed: onRetry, child: const Text('重新加载')),
           ],
         ),
       );
@@ -200,11 +313,30 @@ class ReaderContent extends HookWidget {
     }
 
     if (readingMode == ReadingMode.scroll) {
-      return _buildScrollMode(content, textColor, scrollController, repo, context);
-    } else     if (readingMode == ReadingMode.bilingual) {
-      return _buildBilingualMode(textColor, backgroundColor, bilingualPairs);
+      return _buildScrollMode(
+        content,
+        textColor,
+        scrollController,
+        repo,
+        context,
+      );
+    } else if (readingMode == ReadingMode.bilingual) {
+      return _buildBilingualMode(
+        context,
+        textColor,
+        backgroundColor,
+        bilingualPairs,
+        scrollController,
+      );
     } else {
-      return _buildPaginationMode(context, content, textColor, backgroundColor, pageController, repo);
+      return _buildPaginationMode(
+        context,
+        content,
+        textColor,
+        backgroundColor,
+        pageController,
+        repo,
+      );
     }
   }
 
@@ -240,7 +372,13 @@ class ReaderContent extends HookWidget {
     BuildContext context,
   ) {
     if (writingDirection == WritingDirection.vertical) {
-      return _buildVerticalScrollMode(content, textColor, scrollController, repo, context,);
+      return _buildVerticalScrollMode(
+        content,
+        textColor,
+        scrollController,
+        repo,
+        context,
+      );
     }
     final richSpan = repo.getCachedRichTextSpan(bookId, chapterId);
     final textStyle = FontConfig.readerStyle(
@@ -260,7 +398,12 @@ class ReaderContent extends HookWidget {
       final richParagraphs = repo.getCachedRichParagraphs(bookId, chapterId);
       if (richParagraphs != null && richParagraphs.any((p) => p.isImage)) {
         return _buildRichScrollWithImages(
-          richParagraphs, richSpan, textStyle, strutStyle, scrollController, context,
+          richParagraphs,
+          richSpan,
+          textStyle,
+          strutStyle,
+          scrollController,
+          context,
         );
       }
       final paragraphs = _extractParagraphSpans(richSpan);
@@ -275,6 +418,7 @@ class ReaderContent extends HookWidget {
       }).toList();
       return ListView.builder(
         controller: scrollController,
+        physics: adaptiveScrollPhysics(context),
         padding: EdgeInsets.symmetric(horizontal: pageMargin, vertical: 20),
         itemCount: paragraphs.length,
         itemBuilder: (context, index) {
@@ -287,21 +431,32 @@ class ReaderContent extends HookWidget {
             searchMatchHighlight: searchMatchHighlight,
             vocabularyWords: _effectiveVocabWords,
           );
-          return Padding(
-            padding: EdgeInsets.only(bottom: index < paragraphs.length - 1 ? paragraphSpacing : 0),
-            child: SelectableText.rich(
-              painted,
-              style: textStyle,
-              strutStyle: strutStyle,
-              textAlign: TextAlign.justify,
-              onSelectionChanged: (sel, cause) => _onRichSelectionChanged(sel, paragraphs[index], paraOffsets[index]),
+          return RepaintBoundary(
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: index < paragraphs.length - 1 ? paragraphSpacing : 0,
+              ),
+              child: SelectableText.rich(
+                painted,
+                style: textStyle,
+                strutStyle: strutStyle,
+                textAlign: TextAlign.justify,
+                onSelectionChanged: (sel, cause) => _onRichSelectionChanged(
+                  sel,
+                  paragraphs[index],
+                  paraOffsets[index],
+                  context,
+                ),
+                contextMenuBuilder: (_, __) => const SizedBox.shrink(),
+              ),
             ),
           );
         },
       );
     }
 
-    final paragraphList = content.split('\n\n')
+    final paragraphList = content
+        .split('\n\n')
         .where((p) => p.trim().isNotEmpty)
         .map((p) => _splitLongSentence(p))
         .toList();
@@ -316,6 +471,7 @@ class ReaderContent extends HookWidget {
     }).toList();
     return ListView.builder(
       controller: scrollController,
+      physics: adaptiveScrollPhysics(context),
       padding: EdgeInsets.symmetric(horizontal: pageMargin, vertical: 20),
       itemCount: paragraphList.length,
       itemBuilder: (context, index) {
@@ -328,13 +484,23 @@ class ReaderContent extends HookWidget {
           searchMatchHighlight: searchMatchHighlight,
           vocabularyWords: _effectiveVocabWords,
         );
-        return Padding(
-          padding: EdgeInsets.only(bottom: index < paragraphList.length - 1 ? paragraphSpacing : 0),
-          child: SelectableText.rich(
-            painted,
-            strutStyle: strutStyle,
-            textAlign: TextAlign.justify,
-            onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(sel, paragraphList[index], offsets[index]),
+        return RepaintBoundary(
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: index < paragraphList.length - 1 ? paragraphSpacing : 0,
+            ),
+            child: SelectableText.rich(
+              painted,
+              strutStyle: strutStyle,
+              textAlign: TextAlign.justify,
+              onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(
+                sel,
+                paragraphList[index],
+                offsets[index],
+                context,
+              ),
+              contextMenuBuilder: (_, __) => const SizedBox.shrink(),
+            ),
           ),
         );
       },
@@ -372,6 +538,7 @@ class ReaderContent extends HookWidget {
         textDirection: TextDirection.rtl,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
+          physics: adaptiveScrollPhysics(context),
           padding: EdgeInsets.symmetric(horizontal: pageMargin, vertical: 20),
           itemCount: textParagraphs.length,
           itemBuilder: (context, index) {
@@ -389,6 +556,11 @@ class ReaderContent extends HookWidget {
                   painted,
                   style: textStyle,
                   strutStyle: strutStyle,
+                  textAlign: TextAlign.start,
+                  onSelectionChanged: (sel, cause) => _onRichSelectionChanged(
+                    sel, span, 0, context,
+                  ),
+                  contextMenuBuilder: (_, __) => const SizedBox.shrink(),
                 ),
               ),
             );
@@ -397,7 +569,9 @@ class ReaderContent extends HookWidget {
       );
     }
 
-    final paragraphList = content.split('\n\n').where((p) => p.trim().isNotEmpty).toList();
+    final paragraphList = content.split('\n\n')
+        .where((p) => p.trim().isNotEmpty)
+        .toList();
     if (paragraphList.isEmpty) {
       return const Center(child: Text('内容为空'));
     }
@@ -406,6 +580,7 @@ class ReaderContent extends HookWidget {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         controller: scrollController,
+        physics: adaptiveScrollPhysics(context),
         padding: EdgeInsets.symmetric(horizontal: pageMargin, vertical: 20),
         itemCount: paragraphList.length,
         itemBuilder: (context, index) {
@@ -424,7 +599,10 @@ class ReaderContent extends HookWidget {
                 painted,
                 strutStyle: strutStyle,
                 textAlign: TextAlign.start,
-                onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(sel, paragraphList[index], 0),
+                onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(
+                  sel, paragraphList[index], 0, context,
+                ),
+                contextMenuBuilder: (_, __) => const SizedBox.shrink(),
               ),
             ),
           );
@@ -449,70 +627,111 @@ class ReaderContent extends HookWidget {
       accOffset += _spanTextLength(p) + 2;
     }
 
-    final items = <Widget>[];
-    int textIdx = 0;
+    final textParaIndex = <int>[];
+    var ti = 0;
+    for (final rp in richParagraphs) {
+      if (rp.isImage) {
+        textParaIndex.add(-1);
+      } else {
+        textParaIndex.add(ti);
+        ti++;
+      }
+    }
+
     final maxWidth = MediaQuery.of(context).size.width - 32;
 
-    for (int i = 0; i < richParagraphs.length; i++) {
-      final rp = richParagraphs[i];
-      if (rp.isImage) {
-        if (rp.imageData.isNotEmpty) {
-          items.add(
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+    return ListView.builder(
+      controller: scrollController,
+      physics: adaptiveScrollPhysics(context),
+      padding: EdgeInsets.symmetric(horizontal: pageMargin, vertical: 20),
+      itemCount: richParagraphs.length,
+      itemBuilder: (context, index) {
+        final rp = richParagraphs[index];
+        if (rp.isImage) {
+          if (rp.imageData.isEmpty) return const SizedBox.shrink();
+          return RepaintBoundary(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                vertical: DesignTokens.spacing(Spacing.sm),
+              ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: Image.memory(
                   rp.imageData,
                   width: maxWidth,
                   fit: BoxFit.contain,
-                  cacheWidth: (maxWidth * MediaQuery.of(context).devicePixelRatio).ceil(),
+                  cacheWidth:
+                      (maxWidth * MediaQuery.of(context).devicePixelRatio)
+                          .ceil(),
                   errorBuilder: (_, e, s) => Container(
                     height: 100,
                     color: Colors.grey.withValues(alpha: 0.1),
-                    child: const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
+                    child: const Center(
+                      child: Icon(
+                        PhosphorIconsRegular.imageBroken,
+                        color: Colors.grey,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           );
-        }
-      } else {
-        if (textIdx < textParagraphs.length) {
-          final idx = textIdx;
-          final span = textParagraphs[idx];
-          final offset = paraOffsets[idx];
+        } else {
+          final textIdx = textParaIndex[index];
+          if (textIdx < 0 || textIdx >= textParagraphs.length) {
+            return const SizedBox.shrink();
+          }
+          final span = textParagraphs[textIdx];
+          final offset = paraOffsets[textIdx];
           final painted = HighlightPainter.paintRich(
-            span, offset, highlights,
+            span,
+            offset,
+            highlights,
             onHighlightTap: onHighlightTap,
             searchQuery: searchQuery,
             searchMatchHighlight: searchMatchHighlight,
             vocabularyWords: _effectiveVocabWords,
           );
-          items.add(
-            Padding(
-              padding: EdgeInsets.only(bottom: idx < textParagraphs.length - 1 ? paragraphSpacing : 0),
+          return RepaintBoundary(
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: textIdx < textParagraphs.length - 1
+                    ? paragraphSpacing
+                    : 0,
+              ),
               child: SelectableText.rich(
                 painted,
                 style: textStyle,
                 strutStyle: strutStyle,
                 textAlign: TextAlign.justify,
-                onSelectionChanged: (sel, cause) => _onRichSelectionChanged(sel, span, offset),
+                onSelectionChanged: (sel, cause) =>
+                    _onRichSelectionChanged(sel, span, offset, context),
+                contextMenuBuilder: (_, __) => const SizedBox.shrink(),
               ),
             ),
           );
-          textIdx++;
         }
-      }
-    }
-    return ListView(
-      controller: scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      children: items,
+      },
     );
   }
 
-  void _onPlainSelectionChanged(TextSelection sel, String paragraphText, int offset) {
+  void _reportSelectionPosition(BuildContext context, TextSelection sel) {
+    if (!sel.isValid || sel.isCollapsed) {
+      onSelectionGlobalPosition?.call(null);
+      return;
+    }
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize || !box.attached) return;
+    onSelectionGlobalPosition?.call(box.localToGlobal(Offset.zero));
+  }
+
+  void _onPlainSelectionChanged(
+    TextSelection sel,
+    String paragraphText,
+    int offset, [
+    BuildContext? buildContext,
+  ]) {
     if (!sel.isValid || sel.isCollapsed) {
       onSelectionChanged?.call('', 0, 0);
       return;
@@ -521,9 +740,17 @@ class ReaderContent extends HookWidget {
     final end = sel.end;
     final text = paragraphText.substring(start, end);
     onSelectionChanged?.call(text, offset + start, offset + end);
+    if (buildContext != null) {
+      _reportSelectionPosition(buildContext, sel);
+    }
   }
 
-  void _onRichSelectionChanged(TextSelection sel, TextSpan span, int offset) {
+  void _onRichSelectionChanged(
+    TextSelection sel,
+    TextSpan span,
+    int offset, [
+    BuildContext? buildContext,
+  ]) {
     if (!sel.isValid || sel.isCollapsed) {
       onSelectionChanged?.call('', 0, 0);
       return;
@@ -536,6 +763,9 @@ class ReaderContent extends HookWidget {
     final end = sel.end > fullText.length ? fullText.length : sel.end;
     final text = fullText.substring(sel.start, end);
     onSelectionChanged?.call(text, offset + sel.start, offset + end);
+    if (buildContext != null) {
+      _reportSelectionPosition(buildContext, sel);
+    }
   }
 
   int _spanTextLength(TextSpan span) {
@@ -569,7 +799,9 @@ class ReaderContent extends HookWidget {
       buf.writeln(text.substring(start).trim());
     }
     var result = buf.toString().trim();
-    if (result.endsWith('\n')) result = result.substring(0, result.length - 1);
+    if (result.endsWith('\n')) {
+      result = result.substring(0, result.length - 1);
+    }
     return result;
   }
 
@@ -585,8 +817,12 @@ class ReaderContent extends HookWidget {
     if (cachedPages != null && cachedPages.isNotEmpty) {
       return PageView.builder(
         controller: pageController,
+        physics: adaptiveScrollPhysics(context),
         itemCount: cachedPages.length,
-        onPageChanged: (index) => onPageChanged?.call(index),
+        onPageChanged: (index) {
+          onPageChanged?.call(index);
+          onPositionChanged?.call(cachedPages[index].startOffset);
+        },
         itemBuilder: (context, index) {
           final page = cachedPages[index];
           final textStyle = FontConfig.readerStyle(
@@ -602,39 +838,79 @@ class ReaderContent extends HookWidget {
             fontFamily: fontFamily,
           );
           if (page.richContent != null) {
-            final painted = HighlightPainter.paintRich(page.richContent!, page.startOffset, highlights,
-                onHighlightTap: onHighlightTap, searchQuery: searchQuery, searchMatchHighlight: searchMatchHighlight,
-                vocabularyWords: _effectiveVocabWords);
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: SelectableText.rich(
-                TextSpan(style: textStyle, children: [painted]),
-                strutStyle: strutStyle,
-                textAlign: TextAlign.justify,
-                onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(sel, page.content, page.startOffset),
+            final painted = HighlightPainter.paintRich(
+              page.richContent!,
+              page.startOffset,
+              highlights,
+              onHighlightTap: onHighlightTap,
+              searchQuery: searchQuery,
+              searchMatchHighlight: searchMatchHighlight,
+              vocabularyWords: _effectiveVocabWords,
+            );
+            return RepaintBoundary(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: pageMargin,
+                  vertical: 20,
+                ),
+                child: SelectableText.rich(
+                  TextSpan(style: textStyle, children: [painted]),
+                  strutStyle: strutStyle,
+                  textAlign: TextAlign.justify,
+                  onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(
+                    sel,
+                    page.content,
+                    page.startOffset,
+                    context,
+                  ),
+                  contextMenuBuilder: (_, __) => const SizedBox.shrink(),
+                ),
               ),
             );
           }
-          final paintedSpan = HighlightPainter.paintPlain(page.content, textStyle, highlights,
-              onHighlightTap: onHighlightTap, searchQuery: searchQuery, searchMatchHighlight: searchMatchHighlight,
-              vocabularyWords: _effectiveVocabWords);
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: SelectableText.rich(
-              paintedSpan,
-              strutStyle: strutStyle,
-              textAlign: TextAlign.justify,
-              onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(sel, page.content, page.startOffset),
+          final paintedSpan = HighlightPainter.paintPlain(
+            page.content,
+            textStyle,
+            highlights,
+            onHighlightTap: onHighlightTap,
+            searchQuery: searchQuery,
+            searchMatchHighlight: searchMatchHighlight,
+            vocabularyWords: _effectiveVocabWords,
+          );
+          return RepaintBoundary(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: pageMargin,
+                vertical: 20,
+              ),
+              child: SelectableText.rich(
+                paintedSpan,
+                strutStyle: strutStyle,
+                textAlign: TextAlign.justify,
+                onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(
+                  sel,
+                  page.content,
+                  page.startOffset,
+                  context,
+                ),
+                contextMenuBuilder: (_, __) => const SizedBox.shrink(),
+              ),
             ),
           );
         },
       );
     }
 
-    return _buildFallbackPagination(content, textColor, pageController);
+    return _buildFallbackPagination(
+      context,
+      content,
+      textColor,
+      pageController,
+    );
   }
 
   Widget _buildFallbackPagination(
+    BuildContext context,
     String content,
     Color textColor,
     PageController pageController,
@@ -649,8 +925,12 @@ class ReaderContent extends HookWidget {
     var accOffset = 0;
     return PageView.builder(
       controller: pageController,
+      physics: adaptiveScrollPhysics(context),
       itemCount: pages.length,
-      onPageChanged: (index) => onPageChanged?.call(index),
+      onPageChanged: (index) {
+        onPageChanged?.call(index);
+        onPositionChanged?.call(_findFallbackPageStart(pages, index));
+      },
       itemBuilder: (context, index) {
         final pageContent = pages[index];
         final pageStart = accOffset;
@@ -667,23 +947,43 @@ class ReaderContent extends HookWidget {
           lineHeight: lineHeight,
           fontFamily: fontFamily,
         );
-        final painted = HighlightPainter.paintPlain(pageContent, textStyle, highlights,
-            onHighlightTap: onHighlightTap, searchQuery: searchQuery, searchMatchHighlight: searchMatchHighlight,
-            vocabularyWords: _effectiveVocabWords);
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: SelectableText.rich(
-            painted,
-            strutStyle: strutStyle,
-            textAlign: TextAlign.justify,
-            onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(sel, pageContent, pageStart),
+        final painted = HighlightPainter.paintPlain(
+          pageContent,
+          textStyle,
+          highlights,
+          onHighlightTap: onHighlightTap,
+          searchQuery: searchQuery,
+          searchMatchHighlight: searchMatchHighlight,
+          vocabularyWords: _effectiveVocabWords,
+        );
+        return RepaintBoundary(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: pageMargin, vertical: 20),
+            child: SelectableText.rich(
+              painted,
+              strutStyle: strutStyle,
+              textAlign: TextAlign.justify,
+              onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(
+                sel,
+                pageContent,
+                pageStart,
+                context,
+              ),
+              contextMenuBuilder: (_, __) => const SizedBox.shrink(),
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildBilingualMode(Color textColor, Color backgroundColor, List<BilingualHighlightPair> bilingualPairs) {
+  Widget _buildBilingualMode(
+    BuildContext context,
+    Color textColor,
+    Color backgroundColor,
+    List<BilingualHighlightPair> bilingualPairs,
+    ScrollController scrollController,
+  ) {
     if (isBilingualLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -692,9 +992,16 @@ class ReaderContent extends HookWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+            Icon(
+              PhosphorIconsRegular.warningCircle,
+              size: 48,
+              color: Colors.red[300],
+            ),
             const SizedBox(height: 16),
-            Text(bilingualError!, style: TextStyle(fontSize: 16, color: textColor)),
+            Text(
+              bilingualError!,
+              style: TextStyle(fontSize: 16, color: textColor),
+            ),
           ],
         ),
       );
@@ -709,7 +1016,7 @@ class ReaderContent extends HookWidget {
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: onRequestTranslation,
-              icon: const Icon(Icons.add),
+              icon: const Icon(PhosphorIconsRegular.plus),
               label: const Text('设置译文'),
             ),
           ],
@@ -717,10 +1024,13 @@ class ReaderContent extends HookWidget {
       );
     }
 
-    final cnHighlights = highlights.where((h) => h.language == null || h.language == 'zh').toList();
+    final cnHighlights = highlights
+        .where((h) => h.language == null || h.language == 'zh')
+        .toList();
     final enHighlights = highlights.where((h) => h.language == 'en').toList();
     for (final pair in bilingualPairs) {
-      if (pair.sourceNote.language == null || pair.sourceNote.language == 'zh') {
+      if (pair.sourceNote.language == null ||
+          pair.sourceNote.language == 'zh') {
         cnHighlights.add(pair.sourceNote);
       } else {
         enHighlights.add(pair.sourceNote);
@@ -762,51 +1072,69 @@ class ReaderContent extends HookWidget {
       useLatin: true,
     );
 
-    var cnOffset = 0;
-    var enOffset = 0;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: alignment.segments.map((seg) {
-          final cnOff = cnOffset;
-          final enOff = enOffset;
-          cnOffset += seg.chinese.length;
-          enOffset += seg.english.length;
+    final cnOffsets = <int>[];
+    var acc = 0;
+    for (final seg in alignment.segments) {
+      cnOffsets.add(acc);
+      acc += seg.chinese.length;
+    }
+    final enOffsets = <int>[];
+    acc = 0;
+    for (final seg in alignment.segments) {
+      enOffsets.add(acc);
+      acc += seg.english.length;
+    }
 
-          final cnSegHighlights = cnHighlights.where((h) {
-            final hStart = h.charOffset.toInt();
-            final hEnd = hStart + h.length.toInt();
-            return hEnd > cnOff && hStart < cnOff + seg.chinese.length;
-          }).map((h) => h.copyWith(charOffset: h.charOffset - cnOff)).toList();
+    return ListView.builder(
+      controller: scrollController,
+      physics: adaptiveScrollPhysics(context),
+      padding: EdgeInsets.symmetric(horizontal: pageMargin, vertical: 20),
+      itemCount: alignment.segments.length,
+      itemBuilder: (context, index) {
+        final seg = alignment.segments[index];
+        final cnOff = cnOffsets[index];
+        final enOff = enOffsets[index];
 
-          final cnSpan = HighlightPainter.paintPlain(
-            seg.chinese,
-            chineseStyle,
-            cnSegHighlights,
-            onHighlightTap: onHighlightTap,
-            searchQuery: searchQuery,
-            searchMatchHighlight: searchMatchHighlight,
-            vocabularyWords: _effectiveVocabWords,
-          );
+        final cnSegHighlights = cnHighlights
+            .where((h) {
+              final hStart = h.charOffset.toInt();
+              final hEnd = hStart + h.length.toInt();
+              return hEnd > cnOff && hStart < cnOff + seg.chinese.length;
+            })
+            .map((h) => h.copyWith(charOffset: h.charOffset - cnOff))
+            .toList();
 
-          final enSegHighlights = enHighlights.where((h) {
-            final hStart = h.charOffset.toInt();
-            final hEnd = hStart + h.length.toInt();
-            return hEnd > enOff && hStart < enOff + seg.english.length;
-          }).map((h) => h.copyWith(charOffset: h.charOffset - enOff)).toList();
+        final cnSpan = HighlightPainter.paintPlain(
+          seg.chinese,
+          chineseStyle,
+          cnSegHighlights,
+          onHighlightTap: onHighlightTap,
+          searchQuery: searchQuery,
+          searchMatchHighlight: searchMatchHighlight,
+          vocabularyWords: _effectiveVocabWords,
+        );
 
-          final enSpan = HighlightPainter.paintPlain(
-            seg.english,
-            englishStyle,
-            enSegHighlights,
-            onHighlightTap: onHighlightTap,
-            searchQuery: searchQuery,
-            searchMatchHighlight: searchMatchHighlight,
-            vocabularyWords: _effectiveVocabWords,
-          );
+        final enSegHighlights = enHighlights
+            .where((h) {
+              final hStart = h.charOffset.toInt();
+              final hEnd = hStart + h.length.toInt();
+              return hEnd > enOff && hStart < enOff + seg.english.length;
+            })
+            .map((h) => h.copyWith(charOffset: h.charOffset - enOff))
+            .toList();
 
-          return Padding(
+        final enSpan = HighlightPainter.paintPlain(
+          seg.english,
+          englishStyle,
+          enSegHighlights,
+          onHighlightTap: onHighlightTap,
+          searchQuery: searchQuery,
+          searchMatchHighlight: searchMatchHighlight,
+          vocabularyWords: _effectiveVocabWords,
+        );
+
+        return RepaintBoundary(
+          child: Padding(
             padding: const EdgeInsets.only(bottom: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -814,7 +1142,9 @@ class ReaderContent extends HookWidget {
                 SelectableText.rich(
                   cnSpan,
                   strutStyle: chineseStrut,
-                  onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(sel, seg.chinese, cnOff),
+                  onSelectionChanged: (sel, cause) =>
+                      _onPlainSelectionChanged(sel, seg.chinese, cnOff, context),
+                  contextMenuBuilder: (_, __) => const SizedBox.shrink(),
                 ),
                 const SizedBox(height: 4),
                 Container(
@@ -826,13 +1156,15 @@ class ReaderContent extends HookWidget {
                 SelectableText.rich(
                   enSpan,
                   strutStyle: englishStrut,
-                  onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(sel, seg.english, enOff),
+                  onSelectionChanged: (sel, cause) =>
+                      _onPlainSelectionChanged(sel, seg.english, enOff, context),
+                  contextMenuBuilder: (_, __) => const SizedBox.shrink(),
                 ),
               ],
             ),
-          );
-        }).toList(),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -878,6 +1210,24 @@ class ReaderContent extends HookWidget {
     return pages;
   }
 
+  int _findPageIndexForOffset(List<PageInfo> pages, int charOffset) {
+    for (int i = 0; i < pages.length; i++) {
+      final page = pages[i];
+      if (charOffset >= page.startOffset && charOffset < page.endOffset) {
+        return i;
+      }
+    }
+    return pages.isEmpty ? 0 : pages.length - 1;
+  }
+
+  int _findFallbackPageStart(List<String> pages, int targetIndex) {
+    var offset = 0;
+    for (int i = 0; i < targetIndex && i < pages.length; i++) {
+      offset += pages[i].length;
+    }
+    return offset;
+  }
+
   Color _getTextColor(ThemeMode themeMode) {
     switch (themeMode) {
       case ThemeMode.dark:
@@ -891,10 +1241,11 @@ class ReaderContent extends HookWidget {
   Color _getBackgroundColor(ThemeMode themeMode) {
     switch (themeMode) {
       case ThemeMode.dark:
-        return const Color(0xFF1a1a1a);
+        return ReaderBgColors.darkBackground;
       case ThemeMode.light:
       default:
-        return const Color(0xFFF5F5DC);
+        final presets = ReaderBgColors.presets;
+        return presets[bgIndex.clamp(0, presets.length - 1)];
     }
   }
 }

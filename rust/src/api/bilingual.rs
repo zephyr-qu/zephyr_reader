@@ -58,7 +58,7 @@ pub async fn align_bilingual_content(
     .map_err(|e| AppError::internal(format!("双语对齐失败: {}", e)))
 }
 
-#[frb(sync)]
+#[frb]
 /// 简单的句子对齐（1:1 位置对齐）
 ///
 /// 将中英文文本按句子分割后逐句配对，不进行相似度计算。
@@ -76,7 +76,7 @@ pub async fn align_bilingual_content(
 /// # 长度限制
 ///
 /// 中英文文本**合计**不得超过 2MB，超限返回错误。
-pub fn simple_bilingual_align(
+pub async fn simple_bilingual_align(
     chinese_content: String,
     english_content: String,
 ) -> Result<BilingualAlignment, AppError> {
@@ -90,8 +90,45 @@ pub fn simple_bilingual_align(
         ));
     }
 
-    Ok(crate::text::bilingual::simple_bilingual_align(
-        chinese_content,
-        english_content,
-    ))
+    tokio::task::spawn_blocking(move || {
+        Ok(crate::text::bilingual::simple_bilingual_align(
+            chinese_content,
+            english_content,
+        ))
+    })
+    .await
+    .map_err(|e| AppError::internal(format!("Bilingual alignment task failed: {}", e)))?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_align_bilingual_content_basic() {
+        let result = align_bilingual_content(
+            "你好世界。这是一个测试。".to_string(),
+            "Hello World. This is a test.".to_string(),
+            0.3,
+        ).await.unwrap();
+        assert!(!result.segments.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_simple_bilingual_align() {
+        let result = simple_bilingual_align(
+            "你好。测试。".to_string(),
+            "Hello. Test.".to_string(),
+        ).await.unwrap();
+        assert!(!result.segments.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_bilingual_exceeds_max_length() {
+        let long = "x".repeat(1_500_000);
+        let result = align_bilingual_content(
+            long.clone(), long, 0.3,
+        ).await;
+        assert!(result.is_err());
+    }
 }

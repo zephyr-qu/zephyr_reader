@@ -154,29 +154,4 @@ class PureBlackTheme {
       ),
     );
   }
-
-  /// 纯黑主题预览
-  static Widget buildPreview() {
-    return Container(
-      color: backgroundColor,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '纯黑主题',
-            style: TextStyle(color: textPrimary, fontSize: 20),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: surfaceColor,
-            child: const Text('卡片背景', style: TextStyle(color: textSecondary)),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(onPressed: () {}, child: const Text('按钮')),
-        ],
-      ),
-    );
-  }
 }

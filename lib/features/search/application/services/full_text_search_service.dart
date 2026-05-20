@@ -40,7 +40,9 @@ class FullTextSearchService {
       final dbPath = p.join(dir.path, 'zephyr_reader', 'search_index.db');
       final searchDir = p.dirname(dbPath);
       final searchDirObj = Directory(searchDir);
-      if (!await searchDirObj.exists()) await searchDirObj.create(recursive: true);
+      if (!await searchDirObj.exists()) {
+        await searchDirObj.create(recursive: true);
+      }
 
       await _searchService.init();
       _initialized = true;
@@ -57,7 +59,10 @@ class FullTextSearchService {
   }) async {
     if (!_initialized) await init();
     await _searchService.indexChapterContent(
-      bookId: bookId, chapterId: chapterId, chapterTitle: chapterTitle, content: content,
+      bookId: bookId,
+      chapterId: chapterId,
+      chapterTitle: chapterTitle,
+      content: content,
     );
   }
 
@@ -68,11 +73,23 @@ class FullTextSearchService {
   }) async {
     if (!_initialized) await init();
     try {
-      final results = await _searchService.searchInBook(bookId: bookId, query: query, limit: limit);
-      return results.map((item) => SearchHit(
-        bookId: bookId, chapterId: item.chapterId, chapterTitle: item.chapterTitle,
-        snippet: item.snippet, position: item.position.toInt(), score: item.score,
-      )).toList();
+      final results = await _searchService.searchInBook(
+        bookId: bookId,
+        query: query,
+        limit: limit,
+      );
+      return results
+          .map(
+            (item) => SearchHit(
+              bookId: bookId,
+              chapterId: item.chapterId,
+              chapterTitle: item.chapterTitle,
+              snippet: item.snippet,
+              position: item.position.toInt(),
+              score: item.score,
+            ),
+          )
+          .toList();
     } catch (e) {
       return [];
     }
@@ -113,8 +130,10 @@ class SearchHistoryService {
 
 class SearchHighlighter {
   static String highlight({
-    required String text, required List<String> keywords,
-    String openTag = '<span class="highlight">', String closeTag = '</span>',
+    required String text,
+    required List<String> keywords,
+    String openTag = '<span class="highlight">',
+    String closeTag = '</span>',
   }) {
     String result = text;
     for (final keyword in keywords) {
@@ -126,8 +145,10 @@ class SearchHighlighter {
   }
 
   static List<TextSpan> highlightToSpans({
-    required String text, required List<String> keywords,
-    TextStyle? normalStyle, TextStyle? highlightStyle,
+    required String text,
+    required List<String> keywords,
+    TextStyle? normalStyle,
+    TextStyle? highlightStyle,
   }) {
     if (keywords.isEmpty) return [TextSpan(text: text, style: normalStyle)];
     final spans = <TextSpan>[];
@@ -135,11 +156,22 @@ class SearchHighlighter {
     for (final keyword in keywords) {
       final index = remaining.toLowerCase().indexOf(keyword.toLowerCase());
       if (index == -1) continue;
-      if (index > 0) spans.add(TextSpan(text: remaining.substring(0, index), style: normalStyle));
-      spans.add(TextSpan(text: remaining.substring(index, index + keyword.length), style: highlightStyle));
+      if (index > 0) {
+        spans.add(
+          TextSpan(text: remaining.substring(0, index), style: normalStyle),
+        );
+      }
+      spans.add(
+        TextSpan(
+          text: remaining.substring(index, index + keyword.length),
+          style: highlightStyle,
+        ),
+      );
       remaining = remaining.substring(index + keyword.length);
     }
-    if (remaining.isNotEmpty) spans.add(TextSpan(text: remaining, style: normalStyle));
+    if (remaining.isNotEmpty) {
+      spans.add(TextSpan(text: remaining, style: normalStyle));
+    }
     return spans;
   }
 }

@@ -234,36 +234,6 @@ impl EpubFile {
         None
     }
 
-    /// 清除缓存
-    pub fn clear_cache(&mut self) {
-        self.cache.clear();
-    }
-
-    /// 获取所有图片资源的列表
-    ///
-    /// 返回所有图片资源的 (href, 文件名) 列表
-    pub fn list_images(&self) -> Vec<(String, String)> {
-        self.doc
-            .resources
-            .iter()
-            .filter(|(_, item)| {
-                let path_str = item.path.to_string_lossy().to_lowercase();
-                is_image_extension(&path_str)
-            })
-            .map(|(href, item)| {
-                // 提取文件名
-                let path_str = item.path.to_string_lossy();
-                let filename = path_str
-                    .rsplit('/')
-                    .next()
-                    .or_else(|| path_str.rsplit('\\').next())
-                    .unwrap_or(href)
-                    .to_string();
-                (href.clone(), filename)
-            })
-            .collect()
-    }
-
     /// 通过 TOC href 查找对应的 spine 索引
     ///
     /// TOC 中的 href 是文件路径（如 "text/part0000.html"），
@@ -285,17 +255,6 @@ impl EpubFile {
             .position(|item| item.idref == resource_id)
     }
 
-    /// 判断资源是否为图片
-    pub fn is_image_resource(&self, href: &str) -> bool {
-        if let Some(item) = self.doc.resources.get(href) {
-            let path_str = item.path.to_string_lossy().to_lowercase();
-            is_image_extension(&path_str)
-        } else {
-            // 尝试从 href 本身判断
-            let lower = href.to_lowercase();
-            is_image_extension(&lower)
-        }
-    }
 }
 /// 递归展开 NavPoint 树为扁平列表 (label, href, level)
 fn flatten_toc(
@@ -312,12 +271,6 @@ fn flatten_toc(
     }
 }
 
-fn is_image_extension(path: &str) -> bool {
-    matches!(
-        path.rsplit('.').next().unwrap_or(""),
-        "jpg" | "jpeg" | "png" | "gif" | "webp" | "bmp" | "svg"
-    )
-}
 /// 获取 EPUB 元数据（快速预览，不读取章节内容）
 ///
 /// 用于 Flutter 侧快速获取 EPUB 文件的基本信息，

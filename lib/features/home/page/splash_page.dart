@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 
@@ -36,25 +37,36 @@ class _SplashPageState extends State<SplashPage>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
-          child: const Column(
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.auto_stories_rounded, size: 48, color: Color(0xFF07D2D7)),
-              SizedBox(height: 20),
-              Text('Zephyr',
+              Icon(
+                PhosphorIconsRegular.bookOpenText,
+                size: 48,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Zephyr',
                 style: TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A1A), letterSpacing: 4,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                  letterSpacing: 4,
                 ),
               ),
-              SizedBox(height: 8),
-              Text('轻如风，阅无界',
+              const SizedBox(height: 8),
+              Text(
+                '轻如风，阅无界',
                 style: TextStyle(
-                  fontSize: 14, color: Color(0xFF8A8A8E), letterSpacing: 2,
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurfaceVariant,
+                  letterSpacing: 2,
                 ),
               ),
             ],

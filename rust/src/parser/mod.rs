@@ -12,16 +12,4 @@ pub use epub::create_epub_parser;
 pub use pdf::create_pdf_parser;
 pub use txt::create_txt_parser;
 
-use std::sync::Arc;
 
-use crate::domain::{AppError, BookParser};
-
-pub(crate) async fn extract_chapter_async(
-    parser: Arc<dyn BookParser>,
-    file_path: String,
-    chapter_index: i32,
-) -> Result<String,AppError> {
-    tokio::task::spawn_blocking(move || parser.extract_chapter(&file_path, chapter_index))
-        .await
-        .map_err(|e| AppError::internal(format!("sync task failed: {}", e)))?
-}

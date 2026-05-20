@@ -1,139 +1,156 @@
-/// 阅读器顶部工具栏
 library;
+
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:go_router/go_router.dart';
-import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
-/// 阅读器顶部工具栏组件
 class ReaderToolbar extends HookWidget {
   final String title;
   final String progress;
   final ThemeMode themeMode;
-  final bool hasBookmark;
-  final String bookId;
   final VoidCallback? onClose;
   final VoidCallback? onToggleToolbar;
-  final VoidCallback? onShowCatalog;
-  final VoidCallback? onShowBookmarks;
-  final VoidCallback? onToggleBookmark;
-  final VoidCallback? onShowSearch;
-  final VoidCallback? onShowNotes;
 
   const ReaderToolbar({
     super.key,
     required this.title,
     this.progress = '',
     required this.themeMode,
-    this.hasBookmark = false,
-    required this.bookId,
     this.onClose,
     this.onToggleToolbar,
-    this.onShowCatalog,
-    this.onShowBookmarks,
-    this.onToggleBookmark,
-    this.onShowSearch,
-    this.onShowNotes,
   });
 
   @override
   Widget build(BuildContext context) {
-    final textColor = themeMode == ThemeMode.dark
-        ? const Color(0xFFF2F2F2)
-        : const Color(0xFF1A1A1A);
-    final backgroundColor = themeMode == ThemeMode.dark
-        ? const Color(0xFF0A0A0A)
-        : const Color(0xFFFAFAFA);
+    final isDark = themeMode == ThemeMode.dark;
+    final textColor = isDark
+        ? const Color(0xFFE8E6E1)
+        : const Color(0xFF2C2C2C);
+    final accentColor = DesignTokens.warmAccent;
 
-    return Container(
-      color: backgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: SafeArea(
-        child: Row(
-          children: [
-            // 关闭按钮
-            IconButton(
-              icon: Icon(Icons.close, color: textColor),
-              onPressed: onClose,
-              tooltip: '关闭',
-            ),
-            // 目录按钮
-            IconButton(
-              icon: Icon(Icons.list, color: textColor),
-              onPressed: onShowCatalog,
-              tooltip: '目录',
-            ),
-            // 标题和进度
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          padding: const EdgeInsets.only(top: 4, bottom: 4),
+          child: SafeArea(
+            bottom: false,
+            child: Row(
+              children: [
+                const SizedBox(width: 4),
+                _PressScale(
+                  onTap: onClose,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(
+                      PhosphorIconsLight.caretLeft,
+                      size: 20,
                       color: textColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
                     ),
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  if (progress.isNotEmpty)
-                    Text(
-                      progress,
-                      style: TextStyle(
-                        color: textColor.withValues(alpha: 0.6),
-                        fontSize: 11,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: onToggleToolbar,
+                    child: _PressScale(
+                      onTap: onToggleToolbar,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              height: 1.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (progress.isNotEmpty)
+                            Text(
+                              progress,
+                              style: TextStyle(
+                                color: accentColor.withValues(alpha: 0.8),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w400,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                ],
-              ),
-            ),
-            // 书签按钮
-            GestureDetector(
-              onLongPress: onToggleBookmark,
-              child: IconButton(
-                icon: Icon(
-                  hasBookmark ? Icons.bookmark : Icons.bookmark_border,
-                  color: hasBookmark ? Colors.blue : textColor,
+                  ),
                 ),
-                onPressed: onShowBookmarks,
-                tooltip: '书签（长按快速添加/删除）',
-              ),
+                const SizedBox(width: 4),
+              ],
             ),
-            // 书签管理
-            IconButton(
-              icon: Icon(Icons.bookmarks_outlined, color: textColor, size: 20),
-              onPressed: () => context.pushNamed(RouteNames.bookmarkManage,
-                pathParameters: {'bookId': bookId}),
-              tooltip: '书签管理',
-            ),
-            // 全书搜索
-            IconButton(
-              icon: ShaderMask(
-                shaderCallback: (bounds) => const LinearGradient(
-                  colors: [Color(0xFF4FC3F7), Color(0xFF7E57C2)],
-                ).createShader(bounds),
-                child: const Icon(Icons.search, color: Colors.white, size: 20),
-              ),
-              onPressed: () => context.pushNamed(RouteNames.bookSearch,
-                queryParameters: {'bookId': bookId}),
-              tooltip: '全书搜索',
-            ),
-            // 笔记侧边栏
-            IconButton(
-              icon: Icon(Icons.note_alt_outlined, color: textColor, size: 20),
-              onPressed: onShowNotes,
-              tooltip: '笔记侧边栏',
-            ),
-            // 章节内搜索
-            IconButton(
-              icon: const Icon(Icons.find_in_page, color: Colors.orange, size: 20),
-              onPressed: onShowSearch,
-              tooltip: '章节内搜索',
-            ),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PressScale extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+
+  const _PressScale({required this.child, this.onTap});
+
+  @override
+  State<_PressScale> createState() => _PressScaleState();
+}
+
+class _PressScaleState extends State<_PressScale>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _anim = Tween(
+      begin: 1.0,
+      end: 0.92,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails _) => _ctrl.forward();
+  void _onTapUp(TapUpDetails _) {
+    _ctrl.reverse();
+    widget.onTap?.call();
+  }
+
+  void _onTapCancel() => _ctrl.reverse();
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (context, child) => Transform.scale(
+        scale: _anim.value,
+        child: GestureDetector(
+          onTapDown: _onTapDown,
+          onTapUp: _onTapUp,
+          onTapCancel: _onTapCancel,
+          child: widget.child,
         ),
       ),
     );

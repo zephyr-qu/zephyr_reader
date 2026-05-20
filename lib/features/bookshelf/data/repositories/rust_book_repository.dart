@@ -1,6 +1,7 @@
 /// 书籍仓库
 library;
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -38,9 +39,7 @@ class BookRepository {
     return _storage.getAllBooks();
   }
 
-  Future<List<Book>> getBooksByCategory(
-    BookCategory category,
-  ) async {
+  Future<List<Book>> getBooksByCategory(BookCategory category) async {
     final allBooks = await getAllBooks();
     final booksWithCategory = <Book>[];
     for (final book in allBooks) {
@@ -283,11 +282,13 @@ class BookRepository {
         if (entity is File) {
           final ext = p.extension(entity.path).toLowerCase().substring(1);
           if (supportedFormats.contains(ext)) {
-            files.add(PlatformFile(
-              name: p.basename(entity.path),
-              path: entity.path,
-              size: await entity.length(),
-            ));
+            files.add(
+              PlatformFile(
+                name: p.basename(entity.path),
+                path: entity.path,
+                size: await entity.length(),
+              ),
+            );
           }
         }
       }
@@ -306,17 +307,21 @@ class BookRepository {
 
     try {
       final allBooks = await getAllBooks();
-      final dup = allBooks.cast<Book?>().firstWhere((b) => b!.filePath == filePath, orElse: () => null);
+      final dup = allBooks.cast<Book?>().firstWhere(
+        (b) => b!.filePath == filePath,
+        orElse: () => null,
+      );
       if (dup != null) return dup;
 
       final format = p.extension(file.name).toLowerCase().substring(1);
       final parseResult = await _parseBook(filePath, format);
       if (parseResult == null) return null;
 
-      final bookInfo = parseResult.parseResult.bookInfo;
-      final rustChapters = parseResult.parseResult.chapters;
+      final bookInfo = parseResult.bookInfo;
+      final rustChapters = parseResult.chapters;
 
-      final parserCoverPath = bookInfo.coverPath != null && File(bookInfo.coverPath!).existsSync()
+      final parserCoverPath =
+          bookInfo.coverPath != null && File(bookInfo.coverPath!).existsSync()
           ? bookInfo.coverPath
           : null;
       final book = Book(
@@ -338,67 +343,37 @@ class BookRepository {
       );
       await addBook(book);
 
-      if (_coverService.supportsCoverExtraction(filePath)) {
-        try {
-          final appDir = await getApplicationDocumentsDirectory();
-          final coverDir = p.join(appDir.path, 'zephyr_reader', 'covers');
-          final coverPath = await _coverService.extractBookCover(filePath: filePath, outputDir: coverDir);
-          if (coverPath.isNotEmpty) {
-            final updated = Book(
-              bookId: book.bookId, filePath: book.filePath,
-                fileHash: book.fileHash, fileSize: book.fileSize, fileMtime: book.fileMtime,
-                title: book.title, author: book.author, description: book.description,
-                coverPath: coverPath, chapterCount: book.chapterCount,
-                totalCharacters: book.totalCharacters, format: book.format,
-                addedAt: book.addedAt, lastOpenedAt: book.lastOpenedAt,
-                status: book.status, isPinned: book.isPinned,
-              );
-              await updateBook(updated);
-          }
-        } catch (e) {
-          Logging.debug('importBook cover extraction failed: $e');
-        }
+      if (rustChapters.isNotEmpty) {
+        final chapters = rustChapters
+            .map(
+              (ch) => Chapter(
+                id: 'chapter_${ch.chapterIndex}',
+                bookId: book.bookId,
+                title: ch.title,
+                contentFile: filePath,
+                chapterIndex: ch.chapterIndex,
+                wordCount: 0,
+                cachedAt: DateTime.now(),
+                startIndex: ch.startIndex.toInt(),
+                endIndex: ch.endIndex.toInt(),
+                contentLength: ch.contentLength.toInt(),
+                level: ch.level,
+              ),
+            )
+            .toList();
+        await _chapterRepo.insertChapters(chapters);
       }
 
-      if (rustChapters.isNotEmpty) {
-        final chapters = rustChapters.map((ch) => Chapter(
-          id: 'chapter_${ch.chapterIndex}',
-          bookId: book.bookId,
-          title: ch.title,
-          contentFile: filePath,
-          chapterIndex: ch.chapterIndex,
-          wordCount: 0,
-          cachedAt: DateTime.now(),
-          startIndex: ch.startIndex.toInt(),
-          endIndex: ch.endIndex.toInt(),
-          contentLength: ch.contentLength.toInt(),
-          level: ch.level,
-        )).toList();
-        await _chapterRepo.insertChapters(chapters);
-        for (final ch in chapters) {
-          try {
-            final chapterContent = await _core.getChapter(
-              filePath, ch.chapterIndex,
-            );
-            final text = chapterContent.when(
-              raw: (t) => t,
-              pages: (pages) => pages.map((p) => p.content).join(' '),
-            );
-            await _searchService.indexChapter(
-              bookId: book.bookId,
-              chapterId: ch.chapterIndex,
-              chapterTitle: ch.title,
-              content: text,
-            );
-          } catch (e) {
-            Logging.error('indexChapter失败: id=${ch.id}', exception: e);
-          }
-        }
-      }
+      // 后台完成封面提取和全文索引，不阻塞导入返回
+      _indexAfterImport(book, filePath);
 
       return book;
     } catch (e, st) {
-      Logging.error('importBook异常: fileName=${file.name}', exception: e, stackTrace: st);
+      Logging.error(
+        'importBook异常: fileName=${file.name}',
+        exception: e,
+        stackTrace: st,
+      );
       return null;
     }
   }
@@ -414,6 +389,77 @@ class BookRepository {
       onProgress?.call(i + 1, files.length, book);
     }
     return books;
+  }
+
+  void _indexAfterImport(Book book, String filePath) {
+    unawaited(_indexAfterImportAsync(book, filePath));
+  }
+
+  Future<void> _indexAfterImportAsync(Book book, String filePath) async {
+    if (_coverService.supportsCoverExtraction(filePath)) {
+      try {
+        final appDir = await getApplicationDocumentsDirectory();
+        final coverDir = p.join(appDir.path, 'zephyr_reader', 'covers');
+        final coverPath = await _coverService.extractBookCover(
+          filePath: filePath,
+          outputDir: coverDir,
+        );
+        if (coverPath.isNotEmpty) {
+          final updated = Book(
+            bookId: book.bookId,
+            filePath: book.filePath,
+            fileHash: book.fileHash,
+            fileSize: book.fileSize,
+            fileMtime: book.fileMtime,
+            title: book.title,
+            author: book.author,
+            description: book.description,
+            coverPath: coverPath,
+            chapterCount: book.chapterCount,
+            totalCharacters: book.totalCharacters,
+            format: book.format,
+            addedAt: book.addedAt,
+            lastOpenedAt: book.lastOpenedAt,
+            status: book.status,
+            isPinned: book.isPinned,
+          );
+          await updateBook(updated);
+        }
+      } catch (e) {
+        Logging.debug('_indexAfterImport cover extraction failed: $e');
+      }
+    }
+
+    try {
+      final bookIdInt =
+          int.tryParse(book.bookId.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      final chapters = await _chapterRepo.getChaptersByBookId(bookIdInt);
+      for (final ch in chapters) {
+        try {
+          final chapterContent = await _core.getChapter(
+            filePath,
+            ch.chapterIndex,
+          );
+          final text = chapterContent.when(
+            raw: (t) => t,
+            pages: (pages) => pages.map((p) => p.content).join(' '),
+          );
+          await _searchService.indexChapter(
+            bookId: book.bookId,
+            chapterId: ch.chapterIndex,
+            chapterTitle: ch.title,
+            content: text,
+          );
+        } catch (e) {
+          Logging.error(
+            '_indexAfterImport indexChapter失败: id=${ch.id}',
+            exception: e,
+          );
+        }
+      }
+    } catch (e) {
+      Logging.error('_indexAfterImport failed to get chapters', exception: e);
+    }
   }
 
   Future<Map<String, dynamic>?> getFileInfo(String filePath) async {
@@ -437,21 +483,28 @@ class BookRepository {
     return ['txt', 'epub', 'pdf'];
   }
 
-  Future<ParseBookResult?> _parseBook(String filePath, String format) async {
+  Future<ParseResult?> _parseBook(String filePath, String format) async {
     try {
       final result = await _core.parseBook(filePath);
       return result;
     } catch (e, st) {
-      Logging.error('Rust解析失败: filePath=$filePath', exception: e, stackTrace: st);
+      Logging.error(
+        'Rust解析失败: filePath=$filePath',
+        exception: e,
+        stackTrace: st,
+      );
       return null;
     }
   }
 
   BookFormat _parseBookFormat(String format) {
     switch (format.toLowerCase()) {
-      case 'epub': return BookFormat.epub;
-      case 'pdf': return BookFormat.pdf;
-      default: return BookFormat.txt;
+      case 'epub':
+        return BookFormat.epub;
+      case 'pdf':
+        return BookFormat.pdf;
+      default:
+        return BookFormat.txt;
     }
   }
 }

@@ -18,6 +18,14 @@ class NoteRepository {
     return _storage.getNotes(bookId, noteType: noteType);
   }
 
+  Future<List<Note>> getNotesForChapter(
+    String bookId,
+    int chapterIndex, {
+    NoteType? noteType,
+  }) async {
+    return _storage.getNotesInChapter(bookId, chapterIndex, noteType: noteType);
+  }
+
   Future<Note> createNote(Note note) async {
     return _storage.createNote(note);
   }

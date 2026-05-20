@@ -70,7 +70,7 @@ impl CoverExtractor for EpubCoverExtractor {
         let mut epub_file = crate::parser::epub::unzip::EpubFile::open(file_path)?;
         let cover_data = epub_file
             .read_cover()
-            .ok_or_else(|| AppError::Other("未找到 EPUB 封面".to_string()))?;
+            .ok_or_else(|| AppError::other("未找到 EPUB 封面"))?;
 
         let file_stem = Path::new(file_path)
             .file_stem()

@@ -3,15 +3,16 @@ library;
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/vocabulary/data/vocabulary_service.dart';
-import 'package:zephyr_reader/src/rust/api/vocabulary.dart' as vocab_api;
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 @injectable
 class VocabularyViewModel {
   final VocabularyService _service;
 
-  final words = signal<List<vocab_api.VocabEntry>>([]);
-  final stats = signal<vocab_api.VocabStats?>(null);
+  final words = signal<List<VocabEntry>>([]);
+  final stats = signal<VocabStats?>(null);
   final loading = signal<bool>(false);
+  final error = signal<String?>(null);
   final filterStatus = signal<String?>('learning');
   final searchQuery = signal<String>('');
 
@@ -19,13 +20,16 @@ class VocabularyViewModel {
 
   Future<void> loadWords({String? bookId}) async {
     loading.value = true;
+    error.value = null;
     try {
       final results = await Future.wait([
         _service.getWords(bookId: bookId, status: filterStatus.value),
         _service.getStats(),
       ]);
-      words.value = results[0] as List<vocab_api.VocabEntry>;
-      stats.value = results[1] as vocab_api.VocabStats;
+      words.value = results[0] as List<VocabEntry>;
+      stats.value = results[1] as VocabStats;
+    } catch (e) {
+      error.value = '加载失败: $e';
     } finally {
       loading.value = false;
     }

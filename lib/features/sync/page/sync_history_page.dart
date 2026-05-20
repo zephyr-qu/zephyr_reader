@@ -4,6 +4,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:intl/intl.dart';
 
@@ -41,12 +42,12 @@ class SyncHistoryPage extends HookWidget {
         title: const Text('同步历史'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(PhosphorIconsRegular.arrowsClockwise),
             onPressed: () => _loadHistory(syncService, history),
             tooltip: '刷新',
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline),
+            icon: const Icon(PhosphorIconsRegular.trash),
             onPressed: () => _clearHistory(syncService, context, history),
             tooltip: '清除历史',
           ),
@@ -86,25 +87,25 @@ class SyncHistoryPage extends HookWidget {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _buildStatItem(
-              Icons.check_circle,
+              PhosphorIconsFill.checkCircle,
               Colors.green,
               stats.successCount.toString(),
               '成功',
             ),
             _buildStatItem(
-              Icons.error,
+              PhosphorIconsFill.xCircle,
               Colors.red,
               stats.failedCount.toString(),
               '失败',
             ),
             _buildStatItem(
-              Icons.upload_file,
+              PhosphorIconsRegular.uploadSimple,
               Colors.blue,
               _formatBytes(stats.totalUploaded),
               '上传',
             ),
             _buildStatItem(
-              Icons.download,
+              PhosphorIconsRegular.downloadSimple,
               Colors.orange,
               _formatBytes(stats.totalDownloaded),
               '下载',
@@ -184,7 +185,11 @@ class SyncHistoryPage extends HookWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history, size: 64, color: Colors.grey.shade400),
+          Icon(
+            PhosphorIconsRegular.clockCounterClockwise,
+            size: 64,
+            color: Colors.grey.shade400,
+          ),
           const SizedBox(height: 16),
           Text(
             '暂无同步历史',
@@ -219,7 +224,9 @@ class SyncHistoryPage extends HookWidget {
             Row(
               children: [
                 Icon(
-                  isSuccess ? Icons.check_circle : Icons.error,
+                  isSuccess
+                      ? PhosphorIconsFill.checkCircle
+                      : PhosphorIconsFill.xCircle,
                   color: isSuccess ? Colors.green : Colors.red,
                   size: 24,
                 ),
@@ -242,11 +249,20 @@ class SyncHistoryPage extends HookWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                _buildInfoChip(Icons.access_time, record.formattedDuration),
+                _buildInfoChip(
+                  PhosphorIconsRegular.clock,
+                  record.formattedDuration,
+                ),
                 const SizedBox(width: 8),
-                _buildInfoChip(Icons.upload_file, '${record.uploadedCount} 上传'),
+                _buildInfoChip(
+                  PhosphorIconsRegular.uploadSimple,
+                  '${record.uploadedCount} 上传',
+                ),
                 const SizedBox(width: 8),
-                _buildInfoChip(Icons.download, '${record.downloadedCount} 下载'),
+                _buildInfoChip(
+                  PhosphorIconsRegular.downloadSimple,
+                  '${record.downloadedCount} 下载',
+                ),
               ],
             ),
             if (record.changedFiles.isNotEmpty) ...[
@@ -275,7 +291,7 @@ class SyncHistoryPage extends HookWidget {
                 child: Row(
                   children: [
                     Icon(
-                      Icons.warning_amber,
+                      PhosphorIconsFill.warning,
                       size: 16,
                       color: Colors.red.shade700,
                     ),

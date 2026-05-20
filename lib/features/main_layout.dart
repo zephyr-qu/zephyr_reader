@@ -1,40 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+
 import 'package:zephyr_reader/core/routing/route_constants.dart';
-import 'package:zephyr_reader/features/bookshelf/page/bookshelf_page.dart';
-import 'package:zephyr_reader/features/home/page/home_page.dart';
-import 'package:zephyr_reader/features/profile/page/profile_page.dart';
-import 'package:zephyr_reader/features/statistics/page/statistics_page.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 
 /// 底部导航栏配置
 enum BottomNavItem {
   home(
     label: '首页',
-    icon: Icons.home_outlined,
-    activeIcon: Icons.home_rounded,
+    icon: PhosphorIconsRegular.house,
+    activeIcon: PhosphorIconsFill.house,
     route: RoutePaths.home,
     routeName: RouteNames.home,
   ),
   bookshelf(
     label: '书籍',
-    icon: Icons.book_outlined,
-    activeIcon: Icons.book_rounded,
+    icon: PhosphorIconsRegular.bookOpenText,
+    activeIcon: PhosphorIconsFill.bookOpenText,
     route: RoutePaths.bookshelf,
     routeName: RouteNames.bookshelf,
   ),
   statistics(
     label: '统计',
-    icon: Icons.bar_chart_outlined,
-    activeIcon: Icons.bar_chart_rounded,
+    icon: PhosphorIconsRegular.chartBar,
+    activeIcon: PhosphorIconsFill.chartBar,
     route: RoutePaths.statistics,
     routeName: RouteNames.statistics,
   ),
   profile(
     label: '我的',
-    icon: Icons.person_outline,
-    activeIcon: Icons.person_rounded,
+    icon: PhosphorIconsRegular.user,
+    activeIcon: PhosphorIconsFill.user,
     route: RoutePaths.profile,
     routeName: RouteNames.profile,
   );
@@ -138,9 +135,9 @@ class _MainLayoutState extends State<MainLayout> {
 
     return Container(
       width: isExtended ? 200 : 72,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
-          right: BorderSide(color: DesignTokens.divider, width: 0.5),
+          right: BorderSide(color: theme.dividerColor, width: 0.5),
         ),
       ),
       child: SafeArea(
@@ -180,11 +177,14 @@ class _MainLayoutState extends State<MainLayout> {
     final isExtended = deviceType == DeviceType.desktop;
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 24, horizontal: isExtended ? 16 : 12),
+      padding: EdgeInsets.symmetric(
+        vertical: 24,
+        horizontal: isExtended ? 16 : 12,
+      ),
       child: Row(
         children: [
           Icon(
-            Icons.auto_stories_rounded,
+            PhosphorIconsRegular.bookOpenText,
             color: theme.colorScheme.primary,
             size: 24,
           ),
@@ -216,29 +216,33 @@ class _MainLayoutState extends State<MainLayout> {
     final activeColor = theme.colorScheme.primary;
     final inactiveColor = theme.colorScheme.onSurfaceVariant;
 
-    return GestureDetector(
-      onTap: () => context.go(navItem.route),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        child: Row(
-          children: [
-            Icon(
-              isSelected ? navItem.activeIcon : navItem.icon,
-              color: isSelected ? activeColor : inactiveColor,
-              size: 22,
-            ),
-            if (isExtended) ...[
-              const SizedBox(width: 14),
-              Text(
-                navItem.label,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isSelected ? activeColor : inactiveColor,
-                  fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
-                ),
+    return Semantics(
+      label: navItem.label,
+      button: true,
+      child: GestureDetector(
+        onTap: () => context.go(navItem.route),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: Row(
+            children: [
+              Icon(
+                isSelected ? navItem.activeIcon : navItem.icon,
+                color: isSelected ? activeColor : inactiveColor,
+                size: 22,
               ),
+              if (isExtended) ...[
+                const SizedBox(width: 14),
+                Text(
+                  navItem.label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isSelected ? activeColor : inactiveColor,
+                    fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -255,12 +259,13 @@ class _MainLayoutState extends State<MainLayout> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-            icon: Icon(Icons.settings_outlined,
-              color: theme.colorScheme.onSurfaceVariant, size: 20),
-            onPressed: () {},
+            icon: Icon(
+              PhosphorIconsRegular.gearSix,
+              color: theme.colorScheme.onSurfaceVariant,
+              size: 20,
+            ),
+            onPressed: () => context.push(RoutePaths.appSettings),
             tooltip: '设置',
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
           ),
         ],
       ),
@@ -273,10 +278,8 @@ class _MainLayoutState extends State<MainLayout> {
     ThemeData theme,
   ) {
     return Container(
-      decoration: const BoxDecoration(
-        border: Border(
-          top: BorderSide(color: DesignTokens.divider, width: 0.5),
-        ),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: theme.dividerColor, width: 0.5)),
       ),
       child: SafeArea(
         child: NavigationBar(
@@ -307,27 +310,5 @@ class _MainLayoutState extends State<MainLayout> {
       }
     }
     return 0;
-  }
-}
-
-/// 主页面容器，根据路由显示不同的页面
-class MainContainerPage extends StatelessWidget {
-  const MainContainerPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final currentRoute = GoRouterState.of(context).uri.path;
-
-        return switch (currentRoute) {
-          RoutePaths.home => const HomePage(),
-          RoutePaths.bookshelf => const BookshelfPage(),
-          RoutePaths.statistics => const StatisticsPage(),
-          RoutePaths.profile => const ProfilePage(),
-          _ => const HomePage(),
-        };
-      },
-    );
   }
 }

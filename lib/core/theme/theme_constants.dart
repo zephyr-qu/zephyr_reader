@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 class DesignTokens {
-  // ===== 强调色（#07D2D7 — 仅用于按钮、进度、选中态、链接）=====
-  static const Color primary = Color(0xFF07D2D7);
+  // ===== 强调色（#F59E0B — 暖橙，按钮、进度、选中态、链接）=====
+  static const Color primary = Color(0xFFF59E0B);
   static const Color onPrimary = Color(0xFFFFFFFF);
 
   // ===== 辅助语义色 =====
@@ -24,20 +24,15 @@ class DesignTokens {
   static const Color textSecondaryDark = Color(0xFF6E6E73);
   static const Color dividerDark = Color(0xFF1C1C1E);
 
+  // ===== 温暖强调色（#D4A373 — 用于辅助装饰、品牌细节）=====
+  static const Color warmAccent = Color(0xFFD4A373);
+  static const Color warmAccentLight = Color(0xFFFEF3E2);
+
   // ===== 兼容旧引用（映射到新色值）=====
-  static const Color primaryContainer = Color(0xFFD2FAFB);
-  static const Color onPrimaryContainer = Color(0xFF003B3B);
-  static const Color secondary = Color(0xFF00838F);
-  static const Color tertiary = Color(0xFF26A69A);
-
-  static const Color onSurface = textPrimary;
-  static const Color onSurfaceVariant = textSecondary;
-  static const Color onSurfaceDark = textPrimaryDark;
-  static const Color onSurfaceVariantDark = textSecondaryDark;
-
-  static const Color surfaceDarkCompat = backgroundDark;
-  static const Color surfaceVariant = surface;
-  static const Color surfaceVariantDark = surfaceDark;
+  static const Color primaryContainer = Color(0xFFFFF3E0);
+  static const Color onPrimaryContainer = Color(0xFF3E2723);
+  static const Color secondary = Color(0xFFD4A373);
+  static const Color tertiary = Color(0xFF8D6E63);
 
   // ===== 中性色保留（部分旧组件依赖）=====
   static const Color neutral50 = Color(0xFFF5F6F8);

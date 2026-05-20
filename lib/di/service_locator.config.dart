@@ -36,6 +36,10 @@ import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_bookmark
     as _i565;
 import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_chapter_repository.dart'
     as _i454;
+import 'package:zephyr_reader/features/home/application/home_view_model.dart'
+    as _i363;
+import 'package:zephyr_reader/features/profile/application/profile_view_model.dart'
+    as _i340;
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart'
     as _i335;
 import 'package:zephyr_reader/features/reader/data/custom_font_service.dart'
@@ -79,8 +83,8 @@ extension GetItInjectableX on _i174.GetIt {
       preResolve: true,
     );
     gh.factory<_i576.DictionaryService>(() => _i576.DictionaryService());
-    gh.factory<_i435.VocabularyService>(() => _i435.VocabularyService());
     gh.singleton<_i169.RustStorageService>(() => _i169.RustStorageService());
+    gh.singleton<_i849.ReaderBgColors>(() => _i849.ReaderBgColors());
     gh.lazySingletonAsync<_i772.FileStorage>(() {
       final i = _i772.FileStorage();
       return i.init().then((_) => i);
@@ -97,7 +101,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i880.VocabularyMarkerService>(
       () => _i880.VocabularyMarkerService(),
     );
-    gh.lazySingleton<_i584.SearchRepository>(() => _i584.SearchRepository());
     gh.singleton<_i425.FullTextSearchService>(
       () => _i425.FullTextSearchService(gh<_i148.RustSearchService>()),
     );
@@ -118,8 +121,20 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i454.ChapterRepository>(
       () => _i454.ChapterRepository(gh<_i169.RustStorageService>()),
     );
+    gh.factory<_i363.HomeViewModel>(
+      () => _i363.HomeViewModel(gh<_i169.RustStorageService>()),
+    );
+    gh.factory<_i340.ProfileViewModel>(
+      () => _i340.ProfileViewModel(gh<_i169.RustStorageService>()),
+    );
     gh.factory<_i820.NoteRepository>(
       () => _i820.NoteRepository(gh<_i169.RustStorageService>()),
+    );
+    gh.factory<_i435.VocabularyService>(
+      () => _i435.VocabularyService(gh<_i169.RustStorageService>()),
+    );
+    gh.lazySingleton<_i584.SearchRepository>(
+      () => _i584.SearchRepository(gh<_i169.RustStorageService>()),
     );
     gh.lazySingleton<_i1072.ReadingStatsService>(
       () => _i1072.ReadingStatsService(gh<_i169.RustStorageService>()),
@@ -155,7 +170,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i556.ArticleViewModel>(
       () => _i556.ArticleViewModel(gh<_i582.ArticleRepository>()),
     );
-    gh.factory<_i335.ReaderViewModel>(
+    gh.lazySingleton<_i335.ReaderViewModel>(
       () => _i335.ReaderViewModel(
         gh<_i1054.ReaderRepository>(),
         gh<_i849.ReaderConfig>(),

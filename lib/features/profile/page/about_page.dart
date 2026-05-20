@@ -5,11 +5,12 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/features/profile/page/user_agreement_page.dart';
 import 'package:zephyr_reader/features/profile/page/privacy_policy_page.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 /// 关于页面
 class AboutPage extends HookWidget {
@@ -31,32 +32,32 @@ class AboutPage extends HookWidget {
         children: [
           // 应用图标和名称
           Padding(
-            padding: const EdgeInsets.all(32),
+            padding: EdgeInsets.all(DesignTokens.spacing(Spacing.xl)),
             child: Column(
               children: [
                 Icon(
-                  Icons.menu_book,
+                  PhosphorIconsRegular.bookOpenText,
                   size: 80,
                   color: theme.colorScheme.primary,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: DesignTokens.spacing(Spacing.md)),
                 Text(
                   'Zephyr Reader',
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: DesignTokens.spacing(Spacing.sm)),
                 Text(
                   '如和风般轻盈的阅读体验',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: DesignTokens.spacing(Spacing.md)),
                 Chip(
                   label: Text('v$version ($buildNumber)'),
-                  avatar: const Icon(Icons.info_outline, size: 16),
+                  avatar: const Icon(PhosphorIconsRegular.info, size: 16),
                 ),
               ],
             ),
@@ -68,7 +69,7 @@ class AboutPage extends HookWidget {
             title: '应用介绍',
             children: [
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(DesignTokens.spacing(Spacing.md)),
                 child: Text(
                   'Zephyr Reader 是一款基于 Flutter + Rust 架构开发的安卓端双语离线小说阅读器。'
                   '项目采用纯本地设计，无后台、无广告、无数据收集，专注于中文、英文双语小说的阅读体验。',
@@ -85,42 +86,42 @@ class AboutPage extends HookWidget {
             children: [
               _buildFeatureItem(
                 context,
-                icon: Icons.cloud_off,
+                icon: PhosphorIconsRegular.cloudSlash,
                 title: '纯离线使用',
                 subtitle: '核心功能 100% 离线可用',
               ),
               const Divider(height: 1),
               _buildFeatureItem(
                 context,
-                icon: Icons.speed,
+                icon: PhosphorIconsRegular.gauge,
                 title: '高性能解析',
                 subtitle: 'Rust 实现文本解析，大文件加载流畅',
               ),
               const Divider(height: 1),
               _buildFeatureItem(
                 context,
-                icon: Icons.translate,
+                icon: PhosphorIconsRegular.translate,
                 title: '双语排版',
                 subtitle: '中文、英文同等优先的排版优化',
               ),
               const Divider(height: 1),
               _buildFeatureItem(
                 context,
-                icon: Icons.palette,
+                icon: PhosphorIconsRegular.palette,
                 title: '多主题支持',
                 subtitle: '亮色/深色/纯黑夜间主题',
               ),
               const Divider(height: 1),
               _buildFeatureItem(
                 context,
-                icon: Icons.devices,
+                icon: PhosphorIconsRegular.deviceMobile,
                 title: '设备适配',
                 subtitle: '手机、平板双端自适应',
               ),
               const Divider(height: 1),
               _buildFeatureItem(
                 context,
-                icon: Icons.sync,
+                icon: PhosphorIconsRegular.arrowsClockwise,
                 title: 'WebDAV 同步',
                 subtitle: '支持跨设备数据同步与备份',
               ),
@@ -132,12 +133,12 @@ class AboutPage extends HookWidget {
             context,
             title: '技术栈',
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
+              Padding(
+                padding: EdgeInsets.all(DesignTokens.spacing(Spacing.md)),
                 child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
+                  spacing: DesignTokens.spacing(Spacing.sm),
+                  runSpacing: DesignTokens.spacing(Spacing.sm),
+                  children: const [
                     Chip(label: Text('Flutter 3.22')),
                     Chip(label: Text('Rust 1.75')),
                     Chip(label: Text('Drift')),
@@ -157,8 +158,8 @@ class AboutPage extends HookWidget {
             children: [
               ListTile(
                 title: const Text('检查更新'),
-                leading: const Icon(Icons.system_update),
-                trailing: const Icon(Icons.chevron_right),
+                leading: const Icon(PhosphorIconsRegular.downloadSimple),
+                trailing: const Icon(PhosphorIconsRegular.caretRight),
                 onTap: () {
                   ScaffoldMessenger.of(
                     context,
@@ -168,8 +169,8 @@ class AboutPage extends HookWidget {
               const Divider(height: 1),
               ListTile(
                 title: const Text('用户协议'),
-                leading: const Icon(Icons.description),
-                trailing: const Icon(Icons.chevron_right),
+                leading: const Icon(PhosphorIconsRegular.fileText),
+                trailing: const Icon(PhosphorIconsRegular.caretRight),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -182,8 +183,8 @@ class AboutPage extends HookWidget {
               const Divider(height: 1),
               ListTile(
                 title: const Text('隐私政策'),
-                leading: const Icon(Icons.privacy_tip),
-                trailing: const Icon(Icons.chevron_right),
+                leading: const Icon(PhosphorIconsRegular.shieldCheck),
+                trailing: const Icon(PhosphorIconsRegular.caretRight),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -196,8 +197,8 @@ class AboutPage extends HookWidget {
               const Divider(height: 1),
               ListTile(
                 title: const Text('开源许可证'),
-                leading: const Icon(Icons.gavel),
-                trailing: const Icon(Icons.chevron_right),
+                leading: const Icon(PhosphorIconsRegular.scales),
+                trailing: const Icon(PhosphorIconsRegular.caretRight),
                 onTap: () {
                   showLicensePage(
                     context: context,
@@ -211,8 +212,8 @@ class AboutPage extends HookWidget {
               ListTile(
                 title: const Text('问题反馈'),
                 subtitle: const Text('GitHub Issues'),
-                leading: const Icon(Icons.bug_report),
-                trailing: const Icon(Icons.open_in_new),
+                leading: const Icon(PhosphorIconsRegular.bug),
+                trailing: const Icon(PhosphorIconsRegular.arrowSquareOut),
                 onTap: () async {
                   final uri = Uri.parse(
                     'https://github.com/zephyr-reader/zephyr_reader/issues',
@@ -231,12 +232,12 @@ class AboutPage extends HookWidget {
             ],
           ),
 
-          const SizedBox(height: 32),
+          SizedBox(height: DesignTokens.spacing(Spacing.xl)),
 
           // 版权信息
           Center(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(DesignTokens.spacing(Spacing.md)),
               child: Text(
                 '© 2026 Zephyr Reader\nMade with ❤️ by Flutter + Rust',
                 textAlign: TextAlign.center,
@@ -262,9 +263,19 @@ class AboutPage extends HookWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text(title,
-            style: const TextStyle(fontSize: 12, color: DesignTokens.textSecondary, letterSpacing: 0.5),
+          padding: EdgeInsets.fromLTRB(
+            DesignTokens.spacing(Spacing.md),
+            DesignTokens.spacing(Spacing.md),
+            DesignTokens.spacing(Spacing.md),
+            DesignTokens.spacing(Spacing.sm),
+          ),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
         Column(children: children),
@@ -281,11 +292,11 @@ class AboutPage extends HookWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(DesignTokens.spacing(Spacing.md)),
       child: Row(
         children: [
           Icon(icon, color: theme.colorScheme.primary, size: 28),
-          const SizedBox(width: 16),
+          SizedBox(width: DesignTokens.spacing(Spacing.md)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

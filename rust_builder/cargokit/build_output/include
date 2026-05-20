@@ -27,6 +27,11 @@ typedef struct _Dart_Handle* Dart_Handle;
 #define EPUB_MIN_CHARS_PER_PAGE 500
 
 /**
+ * 默认每章包含的页数
+ */
+#define DEFAULT_PAGES_PER_CHAPTER 10
+
+/**
  * 搜索索引分块大小（字符数）
  */
 #define SEARCH_CHUNK_SIZE 500
@@ -165,6 +170,8 @@ typedef struct wire_cst_reading_progress {
   int32_t chapter_index;
   struct wire_cst_list_prim_u_8_strict *chapter_id;
   int64_t char_offset;
+  int32_t page_index;
+  int32_t total_pages;
   float progress;
   int64_t reading_time_seconds;
   int64_t last_read_at;
@@ -379,9 +386,9 @@ typedef struct wire_cst_vocab_entry {
   struct wire_cst_list_prim_u_8_strict *book_id;
   int64_t *chapter_index;
   int64_t *char_offset;
-  struct wire_cst_list_prim_u_8_strict *created_at;
+  int64_t created_at;
   int32_t review_count;
-  struct wire_cst_list_prim_u_8_strict *last_reviewed_at;
+  int64_t *last_reviewed_at;
   struct wire_cst_list_prim_u_8_strict *status;
 } wire_cst_vocab_entry;
 
@@ -539,11 +546,6 @@ typedef struct wire_cst_parse_result {
   struct wire_cst_book book_info;
   struct wire_cst_list_chapter *chapters;
 } wire_cst_parse_result;
-
-typedef struct wire_cst_parse_book_result {
-  struct wire_cst_parse_result parse_result;
-  bool persistence_succeeded;
-} wire_cst_parse_book_result;
 
 typedef struct wire_cst_vocab_stats {
   int64_t total_words;
@@ -722,6 +724,11 @@ void frbgen_zephyr_reader_wire__crate__api__storage__get_notes(int64_t port_,
                                                                struct wire_cst_list_prim_u_8_strict *book_id,
                                                                int32_t *note_type);
 
+void frbgen_zephyr_reader_wire__crate__api__storage__get_notes_in_chapter(int64_t port_,
+                                                                          struct wire_cst_list_prim_u_8_strict *book_id,
+                                                                          int32_t chapter_index,
+                                                                          int32_t *note_type);
+
 void frbgen_zephyr_reader_wire__crate__api__storage__get_pinned_books(int64_t port_);
 
 void frbgen_zephyr_reader_wire__crate__api__storage__get_reading_progress(int64_t port_,
@@ -834,8 +841,9 @@ void frbgen_zephyr_reader_wire__crate__api__storage__set_categories_for_book(int
                                                                              struct wire_cst_list_prim_u_8_strict *book_id,
                                                                              struct wire_cst_list_String *category_ids);
 
-WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__bilingual__simple_bilingual_align(struct wire_cst_list_prim_u_8_strict *chinese_content,
-                                                                                              struct wire_cst_list_prim_u_8_strict *english_content);
+void frbgen_zephyr_reader_wire__crate__api__bilingual__simple_bilingual_align(int64_t port_,
+                                                                              struct wire_cst_list_prim_u_8_strict *chinese_content,
+                                                                              struct wire_cst_list_prim_u_8_strict *english_content);
 
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__cover__supports_cover_extraction(struct wire_cst_list_prim_u_8_strict *file_path);
 
@@ -1031,6 +1039,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__storage__get_global_reading_stats);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__storage__get_note_stats);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__storage__get_notes);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__storage__get_notes_in_chapter);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__storage__get_pinned_books);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__storage__get_reading_progress);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__storage__get_reading_sessions);

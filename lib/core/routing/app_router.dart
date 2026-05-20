@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/features/article/page/article_detail_page.dart';
@@ -12,7 +13,6 @@ import 'package:zephyr_reader/features/profile/page/about_page.dart';
 import 'package:zephyr_reader/features/profile/page/app_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/profile_page.dart';
 import 'package:zephyr_reader/features/profile/page/reading_settings_page.dart';
-import 'package:zephyr_reader/features/profile/page/theme_settings_page.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page.dart';
 import 'package:zephyr_reader/features/reader/page/note_manage_page.dart';
 import 'package:zephyr_reader/features/reader/page/bookmark_manage_page.dart';
@@ -21,15 +21,47 @@ import 'package:zephyr_reader/features/search/page/book_search_page.dart';
 import 'package:zephyr_reader/features/statistics/page/statistics_page.dart';
 import 'package:zephyr_reader/features/statistics/page/reading_stats_page.dart';
 import 'package:zephyr_reader/shared/widget/not_found_page.dart';
-import 'package:zephyr_reader/features/profile/page/settings_page.dart';
 import 'package:zephyr_reader/features/sync/page/webdav_settings_page.dart';
 import 'package:zephyr_reader/features/sync/page/sync_history_page.dart';
 import 'package:zephyr_reader/features/sync/page/backup_restore_page.dart';
 import 'package:zephyr_reader/features/vocabulary/page/vocabulary_page.dart';
+import 'package:zephyr_reader/features/statistics/page/reading_sessions_page.dart';
+import 'package:zephyr_reader/features/reader/page/cache_manage_page.dart';
+
+/// 解析深度链接 URI，返回重定向路径
+String? _resolveDeepLink(Uri uri) {
+  if (uri.scheme == 'zephyr' || uri.host == 'zephyr.app') {
+    final path = uri.path == '/' ? uri.fragment : uri.path;
+    if (path.startsWith('/reader/')) {
+      final parts = path.split('/');
+      if (parts.length >= 3) {
+        final bookId = parts[2];
+        final chapterId = parts.length > 3 ? parts[3] : '0';
+        return '/reader/$bookId/$chapterId';
+      }
+    }
+    if (path == '/bookshelf') return RoutePaths.bookshelf;
+    if (path == '/vocabulary') return RoutePaths.vocabulary;
+    if (path == '/search') return RoutePaths.search;
+    return RoutePaths.home;
+  }
+  return null;
+}
 
 final router = GoRouter(
   initialLocation: RoutePaths.splash,
-  debugLogDiagnostics: true,
+  debugLogDiagnostics: kDebugMode,
+
+  redirect: (context, state) {
+    final uri = state.uri;
+    final deepLink = _resolveDeepLink(uri);
+    if (deepLink != null) return deepLink;
+
+    final location = state.matchedLocation;
+    if (location == RoutePaths.splash) return null;
+
+    return null;
+  },
 
   routes: [
     ShellRoute(
@@ -103,10 +135,11 @@ final router = GoRouter(
           name: RouteNames.articleDetail,
           path: RoutePaths.articleDetail,
           builder: (_, state) {
-            final id = int.parse(state.pathParameters['id'] ?? '0');
+            final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
             return ArticleDetailPage(articleId: id);
           },
         ),
+
       ],
     ),
 
@@ -116,7 +149,8 @@ final router = GoRouter(
       path: RoutePaths.reader,
       builder: (_, state) {
         final bookId = state.pathParameters['bookId'] ?? '0';
-        final chapterId = int.parse(state.pathParameters['chapterId'] ?? '0');
+        final chapterId =
+            int.tryParse(state.pathParameters['chapterId'] ?? '') ?? 0;
         return ReaderPage(bookId: bookId, initialChapterId: chapterId);
       },
     ),
@@ -126,20 +160,6 @@ final router = GoRouter(
       name: RouteNames.search,
       path: RoutePaths.search,
       builder: (_, _) => const SearchPage(),
-    ),
-
-    // 设置路由（独立页面，不使用 MainLayout）
-    GoRoute(
-      name: RouteNames.settings,
-      path: RoutePaths.settings,
-      builder: (_, _) => const SettingsPage(),
-    ),
-
-    // 主题设置路由
-    GoRoute(
-      name: RouteNames.themeSettings,
-      path: RoutePaths.themeSettings,
-      builder: (_, _) => const ThemeSettingsPage(),
     ),
 
     // 同步相关路由
@@ -202,6 +222,20 @@ final router = GoRouter(
       name: RouteNames.vocabulary,
       path: RoutePaths.vocabulary,
       builder: (_, _) => const VocabularyPage(),
+    ),
+
+    // 阅读会话历史
+    GoRoute(
+      name: RouteNames.readingSessions,
+      path: RoutePaths.readingSessions,
+      builder: (_, _) => const ReadingSessionsPage(),
+    ),
+
+    // 缓存管理
+    GoRoute(
+      name: RouteNames.cacheManage,
+      path: RoutePaths.cacheManage,
+      builder: (_, _) => const CacheManagePage(),
     ),
 
     // Splash 页面（独立页面，不使用 MainLayout）

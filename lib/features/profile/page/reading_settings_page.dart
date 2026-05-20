@@ -10,10 +10,13 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/reader/data/custom_font_service.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
 
 class ReadingSettingsPage extends StatefulHookWidget {
   const ReadingSettingsPage({super.key});
@@ -24,11 +27,13 @@ class ReadingSettingsPage extends StatefulHookWidget {
 
 class _ReadingSettingsPageState extends State<ReadingSettingsPage>
     with SignalsMixin {
+  final _config = getIt<ReaderConfig>();
+
   @override
   Widget build(BuildContext context) {
     // 设置状态
-    final fontSize = useSignal(18.0);
-    final lineHeight = useSignal(1.5);
+    final fontSize = useSignal(_config.fontSize.value.size.toDouble());
+    final lineHeight = useSignal(_config.lineHeight.value);
     final enableAnimation = useSignal(true);
     final keepScreenOn = useSignal(true);
     final showBattery = useSignal(false);
@@ -39,142 +44,189 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage>
       appBar: AppBar(title: const Text('阅读设置')),
       body: ListView(
         children: [
-          // 字体设置
-          _buildSection(
+          _buildFontSection(context, fontSize, lineHeight),
+          _buildPageSection(context, enableAnimation),
+          _buildScreenSection(context, keepScreenOn, showBattery, showTime),
+          _buildClickZoneSection(context, clickZone),
+          _buildResetSection(
             context,
-            title: '字体设置',
-            children: [
-              _buildSliderSetting(
-                context,
-                title: '字体大小',
-                value: fontSize.value,
-                min: 12,
-                max: 32,
-                divisions: 20,
-                suffix: '${fontSize.value.toInt()}px',
-                onChanged: (v) => fontSize.value = v,
-              ),
-              const Divider(height: 1),
-              _buildSliderSetting(
-                context,
-                title: '行间距',
-                value: lineHeight.value,
-                min: 1.0,
-                max: 2.0,
-                divisions: 20,
-                suffix: 'x${lineHeight.value.toStringAsFixed(1)}',
-                onChanged: (v) => lineHeight.value = v,
-              ),
-              const Divider(height: 1),
-              _buildFontSelector(context),
-            ],
+            fontSize,
+            lineHeight,
+            enableAnimation,
+            keepScreenOn,
+            showBattery,
+            showTime,
+            clickZone,
           ),
-
-          // 翻页设置
-          _buildSection(
-            context,
-            title: '翻页设置',
-            children: [
-              _buildRadioSetting(
-                context,
-                title: '翻页模式',
-                value: 0,
-                groupValue: 0,
-                items: const [('上下滚动', 0), ('左右翻页', 1)],
-                onChanged: (_) {},
-              ),
-              const Divider(height: 1),
-              _buildRadioSetting(
-                context,
-                title: '翻页动画',
-                value: enableAnimation.value ? 0 : 1,
-                groupValue: 0,
-                items: const [('启用', 0), ('禁用', 1)],
-                onChanged: (v) => enableAnimation.value = v == 0,
-              ),
-            ],
-          ),
-
-          // 屏幕设置
-          _buildSection(
-            context,
-            title: '屏幕设置',
-            children: [
-              _buildSwitchSetting(
-                context,
-                title: '保持屏幕常亮',
-                subtitle: '阅读时不让屏幕关闭',
-                value: keepScreenOn.value,
-                onChanged: (v) => keepScreenOn.value = v,
-              ),
-              const Divider(height: 1),
-              _buildSwitchSetting(
-                context,
-                title: '显示电量',
-                subtitle: '在阅读器中显示电量百分比',
-                value: showBattery.value,
-                onChanged: (v) => showBattery.value = v,
-              ),
-              const Divider(height: 1),
-              _buildSwitchSetting(
-                context,
-                title: '显示时间',
-                subtitle: '在阅读器中显示当前时间',
-                value: showTime.value,
-                onChanged: (v) => showTime.value = v,
-              ),
-            ],
-          ),
-
-          // 点击区域设置
-          _buildSection(
-            context,
-            title: '点击区域',
-            children: [
-              _buildRadioSetting(
-                context,
-                title: '点击区域布局',
-                value: clickZone.value,
-                groupValue: clickZone.value,
-                items: const [('完整区域 (推荐)', 3), ('中等区域', 2), ('简化区域', 1)],
-                onChanged: (v) {
-                  if (v != null) clickZone.value = v;
-                },
-              ),
-            ],
-          ),
-
-          // 重置设置
-          _buildSection(
-            context,
-            title: '',
-            children: [
-              ListTile(
-                title: const Text(
-                  '重置为默认值',
-                  style: TextStyle(color: Colors.red),
-                ),
-                leading: const Icon(Icons.refresh, color: Colors.red),
-                onTap: () {
-                  fontSize.value = 18.0;
-                  lineHeight.value = 1.5;
-                  enableAnimation.value = true;
-                  keepScreenOn.value = true;
-                  showBattery.value = false;
-                  showTime.value = true;
-                  clickZone.value = 3;
-
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('已重置为默认设置')));
-                },
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 32),
+          SizedBox(height: DesignTokens.spacing(Spacing.xl)),
         ],
       ),
+    );
+  }
+
+  Widget _buildFontSection(
+    BuildContext context,
+    Signal<double> fontSize,
+    Signal<double> lineHeight,
+  ) {
+    return _buildSection(
+      context,
+      title: '字体设置',
+      children: [
+        _buildSliderSetting(
+          context,
+          title: '字体大小',
+          value: fontSize.value,
+          min: 12,
+          max: 32,
+          divisions: 20,
+          suffix: '${fontSize.value.toInt()}px',
+          onChanged: (v) {
+            fontSize.value = v;
+            _config.setFontSize(ReaderFontSize.fromSize(v));
+          },
+        ),
+        const Divider(height: 1),
+        _buildSliderSetting(
+          context,
+          title: '行间距',
+          value: lineHeight.value,
+          min: 1.0,
+          max: 2.0,
+          divisions: 20,
+          suffix: 'x${lineHeight.value.toStringAsFixed(1)}',
+          onChanged: (v) {
+            lineHeight.value = v;
+            _config.setLineHeight(v);
+          },
+        ),
+        const Divider(height: 1),
+        _buildFontSelector(context),
+        const Divider(height: 1),
+        _buildFontRecommendations(context),
+      ],
+    );
+  }
+
+  Widget _buildPageSection(BuildContext context, Signal<bool> enableAnimation) {
+    return _buildSection(
+      context,
+      title: '翻页设置',
+      children: [
+        _buildRadioSetting(
+          context,
+          title: '翻页模式',
+          value: 0,
+          groupValue: 0,
+          items: const [('上下滚动', 0), ('左右翻页', 1)],
+          onChanged: (_) {},
+        ),
+        const Divider(height: 1),
+        _buildRadioSetting(
+          context,
+          title: '翻页动画',
+          value: enableAnimation.value ? 0 : 1,
+          groupValue: 0,
+          items: const [('启用', 0), ('禁用', 1)],
+          onChanged: (v) => enableAnimation.value = v == 0,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScreenSection(
+    BuildContext context,
+    Signal<bool> keepScreenOn,
+    Signal<bool> showBattery,
+    Signal<bool> showTime,
+  ) {
+    return _buildSection(
+      context,
+      title: '屏幕设置',
+      children: [
+        _buildSwitchSetting(
+          context,
+          title: '保持屏幕常亮',
+          subtitle: '阅读时不让屏幕关闭',
+          value: keepScreenOn.value,
+          onChanged: (v) => keepScreenOn.value = v,
+        ),
+        const Divider(height: 1),
+        _buildSwitchSetting(
+          context,
+          title: '显示电量',
+          subtitle: '在阅读器中显示电量百分比',
+          value: showBattery.value,
+          onChanged: (v) => showBattery.value = v,
+        ),
+        const Divider(height: 1),
+        _buildSwitchSetting(
+          context,
+          title: '显示时间',
+          subtitle: '在阅读器中显示当前时间',
+          value: showTime.value,
+          onChanged: (v) => showTime.value = v,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildClickZoneSection(BuildContext context, Signal<int> clickZone) {
+    return _buildSection(
+      context,
+      title: '点击区域',
+      children: [
+        _buildRadioSetting(
+          context,
+          title: '点击区域布局',
+          value: clickZone.value,
+          groupValue: clickZone.value,
+          items: const [('完整区域 (推荐)', 3), ('中等区域', 2), ('简化区域', 1)],
+          onChanged: (v) {
+            if (v != null) clickZone.value = v;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResetSection(
+    BuildContext context,
+    Signal<double> fontSize,
+    Signal<double> lineHeight,
+    Signal<bool> enableAnimation,
+    Signal<bool> keepScreenOn,
+    Signal<bool> showBattery,
+    Signal<bool> showTime,
+    Signal<int> clickZone,
+  ) {
+    return _buildSection(
+      context,
+      title: '',
+      children: [
+        ListTile(
+          title: const Text('重置为默认值', style: TextStyle(color: Colors.red)),
+          leading: const Icon(
+            PhosphorIconsRegular.arrowsClockwise,
+            color: Colors.red,
+          ),
+          onTap: () async {
+            await _config.resetToDefault();
+            fontSize.value = _config.fontSize.value.size.toDouble();
+            lineHeight.value = _config.lineHeight.value;
+            enableAnimation.value = true;
+            keepScreenOn.value = true;
+            showBattery.value = false;
+            showTime.value = true;
+            clickZone.value = 3;
+
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('已重置为默认设置')));
+          },
+        ),
+      ],
     );
   }
 
@@ -190,9 +242,19 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage>
       children: [
         if (title.isNotEmpty) ...[
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(title,
-              style: const TextStyle(fontSize: 12, color: DesignTokens.textSecondary, letterSpacing: 0.5),
+            padding: EdgeInsets.fromLTRB(
+              DesignTokens.spacing(Spacing.md),
+              DesignTokens.spacing(Spacing.md),
+              DesignTokens.spacing(Spacing.md),
+              DesignTokens.spacing(Spacing.sm),
+            ),
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
         ],
@@ -229,27 +291,109 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage>
     final fontRepo = getIt<FontRepository>();
     return ListTile(
       title: Text(fontRepo.currentFont.value?.name ?? '系统默认'),
-      trailing: const Icon(Icons.chevron_right, size: 18, color: DesignTokens.textSecondary),
+      trailing: Icon(
+        PhosphorIconsRegular.caretRight,
+        size: 18,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
       onTap: () {
         showModalBottomSheet<String>(
           context: context,
           builder: (c) => Column(
             mainAxisSize: MainAxisSize.min,
-            children: fontRepo.availableFonts.value.map((font) =>
-              ListTile(
+            children: fontRepo.availableFonts.value.map((font) {
+              final theme = Theme.of(c);
+              return ListTile(
                 title: Text(font.name),
                 trailing: fontRepo.currentFont.value?.id == font.id
-                  ? const Icon(Icons.check, size: 18, color: DesignTokens.primary)
-                  : null,
+                    ? Icon(
+                        PhosphorIconsRegular.check,
+                        size: 18,
+                        color: theme.colorScheme.primary,
+                      )
+                    : null,
                 onTap: () {
                   fontRepo.setCurrentFont(font.id);
                   Navigator.pop(c, font.id);
                 },
-              ),
-            ).toList(),
+              );
+            }).toList(),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildFontRecommendations(BuildContext context) {
+    final theme = Theme.of(context);
+    final recommendations = [
+      FontRecommendation(
+        name: '霞鹜文楷',
+        url: 'https://github.com/lxgw/LXGW-WenKai',
+        description: '开源楷体字体，适合中文长文阅读',
+        family: 'LXGW WenKai',
+      ),
+      FontRecommendation(
+        name: '思源宋体',
+        url: 'https://github.com/adobe-fonts/source-han-serif',
+        description: 'Adobe 与 Google 联合开发的宋体，端庄典雅',
+        family: 'Source Han Serif',
+      ),
+      FontRecommendation(
+        name: '得意黑',
+        url: 'https://github.com/atelier-anchor/smiley-sans',
+        description: '开源人文几何风格字体，现代感强',
+        family: 'Smiley Sans',
+      ),
+    ];
+
+    return ExpansionTile(
+      title: const Text('推荐字体', style: TextStyle(fontSize: 14)),
+      subtitle: const Text('从网络安装更多字体', style: TextStyle(fontSize: 12)),
+      leading: Icon(
+        PhosphorIconsRegular.textT,
+        size: 20,
+        color: theme.colorScheme.primary,
+      ),
+      children: recommendations.map((rec) {
+        return ListTile(
+          title: Text(rec.name, style: const TextStyle(fontSize: 14)),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                rec.description,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                rec.family,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          trailing: Icon(
+            PhosphorIconsRegular.arrowSquareOut,
+            size: 16,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          onTap: () async {
+            final uri = Uri.tryParse(rec.url);
+            if (uri != null && await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          },
+          contentPadding: EdgeInsets.only(
+            left: DesignTokens.spacing(Spacing.xxl),
+            right: DesignTokens.spacing(Spacing.md),
+          ),
+        );
+      }).toList(),
     );
   }
 

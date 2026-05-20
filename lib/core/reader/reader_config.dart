@@ -51,6 +51,18 @@ enum ReaderFontSize {
 
 /// 阅读器配置
 @Singleton()
+class ReaderBgColors {
+  static const darkBackground = Color(0xFF0A0A0A);
+  static const presets = [
+    Color(0xFFFAFAFA), // 默认白
+    Color(0xFFF5F0E8), // 羊皮纸
+    Color(0xFFFFF8E7), // 奶油
+    Color(0xFFC7EDCC), // 护眼绿
+    Color(0xFFF0F0F0), // 灰色
+  ];
+}
+
+@Singleton()
 class ReaderConfig {
   final SharedPreferences prefs;
 

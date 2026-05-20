@@ -147,15 +147,6 @@ pub fn decode_file(file_path: &str) -> Result<String, AppError> {
     Ok(content.into_owned())
 }
 
-/// 从字节数组解码内容
-pub fn decode_bytes(bytes: &[u8], encoding: &'static Encoding) -> String {
-    let (content, _, had_errors) = encoding.decode(bytes);
-    if had_errors {
-        tracing::warn!("解码字节时遇到错误");
-    }
-    content.into_owned()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

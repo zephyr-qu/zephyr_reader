@@ -10,7 +10,6 @@ class BookmarkRepository {
   final RustStorageService _storage;
   BookmarkRepository(this._storage);
 
-  
   Future<List<Bookmark>> getBookmarksByBookId(String bookId) async {
     return _storage.getBookmarks('book_$bookId');
   }

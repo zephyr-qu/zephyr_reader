@@ -1,4 +1,3 @@
-// lib/di/network_module.dart
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -19,8 +18,12 @@ abstract class NetworkModule {
       BaseOptions(
         baseUrl: AppConfig.baseUrl,
         responseType: ResponseType.json,
-        connectTimeout: const Duration(seconds: AppConfig.connectTimeout),
-        receiveTimeout: const Duration(seconds: AppConfig.receiveTimeout),
+        connectTimeout: const Duration(
+          seconds: AppConfig.connectTimeoutSeconds,
+        ),
+        receiveTimeout: const Duration(
+          seconds: AppConfig.receiveTimeoutSeconds,
+        ),
         headers: AppConfig.defaultHeaders,
       ),
     );
@@ -29,23 +32,20 @@ abstract class NetworkModule {
     return dio;
   }
 
-  /// 配置 Dio 拦截器
   void _setupInterceptors(Dio dio) {
-    // 重试拦截器
     dio.interceptors.add(
       RetryInterceptor(
         dio: dio,
         retries: AppConfig.retries,
         retryDelays: const [
-          Duration(milliseconds: AppConfig.retryDelaysTimeout),
-          Duration(microseconds: AppConfig.retryDelaysTimeout * 2),
-          Duration(microseconds: AppConfig.retryDelaysTimeout * 4),
+          Duration(milliseconds: 500),
+          Duration(milliseconds: 1000),
+          Duration(milliseconds: 2000),
         ],
         retryEvaluator: (err, _) => err.type != DioExceptionType.cancel,
       ),
     );
 
-    // 日志拦截器
     dio.interceptors.add(
       PrettyDioLogger(
         requestHeader: true,
@@ -58,18 +58,15 @@ abstract class NetworkModule {
       ),
     );
 
-    // 业务拦截器
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          // 可在此添加通用参数（如设备ID）
-          // options.queryParameters['device_id'] = AppConfig.deviceId;
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          // 可在此添加统一业务状态码处理
           if (response.data.runtimeType == String) {
-            response.data = json.decode(response.data);
+            response.data =
+                json.decode(response.data as String) as Map<String, dynamic>;
           }
           return handler.next(response);
         },

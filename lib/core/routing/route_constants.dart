@@ -15,7 +15,6 @@ abstract class RoutePaths {
   // 设置相关
   static const String readingSettings = '/settings/reading';
   static const String appSettings = '/settings/app';
-  static const String themeSettings = '/settings/theme';
   static const String about = '/about';
 
   // 同步相关
@@ -37,6 +36,12 @@ abstract class RoutePaths {
 
   // 生词本
   static const String vocabulary = '/vocabulary';
+
+  // 阅读会话
+  static const String readingSessions = '/statistics/sessions';
+
+  // 缓存管理
+  static const String cacheManage = '/settings/cache';
 }
 
 abstract class RouteNames {
@@ -56,7 +61,6 @@ abstract class RouteNames {
   // 设置相关
   static const String readingSettings = 'readingSettings';
   static const String appSettings = 'appSettings';
-  static const String themeSettings = 'themeSettings';
   static const String about = 'about';
 
   // 同步相关
@@ -78,4 +82,10 @@ abstract class RouteNames {
 
   // 生词本
   static const String vocabulary = 'vocabulary';
+
+  // 阅读会话
+  static const String readingSessions = 'readingSessions';
+
+  // 缓存管理
+  static const String cacheManage = 'cacheManage';
 }

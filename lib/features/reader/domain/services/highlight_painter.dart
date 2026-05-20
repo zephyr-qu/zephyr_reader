@@ -6,6 +6,28 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 class HighlightPainter {
   HighlightPainter._();
 
+  static int _paintVersion = 0;
+
+  /// Call this when highlights, search query, or vocabulary words change
+  static void invalidateCache() {
+    _paintVersion++;
+  }
+
+  static int _lastPlainVersion = -1;
+  static String _lastPlainContent = '';
+  static List<Note> _lastPlainHighlights = [];
+  static String _lastPlainSearchQuery = '';
+  static Set<String> _lastPlainVocab = const {};
+  static TextSpan? _cachedPlainResult;
+
+  static int _lastRichVersion = -1;
+  static TextSpan? _lastRichSpan;
+  static int _lastRichContentStart = 0;
+  static List<Note> _lastRichHighlights = [];
+  static String _lastRichSearchQuery = '';
+  static Set<String> _lastRichVocab = const {};
+  static TextSpan? _cachedRichResult;
+
   /// 给纯文本段落应用高亮背景色，可选搜索高亮和生词标记
   static TextSpan paintPlain(
     String content,
@@ -16,14 +38,26 @@ class HighlightPainter {
     bool searchMatchHighlight = false,
     Set<String> vocabularyWords = const {},
   }) {
-    if ((highlights.isEmpty && (searchQuery == null || searchQuery.isEmpty)) || content.isEmpty) {
+    if ((highlights.isEmpty && (searchQuery == null || searchQuery.isEmpty)) ||
+        content.isEmpty) {
       if (vocabularyWords.isNotEmpty) {
-        return _paintVocabulary(content, TextSpan(text: content, style: baseStyle), vocabularyWords);
+        return _paintVocabulary(
+          content,
+          TextSpan(text: content, style: baseStyle),
+          vocabularyWords,
+        );
       }
       return TextSpan(text: content, style: baseStyle);
     }
-    final spans = <TextSpan>[];
-    var offset = 0;
+    if (_paintVersion == _lastPlainVersion &&
+        _lastPlainContent == content &&
+        _listEquals(_lastPlainHighlights, highlights) &&
+        _lastPlainSearchQuery == (searchQuery ?? '') &&
+        _setEquals(_lastPlainVocab, vocabularyWords)) {
+      return _cachedPlainResult!;
+    }
+    final spans = <InlineSpan>[];
+    final offset = 0;
 
     // Build regions: highlight spans + search matches
     final regions = <_Region>[];
@@ -36,18 +70,23 @@ class HighlightPainter {
       final overlapStart = hStart > offset ? hStart : offset;
       final overlapEnd = hEnd < content.length ? hEnd : content.length;
       if (overlapStart > offset) {
-        regions.add(_Region.text(content.substring(offset, overlapStart), baseStyle));
+        regions.add(
+          _Region.text(content.substring(offset, overlapStart), baseStyle),
+        );
       }
-      regions.add(_Region.highlight(
-        content.substring(overlapStart, overlapEnd),
-        baseStyle.copyWith(
-          background: Paint()..color = Color(h.highlightColor ?? 0xFFFFEB3B).withAlpha(77),
+      final highlightColor = Color(h.highlightColor ?? 0xFFFFEB3B);
+      regions.add(
+        _Region.highlight(
+          content.substring(overlapStart, overlapEnd),
+          baseStyle.copyWith(
+            background: Paint()..color = highlightColor.withAlpha(77),
+          ),
+          onHighlightTap != null
+              ? (TapGestureRecognizer()..onTap = () => onHighlightTap(h))
+              : null,
+          highlightColor,
         ),
-        onHighlightTap != null
-            ? (TapGestureRecognizer()..onTap = () => onHighlightTap(h))
-            : null,
-      ));
-      offset = overlapEnd;
+      );
     }
     if (offset < content.length) {
       regions.add(_Region.text(content.substring(offset), baseStyle));
@@ -60,14 +99,34 @@ class HighlightPainter {
 
     // Apply search highlighting on top of existing regions
     if (searchQuery != null && searchQuery.isNotEmpty) {
-      return _paintVocabulary(content,
-        _applySearchHighlight(regions, searchQuery, searchMatchHighlight, baseStyle),
-        vocabularyWords);
+      return _paintVocabulary(
+        content,
+        _applySearchHighlight(
+          regions,
+          searchQuery,
+          searchMatchHighlight,
+          baseStyle,
+        ),
+        vocabularyWords,
+      );
     }
 
     for (final r in regions) {
+      if (r.isHighlight) {
+        spans.add(
+          WidgetSpan(
+            child: Container(
+              width: 2,
+              height: double.infinity,
+              color: r.highlightBarColor,
+            ),
+          ),
+        );
+      }
       if (r.recognizer != null) {
-        spans.add(TextSpan(text: r.text, style: r.style, recognizer: r.recognizer));
+        spans.add(
+          TextSpan(text: r.text, style: r.style, recognizer: r.recognizer),
+        );
       } else {
         spans.add(TextSpan(text: r.text, style: r.style));
       }
@@ -76,6 +135,12 @@ class HighlightPainter {
     if (vocabularyWords.isNotEmpty) {
       result = _paintVocabulary(content, result, vocabularyWords);
     }
+    _lastPlainVersion = _paintVersion;
+    _lastPlainContent = content;
+    _lastPlainHighlights = List.from(highlights);
+    _lastPlainSearchQuery = searchQuery ?? '';
+    _lastPlainVocab = Set.from(vocabularyWords);
+    _cachedPlainResult = result;
     return result;
   }
 
@@ -98,23 +163,32 @@ class HighlightPainter {
           break;
         }
         if (idx > pos) {
-          result.add(TextSpan(text: text.substring(pos, idx), style: region.style));
+          result.add(
+            TextSpan(text: text.substring(pos, idx), style: region.style),
+          );
         }
-        result.add(TextSpan(
-          text: text.substring(idx, idx + query.length),
-          style: region.style.copyWith(
-            background: Paint()..color = (highlightCurrent && idx == 0
-                ? Colors.orange.withAlpha(150)
-                : Colors.yellow.withAlpha(120)),
+        result.add(
+          TextSpan(
+            text: text.substring(idx, idx + query.length),
+            style: region.style.copyWith(
+              background: Paint()
+                ..color = (highlightCurrent && idx == 0
+                    ? Colors.orange.withAlpha(150)
+                    : Colors.yellow.withAlpha(120)),
+            ),
           ),
-        ));
+        );
         pos = idx + query.length;
       }
     }
     return TextSpan(children: result);
   }
 
-  static TextSpan _paintVocabulary(String text, TextSpan span, Set<String> words) {
+  static TextSpan _paintVocabulary(
+    String text,
+    TextSpan span,
+    Set<String> words,
+  ) {
     final matches = <_WordMatch>[];
     final wordRegex = RegExp(r"[a-zA-Z]+(?:'[a-zA-Z]+)?");
     for (final m in wordRegex.allMatches(text)) {
@@ -126,7 +200,11 @@ class HighlightPainter {
     return _applyWordMarks(span, matches, 0);
   }
 
-  static TextSpan _applyWordMarks(TextSpan span, List<_WordMatch> matches, int offset) {
+  static TextSpan _applyWordMarks(
+    TextSpan span,
+    List<_WordMatch> matches,
+    int offset,
+  ) {
     if (span.text != null) {
       final text = span.text!;
       final localMatches = matches
@@ -138,16 +216,20 @@ class HighlightPainter {
       var pos = 0;
       for (final m in localMatches) {
         if (m.start > pos) {
-          children.add(TextSpan(text: text.substring(pos, m.start), style: span.style));
+          children.add(
+            TextSpan(text: text.substring(pos, m.start), style: span.style),
+          );
         }
-        children.add(TextSpan(
-          text: text.substring(m.start, m.end),
-          style: (span.style ?? const TextStyle()).copyWith(
-            decoration: TextDecoration.underline,
-            decorationColor: const Color(0xFF4CAF50),
-            decorationStyle: TextDecorationStyle.dotted,
+        children.add(
+          TextSpan(
+            text: text.substring(m.start, m.end),
+            style: (span.style ?? const TextStyle()).copyWith(
+              decoration: TextDecoration.underline,
+              decorationColor: const Color(0xFF4CAF50),
+              decorationStyle: TextDecorationStyle.dotted,
+            ),
           ),
-        ));
+        );
         pos = m.end;
       }
       if (pos < text.length) {
@@ -192,10 +274,32 @@ class HighlightPainter {
     bool searchMatchHighlight = false,
     Set<String> vocabularyWords = const {},
   }) {
+    if (_paintVersion == _lastRichVersion &&
+        _lastRichSpan == span &&
+        _lastRichContentStart == contentStart &&
+        _listEquals(_lastRichHighlights, highlights) &&
+        _lastRichSearchQuery == (searchQuery ?? '') &&
+        _setEquals(_lastRichVocab, vocabularyWords)) {
+      return _cachedRichResult!;
+    }
     if (highlights.isEmpty && (searchQuery == null || searchQuery.isEmpty)) {
       if (vocabularyWords.isNotEmpty && span.text != null) {
-        return _paintVocabulary(span.text!, span, vocabularyWords);
+        _lastRichVersion = _paintVersion;
+        _lastRichSpan = span;
+        _lastRichContentStart = contentStart;
+        _lastRichHighlights = List.from(highlights);
+        _lastRichSearchQuery = searchQuery ?? '';
+        _lastRichVocab = Set.from(vocabularyWords);
+        _cachedRichResult = _paintVocabulary(span.text!, span, vocabularyWords);
+        return _cachedRichResult!;
       }
+      _lastRichVersion = _paintVersion;
+      _lastRichSpan = span;
+      _lastRichContentStart = contentStart;
+      _lastRichHighlights = List.from(highlights);
+      _lastRichSearchQuery = searchQuery ?? '';
+      _lastRichVocab = Set.from(vocabularyWords);
+      _cachedRichResult = span;
       return span;
     }
     if (span.children != null && span.children!.isNotEmpty) {
@@ -204,22 +308,35 @@ class HighlightPainter {
       for (final child in span.children!) {
         if (child is TextSpan) {
           final len = _textSpanLength(child);
-          children.add(paintRich(child, childOffset, highlights,
+          children.add(
+            paintRich(
+              child,
+              childOffset,
+              highlights,
               onHighlightTap: onHighlightTap,
               searchQuery: searchQuery,
               searchMatchHighlight: searchMatchHighlight,
-              vocabularyWords: vocabularyWords));
+              vocabularyWords: vocabularyWords,
+            ),
+          );
           childOffset += len;
         } else {
           children.add(child);
         }
       }
-      return TextSpan(children: children, style: span.style);
+      _lastRichVersion = _paintVersion;
+      _lastRichSpan = span;
+      _lastRichContentStart = contentStart;
+      _lastRichHighlights = List.from(highlights);
+      _lastRichSearchQuery = searchQuery ?? '';
+      _lastRichVocab = Set.from(vocabularyWords);
+      _cachedRichResult = TextSpan(children: children, style: span.style);
+      return _cachedRichResult!;
     }
     final text = span.text;
     if (text == null || text.isEmpty) return span;
     final baseStyle = span.style ?? const TextStyle();
-    final result = <TextSpan>[];
+    final result = <InlineSpan>[];
     var offset = 0;
 
     final regions = <_Region>[];
@@ -233,17 +350,23 @@ class HighlightPainter {
       final overlapStart = localStart > 0 ? localStart : 0;
       final overlapEnd = localEnd < text.length ? localEnd : text.length;
       if (overlapStart > offset) {
-        regions.add(_Region.text(text.substring(offset, overlapStart), baseStyle));
+        regions.add(
+          _Region.text(text.substring(offset, overlapStart), baseStyle),
+        );
       }
-      regions.add(_Region.highlight(
-        text.substring(overlapStart, overlapEnd),
-        baseStyle.copyWith(
-          background: Paint()..color = Color(h.highlightColor ?? 0xFFFFEB3B).withAlpha(77),
+      final highlightColor = Color(h.highlightColor ?? 0xFFFFEB3B);
+      regions.add(
+        _Region.highlight(
+          text.substring(overlapStart, overlapEnd),
+          baseStyle.copyWith(
+            background: Paint()..color = highlightColor.withAlpha(77),
+          ),
+          onHighlightTap != null
+              ? (TapGestureRecognizer()..onTap = () => onHighlightTap(h))
+              : null,
+          highlightColor,
         ),
-        onHighlightTap != null
-            ? (TapGestureRecognizer()..onTap = () => onHighlightTap(h))
-            : null,
-      ));
+      );
       offset = overlapEnd;
     }
     if (offset < text.length) {
@@ -252,22 +375,72 @@ class HighlightPainter {
 
     if (regions.isEmpty) {
       if (vocabularyWords.isNotEmpty) {
-        return _paintVocabulary(text, span, vocabularyWords);
+        _lastRichVersion = _paintVersion;
+        _lastRichSpan = span;
+        _lastRichContentStart = contentStart;
+        _lastRichHighlights = List.from(highlights);
+        _lastRichSearchQuery = searchQuery ?? '';
+        _lastRichVocab = Set.from(vocabularyWords);
+        _cachedRichResult = _paintVocabulary(text, span, vocabularyWords);
+        return _cachedRichResult!;
       }
+      _lastRichVersion = _paintVersion;
+      _lastRichSpan = span;
+      _lastRichContentStart = contentStart;
+      _lastRichHighlights = List.from(highlights);
+      _lastRichSearchQuery = searchQuery ?? '';
+      _lastRichVocab = Set.from(vocabularyWords);
+      _cachedRichResult = span;
       return span;
     }
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
-      final searchResult = _applySearchHighlight(regions, searchQuery, searchMatchHighlight, baseStyle);
+      final searchResult = _applySearchHighlight(
+        regions,
+        searchQuery,
+        searchMatchHighlight,
+        baseStyle,
+      );
       if (vocabularyWords.isNotEmpty) {
-        return _paintVocabulary(text, searchResult, vocabularyWords);
+        _lastRichVersion = _paintVersion;
+        _lastRichSpan = span;
+        _lastRichContentStart = contentStart;
+        _lastRichHighlights = List.from(highlights);
+        _lastRichSearchQuery = searchQuery;
+        _lastRichVocab = Set.from(vocabularyWords);
+        _cachedRichResult = _paintVocabulary(
+          text,
+          searchResult,
+          vocabularyWords,
+        );
+        return _cachedRichResult!;
       }
+      _lastRichVersion = _paintVersion;
+      _lastRichSpan = span;
+      _lastRichContentStart = contentStart;
+      _lastRichHighlights = List.from(highlights);
+      _lastRichSearchQuery = searchQuery;
+      _lastRichVocab = Set.from(vocabularyWords);
+      _cachedRichResult = searchResult;
       return searchResult;
     }
 
     for (final r in regions) {
+      if (r.isHighlight) {
+        result.add(
+          WidgetSpan(
+            child: Container(
+              width: 2,
+              height: double.infinity,
+              color: r.highlightBarColor,
+            ),
+          ),
+        );
+      }
       if (r.recognizer != null) {
-        result.add(TextSpan(text: r.text, style: r.style, recognizer: r.recognizer));
+        result.add(
+          TextSpan(text: r.text, style: r.style, recognizer: r.recognizer),
+        );
       } else {
         result.add(TextSpan(text: r.text, style: r.style));
       }
@@ -276,7 +449,32 @@ class HighlightPainter {
     if (vocabularyWords.isNotEmpty) {
       finalSpan = _paintVocabulary(text, finalSpan, vocabularyWords);
     }
+    _lastRichVersion = _paintVersion;
+    _lastRichSpan = span;
+    _lastRichContentStart = contentStart;
+    _lastRichHighlights = List.from(highlights);
+    _lastRichSearchQuery = searchQuery ?? '';
+    _lastRichVocab = Set.from(vocabularyWords);
+    _cachedRichResult = finalSpan;
     return finalSpan;
+  }
+
+  static bool _listEquals(List<Note> a, List<Note> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      final na = a[i], nb = b[i];
+      if (na.id != nb.id ||
+          na.charOffset != nb.charOffset ||
+          na.length != nb.length) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  static bool _setEquals(Set<String> a, Set<String> b) {
+    if (a.length != b.length) return false;
+    return a.containsAll(b);
   }
 }
 
@@ -284,10 +482,29 @@ class _Region {
   final String text;
   final TextStyle style;
   final TapGestureRecognizer? recognizer;
-  _Region._({required this.text, required this.style, this.recognizer});
-  factory _Region.text(String text, TextStyle style) => _Region._(text: text, style: style);
-  factory _Region.highlight(String text, TextStyle style, TapGestureRecognizer? r) =>
-      _Region._(text: text, style: style, recognizer: r);
+  final bool isHighlight;
+  final Color? highlightBarColor;
+  _Region._({
+    required this.text,
+    required this.style,
+    this.recognizer,
+    this.isHighlight = false,
+    this.highlightBarColor,
+  });
+  factory _Region.text(String text, TextStyle style) =>
+      _Region._(text: text, style: style);
+  factory _Region.highlight(
+    String text,
+    TextStyle style,
+    TapGestureRecognizer? r,
+    Color highlightColor,
+  ) => _Region._(
+    text: text,
+    style: style,
+    recognizer: r,
+    isHighlight: true,
+    highlightBarColor: highlightColor,
+  );
 }
 
 class _WordMatch {

@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_book_repository.dart';
 import 'package:zephyr_reader/features/search/application/search_view_model.dart';
+import 'package:zephyr_reader/features/search/application/services/full_text_search_service.dart';
 import 'package:zephyr_reader/features/search/data/search_service.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
-import 'package:zephyr_reader/core/presentation/widgets/ui_components.dart';
+import 'package:zephyr_reader/core/presentation/widgets/cards.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 /// 搜索页面 - 响应式设计
 class SearchPage extends StatefulWidget {
@@ -23,6 +26,7 @@ class _SearchPageState extends State<SearchPage> {
   final vm = getIt<SearchViewModel>();
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
+  final _historyService = SearchHistoryService();
 
   // 防止重复加载
   bool _isLoadingMore = false;
@@ -88,7 +92,10 @@ class _SearchPageState extends State<SearchPage> {
           // 搜索栏
           SliverToBoxAdapter(
             child: Padding(
-              padding: pagePadding.copyWith(top: 16, bottom: 16),
+              padding: pagePadding.copyWith(
+                top: DesignTokens.spacing(Spacing.md),
+                bottom: DesignTokens.spacing(Spacing.md),
+              ),
               child: _buildSearchBar(context, theme),
             ).animate().fadeIn(duration: 400.ms),
           ),
@@ -123,7 +130,9 @@ class _SearchPageState extends State<SearchPage> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: EdgeInsets.symmetric(
+              horizontal: DesignTokens.spacing(Spacing.sm),
+            ),
             child: Text(
               '/',
               style: theme.textTheme.titleMedium?.copyWith(
@@ -158,8 +167,8 @@ class _SearchPageState extends State<SearchPage> {
 
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 24 : 20,
-        vertical: isDesktop ? 16 : 12,
+        horizontal: isDesktop ? DesignTokens.spacing(Spacing.lg) : 20,
+        vertical: isDesktop ? DesignTokens.spacing(Spacing.md) : 12,
       ),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
@@ -178,7 +187,7 @@ class _SearchPageState extends State<SearchPage> {
                   ),
                 ),
                 prefixIcon: Icon(
-                  Icons.search_rounded,
+                  PhosphorIconsRegular.magnifyingGlass,
                   color: theme.colorScheme.primary,
                 ),
                 suffixIcon: Watch.builder(
@@ -187,12 +196,13 @@ class _SearchPageState extends State<SearchPage> {
                       return const SizedBox.shrink();
                     }
                     return IconButton(
-                      icon: const Icon(Icons.clear_rounded),
+                      icon: const Icon(PhosphorIconsRegular.x),
                       onPressed: () {
                         _searchController.clear();
                         vm.updateKeyword('');
                         vm.clear();
                       },
+                      tooltip: '清除',
                     );
                   },
                 ),
@@ -203,12 +213,13 @@ class _SearchPageState extends State<SearchPage> {
                 filled: true,
                 fillColor: theme.colorScheme.surface,
                 contentPadding: EdgeInsets.symmetric(
-                  horizontal: isDesktop ? 20 : 16,
+                  horizontal: isDesktop ? 20 : DesignTokens.spacing(Spacing.md),
                   vertical: isDesktop ? 14 : 12,
                 ),
               ),
               style: theme.textTheme.bodyLarge,
               onSubmitted: (value) {
+                _historyService.addHistory(value);
                 vm.updateKeyword(value);
                 vm.search();
               },
@@ -217,14 +228,17 @@ class _SearchPageState extends State<SearchPage> {
           const SizedBox(width: 12),
           FilledButton.icon(
             onPressed: () {
+              _historyService.addHistory(_searchController.text);
               vm.updateKeyword(_searchController.text);
               vm.search();
             },
-            icon: const Icon(Icons.search_rounded),
+            icon: const Icon(PhosphorIconsRegular.magnifyingGlass),
             label: Text(isDesktop ? '搜索' : ''),
             style: FilledButton.styleFrom(
               padding: EdgeInsets.symmetric(
-                horizontal: isDesktop ? 24 : 16,
+                horizontal: isDesktop
+                    ? DesignTokens.spacing(Spacing.lg)
+                    : DesignTokens.spacing(Spacing.md),
                 vertical: 14,
               ),
               shape: RoundedRectangleBorder(
@@ -256,7 +270,7 @@ class _SearchPageState extends State<SearchPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
+                    SizedBox(height: DesignTokens.spacing(Spacing.md)),
                     Text(
                       '搜索中...',
                       style: theme.textTheme.bodyMedium?.copyWith(
@@ -277,16 +291,16 @@ class _SearchPageState extends State<SearchPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.error_outline,
+                      PhosphorIconsRegular.warningCircle,
                       size: 64,
                       color: theme.colorScheme.error,
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: DesignTokens.spacing(Spacing.md)),
                     Text('搜索失败：${async.error}'),
-                    const SizedBox(height: 24),
+                    SizedBox(height: DesignTokens.spacing(Spacing.lg)),
                     FilledButton.icon(
                       onPressed: () => vm.search(),
-                      icon: const Icon(Icons.refresh_rounded),
+                      icon: const Icon(PhosphorIconsRegular.arrowsClockwise),
                       label: const Text('重试'),
                     ),
                   ],
@@ -305,13 +319,13 @@ class _SearchPageState extends State<SearchPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.search_off_rounded,
+                      PhosphorIconsRegular.magnifyingGlassMinus,
                       size: 80,
                       color: theme.colorScheme.onSurfaceVariant.withValues(
                         alpha: 0.3,
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: DesignTokens.spacing(Spacing.lg)),
                     Text(
                       '未找到 "${vm.keyword.value}" 相关的小说',
                       style: theme.textTheme.titleMedium?.copyWith(
@@ -325,6 +339,78 @@ class _SearchPageState extends State<SearchPage> {
           }
 
           if (results.isEmpty) {
+            final history = _historyService.getHistory();
+            if (history.isNotEmpty) {
+              return SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: DesignTokens.spacing(Spacing.sm),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '搜索历史',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () {
+                              setState(() => _historyService.clearHistory());
+                            },
+                            icon: Icon(
+                              PhosphorIconsRegular.trash,
+                              size: 16,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            label: Text(
+                              '清空',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: DesignTokens.spacing(Spacing.sm)),
+                      Wrap(
+                        spacing: DesignTokens.spacing(Spacing.sm),
+                        runSpacing: DesignTokens.spacing(Spacing.sm),
+                        children: history.map((query) {
+                          return InputChip(
+                            label: Text(
+                              query,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            onPressed: () {
+                              _searchController.text = query;
+                              vm.updateKeyword(query);
+                              vm.search();
+                            },
+                            onDeleted: () {
+                              setState(
+                                () => _historyService.removeHistory(query),
+                              );
+                            },
+                            deleteIconColor: theme.colorScheme.onSurfaceVariant,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
             return SliverFillRemaining(
               hasScrollBody: false,
               child: Center(
@@ -332,11 +418,11 @@ class _SearchPageState extends State<SearchPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.menu_book_rounded,
+                      PhosphorIconsRegular.book,
                       size: 80,
                       color: theme.colorScheme.primary.withValues(alpha: 0.3),
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: DesignTokens.spacing(Spacing.lg)),
                     Text(
                       '输入关键词开始搜索',
                       style: theme.textTheme.titleMedium?.copyWith(
@@ -361,7 +447,7 @@ class _SearchPageState extends State<SearchPage> {
                     .slideY(begin: 0.05, end: 0);
               } else if (vm.hasMore.value) {
                 return Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: EdgeInsets.all(DesignTokens.spacing(Spacing.lg)),
                   child: Watch.builder(
                     builder: (context) {
                       return vm.isSearching.value
@@ -387,9 +473,11 @@ class _SearchPageState extends State<SearchPage> {
     final isDesktop = deviceType == DeviceType.desktop;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.only(bottom: DesignTokens.spacing(Spacing.md)),
       child: GradientCard(
-        padding: EdgeInsets.all(isDesktop ? 20 : 16),
+        padding: EdgeInsets.all(
+          isDesktop ? 20 : DesignTokens.spacing(Spacing.md),
+        ),
         onTap: () => _showPreview(result),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -409,6 +497,8 @@ class _SearchPageState extends State<SearchPage> {
                         fit: BoxFit.cover,
                         width: double.infinity,
                         height: double.infinity,
+                        cacheWidth: 60,
+                        cacheHeight: 80,
                         errorBuilder: (context, error, stackTrace) {
                           return _buildCoverPlaceholder(theme, isDesktop);
                         },
@@ -431,7 +521,7 @@ class _SearchPageState extends State<SearchPage> {
                     : _buildCoverPlaceholder(theme, isDesktop),
               ),
             ),
-            SizedBox(width: isDesktop ? 20 : 16),
+            SizedBox(width: isDesktop ? 20 : DesignTokens.spacing(Spacing.md)),
             // 书籍信息
             Expanded(
               child: Column(
@@ -445,27 +535,29 @@ class _SearchPageState extends State<SearchPage> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: DesignTokens.spacing(Spacing.sm)),
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: DesignTokens.spacing(Spacing.sm),
+                          vertical: DesignTokens.spacing(Spacing.xs),
                         ),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(
+                            DesignTokens.radius(RadiusSize.sm),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.person_rounded,
+                              PhosphorIconsRegular.user,
                               size: 12,
                               color: theme.colorScheme.primary,
                             ),
-                            const SizedBox(width: 4),
+                            SizedBox(width: DesignTokens.spacing(Spacing.xs)),
                             Text(
                               result.author,
                               style: theme.textTheme.labelSmall?.copyWith(
@@ -477,25 +569,27 @@ class _SearchPageState extends State<SearchPage> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: DesignTokens.spacing(Spacing.sm)),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: DesignTokens.spacing(Spacing.sm),
+                          vertical: DesignTokens.spacing(Spacing.xs),
                         ),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.tertiaryContainer,
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(
+                            DesignTokens.radius(RadiusSize.sm),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.chrome_reader_mode_rounded,
+                              PhosphorIconsRegular.bookOpen,
                               size: 12,
                               color: theme.colorScheme.tertiary,
                             ),
-                            const SizedBox(width: 4),
+                            SizedBox(width: DesignTokens.spacing(Spacing.xs)),
                             Text(
                               '${result.totalChapters}章',
                               style: theme.textTheme.labelSmall?.copyWith(
@@ -523,23 +617,25 @@ class _SearchPageState extends State<SearchPage> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: DesignTokens.spacing(Spacing.sm),
+                          vertical: DesignTokens.spacing(Spacing.xs),
                         ),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(
+                            DesignTokens.radius(RadiusSize.sm),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.storage_rounded,
+                              PhosphorIconsRegular.hardDrives,
                               size: 12,
                               color: theme.colorScheme.secondary,
                             ),
-                            const SizedBox(width: 4),
+                            SizedBox(width: DesignTokens.spacing(Spacing.xs)),
                             Text(
                               result.source,
                               style: theme.textTheme.labelSmall?.copyWith(
@@ -551,7 +647,7 @@ class _SearchPageState extends State<SearchPage> {
                       ),
                       const Spacer(),
                       Icon(
-                        Icons.arrow_forward_ios_rounded,
+                        PhosphorIconsLight.caretRight,
                         size: 16,
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -569,7 +665,7 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildCoverPlaceholder(ThemeData theme, bool isDesktop) {
     return Center(
       child: Icon(
-        Icons.book_rounded,
+        PhosphorIconsRegular.book,
         size: isDesktop ? 40 : 28,
         color: theme.colorScheme.primary.withValues(alpha: 0.5),
       ),
@@ -600,6 +696,8 @@ class _SearchPageState extends State<SearchPage> {
                         result.coverUrl!,
                         width: 120,
                         height: 160,
+                        cacheWidth: 60,
+                        cacheHeight: 80,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
                             width: 120,
@@ -608,40 +706,43 @@ class _SearchPageState extends State<SearchPage> {
                               color: theme.colorScheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.book_rounded, size: 48),
+                            child: const Icon(
+                              PhosphorIconsRegular.book,
+                              size: 48,
+                            ),
                           );
                         },
                       ),
                     ),
                   ),
-                const SizedBox(height: 16),
+                SizedBox(height: DesignTokens.spacing(Spacing.md)),
                 _buildInfoRow(
                   label: '作者',
                   value: result.author,
-                  icon: Icons.person_rounded,
+                  icon: PhosphorIconsRegular.user,
                   theme: theme,
                 ),
                 _buildInfoRow(
                   label: '章节数',
                   value: '${result.totalChapters} 章',
-                  icon: Icons.chrome_reader_mode_rounded,
+                  icon: PhosphorIconsRegular.bookOpen,
                   theme: theme,
                 ),
                 _buildInfoRow(
                   label: '来源',
                   value: result.source,
-                  icon: Icons.storage_rounded,
+                  icon: PhosphorIconsRegular.hardDrives,
                   theme: theme,
                 ),
                 if (result.description != null) ...[
-                  const SizedBox(height: 16),
+                  SizedBox(height: DesignTokens.spacing(Spacing.md)),
                   Text(
                     '简介',
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: DesignTokens.spacing(Spacing.sm)),
                   Text(
                     result.description!,
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -682,7 +783,7 @@ class _SearchPageState extends State<SearchPage> {
                   SnackBar(
                     content: Row(
                       children: [
-                        const Icon(Icons.check_circle_rounded),
+                        const Icon(PhosphorIconsFill.checkCircle),
                         const SizedBox(width: 12),
                         Text('已添加 ${result.title} 到书架'),
                       ],
@@ -695,7 +796,7 @@ class _SearchPageState extends State<SearchPage> {
                   const SnackBar(
                     content: Row(
                       children: [
-                        Icon(Icons.info_outline_rounded),
+                        Icon(PhosphorIconsRegular.info),
                         SizedBox(width: 12),
                         Text('添加失败，书籍可能已存在'),
                       ],
@@ -705,7 +806,7 @@ class _SearchPageState extends State<SearchPage> {
                 );
               }
             },
-            icon: const Icon(Icons.bookmark_add_rounded),
+            icon: const Icon(PhosphorIconsRegular.bookmarkSimple),
             label: const Text('添加到书架'),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -727,10 +828,12 @@ class _SearchPageState extends State<SearchPage> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(DesignTokens.spacing(Spacing.sm)),
             decoration: BoxDecoration(
               color: theme.colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(
+                DesignTokens.radius(RadiusSize.md),
+              ),
             ),
             child: Icon(icon, size: 18, color: theme.colorScheme.primary),
           ),

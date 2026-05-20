@@ -5,12 +5,12 @@
 use std::path::Path;
 
 use anyhow::{Context, Result};
-use serde::{de::DeserializeOwned, Serialize};
 
 use super::models::{LayoutCache, LayoutCacheKey};
 
 /// KV 存储封装
 pub struct KvStore {
+    #[allow(dead_code)]
     db: sled::Db,
     layout_cache: sled::Tree,
 }
@@ -23,83 +23,10 @@ impl KvStore {
          Ok(Self { db, layout_cache })
     }
 
-    /// 存储序列化值
-    pub fn put<T: Serialize>(&self, key: impl AsRef<[u8]>, value: &T) -> Result<()> {
-        let bytes = bincode::serialize(value).context("Failed to serialize value")?;
-        self.db.insert(key, bytes)?;
-        Ok(())
-    }
-
-    /// 获取反序列化值
-    pub fn get<T: DeserializeOwned>(&self, key: impl AsRef<[u8]>) -> Result<Option<T>> {
-        match self.db.get(key)? {
-            Some(bytes) => {
-                let value = bincode::deserialize(&bytes).context("Failed to deserialize value")?;
-                Ok(Some(value))
-            }
-            None => Ok(None),
-        }
-    }
-
-    /// 删除键
-    pub fn delete(&self, key: impl AsRef<[u8]>) -> Result<Option<sled::IVec>> {
-        Ok(self.db.remove(key)?)
-    }
-
-    /// 检查键是否存在
-    pub fn contains_key(&self, key: impl AsRef<[u8]>) -> Result<bool> {
-        Ok(self.db.contains_key(key)?)
-    }
-
-    /// 原子更新
-    pub fn update<T: Serialize + DeserializeOwned>(
-        &self,
-        key: impl AsRef<[u8]>,
-        f: impl FnOnce(Option<T>) -> T,
-    ) -> Result<()> {
-        let key = key.as_ref();
-        let old = self.get::<T>(key)?;
-        let new = f(old);
-        self.put(key, &new)?;
-        Ok(())
-    }
-
-    /// 前缀扫描
-    pub fn scan_prefix<T: DeserializeOwned>(
-        &self,
-        prefix: impl AsRef<[u8]>,
-    ) -> Result<Vec<(String, T)>> {
-        let mut results = Vec::new();
-        for item in self.db.scan_prefix(prefix) {
-            let (key, value) = item.context("Failed to read from sled")?;
-            if let Ok(v) = bincode::deserialize::<T>(&value) {
-                results.push((String::from_utf8_lossy(&key).to_string(), v));
-            }
-        }
-        Ok(results)
-    }
-
     /// 刷盘
     pub fn flush(&self) -> Result<()> {
         self.db.flush().context("Failed to flush sled database")?;
         Ok(())
-    }
-
-    /// 获取树（用于命名空间隔离）
-    pub fn open_tree(&self, name: impl AsRef<str>) -> Result<TreeWrapper> {
-        let tree = self.db.open_tree(name.as_ref())?;
-        Ok(TreeWrapper { tree })
-    }
-
-    /// 清空所有数据
-    pub fn clear(&self) -> Result<()> {
-        self.db.clear()?;
-        Ok(())
-    }
-
-    /// 获取磁盘使用量（字节）
-    pub fn size_on_disk(&self) -> Result<u64> {
-        Ok(self.db.size_on_disk()?)
     }
 
     /// 存储排版缓存
@@ -147,39 +74,6 @@ impl KvStore {
     }
 }
 
-/// 树包装器（命名空间）
-pub struct TreeWrapper {
-    tree: sled::Tree,
-}
-
-impl TreeWrapper {
-    pub fn put<T: Serialize>(&self, key: impl AsRef<[u8]>, value: &T) -> Result<()> {
-        let bytes = bincode::serialize(value).context("Failed to serialize value")?;
-        self.tree.insert(key, bytes)?;
-        Ok(())
-    }
-
-    pub fn get<T: DeserializeOwned>(&self, key: impl AsRef<[u8]>) -> Result<Option<T>> {
-        match self.tree.get(key)? {
-            Some(bytes) => {
-                let value = bincode::deserialize(&bytes).context("Failed to deserialize value")?;
-                Ok(Some(value))
-            }
-            None => Ok(None),
-        }
-    }
-
-    pub fn delete(&self, key: impl AsRef<[u8]>) -> Result<Option<sled::IVec>> {
-        Ok(self.tree.remove(key)?)
-    }
-
-    pub fn clear(&self) -> Result<()> {
-        self.tree.clear()?;
-        Ok(())
-    }
-}
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -190,16 +84,24 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let store = KvStore::new(temp_dir.path()).unwrap();
 
-        // 存储
-        store.put("key1", &"value1".to_string()).unwrap();
+        let key = super::LayoutCacheKey {
+            book_id: "test".to_string(),
+            chapter_index: 0,
+            config_hash: "abc".to_string(),
+        };
+        let cache = super::LayoutCache {
+            page_offsets: vec![(0, 100)],
+            total_pages: 1,
+            created_at: chrono::Utc::now(),
+        };
 
-        // 获取
-        let value: Option<String> = store.get("key1").unwrap();
-        assert_eq!(value, Some("value1".to_string()));
+        store.save_layout_cache(&key, &cache).unwrap();
+        let loaded = store.get_layout_cache(&key).unwrap();
+        assert!(loaded.is_some());
+        assert_eq!(loaded.unwrap().total_pages, 1);
 
-        // 删除
-        store.delete("key1").unwrap();
-        let value: Option<String> = store.get("key1").unwrap();
-        assert_eq!(value, None);
+        store.delete_book_layout_cache("test").unwrap();
+        let loaded = store.get_layout_cache(&key).unwrap();
+        assert!(loaded.is_none());
     }
 }

@@ -19,7 +19,13 @@ class PageInfo {
   final TextSpan? richContent;
   final int startOffset;
   final int endOffset;
-  PageInfo({required this.pageIndex, required this.content, this.richContent, required this.startOffset, required this.endOffset});
+  PageInfo({
+    required this.pageIndex,
+    required this.content,
+    this.richContent,
+    required this.startOffset,
+    required this.endOffset,
+  });
 }
 
 /// 章节内容缓存项
@@ -27,19 +33,33 @@ class ChapterCacheItem {
   final String content;
   final List<PageInfo> pages;
   final DateTime loadedAt;
-  ChapterCacheItem({required this.content, required this.pages, required this.loadedAt});
+  ChapterCacheItem({
+    required this.content,
+    required this.pages,
+    required this.loadedAt,
+  });
 }
 
 /// 阅读进度数据
 class ReadingProgressData {
   final String bookId;
   final int chapterIndex;
+  final int charOffset;
   final int pageIndex;
   final int totalPages;
   final int readingTimeSeconds;
   final DateTime lastReadAt;
-  ReadingProgressData({required this.bookId, required this.chapterIndex, required this.pageIndex, required this.totalPages, required this.readingTimeSeconds, required this.lastReadAt});
-  double get progressPercent => totalPages > 0 ? (pageIndex + 1) / totalPages : 0.0;
+  ReadingProgressData({
+    required this.bookId,
+    required this.chapterIndex,
+    required this.charOffset,
+    required this.pageIndex,
+    required this.totalPages,
+    required this.readingTimeSeconds,
+    required this.lastReadAt,
+  });
+  double get progressPercent =>
+      totalPages > 0 ? (pageIndex + 1) / totalPages : 0.0;
   String get progressText => '${(progressPercent * 100).toStringAsFixed(1)}%';
 }
 
@@ -64,7 +84,6 @@ class ReaderRepository {
     }
   }
 
-  
   Future<Chapter?> getChapter(int bookId, int chapterIndex) async {
     final chapters = await _storage.getChaptersByBook('book_$bookId');
     try {
@@ -78,34 +97,7 @@ class ReaderRepository {
     return _storage.getChaptersByBook('book_$bookId');
   }
 
-  Future<void> saveReadingHistory(
-    String bookId,
-    int chapterId,
-    int position,
-    int duration,
-  ) async {
-    final now = DateTime.now();
-    await _storage.recordReadingSession(ReadingSession(
-      id: 'session_${now.millisecondsSinceEpoch}',
-      bookId: bookId,
-      chapterIndex: chapterId,
-      startCharOffset: 0,
-      endCharOffset: position,
-      startedAt: now,
-      endedAt: now,
-      durationSeconds: duration,
-    ));
-  }
-
-  Future<GlobalStats?> getReadingHistory(int bookId) async {
-    return _storage.getGlobalReadingStats();
-  }
-
-  Future<int> addBookmark(
-    String bookId,
-    int chapterId,
-    int position,
-  ) async {
+  Future<int> addBookmark(String bookId, int chapterId, int position) async {
     final bookmark = Bookmark(
       id: 'bm_${DateTime.now().millisecondsSinceEpoch}',
       bookId: bookId,
@@ -139,66 +131,101 @@ class ReaderRepository {
 
   // ===== From ChapterContentService =====
 
-  Future<String> loadChapterContent(String bookId, int chapterId, {String? contentFilePath}) async {
-    debugPrint('loadChapterContent >>> bookId=$bookId chapterId=$chapterId contentFilePath=$contentFilePath');
+  Future<String> loadChapterContent(
+    String bookId,
+    int chapterId, {
+    String? contentFilePath,
+  }) async {
+    debugPrint(
+      'loadChapterContent >>> bookId=$bookId chapterId=$chapterId contentFilePath=$contentFilePath',
+    );
     final cacheKey = bookId.toString();
-    if (_cache.containsKey(cacheKey) && _cache[cacheKey]!.containsKey(chapterId)) {
+    if (_cache.containsKey(cacheKey) &&
+        _cache[cacheKey]!.containsKey(chapterId)) {
       final cached = _cache[cacheKey]![chapterId]!;
-      debugPrint('loadChapterContent <<< cache hit, content len=${cached.content.length}');
+      debugPrint(
+        'loadChapterContent <<< cache hit, content len=${cached.content.length}',
+      );
       return cached.content;
     }
     try {
       String content = '';
       String? source;
 
-      if (contentFilePath != null && contentFilePath.isNotEmpty) {
+      if (contentFilePath != null &&
+          contentFilePath.isNotEmpty &&
+          chapterId == 0) {
         final file = File(contentFilePath);
         if (await file.exists()) {
           content = await file.readAsString();
           source = contentFilePath;
-          debugPrint('loadChapterContent 从 contentFilePath 读取: path=$contentFilePath len=${content.length}');
+          debugPrint(
+            'loadChapterContent 从 contentFilePath 读取: path=$contentFilePath len=${content.length}',
+          );
         } else {
-          debugPrint('loadChapterContent contentFilePath 不存在: $contentFilePath');
+          debugPrint(
+            'loadChapterContent contentFilePath 不存在: $contentFilePath',
+          );
         }
       }
 
       if (content.isEmpty) {
         final chapters = await _storage.getChaptersByBook(bookId);
-        debugPrint('loadChapterContent 查询 chapters 表: bookId=$bookId 总数=${chapters.length}');
+        debugPrint(
+          'loadChapterContent 查询 chapters 表: bookId=$bookId 总数=${chapters.length}',
+        );
         for (int i = 0; i < chapters.length && i < 10; i++) {
-          debugPrint('loadChapterContent   chapter[$i]: idx=${chapters[i].chapterIndex} title="${chapters[i].title}"');
+          debugPrint(
+            'loadChapterContent   chapter[$i]: idx=${chapters[i].chapterIndex} title="${chapters[i].title}"',
+          );
         }
-        var ch = chapters.where((c) => c.chapterIndex == chapterId).firstOrNull;
-        if (ch == null && chapters.isNotEmpty) {
-          debugPrint('loadChapterContent chapterId=$chapterId 未找到，使用 chapters[0] (idx=${chapters.first.chapterIndex})');
-          ch = chapters.first;
-        }
+        final ch = chapters
+            .where((c) => c.chapterIndex == chapterId)
+            .firstOrNull;
         if (ch != null) {
-          chapterId = ch.chapterIndex;
-          debugPrint('loadChapterContent 找到章节: chapterIndex=$chapterId contentFile=${ch.contentFile} startIndex=${ch.startIndex} endIndex=${ch.endIndex}');
+          debugPrint(
+            'loadChapterContent 找到章节: chapterIndex=$chapterId contentFile=${ch.contentFile} startIndex=${ch.startIndex} endIndex=${ch.endIndex}',
+          );
           if (ch.contentFile.isNotEmpty) {
             final isEpub = ch.contentFile.toLowerCase().endsWith('.epub');
             if (isEpub) {
               try {
                 try {
-                  final meta = await _epubService.getEpubMetadata(ch.contentFile);
-                  debugPrint('loadChapterContent EPUB 诊断: spine=${meta.spine.length} items');
+                  final meta = await _epubService.getEpubMetadata(
+                    ch.contentFile,
+                  );
+                  debugPrint(
+                    'loadChapterContent EPUB 诊断: spine=${meta.spine.length} items',
+                  );
                   for (int i = 0; i < meta.spine.length && i < 15; i++) {
-                    debugPrint('loadChapterContent EPUB 诊断:   spine[$i]=${meta.spine[i]}');
+                    debugPrint(
+                      'loadChapterContent EPUB 诊断:   spine[$i]=${meta.spine[i]}',
+                    );
                   }
-                  debugPrint('loadChapterContent EPUB 诊断: toc=${meta.toc.length} items');
+                  debugPrint(
+                    'loadChapterContent EPUB 诊断: toc=${meta.toc.length} items',
+                  );
                   for (final item in meta.toc) {
-                    debugPrint('loadChapterContent EPUB 诊断:   toc label="${item.label}" href="${item.href}" level=${item.level}');
+                    debugPrint(
+                      'loadChapterContent EPUB 诊断:   toc label="${item.label}" href="${item.href}" level=${item.level}',
+                    );
                   }
                 } catch (e) {
                   debugPrint('loadChapterContent EPUB 诊断 获取 metadata 失败: $e');
                 }
                 // 对比: 通用路径能否读到内容
                 try {
-                  final raw = await _coreService.getChapter(ch.contentFile, chapterId);
-                  debugPrint('loadChapterContent EPUB 诊断 coreService.getChapter: type=${raw.runtimeType}');
+                  final raw = await _coreService.getChapter(
+                    ch.contentFile,
+                    chapterId,
+                  );
+                  debugPrint(
+                    'loadChapterContent EPUB 诊断 coreService.getChapter: type=${raw.runtimeType}',
+                  );
                 } catch (e) {
-                  debugPrint('loadChapterContent EPUB 诊断 coreService.getChapter 失败: $e');
+                  debugPrint(
+                    'loadChapterContent EPUB 诊断 coreService.getChapter 失败: $e',
+                  );
                 }
                 const config = TypesetConfig(
                   pageWidth: 400,
@@ -216,22 +243,32 @@ class ReaderRepository {
                   chapterIndex: chapterId,
                   config: config,
                 );
-                debugPrint('loadChapterContent EPUB getEpubChapterRichContent: paragraphs=${paragraphs.length}');
+                debugPrint(
+                  'loadChapterContent EPUB getEpubChapterRichContent: paragraphs=${paragraphs.length}',
+                );
                 if (paragraphs.isNotEmpty) {
                   final firstParaSpans = paragraphs.first.spans;
-                  debugPrint('loadChapterContent first para: spans=${firstParaSpans.length} indent=${paragraphs.first.indent} isHeading=${paragraphs.first.isHeading}');
+                  debugPrint(
+                    'loadChapterContent first para: spans=${firstParaSpans.length} indent=${paragraphs.first.indent} isHeading=${paragraphs.first.isHeading}',
+                  );
                   if (firstParaSpans.isNotEmpty) {
-                    debugPrint('loadChapterContent first span text="${firstParaSpans.first.text.substring(0, (firstParaSpans.first.text.length).clamp(0, 80))}"');
+                    debugPrint(
+                      'loadChapterContent first span text="${firstParaSpans.first.text.substring(0, (firstParaSpans.first.text.length).clamp(0, 80))}"',
+                    );
                   }
                 }
-                final (richSpan, plainText) = _richParagraphsToRichText(paragraphs);
+                final (richSpan, plainText) = _richParagraphsToRichText(
+                  paragraphs,
+                );
                 content = plainText;
                 _richContentCache[cacheKey] ??= {};
                 _richContentCache[cacheKey]![chapterId] = richSpan;
                 _richParagraphCache[cacheKey] ??= {};
                 _richParagraphCache[cacheKey]![chapterId] = paragraphs;
                 source = 'RichEpubAPI(${ch.contentFile})';
-                debugPrint('loadChapterContent EPUB rich typeset 成功: len=${content.length}');
+                debugPrint(
+                  'loadChapterContent EPUB rich typeset 成功: len=${content.length}',
+                );
               } catch (e) {
                 debugPrint('loadChapterContent EPUB rich typeset 失败: $e');
               }
@@ -246,19 +283,26 @@ class ReaderRepository {
                   await raf.close();
                   content = utf8.decode(bytes, allowMalformed: true);
                   source = '${ch.contentFile}[${ch.startIndex}-${ch.endIndex}]';
-                  debugPrint('loadChapterContent 按字节范围读取: $source len=${content.length}');
+                  debugPrint(
+                    'loadChapterContent 按字节范围读取: $source len=${content.length}',
+                  );
                 } else {
                   content = await file.readAsString();
                   source = ch.contentFile;
-                  debugPrint('loadChapterContent 读取完整文件: ${ch.contentFile} len=${content.length}');
+                  debugPrint(
+                    'loadChapterContent 读取完整文件: ${ch.contentFile} len=${content.length}',
+                  );
                 }
               } else {
-                debugPrint('loadChapterContent contentFile 不存在: ${ch.contentFile}');
+                debugPrint(
+                  'loadChapterContent contentFile 不存在: ${ch.contentFile}',
+                );
               }
             }
           }
         } else {
           debugPrint('loadChapterContent 未找到 chapterId=$chapterId 对应的章节');
+          throw Exception('未找到章节：$chapterId');
         }
       }
 
@@ -267,7 +311,9 @@ class ReaderRepository {
         throw Exception('章节内容为空');
       }
       _updateCache(cacheKey, chapterId, content, []);
-      debugPrint('loadChapterContent <<< 成功, source=$source len=${content.length}');
+      debugPrint(
+        'loadChapterContent <<< 成功, source=$source len=${content.length}',
+      );
       return content;
     } catch (e) {
       debugPrint('loadChapterContent <<< 异常: $e');
@@ -278,17 +324,23 @@ class ReaderRepository {
   TextStyle _spanToStyle(RichTextSpan span) {
     final base = span.when(
       plain: (text, fontSize, color) => const TextStyle(),
-      bold: (text, fontSize, color) => const TextStyle(fontWeight: FontWeight.bold),
-      italic: (text, fontSize, color) => const TextStyle(fontStyle: FontStyle.italic),
-      boldItalic: (text, fontSize, color) =>
-          const TextStyle(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
+      bold: (text, fontSize, color) =>
+          const TextStyle(fontWeight: FontWeight.bold),
+      italic: (text, fontSize, color) =>
+          const TextStyle(fontStyle: FontStyle.italic),
+      boldItalic: (text, fontSize, color) => const TextStyle(
+        fontWeight: FontWeight.bold,
+        fontStyle: FontStyle.italic,
+      ),
       underline: (text, fontSize, color) =>
           const TextStyle(decoration: TextDecoration.underline),
       strikethrough: (text, fontSize, color) =>
           const TextStyle(decoration: TextDecoration.lineThrough),
       code: (text, fontSize, color) => const TextStyle(fontFamily: 'monospace'),
-      link: (text, url, fontSize, color) =>
-          const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+      link: (text, url, fontSize, color) => const TextStyle(
+        color: Colors.blue,
+        decoration: TextDecoration.underline,
+      ),
     );
     if (span.fontSize == null && span.color == null) return base;
     return base.copyWith(
@@ -317,13 +369,23 @@ class ReaderRepository {
   }
 
   /// 生成段落级样式（CSS block 属性 + 标题回退）
-  TextStyle _paragraphBlockStyle(RichParagraph p, {required double baseFontSize, required double baseLineHeight}) {
+  TextStyle _paragraphBlockStyle(
+    RichParagraph p, {
+    required double baseFontSize,
+    required double baseLineHeight,
+  }) {
     TextStyle style = TextStyle(fontSize: baseFontSize, height: baseLineHeight);
     if (p.lineHeight != null) {
       style = style.copyWith(height: p.lineHeight);
     }
     if (p.isHeading && p.headingLevel > 0) {
-      final headingFs = switch (p.headingLevel) { 1 => 24.0, 2 => 20.0, 3 => 18.0, 4 => 16.0, _ => 14.0 };
+      final headingFs = switch (p.headingLevel) {
+        1 => 24.0,
+        2 => 20.0,
+        3 => 18.0,
+        4 => 16.0,
+        _ => 14.0,
+      };
       if (style.fontSize == null || style.fontSize == baseFontSize) {
         style = style.copyWith(fontSize: headingFs);
       }
@@ -333,8 +395,11 @@ class ReaderRepository {
   }
 
   /// 将 RichParagraph 列表转换为 TextSpan 树（保留样式），同时返回纯文本
-  (TextSpan, String) _richParagraphsToRichText(List<RichParagraph> paragraphs,
-      {double baseFontSize = 16, double baseLineHeight = 1.6}) {
+  (TextSpan, String) _richParagraphsToRichText(
+    List<RichParagraph> paragraphs, {
+    double baseFontSize = 16,
+    double baseLineHeight = 1.6,
+  }) {
     final children = <InlineSpan>[];
     final plainParts = <String>[];
     for (int i = 0; i < paragraphs.length; i++) {
@@ -344,7 +409,11 @@ class ReaderRepository {
       final paraText = p.spans.map((s) => s.text).join();
       if (paraText.isEmpty) continue;
 
-      final blockStyle = _paragraphBlockStyle(p, baseFontSize: baseFontSize, baseLineHeight: baseLineHeight);
+      final blockStyle = _paragraphBlockStyle(
+        p,
+        baseFontSize: baseFontSize,
+        baseLineHeight: baseLineHeight,
+      );
       final spanChildren = p.spans
           .map((s) => TextSpan(text: s.text, style: _spanToStyle(s)))
           .toList();
@@ -365,12 +434,17 @@ class ReaderRepository {
   }
 
   Future<List<PageInfo>> calculatePages({
-    required String bookId, required int chapterId,
-    required double fontSize, required double lineHeight,
-    required double width, required double height, required double padding,
+    required String bookId,
+    required int chapterId,
+    required double fontSize,
+    required double lineHeight,
+    required double width,
+    required double height,
+    required double padding,
   }) async {
     final cacheKey = bookId.toString();
-    if (_cache.containsKey(cacheKey) && _cache[cacheKey]!.containsKey(chapterId)) {
+    if (_cache.containsKey(cacheKey) &&
+        _cache[cacheKey]!.containsKey(chapterId)) {
       final cached = _cache[cacheKey]![chapterId]!;
       if (cached.pages.isNotEmpty) return cached.pages;
     }
@@ -402,7 +476,9 @@ class ReaderRepository {
     final maxWidth = width - padding * 2;
     final availableHeight = height - padding * 2;
     final charsPerLine = (maxWidth / fontSize).floor().clamp(10, 200);
-    final linesPerPage = (availableHeight / (fontSize * lineHeight)).floor().clamp(1, 100);
+    final linesPerPage = (availableHeight / (fontSize * lineHeight))
+        .floor()
+        .clamp(1, 100);
     final charsPerPage = charsPerLine * linesPerPage;
 
     final pages = <PageInfo>[];
@@ -415,7 +491,10 @@ class ReaderRepository {
         end = content.length;
       } else {
         // 在段落边界处断开，避免断词
-        final searchStart = (end - (charsPerLine ~/ 2)).clamp(0, content.length);
+        final searchStart = (end - (charsPerLine ~/ 2)).clamp(
+          0,
+          content.length,
+        );
         final newlinePos = content.lastIndexOf('\n', end);
         if (newlinePos > searchStart) {
           end = newlinePos + 1;
@@ -427,33 +506,46 @@ class ReaderRepository {
         }
       }
 
-      pages.add(PageInfo(
-        pageIndex: pageIndex,
-        content: content.substring(offset, end),
-        richContent: null,
-        startOffset: offset,
-        endOffset: end,
-      ));
+      pages.add(
+        PageInfo(
+          pageIndex: pageIndex,
+          content: content.substring(offset, end),
+          richContent: null,
+          startOffset: offset,
+          endOffset: end,
+        ),
+      );
       offset = end;
       pageIndex++;
     }
 
     if (pages.isEmpty) {
-      pages.add(PageInfo(
-        pageIndex: 0,
-        content: content,
-        richContent: null,
-        startOffset: 0,
-        endOffset: content.length,
-      ));
+      pages.add(
+        PageInfo(
+          pageIndex: 0,
+          content: content,
+          richContent: null,
+          startOffset: 0,
+          endOffset: content.length,
+        ),
+      );
     }
     return pages;
   }
 
-  void _updateCache(String cacheKey, int chapterId, String content, List<PageInfo> pages) {
+  void _updateCache(
+    String cacheKey,
+    int chapterId,
+    String content,
+    List<PageInfo> pages,
+  ) {
     if (_cache.length >= maxCacheSize) _clearOldestCache();
     if (!_cache.containsKey(cacheKey)) _cache[cacheKey] = {};
-    _cache[cacheKey]![chapterId] = ChapterCacheItem(content: content, pages: pages, loadedAt: DateTime.now());
+    _cache[cacheKey]![chapterId] = ChapterCacheItem(
+      content: content,
+      pages: pages,
+      loadedAt: DateTime.now(),
+    );
   }
 
   void _clearOldestCache() {
@@ -462,7 +554,8 @@ class ReaderRepository {
     DateTime? oldestTime;
     for (final entry in _cache.entries) {
       for (final chapterEntry in entry.value.entries) {
-        if (oldestTime == null || chapterEntry.value.loadedAt.isBefore(oldestTime)) {
+        if (oldestTime == null ||
+            chapterEntry.value.loadedAt.isBefore(oldestTime)) {
           oldestTime = chapterEntry.value.loadedAt;
           oldestKey = entry.key;
         }
@@ -474,7 +567,8 @@ class ReaderRepository {
   /// 预加载章节内容到缓存（静默失败，不抛异常）
   Future<void> preloadChapter(String bookId, int chapterId) async {
     final cacheKey = bookId.toString();
-    if (_cache.containsKey(cacheKey) && _cache[cacheKey]!.containsKey(chapterId)) {
+    if (_cache.containsKey(cacheKey) &&
+        _cache[cacheKey]!.containsKey(chapterId)) {
       return;
     }
     try {
@@ -490,6 +584,7 @@ class ReaderRepository {
     _richContentCache.remove(key);
     _richParagraphCache.remove(key);
   }
+
   void clearAllCache() {
     _cache.clear();
     _richContentCache.clear();
@@ -498,7 +593,8 @@ class ReaderRepository {
 
   String? getCachedContent(int bookId, int chapterId) {
     final cacheKey = bookId.toString();
-    if (_cache.containsKey(cacheKey) && _cache[cacheKey]!.containsKey(chapterId)) {
+    if (_cache.containsKey(cacheKey) &&
+        _cache[cacheKey]!.containsKey(chapterId)) {
       return _cache[cacheKey]![chapterId]!.content;
     }
     return null;
@@ -514,7 +610,8 @@ class ReaderRepository {
 
   List<PageInfo>? getCachedPages(String bookId, int chapterId) {
     final cacheKey = bookId.toString();
-    if (_cache.containsKey(cacheKey) && _cache[cacheKey]!.containsKey(chapterId)) {
+    if (_cache.containsKey(cacheKey) &&
+        _cache[cacheKey]!.containsKey(chapterId)) {
       return _cache[cacheKey]![chapterId]!.pages;
     }
     return null;
@@ -526,7 +623,7 @@ class ReaderRepository {
     final minKeep = currentChapter - keepRange;
     final maxKeep = currentChapter + keepRange;
 
-    void clean(Map map) {
+    void clean(Map<dynamic, dynamic> map) {
       final bookCache = map[key];
       if (bookCache == null) return;
       bookCache.removeWhere((k, _) {
@@ -542,9 +639,12 @@ class ReaderRepository {
 
   String? getPageContent(int bookId, int chapterId, int pageIndex) {
     final cacheKey = bookId.toString();
-    if (_cache.containsKey(cacheKey) && _cache[cacheKey]!.containsKey(chapterId)) {
+    if (_cache.containsKey(cacheKey) &&
+        _cache[cacheKey]!.containsKey(chapterId)) {
       final pages = _cache[cacheKey]![chapterId]!.pages;
-      if (pageIndex >= 0 && pageIndex < pages.length) return pages[pageIndex].content;
+      if (pageIndex >= 0 && pageIndex < pages.length) {
+        return pages[pageIndex].content;
+      }
     }
     return null;
   }
@@ -552,26 +652,56 @@ class ReaderRepository {
   // ===== From ReadingProgressService =====
 
   Future<void> updateReadingProgress({
-    required String bookId, required int chapterId,
-    required int pageIndex, required int totalPages,
+    required String bookId,
+    required int chapterId,
+    required int charOffset,
+    required int pageIndex,
+    required int totalPages,
     int readingTimeSeconds = 0,
   }) async {
     final now = DateTime.now();
-    final progress = (pageIndex + 1) / (totalPages > 0 ? totalPages : 1);
-    await _storage.saveReadingProgress(ReadingProgress(
-      bookId: bookId, chapterIndex: chapterId,
-      charOffset: 0, progress: progress.clamp(0.0, 1.0),
-      readingTimeSeconds: readingTimeSeconds, lastReadAt: now,
-      isCompleted: progress >= 1.0,
-    ));
-    _currentProgress = ReadingProgressData(bookId: bookId, chapterIndex: chapterId, pageIndex: pageIndex, totalPages: totalPages, readingTimeSeconds: readingTimeSeconds, lastReadAt: now);
+    final progress = totalPages > 0
+        ? ((pageIndex + 1) / totalPages).clamp(0.0, 1.0)
+        : 0.0;
+    await _storage.saveReadingProgress(
+      ReadingProgress(
+        bookId: bookId,
+        chapterIndex: chapterId,
+        charOffset: charOffset,
+        pageIndex: pageIndex,
+        totalPages: totalPages,
+        progress: progress,
+        readingTimeSeconds: readingTimeSeconds,
+        lastReadAt: now,
+        isCompleted: progress >= 1.0,
+      ),
+    );
+    _currentProgress = ReadingProgressData(
+      bookId: bookId,
+      chapterIndex: chapterId,
+      charOffset: charOffset,
+      pageIndex: pageIndex,
+      totalPages: totalPages,
+      readingTimeSeconds: readingTimeSeconds,
+      lastReadAt: now,
+    );
   }
 
   Future<ReadingProgressData?> loadReadingProgress(String bookId) async {
-    if (_currentProgress != null && _currentProgress!.bookId == bookId) return _currentProgress;
+    if (_currentProgress != null && _currentProgress!.bookId == bookId) {
+      return _currentProgress;
+    }
     final progress = await _storage.getReadingProgress(bookId);
     if (progress == null) return null;
-    _currentProgress = ReadingProgressData(bookId: bookId, chapterIndex: progress.chapterIndex, pageIndex: 0, totalPages: 0, readingTimeSeconds: progress.readingTimeSeconds.toInt(), lastReadAt: progress.lastReadAt);
+    _currentProgress = ReadingProgressData(
+      bookId: bookId,
+      chapterIndex: progress.chapterIndex,
+      charOffset: progress.charOffset.toInt(),
+      pageIndex: progress.pageIndex,
+      totalPages: progress.totalPages,
+      readingTimeSeconds: progress.readingTimeSeconds.toInt(),
+      lastReadAt: progress.lastReadAt,
+    );
     return _currentProgress;
   }
 
@@ -588,7 +718,17 @@ class ReaderRepository {
     for (final book in books) {
       final progress = await _storage.getReadingProgress(book.bookId);
       if (progress != null) {
-        result.add(ReadingProgressData(bookId: book.bookId, chapterIndex: progress.chapterIndex, pageIndex: 0, totalPages: 0, readingTimeSeconds: progress.readingTimeSeconds.toInt(), lastReadAt: progress.lastReadAt));
+        result.add(
+          ReadingProgressData(
+            bookId: book.bookId,
+            chapterIndex: progress.chapterIndex,
+            charOffset: progress.charOffset.toInt(),
+            pageIndex: 0,
+            totalPages: 0,
+            readingTimeSeconds: progress.readingTimeSeconds.toInt(),
+            lastReadAt: progress.lastReadAt,
+          ),
+        );
       }
     }
     return result;

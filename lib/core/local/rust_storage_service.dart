@@ -5,6 +5,7 @@ library;
 
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/src/rust/api/storage.dart' as rust_storage;
+import 'package:zephyr_reader/src/rust/api/vocabulary.dart' as rust_vocab;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 @Singleton()
@@ -15,18 +16,23 @@ class RustStorageService {
 
   Future<List<Book>> getAllBooks() async => await rust_storage.getAllBooks();
 
-  Future<void> saveBook(Book book) async => await rust_storage.saveBook(book: book);
+  Future<void> saveBook(Book book) async =>
+      await rust_storage.saveBook(book: book);
 
-  Future<void> deleteBook(String bookId) async => await rust_storage.deleteBook(bookId: bookId);
+  Future<void> deleteBook(String bookId) async =>
+      await rust_storage.deleteBook(bookId: bookId);
 
-  Future<List<Book>> searchBooks(String keyword) async => await rust_storage.searchBooks(keyword: keyword);
+  Future<List<Book>> searchBooks(String keyword) async =>
+      await rust_storage.searchBooks(keyword: keyword);
 
-  Future<Book?> getBook(String bookId) async => await rust_storage.getBook(bookId: bookId);
+  Future<Book?> getBook(String bookId) async =>
+      await rust_storage.getBook(bookId: bookId);
 
   Future<List<Book>> getBooksByStatus(BookStatus status) async =>
       await rust_storage.getBooksByStatus(status: status);
 
-  Future<List<Book>> getPinnedBooks() async => await rust_storage.getPinnedBooks();
+  Future<List<Book>> getPinnedBooks() async =>
+      await rust_storage.getPinnedBooks();
 
   Future<List<Book>> getRecentlyReadBooks(int limit) async =>
       await rust_storage.getRecentlyReadBooks(limit: BigInt.from(limit));
@@ -36,13 +42,12 @@ class RustStorageService {
     required int offset,
     String? sortBy,
     String? sortOrder,
-  }) async =>
-      await rust_storage.getBooksPaginated(
-        limit: limit,
-        offset: offset,
-        sortBy: sortBy,
-        sortOrder: sortOrder,
-      );
+  }) async => await rust_storage.getBooksPaginated(
+    limit: limit,
+    offset: offset,
+    sortBy: sortBy,
+    sortOrder: sortOrder,
+  );
 
   Future<int> getBookCount() async =>
       (await rust_storage.getBookCount()).toInt();
@@ -65,7 +70,10 @@ class RustStorageService {
       await rust_storage.deleteChaptersByBook(bookId: bookId);
 
   Future<Chapter?> getChapterByIndex(String bookId, int chapterIndex) async =>
-      await rust_storage.getChapterByIndex(bookId: bookId, chapterIndex: chapterIndex);
+      await rust_storage.getChapterByIndex(
+        bookId: bookId,
+        chapterIndex: chapterIndex,
+      );
 
   // ==================== Bookmarks ====================
 
@@ -90,11 +98,10 @@ class RustStorageService {
   Future<List<Bookmark>> syncBookmarks(
     List<Bookmark> localBookmarks,
     List<Bookmark> remoteBookmarks,
-  ) async =>
-      await rust_storage.syncBookmarks(
-        localBookmarks: localBookmarks,
-        remoteBookmarks: remoteBookmarks,
-      );
+  ) async => await rust_storage.syncBookmarks(
+    localBookmarks: localBookmarks,
+    remoteBookmarks: remoteBookmarks,
+  );
 
   Future<int> getBookmarkStats(String bookId) async =>
       await rust_storage.getBookmarkStats(bookId: bookId);
@@ -118,9 +125,10 @@ class RustStorageService {
   Future<List<ReadingSession>> getReadingSessions(
     String bookId, {
     int limit = 100,
-  }) async =>
-      await rust_storage.getReadingSessions(
-        bookId: bookId, limit: BigInt.from(limit));
+  }) async => await rust_storage.getReadingSessions(
+    bookId: bookId,
+    limit: BigInt.from(limit),
+  );
 
   Future<List<ReadingSession>> getRecentSessions(int limit) async =>
       await rust_storage.getRecentSessions(limit: BigInt.from(limit));
@@ -139,8 +147,10 @@ class RustStorageService {
   Future<List<ReadingStats>> getReadingStatsRange({
     required String startDate,
     required String endDate,
-  }) async =>
-      await rust_storage.getReadingStatsRange(startDate: startDate, endDate: endDate);
+  }) async => await rust_storage.getReadingStatsRange(
+    startDate: startDate,
+    endDate: endDate,
+  );
 
   Future<void> updateDailyStats(ReadingStats stats) async =>
       await rust_storage.updateDailyStats(stats: stats);
@@ -163,13 +173,24 @@ class RustStorageService {
       await rust_storage.getCategoriesForBook(bookId: bookId);
 
   Future<void> assignCategoryToBook(String bookId, String categoryId) async =>
-      await rust_storage.assignCategoryToBook(bookId: bookId, categoryId: categoryId);
+      await rust_storage.assignCategoryToBook(
+        bookId: bookId,
+        categoryId: categoryId,
+      );
 
   Future<void> removeCategoryFromBook(String bookId, String categoryId) async =>
-      await rust_storage.removeCategoryFromBook(bookId: bookId, categoryId: categoryId);
+      await rust_storage.removeCategoryFromBook(
+        bookId: bookId,
+        categoryId: categoryId,
+      );
 
-  Future<void> setCategoriesForBook(String bookId, List<String> categoryIds) async =>
-      await rust_storage.setCategoriesForBook(bookId: bookId, categoryIds: categoryIds);
+  Future<void> setCategoriesForBook(
+    String bookId,
+    List<String> categoryIds,
+  ) async => await rust_storage.setCategoriesForBook(
+    bookId: bookId,
+    categoryIds: categoryIds,
+  );
 
   Future<void> clearCategoriesForBook(String bookId) async =>
       await rust_storage.clearCategoriesForBook(bookId: bookId);
@@ -178,18 +199,73 @@ class RustStorageService {
 
   // ==================== Notes ====================
 
-  Future<Note> createNote(Note note) async => await rust_storage.createNote(note: note);
+  Future<Note> createNote(Note note) async =>
+      await rust_storage.createNote(note: note);
 
-  Future<void> updateNote(Note note) async => await rust_storage.updateNote(note: note);
+  Future<void> updateNote(Note note) async =>
+      await rust_storage.updateNote(note: note);
 
   Future<List<Note>> getNotes(String bookId, {NoteType? noteType}) async =>
       await rust_storage.getNotes(bookId: bookId, noteType: noteType);
 
-  Future<void> deleteNote(String noteId) async => await rust_storage.deleteNote(noteId: noteId);
+  Future<List<Note>> getNotesInChapter(
+    String bookId,
+    int chapterIndex, {
+    NoteType? noteType,
+  }) async => await rust_storage.getNotesInChapter(
+    bookId: bookId,
+    chapterIndex: chapterIndex,
+    noteType: noteType,
+  );
 
-  Future<void> deleteNotesByBook(String bookId) async => await rust_storage.deleteNotesByBook(bookId: bookId);
+  Future<void> deleteNote(String noteId) async =>
+      await rust_storage.deleteNote(noteId: noteId);
 
-  Future<NoteStats> getNoteStats(String bookId) async => rust_storage.getNoteStats(bookId: bookId);
+  Future<void> deleteNotesByBook(String bookId) async =>
+      await rust_storage.deleteNotesByBook(bookId: bookId);
+
+  Future<NoteStats> getNoteStats(String bookId) async =>
+      rust_storage.getNoteStats(bookId: bookId);
+
+  // ==================== Vocabulary ====================
+
+  Future<VocabEntry> addVocabularyWord({
+    required String word,
+    required String pinyin,
+    required String translation,
+    String? contextSentence,
+    String? bookId,
+    int? chapterIndex,
+    int? charOffset,
+  }) async => await rust_vocab.addVocabularyWord(
+    word: word,
+    pinyin: pinyin,
+    translation: translation,
+    contextSentence: contextSentence,
+    bookId: bookId,
+    chapterIndex: chapterIndex,
+    charOffset: charOffset,
+  );
+
+  Future<List<VocabEntry>> getVocabularyWords({
+    String? bookId,
+    String? status,
+  }) async =>
+      await rust_vocab.getVocabularyWords(bookId: bookId, status: status);
+
+  Future<List<VocabEntry>> searchVocabulary(String query) async =>
+      await rust_vocab.searchVocabulary(query: query);
+
+  Future<void> updateVocabularyStatus({
+    required String id,
+    required String status,
+  }) async => await rust_vocab.updateVocabularyStatus(id: id, status: status);
+
+  Future<void> deleteVocabularyWord({required String id}) async =>
+      await rust_vocab.deleteVocabularyWord(id: id);
+
+  Future<VocabStats> getVocabularyStats() async =>
+      await rust_vocab.getVocabularyStats();
 
   // ==================== Database ====================
 
