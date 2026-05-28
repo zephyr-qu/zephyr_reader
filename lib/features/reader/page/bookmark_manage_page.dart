@@ -6,8 +6,8 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
-import 'package:zephyr_reader/core/local/rust_storage_service.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
+import 'package:zephyr_reader/src/rust/api/data/bookmark.dart' as bookmark_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import '../../../../di/service_locator.dart';
@@ -22,7 +22,6 @@ class BookmarkManagePage extends HookWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final vm = useMemoized(() => getIt<ReaderViewModel>());
-    final storage = getIt<RustStorageService>();
     final searchController = useTextEditingController();
     final isSearchMode = useSignal(false);
     final selectedBookmarks = useSignal<Set<String>>({});
@@ -32,9 +31,10 @@ class BookmarkManagePage extends HookWidget {
 
     useEffect(() {
       vm.loadBookmarks();
-      storage
-          .getBookmarkStats(bookId)
-          .then((stats) => bookmarkStats.value = stats);
+      () async {
+        final list = await bookmark_api.listBookmarksByBook(bookId: bookId);
+        bookmarkStats.value = list.length;
+      }();
       return null;
     }, []);
 

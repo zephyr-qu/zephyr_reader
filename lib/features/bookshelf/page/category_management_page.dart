@@ -6,7 +6,7 @@ import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_mode
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
-extension _BookCategoryColor on BookCategory {
+extension _CategoryColor on Category {
   Color? get colorValue {
     if (color.isEmpty) return null;
     final hex = color.replaceFirst('#', '');
@@ -125,7 +125,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     );
   }
 
-  Widget _buildCategoryTile(BookCategory category, ThemeData theme) {
+  Widget _buildCategoryTile(Category category, ThemeData theme) {
     return Card(
       key: ValueKey(category.id),
       margin: EdgeInsets.only(bottom: DesignTokens.spacing(Spacing.sm)),
@@ -178,7 +178,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
   }
 
   Future<void> _onReorder(int oldIndex, int newIndex) async {
-    final categories = List<BookCategory>.from(_vm.categories.value);
+    final categories = List<Category>.from(_vm.categories.value);
     if (newIndex > oldIndex) {
       newIndex -= 1;
     }
@@ -189,14 +189,12 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     for (int i = 0; i < categories.length; i++) {
       if (categories[i].sortOrder != i) {
         final oldCategory = categories[i];
-        final updated = BookCategory(
+        final updated = Category(
           id: oldCategory.id,
           name: oldCategory.name,
           color: oldCategory.color,
           sortOrder: i,
           isSystem: oldCategory.isSystem,
-          createdAt: oldCategory.createdAt,
-          updatedAt: DateTime.now(),
         );
         categories[i] = updated;
         await _vm.updateCategory(updated);
@@ -208,7 +206,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     _nameController.clear();
     String selectedColor = _colors.first.key;
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
@@ -319,11 +317,11 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     );
   }
 
-  void _showEditCategoryDialog(BookCategory category) {
+  void _showEditCategoryDialog(Category category) {
     _nameController.text = category.name;
     String selectedColor = category.color;
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
@@ -407,14 +405,12 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                 }
 
                 final oldCategory = category;
-                final updated = BookCategory(
+                final updated = Category(
                   id: oldCategory.id,
                   name: name,
                   color: selectedColor,
                   sortOrder: oldCategory.sortOrder,
                   isSystem: oldCategory.isSystem,
-                  createdAt: oldCategory.createdAt,
-                  updatedAt: DateTime.now(),
                 );
                 final success = await _vm.updateCategory(updated);
 
@@ -439,8 +435,8 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     );
   }
 
-  void _showDeleteConfirm(BookCategory category) {
-    showDialog(
+  void _showDeleteConfirm(Category category) {
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('确认删除'),

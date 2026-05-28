@@ -4,7 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
-import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_book_repository.dart';
+import 'package:zephyr_reader/features/bookshelf/data/repositories/book_repository.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../helpers/fixtures.dart';
@@ -57,6 +57,11 @@ class _MockBookRepository implements BookRepository {
     _books.removeWhere((b) => b.bookId == id);
     return true;
   }
+
+  @override
+  Future<void> reindexBook(Book book) async {}
+  @override
+  Future<void> reindexAllBooks() async {}
 
   @override
   Future<List<BookCategory>> getAllCategories() async => List.from(_categories);

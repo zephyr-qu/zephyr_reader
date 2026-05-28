@@ -10,15 +10,14 @@ use uuid::Uuid;
 use super::toc::extract_chapters_from_epub;
 use super::unzip::EpubFile;
 use crate::domain::{
-     AppError, PageContent, ParseConfig,
-    ParseResult, RichChapterContent, RichParagraph, TypesetConfig,
+    AppError, ParseConfig,
+    ParseResult, RichParagraph, RichChapterContent, TypesetConfig,
 };
 use crate::storage::models::{Book, Chapter, BookFormat};
 
-use crate::text::{rich_text, typeset};
+use crate::text::rich_text;
 /// EPUB 分页：每页最小行数
 /// 防止每页行数过少导致显示异常
-pub const EPUB_MIN_LINES_PER_PAGE: usize = 10;
 /// EPUB 分页：每页最小字符数
 /// 防止分页过小导致性能问题
 pub const EPUB_MIN_CHARS_PER_PAGE: usize = 500;
@@ -42,35 +41,38 @@ pub fn parse_epub(file_path: String) -> Result<ParseResult,AppError> {
 /// * `Err(AppError)` - 解析失败
 pub fn parse_epub_with_config(file_path: String, _config: ParseConfig) -> Result<ParseResult,AppError> {
     let start_time = std::time::Instant::now();
-    tracing::info!("开始解析 EPUB 文件：{}", file_path);
+    tracing::info!("start parsing EPUB file: {}", file_path);
 
     // 检查文件是否存在
     if !Path::new(&file_path).exists() {
         return Err(AppError::file_not_found(&file_path));
     }
-    tracing::debug!("文件存在性检查通过：{}", file_path);
+    tracing::debug!("file existence check passed: {}", file_path);
 
     // 打开 EPUB 文件
     let mut epub_file = EpubFile::open(&file_path)?;
-    tracing::debug!("EPUB 文件打开成功");
+    tracing::debug!("EPUB file opened successfully");
 
     // 提取元数据
     let title = epub_file.title();
     let author = epub_file.author();
     let cover_path = epub_file.cover_path();
-    tracing::debug!("元数据提取完成：title={}, author={}", title, author);
-
-    // 提取目录
-    let chapters = extract_chapters_from_epub(&mut epub_file);
-    let chapter_count = chapters.len() as i32;
-    tracing::debug!("目录提取完成，章节数：{}", chapter_count);
+    let publisher = epub_file.publisher();
+    let translator = epub_file.translator();
+    let isbn = epub_file.identifier();
+    tracing::debug!("metadata extracted: title={}, author={}", title, author);
 
     // 生成书籍 ID
     let book_id = Uuid::new_v4().to_string();
 
+    // 提取目录
+    let chapters = extract_chapters_from_epub(&mut epub_file, &book_id);
+    let chapter_count = chapters.len() as i32;
+    tracing::debug!("TOC extracted, chapters: {}", chapter_count);
+
     // 计算总字符数（需要读取所有章节）
     let total_chars = estimate_total_chars(&mut epub_file, &chapters);
-    tracing::debug!("字符数估算完成：{}", total_chars);
+    tracing::debug!("character count estimated: {}", total_chars);
 
     let book_info = Book {
         book_id,
@@ -80,6 +82,9 @@ pub fn parse_epub_with_config(file_path: String, _config: ParseConfig) -> Result
         cover_path,
         chapter_count,
         total_characters: total_chars,
+        publisher,
+        translator,
+        isbn,
         file_hash: None,
         file_size: 0,
         file_mtime: None,
@@ -93,7 +98,7 @@ pub fn parse_epub_with_config(file_path: String, _config: ParseConfig) -> Result
 
     let elapsed = start_time.elapsed();
     tracing::info!(
-        "EPUB 解析完成：{} 章节，{} 字符，耗时：{:?}",
+        "EPUB parse complete: {} chapters, {} chars, elapsed: {:?}",
         chapter_count,
         total_chars,
         elapsed
@@ -142,36 +147,6 @@ fn estimate_total_chars(epub_file: &mut EpubFile, chapters: &[Chapter]) -> i64 {
     }
 }
 
-/// 获取章节内容（分页）
-pub fn get_chapter_content(
-    file_path: &str,
-    chapter_id: i32,
-    config: &TypesetConfig,
-) -> Result<Vec<PageContent>,AppError> {
-    tracing::debug!("读取 EPUB 章节 {} 内容：{}", chapter_id, file_path);
-
-    let mut epub_file = EpubFile::open(file_path)?;
-    let chapters = extract_chapters_from_epub(&mut epub_file);
-
-    let chapter = chapters
-        .iter()
-        .find(|c| c.chapter_index == chapter_id)
-        .ok_or_else(|| {
-            AppError::chapter_extract_error(chapter_id, format!("未找到章节 {}", chapter_id))
-        })?;
-
-    // 读取章节内容
-    let content = read_chapter_content(&mut epub_file, chapter)?;
-
-    // 排版处理
-    let typeset_content = typeset::typeset_content(content, "auto".to_string(), config.clone())?;
-
-    // 分页
-    let pages = paginate_content(&typeset_content, chapter.chapter_index, config);
-
-    Ok(pages)
-}
-
 /// 读取章节内容，合并 start_index..end_index 范围内的所有 spine 资源
 ///
 /// EPUB 的正文常被切分为多个 HTML 文件（如 part0005_split_000.html ~ part0005_split_002.html），
@@ -187,19 +162,19 @@ fn read_chapter_content(epub_file: &mut EpubFile, chapter: &Chapter) -> Result<S
         let href = spine.get(i).ok_or_else(|| {
             AppError::chapter_extract_error(
                 i as i32,
-                format!("spine 索引超出范围：{}", i),
+                format!("spine index out of range: {}", i),
             )
         })?;
         tracing::debug!("[read_chapter_content] reading spine[{}] href={}", i, href);
         match epub_file.read_resource(href) {
             Ok(text) => contents.push(text),
-            Err(e) => tracing::warn!("[read_chapter_content] spine[{}] 读取失败: {}", i, e),
+            Err(e) => tracing::warn!("[read_chapter_content] spine[{}] read failed: {}", i, e),
         }
     }
 
     if contents.is_empty() {
         return Err(AppError::chapter_extract_error(
-            chapter.chapter_index, "章节内容为空",
+            chapter.chapter_index, "chapter content is empty",
         ));
     }
 
@@ -207,39 +182,7 @@ fn read_chapter_content(epub_file: &mut EpubFile, chapter: &Chapter) -> Result<S
 }
 
 /// 分页处理
-fn paginate_content(content: &str, chapter_index: i32, config: &TypesetConfig) -> Vec<PageContent> {
-    let lines: Vec<&str> = content.lines().collect();
-    let mut pages = Vec::new();
-
-    // 根据页面高度和字体大小估算每页行数
-    let lines_per_page =
-        (config.page_height as f32 / config.font_size as f32 / config.line_spacing) as usize;
-    let lines_per_page = lines_per_page.max(EPUB_MIN_LINES_PER_PAGE); // 至少 EPUB_MIN_LINES_PER_PAGE 行每页
-
-    for (page_index, chunk) in lines.chunks(lines_per_page).enumerate() {
-        let is_last = page_index == lines.len().div_ceil(lines_per_page) - 1;
-        pages.push(PageContent {
-            chapter_index,
-            page_index: page_index as i32,
-            content: chunk.join("\n"),
-            is_last_page: is_last,
-        });
-    }
-
-    if pages.is_empty() {
-        pages.push(PageContent {
-            chapter_index,
-            page_index: 0,
-            content: content.to_string(),
-            is_last_page: true,
-        });
-    }
-
-    pages
-}
-
 // ==================== 富文本支持 ====================
-
 /// 获取章节富文本内容（保留 HTML 样式）
 ///
 /// 解析 EPUB 章节的 HTML 内容，提取为结构化的富文本段落。
@@ -254,29 +197,29 @@ fn paginate_content(content: &str, chapter_index: i32, config: &TypesetConfig) -
 /// * `Ok(RichChapterContent)` - 富文本章节内容
 /// * `Err(AppError)` - 解析失败
 pub fn get_chapter_content_rich(file_path: &str, chapter_id: i32) -> Result<RichChapterContent,AppError> {
-    tracing::info!("[get_chapter_content_rich] 开始: file_path={}, chapter_id={}", file_path, chapter_id);
+    tracing::info!("[get_chapter_content_rich] start: file_path={}, chapter_id={}", file_path, chapter_id);
 
     let mut epub_file = EpubFile::open(file_path)?;
-    let chapters = extract_chapters_from_epub(&mut epub_file);
-    tracing::info!("[get_chapter_content_rich] 章节总数: {}, 查找 chapter_id={}", chapters.len(), chapter_id);
+    let chapters = extract_chapters_from_epub(&mut epub_file, "");
+    tracing::info!("[get_chapter_content_rich] total chapters: {}, looking for chapter_id={}", chapters.len(), chapter_id);
 
     let chapter = chapters
         .iter()
         .find(|c| c.chapter_index == chapter_id)
         .ok_or_else(|| {
-            AppError::chapter_extract_error(chapter_id, format!("未找到章节 {}", chapter_id))
+            AppError::chapter_extract_error(chapter_id, format!("chapter {} not found", chapter_id))
         })?;
-    tracing::info!("[get_chapter_content_rich] 找到章节: id={}, title={}, start_index={}",
+    tracing::info!("[get_chapter_content_rich] chapter found: id={}, title={}, start_index={}",
         chapter.id, chapter.title, chapter.start_index);
 
     // 读取章节 HTML 内容
     let html_content = read_chapter_content(&mut epub_file, chapter)?;
-    tracing::info!("[get_chapter_content_rich] HTML 内容长度: {} bytes", html_content.len());
-    tracing::debug!("[get_chapter_content_rich] HTML 前 200 字符: {:?}", &html_content.chars().take(200).collect::<String>());
+    tracing::info!("[get_chapter_content_rich] HTML content length: {} bytes", html_content.len());
+    tracing::debug!("[get_chapter_content_rich] HTML first 200 chars: {:?}", &html_content.chars().take(200).collect::<String>());
 
     // 使用 html5ever 解析 HTML 为富文本
     let mut paragraphs = rich_text::parse_html_to_rich_text(&html_content)?;
-    tracing::info!("[get_chapter_content_rich] 解析结果: {} 段落", paragraphs.len());
+    tracing::info!("[get_chapter_content_rich] parse result: {} paragraphs", paragraphs.len());
 
     // 解析图片：遍历段落，加载图片数据
     for p in &mut paragraphs {
@@ -284,15 +227,15 @@ pub fn get_chapter_content_rich(file_path: &str, chapter_id: i32) -> Result<Rich
             if let Some(src) = &p.image_src {
                 if let Some(bytes) = epub_file.read_resource_bytes(src) {
                     p.image_data = bytes;
-                    tracing::info!("[get_chapter_content_rich] 加载图片: src={}, size={} bytes", src, p.image_data.len());
+                    tracing::info!("[get_chapter_content_rich] loading image: src={}, size={} bytes", src, p.image_data.len());
                 } else {
-                    tracing::warn!("[get_chapter_content_rich] 无法加载图片: src={}", src);
+                    tracing::warn!("[get_chapter_content_rich] unable to load image: src={}", src);
                 }
             }
         }
     }
     if let Some(first) = paragraphs.first() {
-        tracing::info!("[get_chapter_content_rich] 首段落: spans={}, indent={}, is_heading={}, text={:?}",
+        tracing::info!("[get_chapter_content_rich] first paragraph: spans={}, indent={}, is_heading={}, text={:?}",
             first.spans.len(), first.indent, first.is_heading,
             &first.full_text().chars().take(80).collect::<String>());
     }
@@ -302,7 +245,7 @@ pub fn get_chapter_content_rich(file_path: &str, chapter_id: i32) -> Result<Rich
         .iter()
         .map(|p| p.full_text().chars().count() as i64)
         .sum();
-    tracing::info!("[get_chapter_content_rich] 完成: total_characters={}", total_characters);
+    tracing::info!("[get_chapter_content_rich] done: total_characters={}", total_characters);
 
     Ok(RichChapterContent {
         chapter_id: chapter.id.clone(),
@@ -376,29 +319,6 @@ mod tests {
         // 注意：实际测试中应该使用真实的 EPUB 文件
         let result = parse_epub(epub_path.to_str().unwrap().to_string());
         assert!(result.is_err()); // 文件不存在或无效
-    }
-
-    #[test]
-    fn test_paginate_content_empty() {
-        let config = TypesetConfig::default();
-        let pages = paginate_content("", 0, &config);
-        assert_eq!(pages.len(), 1);
-        assert_eq!(pages[0].content, "");
-        assert!(pages[0].is_last_page);
-    }
-
-    #[test]
-    fn test_paginate_content_single_page() {
-        let config = TypesetConfig {
-            page_height: 800,
-            font_size: 16,
-            line_spacing: 1.5,
-            ..Default::default()
-        };
-        let content = "这是单页内容。\n第二行。";
-        let pages = paginate_content(content, 0, &config);
-        assert!(!pages.is_empty());
-        assert!(pages[0].is_last_page);
     }
 
 }

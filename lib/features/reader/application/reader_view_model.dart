@@ -1,43 +1,22 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:injectable/injectable.dart';
-import 'package:signals_flutter/signals_flutter.dart';
+import 'package:signals/signals.dart';
+import 'package:zephyr_reader/core/utils/haptic.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/src/rust/api/bilingual.dart';
+import 'package:zephyr_reader/src/rust/api/search.dart' as search_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-
-import 'package:zephyr_reader/core/local/rust_bilingual_service.dart';
-import 'package:zephyr_reader/src/rust/domain/types.dart';
+import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 
 import '../../../core/reader/reader_config.dart';
-import '../../statistics/application/reading_stats_service.dart';
-import '../data/note_repository.dart';
 import '../data/repositories/rust_reader_repository.dart';
-import '../domain/services/highlight_painter.dart';
-
-/// 阅读模式
-enum ReadingMode {
-  /// 上下滚动
-  scroll,
-
-  /// 仿真翻页
-  pageTurn,
-
-  /// 左右分页
-  pagination,
-
-  /// 双语对照
-  bilingual,
-}
-
-/// 书写方向
-enum WritingDirection {
-  /// 横排
-  horizontal,
-
-  /// 竖排 (top-to-bottom, right-to-left)
-  vertical,
-}
+import 'reader_enums.dart';
+import 'reader_settings_controller.dart';
+import 'bookmark_controller.dart';
+import 'annotation_controller.dart';
+import 'reader_search_controller.dart';
+import 'bilingual_controller.dart';
 
 /// 阅读器视图模型
 ///
@@ -46,8 +25,42 @@ enum WritingDirection {
 class ReaderViewModel {
   final ReaderRepository _repo;
   final ReaderConfig _config;
-  final ReadingStatsService _statsService;
-  final NoteRepository _noteRepo;
+  // final ReadingStatsService _statsService;
+  final ReaderSettingsController _settingsController;
+  final BookmarkController _bookmarkController;
+  final ReaderSearchController _searchController;
+  final AnnotationController _annotationController;
+  final BilingualController _bilingualController;
+
+  // ==================== 设置信号转发 ====================
+
+  Signal<double> get fontSize => _settingsController.fontSize;
+  Signal<double> get lineHeight => _settingsController.lineHeight;
+  Signal<ReaderTheme> get themeMode => _settingsController.readerTheme;
+  Signal<double> get letterSpacing => _settingsController.letterSpacing;
+  Signal<double> get paragraphSpacing => _settingsController.paragraphSpacing;
+  Signal<double> get pageMargin => _settingsController.pageMargin;
+  Signal<WritingDirection> get writingDirection =>
+      _settingsController.writingDirection;
+  Signal<int> get readerBgColorIndex => _settingsController.readerBgColorIndex;
+  Signal<double> get brightnessOverlay => _settingsController.brightnessOverlay;
+  AsyncSignal<List<Bookmark>> get bookmarks => _bookmarkController.bookmarks;
+  Signal<bool> get showSearch => _searchController.showSearch;
+  Signal<String> get searchQuery => _searchController.searchQuery;
+  Signal<int> get searchMatches => _searchController.searchMatches;
+  Signal<int> get searchCurrentIndex => _searchController.searchCurrentIndex;
+  Signal<int> get searchMatchParagraph =>
+      _searchController.searchMatchParagraph;
+  Signal<String> get selectedText => _annotationController.selectedText;
+  Signal<int> get selectionStart => _annotationController.selectionStart;
+  Signal<int> get selectionEnd => _annotationController.selectionEnd;
+  Signal<bool> get showSelectionToolbar =>
+      _annotationController.showSelectionToolbar;
+  Signal<List<Note>> get highlights => _annotationController.highlights;
+  AsyncSignal<BilingualAlignment?> get bilingualAlignment =>
+      _bilingualController.bilingualAlignment;
+  Signal<String> get translationContent =>
+      _bilingualController.translationContent;
 
   // ==================== 书籍状态 ====================
 
@@ -103,97 +116,36 @@ class ReaderViewModel {
   /// 阅读模式
   final readingMode = signal<ReadingMode>(ReadingMode.pagination);
 
-  // ==================== 阅读设置 ====================
+  // ==================== 阅读设置（委托给 SettingsController） ====================
 
-  /// 字体大小
-  final fontSize = signal<double>(18.0);
-
-  /// 行间距
-  final lineHeight = signal<double>(1.5);
-
-  /// 主题模式
-  final themeMode = signal<ThemeMode>(ThemeMode.light);
-
-  /// 页面宽度
+  /// 页面宽度（逻辑像素）
   final pageWidth = signal<double>(400);
 
-  /// 页面高度
+  /// 页面高度（逻辑像素）
   final pageHeight = signal<double>(600);
+
+  /// 设备像素比，用于 dp → px 转换
+  final devicePixelRatio = signal<double>(1.0);
+
+  /// 字符宽度校准数据（首次排版前测量一次，缓存复用）
+  final _calibration = signal<CalibrationData?>(null);
+
+  /// 当前字体系列名（由 FontRepository 提供）
+  String _fontFamily = 'Noto Sans SC';
+
+  /// 设置字体信息并重新校准
+  void updateFont(String fontFamily) {
+    _fontFamily = fontFamily;
+    _calibration.value = null; // 字体变化后校准失效
+  }
 
   /// 自动滚动触发器
   final autoScrollTick = signal<int>(0);
 
-  /// 字间距
-  final letterSpacing = signal<double>(0.0);
-
-  /// 段间距
-  final paragraphSpacing = signal<double>(12.0);
-
-  /// 页边距
-  final pageMargin = signal<double>(16.0);
-
-  /// 书写方向 (horizontal / vertical)
-  final writingDirection = signal<WritingDirection>(
-    WritingDirection.horizontal,
-  );
-
-
-
-  /// 阅读背景色预设 (0=默认, 1=羊皮纸, 2=奶油, 3=护眼绿, 4=灰色)
-  final readerBgColorIndex = signal<int>(0);
-
-  /// 亮度覆盖层透明度 (0.0=正常, 1.0=全黑)
-  final brightnessOverlay = signal<double>(0.0);
-
   /// 进度已保存（瞬态，用于显示 ✓ 指示）
   final progressSaved = signal<bool>(false);
 
-  // ==================== 页面内搜索 ====================
-
-  final showSearch = signal<bool>(false);
-  final searchQuery = signal<String>('');
-  final searchMatches = signal<int>(0);
-  final searchCurrentIndex = signal<int>(0);
-  final searchMatchParagraph = signal<int>(-1);
-
-  void toggleSearch() {
-    showSearch.value = !showSearch.value;
-    if (!showSearch.value) {
-      searchQuery.value = '';
-      searchMatches.value = 0;
-      searchCurrentIndex.value = 0;
-      searchMatchParagraph.value = -1;
-    }
-  }
-
-  void updateSearch(
-    String query, {
-    int matches = 0,
-    int currentIndex = 0,
-    int paragraphIndex = -1,
-  }) {
-    searchQuery.value = query;
-    HighlightPainter.invalidateCache();
-    searchMatches.value = matches;
-    searchCurrentIndex.value = currentIndex.clamp(
-      0,
-      (matches - 1).clamp(0, 999999),
-    );
-    searchMatchParagraph.value = paragraphIndex;
-  }
-
-  void nextSearchMatch() {
-    if (searchMatches.value <= 0) return;
-    searchCurrentIndex.value =
-        (searchCurrentIndex.value + 1) % searchMatches.value;
-  }
-
-  void prevSearchMatch() {
-    if (searchMatches.value <= 0) return;
-    searchCurrentIndex.value =
-        (searchCurrentIndex.value - 1 + searchMatches.value) %
-        searchMatches.value;
-  }
+  // ==================== 页面内搜索（委托给 SearchController） ====================
 
   // ==================== 阅读统计 ====================
 
@@ -203,59 +155,27 @@ class ReaderViewModel {
   /// 是否正在阅读（计时）
   final isReading = signal<bool>(false);
 
-  // ==================== 书签 ====================
+  // ==================== 书签（委托给 BookmarkController） ====================
 
-  /// 书签列表
-  final bookmarks = asyncSignal<List<Bookmark>>(AsyncState.data([]));
+  // ==================== 双语对照（委托给 BilingualController） ====================
 
-  // ==================== 双语对照 ====================
-
-  /// 双语对齐结果
-  final bilingualAlignment = signal<BilingualAlignment?>(null);
-
-  /// 对照译文内容（由外部设置）
-  final translationContent = signal<String>('');
-
-  /// 双语对齐是否正在加载
-  final isBilingualLoading = signal<bool>(false);
-
-  /// 双语对齐错误
-  final bilingualError = signal<String?>(null);
-
-  // ==================== 划词批注 ====================
-
-  /// 当前选中的文本
-  final selectedText = signal<String>('');
-
-  /// 当前选中的起始偏移（在整个章节内容中的位置）
-  final selectionStart = signal<int>(0);
-
-  /// 当前选中的结束偏移
-  final selectionEnd = signal<int>(0);
-
-  /// 是否显示批注工具栏
-  final showSelectionToolbar = signal<bool>(false);
-
-  /// 当前章节的高亮列表
-  final highlights = signal<List<Note>>([]);
+  // ==================== 划词批注（委托给 AnnotationController） ====================
 
   // ==================== 定时器 ====================
 
   Timer? _readingTimer;
   Timer? _saveTimer;
-  final RustBilingualService _bilingualService;
   final List<void Function()> _disposers = [];
 
   ReaderViewModel(
     this._repo,
     this._config,
-    this._statsService,
-    this._noteRepo,
-    this._bilingualService,
-  ) {
-    // 从配置加载设置
-    _loadSettings();
-
+    // this._statsService,
+  ) : _settingsController = ReaderSettingsController(_config),
+      _bookmarkController = BookmarkController(_repo),
+      _searchController = ReaderSearchController(),
+      _annotationController = AnnotationController(),
+      _bilingualController = BilingualController() {
     // 监听自动滚动设置
     _disposers.add(
       effect(() {
@@ -268,34 +188,15 @@ class ReaderViewModel {
     );
   }
 
-  /// 加载设置
-  void _loadSettings() {
-    fontSize.value = _config.fontSize.value.size.toDouble();
-    lineHeight.value = _config.lineHeight.value;
-    themeMode.value = _mapThemeToThemeMode(_config.theme.value);
-    paragraphSpacing.value = _config.paragraphSpacing.value;
-    pageMargin.value = _config.padding.value;
-  }
-
-  /// 映射主题
-  ThemeMode _mapThemeToThemeMode(ReaderTheme theme) {
-    switch (theme) {
-      case ReaderTheme.dark:
-        return ThemeMode.dark;
-      case ReaderTheme.sepia:
-      case ReaderTheme.light:
-        return ThemeMode.light;
-    }
-  }
-
   static const int _preloadCount = 3;
 
-  bool _initialized = false;
-
   /// 初始化阅读器
+  /// 每次调用都会重新加载（允许切换书籍）
   Future<void> initialize(String bookId, {int initialChapterId = 0}) async {
-    if (_initialized && this.bookId.value == bookId) return;
-    _initialized = true;
+    if (this.bookId.value == bookId &&
+        chapters.value.value?.isNotEmpty == true) {
+      return;
+    }
     this.bookId.value = bookId;
     currentCharOffset.value = 0;
 
@@ -331,7 +232,7 @@ class ReaderViewModel {
       }
 
       // 加载书签
-      await loadBookmarks();
+      await _bookmarkController.loadBookmarks(bookId);
 
       // 开始计时
       startReading();
@@ -340,7 +241,7 @@ class ReaderViewModel {
       _startAutoSave();
     } catch (e) {
       error.value = '加载失败：$e';
-      debugPrint('ReaderViewModel.initialize error: $e');
+      Logging.error('ReaderViewModel.initialize error', exception: e);
     } finally {
       isLoading.value = false;
     }
@@ -350,9 +251,7 @@ class ReaderViewModel {
   Future<void> loadChapters() async {
     chapters.value = AsyncState.loading();
     try {
-      final bookIdInt =
-          int.tryParse(bookId.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-      final data = await _repo.getChapters(bookIdInt);
+      final data = await _repo.getChapters(bookId.value);
       chapters.value = AsyncState.data(data);
     } catch (e) {
       chapters.value = AsyncState.error(e);
@@ -384,11 +283,10 @@ class ReaderViewModel {
     isLoading.value = true;
 
     final previousChapterIndex = this.chapterIndex.value;
-    final previousOffset = currentCharOffset.value;
     final shouldRestartSession =
         restartSession &&
         isReading.value &&
-        _statsService.isSessionActive &&
+        // _statsService.isSessionActive &&
         previousChapterIndex != chapterIndex;
 
     try {
@@ -398,16 +296,54 @@ class ReaderViewModel {
         chapterIndex,
       );
 
-      // 计算分页
-      final pages = await _repo.calculatePages(
+      // 将章节内容索引到 FTS5（不阻塞 UI）
+      unawaited(_indexForSearch(chapterIndex, content));
+
+      // █ 字符宽度校准（仅首次执行，字体/字号/DPR 变化后重置） █
+      if (_calibration.value == null) {
+        _calibration.value = await calibrateSafely(
+          fontSize: fontSize.value,
+          devicePixelRatio: devicePixelRatio.value,
+          fontFamily: _fontFamily,
+        );
+      }
+
+      // █ 带 KV 缓存的分页排版（Replace 块） █
+      List<PageInfo> pages;
+      bool paginationFromCache = false;
+
+      final result = await _repo.getPaginatedChapterPages(
         bookId: bookId.value,
-        chapterId: chapterIndex,
+        chapterIndex: chapterIndex,
         fontSize: fontSize.value,
         lineHeight: lineHeight.value,
         width: pageWidth.value,
         height: pageHeight.value,
         padding: 16,
+        devicePixelRatio: devicePixelRatio.value,
+        calibration: _calibration.value,
+        fontFamily: _fontFamily,
       );
+
+      if (result.isFallback) {
+        // 降级：Rust 排版失败，回退到 Dart 粗略分页
+        Logging.warning('loadChapter: Rust pagination fallback, using Dart approximate');
+        pages = await _repo.calculatePages(
+          bookId: bookId.value,
+          chapterId: chapterIndex,
+          fontSize: fontSize.value,
+          lineHeight: lineHeight.value,
+          width: pageWidth.value,
+          height: pageHeight.value,
+          padding: 16,
+        );
+      } else {
+        pages = result.pages;
+        paginationFromCache = result.cacheHit;
+      }
+
+      // █ 灰度期双写对比 █
+      _compareNewVsOldPagination(pages, content, chapterIndex);
 
       chapterContent.value = AsyncState.data(content);
       totalPages.value = pages.length;
@@ -422,6 +358,11 @@ class ReaderViewModel {
       pendingJumpCharOffset.value = currentCharOffset.value;
       error.value = null;
 
+      Logging.debug(
+        'loadChapter: pages=${pages.length} cacheHit=$paginationFromCache '
+        'resolvePage=$pageIndex off=$currentCharOffset',
+      );
+
       // 加载当前章节的高亮
       await loadHighlights();
 
@@ -432,18 +373,18 @@ class ReaderViewModel {
       _prefetchChapters(chapterIndex);
 
       if (shouldRestartSession) {
-        _statsService.updateProgress(previousOffset);
-        await _statsService.endReadingSession(previousOffset);
-        _statsService.startReadingSession(
-          bookId.value,
-          chapterIndex,
-          currentCharOffset.value,
-        );
+        // _statsService.updateProgress(previousOffset);
+        // await _statsService.endReadingSession(previousOffset);
+        // _statsService.startReadingSession(
+        //   bookId.value,
+        //   chapterIndex,
+        //   currentCharOffset.value,
+        // );
       }
     } catch (e) {
       chapterContent.value = AsyncState.error(e);
       error.value = '章节加载失败：$e';
-      debugPrint('ReaderViewModel.loadChapter error: $e');
+      Logging.error('ReaderViewModel.loadChapter error', exception: e);
     } finally {
       isLoading.value = false;
     }
@@ -460,7 +401,7 @@ class ReaderViewModel {
     if (pages != null && pageIndex < pages.length) {
       currentCharOffset.value = pages[pageIndex].startOffset;
     }
-    _statsService.updateProgress(currentCharOffset.value);
+    // _statsService.updateProgress(currentCharOffset.value);
     await _saveProgress();
   }
 
@@ -478,6 +419,28 @@ class ReaderViewModel {
     for (int i = start; i <= end; i++) {
       if (i == centerIndex) continue;
       _repo.preloadChapter(bookId.value, i);
+    }
+  }
+
+  /// 将章节内容索引到 FTS5（不阻塞 UI，失败静默忽略）
+  Future<void> _indexForSearch(int chapterIndex, String content) async {
+    try {
+      final chapterList = chapters.value.value ?? [];
+      final title =
+          chapterList
+              .where((c) => c.chapterIndex == chapterIndex)
+              .firstOrNull
+              ?.title ??
+          '';
+      await search_api.indexChapter(
+        bookId: bookId.value,
+        chapterId: '${bookId.value}_$chapterIndex',
+        chapterIndex: chapterIndex.toString(),
+        chapterTitle: title,
+        content: content,
+      );
+    } catch (_) {
+      // 索引失败不阻塞阅读
     }
   }
 
@@ -528,13 +491,13 @@ class ReaderViewModel {
     isReading.value = true;
 
     _readingTimer?.cancel();
-    if (!_statsService.isSessionActive) {
-      _statsService.startReadingSession(
-        bookId.value,
-        chapterIndex.value,
-        currentCharOffset.value,
-      );
-    }
+    // if (!_statsService.isSessionActive) {
+    //   _statsService.startReadingSession(
+    //     bookId.value,
+    //     chapterIndex.value,
+    //     currentCharOffset.value,
+    //   );
+    // }
 
     _readingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       readingDuration.value++;
@@ -546,7 +509,7 @@ class ReaderViewModel {
     isReading.value = false;
     _readingTimer?.cancel();
 
-    await _statsService.endReadingSession(currentCharOffset.value);
+    // await _statsService.endReadingSession(currentCharOffset.value);
     await _saveProgress();
   }
 
@@ -560,7 +523,7 @@ class ReaderViewModel {
 
   /// 保存阅读进度
   Future<void> _saveProgress() async {
-    _statsService.updateProgress(currentCharOffset.value);
+    // _statsService.updateProgress(currentCharOffset.value);
     try {
       await _repo.updateReadingProgress(
         bookId: bookId.value,
@@ -570,7 +533,6 @@ class ReaderViewModel {
         totalPages: totalPages.value,
         readingTimeSeconds: readingDuration.value,
       );
-
     } catch (e) {
       toastMessage.value = '保存阅读进度失败';
     }
@@ -599,45 +561,40 @@ class ReaderViewModel {
     showToolbar.value = showSettings.value;
   }
 
+  // ==================== 搜索（委托给 SearchController） ====================
+
+  void toggleSearch() => _searchController.toggleSearch();
+  void updateSearch(
+    String query, {
+    int matches = 0,
+    int currentIndex = 0,
+    int paragraphIndex = -1,
+  }) => _searchController.updateSearch(
+    query,
+    matches: matches,
+    currentIndex: currentIndex,
+    paragraphIndex: paragraphIndex,
+  );
+  void nextSearchMatch() => _searchController.nextSearchMatch();
+  void prevSearchMatch() => _searchController.prevSearchMatch();
+
   /// 加载书签
   Future<void> loadBookmarks() async {
-    bookmarks.value = AsyncState.loading();
-    try {
-      final data = await _repo.getBookmarks(bookId.value);
-      bookmarks.value = AsyncState.data(data);
-    } catch (e) {
-      bookmarks.value = AsyncState.error(e);
-    }
+    await _bookmarkController.loadBookmarks(bookId.value);
   }
 
   /// 添加书签
   Future<bool> addBookmark() async {
-    try {
-      await _repo.addBookmark(
-        bookId.value,
-        chapterIndex.value,
-        currentCharOffset.value,
-      );
-      await loadBookmarks();
-      return true;
-    } catch (e) {
-      debugPrint('ReaderViewModel.addBookmark error: $e');
-      return false;
-    }
+    return await _bookmarkController.addBookmark(
+      bookId.value,
+      chapterIndex.value,
+      currentCharOffset.value,
+    );
   }
 
   /// 删除书签
   Future<bool> deleteBookmark(String bookmarkId) async {
-    try {
-      final success = await _repo.deleteBookmark(bookmarkId);
-      if (success) {
-        await loadBookmarks();
-      }
-      return success;
-    } catch (e) {
-      debugPrint('ReaderViewModel.deleteBookmark error: $e');
-      return false;
-    }
+    return await _bookmarkController.deleteBookmark(bookmarkId, bookId.value);
   }
 
   /// 跳转到书签位置
@@ -680,25 +637,20 @@ class ReaderViewModel {
     }
   }
 
-  // ==================== 划词批注 ====================
+  // ==================== 划词批注（委托给 AnnotationController） ====================
 
   /// 加载当前章节的高亮和批注
   Future<void> loadHighlights() async {
-    try {
-      highlights.value = await _noteRepo.getNotesForChapter(
-        bookId.value,
-        chapterIndex.value,
-      );
-    } catch (_) {
-      highlights.value = [];
-    }
-    HighlightPainter.invalidateCache();
+    await _annotationController.loadHighlights(
+      bookId.value,
+      chapterIndex.value,
+    );
   }
 
   void updateCurrentCharOffset(int charOffset) {
     final contentLength = chapterContent.value.value?.length ?? 0;
     currentCharOffset.value = charOffset.clamp(0, contentLength);
-    _statsService.updateProgress(currentCharOffset.value);
+    // _statsService.updateProgress(currentCharOffset.value);
   }
 
   void consumePendingJumpOffset() {
@@ -706,46 +658,28 @@ class ReaderViewModel {
   }
 
   /// 更新选中文本
-  void updateSelection(String text, int start, int end) {
-    if (text.isEmpty || start == end) {
-      clearSelection();
-      return;
-    }
-    selectedText.value = text;
-    selectionStart.value = start;
-    selectionEnd.value = end;
-    showSelectionToolbar.value = true;
-  }
+  void updateSelection(String text, int start, int end) =>
+      _annotationController.updateSelection(text, start, end);
 
   /// 清除选中
-  void clearSelection() {
-    selectedText.value = '';
-    selectionStart.value = 0;
-    selectionEnd.value = 0;
-    showSelectionToolbar.value = false;
-  }
+  void clearSelection() => _annotationController.clearSelection();
 
   /// 保存高亮
   Future<void> saveHighlight() async {
-    if (selectedText.value.isEmpty) return;
+    if (_annotationController.selectedText.value.isEmpty) {
+      return;
+    }
     try {
-      final note = Note(
-        id: 'note_${DateTime.now().millisecondsSinceEpoch}_${chapterIndex.value}_${selectionStart.value}',
+      await _annotationController.createHighlight(
         bookId: bookId.value,
         chapterIndex: chapterIndex.value,
-        charOffset: selectionStart.value,
-        length: selectionEnd.value - selectionStart.value,
-        noteType: NoteType.highlight,
-        content: selectedText.value,
-        selectedText: selectedText.value,
-        highlightColor: 0xFFFFEB3B,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        selectionStart: _annotationController.selectionStart.value,
+        selectionEnd: _annotationController.selectionEnd.value,
+        selectedText: _annotationController.selectedText.value,
       );
-      await _noteRepo.createNote(note);
-      await HapticFeedback.mediumImpact();
+      hapticFeedback(HapticType.medium);
       await loadHighlights();
-      clearSelection();
+      _annotationController.clearSelection();
     } catch (e) {
       toastMessage.value = '保存高亮失败';
     }
@@ -753,24 +687,21 @@ class ReaderViewModel {
 
   /// 保存笔记
   Future<void> saveAnnotation(String annotationContent) async {
-    if (selectedText.value.isEmpty || annotationContent.isEmpty) return;
+    if (_annotationController.selectedText.value.isEmpty ||
+        annotationContent.isEmpty) {
+      return;
+    }
     try {
-      final note = Note(
-        id: 'note_${DateTime.now().millisecondsSinceEpoch}_${chapterIndex.value}_${selectionStart.value}',
+      await _annotationController.createAnnotation(
         bookId: bookId.value,
         chapterIndex: chapterIndex.value,
-        charOffset: selectionStart.value,
-        length: selectionEnd.value - selectionStart.value,
-        noteType: NoteType.annotation,
-        content: annotationContent,
-        selectedText: selectedText.value,
-        highlightColor: null,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        selectionStart: _annotationController.selectionStart.value,
+        selectionEnd: _annotationController.selectionEnd.value,
+        selectedText: _annotationController.selectedText.value,
+        annotationContent: annotationContent,
       );
-      await _noteRepo.createNote(note);
       await loadHighlights();
-      clearSelection();
+      _annotationController.clearSelection();
     } catch (e) {
       toastMessage.value = '保存笔记失败';
     }
@@ -779,8 +710,8 @@ class ReaderViewModel {
   /// 删除高亮/笔记
   Future<void> deleteNote(String noteId) async {
     try {
-      await _noteRepo.deleteNote(noteId);
-      await HapticFeedback.heavyImpact();
+      await _annotationController.deleteNote(noteId);
+      hapticFeedback(HapticType.heavy);
       await loadHighlights();
     } catch (e) {
       toastMessage.value = '删除失败';
@@ -790,18 +721,17 @@ class ReaderViewModel {
   /// 更新笔记内容
   Future<void> updateNote(Note note) async {
     try {
-      await _noteRepo.updateNote(note);
+      // await _annotationController.updateNote(note);
       await loadHighlights();
     } catch (e) {
       toastMessage.value = '更新笔记失败';
     }
   }
 
-  /// 更新字体大小
+  /// 更新字体大小（委托 SettingsController 并触发重新分页）
   Future<void> setFontSize(double size) async {
-    fontSize.value = size;
-    await _config.setFontSize(ReaderFontSize.fromSize(size));
-    // 重新计算分页
+    await _settingsController.setFontSize(size);
+    _calibration.value = null; // 字号变化 → 校准失效
     await loadChapter(
       chapterIndex.value,
       initialCharOffset: currentCharOffset.value,
@@ -809,11 +739,9 @@ class ReaderViewModel {
     );
   }
 
-  /// 更新行间距
+  /// 更新行间距（委托 SettingsController 并触发重新分页）
   Future<void> setLineHeight(double height) async {
-    lineHeight.value = height;
-    await _config.setLineHeight(height);
-    // 重新计算分页
+    await _settingsController.setLineHeight(height);
     await loadChapter(
       chapterIndex.value,
       initialCharOffset: currentCharOffset.value,
@@ -822,45 +750,39 @@ class ReaderViewModel {
   }
 
   /// 更新主题
-  Future<void> setTheme(ThemeMode mode) async {
-    themeMode.value = mode;
-    final readerTheme = mode == ThemeMode.dark
-        ? ReaderTheme.dark
-        : ReaderTheme.light;
-    await _config.setTheme(readerTheme);
+  Future<void> setTheme(ReaderTheme theme) async {
+    await _settingsController.setTheme(theme);
   }
 
   /// 更新字间距
   void setLetterSpacing(double spacing) {
-    letterSpacing.value = spacing;
+    _settingsController.setLetterSpacing(spacing);
   }
 
   /// 更新段间距
   void setParagraphSpacing(double spacing) {
-    paragraphSpacing.value = spacing;
+    _settingsController.setParagraphSpacing(spacing);
   }
 
   /// 更新页边距
   void setPageMargin(double margin) {
-    pageMargin.value = margin;
+    _settingsController.setPageMargin(margin);
   }
 
   /// 更新书写方向
   void setWritingDirection(WritingDirection direction) {
-    writingDirection.value = direction;
+    _settingsController.setWritingDirection(direction);
   }
 
   /// 更新阅读背景色
   void setReaderBgColor(int index) {
-    readerBgColorIndex.value = index;
+    _settingsController.setReaderBgColor(index);
   }
 
   /// 更新亮度
   void setBrightness(double value) {
-    brightnessOverlay.value = value.clamp(0.0, 1.0);
+    _settingsController.setBrightness(value);
   }
-
-
 
   /// 更新阅读模式
   void setReadingMode(ReadingMode mode) {
@@ -872,28 +794,14 @@ class ReaderViewModel {
 
   /// 执行双语对齐
   Future<void> _runBilingualAlignment() async {
-    if (translationContent.value.isEmpty) return;
-    isBilingualLoading.value = true;
-    bilingualError.value = null;
-    try {
-      final currentContent = chapterContent.value.value ?? '';
-      if (currentContent.isEmpty) return;
-      final result = await _bilingualService.alignBilingualContent(
-        chineseContent: currentContent,
-        englishContent: translationContent.value,
-        minSimilarity: 0.5,
-      );
-      bilingualAlignment.value = result;
-    } catch (e) {
-      bilingualError.value = '双语对齐失败：$e';
-    } finally {
-      isBilingualLoading.value = false;
-    }
+    final content = chapterContent.value.value ?? '';
+    final translation = _bilingualController.translationContent.value;
+    await _bilingualController.runAlignment(content, translation);
   }
 
   /// 设置对照译文内容并自动对齐
   void setTranslationContent(String content) {
-    translationContent.value = content;
+    _bilingualController.translationContent.value = content;
     if (readingMode.value == ReadingMode.bilingual) {
       _runBilingualAlignment();
     }
@@ -918,15 +826,19 @@ class ReaderViewModel {
   }
 
   /// 清理资源（可安全重复调用，lazySingleton 复用）
-  Future<void> dispose() async {
+  void dispose() {
     for (final disposer in _disposers) {
       disposer();
     }
     _disposers.clear();
-    _initialized = false;
-    await stopReading();
-    _saveTimer?.cancel();
+    _settingsController.dispose();
+    _bookmarkController.dispose();
+    _searchController.dispose();
+    _annotationController.dispose();
+    _bilingualController.dispose();
+    isReading.value = false;
     _readingTimer?.cancel();
+    _saveTimer?.cancel();
     _autoScrollTimer?.cancel();
 
     bookId.value = '0';
@@ -958,10 +870,6 @@ class ReaderViewModel {
     selectionEnd.value = 0;
     showSelectionToolbar.value = false;
     highlights.value = [];
-    bilingualAlignment.value = null;
-    translationContent.value = '';
-    isBilingualLoading.value = false;
-    bilingualError.value = null;
   }
 
   // ==================== 自动滚动 ====================
@@ -994,5 +902,130 @@ class ReaderViewModel {
       }
     }
     return pages.length - 1;
+  }
+
+  /// 灰度期双写对比：后台异步比较新旧分页结果
+  void _compareNewVsOldPagination(
+    List<PageInfo> newPages,
+    String content,
+    int chapterIndex,
+  ) {
+    // 只在 Debug 模式下执行
+    assert(() {
+      // 异步执行，不阻塞 UI
+      _comparePaginationAsync(newPages, content, chapterIndex);
+      return true;
+    }());
+  }
+
+  Future<void> _comparePaginationAsync(
+    List<PageInfo> newPages,
+    String content,
+    int chapterIndex,
+  ) async {
+    try {
+      final oldPages = _paginateApproximate(
+        content,
+        fontSize: fontSize.value,
+        lineHeight: lineHeight.value,
+        width: pageWidth.value,
+        height: pageHeight.value,
+        padding: 16,
+      );
+
+      if (newPages.length != oldPages.length) {
+        Logging.warning(
+          'PAGINATION MISMATCH chapter=$chapterIndex: '
+          'new=${newPages.length} pages vs old=${oldPages.length} pages',
+        );
+      }
+
+      // 逐页对比 offset 边界
+      for (int i = 0; i < newPages.length && i < oldPages.length; i++) {
+        final n = newPages[i];
+        final o = oldPages[i];
+        if (n.startOffset != o.startOffset || n.endOffset != o.endOffset) {
+          final diff = (n.startOffset - o.startOffset).abs();
+          if (diff > 5) {
+            Logging.debug(
+              'PAGE OFFSET DIFF page=$i: '
+              'new=[${n.startOffset},${n.endOffset}] '
+              'old=[${o.startOffset},${o.endOffset}] '
+              'diff=$diff chars',
+            );
+          }
+        }
+      }
+    } catch (e) {
+      Logging.error('comparePaginationAsync error', exception: e);
+    }
+  }
+
+  /// Dart 粗略分页（与 rust_reader_repository._paginateApproximate 一致）
+  List<PageInfo> _paginateApproximate(
+    String content, {
+    required double fontSize,
+    required double lineHeight,
+    required double width,
+    required double height,
+    required double padding,
+  }) {
+    final maxWidth = width - padding * 2;
+    final availableHeight = height - padding * 2;
+    final charsPerLine = (maxWidth / fontSize).floor().clamp(10, 200);
+    final linesPerPage = (availableHeight / (fontSize * lineHeight))
+        .floor()
+        .clamp(1, 100);
+    final charsPerPage = charsPerLine * linesPerPage;
+
+    final pages = <PageInfo>[];
+    var offset = 0;
+    var pageIndex = 0;
+
+    while (offset < content.length) {
+      var end = offset + charsPerPage;
+      if (end >= content.length) {
+        end = content.length;
+      } else {
+        final searchStart = (end - (charsPerLine ~/ 2)).clamp(
+          0,
+          content.length,
+        );
+        final newlinePos = content.lastIndexOf('\n', end);
+        if (newlinePos > searchStart) {
+          end = newlinePos + 1;
+        } else {
+          final paraBreak = content.lastIndexOf('\n\n', end);
+          if (paraBreak > searchStart) {
+            end = paraBreak + 2;
+          }
+        }
+      }
+
+      pages.add(
+        PageInfo(
+          pageIndex: pageIndex,
+          content: content.substring(offset, end),
+          richContent: null,
+          startOffset: offset,
+          endOffset: end,
+        ),
+      );
+      offset = end;
+      pageIndex++;
+    }
+
+    if (pages.isEmpty) {
+      pages.add(
+        PageInfo(
+          pageIndex: 0,
+          content: content,
+          richContent: null,
+          startOffset: 0,
+          endOffset: content.length,
+        ),
+      );
+    }
+    return pages;
   }
 }

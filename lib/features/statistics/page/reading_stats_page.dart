@@ -2,75 +2,58 @@ library;
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:signals_hooks/signals_hooks.dart';
+
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/statistics/application/reading_stats_service.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-class ReadingStatsPage extends StatefulWidget {
-  const ReadingStatsPage({super.key});
+class ReadingStatsPage extends HookWidget {
+  final ReadingStatsViewModel vm;
 
-  @override
-  State<ReadingStatsPage> createState() => _ReadingStatsPageState();
-}
-
-class _ReadingStatsPageState extends State<ReadingStatsPage> {
-  final _statsService = getIt<ReadingStatsService>();
-  List<ReadingStats> _dailyRecords = [];
-  GlobalStats? _globalStats;
-  bool _loaded = false;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    try {
-      final results = await Future.wait([
-        _statsService.getDailyRecords(days: 7),
-        _statsService.getGlobalStats(),
-      ]);
-      if (mounted) {
-        setState(() {
-          _dailyRecords = results[0] as List<ReadingStats>;
-          _globalStats = results[1] as GlobalStats?;
-          _loaded = true;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _loaded = true;
-          _error = e.toString();
-        });
-      }
-    }
-  }
+  const ReadingStatsPage({super.key, required this.vm});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
-    final totalMinutes = _globalStats != null
-        ? '${(_globalStats!.totalReadingTimeSeconds ~/ 60)} 分钟'
-        : '加载中…';
-    final totalChars = _globalStats != null
-        ? '${(_globalStats!.totalCharactersRead ~/ 10000)} 万字'
-        : '加载中…';
-    final readingDays = _globalStats != null
-        ? '${_globalStats!.consecutiveReadingDays} 天'
-        : '加载中…';
+    // Load on mount
+    useEffect(() {
+      vm.loadDashboard();
+      return null;
+    }, []);
 
-    final avgSpeed = _globalStats != null
-        ? '${_globalStats!.averageReadingSpeed.toStringAsFixed(0)} 字/分钟'
+    // Bind VM signals
+    final dashboardLoading = useSignalValue<bool, Signal<bool>>(
+      vm.dashboardLoading,
+    );
+    final dashboardError = useSignalValue<String?, Signal<String?>>(
+      vm.dashboardError,
+    );
+    final globalStats = useSignalValue<GlobalStats?, Signal<GlobalStats?>>(
+      vm.globalStats,
+    );
+    final dailyMinutes = useSignalValue<List<double>, ReadonlySignal<List<double>>>(
+      vm.dailyMinutes,
+    );
+
+    final totalMinutes = globalStats != null
+        ? '${globalStats.totalReadingTimeSeconds ~/ 60} 分钟'
         : '加载中…';
-    final consecutiveDays = _globalStats != null
-        ? '${_globalStats!.consecutiveReadingDays} 天'
+    final totalChars = globalStats != null
+        ? '${globalStats.totalCharactersRead ~/ 10000} 万字'
+        : '加载中…';
+    final readingDays = globalStats != null
+        ? '${globalStats.consecutiveReadingDays} 天'
+        : '加载中…';
+    final avgSpeed = globalStats != null
+        ? '${globalStats.averageReadingSpeed.toStringAsFixed(0)} 字/分钟'
+        : '加载中…';
+    final consecutiveDays = globalStats != null
+        ? '${globalStats.consecutiveReadingDays} 天'
         : '加载中…';
 
     return Scaffold(
@@ -80,7 +63,7 @@ class _ReadingStatsPageState extends State<ReadingStatsPage> {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
             const SizedBox(height: 8),
-            if (_error != null)
+            if (dashboardError != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Center(
@@ -93,17 +76,14 @@ class _ReadingStatsPageState extends State<ReadingStatsPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _error!,
+                        dashboardError,
                         style: TextStyle(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 12),
                       FilledButton.tonal(
-                        onPressed: () {
-                          _error = null;
-                          _loadData();
-                        },
+                        onPressed: () => vm.loadDashboard(),
                         child: const Text('重试'),
                       ),
                     ],
@@ -122,11 +102,11 @@ class _ReadingStatsPageState extends State<ReadingStatsPage> {
             const SizedBox(height: 8),
             Row(
               children: [
-                _statItem('阅读时长', totalMinutes),
+                _statItem('阅读时长', totalMinutes, theme),
                 const SizedBox(width: 48),
-                _statItem('阅读字数', totalChars),
+                _statItem('阅读字数', totalChars, theme),
                 const SizedBox(width: 48),
-                _statItem('阅读天数', readingDays),
+                _statItem('阅读天数', readingDays, theme),
               ],
             ),
             const SizedBox(height: 32),
@@ -140,7 +120,7 @@ class _ReadingStatsPageState extends State<ReadingStatsPage> {
             ),
             const Divider(height: 12),
             const SizedBox(height: 16),
-            if (!_loaded)
+            if (dashboardLoading)
               const SizedBox(
                 height: 200,
                 child: Center(child: CircularProgressIndicator()),
@@ -151,24 +131,21 @@ class _ReadingStatsPageState extends State<ReadingStatsPage> {
                 child: BarChart(
                   BarChartData(
                     alignment: BarChartAlignment.spaceAround,
-                    maxY: _dailyRecords.isEmpty
+                    maxY: dailyMinutes.isEmpty
                         ? 10
-                        : _dailyRecords
-                                  .map((r) => r.readingTimeSeconds / 60.0)
-                                  .reduce((a, b) => a > b ? a : b) +
-                              15,
+                        : dailyMinutes.reduce((a, b) => a > b ? a : b) + 15,
                     barTouchData: BarTouchData(
                       enabled: true,
                       touchTooltipData: BarTouchTooltipData(
                         getTooltipItem: (group, groupIndex, rod, rodIndex) =>
                             BarTooltipItem(
-                              '${rod.toY.toStringAsFixed(0)}分钟',
-                              TextStyle(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                            ),
+                          '${rod.toY.toStringAsFixed(0)}分钟',
+                          TextStyle(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
                     ),
                     titlesData: FlTitlesData(
@@ -215,8 +192,8 @@ class _ReadingStatsPageState extends State<ReadingStatsPage> {
                     ),
                     borderData: FlBorderData(show: false),
                     barGroups: weekdays.asMap().entries.map((entry) {
-                      final minutes = entry.key < _dailyRecords.length
-                          ? _dailyRecords[entry.key].readingTimeSeconds / 60.0
+                      final minutes = entry.key < dailyMinutes.length
+                          ? dailyMinutes[entry.key]
                           : 0.0;
                       return BarChartGroupData(
                         x: entry.key,
@@ -253,16 +230,15 @@ class _ReadingStatsPageState extends State<ReadingStatsPage> {
               ),
             ),
             const Divider(height: 12),
-            _habitRow('平均阅读速度', avgSpeed),
-            _habitRow('连续阅读天数', consecutiveDays),
+            _habitRow('平均阅读速度', avgSpeed, theme),
+            _habitRow('连续阅读天数', consecutiveDays, theme),
           ],
         ),
       ),
     );
   }
 
-  Widget _statItem(String label, String value) {
-    final theme = Theme.of(context);
+  Widget _statItem(String label, String value, ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -287,8 +263,7 @@ class _ReadingStatsPageState extends State<ReadingStatsPage> {
     );
   }
 
-  Widget _habitRow(String label, String value) {
-    final theme = Theme.of(context);
+  Widget _habitRow(String label, String value, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(

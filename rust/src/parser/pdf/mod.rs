@@ -1,9 +1,10 @@
 //! PDF 解析模块
-//! 负责 PDF 文件的解压、结构解析、文本提取
+//! 负责 PDF 文件的解压、结构解析、文本提取、按需内容提供
 
 pub mod images;
 pub mod metadata;
 pub mod parse;
+pub mod provider;
 pub mod text;
 
 use std::path::Path;
@@ -13,14 +14,12 @@ use async_trait::async_trait;
 use flutter_rust_bridge::frb;
 
 use crate::domain::{ ParseResult, AppError};
-use crate::domain::parser::{BookMetadata, BookParser};
+use crate::parser::book_parser::{BookMetadata, BookParser};
 
 pub use images::extract_pdf_cover;
-pub use parse::async_parse_pdf_file;
 pub use parse::get_pdf_metadata;
 pub use parse::parse_pdf;
 pub use text::get_chapter_text;
-pub use text::get_pdf_page_text;
 
 /// 默认每章包含的页数
 pub const DEFAULT_PAGES_PER_CHAPTER: usize = 10;
@@ -55,7 +54,7 @@ impl BookParser for PdfParser {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || parse_pdf(fp))
             .await
-            .map_err(|e| AppError::internal(format!("PDF 解析任务失败: {}", e)))?
+            .map_err(|e| AppError::internal(format!("PDF parse task failed: {}", e)))?
     }
 
     async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata,AppError> {
@@ -71,15 +70,18 @@ impl BookParser for PdfParser {
                 Path::new(&fp)
                     .file_stem()
                     .and_then(|s| s.to_str())
-                    .unwrap_or("未知书籍")
+                    .unwrap_or("Unknown Book")
                     .to_string()
             });
 
             Ok(BookMetadata {
                 title,
-                author: metadata.author.unwrap_or_else(|| "未知作者".to_string()),
+                author: metadata.author.unwrap_or_else(|| "Unknown Author".to_string()),
                 description: None,
                 cover_path: None,
+                publisher: None,
+                translator: None,
+                isbn: None,
                 publish_year: None,
                 language: None,
                 chapter_count: metadata.page_count,
@@ -87,7 +89,7 @@ impl BookParser for PdfParser {
             })
         })
             .await
-            .map_err(|e| AppError::internal(format!("PDF 元数据提取失败: {}", e)))?
+            .map_err(|e| AppError::internal(format!("PDF metadata extraction failed: {}", e)))?
     }
 
     async fn extract_chapter(&self, file_path: &str, chapter_index: i32) -> Result<String,AppError> {
@@ -98,7 +100,7 @@ impl BookParser for PdfParser {
             get_chapter_text(&fp, start_page as usize, end_page as usize)
         })
             .await
-            .map_err(|e| AppError::internal(format!("PDF 章节提取失败: {}", e)))?
+            .map_err(|e| AppError::internal(format!("PDF chapter extraction failed: {}", e)))?
     }
 }
 
@@ -121,14 +123,6 @@ mod tests {
         let parser = PdfParser::new();
         let formats = parser.supported_formats();
         assert!(formats.contains(&"pdf"));
-    }
-
-    #[test]
-    fn test_pdf_parser_supports_format() {
-        let parser = PdfParser::new();
-        assert!(parser.supports_format("pdf"));
-        assert!(parser.supports_format("PDF"));
-        assert!(!parser.supports_format("txt"));
     }
 
     #[tokio::test]

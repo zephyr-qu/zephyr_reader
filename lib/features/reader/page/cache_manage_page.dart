@@ -2,9 +2,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:zephyr_reader/core/local/rust_storage_service.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
+import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class CacheManagePage extends StatefulWidget {
@@ -17,9 +18,8 @@ class CacheManagePage extends StatefulWidget {
 
 class _CacheManagePageState extends State<CacheManagePage> {
   final _repo = getIt<ReaderRepository>();
-  final _storage = getIt<RustStorageService>();
   List<Book> _books = [];
-  List<ReadingProgressData> _progressList = [];
+  List<BookWithProgress> _progressList = [];
   bool _loaded = false;
 
   @override
@@ -30,8 +30,8 @@ class _CacheManagePageState extends State<CacheManagePage> {
 
   Future<void> _load() async {
     try {
-      final books = await _storage.getAllBooks();
-      final allProgress = await _repo.getAllReadingProgress();
+      final books = await book_api.listBooks();
+      final allProgress = await progress_api.listAllProgresses();
       if (mounted) {
         setState(() {
           _books = books;
@@ -76,7 +76,7 @@ class _CacheManagePageState extends State<CacheManagePage> {
   }
 
   Future<void> _clearProgress(String bookId, String title) async {
-    await _repo.clearReadingProgress(bookId);
+    await progress_api.clearProgress(bookId: bookId);
     await _load();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -223,9 +223,15 @@ class _CacheManagePageState extends State<CacheManagePage> {
               label: const Text('清除进度缓存'),
             ),
           ),
+          const SizedBox(height: 16),
+          _buildSearchIndexSection(theme),
         ],
       ),
     );
+  }
+
+  Widget _buildSearchIndexSection(ThemeData theme) {
+    return const SizedBox.shrink();
   }
 
   Widget _overviewItem(
@@ -260,11 +266,13 @@ class _CacheManagePageState extends State<CacheManagePage> {
     );
   }
 
-  Widget _buildProgressItem(ThemeData theme, ReadingProgressData progress) {
-    final book = _books.where((b) => b.bookId == progress.bookId).firstOrNull;
-    final bookTitle = book?.title ?? '未知书籍';
-    final dateStr =
-        '${progress.lastReadAt.month}/${progress.lastReadAt.day} ${progress.lastReadAt.hour.toString().padLeft(2, '0')}:${progress.lastReadAt.minute.toString().padLeft(2, '0')}';
+  Widget _buildProgressItem(ThemeData theme, BookWithProgress item) {
+    final progress = item.progress;
+    final book = item.book;
+    final bookTitle = book.title;
+    final dateStr = progress != null
+        ? '${progress.lastReadAt.month}/${progress.lastReadAt.day} ${progress.lastReadAt.hour.toString().padLeft(2, '0')}:${progress.lastReadAt.minute.toString().padLeft(2, '0')}'
+        : '';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -291,13 +299,14 @@ class _CacheManagePageState extends State<CacheManagePage> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  '第 ${progress.chapterIndex} 章 · $dateStr',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurfaceVariant,
+                if (progress != null)
+                  Text(
+                    '第 ${progress.chapterIndex} 章 · $dateStr',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -307,7 +316,7 @@ class _CacheManagePageState extends State<CacheManagePage> {
               size: 18,
               color: theme.colorScheme.onSurfaceVariant,
             ),
-            onPressed: () => _clearProgress(progress.bookId, bookTitle),
+            onPressed: () => _clearProgress(book.bookId, bookTitle),
             tooltip: '清除进度',
           ),
         ],

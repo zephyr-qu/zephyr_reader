@@ -34,7 +34,7 @@ class ProfilePage extends HookWidget {
           const SizedBox(height: 24),
           _buildStatsRow(context, globalStats),
           const SizedBox(height: 28),
-          _buildMenuGrid(context),
+          _buildMenuSections(context),
           const SizedBox(height: 40),
           Center(
             child: Text(
@@ -197,110 +197,253 @@ class ProfilePage extends HookWidget {
     );
   }
 
-  Widget _buildMenuGrid(BuildContext context) {
-    final items = [
-      _MenuItemData(
-        PhosphorIconsRegular.book,
-        '阅读设置',
-        () => context.push(RoutePaths.readingSettings),
-      ),
-      _MenuItemData(
-        PhosphorIconsRegular.gearSix,
-        '应用设置',
-        () => context.push(RoutePaths.appSettings),
-      ),
-      _MenuItemData(
-        PhosphorIconsRegular.bookmark,
-        '生词本',
-        () => context.push(RoutePaths.vocabulary),
-      ),
-      _MenuItemData(
-        PhosphorIconsRegular.clockCounterClockwise,
-        '阅读会话',
-        () => context.push(RoutePaths.readingSessions),
-      ),
-      _MenuItemData(
-        PhosphorIconsRegular.hardDrives,
-        '缓存管理',
-        () => context.push(RoutePaths.cacheManage),
-      ),
-      _MenuItemData(
-        PhosphorIconsRegular.arrowsClockwise,
-        '数据同步',
-        () => context.push(RoutePaths.sync),
-      ),
-      _MenuItemData(
-        PhosphorIconsRegular.info,
-        '关于',
-        () => context.push(RoutePaths.about),
-      ),
+  Widget _buildMenuSections(BuildContext context) {
+    final sections = [
+      _MenuSectionData('学习与管理', [
+        _MenuItemData(
+          PhosphorIconsRegular.bookOpen,
+          '学习与笔记',
+          const Color(0xFFAB47BC),
+          const Color(0xFFF3E5F5),
+          () => context.push(RoutePaths.learningNotes),
+        ),
+        _MenuItemData(
+          PhosphorIconsRegular.clockCounterClockwise,
+          '阅读会话',
+          const Color(0xFF0891B2),
+          const Color(0xFFECFEFF),
+          () => context.push(RoutePaths.readingSessions),
+        ),
+        _MenuItemData.withBadge(
+          PhosphorIconsRegular.arrowsClockwise,
+          '数据同步',
+          const Color(0xFF059669),
+          const Color(0xFFECFDF5),
+          '已同步',
+          () => context.push(RoutePaths.sync),
+        ),
+        _MenuItemData(
+          PhosphorIconsRegular.hardDrives,
+          '存储与同步',
+          const Color(0xFF059669),
+          const Color(0xFFECFDF5),
+          () => context.push(RoutePaths.storageSync),
+        ),
+      ]),
+      _MenuSectionData('阅读体验', [
+        _MenuItemData(
+          PhosphorIconsRegular.bookOpen,
+          '阅读设置',
+          const Color(0xFFD97706),
+          const Color(0xFFFFFBEB),
+          () => context.push(RoutePaths.readingSettings),
+        ),
+        _MenuItemData(
+          PhosphorIconsRegular.waveform,
+          '朗读设置',
+          const Color(0xFF42A5F5),
+          const Color(0xFFE3F2FD),
+          () => context.push(RoutePaths.ttsSettings),
+        ),
+        _MenuItemData(
+          PhosphorIconsRegular.textB,
+          '排版与字体',
+          const Color(0xFF7C3AED),
+          const Color(0xFFF3E8FF),
+          () => context.push(RoutePaths.typographySettings),
+        ),
+        _MenuItemData(
+          PhosphorIconsRegular.palette,
+          '主题与亮度',
+          const Color(0xFFF59E0B),
+          const Color(0xFFFFFBEB),
+          () => context.push(RoutePaths.themeBrightness),
+        ),
+      ]),
+      _MenuSectionData('系统', [
+        _MenuItemData(
+          PhosphorIconsRegular.gearSix,
+          '应用设置',
+          const Color(0xFF6B7280),
+          const Color(0xFFF3F4F6),
+          () => context.push(RoutePaths.appSettings),
+        ),
+        _MenuItemData(
+          PhosphorIconsRegular.dotsThreeOutline,
+          '其他设置',
+          const Color(0xFF78909C),
+          const Color(0xFFF5F5F5),
+          () => context.push(RoutePaths.otherSettings),
+        ),
+        _MenuItemData(
+          PhosphorIconsRegular.info,
+          '关于',
+          const Color(0xFFEC4899),
+          const Color(0xFFFDF2F8),
+          () => context.push(RoutePaths.about),
+        ),
+      ]),
     ];
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var i = 0; i < items.length; i += 2)
+        for (final section in sections) ...[
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              children: [
-                Expanded(child: _menuCard(context, items[i], i)),
-                const SizedBox(width: 8),
-                if (i + 1 < items.length)
-                  Expanded(child: _menuCard(context, items[i + 1], i + 1))
-                else
-                  const Expanded(child: SizedBox()),
-              ],
+            padding: EdgeInsets.only(
+              left: 4,
+              bottom: 10,
+              top: sections.first == section ? 0 : 20,
             ),
+            child: _buildSectionLabel(context, section),
           ),
+          _buildSection(context, section),
+        ],
       ],
     );
   }
 
-  Widget _menuCard(BuildContext context, _MenuItemData item, int index) {
+  Widget _buildSectionLabel(BuildContext context, _MenuSectionData section) {
+    final theme = Theme.of(context);
+    return Text(
+      section.label,
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+        letterSpacing: 0.4,
+      ),
+    );
+  }
+
+  Widget _buildSection(BuildContext context, _MenuSectionData section) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+          width: 0.5,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: section.items.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final item = entry.value;
+          return _buildMenuItem(context, item, idx)
+              .animate()
+              .fadeIn(duration: 300.ms, delay: (150 + idx * 60).ms)
+              .slideX(begin: 0.03, end: 0);
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(BuildContext context, _MenuItemData item, int index) {
     final theme = Theme.of(context);
     return Material(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            onTap: item.onTap,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.3,
-                  ),
-                  width: 0.5,
-                ),
-              ),
-              child: Column(
-                children: [
-                  Icon(item.icon, size: 24, color: DesignTokens.warmAccent),
-                  const SizedBox(height: 8),
-                  Text(
-                    item.title,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                ],
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: item.onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.15),
+                width: 0.5,
               ),
             ),
           ),
-        )
-        .animate()
-        .fadeIn(duration: 300.ms, delay: (150 + index * 60).ms)
-        .slideY(begin: 0.06, end: 0);
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: item.bgColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(item.icon, size: 17, color: item.iconColor),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  item.title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              if (item.badge != null)
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: item.badge == '已同步'
+                        ? const Color(0xFF059669).withValues(alpha: 0.1)
+                        : item.iconColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    item.badge!,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: item.badge == '已同步'
+                          ? const Color(0xFF059669)
+                          : item.iconColor,
+                    ),
+                  ),
+                ),
+              Icon(
+                PhosphorIconsRegular.caretRight,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
+}
+
+class _MenuSectionData {
+  final String label;
+  final List<_MenuItemData> items;
+  const _MenuSectionData(this.label, this.items);
 }
 
 class _MenuItemData {
   final IconData icon;
   final String title;
+  final Color iconColor;
+  final Color bgColor;
+  final String? badge;
   final VoidCallback onTap;
-  const _MenuItemData(this.icon, this.title, this.onTap);
+  const _MenuItemData(
+    this.icon,
+    this.title,
+    this.iconColor,
+    this.bgColor,
+    this.onTap,
+  ) : badge = null;
+  const _MenuItemData.withBadge(
+    this.icon,
+    this.title,
+    this.iconColor,
+    this.bgColor,
+    this.badge,
+    this.onTap,
+  );
 }

@@ -11,7 +11,6 @@ use super::text::estimate_total_chars;
 use super::DEFAULT_PAGES_PER_CHAPTER;
 use crate::storage::models::{Book, Chapter, BookFormat};
 use crate::domain::{ ParseResult, AppError};
-use crate::utils::security::validate_file_path;
 
 /// 解析 PDF 文件
 ///
@@ -28,41 +27,40 @@ use crate::utils::security::validate_file_path;
 /// * `Err(AppError)` - 解析失败
 pub fn parse_pdf(file_path: String) -> Result<ParseResult,AppError> {
     let start_time = std::time::Instant::now();
-    tracing::info!("开始解析 PDF 文件：{}", file_path);
+    tracing::info!("start parsing PDF file: {}", file_path);
 
     // 检查文件是否存在
     if !Path::new(&file_path).exists() {
         return Err(AppError::file_not_found(&file_path));
     }
-    tracing::debug!("文件存在性检查通过：{}", file_path);
+    tracing::debug!("file existence check passed: {}", file_path);
 
     // 提取元数据
     let metadata = extract_metadata_from_path(&file_path);
     tracing::debug!(
-        "元数据提取完成：title={:?}, author={:?}, pages={}",
+        "metadata extracted: title={:?}, author={:?}, pages={}",
         metadata.title,
         metadata.author,
         metadata.page_count
     );
 
-    // 生成章节（每 10 页为一章）
-    let chapters = generate_chapters(metadata.page_count as usize, DEFAULT_PAGES_PER_CHAPTER);
-    let chapter_count = chapters.len() as i32;
-    tracing::debug!("章节生成完成，章节数：{}", chapter_count);
-
-    // 估算总字符数
-    let total_chars = estimate_total_chars(&file_path, 5);
-    tracing::debug!("字符数估算完成：{}", total_chars);
-
     // 生成书籍 ID
     let book_id = Uuid::new_v4().to_string();
 
-    // 提取书名
+    // 生成章节（每 10 页为一章）
+    let chapters = generate_chapters(metadata.page_count as usize, DEFAULT_PAGES_PER_CHAPTER, &book_id);
+    let chapter_count = chapters.len() as i32;
+    tracing::debug!("chapters generated, count: {}", chapter_count);
+
+    // 估算总字符数
+    let total_chars = estimate_total_chars(&file_path, 5);
+    tracing::debug!("character count estimated: {}", total_chars);
+
     let title = metadata.title.clone().unwrap_or_else(|| {
         Path::new(&file_path)
             .file_stem()
             .and_then(|s| s.to_str())
-            .unwrap_or("未知书籍")
+            .unwrap_or("Unknown Book")
             .to_string()
     });
 
@@ -76,6 +74,9 @@ pub fn parse_pdf(file_path: String) -> Result<ParseResult,AppError> {
         author: metadata.author,
         description: None,
         cover_path: None,
+        publisher: None,
+        translator: None,
+        isbn: None,
         chapter_count,
         total_characters: total_chars,
         format: BookFormat::Pdf,
@@ -87,7 +88,7 @@ pub fn parse_pdf(file_path: String) -> Result<ParseResult,AppError> {
 
     let elapsed = start_time.elapsed();
     tracing::info!(
-        "PDF 解析完成：{} 章节，{} 字符，{} 页，耗时：{:?}",
+        "PDF parse complete: {} chapters, {} chars, {} pages, elapsed: {:?}",
         chapter_count,
         total_chars,
         metadata.page_count,
@@ -101,7 +102,7 @@ pub fn parse_pdf(file_path: String) -> Result<ParseResult,AppError> {
 }
 
 /// 根据页数生成章节
-fn generate_chapters(total_pages: usize, pages_per_chapter: usize) -> Vec<Chapter> {
+fn generate_chapters(total_pages: usize, pages_per_chapter: usize, book_id: &str) -> Vec<Chapter> {
     let mut chapters = Vec::new();
 
     if total_pages == 0 {
@@ -115,9 +116,8 @@ fn generate_chapters(total_pages: usize, pages_per_chapter: usize) -> Vec<Chapte
 
         chapters.push(Chapter {
             id: Uuid::new_v4().to_string(),
-            book_id: String::new(),
-            title: format!("第 {} 章", chapter_index + 1),
-            content_file: String::new(),
+            book_id: book_id.to_string(),
+            title: format!("Chapter {}", chapter_index + 1),
             chapter_index: chapter_index as i32,
             word_count: 0,
             cached_at: chrono::Utc::now(),
@@ -131,185 +131,123 @@ fn generate_chapters(total_pages: usize, pages_per_chapter: usize) -> Vec<Chapte
     chapters
 }
 
-/// 异步解析 PDF 文件
-#[must_use = "解析结果必须被处理"]
-pub async fn async_parse_pdf_file(file_path: String) -> Result<ParseResult,AppError> {
-    validate_file_path(&file_path)?;
-
-    // 使用 spawn_blocking 在阻塞线程中执行
-    let handle = tokio::task::spawn_blocking(move || {
-        // 使用标准库捕获 panic
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            parse_pdf(file_path)
-        }))
-    });
-
-    // 1. 等待任务完成，处理 JoinError (例如线程被取消)
-    let result = handle.await.map_err(|e| {
-        AppError::other(format!("异步任务执行失败: {}", e))
-    })?;
-
-    // 2. 处理 catch_unwind 的结果
-    // catch_unwind 返回 Result<T, Box<dyn Any + Send>>
-    match result {
-        Ok(parse_result) => parse_result, // 正常返回 ParseResult (Result)
-        Err(panic_info) => {
-            // 将 panic 信息转换为字符串
-            let msg = if let Some(s) = panic_info.downcast_ref::<&str>() {
-                s.to_string()
-            } else if let Some(s) = panic_info.downcast_ref::<String>() {
-                s.clone()
-            } else {
-                "Unknown panic".to_string()
-            };
-            Err(AppError::pdf_parse_error(format!("PDF 解析时发生 Panic: {}", msg)))
-        }
-    }
-}
-
-/// 获取 PDF 文件的页数
-///
-/// 注意：每次调用都会创建新的 Pdfium 实例（涉及加载动态库）。
-/// 由于此函数调用频率低，性能影响可接受。
-#[allow(dead_code)]
-pub fn get_pdf_page_count(file_path: String) -> i32 {
-    use pdfium_render::prelude::Pdfium;
-
-    let pdfium = Pdfium;
-    let load_result = pdfium.load_pdf_from_file(&file_path, None);
-    match load_result {
-        Ok(pdf) => pdf.pages().len(),
-        Err(_) => 0,
-    }
-}
-
 /// 获取 PDF 元数据
 pub fn get_pdf_metadata(file_path: String) -> crate::domain::PdfMetadata {
     extract_metadata_from_path(&file_path)
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use std::fs;
-//     use tempfile::TempDir;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
 
-//     #[test]
-//     fn test_parse_pdf_file_not_found() {
-//         let result = parse_pdf("non_existent.pdf".to_string());
-//         assert!(result.is_err());
-//         let err = result.unwrap_err();
-//         assert!(
-//             matches!(err, AppError::FileNotFound { .. }),
-//             "Expected FileNotFound error, got: {:?}",
-//             err
-//         );
-//     }
+    #[test]
+    fn test_parse_pdf_file_not_found() {
+        let result = parse_pdf("non_existent.pdf".to_string());
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            matches!(err, AppError::FileNotFound { .. }),
+            "Expected FileNotFound error, got: {:?}",
+            err
+        );
+    }
 
-//     #[test]
-//     #[ignore = "需要 Pdfium 库支持，在 CI 环境中跳过"]
-//     fn test_parse_pdf_invalid_file() {
-//         let temp_dir = TempDir::new().unwrap();
-//         let file_path = temp_dir.path().join("invalid.pdf");
-//         fs::write(&file_path, b"not a pdf file").unwrap();
+    #[test]
+    #[ignore = "requires Pdfium library, skipped in CI"]
+    fn test_parse_pdf_invalid_file() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("invalid.pdf");
+        fs::write(&file_path, b"not a pdf file").unwrap();
 
-//         let result = parse_pdf(file_path.to_str().unwrap().to_string());
-//         // 空文件或者无效内容应该返回错误或者 0 页
-//         // pdf 库可能对某些无效文件也返回成功，但页数为 0
-//         if let Ok(parse_result) = result {
-//             // 如果成功，页数应该为 0
-//             assert_eq!(parse_result.book_info.chapter_count, 0);
-//         }
-//         // 或者返回错误也是可以接受的
-//     }
+        let result = parse_pdf(file_path.to_str().unwrap().to_string());
+        if let Ok(parse_result) = result {
+            assert_eq!(parse_result.book_info.chapter_count, 0);
+        }
+    }
 
-//     // #[test]
-//     // fn test_generate_chapters_basic() {
-//     //     let chapters = generate_chapters(25, 10);
-//     //     assert_eq!(chapters.len(), 3);
-//     //     assert_eq!(chapters[0].start_index, 0);
-//     //     assert_eq!(chapters[0].end_index, 10);
-//     //     assert_eq!(chapters[1].start_index, 10);
-//     //     assert_eq!(chapters[1].end_index, 20);
-//     //     assert_eq!(chapters[2].start_index, 20);
-//     //     assert_eq!(chapters[2].end_index, 25);
-//     // }
+    #[test]
+    fn test_generate_chapters_basic() {
+        let chapters = generate_chapters(25, 10, "test");
+        assert_eq!(chapters.len(), 3);
+        assert_eq!(chapters[0].start_index, 0);
+        assert_eq!(chapters[0].end_index, 10);
+        assert_eq!(chapters[1].start_index, 10);
+        assert_eq!(chapters[1].end_index, 20);
+        assert_eq!(chapters[2].start_index, 20);
+        assert_eq!(chapters[2].end_index, 25);
+    }
 
-//     #[test]
-//     fn test_generate_chapters_empty() {
-//         let chapters = generate_chapters(0, 10);
-//         assert!(chapters.is_empty());
-//     }
+    #[test]
+    fn test_generate_chapters_empty() {
+        let chapters = generate_chapters(0, 10, "test");
+        assert!(chapters.is_empty());
+    }
 
-//     #[test]
-//     fn test_generate_chapters_exact_multiple() {
-//         // 测试页数正好是每章页数的倍数的情况
-//         let chapters = generate_chapters(30, 10);
-//         assert_eq!(chapters.len(), 3);
-//         assert_eq!(chapters[0].start_index, 0);
-//         assert_eq!(chapters[0].end_index, 10);
-//         assert_eq!(chapters[1].start_index, 10);
-//         assert_eq!(chapters[1].end_index, 20);
-//         assert_eq!(chapters[2].start_index, 20);
-//         assert_eq!(chapters[2].end_index, 30);
-//     }
+    #[test]
+    fn test_generate_chapters_exact_multiple() {
+        let chapters = generate_chapters(30, 10, "test");
+        assert_eq!(chapters.len(), 3);
+        assert_eq!(chapters[0].start_index, 0);
+        assert_eq!(chapters[0].end_index, 10);
+        assert_eq!(chapters[1].start_index, 10);
+        assert_eq!(chapters[1].end_index, 20);
+        assert_eq!(chapters[2].start_index, 20);
+        assert_eq!(chapters[2].end_index, 30);
+    }
 
-//     #[test]
-//     fn test_generate_chapters_single_page() {
-//         let chapters = generate_chapters(1, 10);
-//         assert_eq!(chapters.len(), 1);
-//         assert_eq!(chapters[0].start_index, 0);
-//         assert_eq!(chapters[0].end_index, 1);
-//     }
+    #[test]
+    fn test_generate_chapters_single_page() {
+        let chapters = generate_chapters(1, 10, "test");
+        assert_eq!(chapters.len(), 1);
+        assert_eq!(chapters[0].start_index, 0);
+        assert_eq!(chapters[0].end_index, 1);
+    }
 
-//     #[test]
-//     fn test_generate_chapters_zero_pages_per_chapter() {
-//         // 测试每章 0 页的边界情况（应该被修正为至少 1 页）
-//         let chapters = generate_chapters(10, 0);
-//         assert!(!chapters.is_empty());
-//     }
+    #[test]
+    fn test_generate_chapters_zero_pages_per_chapter() {
+        let chapters = generate_chapters(10, 0, "test");
+        assert!(!chapters.is_empty());
+    }
 
-//     #[test]
-//     #[ignore = "需要 Pdfium 库支持，在 CI 环境中跳过"]
-//     fn test_get_pdf_metadata_empty_file() {
-//         let temp_dir = TempDir::new().unwrap();
-//         let file_path = temp_dir.path().join("empty.pdf");
-//         fs::write(&file_path, b"").unwrap();
+    #[test]
+    #[ignore = "requires Pdfium library, skipped in CI"]
+    fn test_get_pdf_metadata_empty_file() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("empty.pdf");
+        fs::write(&file_path, b"").unwrap();
 
-//         let metadata = get_pdf_metadata(file_path.to_str().unwrap().to_string());
-//         // 空文件应该返回默认元数据
-//         assert_eq!(metadata.page_count, 0);
-//         assert!(metadata.title.is_none());
-//         assert!(metadata.author.is_none());
-//     }
+        let metadata = get_pdf_metadata(file_path.to_str().unwrap().to_string());
+        assert_eq!(metadata.page_count, 0);
+        assert!(metadata.title.is_none());
+        assert!(metadata.author.is_none());
+    }
 
-//     #[test]
-//     #[ignore = "需要 Pdfium 库支持，在 CI 环境中跳过"]
-//     fn test_get_pdf_page_count_empty_file() {
-//         let temp_dir = TempDir::new().unwrap();
-//         let file_path = temp_dir.path().join("empty.pdf");
-//         fs::write(&file_path, b"").unwrap();
+    // #[test]
+    // #[ignore = "requires Pdfium library, skipped in CI"]
+    // fn test_get_pdf_page_count_empty_file() {
+    //     let temp_dir = TempDir::new().unwrap();
+    //     let file_path = temp_dir.path().join("empty.pdf");
+    //     fs::write(&file_path, b"").unwrap();
 
-//         let count = get_pdf_page_count(file_path.to_str().unwrap().to_string());
-//         assert_eq!(count, 0);
-//     }
+    //     let count = get_pdf_page_count(file_path.to_str().unwrap().to_string());
+    //     assert_eq!(count, 0);
+    // }
 
-//     // 集成测试：需要真实的 PDF 测试样本
-//     #[test]
-//     #[ignore]
-//     fn test_parse_pdf_integration() {
-//         // 此测试需要真实的 PDF 文件，默认跳过
-//         // 运行：cargo test test_parse_pdf_integration -- --ignored
-//         let test_pdf_path = std::env::var("TEST_PDF_PATH").unwrap_or_else(|_| "".to_string());
-//         if test_pdf_path.is_empty() {
-//             eprintln!("跳过集成测试：未设置 TEST_PDF_PATH 环境变量");
-//             return;
-//         }
+    #[test]
+    #[ignore = "requires real PDF file, skipped in CI"]
+    fn test_parse_pdf_integration() {
+        let test_pdf_path = std::env::var("TEST_PDF_PATH").unwrap_or_else(|_| "".to_string());
+        if test_pdf_path.is_empty() {
+            eprintln!("skipping integration test: TEST_PDF_PATH not set");
+            return;
+        }
 
-//         let result = parse_pdf(test_pdf_path);
-//         assert!(result.is_ok(), "PDF 集成测试失败：{:?}", result);
-//         let parse_result = result.unwrap();
-//         assert!(!parse_result.book_info.title.is_empty());
-//         assert!(!parse_result.chapters.is_empty());
-//     }
-// }
+        let result = parse_pdf(test_pdf_path);
+        assert!(result.is_ok(), "PDF integration test failed: {:?}", result);
+        let parse_result = result.unwrap();
+        assert!(!parse_result.book_info.title.is_empty());
+        assert!(!parse_result.chapters.is_empty());
+    }
+}

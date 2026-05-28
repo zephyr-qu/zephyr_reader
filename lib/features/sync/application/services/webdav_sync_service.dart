@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,6 +16,8 @@ import 'package:webdav_client/webdav_client.dart' as webdav;
 import 'package:zephyr_reader/core/battery/battery_state_service.dart';
 import 'package:zephyr_reader/core/network/network_state_service.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
+
+import 'webdav_connection_manager.dart';
 
 class WebDavFileInfo {
   final DateTime modified;
@@ -917,15 +920,10 @@ class WebDavConfigService {
 
   Future<bool> testCurrentConfig() async {
     final config = await getConfig();
-    if (config == null) {
-      return false;
-    }
+    if (config == null) return false;
 
-    final service = WebDavSyncService(config: config);
-    final result = await service.testConnection();
-    service.dispose();
-
-    return result;
+    final connectionManager = WebdavConnectionManager(configService: this);
+    return await connectionManager.testConnection(config);
   }
 
   Future<DateTime?> getLastSyncTime() async {
@@ -976,6 +974,14 @@ class WebDavConfigService {
 
 class WebDavSyncService {
   WebDavConfig? _config;
+  WebdavConnectionManager? _connectionManagerParam;
+
+  WebdavConnectionManager get _connectionManager =>
+      _connectionManagerParam ??= WebdavConnectionManager(
+        configService:
+            WebDavConfigService(prefs: GetIt.I<SharedPreferences>()),
+      );
+
   WebDavClientService? _client;
   CancelToken? _cancelToken;
 
@@ -1009,63 +1015,27 @@ class WebDavSyncService {
 
   WebDavSyncService({
     WebDavConfig? config,
-    WebDavClientService? client,
+    WebdavConnectionManager? connectionManager,
     this.maxRetries = 3,
     this.retryDelay = const Duration(seconds: 2),
-  }) {
+  }) : _connectionManagerParam = connectionManager {
     if (config != null) {
       setConfig(config);
     }
-    _client = client;
     _loadHistory();
     _loadAutoSyncConfig();
   }
 
   void setConfig(WebDavConfig config) {
     _config = config;
+    _connectionManager.invalidate();
   }
 
   WebDavConfig? get config => _config;
 
-  Future<void> _initClient() async {
-    if (_config == null || !_config!.isValid) {
-      throw WebDavConfigInvalidException();
-    }
-
-    if (_client == null || !_client!.isInitialized) {
-      _client = WebDavClientService();
-      await _client!.init(
-        baseUrl: _config!.baseUrl,
-        username: _config!.username,
-        password: _config!.password,
-        debug: kDebugMode,
-      );
-    }
-  }
-
   void _emitEvent(SyncEvent event) {
     if (!_eventController.isClosed) {
       _eventController.add(event);
-    }
-  }
-
-  Future<bool> testConnection() async {
-    if (_config == null || !_config!.isValid) {
-      debugPrint('WebDAV 配置未设置或无效');
-      return false;
-    }
-
-    try {
-      await _initClient();
-      final result = await _client!.ping();
-      if (result && kDebugMode) {
-        debugPrint('WebDAV 连接测试成功');
-      }
-      return result;
-    } catch (e) {
-      debugPrint('WebDAV 连接测试异常：$e');
-      errorMessage.value = '连接异常：$e';
-      return false;
     }
   }
 
@@ -1095,7 +1065,7 @@ class WebDavSyncService {
     var retryCount = 0;
 
     try {
-      await _initClient();
+      _client = await _connectionManager.getConnectedClient();
 
       syncMessage.value = '检查远程目录...';
       await _ensureRemoteDirectory();
@@ -1166,7 +1136,7 @@ class WebDavSyncService {
               ),
             );
 
-            await Future.delayed(retryDelay * retryCount);
+            await Future<void>.delayed(retryDelay * retryCount);
             try {
               final opResult = await _syncDataTypeWithConflictHandling(
                 dataType,
@@ -1474,13 +1444,13 @@ class WebDavSyncService {
       try {
         localData = jsonDecode(localContent);
       } catch (e) {
-        localData = {};
+        localData = <String, dynamic>{};
       }
 
       try {
         remoteData = jsonDecode(remoteContent);
       } catch (e) {
-        remoteData = {};
+        remoteData = <String, dynamic>{};
       }
 
       dynamic mergedData;
@@ -1603,7 +1573,7 @@ class WebDavSyncService {
     _emitEvent(SyncEvent(type: SyncEventType.started, message: '开始增量同步'));
 
     try {
-      await _initClient();
+      _client = await _connectionManager.getConnectedClient();
       await _ensureRemoteDirectory();
       syncProgress.value = 5.0;
 
@@ -1791,7 +1761,7 @@ class WebDavSyncService {
     try {
       localData = jsonDecode(localContent);
     } catch (e) {
-      localData = {};
+      localData = <String, dynamic>{};
     }
 
     for (final change in changes) {
@@ -2054,7 +2024,7 @@ class WebDavSyncService {
     }
 
     try {
-      await _initClient();
+      _client = await _connectionManager.getConnectedClient();
       final remoteDir = p.join(_config!.remotePath, _syncSubDirName);
       final files = await _client!.readDir(remoteDir);
       return files
@@ -2073,7 +2043,7 @@ class WebDavSyncService {
     }
 
     try {
-      await _initClient();
+      _client = await _connectionManager.getConnectedClient();
       final remotePath = p.join(
         _config!.remotePath,
         _syncSubDirName,
@@ -2104,7 +2074,7 @@ class WebDavSyncService {
     cancelSync();
     stopAutoSync();
     _eventController.close();
-    _client?.dispose();
+    _connectionManager.disconnect();
     _client = null;
   }
 
@@ -2375,12 +2345,12 @@ class WebDavSyncService {
 class EnhancedWebDavSyncService extends WebDavSyncService {
   EnhancedWebDavSyncService({
     super.config,
-    super.client,
+    super.connectionManager,
     super.maxRetries,
     super.retryDelay,
   });
 }
 
 class AdvancedWebDavSyncService extends WebDavSyncService {
-  AdvancedWebDavSyncService({super.config, super.client});
+  AdvancedWebDavSyncService({super.config, super.connectionManager});
 }

@@ -18,7 +18,7 @@ pub fn extract_pdf_cover(file_path: &str, output_dir: &str) -> Result<String,App
     }
 
     std::fs::create_dir_all(output_dir).map_err(|e| {
-        AppError::file_write_error(output_dir, format!("创建输出目录失败：{}", e))
+        AppError::file_write_error(output_dir, format!("failed to create output directory: {}", e))
     })?;
 
     // 生成输出文件名
@@ -40,17 +40,17 @@ pub fn extract_pdf_cover(file_path: &str, output_dir: &str) -> Result<String,App
             // 验证生成的封面文件
             if let Ok(metadata) = std::fs::metadata(&cover_output_path) {
                 if metadata.len() > 0 {
-                    tracing::info!("PDF 封面提取成功：{}", cover_output_path);
+                    tracing::info!("PDF cover extracted successfully: {}", cover_output_path);
                     return Ok(cover_output_path);
                 }
             }
-            tracing::warn!("PDF 封面提取成功但文件为空：{}", cover_output_path);
-            Err(AppError::pdf_parse_error("封面文件为空".to_string()))
+            tracing::warn!("PDF cover extracted but file is empty: {}", cover_output_path);
+            Err(AppError::pdf_parse_error("cover file is empty".to_string()))
         }
         Err(e) => {
-            tracing::warn!("PDF 封面提取失败：{}, 错误: {}", cover_output_path, e);
+            tracing::warn!("PDF cover extraction failed: {}, error: {}", cover_output_path, e);
             // 失败时不创建空文件，直接返回错误
-            Err(AppError::pdf_parse_error(format!("封面提取失败: {}", e)))
+            Err(AppError::pdf_parse_error(format!("cover extraction failed: {}", e)))
         }
     }
 }
@@ -69,19 +69,19 @@ fn extract_cover_from_pdf(file_path: &str, output_path: &str) -> Result<(),AppEr
     // 打开 PDF 文件
     let pdf = pdfium
         .load_pdf_from_file(file_path, None)
-        .map_err(|e| AppError::pdf_parse_error(format!("加载 PDF 文件失败：{}", e)))?;
+        .map_err(|e| AppError::pdf_parse_error(format!("failed to load PDF file: {}", e)))?;
 
     // 验证 PDF 至少有一页
     let page_count = pdf.pages().len();
     if page_count == 0 {
-        return Err(AppError::pdf_parse_error("PDF 文件没有页面".to_string()));
+        return Err(AppError::pdf_parse_error("PDF file has no pages".to_string()));
     }
 
     // 获取第一页（封面）
     let first_page = pdf
         .pages()
         .first()
-        .map_err(|e| AppError::pdf_parse_error(format!("获取封面页失败：{}", e)))?;
+        .map_err(|e| AppError::pdf_parse_error(format!("failed to get cover page: {}", e)))?;
 
     // 设置渲染配置 - 使用更高的质量
     // 对于封面，我们使用较高的分辨率以保证质量
@@ -93,36 +93,36 @@ fn extract_cover_from_pdf(file_path: &str, output_path: &str) -> Result<(),AppEr
     // 渲染页面为图片
     let bitmap = first_page
         .render_with_config(&render_config)
-        .map_err(|e| AppError::pdf_parse_error(format!("渲染 PDF 页面失败：{}", e)))?;
+        .map_err(|e| AppError::pdf_parse_error(format!("failed to render PDF page: {}", e)))?;
 
     // 转换为 JPEG 格式并保存
     // 注意：as_image() 返回 Result<DynamicImage, Error>，需要使用 ? 解包
     let dynamic_image = bitmap
         .as_image()
-        .map_err(|e| AppError::pdf_parse_error(format!("获取图像数据失败：{}", e)))?;
+        .map_err(|e| AppError::pdf_parse_error(format!("failed to get image data: {}", e)))?;
 
 
     dynamic_image
         .into_rgb8()
         .save_with_format(output_path, image::ImageFormat::Jpeg)
         .map_err(|e| {
-            AppError::file_write_error(output_path, format!("保存封面文件失败：{}", e))
+            AppError::file_write_error(output_path, format!("failed to save cover file: {}", e))
         })?;
 
     // 验证保存的文件
     let metadata = std::fs::metadata(output_path).map_err(|e| {
-        AppError::file_read_error(output_path, format!("无法读取封面文件元数据：{}", e))
+        AppError::file_read_error(output_path, format!("failed to read cover file metadata: {}", e))
     })?;
 
     if metadata.len() == 0 {
         return Err(AppError::file_write_error(
             output_path,
-            "保存的封面文件大小为 0".to_string(),
+            "saved cover file size is 0".to_string(),
         ));
     }
 
     tracing::debug!(
-        "PDF 封面提取成功：{} ({}x{}, {} bytes)",
+        "PDF cover extracted: {} ({}x{}, {} bytes)",
         output_path,
         bitmap.width(),
         bitmap.height(),
@@ -147,19 +147,19 @@ pub fn extract_pdf_cover_bytes(file_path: &str) -> Result<Vec<u8>,AppError> {
     // 打开 PDF 文件
     let pdf = pdfium
         .load_pdf_from_file(file_path, None)
-        .map_err(|e| AppError::pdf_parse_error(format!("加载 PDF 文件失败：{}", e)))?;
+        .map_err(|e| AppError::pdf_parse_error(format!("failed to load PDF file: {}", e)))?;
 
     // 验证 PDF 至少有一页
     let page_count = pdf.pages().len();
     if page_count == 0 {
-        return Err(AppError::pdf_parse_error("PDF 文件没有页面".to_string()));
+        return Err(AppError::pdf_parse_error("PDF file has no pages".to_string()));
     }
 
     // 获取第一页（封面）
     let first_page = pdf
         .pages()
         .first()
-        .map_err(|e| AppError::pdf_parse_error(format!("获取封面页失败：{}", e)))?;
+        .map_err(|e| AppError::pdf_parse_error(format!("failed to get cover page: {}", e)))?;
 
     // 设置渲染配置
     let render_config = PdfRenderConfig::new()
@@ -170,7 +170,7 @@ pub fn extract_pdf_cover_bytes(file_path: &str) -> Result<Vec<u8>,AppError> {
     // 渲染页面为图片
     let bitmap = first_page
         .render_with_config(&render_config)
-        .map_err(|e| AppError::pdf_parse_error(format!("渲染 PDF 页面失败：{}", e)))?;
+        .map_err(|e| AppError::pdf_parse_error(format!("failed to render PDF page: {}", e)))?;
 
     // 转换为 JPEG 格式的字节数据
     // 使用 Vec<u8> + Cursor 来满足 Write + Seek trait 边界
@@ -178,24 +178,24 @@ pub fn extract_pdf_cover_bytes(file_path: &str) -> Result<Vec<u8>,AppError> {
     let mut jpeg_data = Cursor::new(Vec::new());
 let dynamic_image = bitmap
         .as_image()
-        .map_err(|e| AppError::pdf_parse_error(format!("获取图像数据失败：{}", e)))?;
+        .map_err(|e| AppError::pdf_parse_error(format!("failed to get image data: {}", e)))?;
 
 
     dynamic_image
         .into_rgb8()
         .write_to(&mut jpeg_data, image::ImageFormat::Jpeg)
         .map_err(|e| {
-            AppError::file_write_error(file_path, format!("编码 JPEG 图像失败：{}", e))
+            AppError::file_write_error(file_path, format!("failed to encode JPEG image: {}", e))
         })?;
 
     let data = jpeg_data.into_inner();
 
     if data.is_empty() {
-        return Err(AppError::pdf_parse_error("封面图像数据为空".to_string()));
+        return Err(AppError::pdf_parse_error("cover image data is empty".to_string()));
     }
 
     tracing::debug!(
-        "PDF 封面字节提取成功：{} bytes ({}x{})",
+        "PDF cover bytes extracted: {} bytes ({}x{})",
         data.len(),
         bitmap.width(),
         bitmap.height()
@@ -305,7 +305,7 @@ mod tests {
             // 验证包含原文件名（去除空格后）
             assert!(
                 cover_filename.contains(expected_stem),
-                "封面文件名 '{}' 应该包含 '{}'",
+                "cover filename '{}' should contain '{}'",
                 cover_filename,
                 expected_stem
             );

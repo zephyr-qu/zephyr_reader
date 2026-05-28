@@ -8,12 +8,11 @@ import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/utils/cache_utils.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/backup_dialog.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
-import 'package:zephyr_reader/core/local/rust_storage_service.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:zephyr_reader/src/rust/api/backup.dart';
 
 class AppSettingsPage extends StatefulHookWidget {
   const AppSettingsPage({super.key});
@@ -78,8 +77,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
       final dir = await getApplicationDocumentsDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final destPath = '${dir.path}/backup_$timestamp.db';
-      final storage = getIt<RustStorageService>();
-      await storage.exportDatabase(destPath);
+      await exportDatabase(destPath: destPath);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -115,8 +113,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
         isRestoring.value = false;
         return;
       }
-      final storage = getIt<RustStorageService>();
-      await storage.restoreDatabase(filePath);
+      await restoreDatabase(backupPath: filePath);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -868,7 +865,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> with SignalsMixin {
 
   Future<void> _showStorageLocationDialog(BuildContext context) async {
     final theme = Theme.of(context);
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('书籍存储位置'),

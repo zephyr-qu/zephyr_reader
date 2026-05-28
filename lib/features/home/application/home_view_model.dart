@@ -1,38 +1,58 @@
 import 'package:injectable/injectable.dart';
-import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/core/local/rust_storage_service.dart';
+import 'package:signals/signals.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/data/stats.dart' as stats_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 @injectable
 class HomeViewModel {
-  final RustStorageService _storage;
+  final recentBooks = signal<AsyncState<List<Book>>>(AsyncState.loading());
+  final dailyRecords = signal<AsyncState<List<ReadingStats>>>(
+    AsyncState.loading(),
+  );
 
-  final books = asyncSignal<List<Book>>(AsyncState.loading());
-  final recentBooks = signal<List<Book>>([]);
-  final stats = asyncSignal<GlobalStats?>(AsyncState.loading());
+  final _refreshTrigger = signal(0);
 
-  HomeViewModel(this._storage);
+  late final isLoading = computed(
+    () => recentBooks.value.isLoading || dailyRecords.value.isLoading,
+  );
+
+  late final hasError = computed(
+    () => recentBooks.value.hasError || dailyRecords.value.hasError,
+  );
+
+  HomeViewModel() {
+    loadData();
+  }
 
   Future<void> loadData() async {
+    recentBooks.value = AsyncState.loading();
+    dailyRecords.value = AsyncState.loading();
+
     try {
       final results = await Future.wait([
-        _storage.getRecentlyReadBooks(4),
-        _storage.getGlobalReadingStats(),
+        book_api.listRecentlyOpenedBooks(limit: BigInt.from(4)),
+        stats_api.getReadingStatsByDaysWithFill(days: 7),
       ]);
-      final bookList = results[0] as List<Book>;
-      final globalStats = results[1] as GlobalStats?;
-      books.value = AsyncState.data(bookList);
-      recentBooks.value = bookList;
-      stats.value = AsyncState.data(globalStats);
+
+      recentBooks.value = AsyncState.data(results[0] as List<Book>);
+      dailyRecords.value = AsyncState.data(results[1] as List<ReadingStats>);
     } catch (e) {
-      books.value = AsyncState.error(e);
-      stats.value = AsyncState.error(e);
+      Logging.error(e.toString());
+      recentBooks.value = AsyncState.error(e, StackTrace.current);
+      dailyRecords.value = AsyncState.error(e, StackTrace.current);
     }
   }
 
   Future<void> refresh() async {
-    books.value = AsyncState.loading();
-    stats.value = AsyncState.loading();
+    _refreshTrigger.value++;
     await loadData();
+  }
+
+  void dispose() {
+    recentBooks.dispose();
+    dailyRecords.dispose();
+    _refreshTrigger.dispose();
   }
 }

@@ -4,17 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/core/local/rust_bilingual_service.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/features/reader/application/reader_enums.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/data/note_repository.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/statistics/application/reading_stats_service.dart';
+import 'package:zephyr_reader/features/statistics/domain/repositories/statistics_repository.dart';
 import 'package:zephyr_reader/src/rust/domain/types.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../helpers/fixtures.dart';
-import '../../helpers/mock_rust_storage_service.dart';
 
 class _MockReaderConfig implements ReaderConfig {
   @override
@@ -85,6 +85,14 @@ class _MockReaderConfig implements ReaderConfig {
     await setPadding(16.0);
     await setAutoScroll(false);
     await setAutoScrollSpeed(30);
+  }
+
+  @override
+  final readerBgColorIndex = signal<int>(0);
+
+  @override
+  Future<void> setReaderBgColorIndex(int index) async {
+    readerBgColorIndex.value = index;
   }
 }
 
@@ -246,33 +254,36 @@ class _MockNoteRepository implements NoteRepository {
   Future<List<Note>> getNotes(String bookId, {NoteType? noteType}) async => [];
 }
 
-class _MockRustBilingualService implements RustBilingualService {
-  BilingualAlignment? mockAlignment;
+class _MockStatsRepo implements StatisticsRepository {
+  @override
+  Future<void> recordReadingSession(ReadingSession session) async {}
 
   @override
-  Future<BilingualAlignment> alignBilingualContent({
-    required String chineseContent,
-    required String englishContent,
-    double minSimilarity = 0.5,
-  }) async =>
-      mockAlignment ??
-      const BilingualAlignment(
-        segments: [],
-        unmatchedChinese: [],
-        unmatchedEnglish: [],
-      );
+  Future<List<ReadingStats>> getReadingStatsRange({
+    required String startDate,
+    required String endDate,
+  }) async => [];
 
   @override
-  Future<BilingualAlignment> simpleBilingualAlign({
-    required String chineseContent,
-    required String englishContent,
-  }) async =>
-      mockAlignment ??
-      const BilingualAlignment(
-        segments: [],
-        unmatchedChinese: [],
-        unmatchedEnglish: [],
-      );
+  Future<GlobalStats> getGlobalReadingStats() async => const GlobalStats(
+    totalReadingTimeSeconds: 0,
+    totalCharactersRead: 0,
+    booksReadCount: 0,
+    booksCompletedCount: 0,
+    consecutiveReadingDays: 0,
+    todayReadingTimeSeconds: 0,
+    todayCharactersRead: 0,
+    averageReadingSpeed: 0,
+    totalBooksCount: 0,
+    totalNotesCount: 0,
+    totalBookmarksCount: 0,
+  );
+
+  @override
+  Future<List<ReadingSession>> getReadingSessions(
+    String bookId, {
+    int limit = 100,
+  }) async => [];
 }
 
 ReaderViewModel createViewModel({
@@ -280,14 +291,12 @@ ReaderViewModel createViewModel({
   _MockReaderConfig? config,
   ReadingStatsService? statsService,
   _MockNoteRepository? noteRepo,
-  _MockRustBilingualService? bilingualService,
 }) {
   return ReaderViewModel(
     repo ?? _MockReaderRepository(),
     config ?? _MockReaderConfig(),
-    statsService ?? ReadingStatsService(MockRustStorageService()),
+    statsService ?? ReadingStatsService(_MockStatsRepo()),
     noteRepo ?? _MockNoteRepository(),
-    bilingualService ?? _MockRustBilingualService(),
   );
 }
 
@@ -297,10 +306,8 @@ void main() {
   group('ReaderViewModel', () {
     late _MockReaderRepository repo;
     late _MockReaderConfig config;
-    late MockRustStorageService storage;
     late ReadingStatsService statsService;
     late _MockNoteRepository noteRepo;
-    late _MockRustBilingualService bilingualService;
     late ReaderViewModel vm;
 
     setUp(() async {
@@ -330,21 +337,18 @@ void main() {
       );
       config = _MockReaderConfig();
       config.prefs = prefs;
-      storage = MockRustStorageService();
-      statsService = ReadingStatsService(storage);
+      statsService = ReadingStatsService(_MockStatsRepo());
       noteRepo = _MockNoteRepository();
-      bilingualService = _MockRustBilingualService();
       vm = createViewModel(
         repo: repo,
         config: config,
         statsService: statsService,
         noteRepo: noteRepo,
-        bilingualService: bilingualService,
       );
     });
 
-    tearDown(() async {
-      await vm.dispose();
+    tearDown(() {
+      vm.dispose();
     });
 
     group('初始化', () {
@@ -870,7 +874,7 @@ void main() {
         vm.startReading();
         expect(vm.isReading.value, isTrue);
 
-        await vm.dispose();
+        vm.dispose();
 
         expect(vm.isReading.value, isFalse);
       });

@@ -70,7 +70,7 @@ impl CoverExtractor for EpubCoverExtractor {
         let mut epub_file = crate::parser::epub::unzip::EpubFile::open(file_path)?;
         let cover_data = epub_file
             .read_cover()
-            .ok_or_else(|| AppError::other("未找到 EPUB 封面"))?;
+            .ok_or_else(|| AppError::other("EPUB cover not found"))?;
 
         let file_stem = Path::new(file_path)
             .file_stem()
@@ -169,7 +169,7 @@ impl CoverExtractorRegistry {
         let name = extractor.name().to_string();
 
         if self.extractors.contains_key(&name) {
-            return Err(format!("提取器 '{}' 已经注册", name));
+            return Err(format!("extractor '{}' already registered", name));
         }
 
         // 注册格式映射
@@ -177,7 +177,7 @@ impl CoverExtractorRegistry {
             let format_lower = format.to_lowercase();
             if let Some(existing) = self.format_map.get(&format_lower) {
                 tracing::warn!(
-                    "格式 '{}' 已被提取器 '{}' 注册，现在被 '{}' 覆盖",
+                    "format '{}' already registered by extractor '{}', now overwritten by '{}'",
                     format_lower,
                     existing,
                     name
@@ -187,7 +187,7 @@ impl CoverExtractorRegistry {
         }
 
         self.extractors.insert(name.clone(), extractor);
-        tracing::info!("封面提取器注册成功: {}", name);
+        tracing::info!("cover extractor registered successfully: {}", name);
         Ok(())
     }
 
@@ -204,10 +204,10 @@ impl CoverExtractorRegistry {
         let extension = Path::new(file_path)
             .extension()
             .and_then(|ext| ext.to_str())
-            .ok_or_else(|| AppError::unsupported_format("无法识别文件扩展名".to_string()))?;
+            .ok_or_else(||             AppError::unsupported_format("unable to identify file extension".to_string()))?;
 
         let extractor = self.get_extractor(extension).ok_or_else(|| {
-            AppError::unsupported_format(format!("不支持的文件格式: {}", extension))
+            AppError::unsupported_format(format!("unsupported file format: {}", extension))
         })?;
 
         extractor.extract_cover(file_path, output_dir)
@@ -250,9 +250,9 @@ impl ThreadSafeCoverRegistry {
         let extension = Path::new(file_path)
             .extension()
             .and_then(|ext| ext.to_str())
-            .ok_or_else(|| AppError::unsupported_format("无法识别文件扩展名".to_string()))?;
+            .ok_or_else(||             AppError::unsupported_format("unable to identify file extension".to_string()))?;
         let extractor = self.inner.lock().get_extractor(extension).ok_or_else(|| {
-            AppError::unsupported_format(format!("不支持的文件格式: {}", extension))
+            AppError::unsupported_format(format!("unsupported file format: {}", extension))
         })?;
         extractor.extract_cover(file_path, output_dir)
     }
@@ -278,15 +278,15 @@ fn init_cover_registry() -> ThreadSafeCoverRegistry {
 
     // 注册 EPUB 提取器
     if let Err(e) = registry.register(Arc::new(EpubCoverExtractor::new())) {
-        tracing::warn!("注册 EPUB 封面提取器失败: {}", e);
+        tracing::warn!("failed to register EPUB cover extractor: {}", e);
     }
 
     // 注册 PDF 提取器
     if let Err(e) = registry.register(Arc::new(PdfCoverExtractor::new())) {
-        tracing::warn!("注册 PDF 封面提取器失败: {}", e);
+        tracing::warn!("failed to register PDF cover extractor: {}", e);
     }
 
-    tracing::info!("封面提取器注册表初始化完成");
+    tracing::info!("cover extractor registry initialized");
     registry
 }
 

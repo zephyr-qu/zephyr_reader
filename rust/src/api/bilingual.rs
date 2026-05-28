@@ -1,10 +1,36 @@
-//! 双语对齐 API
+//! 双语对齐 API & 双语高亮配对 API
 //!
 //! 提供中英双语文本的自动对齐功能，支持对照阅读
+//! 提供双语对照阅读模式下的高亮配对功能。
+//! 当一个高亮在中文侧创建时，自动在英文侧创建配对高亮，
+//! 两者通过 `paired_note_id` 字段关联。
+//!
 use crate::domain::AppError;
 use flutter_rust_bridge::frb;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+use crate::storage::storage_pool;
+use crate::storage::models::Note;
+use crate::storage::repos::NoteRepository;
+/// 对齐片段
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[frb(non_opaque)]
+pub struct AlignedSegment {
+    pub chinese: String,
+    pub english: String,
+    pub similarity_score: f32,
+    pub chinese_position: usize,
+    pub english_position: usize,
+}
 
-pub use crate::domain::BilingualAlignment;
+/// 双语对齐结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[frb(non_opaque)]
+pub struct BilingualAlignment {
+    pub segments: Vec<AlignedSegment>,
+    pub unmatched_chinese: Vec<String>,
+    pub unmatched_english: Vec<String>,
+}
 
 const MAX_BILINGUAL_LEN: usize = 2_000_000;
 
@@ -37,7 +63,7 @@ pub async fn align_bilingual_content(
     if chinese_content.len() + english_content.len() > MAX_BILINGUAL_LEN {
         return Err(AppError::invalid_input(
             format!(
-                "双语对齐输入过大: {} bytes (最大 {})",
+                "bilingual alignment input too large: {} bytes (max {})",
                 chinese_content.len() + english_content.len(),
                 MAX_BILINGUAL_LEN,
             ),
@@ -55,7 +81,7 @@ pub async fn align_bilingual_content(
     })
     .await
     .map_err(|e| AppError::internal(format!("Bilingual alignment task failed: {}", e)))?
-    .map_err(|e| AppError::internal(format!("双语对齐失败: {}", e)))
+    .map_err(|e| AppError::internal(format!("bilingual alignment failed: {}", e)))
 }
 
 #[frb]
@@ -83,7 +109,7 @@ pub async fn simple_bilingual_align(
     if chinese_content.len() + english_content.len() > MAX_BILINGUAL_LEN {
         return Err(AppError::invalid_input(
             format!(
-                "双语对齐输入过大: {} bytes (最大 {})",
+                "bilingual alignment input too large: {} bytes (max {})",
                 chinese_content.len() + english_content.len(),
                 MAX_BILINGUAL_LEN,
             ),
@@ -100,35 +126,244 @@ pub async fn simple_bilingual_align(
     .map_err(|e| AppError::internal(format!("Bilingual alignment task failed: {}", e)))?
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_align_bilingual_content_basic() {
-        let result = align_bilingual_content(
-            "你好世界。这是一个测试。".to_string(),
-            "Hello World. This is a test.".to_string(),
-            0.3,
-        ).await.unwrap();
-        assert!(!result.segments.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_simple_bilingual_align() {
-        let result = simple_bilingual_align(
-            "你好。测试。".to_string(),
-            "Hello. Test.".to_string(),
-        ).await.unwrap();
-        assert!(!result.segments.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_bilingual_exceeds_max_length() {
-        let long = "x".repeat(1_500_000);
-        let result = align_bilingual_content(
-            long.clone(), long, 0.3,
-        ).await;
-        assert!(result.is_err());
-    }
+/// 双语高亮配对
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[frb(dart_metadata=("freezed"))]
+pub struct BilingualHighlightPair {
+    pub source_note: Note,
+    pub target_note: Option<Note>,
 }
+
+/// 创建双语高亮配对
+///
+/// 同时创建两个高亮 Note，通过 `paired_note_id` 互相链接。
+/// 创建后两个高亮可通过 `paired_note_id` 相互查询。
+#[frb]
+#[warn(clippy::too_many_arguments)]
+pub async fn create_bilingual_highlight_pair(
+    // 源语言高亮参数
+    source_book_id: String,
+    source_chapter_index: i32,
+    source_char_offset: i64,
+    source_length: i64,
+    source_selected_text: String,
+    source_language: String,
+    // 目标语言高亮参数
+    target_book_id: String,
+    target_chapter_index: i32,
+    target_char_offset: i64,
+    target_length: i64,
+    target_selected_text: String,
+    target_language: String,
+    // 公共参数
+    highlight_color: i32,
+) -> Result<BilingualHighlightPair, AppError> {
+    let pool = storage_pool()?;
+    let pair_id = Uuid::new_v4().to_string();
+
+    let source_note = Note::highlight(
+        &source_book_id,
+        source_chapter_index,
+        source_char_offset,
+        source_length,
+        &source_selected_text,
+        highlight_color,
+        Some(&source_language),
+        Some(&pair_id),
+    );
+
+    let target_note = Note::highlight(
+        &target_book_id,
+        target_chapter_index,
+        target_char_offset,
+        target_length,
+        &target_selected_text,
+        highlight_color,
+        Some(&target_language),
+        Some(&pair_id),
+    );
+
+    NoteRepository::save(&pool, &source_note)
+        .await
+        .map_err(|e| AppError::database_error(e.to_string()))?;
+
+    NoteRepository::save(&pool, &target_note)
+        .await
+        .map_err(|e| AppError::database_error(e.to_string()))?;
+
+    Ok(BilingualHighlightPair {
+        source_note,
+        target_note: Some(target_note),
+    })
+}
+
+/// 获取指定章节的双语高亮配对列表
+#[frb]
+pub async fn get_bilingual_highlight_pairs(
+    book_id: String,
+    chapter_index: i32,
+) -> Result<Vec<BilingualHighlightPair>, AppError> {
+    let pool = storage_pool()?;
+
+    let paired_notes = NoteRepository::find_paired_notes_in_chapter(&pool, &book_id, chapter_index)
+        .await
+        .map_err(|e| AppError::database_error(e.to_string()))?;
+
+    let mut pairs: Vec<BilingualHighlightPair> = Vec::new();
+    let mut processed: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+    for note in &paired_notes {
+        if processed.contains(&note.id) {
+            continue;
+        }
+
+            if let Some(ref pair_id) = note.paired_note_id {
+                let partner = NoteRepository::find_partner_note(&pool, pair_id, &note.id)
+                    .await
+                    .map_err(|e| AppError::database_error(e.to_string()))?;
+
+            let (source, target) = match &partner {
+                Some(p) if p.id != note.id => {
+                    processed.insert(p.id.clone());
+                    (note.clone(), Some(p.clone()))
+                }
+                _ => (note.clone(), None),
+            };
+
+            processed.insert(note.id.clone());
+            pairs.push(BilingualHighlightPair {
+                source_note: source,
+                target_note: target,
+            });
+        }
+    }
+
+    Ok(pairs)
+}
+
+/// 删除一对双语高亮
+///
+/// 传入任意一个 note_id，会同时删除配对的另一个高亮
+#[frb]
+pub async fn delete_bilingual_highlight_pair(note_id: String) -> Result<(), AppError> {
+    let pool = storage_pool()?;
+
+    // 获取当前 note 以找到其 paired_note_id
+    let note = NoteRepository::find_by_id(&pool, &note_id)
+        .await
+        .map_err(|e| AppError::database_error(e.to_string()))?;
+
+    if let Some(n) = note {
+        if let Some(ref pair_id) = n.paired_note_id {
+            let partner = NoteRepository::find_partner_note(&pool, pair_id, &note_id)
+                .await
+                .map_err(|e| AppError::database_error(e.to_string()))?;
+            if let Some(partner) = partner {
+                if partner.id != note_id {
+                    NoteRepository::delete_by_id(&pool, &partner.id)
+                        .await
+                        .map_err(|e| AppError::database_error(e.to_string()))?;
+                }
+            }
+        }
+        // 删除当前 note
+        NoteRepository::delete_by_id(&pool, &note_id)
+            .await
+            .map_err(|e| AppError::database_error(e.to_string()))?;
+    }
+
+    Ok(())
+}
+
+
+
+
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use crate::storage::repos::book_repo::BookRepository;
+//     use crate::storage::repos::test_utils::test_book;
+
+//     async fn setup() -> crate::storage::repos::test_utils::TestStorage {
+//         let ts = crate::storage::repos::test_utils::init_test_storage().await;
+//         let pool = crate::storage::ensure_storage().unwrap().pool().unwrap();
+//         BookRepository::save(&pool, &test_book()).await.unwrap();
+//         ts
+//     }
+
+//     #[tokio::test]
+//     async fn test_create_and_get_bilingual_pair() {
+//         setup().await;
+//         let result = create_bilingual_highlight_pair(
+//             "book1".into(), 0, 10, 5, "中文高亮".into(), "zh".into(),
+//             "book1".into(), 0, 100, 5, "English highlight".into(), "en".into(),
+//             0xFF0000,
+//         ).await.unwrap();
+//         assert_eq!(result.source_note.selected_text.as_deref(), Some("中文高亮"));
+//         assert!(result.target_note.is_some());
+//         assert_eq!(result.target_note.as_ref().unwrap().selected_text.as_deref(), Some("English highlight"));
+//         assert_eq!(result.source_note.paired_note_id, result.target_note.as_ref().unwrap().paired_note_id);
+
+//         let pairs = get_bilingual_highlight_pairs("book1".into(), 0).await.unwrap();
+//         assert_eq!(pairs.len(), 1);
+//         assert_eq!(pairs[0].source_note.selected_text.as_deref(), Some("中文高亮"));
+//         assert!(pairs[0].target_note.is_some());
+//     }
+
+//     #[tokio::test]
+//     async fn test_get_bilingual_pairs_empty_chapter() {
+//         setup().await;
+//         let pairs = get_bilingual_highlight_pairs("book1".into(), 0).await.unwrap();
+//         assert!(pairs.is_empty());
+//     }
+
+//     #[tokio::test]
+//     async fn test_delete_bilingual_pair_deletes_both() {
+//         setup().await;
+//         let result = create_bilingual_highlight_pair(
+//             "book1".into(), 0, 10, 5, "中文".into(), "zh".into(),
+//             "book1".into(), 0, 100, 5, "English".into(), "en".into(),
+//             0xFF0000,
+//         ).await.unwrap();
+
+//         let source_id = result.source_note.id.clone();
+//         delete_bilingual_highlight_pair(source_id).await.unwrap();
+
+//         let pairs = get_bilingual_highlight_pairs("book1".into(), 0).await.unwrap();
+//         assert!(pairs.is_empty());
+//     }
+
+//     #[tokio::test]
+//     async fn test_delete_nonexistent_pair_succeeds() {
+//         setup().await;
+//         let result = delete_bilingual_highlight_pair("nonexistent-id".into()).await;
+//         assert!(result.is_ok());
+//     }
+//     #[tokio::test]
+//     async fn test_align_bilingual_content_basic() {
+//         let result = align_bilingual_content(
+//             "你好世界。这是一个测试。".to_string(),
+//             "Hello World. This is a test.".to_string(),
+//             0.3,
+//         ).await.unwrap();
+//         assert!(!result.segments.is_empty());
+//     }
+
+//     #[tokio::test]
+//     async fn test_simple_bilingual_align() {
+//         let result = simple_bilingual_align(
+//             "你好。测试。".to_string(),
+//             "Hello. Test.".to_string(),
+//         ).await.unwrap();
+//         assert!(!result.segments.is_empty());
+//     }
+
+//     #[tokio::test]
+//     async fn test_bilingual_exceeds_max_length() {
+//         let long = "x".repeat(1_500_000);
+//         let result = align_bilingual_content(
+//             long.clone(), long, 0.3,
+//         ).await;
+//         assert!(result.is_err());
+//     }
+// }

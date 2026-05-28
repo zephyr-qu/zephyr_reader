@@ -2,11 +2,11 @@
 
 <div align="center">
 
-**纯本地、高性能、双语友好的安卓离线小说阅读器**
+**纯本地、高性能、双语友好的离线小说阅读器**
 
-[![Flutter](https://img.shields.io/badge/Flutter-3.22.0+-blue.svg)](https://flutter.dev)
-[![Rust](https://img.shields.io/badge/Rust-1.75.0+-orange.svg)](https://www.rust-lang.org)
-[![Platform](https://img.shields.io/badge/Platform-Android%208.0+-green.svg)](https://www.android.com)
+[![Flutter](https://img.shields.io/badge/Flutter-3.41.2+-blue.svg)](https://flutter.dev)
+[![Rust](https://img.shields.io/badge/Rust-1.80.0+-orange.svg)](https://www.rust-lang.org)
+[![Platform](https://img.shields.io/badge/Platform-Android%208.0+%20|%20iOS%2015+-green.svg)](https://www.android.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
@@ -15,7 +15,7 @@
 
 ## 📖 项目简介
 
-Zephyr Reader（Zephyr 阅读器）是一款基于 **Flutter + Rust** 架构开发的安卓端双语离线小说阅读器。项目采用纯本地设计，无后台、无广告、无数据收集，专注于中文、英文双语小说的阅读体验。
+Zephyr Reader（Zephyr 阅读器）是一款基于 **Flutter + Rust** 架构开发的跨平台双语离线小说阅读器。项目采用纯本地设计，无后台、无广告、无数据收集，专注于中文、英文双语小说的阅读体验。
 
 核心特性：
 - 📱 **纯离线使用** - 核心功能 100% 离线可用，仅 WebDAV 同步需要网络
@@ -30,9 +30,9 @@ Zephyr Reader（Zephyr 阅读器）是一款基于 **Flutter + Rust** 架构开�
 ## ✨ 核心功能
 
 ### 📚 书籍管理
-- 支持本地 TXT、EPUB 格式文件导入
+- 支持 TXT、EPUB、PDF、Markdown 格式导入
 - 批量导入与书籍元数据自动提取
-- 书籍列表展示、重命名、删除管理
+- 书籍列表展示、分类标签、搜索、置顶
 - 阅读进度自动记忆与恢复
 
 ### 📖 核心阅读
@@ -42,7 +42,10 @@ Zephyr Reader（Zephyr 阅读器）是一款基于 **Flutter + Rust** 架构开�
   - 英文：按单词断行，禁止单词跨行拆分
   - 中英混排：行高统一、间距一致
 - 字体大小、行间距、字间距、段落间距可调
-- 多背景色切换（护眼白、暗夜黑、豆沙绿）
+- 高亮批注、书签标记
+- 双语对照阅读（中英对齐）
+- 离线词典查词（MDict 格式）
+- 全书搜索
 - 全屏沉浸阅读，自动隐藏状态栏、导航栏
 
 ### 🎨 主题与适配
@@ -53,9 +56,10 @@ Zephyr Reader（Zephyr 阅读器）是一款基于 **Flutter + Rust** 架构开�
 - 横竖屏切换自动保存进度，无缝过渡
 
 ### 🔧 进阶功能
-- 书签标记与管理
-- 阅读历史记录
+- 阅读统计（日/周/月/总览）
 - WebDAV 数据同步（阅读进度、设置、书籍元数据）
+- 生词本（复习管理）
+- 数据库备份与还原
 - 屏幕常亮、亮度调节
 - 翻页动画切换
 
@@ -72,10 +76,10 @@ Zephyr Reader（Zephyr 阅读器）是一款基于 **Flutter + Rust** 架构开�
 │  └─ 状态: signals + setState                             │
 ├────────────────────── flutter_rust_bridge FFI ──────────┤
 │                  Rust 核心引擎 (高性能)                    │
-│  ├─ 解析: EPUB (xml+zip), TXT, PDF                      │
+│  ├─ 解析: TXT/EPUB/PDF/MD + 封面提取                    │
 │  ├─ 排版: 中英混排断行 + letter/paragraph/page margin   │
-│  ├─ 搜索: FTS5 全文索引                                  │
-│  ├─ 生词本: 词汇管理 + CC-CEDICT 词典 (124K entries)    │
+│  ├─ 搜索: FTS5 + jieba 中文分词                         │
+│  ├─ 词典: MDict 离线词典 (.mdx/.mdd)                    │
 │  └─ 存储: sqlx SQLite + sled KV (排版缓存)              │
 ├────────────────────────── 本地文件 ─────────────────────┤
 │              本地数据层 (Rust 管理)                       │
@@ -107,37 +111,39 @@ Zephyr Reader（Zephyr 阅读器）是一款基于 **Flutter + Rust** 架构开�
 zephyr_reader/
 ├── android/                 # Android 原生配置
 ├── ios/                     # iOS 原生配置
-├── lib/                     # Flutter 主工程 (Clean Architecture)
+├── lib/                     # Flutter 主工程
 │   ├── main.dart            # 应用入口
 │   ├── app.dart             # 应用根组件
 │   ├── core/                # 共享基础设施
-│   │   ├── routing/         # go_router 路由
-│   │   ├── theme/           # 主题配置
-│   │   ├── local/           # Rust 桥接服务封装
-│   │   ├── reader/          # 阅读器通用配置
-│   │   └── utils/           # 工具函数
 │   ├── features/            # 功能模块
-│   │   ├── reader/          # 阅读器（页面、设置、搜索、词典）
+│   │   ├── article/         # 长文阅读
 │   │   ├── bookshelf/       # 书架（导入、分类、详情）
 │   │   ├── home/            # 首页（最近阅读、统计概览）
-│   │   ├── statistics/      # 阅读统计（图表、日周月报）
 │   │   ├── profile/         # 个人设置
+│   │   ├── reader/          # 阅读器（页面、设置、搜索、词典）
+│   │   ├── search/          # 全书搜索
+│   │   ├── statistics/      # 阅读统计（图表、日周月报）
 │   │   ├── sync/            # WebDAV 同步 + 备份/还原
 │   │   └── vocabulary/      # 生词本（单词管理）
-│   ├── src/rust/            # FRB 自动生成（勿手动编辑）
+│   ├── shared/              # 共享 UI 组件
+│   ├── l10n/                # 国际化
+│   ├── gen/                 # FRB 自动生成（勿手动编辑）
 │   └── di/                  # 依赖注入（injectable + getIt）
 ├── rust/                    # Rust 核心引擎
 │   ├── Cargo.toml           # Rust 依赖配置
 │   ├── flutter_rust_bridge.yaml
+│   ├── RUST_ENGINE_SPEC.md  # Rust 编码规范
 │   ├── migrations/          # SQLite 迁移
 │   └── src/
 │       ├── lib.rs           # 库入口
 │       ├── api/             # FRB 暴露接口层
-│       ├── parser/          # 解析器（TXT/EPUB/PDF）
+│       ├── parser/          # 解析器（TXT/EPUB/PDF/MD）
 │       ├── storage/         # 存储（SQLite repos + sled KV）
 │       ├── search/          # FTS5 全文搜索
-│       ├── text/            # 文本处理（断行、排版）
-│       └── domain/          # 领域类型与错误
+│       ├── text/            # 文本处理（断行、排版、章节检测、双语对齐）
+│       ├── dictionary/      # 离线词典（MDict .mdx/.mdd）
+│       ├── domain/          # 领域类型与错误
+│       └── utils/           # 文件 IO、安全校验
 ├── assets/                  # 静态资源（dictionary.db, 图片）
 ├── test/                    # 单元测试
 ├── integration_test/        # 集成测试
@@ -246,61 +252,66 @@ flutter clean
 ### Rust 相关命令
 
 ```bash
-# 进入 Rust 目录
-cd native/reader_core/
-
 # 检查 Rust 代码
 cargo check
 
-# 构建 Rust 库（调试）
-cargo build
-
-# 构建 Rust 库（发布）
-cargo build --release
-
-# 运行 Rust 测试
+# Rust 单元测试
 cargo test
+
+# Rust lint
+cargo clippy
 ```
 
 ### 添加 Rust 函数
 
-1. 在 `native/reader_core/src/` 目录下创建或编辑模块文件
-2. 使用 `#[flutter_rust_bridge::frb]` 宏标记需要导出的函数
-3. 运行代码生成器生成桥接代码
-4. 在 Dart 代码中通过生成的桥接模块调用
+1. 在 `rust/src/api/` 目录下创建或编辑模块文件
+2. 使用 `#[frb]` 宏标记需要导出的函数（FRB v2 自动扫描所有 `pub fn`）
+3. 运行 `flutter_rust_bridge_codegen generate` 重新生成桥接代码
+4. 在 Dart 代码中通过 `api/` 路径导入生成的绑定
 
-**示例** (`native/reader_core/src/api/simple.rs`):
+**示例** (`rust/src/api/example.rs`):
 
 ```rust
-/// 问候函数示例
-#[flutter_rust_bridge::frb(sync)]
+use crate::domain::AppError;
+use flutter_rust_bridge::frb;
+
+/// 纯内存计算 → sync
+#[frb(sync)]
 pub fn greet(name: String) -> String {
     format!("Hello, {name}!")
 }
 
-/// 解析 TXT 文件
-#[flutter_rust_bridge::frb(async)]
-pub fn parse_txt_file(file_path: String) -> Result<BookInfo, AppError> {
+/// 有 I/O 操作 → async
+#[frb]
+pub async fn parse_txt_file(file_path: String) -> Result<String, AppError> {
     // 实现解析逻辑
 }
 ```
 
 ---
 
-## 📋 开发计划
+## 📋 项目状态
 
-### 阶段划分
+### 已完成
 
-| 阶段 | 工作内容 | 优先级 |
-|------|---------|--------|
-| **第一阶段** | 环境搭建与基础框架（主题、路由、设备适配、桥接配置） | P0 |
-| **第二阶段** | Rust 核心解析引擎（TXT/EPUB 解析、编码处理、断行规则） | P0 |
-| **第三阶段** | 书籍管理与书架页面（导入、列表、元数据存储） | P0 |
-| **第四阶段** | 核心阅读页（文本渲染、翻页、进度记忆、章节跳转） | P0 |
-| **第五阶段** | 平板适配与夜间模式完善（自适应布局、主题体系） | P0 |
-| **第六阶段** | WebDAV 同步与推荐功能（书签、阅读历史、进阶设置） | P1 |
-| **第七阶段** | 测试优化与打包发布（性能优化、兼容性测试、签名打包） | P0 |
-| **第八阶段** | 扩展功能（全书搜索、自定义字体、阅读统计） | P2 |
+| 阶段 | 工作内容 |
+|------|---------|
+| **基础框架** | Flutter 工程 + Rust 引擎 + FRB 桥接 + 主题/路由/设备适配 |
+| **解析引擎** | TXT/EPUB/PDF/MD 格式解析、编码检测、章节提取 |
+| **存储层** | SQLite (sqlx) + sled KV 排版缓存、Repository 模式 |
+| **阅读核心** | 双语排版、分页渲染、翻页、进度记忆、章节跳转 |
+| **排版引擎** | 文本断行、分块排版、标点优化、lazy/eager 双模式 |
+| **进阶功能** | 全书搜索 (FTS5)、离线词典 (MDict)、双语对齐、高亮批注 |
+| **WebDAV** | 数据同步、备份与还原 |
+| **阅读统计** | 日/周/月/总览统计、生词本 |
+
+### 待办
+
+| 工作 | 说明 |
+|------|------|
+| **测试覆盖** | 修复 repo 层和 bilingual 测试（当前全部注释） |
+| **性能优化** | 大文件 lazy 排版路径优化、PDF 渲染性能 |
+| **自定义字体** | 用户可选字体系列 |
 
 ---
 

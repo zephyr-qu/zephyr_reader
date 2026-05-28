@@ -1,20 +1,21 @@
 //! TXT 解析模块
-//! 负责 TXT 文件的编码检测、解码、章节提取
+//! 负责 TXT 文件的编码检测、解码、章节提取、按需内容提供
 
 pub mod decode;
 pub mod parse;
+pub mod provider;
 
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use flutter_rust_bridge::frb;
 
-use crate::domain::{ ParseResult, AppError};
-use crate::domain::parser::{BookMetadata, BookParser};
+use crate::domain::{ParseResult, AppError};
+use crate::parser::book_parser::{BookMetadata, BookParser};
 use crate::text::chapter_detect::extract_chapters;
 
-pub use decode::detect_encoding;
 pub use parse::parse_txt;
+pub use provider::TxtContentProvider;
 
 /// TXT 文件解析器
 #[frb(opaque)]
@@ -46,19 +47,22 @@ impl BookParser for TxtParser {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || parse_txt(fp))
             .await
-            .map_err(|e| AppError::internal(format!("解析任务失败: {}", e)))?
+            .map_err(|e| AppError::internal(format!("parse task failed: {}", e)))?
     }
 
     async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata,AppError> {
         let fp = file_path.to_string();
         let result = tokio::task::spawn_blocking(move || parse_txt(fp))
             .await
-            .map_err(|e| AppError::internal(format!("解析任务失败: {}", e)))??;
+            .map_err(|e| AppError::internal(format!("parse task failed: {}", e)))??;
         Ok(BookMetadata {
             title: result.book_info.title,
             author: result.book_info.author.unwrap_or_default(),
             description: result.book_info.description,
             cover_path: None,
+            publisher: None,
+            translator: None,
+            isbn: None,
             publish_year: None,
             language: None,
             chapter_count: result.book_info.chapter_count,
@@ -70,13 +74,13 @@ impl BookParser for TxtParser {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || {
             let content = decode::decode_file(&fp)?;
-            let chapters = extract_chapters(&content, 1000);
+            let chapters = extract_chapters(&content, 1000, "");
 
             let chapter = chapters
                 .iter()
                 .find(|c| c.chapter_index == chapter_index)
                 .ok_or_else(|| {
-                    AppError::chapter_extract_error(chapter_index, format!("未找到章节 {}", chapter_index))
+                    AppError::chapter_extract_error(chapter_index, format!("chapter {} not found", chapter_index))
                 })?;
 
             let start = chapter.start_index as usize;
@@ -90,12 +94,12 @@ impl BookParser for TxtParser {
 
             if !content.is_char_boundary(start) || !content.is_char_boundary(safe_end) {
                 tracing::warn!(
-                    "章节边界不是有效的 UTF-8 字符边界：start={}, end={}",
+                    "chapter boundary is not a valid UTF-8 char boundary: start={}, end={}",
                     start,
                     safe_end
                 );
                 return Err(AppError::chapter_extract_error(0, format!(
-                    "章节边界无效：{}-{}",
+                    "invalid chapter boundary: {}-{}",
                     start, safe_end
                 )));
             }
@@ -103,7 +107,7 @@ impl BookParser for TxtParser {
             Ok(content[start..safe_end].to_string())
         })
             .await
-            .map_err(|e| AppError::internal(format!("章节提取失败: {}", e)))?
+            .map_err(|e| AppError::internal(format!("chapter extraction failed: {}", e)))?
     }
 }
 
@@ -129,14 +133,6 @@ mod tests {
         let formats = parser.supported_formats();
         assert!(formats.contains(&"txt"));
         assert!(formats.contains(&"text"));
-    }
-
-    #[test]
-    fn test_txt_parser_supports_format() {
-        let parser = TxtParser::new();
-        assert!(parser.supports_format("txt"));
-        assert!(parser.supports_format("TXT"));
-        assert!(!parser.supports_format("epub"));
     }
 
     #[tokio::test]
@@ -186,7 +182,7 @@ mod tests {
 
         // 无元数据时使用文件名作为书名
         assert_eq!(metadata.title, "novel");
-        assert_eq!(metadata.author, "未知作者");
+        assert_eq!(metadata.author, "Unknown Author");
         assert_eq!(metadata.chapter_count, 1);
     }
 

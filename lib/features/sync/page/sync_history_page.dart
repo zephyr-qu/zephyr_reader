@@ -4,9 +4,10 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:intl/intl.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:signals_hooks/signals_hooks.dart';
 
 import '../application/services/webdav_sync_service.dart';
 
@@ -17,8 +18,8 @@ class SyncHistoryPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final syncService = useMemoized(() => AdvancedWebDavSyncService());
-    final history = useState<List<SyncHistoryRecord>>([]);
-    final selectedFilter = useState<SyncStatus?>(null);
+    final history = useSignal<List<SyncHistoryRecord>>([]);
+    final selectedFilter = useSignal<SyncStatus?>(null);
 
     useEffect(() {
       _loadHistory(syncService, history);
@@ -27,13 +28,9 @@ class SyncHistoryPage extends HookWidget {
 
     final filteredHistory = selectedFilter.value == null
         ? history.value
-        : history.value
-              .where(
-                (h) =>
-                    h.result.success ==
-                    (selectedFilter.value == SyncStatus.success),
-              )
-              .toList();
+        : history.value.where((h) =>
+            h.result.success == (selectedFilter.value == SyncStatus.success),
+          ).toList();
 
     final stats = _calculateStats(history.value);
 
@@ -58,7 +55,7 @@ class SyncHistoryPage extends HookWidget {
           // 统计卡片
           _buildStatsCard(stats),
           // 筛选器
-          _buildFilterBar(selectedFilter),
+          _buildFilterBar(selectedFilter.value, (v) => selectedFilter.value = v),
           // 历史列表
           Expanded(
             child: filteredHistory.isEmpty
@@ -70,12 +67,11 @@ class SyncHistoryPage extends HookWidget {
     );
   }
 
-  Future<void> _loadHistory(
-    AdvancedWebDavSyncService syncService,
-    ValueNotifier<List<SyncHistoryRecord>> history,
-  ) async {
-    final historyList = syncService.getHistory(limit: 100);
-    history.value = historyList;
+  void _loadHistory(
+    AdvancedWebDavSyncService svc,
+    Signal<List<SyncHistoryRecord>> hist,
+  ) {
+    hist.value = svc.getHistory(limit: 100);
   }
 
   Widget _buildStatsCard(SyncStats stats) {
@@ -143,7 +139,7 @@ class SyncHistoryPage extends HookWidget {
     );
   }
 
-  Widget _buildFilterBar(ValueNotifier<SyncStatus?> selectedFilter) {
+  Widget _buildFilterBar(SyncStatus? filterValue, ValueChanged<SyncStatus?> onFilterChanged) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -152,27 +148,25 @@ class SyncHistoryPage extends HookWidget {
           const SizedBox(width: 8),
           ChoiceChip(
             label: const Text('全部'),
-            selected: selectedFilter.value == null,
+            selected: filterValue == null,
             onSelected: (selected) {
-              if (selected) {
-                selectedFilter.value = null;
-              }
+              if (selected) onFilterChanged(null);
             },
           ),
           const SizedBox(width: 8),
           ChoiceChip(
             label: const Text('成功'),
-            selected: selectedFilter.value == SyncStatus.success,
+            selected: filterValue == SyncStatus.success,
             onSelected: (selected) {
-              selectedFilter.value = selected ? SyncStatus.success : null;
+              onFilterChanged(selected ? SyncStatus.success : null);
             },
           ),
           const SizedBox(width: 8),
           ChoiceChip(
             label: const Text('失败'),
-            selected: selectedFilter.value == SyncStatus.failed,
+            selected: filterValue == SyncStatus.failed,
             onSelected: (selected) {
-              selectedFilter.value = selected ? SyncStatus.failed : null;
+              onFilterChanged(selected ? SyncStatus.failed : null);
             },
           ),
         ],
@@ -337,9 +331,9 @@ class SyncHistoryPage extends HookWidget {
   }
 
   Future<void> _clearHistory(
-    AdvancedWebDavSyncService syncService,
+    AdvancedWebDavSyncService svc,
     BuildContext context,
-    ValueNotifier<List<SyncHistoryRecord>> history,
+    Signal<List<SyncHistoryRecord>> hist,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -365,8 +359,8 @@ class SyncHistoryPage extends HookWidget {
 
     if (confirmed != true) return;
 
-    await syncService.clearHistory();
-    history.value = [];
+    await svc.clearHistory();
+    hist.value = [];
 
     if (!context.mounted) return;
 

@@ -2,9 +2,11 @@
 
 use crate::domain::{AppError, SearchResult};
 use crate::search::SearchEngine;
+use crate::storage::storage_pool;
 use flutter_rust_bridge::frb;
 use once_cell::sync::OnceCell;
 use tokio::sync::Mutex;
+
 
 /// 全局搜索引擎单例
 static SEARCH_ENGINE: OnceCell<Mutex<SearchEngine>> = OnceCell::new();
@@ -12,12 +14,11 @@ static SEARCH_ENGINE: OnceCell<Mutex<SearchEngine>> = OnceCell::new();
 /// 初始化搜索引擎
 #[frb]
 pub async fn init_search_engine() -> Result<(), AppError> {
-    let storage = crate::storage::ensure_storage()
-        .map_err(|e| AppError::internal(e.to_string()))?;
-    let pool = storage
-        .pool()
-        .map_err(|e| AppError::database_error(e.to_string()))?;
-    let engine = SearchEngine::new(pool);
+    let pool = storage_pool()?;
+    let engine = SearchEngine::new(pool.clone());
+    engine.ensure_table().await.map_err(|e| {
+        AppError::internal(format!("Failed to create FTS5 table: {e}"))
+    })?;
     SEARCH_ENGINE
         .set(Mutex::new(engine))
         .map_err(|_| AppError::internal("Search engine already initialized"))?;
@@ -33,9 +34,10 @@ pub(crate) fn get_search_engine() -> Result<&'static Mutex<SearchEngine>, AppErr
 
 /// 索引章节内容
 #[frb]
-pub async fn index_chapter_content(
+pub async fn index_chapter(
     book_id: String,
-    chapter_id: i32,
+    chapter_id: String,
+    chapter_index: String,
     chapter_title: String,
     content: String,
 ) -> Result<(), AppError> {
@@ -43,7 +45,7 @@ pub async fn index_chapter_content(
     engine
         .lock()
         .await
-        .index_chapter(&book_id, chapter_id, &chapter_title, &content)
+        .index_chapter(&book_id, &chapter_id,&chapter_index, &chapter_title, &content)
         .await
         .map_err(|e| AppError::search_error(e.to_string()))?;
     Ok(())
@@ -51,7 +53,7 @@ pub async fn index_chapter_content(
 
 /// 在书籍中搜索
 #[frb]
-pub async fn search_in_book(
+pub async fn search(
     book_id: String,
     query: String,
     limit: i32,
@@ -67,9 +69,26 @@ pub async fn search_in_book(
     Ok(results)
 }
 
+/// 搜索所有书籍内容
+#[frb]
+pub async fn search_all_books(
+    query: String,
+    limit: i32,
+) -> Result<Vec<SearchResult>, AppError> {
+    let engine = get_search_engine()?;
+    let limit = limit.max(0) as usize;
+    let results = engine
+        .lock()
+        .await
+        .search_all_books(&query, limit)
+        .await
+        .map_err(|e| AppError::search_error(e.to_string()))?;
+    Ok(results)
+}
+
 /// 清除所有搜索索引
 #[frb]
-pub async fn clear_all_search_index() -> Result<(), AppError> {
+pub async fn clear_all() -> Result<(), AppError> {
     let engine = get_search_engine()?;
     engine
         .lock()
@@ -82,12 +101,12 @@ pub async fn clear_all_search_index() -> Result<(), AppError> {
 
 /// 删除某本书的搜索索引
 #[frb]
-pub async fn delete_book_search_index(book_id: String) -> Result<(), AppError> {
+pub async fn delete_by_book(book_id: String) -> Result<(), AppError> {
     let engine = get_search_engine()?;
     engine
         .lock()
         .await
-        .delete_book(&book_id)
+        .delete_by_book(&book_id)
         .await
         .map_err(|e| AppError::search_error(e.to_string()))?;
     Ok(())

@@ -194,7 +194,7 @@ class BookmarkWidget extends StatelessWidget {
   }
 
   void _showAddBookmarkDialog(BuildContext context, Color textColor) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('添加书签'),
@@ -226,7 +226,7 @@ class BookmarkWidget extends StatelessWidget {
   void _showDeleteConfirm(BuildContext context, Bookmark bookmark) {
     final textColor = _getTextColor(themeMode);
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('确认删除'),

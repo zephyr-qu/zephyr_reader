@@ -4,8 +4,9 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:signals_hooks/signals_hooks.dart';
 
 import '../../../../core/utils/logging.dart';
 import '../application/services/webdav_sync_service.dart';
@@ -17,13 +18,13 @@ class BackupRestorePage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final syncService = useMemoized(() => AdvancedWebDavSyncService());
-    final backups = useState<List<BackupInfo>>([]);
-    final isBackingUp = useState(false);
-    final isRestoring = useState(false);
-    final restoringBackup = useState<BackupInfo?>(null);
+    final backups = useSignal<List<BackupInfo>>([]);
+    final isBackingUp = useSignal(false);
+    final isRestoring = useSignal(false);
+    final restoringBackup = useSignal<BackupInfo?>(null);
 
     useEffect(() {
-      _loadBackups(syncService, backups);
+      _loadBackups(syncService, (v) => backups.value = v);
       return null;
     }, []);
 
@@ -33,7 +34,7 @@ class BackupRestorePage extends HookWidget {
         actions: [
           IconButton(
             icon: const Icon(PhosphorIconsRegular.arrowsClockwise),
-            onPressed: () => _loadBackups(syncService, backups),
+            onPressed: () => _loadBackups(syncService, (v) => backups.value = v),
             tooltip: '刷新',
           ),
         ],
@@ -44,14 +45,16 @@ class BackupRestorePage extends HookWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 创建备份卡片
-            _buildCreateBackupCard(syncService, context, isBackingUp, backups),
+            _buildCreateBackupCard(syncService, context, isBackingUp.value, (v) => isBackingUp.value = v, (v) => backups.value = v),
             const SizedBox(height: 24),
             _buildBackupListCard(
               syncService,
               context,
-              backups,
-              isRestoring,
-              restoringBackup,
+              backups.value,
+              isRestoring.value,
+              restoringBackup.value,
+              (v) => isRestoring.value = v,
+              (v) => restoringBackup.value = v,
             ),
             const SizedBox(height: 24),
             // 备份说明
@@ -64,22 +67,23 @@ class BackupRestorePage extends HookWidget {
 
   Future<void> _loadBackups(
     AdvancedWebDavSyncService syncService,
-    ValueNotifier<List<BackupInfo>> backups,
+    ValueChanged<List<BackupInfo>> onBackupsLoaded,
   ) async {
     try {
       final backupList = syncService.getBackups();
-      backups.value = backupList;
+      onBackupsLoaded(backupList);
     } catch (e) {
       Logging.debug('加载备份列表失败：$e');
-      backups.value = [];
+      onBackupsLoaded([]);
     }
   }
 
   Widget _buildCreateBackupCard(
     AdvancedWebDavSyncService syncService,
     BuildContext context,
-    ValueNotifier<bool> isBackingUp,
-    ValueNotifier<List<BackupInfo>> backups,
+    bool isBackingUp,
+    ValueChanged<bool> onBackingUpChanged,
+    ValueChanged<List<BackupInfo>> onBackupsChanged,
   ) {
     return Card(
       child: Padding(
@@ -109,22 +113,22 @@ class BackupRestorePage extends HookWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: isBackingUp.value
+                onPressed: isBackingUp
                     ? null
                     : () => _createBackup(
                         syncService,
                         context,
-                        isBackingUp,
-                        backups,
+                        onBackingUpChanged,
+                        onBackupsChanged,
                       ),
-                icon: isBackingUp.value
+                icon: isBackingUp
                     ? const SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(PhosphorIconsRegular.cloudArrowUp),
-                label: Text(isBackingUp.value ? '正在创建备份...' : '立即备份'),
+                label: Text(isBackingUp ? '正在创建备份...' : '立即备份'),
               ),
             ),
           ],
@@ -136,9 +140,11 @@ class BackupRestorePage extends HookWidget {
   Widget _buildBackupListCard(
     AdvancedWebDavSyncService syncService,
     BuildContext context,
-    ValueNotifier<List<BackupInfo>> backups,
-    ValueNotifier<bool> isRestoring,
-    ValueNotifier<BackupInfo?> restoringBackup,
+    List<BackupInfo> backups,
+    bool isRestoring,
+    BackupInfo? restoringBackup,
+    ValueChanged<bool> onRestoringChanged,
+    ValueChanged<BackupInfo?> onRestoringBackupChanged,
   ) {
     return Card(
       child: Padding(
@@ -151,44 +157,40 @@ class BackupRestorePage extends HookWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            ValueListenableBuilder<List<BackupInfo>>(
-              valueListenable: backups,
-              builder: (context, backupList, _) {
-                if (backupList.isEmpty) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Text('暂无备份记录'),
-                    ),
+            if (backups.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Text('暂无备份记录'),
+                ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: backups.length,
+                itemBuilder: (context, index) {
+                  if (index >= backups.length) {
+                    return const SizedBox.shrink();
+                  }
+                  final backup = backups[index];
+                  return Column(
+                    children: [
+                      _buildBackupListItem(
+                        syncService,
+                        context,
+                        backup,
+                        isRestoring,
+                        restoringBackup,
+                        onRestoringChanged,
+                        onRestoringBackupChanged,
+                      ),
+                      if (index < backups.length - 1)
+                        const Divider(height: 1),
+                    ],
                   );
-                }
-
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: backupList.length,
-                  itemBuilder: (context, index) {
-                    if (index >= backupList.length) {
-                      return const SizedBox.shrink();
-                    }
-                    final backup = backupList[index];
-                    return Column(
-                      children: [
-                        _buildBackupListItem(
-                          syncService,
-                          context,
-                          backup,
-                          isRestoring,
-                          restoringBackup,
-                        ),
-                        if (index < backupList.length - 1)
-                          const Divider(height: 1),
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
+                },
+              ),
           ],
         ),
       ),
@@ -199,11 +201,13 @@ class BackupRestorePage extends HookWidget {
     AdvancedWebDavSyncService syncService,
     BuildContext context,
     BackupInfo backup,
-    ValueNotifier<bool> isRestoring,
-    ValueNotifier<BackupInfo?> restoringBackup,
+    bool isRestoring,
+    BackupInfo? restoringBackup,
+    ValueChanged<bool> onRestoringChanged,
+    ValueChanged<BackupInfo?> onRestoringBackupChanged,
   ) {
-    final isCurrentRestoring = restoringBackup.value?.id == backup.id;
-    final isRestoringThis = isRestoring.value && isCurrentRestoring;
+    final isCurrentRestoring = restoringBackup?.id == backup.id;
+    final isRestoringThis = isRestoring && isCurrentRestoring;
 
     return ListTile(
       leading: Icon(
@@ -231,8 +235,8 @@ class BackupRestorePage extends HookWidget {
               syncService,
               context,
               backup,
-              isRestoring,
-              restoringBackup,
+              onRestoringChanged,
+              onRestoringBackupChanged,
             );
           } else if (value == 'delete') {
             _deleteBackup(syncService, context, backup);
@@ -351,15 +355,15 @@ class BackupRestorePage extends HookWidget {
   Future<void> _createBackup(
     AdvancedWebDavSyncService syncService,
     BuildContext context,
-    ValueNotifier<bool> isBackingUp,
-    ValueNotifier<List<BackupInfo>> backups,
+    ValueChanged<bool> onBackingUpChanged,
+    ValueChanged<List<BackupInfo>> onBackupsChanged,
   ) async {
-    isBackingUp.value = true;
+    onBackingUpChanged(true);
 
     try {
       final note = await _showNoteDialog(context);
       if (note == null) {
-        isBackingUp.value = false;
+        onBackingUpChanged(false);
         return;
       }
 
@@ -374,7 +378,7 @@ class BackupRestorePage extends HookWidget {
         ),
       );
 
-      _loadBackups(syncService, backups).ignore();
+      _loadBackups(syncService, onBackupsChanged).ignore();
     } catch (e) {
       if (!context.mounted) return;
 
@@ -382,7 +386,7 @@ class BackupRestorePage extends HookWidget {
         SnackBar(content: Text('备份创建失败：$e'), backgroundColor: Colors.red),
       );
     } finally {
-      isBackingUp.value = false;
+      onBackingUpChanged(false);
     }
   }
 
@@ -390,8 +394,8 @@ class BackupRestorePage extends HookWidget {
     AdvancedWebDavSyncService syncService,
     BuildContext context,
     BackupInfo backup,
-    ValueNotifier<bool> isRestoring,
-    ValueNotifier<BackupInfo?> restoringBackup,
+    ValueChanged<bool> onRestoringChanged,
+    ValueChanged<BackupInfo?> onRestoringBackupChanged,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -417,8 +421,8 @@ class BackupRestorePage extends HookWidget {
 
     if (confirmed != true) return;
 
-    isRestoring.value = true;
-    restoringBackup.value = backup;
+    onRestoringChanged(true);
+    onRestoringBackupChanged(backup);
 
     try {
       final success = await syncService.restoreBackup(backup);
@@ -444,8 +448,8 @@ class BackupRestorePage extends HookWidget {
         SnackBar(content: Text('备份恢复异常：$e'), backgroundColor: Colors.red),
       );
     } finally {
-      isRestoring.value = false;
-      restoringBackup.value = null;
+      onRestoringChanged(false);
+      onRestoringBackupChanged(null);
     }
   }
 

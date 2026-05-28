@@ -2,7 +2,7 @@
 //! 使用 epub 库读取 EPUB 文件结构
 //! 注意：epub crate 2.x API 与 1.x 不兼容
 
-use crate::domain::{ EpubMetadata, AppError};
+use crate::domain::{EpubMetadata, AppError};
 use epub::doc::{EpubDoc, ResourceItem, SpineItem};
 use lru::LruCache;
 use std::collections::HashMap;
@@ -33,6 +33,39 @@ fn get_metadata_first(metadata: &[epub::doc::MetadataItem], name: &str) -> Optio
         .map(|m| m.value.clone())
 }
 
+/// 辅助函数：获取翻译者
+/// 查找 role 细目为 "trl" 的 creator，或第一个非 author 的 creator，或 contributor
+fn get_translator(metadata: &[epub::doc::MetadataItem]) -> Option<String> {
+    // 先找 role=trl 的 creator
+    for item in metadata.iter().filter(|m| m.property == "creator") {
+        let has_trl_role = item.refined.iter().any(|r| {
+            r.property == "role" && (r.value == "trl" || r.value == "translator")
+        });
+        if has_trl_role {
+            return Some(item.value.clone());
+        }
+    }
+    // 再找 contributor
+    for item in metadata.iter().filter(|m| m.property == "contributor") {
+        let has_trl_role = item.refined.iter().any(|r| {
+            r.property == "role" && (r.value == "trl" || r.value == "translator")
+        });
+        if has_trl_role {
+            return Some(item.value.clone());
+        }
+    }
+    // 最后取第2个 creator（启发式：常见于中日双语书籍）
+    let creators: Vec<&str> = metadata
+        .iter()
+        .filter(|m| m.property == "creator")
+        .map(|m| m.value.as_str())
+        .collect();
+    if creators.len() > 1 && creators[0] != creators[1] {
+        return Some(creators[1].to_string());
+    }
+    None
+}
+
 /// 辅助函数：从 ResourceItem HashMap 中查找资源
 fn find_resource_by_href_or_path<'a>(
     resources: &'a HashMap<String, ResourceItem>,
@@ -56,11 +89,11 @@ impl EpubFile {
             return Err(AppError::file_not_found(file_path));
         }
 
-        tracing::info!("[EpubFile::open] 打开 EPUB: {}", file_path);
+        tracing::info!("[EpubFile::open] opening EPUB: {}", file_path);
         let doc = EpubDoc::new(file_path).map_err(|e| {
-            AppError::file_read_error(file_path, format!("EPUB 解析失败：{}", e))
+            AppError::file_read_error(file_path, format!("EPUB parse failed: {}", e))
         })?;
-        tracing::info!("[EpubFile::open] 成功: metadata={}, resources={}, spine={}, toc={}",
+        tracing::info!("[EpubFile::open] success: metadata={}, resources={}, spine={}, toc={}",
             doc.metadata.len(), doc.resources.len(), doc.spine.len(), doc.toc.len());
 
         Ok(Self {
@@ -71,12 +104,12 @@ impl EpubFile {
 
     /// 获取书籍标题
     pub fn title(&self) -> String {
-        get_metadata_first(&self.doc.metadata, "title").unwrap_or_else(|| "未知标题".to_string())
+        get_metadata_first(&self.doc.metadata, "title").unwrap_or_else(|| "Unknown Title".to_string())
     }
 
     /// 获取作者
     pub fn author(&self) -> String {
-        get_metadata_first(&self.doc.metadata, "creator").unwrap_or_else(|| "未知作者".to_string())
+        get_metadata_first(&self.doc.metadata, "creator").unwrap_or_else(|| "Unknown Author".to_string())
     }
 
     /// 获取封面路径
@@ -105,17 +138,17 @@ impl EpubFile {
     pub fn read_resource(&mut self, href: &str) -> Result<String, AppError> {
         // 检查缓存（先克隆内容以避免借用冲突）
         if let Some(cached) = self.cache.get(href).cloned() {
-            tracing::debug!("[read_resource] 缓存命中: href={}", href);
+            tracing::debug!("[read_resource] cache hit: href={}", href);
             return self.decode_content(&cached);
         }
 
         // 查找资源
         let (resource_href, resource) =
             find_resource_by_href_or_path(&self.doc.resources, href)
-                .ok_or_else(|| AppError::epub_parse_error(format!("资源不存在：{}", href)))?;
+                .ok_or_else(|| AppError::epub_parse_error(format!("resource not found: {}", href)))?;
 
         let resource_href: String = resource_href.clone();
-        tracing::debug!("[read_resource] 资源查找成功: href={resource_href}, path={:?}", resource.path);
+        tracing::debug!("[read_resource] resource found: href={resource_href}, path={:?}", resource.path);
 
         // 设置当前章节到该资源
         let index = self
@@ -124,15 +157,15 @@ impl EpubFile {
             .iter()
             .position(|item: &SpineItem| item.idref == resource_href);
         if let Some(idx) = index {
-            tracing::debug!("[read_resource] spine 索引: {idx}");
+            tracing::debug!("[read_resource] spine index: {idx}");
             let _ = self.doc.set_current_chapter(idx);
 
             // 读取内容 - epub 2.x 返回 (Vec<u8>, String) 元组
             let (content, charset) = self.doc.get_current().ok_or_else(|| {
-                AppError::epub_parse_error("读取资源失败：无法获取当前内容".to_string())
+                AppError::epub_parse_error("read resource failed: unable to get current content".to_string())
             })?;
 
-            tracing::debug!("[read_resource] 读取成功: {} bytes, charset={:?}", content.len(), charset);
+            tracing::debug!("[read_resource] read success: {} bytes, charset={:?}", content.len(), charset);
 
             // 缓存内容（只缓存字节）
             self.cache.put(href.to_string(), content.clone());
@@ -140,9 +173,9 @@ impl EpubFile {
             return self.decode_content(&content);
         }
 
-        tracing::warn!("[read_resource] 无法在 spine 中找到资源: {}", resource_href);
+        tracing::warn!("[read_resource] resource not found in spine: {}", resource_href);
         Err(AppError::epub_parse_error(format!(
-            "无法定位资源：{}",
+            "unable to locate resource: {}",
             href
         )))
     }
@@ -156,7 +189,7 @@ impl EpubFile {
         match std::str::from_utf8(content) {
             Ok(s) => return Ok(s.to_string()),
             Err(e) => {
-                tracing::debug!("EPUB 内容非 UTF-8，尝试解码: {:?}", e);
+                tracing::debug!("EPUB content is not UTF-8, attempting decode: {:?}", e);
             }
         }
 
@@ -198,6 +231,26 @@ impl EpubFile {
             self.cache.put(href.to_string(), content.clone());
             Some(content)
         }
+    }
+
+    /// 获取原始 metadata（用于外部提取扩展字段）
+    pub fn raw_metadata(&self) -> &[epub::doc::MetadataItem] {
+        &self.doc.metadata
+    }
+
+    /// 获取出版社
+    pub fn publisher(&self) -> Option<String> {
+        get_metadata_first(&self.doc.metadata, "publisher")
+    }
+
+    /// 获取翻译者
+    pub fn translator(&self) -> Option<String> {
+        get_translator(&self.doc.metadata)
+    }
+
+    /// 获取标识符（ISBN）
+    pub fn identifier(&self) -> Option<String> {
+        get_metadata_first(&self.doc.metadata, "identifier")
     }
 
     /// 读取封面图片

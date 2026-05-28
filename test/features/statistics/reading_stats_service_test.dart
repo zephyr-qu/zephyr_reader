@@ -2,19 +2,58 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/statistics/application/reading_stats_service.dart';
+import 'package:zephyr_reader/features/statistics/domain/repositories/statistics_repository.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-import '../../helpers/mock_rust_storage_service.dart';
+class _MockStatsRepository implements StatisticsRepository {
+  List<ReadingSession> recordedSessions = [];
+  List<ReadingStats> mockStatsRange = [];
+  GlobalStats? mockGlobalStats;
+
+  @override
+  Future<void> recordReadingSession(ReadingSession session) async {
+    recordedSessions.add(session);
+  }
+
+  @override
+  Future<List<ReadingStats>> getReadingStatsRange({
+    required String startDate,
+    required String endDate,
+  }) async => mockStatsRange;
+
+  @override
+  Future<GlobalStats> getGlobalReadingStats() async =>
+      mockGlobalStats ??
+      const GlobalStats(
+        totalReadingTimeSeconds: 0,
+        totalCharactersRead: 0,
+        booksReadCount: 0,
+        booksCompletedCount: 0,
+        consecutiveReadingDays: 0,
+        todayReadingTimeSeconds: 0,
+        todayCharactersRead: 0,
+        averageReadingSpeed: 0,
+        totalBooksCount: 0,
+        totalNotesCount: 0,
+        totalBookmarksCount: 0,
+      );
+
+  @override
+  Future<List<ReadingSession>> getReadingSessions(
+    String bookId, {
+    int limit = 100,
+  }) async => recordedSessions;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('ReadingStatsService', () {
-    late MockRustStorageService storage;
+    late _MockStatsRepository storage;
     late ReadingStatsService service;
 
     setUp(() {
-      storage = MockRustStorageService();
+      storage = _MockStatsRepository();
       service = ReadingStatsService(storage);
     });
 

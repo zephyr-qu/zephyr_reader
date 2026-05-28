@@ -1,47 +1,39 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-class SplashPage extends StatefulWidget {
+class SplashPage extends HookWidget {
   const SplashPage({super.key});
 
   @override
-  State<SplashPage> createState() => _SplashPageState();
-}
-
-class _SplashPageState extends State<SplashPage>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-    _controller.forward();
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) context.go(RoutePaths.home);
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final controller = useAnimationController(
+      duration: const Duration(milliseconds: 800),
+    );
+    final fadeAnimation = useMemoized(
+      () => CurvedAnimation(parent: controller, curve: Curves.easeIn),
+      [controller],
+    );
+    controller.forward();
+
+    useEffect(() {
+      final timer = Timer(const Duration(seconds: 2), () {
+        if (context.mounted) context.go(RoutePaths.home);
+      });
+      return timer.cancel;
+    }, []);
+
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: Center(
         child: FadeTransition(
-          opacity: _fadeAnimation,
+          opacity: fadeAnimation,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -62,7 +54,7 @@ class _SplashPageState extends State<SplashPage>
               ),
               const SizedBox(height: 8),
               Text(
-                '轻如风，阅无界',
+                l10n.splashTagline,
                 style: TextStyle(
                   fontSize: 14,
                   color: theme.colorScheme.onSurfaceVariant,
