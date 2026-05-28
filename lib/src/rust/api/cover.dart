@@ -18,6 +18,20 @@ Future<String> extractBookCover({
   outputDir: outputDir,
 );
 
+/// 提取书籍封面并保存路径到数据库
+///
+/// 一次调用完成：提取封面 + 更新 DB 中的 cover_path。
+/// 替代 Dart 侧 extractBookCover + updateBook 的两步调用。
+Future<String> extractAndSaveCover({
+  required String bookId,
+  required String filePath,
+  required String outputDir,
+}) => RustLib.instance.api.crateApiCoverExtractAndSaveCover(
+  bookId: bookId,
+  filePath: filePath,
+  outputDir: outputDir,
+);
+
 /// 检查是否支持封面提取
 bool supportsCoverExtraction({required String filePath}) => RustLib.instance.api
     .crateApiCoverSupportsCoverExtraction(filePath: filePath);

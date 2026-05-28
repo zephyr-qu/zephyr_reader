@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import '../../application/reader_view_model.dart';
+import '../../application/reader_enums.dart';
 
 class ReaderSettingsPanel extends StatefulWidget {
   final ThemeMode themeMode;
@@ -212,10 +212,7 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
     );
   }
 
-  Widget _buildSectionHeader({
-    required IconData icon,
-    required String title,
-  }) {
+  Widget _buildSectionHeader({required IconData icon, required String title}) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 14, 4, 6),
       child: Row(

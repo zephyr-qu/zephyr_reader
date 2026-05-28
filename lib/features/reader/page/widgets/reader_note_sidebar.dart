@@ -3,9 +3,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-import 'package:zephyr_reader/di/service_locator.dart';
-import 'package:zephyr_reader/features/reader/data/note_repository.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class ReaderNoteSidebar extends StatefulWidget {
@@ -25,7 +24,6 @@ class ReaderNoteSidebar extends StatefulWidget {
 }
 
 class _ReaderNoteSidebarState extends State<ReaderNoteSidebar> {
-  final _noteService = getIt<NoteRepository>();
   List<Note> _notes = [];
   bool _loading = true;
 
@@ -38,7 +36,7 @@ class _ReaderNoteSidebarState extends State<ReaderNoteSidebar> {
   Future<void> _loadNotes() async {
     setState(() => _loading = true);
     try {
-      _notes = await _noteService.getNotes(widget.bookId);
+      _notes = await note_api.listNotesByBook(bookId: widget.bookId);
     } catch (_) {
       _notes = [];
     }

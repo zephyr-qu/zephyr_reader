@@ -4,9 +4,14 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../domain/error.dart';
-import '../domain/types.dart';
+import '../domain/types/metadata.dart';
+import '../domain/types/rich_text.dart';
+import '../domain/types/typeset.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `EpubImageInfo`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `eq`, `fmt`, `fmt`
 
 /// 快速获取 EPUB 元数据
 ///
@@ -43,3 +48,23 @@ Future<List<RichParagraph>> getEpubChapterRichContent({
   chapterIndex: chapterIndex,
   config: config,
 );
+
+/// 图片格式
+enum ImageFormat {
+  jpeg,
+  png,
+  gif,
+  webp,
+  bmp,
+  svg,
+  unknown;
+
+  Future<String> extension_() =>
+      RustLib.instance.api.crateApiEpubImageFormatExtension(that: this);
+
+  static Future<ImageFormat> fromExtension({required String ext}) =>
+      RustLib.instance.api.crateApiEpubImageFormatFromExtension(ext: ext);
+
+  Future<String> mimeType() =>
+      RustLib.instance.api.crateApiEpubImageFormatMimeType(that: this);
+}

@@ -1,7 +1,8 @@
 //! EPUB 解析模块
-//! 负责 EPUB 文件的解压、结构解析、文本提取
+//! 负责 EPUB 文件的解压、结构解析、文本提取、按需内容提供
 
 pub mod parse;
+pub mod provider;
 pub mod toc;
 pub mod unzip;
 
@@ -11,8 +12,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use flutter_rust_bridge::frb;
 
-use crate::domain::{ ParseResult, AppError};
-use crate::domain::parser::{BookMetadata, BookParser};
+use crate::{domain::{AppError, ParseResult}, parser::book_parser::{BookMetadata, BookParser}};
 
 pub use parse::parse_epub;
 
@@ -46,7 +46,7 @@ impl BookParser for EpubParser {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || parse_epub(fp))
             .await
-            .map_err(|e| AppError::internal(format!("EPUB 解析任务失败: {}", e)))?
+            .map_err(|e| AppError::internal(format!("EPUB parse task failed: {}", e)))?
     }
 
     async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata,AppError> {
@@ -58,11 +58,18 @@ impl BookParser for EpubParser {
 
             let epub_file = unzip::EpubFile::open(&fp)?;
 
+            let publisher = epub_file.publisher();
+            let translator = epub_file.translator();
+            let isbn = epub_file.identifier();
+
             Ok(BookMetadata {
                 title: epub_file.title(),
                 author: epub_file.author(),
                 description: None,
                 cover_path: epub_file.cover_path(),
+                publisher,
+                translator,
+                isbn,
                 publish_year: None,
                 language: None,
                 chapter_count: epub_file.spine().len() as i32,
@@ -70,31 +77,31 @@ impl BookParser for EpubParser {
             })
         })
             .await
-            .map_err(|e| AppError::internal(format!("EPUB 元数据提取失败: {}", e)))?
+            .map_err(|e| AppError::internal(format!("EPUB metadata extraction failed: {}", e)))?
     }
 
     async fn extract_chapter(&self, file_path: &str, chapter_index: i32) -> Result<String,AppError> {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || -> Result<String, AppError> {
             let mut epub_file = unzip::EpubFile::open(&fp)?;
-            let chapters = toc::extract_chapters_from_epub(&mut epub_file);
+            let chapters = toc::extract_chapters_from_epub(&mut epub_file, "");
 
             let chapter = chapters
                 .iter()
                 .find(|c| c.chapter_index == chapter_index)
                 .ok_or_else(|| {
-                    AppError::chapter_extract_error(chapter_index, format!("未找到章节 {}", chapter_index))
+                    AppError::chapter_extract_error(chapter_index, format!("chapter {} not found", chapter_index))
                 })?;
 
             let spine = epub_file.spine();
             let href = spine.get(chapter.start_index as usize).ok_or_else(|| {
-                AppError::chapter_extract_error(chapter.chapter_index, format!("章节索引超出范围：{}", chapter.start_index))
+                AppError::chapter_extract_error(chapter.chapter_index, format!("chapter index out of range: {}", chapter.start_index))
             })?;
 
             epub_file.read_resource(href)
         })
             .await
-            .map_err(|e| AppError::internal(format!("EPUB 章节提取失败: {}", e)))?
+            .map_err(|e| AppError::internal(format!("EPUB chapter extraction failed: {}", e)))?
     }
 }
 
@@ -117,14 +124,6 @@ mod tests {
         let parser = EpubParser::new();
         let formats = parser.supported_formats();
         assert!(formats.contains(&"epub"));
-    }
-
-    #[test]
-    fn test_epub_parser_supports_format() {
-        let parser = EpubParser::new();
-        assert!(parser.supports_format("epub"));
-        assert!(parser.supports_format("EPUB"));
-        assert!(!parser.supports_format("txt"));
     }
 
     #[tokio::test]

@@ -7,24 +7,38 @@
 // ignore_for_file: argument_type_not_assignable
 
 import 'api.dart';
+import 'api/backup.dart';
 import 'api/bilingual.dart';
-import 'api/bilingual_highlight.dart';
-import 'api/book.dart';
+import 'api/core.dart';
 import 'api/cover.dart';
+import 'api/data/book.dart';
+import 'api/data/bookmark.dart';
+import 'api/data/category.dart';
+import 'api/data/chapter.dart';
+import 'api/data/init.dart';
+import 'api/data/note.dart';
+import 'api/data/progress.dart';
+import 'api/data/session.dart';
+import 'api/data/stats.dart';
+import 'api/data/vocabulary.dart';
 import 'api/dictionary.dart';
 import 'api/epub.dart';
-import 'api/file.dart';
+import 'api/md.dart';
 import 'api/search.dart';
-import 'api/storage.dart';
 import 'api/typeset.dart';
-import 'api/vocabulary.dart';
+import 'api/vocab_marker.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dictionary/models.dart';
 import 'domain/error.dart';
-import 'domain/parser.dart';
-import 'domain/types.dart';
+import 'domain/types/metadata.dart';
+import 'domain/types/pagination.dart';
+import 'domain/types/rich_text.dart';
+import 'domain/types/typeset.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_web.dart';
+import 'parser/book_parser.dart';
+import 'parser/provider.dart';
 import 'storage/models.dart';
 import 'text/pagination.dart';
 
@@ -74,9 +88,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Book dco_decode_book(dynamic raw);
 
   @protected
-  BookCategory dco_decode_book_category(dynamic raw);
-
-  @protected
   BookFormat dco_decode_book_format(dynamic raw);
 
   @protected
@@ -84,6 +95,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BookStatus dco_decode_book_status(dynamic raw);
+
+  @protected
+  BookWithProgress dco_decode_book_with_progress(dynamic raw);
 
   @protected
   Bookmark dco_decode_bookmark(dynamic raw);
@@ -98,13 +112,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Book dco_decode_box_autoadd_book(dynamic raw);
 
   @protected
-  BookCategory dco_decode_box_autoadd_book_category(dynamic raw);
-
-  @protected
   Bookmark dco_decode_box_autoadd_bookmark(dynamic raw);
 
   @protected
+  Category dco_decode_box_autoadd_category(dynamic raw);
+
+  @protected
   Chapter dco_decode_box_autoadd_chapter(dynamic raw);
+
+  @protected
+  DictEntry dco_decode_box_autoadd_dict_entry(dynamic raw);
+
+  @protected
+  DictSearchResult dco_decode_box_autoadd_dict_search_result(dynamic raw);
+
+  @protected
+  Dictionary dco_decode_box_autoadd_dictionary(dynamic raw);
 
   @protected
   double dco_decode_box_autoadd_f_32(dynamic raw);
@@ -125,13 +148,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ReadingProgress dco_decode_box_autoadd_reading_progress(dynamic raw);
 
   @protected
-  ReadingSession dco_decode_box_autoadd_reading_session(dynamic raw);
-
-  @protected
   ReadingStats dco_decode_box_autoadd_reading_stats(dynamic raw);
 
   @protected
+  TypesetCalibration dco_decode_box_autoadd_typeset_calibration(dynamic raw);
+
+  @protected
   TypesetConfig dco_decode_box_autoadd_typeset_config(dynamic raw);
+
+  @protected
+  VocabStatus dco_decode_box_autoadd_vocab_status(dynamic raw);
+
+  @protected
+  Category dco_decode_category(dynamic raw);
 
   @protected
   Chapter dco_decode_chapter(dynamic raw);
@@ -143,7 +172,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DictEntry dco_decode_dict_entry(dynamic raw);
 
   @protected
-  DictInfo dco_decode_dict_info(dynamic raw);
+  DictSearchResult dco_decode_dict_search_result(dynamic raw);
+
+  @protected
+  Dictionary dco_decode_dictionary(dynamic raw);
 
   @protected
   EpubMetadata dco_decode_epub_metadata(dynamic raw);
@@ -164,6 +196,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
+  ImageFormat dco_decode_image_format(dynamic raw);
+
+  @protected
   LanguageType dco_decode_language_type(dynamic raw);
 
   @protected
@@ -181,16 +216,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Book> dco_decode_list_book(dynamic raw);
 
   @protected
-  List<BookCategory> dco_decode_list_book_category(dynamic raw);
+  List<BookWithProgress> dco_decode_list_book_with_progress(dynamic raw);
 
   @protected
   List<Bookmark> dco_decode_list_bookmark(dynamic raw);
 
   @protected
+  List<Category> dco_decode_list_category(dynamic raw);
+
+  @protected
   List<Chapter> dco_decode_list_chapter(dynamic raw);
 
   @protected
-  List<DictEntry> dco_decode_list_dict_entry(dynamic raw);
+  List<Dictionary> dco_decode_list_dictionary(dynamic raw);
 
   @protected
   List<EpubTocItem> dco_decode_list_epub_toc_item(dynamic raw);
@@ -220,7 +258,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<SearchResult> dco_decode_list_search_result(dynamic raw);
 
   @protected
-  List<VocabEntry> dco_decode_list_vocab_entry(dynamic raw);
+  List<Vocab> dco_decode_list_vocab(dynamic raw);
+
+  @protected
+  List<VocabMatch> dco_decode_list_vocab_match(dynamic raw);
 
   @protected
   Note dco_decode_note(dynamic raw);
@@ -241,13 +282,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Book? dco_decode_opt_box_autoadd_book(dynamic raw);
 
   @protected
-  BookCategory? dco_decode_opt_box_autoadd_book_category(dynamic raw);
-
-  @protected
   Bookmark? dco_decode_opt_box_autoadd_bookmark(dynamic raw);
 
   @protected
+  Category? dco_decode_opt_box_autoadd_category(dynamic raw);
+
+  @protected
   Chapter? dco_decode_opt_box_autoadd_chapter(dynamic raw);
+
+  @protected
+  DictEntry? dco_decode_opt_box_autoadd_dict_entry(dynamic raw);
+
+  @protected
+  DictSearchResult? dco_decode_opt_box_autoadd_dict_search_result(dynamic raw);
+
+  @protected
+  Dictionary? dco_decode_opt_box_autoadd_dictionary(dynamic raw);
 
   @protected
   double? dco_decode_opt_box_autoadd_f_32(dynamic raw);
@@ -268,10 +318,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ReadingProgress? dco_decode_opt_box_autoadd_reading_progress(dynamic raw);
 
   @protected
+  TypesetCalibration? dco_decode_opt_box_autoadd_typeset_calibration(
+    dynamic raw,
+  );
+
+  @protected
   TypesetConfig? dco_decode_opt_box_autoadd_typeset_config(dynamic raw);
 
   @protected
+  VocabStatus? dco_decode_opt_box_autoadd_vocab_status(dynamic raw);
+
+  @protected
+  Uint8List? dco_decode_opt_list_prim_u_8_strict(dynamic raw);
+
+  @protected
   PageContent dco_decode_page_content(dynamic raw);
+
+  @protected
+  PageData dco_decode_page_data(dynamic raw);
 
   @protected
   ParseResult dco_decode_parse_result(dynamic raw);
@@ -295,7 +359,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SearchResult dco_decode_search_result(dynamic raw);
 
   @protected
+  TypesetCalibration dco_decode_typeset_calibration(dynamic raw);
+
+  @protected
   TypesetConfig dco_decode_typeset_config(dynamic raw);
+
+  @protected
+  int dco_decode_u_32(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
@@ -307,10 +377,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BigInt dco_decode_usize(dynamic raw);
 
   @protected
-  VocabEntry dco_decode_vocab_entry(dynamic raw);
+  Vocab dco_decode_vocab(dynamic raw);
+
+  @protected
+  VocabMatch dco_decode_vocab_match(dynamic raw);
 
   @protected
   VocabStats dco_decode_vocab_stats(dynamic raw);
+
+  @protected
+  VocabStatus dco_decode_vocab_status(dynamic raw);
 
   @protected
   PageStreamer
@@ -350,9 +426,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Book sse_decode_book(SseDeserializer deserializer);
 
   @protected
-  BookCategory sse_decode_book_category(SseDeserializer deserializer);
-
-  @protected
   BookFormat sse_decode_book_format(SseDeserializer deserializer);
 
   @protected
@@ -360,6 +433,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BookStatus sse_decode_book_status(SseDeserializer deserializer);
+
+  @protected
+  BookWithProgress sse_decode_book_with_progress(SseDeserializer deserializer);
 
   @protected
   Bookmark sse_decode_bookmark(SseDeserializer deserializer);
@@ -374,15 +450,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Book sse_decode_box_autoadd_book(SseDeserializer deserializer);
 
   @protected
-  BookCategory sse_decode_box_autoadd_book_category(
+  Bookmark sse_decode_box_autoadd_bookmark(SseDeserializer deserializer);
+
+  @protected
+  Category sse_decode_box_autoadd_category(SseDeserializer deserializer);
+
+  @protected
+  Chapter sse_decode_box_autoadd_chapter(SseDeserializer deserializer);
+
+  @protected
+  DictEntry sse_decode_box_autoadd_dict_entry(SseDeserializer deserializer);
+
+  @protected
+  DictSearchResult sse_decode_box_autoadd_dict_search_result(
     SseDeserializer deserializer,
   );
 
   @protected
-  Bookmark sse_decode_box_autoadd_bookmark(SseDeserializer deserializer);
-
-  @protected
-  Chapter sse_decode_box_autoadd_chapter(SseDeserializer deserializer);
+  Dictionary sse_decode_box_autoadd_dictionary(SseDeserializer deserializer);
 
   @protected
   double sse_decode_box_autoadd_f_32(SseDeserializer deserializer);
@@ -405,12 +490,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ReadingSession sse_decode_box_autoadd_reading_session(
+  ReadingStats sse_decode_box_autoadd_reading_stats(
     SseDeserializer deserializer,
   );
 
   @protected
-  ReadingStats sse_decode_box_autoadd_reading_stats(
+  TypesetCalibration sse_decode_box_autoadd_typeset_calibration(
     SseDeserializer deserializer,
   );
 
@@ -418,6 +503,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   TypesetConfig sse_decode_box_autoadd_typeset_config(
     SseDeserializer deserializer,
   );
+
+  @protected
+  VocabStatus sse_decode_box_autoadd_vocab_status(SseDeserializer deserializer);
+
+  @protected
+  Category sse_decode_category(SseDeserializer deserializer);
 
   @protected
   Chapter sse_decode_chapter(SseDeserializer deserializer);
@@ -429,7 +520,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DictEntry sse_decode_dict_entry(SseDeserializer deserializer);
 
   @protected
-  DictInfo sse_decode_dict_info(SseDeserializer deserializer);
+  DictSearchResult sse_decode_dict_search_result(SseDeserializer deserializer);
+
+  @protected
+  Dictionary sse_decode_dictionary(SseDeserializer deserializer);
 
   @protected
   EpubMetadata sse_decode_epub_metadata(SseDeserializer deserializer);
@@ -448,6 +542,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
+  ImageFormat sse_decode_image_format(SseDeserializer deserializer);
 
   @protected
   LanguageType sse_decode_language_type(SseDeserializer deserializer);
@@ -469,7 +566,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Book> sse_decode_list_book(SseDeserializer deserializer);
 
   @protected
-  List<BookCategory> sse_decode_list_book_category(
+  List<BookWithProgress> sse_decode_list_book_with_progress(
     SseDeserializer deserializer,
   );
 
@@ -477,10 +574,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Bookmark> sse_decode_list_bookmark(SseDeserializer deserializer);
 
   @protected
+  List<Category> sse_decode_list_category(SseDeserializer deserializer);
+
+  @protected
   List<Chapter> sse_decode_list_chapter(SseDeserializer deserializer);
 
   @protected
-  List<DictEntry> sse_decode_list_dict_entry(SseDeserializer deserializer);
+  List<Dictionary> sse_decode_list_dictionary(SseDeserializer deserializer);
 
   @protected
   List<EpubTocItem> sse_decode_list_epub_toc_item(SseDeserializer deserializer);
@@ -520,7 +620,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  List<VocabEntry> sse_decode_list_vocab_entry(SseDeserializer deserializer);
+  List<Vocab> sse_decode_list_vocab(SseDeserializer deserializer);
+
+  @protected
+  List<VocabMatch> sse_decode_list_vocab_match(SseDeserializer deserializer);
 
   @protected
   Note sse_decode_note(SseDeserializer deserializer);
@@ -541,15 +644,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Book? sse_decode_opt_box_autoadd_book(SseDeserializer deserializer);
 
   @protected
-  BookCategory? sse_decode_opt_box_autoadd_book_category(
+  Bookmark? sse_decode_opt_box_autoadd_bookmark(SseDeserializer deserializer);
+
+  @protected
+  Category? sse_decode_opt_box_autoadd_category(SseDeserializer deserializer);
+
+  @protected
+  Chapter? sse_decode_opt_box_autoadd_chapter(SseDeserializer deserializer);
+
+  @protected
+  DictEntry? sse_decode_opt_box_autoadd_dict_entry(
     SseDeserializer deserializer,
   );
 
   @protected
-  Bookmark? sse_decode_opt_box_autoadd_bookmark(SseDeserializer deserializer);
+  DictSearchResult? sse_decode_opt_box_autoadd_dict_search_result(
+    SseDeserializer deserializer,
+  );
 
   @protected
-  Chapter? sse_decode_opt_box_autoadd_chapter(SseDeserializer deserializer);
+  Dictionary? sse_decode_opt_box_autoadd_dictionary(
+    SseDeserializer deserializer,
+  );
 
   @protected
   double? sse_decode_opt_box_autoadd_f_32(SseDeserializer deserializer);
@@ -572,12 +688,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  TypesetCalibration? sse_decode_opt_box_autoadd_typeset_calibration(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   TypesetConfig? sse_decode_opt_box_autoadd_typeset_config(
     SseDeserializer deserializer,
   );
 
   @protected
+  VocabStatus? sse_decode_opt_box_autoadd_vocab_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  Uint8List? sse_decode_opt_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
   PageContent sse_decode_page_content(SseDeserializer deserializer);
+
+  @protected
+  PageData sse_decode_page_data(SseDeserializer deserializer);
 
   @protected
   ParseResult sse_decode_parse_result(SseDeserializer deserializer);
@@ -601,7 +733,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SearchResult sse_decode_search_result(SseDeserializer deserializer);
 
   @protected
+  TypesetCalibration sse_decode_typeset_calibration(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   TypesetConfig sse_decode_typeset_config(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
@@ -613,10 +753,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BigInt sse_decode_usize(SseDeserializer deserializer);
 
   @protected
-  VocabEntry sse_decode_vocab_entry(SseDeserializer deserializer);
+  Vocab sse_decode_vocab(SseDeserializer deserializer);
+
+  @protected
+  VocabMatch sse_decode_vocab_match(SseDeserializer deserializer);
 
   @protected
   VocabStats sse_decode_vocab_stats(SseDeserializer deserializer);
+
+  @protected
+  VocabStatus sse_decode_vocab_status(SseDeserializer deserializer);
 
   @protected
   JSAny cst_encode_Chrono_Utc(DateTime raw) {
@@ -730,7 +876,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_opt_box_autoadd_i_64(raw.fileMtime),
       cst_encode_String(raw.title),
       cst_encode_opt_String(raw.author),
-      cst_encode_opt_String(raw.description),
       cst_encode_opt_String(raw.coverPath),
       cst_encode_i_32(raw.chapterCount),
       cst_encode_i_64(raw.totalCharacters),
@@ -739,21 +884,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_opt_box_autoadd_Chrono_Utc(raw.lastOpenedAt),
       cst_encode_book_status(raw.status),
       cst_encode_bool(raw.isPinned),
-    ].jsify()!;
-  }
-
-  @protected
-  JSAny cst_encode_book_category(BookCategory raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return [
-      cst_encode_String(raw.id),
-      cst_encode_String(raw.name),
       cst_encode_opt_String(raw.description),
-      cst_encode_String(raw.color),
-      cst_encode_i_32(raw.sortOrder),
-      cst_encode_bool(raw.isSystem),
-      cst_encode_Chrono_Utc(raw.createdAt),
-      cst_encode_opt_box_autoadd_Chrono_Utc(raw.updatedAt),
+      cst_encode_opt_String(raw.publisher),
+      cst_encode_opt_String(raw.translator),
+      cst_encode_opt_String(raw.isbn),
     ].jsify()!;
   }
 
@@ -765,10 +899,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_String(raw.author),
       cst_encode_opt_String(raw.description),
       cst_encode_opt_String(raw.coverPath),
+      cst_encode_opt_String(raw.publisher),
+      cst_encode_opt_String(raw.translator),
+      cst_encode_opt_String(raw.isbn),
       cst_encode_opt_box_autoadd_i_32(raw.publishYear),
       cst_encode_opt_String(raw.language),
       cst_encode_i_32(raw.chapterCount),
       cst_encode_i_64(raw.totalCharacters),
+    ].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_book_with_progress(BookWithProgress raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_book(raw.book),
+      cst_encode_opt_box_autoadd_reading_progress(raw.progress),
     ].jsify()!;
   }
 
@@ -799,21 +945,39 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  JSAny cst_encode_box_autoadd_book_category(BookCategory raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_book_category(raw);
-  }
-
-  @protected
   JSAny cst_encode_box_autoadd_bookmark(Bookmark raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return cst_encode_bookmark(raw);
   }
 
   @protected
+  JSAny cst_encode_box_autoadd_category(Category raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_category(raw);
+  }
+
+  @protected
   JSAny cst_encode_box_autoadd_chapter(Chapter raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return cst_encode_chapter(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_dict_entry(DictEntry raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_dict_entry(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_dict_search_result(DictSearchResult raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_dict_search_result(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_dictionary(Dictionary raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_dictionary(raw);
   }
 
   @protected
@@ -853,15 +1017,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  JSAny cst_encode_box_autoadd_reading_session(ReadingSession raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_reading_session(raw);
-  }
-
-  @protected
   JSAny cst_encode_box_autoadd_reading_stats(ReadingStats raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return cst_encode_reading_stats(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_typeset_calibration(TypesetCalibration raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_typeset_calibration(raw);
   }
 
   @protected
@@ -871,13 +1035,31 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  int cst_encode_box_autoadd_vocab_status(VocabStatus raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_vocab_status(raw);
+  }
+
+  @protected
+  JSAny cst_encode_category(Category raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_String(raw.id),
+      cst_encode_String(raw.name),
+      cst_encode_opt_String(raw.description),
+      cst_encode_String(raw.color),
+      cst_encode_i_32(raw.sortOrder),
+      cst_encode_bool(raw.isSystem),
+    ].jsify()!;
+  }
+
+  @protected
   JSAny cst_encode_chapter(Chapter raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
       cst_encode_String(raw.id),
       cst_encode_String(raw.bookId),
       cst_encode_String(raw.title),
-      cst_encode_String(raw.contentFile),
       cst_encode_i_32(raw.chapterIndex),
       cst_encode_i_64(raw.wordCount),
       cst_encode_Chrono_Utc(raw.cachedAt),
@@ -905,20 +1087,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   JSAny cst_encode_dict_entry(DictEntry raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
-      cst_encode_String(raw.simplified),
-      cst_encode_String(raw.traditional),
-      cst_encode_String(raw.pinyin),
-      cst_encode_String(raw.definitions),
+      cst_encode_String(raw.word),
+      cst_encode_String(raw.definitionHtml),
+      cst_encode_opt_String(raw.audioKey),
     ].jsify()!;
   }
 
   @protected
-  JSAny cst_encode_dict_info(DictInfo raw) {
+  JSAny cst_encode_dict_search_result(DictSearchResult raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
-      cst_encode_String(raw.version),
-      cst_encode_String(raw.source),
-      cst_encode_i_64(raw.entryCount),
+      cst_encode_opt_box_autoadd_dict_entry(raw.exact),
+      cst_encode_list_String(raw.suggestions),
+    ].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_dictionary(Dictionary raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_String(raw.id),
+      cst_encode_String(raw.name),
+      cst_encode_String(raw.filePath),
+      cst_encode_String(raw.dictType),
+      cst_encode_opt_String(raw.langFrom),
+      cst_encode_opt_String(raw.langTo),
+      cst_encode_bool(raw.isEnabled),
+      cst_encode_i_64(raw.wordCount),
+      cst_encode_Chrono_Utc(raw.addedAt),
     ].jsify()!;
   }
 
@@ -995,9 +1191,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  JSAny cst_encode_list_book_category(List<BookCategory> raw) {
+  JSAny cst_encode_list_book_with_progress(List<BookWithProgress> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw.map(cst_encode_book_category).toList().jsify()!;
+    return raw.map(cst_encode_book_with_progress).toList().jsify()!;
   }
 
   @protected
@@ -1007,15 +1203,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  JSAny cst_encode_list_category(List<Category> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.map(cst_encode_category).toList().jsify()!;
+  }
+
+  @protected
   JSAny cst_encode_list_chapter(List<Chapter> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw.map(cst_encode_chapter).toList().jsify()!;
   }
 
   @protected
-  JSAny cst_encode_list_dict_entry(List<DictEntry> raw) {
+  JSAny cst_encode_list_dictionary(List<Dictionary> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw.map(cst_encode_dict_entry).toList().jsify()!;
+    return raw.map(cst_encode_dictionary).toList().jsify()!;
   }
 
   @protected
@@ -1073,9 +1275,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  JSAny cst_encode_list_vocab_entry(List<VocabEntry> raw) {
+  JSAny cst_encode_list_vocab(List<Vocab> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw.map(cst_encode_vocab_entry).toList().jsify()!;
+    return raw.map(cst_encode_vocab).toList().jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_list_vocab_match(List<VocabMatch> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.map(cst_encode_vocab_match).toList().jsify()!;
   }
 
   @protected
@@ -1128,21 +1336,39 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  JSAny? cst_encode_opt_box_autoadd_book_category(BookCategory? raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw == null ? null : cst_encode_box_autoadd_book_category(raw);
-  }
-
-  @protected
   JSAny? cst_encode_opt_box_autoadd_bookmark(Bookmark? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? null : cst_encode_box_autoadd_bookmark(raw);
   }
 
   @protected
+  JSAny? cst_encode_opt_box_autoadd_category(Category? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_box_autoadd_category(raw);
+  }
+
+  @protected
   JSAny? cst_encode_opt_box_autoadd_chapter(Chapter? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? null : cst_encode_box_autoadd_chapter(raw);
+  }
+
+  @protected
+  JSAny? cst_encode_opt_box_autoadd_dict_entry(DictEntry? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_box_autoadd_dict_entry(raw);
+  }
+
+  @protected
+  JSAny? cst_encode_opt_box_autoadd_dict_search_result(DictSearchResult? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_box_autoadd_dict_search_result(raw);
+  }
+
+  @protected
+  JSAny? cst_encode_opt_box_autoadd_dictionary(Dictionary? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_box_autoadd_dictionary(raw);
   }
 
   @protected
@@ -1182,9 +1408,29 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  JSAny? cst_encode_opt_box_autoadd_typeset_calibration(
+    TypesetCalibration? raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_box_autoadd_typeset_calibration(raw);
+  }
+
+  @protected
   JSAny? cst_encode_opt_box_autoadd_typeset_config(TypesetConfig? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? null : cst_encode_box_autoadd_typeset_config(raw);
+  }
+
+  @protected
+  int? cst_encode_opt_box_autoadd_vocab_status(VocabStatus? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_box_autoadd_vocab_status(raw);
+  }
+
+  @protected
+  JSAny? cst_encode_opt_list_prim_u_8_strict(Uint8List? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_list_prim_u_8_strict(raw);
   }
 
   @protected
@@ -1195,6 +1441,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_i_32(raw.pageIndex),
       cst_encode_String(raw.content),
       cst_encode_bool(raw.isLastPage),
+      cst_encode_i_64(raw.startOffset),
+      cst_encode_i_64(raw.endOffset),
+    ].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_page_data(PageData raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_u_32(raw.pageIndex),
+      cst_encode_String(raw.text),
     ].jsify()!;
   }
 
@@ -1213,6 +1470,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     return [
       cst_encode_String(raw.bookId),
       cst_encode_i_32(raw.chapterIndex),
+      cst_encode_i_32(raw.chunkIndex),
       cst_encode_opt_String(raw.chapterId),
       cst_encode_i_64(raw.charOffset),
       cst_encode_i_32(raw.pageIndex),
@@ -1231,7 +1489,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_String(raw.id),
       cst_encode_String(raw.bookId),
       cst_encode_i_32(raw.chapterIndex),
-      cst_encode_opt_String(raw.chapterId),
       cst_encode_i_64(raw.startCharOffset),
       cst_encode_i_64(raw.endCharOffset),
       cst_encode_Chrono_Utc(raw.startedAt),
@@ -1249,6 +1506,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_i_64(raw.readingTimeSeconds),
       cst_encode_i_64(raw.charactersRead),
       cst_encode_i_32(raw.sessionCount),
+      cst_encode_opt_String(raw.lastSessionId),
     ].jsify()!;
   }
 
@@ -1346,12 +1604,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   JSAny cst_encode_search_result(SearchResult raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
-      cst_encode_i_32(raw.chapterId),
+      cst_encode_String(raw.bookId),
+      cst_encode_String(raw.chapterId),
+      cst_encode_String(raw.chapterIndex),
       cst_encode_String(raw.chapterTitle),
       cst_encode_String(raw.snippet),
       cst_encode_i_64(raw.position),
       cst_encode_f_32(raw.score),
       cst_encode_i_64(raw.charOffset),
+    ].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_typeset_calibration(TypesetCalibration raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_f_32(raw.dpr),
+      cst_encode_f_32(raw.cjkWidth),
+      cst_encode_f_32(raw.asciiWidth),
+      cst_encode_f_32(raw.digitWidth),
+      cst_encode_f_32(raw.punctWidth),
+      cst_encode_f_32(raw.latinExtWidth),
+      cst_encode_f_32(raw.otherWidth),
     ].jsify()!;
   }
 
@@ -1369,6 +1643,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_language_type(raw.language),
       cst_encode_bool(raw.enableHyphenation),
       cst_encode_opt_String(raw.hyphenationLanguage),
+      cst_encode_String(raw.fontFamily),
+      cst_encode_opt_box_autoadd_typeset_calibration(raw.calibration),
     ].jsify()!;
   }
 
@@ -1379,7 +1655,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  JSAny cst_encode_vocab_entry(VocabEntry raw) {
+  JSAny cst_encode_vocab(Vocab raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
       cst_encode_String(raw.id),
@@ -1393,7 +1669,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_Chrono_Utc(raw.createdAt),
       cst_encode_i_32(raw.reviewCount),
       cst_encode_opt_box_autoadd_Chrono_Utc(raw.lastReviewedAt),
-      cst_encode_String(raw.status),
+      cst_encode_vocab_status(raw.status),
+      cst_encode_opt_String(raw.wordList),
+      cst_encode_opt_String(raw.dictSource),
+      cst_encode_opt_String(raw.dictEntryHash),
+    ].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_vocab_match(VocabMatch raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_String(raw.word),
+      cst_encode_i_64(raw.start),
+      cst_encode_i_64(raw.end),
     ].jsify()!;
   }
 
@@ -1436,16 +1725,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int cst_encode_i_32(int raw);
 
   @protected
+  int cst_encode_image_format(ImageFormat raw);
+
+  @protected
   int cst_encode_language_type(LanguageType raw);
 
   @protected
   int cst_encode_note_type(NoteType raw);
 
   @protected
+  int cst_encode_u_32(int raw);
+
+  @protected
   int cst_encode_u_8(int raw);
 
   @protected
   void cst_encode_unit(void raw);
+
+  @protected
+  int cst_encode_vocab_status(VocabStatus raw);
 
   @protected
   void
@@ -1492,9 +1790,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_book(Book self, SseSerializer serializer);
 
   @protected
-  void sse_encode_book_category(BookCategory self, SseSerializer serializer);
-
-  @protected
   void sse_encode_book_format(BookFormat self, SseSerializer serializer);
 
   @protected
@@ -1502,6 +1797,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_book_status(BookStatus self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_book_with_progress(
+    BookWithProgress self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_bookmark(Bookmark self, SseSerializer serializer);
@@ -1519,16 +1820,31 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_book(Book self, SseSerializer serializer);
 
   @protected
-  void sse_encode_box_autoadd_book_category(
-    BookCategory self,
+  void sse_encode_box_autoadd_bookmark(Bookmark self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_category(Category self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_chapter(Chapter self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_dict_entry(
+    DictEntry self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_box_autoadd_bookmark(Bookmark self, SseSerializer serializer);
+  void sse_encode_box_autoadd_dict_search_result(
+    DictSearchResult self,
+    SseSerializer serializer,
+  );
 
   @protected
-  void sse_encode_box_autoadd_chapter(Chapter self, SseSerializer serializer);
+  void sse_encode_box_autoadd_dictionary(
+    Dictionary self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_box_autoadd_f_32(double self, SseSerializer serializer);
@@ -1558,14 +1874,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_box_autoadd_reading_session(
-    ReadingSession self,
+  void sse_encode_box_autoadd_reading_stats(
+    ReadingStats self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_box_autoadd_reading_stats(
-    ReadingStats self,
+  void sse_encode_box_autoadd_typeset_calibration(
+    TypesetCalibration self,
     SseSerializer serializer,
   );
 
@@ -1574,6 +1890,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     TypesetConfig self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_box_autoadd_vocab_status(
+    VocabStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_category(Category self, SseSerializer serializer);
 
   @protected
   void sse_encode_chapter(Chapter self, SseSerializer serializer);
@@ -1588,7 +1913,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_dict_entry(DictEntry self, SseSerializer serializer);
 
   @protected
-  void sse_encode_dict_info(DictInfo self, SseSerializer serializer);
+  void sse_encode_dict_search_result(
+    DictSearchResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_dictionary(Dictionary self, SseSerializer serializer);
 
   @protected
   void sse_encode_epub_metadata(EpubMetadata self, SseSerializer serializer);
@@ -1607,6 +1938,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_image_format(ImageFormat self, SseSerializer serializer);
 
   @protected
   void sse_encode_language_type(LanguageType self, SseSerializer serializer);
@@ -1630,8 +1964,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_book(List<Book> self, SseSerializer serializer);
 
   @protected
-  void sse_encode_list_book_category(
-    List<BookCategory> self,
+  void sse_encode_list_book_with_progress(
+    List<BookWithProgress> self,
     SseSerializer serializer,
   );
 
@@ -1639,11 +1973,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_bookmark(List<Bookmark> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_category(List<Category> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_chapter(List<Chapter> self, SseSerializer serializer);
 
   @protected
-  void sse_encode_list_dict_entry(
-    List<DictEntry> self,
+  void sse_encode_list_dictionary(
+    List<Dictionary> self,
     SseSerializer serializer,
   );
 
@@ -1699,8 +2036,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_list_vocab_entry(
-    List<VocabEntry> self,
+  void sse_encode_list_vocab(List<Vocab> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_vocab_match(
+    List<VocabMatch> self,
     SseSerializer serializer,
   );
 
@@ -1726,20 +2066,38 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_box_autoadd_book(Book? self, SseSerializer serializer);
 
   @protected
-  void sse_encode_opt_box_autoadd_book_category(
-    BookCategory? self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_opt_box_autoadd_bookmark(
     Bookmark? self,
     SseSerializer serializer,
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_category(
+    Category? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_chapter(
     Chapter? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_dict_entry(
+    DictEntry? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_dict_search_result(
+    DictSearchResult? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_dictionary(
+    Dictionary? self,
     SseSerializer serializer,
   );
 
@@ -1771,13 +2129,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_typeset_calibration(
+    TypesetCalibration? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_typeset_config(
     TypesetConfig? self,
     SseSerializer serializer,
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_vocab_status(
+    VocabStatus? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_list_prim_u_8_strict(
+    Uint8List? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_page_content(PageContent self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_page_data(PageData self, SseSerializer serializer);
 
   @protected
   void sse_encode_parse_result(ParseResult self, SseSerializer serializer);
@@ -1807,7 +2186,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_search_result(SearchResult self, SseSerializer serializer);
 
   @protected
+  void sse_encode_typeset_calibration(
+    TypesetCalibration self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_typeset_config(TypesetConfig self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);
@@ -1819,36 +2207,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_usize(BigInt self, SseSerializer serializer);
 
   @protected
-  void sse_encode_vocab_entry(VocabEntry self, SseSerializer serializer);
+  void sse_encode_vocab(Vocab self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_vocab_match(VocabMatch self, SseSerializer serializer);
 
   @protected
   void sse_encode_vocab_stats(VocabStats self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_vocab_status(VocabStatus self, SseSerializer serializer);
 }
 
 // Section: wire_class
 
 class RustLibWire implements BaseWire {
   RustLibWire.fromExternalLibrary(ExternalLibrary lib);
-
-  void wire__crate__api__vocabulary__add_vocabulary_word(
-    NativePortType port_,
-    String word,
-    String pinyin,
-    String translation,
-    String? context_sentence,
-    String? book_id,
-    JSAny? chapter_index,
-    JSAny? char_offset,
-  ) => wasmModule.wire__crate__api__vocabulary__add_vocabulary_word(
-    port_,
-    word,
-    pinyin,
-    translation,
-    context_sentence,
-    book_id,
-    chapter_index,
-    char_offset,
-  );
 
   void wire__crate__api__bilingual__align_bilingual_content(
     NativePortType port_,
@@ -1862,36 +2236,112 @@ class RustLibWire implements BaseWire {
     min_similarity,
   );
 
-  void wire__crate__api__storage__assign_category_to_book(
+  void wire__crate__api__data__category__assign_category_to_book(
     NativePortType port_,
     String book_id,
     String category_id,
-  ) => wasmModule.wire__crate__api__storage__assign_category_to_book(
+  ) => wasmModule.wire__crate__api__data__category__assign_category_to_book(
     port_,
     book_id,
     category_id,
   );
 
-  void wire__crate__api__search__clear_all_search_index(NativePortType port_) =>
-      wasmModule.wire__crate__api__search__clear_all_search_index(port_);
+  void wire__crate__api__search__clear_all(NativePortType port_) =>
+      wasmModule.wire__crate__api__search__clear_all(port_);
 
-  void wire__crate__api__storage__clear_categories_for_book(
+  void wire__crate__api__data__bookmark__clear_bookmarks_by_book(
     NativePortType port_,
     String book_id,
-  ) => wasmModule.wire__crate__api__storage__clear_categories_for_book(
+  ) => wasmModule.wire__crate__api__data__bookmark__clear_bookmarks_by_book(
     port_,
     book_id,
   );
 
-  void wire__crate__api__storage__clear_reading_progress(
+  void wire__crate__api__data__category__clear_categories_by_book(
     NativePortType port_,
     String book_id,
-  ) => wasmModule.wire__crate__api__storage__clear_reading_progress(
+  ) => wasmModule.wire__crate__api__data__category__clear_categories_by_book(
     port_,
     book_id,
   );
 
-  void wire__crate__api__bilingual_highlight__create_bilingual_highlight_pair(
+  void wire__crate__api__data__category__clear_category_from_book(
+    NativePortType port_,
+    String book_id,
+    String category_id,
+  ) => wasmModule.wire__crate__api__data__category__clear_category_from_book(
+    port_,
+    book_id,
+    category_id,
+  );
+
+  void wire__crate__api__data__chapter__clear_chapters_by_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__data__chapter__clear_chapters_by_book(
+    port_,
+    book_id,
+  );
+
+  void wire__crate__api__data__note__clear_notes_by_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__data__note__clear_notes_by_book(
+    port_,
+    book_id,
+  );
+
+  void wire__crate__api__data__progress__clear_progress(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__data__progress__clear_progress(
+    port_,
+    book_id,
+  );
+
+  void wire__crate__api__data__session__clear_sessions_by_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__data__session__clear_sessions_by_book(
+    port_,
+    book_id,
+  );
+
+  void wire__crate__api__dictionary__close_dictionary(NativePortType port_) =>
+      wasmModule.wire__crate__api__dictionary__close_dictionary(port_);
+
+  void wire__crate__api__data__bookmark__count_bookmarks_by_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__data__bookmark__count_bookmarks_by_book(
+    port_,
+    book_id,
+  );
+
+  void wire__crate__api__data__book__count_books(NativePortType port_) =>
+      wasmModule.wire__crate__api__data__book__count_books(port_);
+
+  void wire__crate__api__data__note__create_annotation(
+    NativePortType port_,
+    String book_id,
+    int chapter_index,
+    JSAny char_offset,
+    String content,
+    String? selected_text,
+    String? language,
+    String? paired_note_id,
+  ) => wasmModule.wire__crate__api__data__note__create_annotation(
+    port_,
+    book_id,
+    chapter_index,
+    char_offset,
+    content,
+    selected_text,
+    language,
+    paired_note_id,
+  );
+
+  void wire__crate__api__bilingual__create_bilingual_highlight_pair(
     NativePortType port_,
     String source_book_id,
     int source_chapter_index,
@@ -1906,129 +2356,235 @@ class RustLibWire implements BaseWire {
     String target_selected_text,
     String target_language,
     int highlight_color,
-  ) => wasmModule
-      .wire__crate__api__bilingual_highlight__create_bilingual_highlight_pair(
-        port_,
-        source_book_id,
-        source_chapter_index,
-        source_char_offset,
-        source_length,
-        source_selected_text,
-        source_language,
-        target_book_id,
-        target_chapter_index,
-        target_char_offset,
-        target_length,
-        target_selected_text,
-        target_language,
-        highlight_color,
-      );
+  ) => wasmModule.wire__crate__api__bilingual__create_bilingual_highlight_pair(
+    port_,
+    source_book_id,
+    source_chapter_index,
+    source_char_offset,
+    source_length,
+    source_selected_text,
+    source_language,
+    target_book_id,
+    target_chapter_index,
+    target_char_offset,
+    target_length,
+    target_selected_text,
+    target_language,
+    highlight_color,
+  );
 
-  void wire__crate__api__storage__create_bookmark(
+  void wire__crate__api__data__bookmark__create_bookmark(
     NativePortType port_,
-    JSAny bookmark,
-  ) => wasmModule.wire__crate__api__storage__create_bookmark(port_, bookmark);
+    String book_id,
+    int chapter_index,
+    JSAny char_offset,
+    String title,
+  ) => wasmModule.wire__crate__api__data__bookmark__create_bookmark(
+    port_,
+    book_id,
+    chapter_index,
+    char_offset,
+    title,
+  );
 
-  void wire__crate__api__storage__create_note(
+  void wire__crate__api__data__category__create_category(
     NativePortType port_,
-    JSAny note,
-  ) => wasmModule.wire__crate__api__storage__create_note(port_, note);
+    String name,
+    String color,
+    int sort_order,
+    String? description,
+  ) => wasmModule.wire__crate__api__data__category__create_category(
+    port_,
+    name,
+    color,
+    sort_order,
+    description,
+  );
 
-  void wire__crate__api__book__create_page_streamer(
+  void wire__crate__api__dictionary__create_dictionary(
+    NativePortType port_,
+    String name,
+    String file_path,
+    String dict_type,
+    String? lang_from,
+    String? lang_to,
+    bool is_enabled,
+    JSAny word_count,
+  ) => wasmModule.wire__crate__api__dictionary__create_dictionary(
+    port_,
+    name,
+    file_path,
+    dict_type,
+    lang_from,
+    lang_to,
+    is_enabled,
+    word_count,
+  );
+
+  void wire__crate__api__data__note__create_highlight(
+    NativePortType port_,
+    String book_id,
+    int chapter_index,
+    JSAny char_offset,
+    JSAny length,
+    String selected_text,
+    int color,
+    String? language,
+    String? paired_note_id,
+  ) => wasmModule.wire__crate__api__data__note__create_highlight(
+    port_,
+    book_id,
+    chapter_index,
+    char_offset,
+    length,
+    selected_text,
+    color,
+    language,
+    paired_note_id,
+  );
+
+  void wire__crate__api__core__create_page_streamer(
     NativePortType port_,
     String file_path,
     int chapter_index,
     JSAny config,
-  ) => wasmModule.wire__crate__api__book__create_page_streamer(
+  ) => wasmModule.wire__crate__api__core__create_page_streamer(
     port_,
     file_path,
     chapter_index,
     config,
   );
 
-  void wire__crate__api__bilingual_highlight__delete_bilingual_highlight_pair(
-    NativePortType port_,
-    String note_id,
-  ) => wasmModule
-      .wire__crate__api__bilingual_highlight__delete_bilingual_highlight_pair(
-        port_,
-        note_id,
-      );
-
-  void wire__crate__api__storage__delete_book(
+  void wire__crate__api__data__session__create_session(
     NativePortType port_,
     String book_id,
-  ) => wasmModule.wire__crate__api__storage__delete_book(port_, book_id);
-
-  void wire__crate__api__search__delete_book_search_index(
-    NativePortType port_,
-    String book_id,
-  ) => wasmModule.wire__crate__api__search__delete_book_search_index(
+    int chapter_index,
+    JSAny start_char_offset,
+    JSAny end_char_offset,
+    JSAny started_at,
+  ) => wasmModule.wire__crate__api__data__session__create_session(
     port_,
     book_id,
+    chapter_index,
+    start_char_offset,
+    end_char_offset,
+    started_at,
   );
 
-  void wire__crate__api__storage__delete_bookmark(
+  void wire__crate__api__data__vocabulary__create_vocabulary_word(
+    NativePortType port_,
+    String word,
+    String pinyin,
+    String translation,
+    String? context_sentence,
+    String? book_id,
+    JSAny? chapter_index,
+    JSAny? char_offset,
+    String? word_list,
+  ) => wasmModule.wire__crate__api__data__vocabulary__create_vocabulary_word(
+    port_,
+    word,
+    pinyin,
+    translation,
+    context_sentence,
+    book_id,
+    chapter_index,
+    char_offset,
+    word_list,
+  );
+
+  void wire__crate__api__data__book__create_web_book(
+    NativePortType port_,
+    String title,
+    String author,
+    String file_path,
+    int chapter_count,
+    JSAny total_characters,
+    String? cover_path,
+    String? description,
+  ) => wasmModule.wire__crate__api__data__book__create_web_book(
+    port_,
+    title,
+    author,
+    file_path,
+    chapter_count,
+    total_characters,
+    cover_path,
+    description,
+  );
+
+  void wire__crate__api__bilingual__delete_bilingual_highlight_pair(
+    NativePortType port_,
+    String note_id,
+  ) => wasmModule.wire__crate__api__bilingual__delete_bilingual_highlight_pair(
+    port_,
+    note_id,
+  );
+
+  void wire__crate__api__data__book__delete_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__data__book__delete_book(port_, book_id);
+
+  void wire__crate__api__data__bookmark__delete_bookmark(
     NativePortType port_,
     String bookmark_id,
-  ) =>
-      wasmModule.wire__crate__api__storage__delete_bookmark(port_, bookmark_id);
-
-  void wire__crate__api__storage__delete_bookmarks_by_book(
-    NativePortType port_,
-    String book_id,
-  ) => wasmModule.wire__crate__api__storage__delete_bookmarks_by_book(
+  ) => wasmModule.wire__crate__api__data__bookmark__delete_bookmark(
     port_,
-    book_id,
+    bookmark_id,
   );
 
-  void wire__crate__api__storage__delete_category(
+  void wire__crate__api__search__delete_by_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__search__delete_by_book(port_, book_id);
+
+  void wire__crate__api__data__category__delete_category(
     NativePortType port_,
     String category_id,
-  ) =>
-      wasmModule.wire__crate__api__storage__delete_category(port_, category_id);
-
-  void wire__crate__api__storage__delete_chapters_by_book(
-    NativePortType port_,
-    String book_id,
-  ) => wasmModule.wire__crate__api__storage__delete_chapters_by_book(
+  ) => wasmModule.wire__crate__api__data__category__delete_category(
     port_,
-    book_id,
+    category_id,
   );
 
-  void wire__crate__api__storage__delete_note(
-    NativePortType port_,
-    String note_id,
-  ) => wasmModule.wire__crate__api__storage__delete_note(port_, note_id);
-
-  void wire__crate__api__storage__delete_notes_by_book(
-    NativePortType port_,
-    String book_id,
-  ) => wasmModule.wire__crate__api__storage__delete_notes_by_book(
-    port_,
-    book_id,
-  );
-
-  void wire__crate__api__storage__delete_sessions_by_book(
-    NativePortType port_,
-    String book_id,
-  ) => wasmModule.wire__crate__api__storage__delete_sessions_by_book(
-    port_,
-    book_id,
-  );
-
-  void wire__crate__api__vocabulary__delete_vocabulary_word(
+  void wire__crate__api__dictionary__delete_dictionary(
     NativePortType port_,
     String id,
-  ) => wasmModule.wire__crate__api__vocabulary__delete_vocabulary_word(
+  ) => wasmModule.wire__crate__api__dictionary__delete_dictionary(port_, id);
+
+  void wire__crate__api__data__note__delete_note(
+    NativePortType port_,
+    String note_id,
+  ) => wasmModule.wire__crate__api__data__note__delete_note(port_, note_id);
+
+  void wire__crate__api__data__vocabulary__delete_vocabulary(
+    NativePortType port_,
+    String id,
+  ) => wasmModule.wire__crate__api__data__vocabulary__delete_vocabulary(
     port_,
     id,
   );
 
-  void wire__crate__api__storage__export_database(
+  void wire__crate__api__backup__export_database(
     NativePortType port_,
     String dest_path,
-  ) => wasmModule.wire__crate__api__storage__export_database(port_, dest_path);
+  ) => wasmModule.wire__crate__api__backup__export_database(port_, dest_path);
+
+  void wire__crate__api__cover__extract_and_save_cover(
+    NativePortType port_,
+    String book_id,
+    String file_path,
+    String output_dir,
+  ) => wasmModule.wire__crate__api__cover__extract_and_save_cover(
+    port_,
+    book_id,
+    file_path,
+    output_dir,
+  );
+
+  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__dictionary__extract_audio(String audio_key) =>
+      wasmModule.wire__crate__api__dictionary__extract_audio(audio_key);
 
   void wire__crate__api__cover__extract_book_cover(
     NativePortType port_,
@@ -2040,126 +2596,82 @@ class RustLibWire implements BaseWire {
     output_dir,
   );
 
-  void wire__crate__api__book__extract_metadata(
+  void wire__crate__api__core__extract_metadata(
     NativePortType port_,
     String file_path,
-  ) => wasmModule.wire__crate__api__book__extract_metadata(port_, file_path);
+  ) => wasmModule.wire__crate__api__core__extract_metadata(port_, file_path);
 
-  void wire__crate__api__dictionary__fuzzy_search_dictionary(
+  void wire__crate__api__vocab_marker__get_all_vocabulary_words(
     NativePortType port_,
-    String prefix,
-    int limit,
-  ) => wasmModule.wire__crate__api__dictionary__fuzzy_search_dictionary(
+  ) => wasmModule.wire__crate__api__vocab_marker__get_all_vocabulary_words(
     port_,
-    prefix,
-    limit,
   );
 
-  void wire__crate__api__storage__get_all_books(NativePortType port_) =>
-      wasmModule.wire__crate__api__storage__get_all_books(port_);
-
-  void wire__crate__api__storage__get_all_categories(NativePortType port_) =>
-      wasmModule.wire__crate__api__storage__get_all_categories(port_);
-
-  void wire__crate__api__bilingual_highlight__get_bilingual_highlight_pairs(
+  void wire__crate__api__bilingual__get_bilingual_highlight_pairs(
     NativePortType port_,
     String book_id,
     int chapter_index,
-  ) => wasmModule
-      .wire__crate__api__bilingual_highlight__get_bilingual_highlight_pairs(
-        port_,
-        book_id,
-        chapter_index,
-      );
-
-  void wire__crate__api__storage__get_book(
-    NativePortType port_,
-    String book_id,
-  ) => wasmModule.wire__crate__api__storage__get_book(port_, book_id);
-
-  void wire__crate__api__storage__get_book_count(NativePortType port_) =>
-      wasmModule.wire__crate__api__storage__get_book_count(port_);
-
-  void wire__crate__api__storage__get_bookmark(
-    NativePortType port_,
-    String bookmark_id,
-  ) => wasmModule.wire__crate__api__storage__get_bookmark(port_, bookmark_id);
-
-  void wire__crate__api__storage__get_bookmark_stats(
-    NativePortType port_,
-    String book_id,
-  ) => wasmModule.wire__crate__api__storage__get_bookmark_stats(port_, book_id);
-
-  void wire__crate__api__storage__get_bookmarks(
-    NativePortType port_,
-    String book_id,
-  ) => wasmModule.wire__crate__api__storage__get_bookmarks(port_, book_id);
-
-  void wire__crate__api__storage__get_books_by_status(
-    NativePortType port_,
-    int status,
-  ) => wasmModule.wire__crate__api__storage__get_books_by_status(port_, status);
-
-  void wire__crate__api__storage__get_books_paginated(
-    NativePortType port_,
-    int limit,
-    int offset,
-    String? sort_by,
-    String? sort_order,
-  ) => wasmModule.wire__crate__api__storage__get_books_paginated(
-    port_,
-    limit,
-    offset,
-    sort_by,
-    sort_order,
-  );
-
-  void wire__crate__api__storage__get_categories_for_book(
-    NativePortType port_,
-    String book_id,
-  ) => wasmModule.wire__crate__api__storage__get_categories_for_book(
+  ) => wasmModule.wire__crate__api__bilingual__get_bilingual_highlight_pairs(
     port_,
     book_id,
+    chapter_index,
   );
 
-  void wire__crate__api__storage__get_category(
+  void wire__crate__api__data__book__get_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__data__book__get_book(port_, book_id);
+
+  void wire__crate__api__data__book__get_book_by_file_path(
+    NativePortType port_,
+    String validated_path,
+  ) => wasmModule.wire__crate__api__data__book__get_book_by_file_path(
+    port_,
+    validated_path,
+  );
+
+  void wire__crate__api__data__bookmark__get_bookmark(
+    NativePortType port_,
+    String bookmark_id,
+  ) => wasmModule.wire__crate__api__data__bookmark__get_bookmark(
+    port_,
+    bookmark_id,
+  );
+
+  void wire__crate__api__data__category__get_category(
     NativePortType port_,
     String category_id,
-  ) => wasmModule.wire__crate__api__storage__get_category(port_, category_id);
+  ) => wasmModule.wire__crate__api__data__category__get_category(
+    port_,
+    category_id,
+  );
 
-  void wire__crate__api__book__get_chapter(
+  void wire__crate__api__core__get_chapter(
     NativePortType port_,
     String file_path,
     int chapter_index,
     JSAny? config,
-  ) => wasmModule.wire__crate__api__book__get_chapter(
+  ) => wasmModule.wire__crate__api__core__get_chapter(
     port_,
     file_path,
     chapter_index,
     config,
   );
 
-  void wire__crate__api__storage__get_chapter_by_index(
+  void wire__crate__api__data__chapter__get_chapter_by_index(
     NativePortType port_,
     String book_id,
     int chapter_index,
-  ) => wasmModule.wire__crate__api__storage__get_chapter_by_index(
+  ) => wasmModule.wire__crate__api__data__chapter__get_chapter_by_index(
     port_,
     book_id,
     chapter_index,
   );
 
-  void wire__crate__api__storage__get_chapters_by_book(
+  void wire__crate__api__dictionary__get_dictionary(
     NativePortType port_,
-    String book_id,
-  ) => wasmModule.wire__crate__api__storage__get_chapters_by_book(
-    port_,
-    book_id,
-  );
-
-  void wire__crate__api__dictionary__get_dictionary_info(
-    NativePortType port_,
-  ) => wasmModule.wire__crate__api__dictionary__get_dictionary_info(port_);
+    String id,
+  ) => wasmModule.wire__crate__api__dictionary__get_dictionary(port_, id);
 
   void wire__crate__api__epub__get_epub_chapter_rich_content(
     NativePortType port_,
@@ -2178,280 +2690,392 @@ class RustLibWire implements BaseWire {
     String file_path,
   ) => wasmModule.wire__crate__api__epub__get_epub_metadata(port_, file_path);
 
-  void wire__crate__api__file__get_file_size(
+  void wire__crate__api__data__stats__get_global_reading_stats(
+    NativePortType port_,
+  ) =>
+      wasmModule.wire__crate__api__data__stats__get_global_reading_stats(port_);
+
+  void wire__crate__api__md__get_md_chapter_rich_content(
     NativePortType port_,
     String file_path,
-  ) => wasmModule.wire__crate__api__file__get_file_size(port_, file_path);
-
-  void wire__crate__api__storage__get_global_reading_stats(
-    NativePortType port_,
-  ) => wasmModule.wire__crate__api__storage__get_global_reading_stats(port_);
-
-  void wire__crate__api__storage__get_note_stats(
-    NativePortType port_,
-    String book_id,
-  ) => wasmModule.wire__crate__api__storage__get_note_stats(port_, book_id);
-
-  void wire__crate__api__storage__get_notes(
-    NativePortType port_,
-    String book_id,
-    int? note_type,
-  ) => wasmModule.wire__crate__api__storage__get_notes(
-    port_,
-    book_id,
-    note_type,
-  );
-
-  void wire__crate__api__storage__get_notes_in_chapter(
-    NativePortType port_,
-    String book_id,
     int chapter_index,
-    int? note_type,
-  ) => wasmModule.wire__crate__api__storage__get_notes_in_chapter(
+  ) => wasmModule.wire__crate__api__md__get_md_chapter_rich_content(
     port_,
-    book_id,
+    file_path,
     chapter_index,
-    note_type,
   );
 
-  void wire__crate__api__storage__get_pinned_books(NativePortType port_) =>
-      wasmModule.wire__crate__api__storage__get_pinned_books(port_);
-
-  void wire__crate__api__storage__get_reading_progress(
+  void wire__crate__api__data__note__get_note_stats(
     NativePortType port_,
     String book_id,
-  ) => wasmModule.wire__crate__api__storage__get_reading_progress(
+  ) => wasmModule.wire__crate__api__data__note__get_note_stats(port_, book_id);
+
+  void wire__crate__api__core__get_paginated_chunk(
+    NativePortType port_,
+    String file_path,
+    int chapter_index,
+    int chunk_index,
+    JSAny config,
+  ) => wasmModule.wire__crate__api__core__get_paginated_chunk(
     port_,
-    book_id,
+    file_path,
+    chapter_index,
+    chunk_index,
+    config,
   );
 
-  void wire__crate__api__storage__get_reading_sessions(
+  void wire__crate__api__core__get_pdf_page(
+    NativePortType port_,
+    String file_path,
+    int page_index,
+  ) => wasmModule.wire__crate__api__core__get_pdf_page(
+    port_,
+    file_path,
+    page_index,
+  );
+
+  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__core__get_pdf_total_pages(String file_path) =>
+      wasmModule.wire__crate__api__core__get_pdf_total_pages(file_path);
+
+  void wire__crate__api__data__progress__get_progress(
     NativePortType port_,
     String book_id,
-    JSAny limit,
-  ) => wasmModule.wire__crate__api__storage__get_reading_sessions(
+  ) =>
+      wasmModule.wire__crate__api__data__progress__get_progress(port_, book_id);
+
+  void wire__crate__api__data__stats__get_reading_stats_by_days(
+    NativePortType port_,
+    int days,
+  ) => wasmModule.wire__crate__api__data__stats__get_reading_stats_by_days(
     port_,
-    book_id,
-    limit,
+    days,
   );
 
-  void wire__crate__api__storage__get_reading_stats_range(
+  void wire__crate__api__data__stats__get_reading_stats_by_days_with_fill(
+    NativePortType port_,
+    int days,
+  ) => wasmModule
+      .wire__crate__api__data__stats__get_reading_stats_by_days_with_fill(
+        port_,
+        days,
+      );
+
+  void wire__crate__api__data__stats__get_reading_stats_by_range(
     NativePortType port_,
     String start_date,
     String end_date,
-  ) => wasmModule.wire__crate__api__storage__get_reading_stats_range(
+  ) => wasmModule.wire__crate__api__data__stats__get_reading_stats_by_range(
     port_,
-    start_date,
-    end_date,
-  );
-
-  void wire__crate__api__storage__get_recent_sessions(
-    NativePortType port_,
-    JSAny limit,
-  ) => wasmModule.wire__crate__api__storage__get_recent_sessions(port_, limit);
-
-  void wire__crate__api__storage__get_recently_read_books(
-    NativePortType port_,
-    JSAny limit,
-  ) => wasmModule.wire__crate__api__storage__get_recently_read_books(
-    port_,
-    limit,
-  );
-
-  void wire__crate__api__storage__get_sessions_by_date_range(
-    NativePortType port_,
-    String book_id,
-    String start_date,
-    String end_date,
-  ) => wasmModule.wire__crate__api__storage__get_sessions_by_date_range(
-    port_,
-    book_id,
     start_date,
     end_date,
   );
 
   JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__book__get_supported_formats() =>
-      wasmModule.wire__crate__api__book__get_supported_formats();
+  wire__crate__api__core__get_supported_formats() =>
+      wasmModule.wire__crate__api__core__get_supported_formats();
 
-  void wire__crate__api__storage__get_today_reading_stats(
+  void wire__crate__api__data__stats__get_today_reading_stats(
     NativePortType port_,
-  ) => wasmModule.wire__crate__api__storage__get_today_reading_stats(port_);
+  ) => wasmModule.wire__crate__api__data__stats__get_today_reading_stats(port_);
 
-  void wire__crate__api__vocabulary__get_vocabulary_stats(
+  void wire__crate__api__data__vocabulary__get_vocabulary_stats(
     NativePortType port_,
-  ) => wasmModule.wire__crate__api__vocabulary__get_vocabulary_stats(port_);
-
-  void wire__crate__api__vocabulary__get_vocabulary_words(
-    NativePortType port_,
-    String? book_id,
-    String? status,
-  ) => wasmModule.wire__crate__api__vocabulary__get_vocabulary_words(
+  ) => wasmModule.wire__crate__api__data__vocabulary__get_vocabulary_stats(
     port_,
-    book_id,
-    status,
   );
 
-  void wire__crate__api__storage__import_bookmarks(
+  void wire__crate__api__epub__image_format_extension(
+    NativePortType port_,
+    int that,
+  ) => wasmModule.wire__crate__api__epub__image_format_extension(port_, that);
+
+  void wire__crate__api__epub__image_format_from_extension(
+    NativePortType port_,
+    String ext,
+  ) => wasmModule.wire__crate__api__epub__image_format_from_extension(
+    port_,
+    ext,
+  );
+
+  void wire__crate__api__epub__image_format_mime_type(
+    NativePortType port_,
+    int that,
+  ) => wasmModule.wire__crate__api__epub__image_format_mime_type(port_, that);
+
+  void wire__crate__api__data__bookmark__import_bookmarks(
     NativePortType port_,
     JSAny bookmarks,
-  ) => wasmModule.wire__crate__api__storage__import_bookmarks(port_, bookmarks);
+  ) => wasmModule.wire__crate__api__data__bookmark__import_bookmarks(
+    port_,
+    bookmarks,
+  );
 
-  void wire__crate__api__search__index_chapter_content(
+  void wire__crate__api__search__index_chapter(
     NativePortType port_,
     String book_id,
-    int chapter_id,
+    String chapter_id,
+    String chapter_index,
     String chapter_title,
     String content,
-  ) => wasmModule.wire__crate__api__search__index_chapter_content(
+  ) => wasmModule.wire__crate__api__search__index_chapter(
     port_,
     book_id,
     chapter_id,
+    chapter_index,
     chapter_title,
     content,
   );
 
   void wire__crate__api__dictionary__init_dictionary(
     NativePortType port_,
-    String path,
-  ) => wasmModule.wire__crate__api__dictionary__init_dictionary(port_, path);
+    String mdx_path,
+    String? mdd_path,
+  ) => wasmModule.wire__crate__api__dictionary__init_dictionary(
+    port_,
+    mdx_path,
+    mdd_path,
+  );
 
   void wire__crate__api__search__init_search_engine(NativePortType port_) =>
       wasmModule.wire__crate__api__search__init_search_engine(port_);
 
-  void wire__crate__api__storage__init_storage(
+  void wire__crate__api__data__init__init_storage(
     NativePortType port_,
     String data_dir,
-  ) => wasmModule.wire__crate__api__storage__init_storage(port_, data_dir);
+  ) => wasmModule.wire__crate__api__data__init__init_storage(port_, data_dir);
 
-  void wire__crate__api__dictionary__lookup_word(
+  void wire__crate__api__data__progress__list_all_progresses(
     NativePortType port_,
-    String word,
-  ) => wasmModule.wire__crate__api__dictionary__lookup_word(port_, word);
+  ) => wasmModule.wire__crate__api__data__progress__list_all_progresses(port_);
 
-  void wire__crate__api__book__paginate_all_content(
+  void wire__crate__api__data__bookmark__list_bookmarks_by_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__data__bookmark__list_bookmarks_by_book(
+    port_,
+    book_id,
+  );
+
+  void wire__crate__api__data__book__list_books(NativePortType port_) =>
+      wasmModule.wire__crate__api__data__book__list_books(port_);
+
+  void wire__crate__api__data__category__list_books_by_category(
+    NativePortType port_,
+    String category_id,
+  ) => wasmModule.wire__crate__api__data__category__list_books_by_category(
+    port_,
+    category_id,
+  );
+
+  void wire__crate__api__data__book__list_books_by_status(
+    NativePortType port_,
+    int status,
+  ) => wasmModule.wire__crate__api__data__book__list_books_by_status(
+    port_,
+    status,
+  );
+
+  void wire__crate__api__data__book__list_books_paginated(
+    NativePortType port_,
+    int limit,
+    int offset,
+    String? sort_by,
+    String? sort_order,
+  ) => wasmModule.wire__crate__api__data__book__list_books_paginated(
+    port_,
+    limit,
+    offset,
+    sort_by,
+    sort_order,
+  );
+
+  void wire__crate__api__data__category__list_categories(
+    NativePortType port_,
+  ) => wasmModule.wire__crate__api__data__category__list_categories(port_);
+
+  void wire__crate__api__data__category__list_categories_by_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__data__category__list_categories_by_book(
+    port_,
+    book_id,
+  );
+
+  void wire__crate__api__data__chapter__list_chapters_by_book(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__data__chapter__list_chapters_by_book(
+    port_,
+    book_id,
+  );
+
+  void wire__crate__api__dictionary__list_dictionaries(NativePortType port_) =>
+      wasmModule.wire__crate__api__dictionary__list_dictionaries(port_);
+
+  void wire__crate__api__data__note__list_notes_by_book(
+    NativePortType port_,
+    String book_id,
+    int? note_type,
+  ) => wasmModule.wire__crate__api__data__note__list_notes_by_book(
+    port_,
+    book_id,
+    note_type,
+  );
+
+  void wire__crate__api__data__note__list_notes_in_chapter(
+    NativePortType port_,
+    String book_id,
+    int chapter_index,
+    int? note_type,
+  ) => wasmModule.wire__crate__api__data__note__list_notes_in_chapter(
+    port_,
+    book_id,
+    chapter_index,
+    note_type,
+  );
+
+  void wire__crate__api__data__book__list_pinned_books(NativePortType port_) =>
+      wasmModule.wire__crate__api__data__book__list_pinned_books(port_);
+
+  void wire__crate__api__data__book__list_recently_opened_books(
+    NativePortType port_,
+    JSAny limit,
+  ) => wasmModule.wire__crate__api__data__book__list_recently_opened_books(
+    port_,
+    limit,
+  );
+
+  void wire__crate__api__data__session__list_sessions_by_book(
+    NativePortType port_,
+    String book_id,
+    JSAny limit,
+  ) => wasmModule.wire__crate__api__data__session__list_sessions_by_book(
+    port_,
+    book_id,
+    limit,
+  );
+
+  void wire__crate__api__data__session__list_sessions_by_date_range(
+    NativePortType port_,
+    String book_id,
+    String start_date,
+    String end_date,
+  ) => wasmModule.wire__crate__api__data__session__list_sessions_by_date_range(
+    port_,
+    book_id,
+    start_date,
+    end_date,
+  );
+
+  void wire__crate__api__data__session__list_sessions_by_recent(
+    NativePortType port_,
+    JSAny limit,
+  ) => wasmModule.wire__crate__api__data__session__list_sessions_by_recent(
+    port_,
+    limit,
+  );
+
+  void wire__crate__api__data__vocabulary__list_vocabulary_by_status(
+    NativePortType port_,
+    String? book_id,
+    int? status,
+    String? word_list,
+  ) => wasmModule.wire__crate__api__data__vocabulary__list_vocabulary_by_status(
+    port_,
+    book_id,
+    status,
+    word_list,
+  );
+
+  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__dictionary__lookup_mdict(String word) =>
+      wasmModule.wire__crate__api__dictionary__lookup_mdict(word);
+
+  void wire__crate__api__core__paginate_all_content(
     NativePortType port_,
     String file_path,
     int chapter_index,
     JSAny config,
-  ) => wasmModule.wire__crate__api__book__paginate_all_content(
+  ) => wasmModule.wire__crate__api__core__paginate_all_content(
     port_,
     file_path,
     chapter_index,
     config,
   );
 
-  void wire__crate__api__book__parse_book(
+  void wire__crate__api__core__parse_book(
     NativePortType port_,
     String file_path,
-  ) => wasmModule.wire__crate__api__book__parse_book(port_, file_path);
+  ) => wasmModule.wire__crate__api__core__parse_book(port_, file_path);
 
-  void wire__crate__api__file__read_file_chunk(
+  void wire__crate__api__data__note__render_notes_to_string(
     NativePortType port_,
-    String file_path,
-    JSAny start_pos,
-    JSAny chunk_size,
-  ) => wasmModule.wire__crate__api__file__read_file_chunk(
+    JSAny notes,
+    String book_title,
+    String format,
+  ) => wasmModule.wire__crate__api__data__note__render_notes_to_string(
     port_,
-    file_path,
-    start_pos,
-    chunk_size,
+    notes,
+    book_title,
+    format,
   );
 
-  void wire__crate__api__storage__record_reading_session(
-    NativePortType port_,
-    JSAny session,
-  ) => wasmModule.wire__crate__api__storage__record_reading_session(
-    port_,
-    session,
-  );
-
-  void wire__crate__api__storage__remove_category_from_book(
-    NativePortType port_,
-    String book_id,
-    String category_id,
-  ) => wasmModule.wire__crate__api__storage__remove_category_from_book(
-    port_,
-    book_id,
-    category_id,
-  );
-
-  void wire__crate__api__storage__restore_database(
+  void wire__crate__api__backup__restore_database(
     NativePortType port_,
     String backup_path,
-  ) => wasmModule.wire__crate__api__storage__restore_database(
+  ) =>
+      wasmModule.wire__crate__api__backup__restore_database(port_, backup_path);
+
+  void wire__crate__api__vocab_marker__scan_for_vocabulary(
+    NativePortType port_,
+    String text,
+  ) => wasmModule.wire__crate__api__vocab_marker__scan_for_vocabulary(
     port_,
-    backup_path,
+    text,
   );
 
-  void wire__crate__api__storage__save_book(NativePortType port_, JSAny book) =>
-      wasmModule.wire__crate__api__storage__save_book(port_, book);
-
-  void wire__crate__api__storage__save_category(
-    NativePortType port_,
-    JSAny category,
-  ) => wasmModule.wire__crate__api__storage__save_category(port_, category);
-
-  void wire__crate__api__storage__save_chapters(
+  void wire__crate__api__search__search(
     NativePortType port_,
     String book_id,
-    JSAny chapters,
-  ) => wasmModule.wire__crate__api__storage__save_chapters(
-    port_,
-    book_id,
-    chapters,
-  );
+    String query,
+    int limit,
+  ) =>
+      wasmModule.wire__crate__api__search__search(port_, book_id, query, limit);
 
-  void wire__crate__api__storage__save_reading_progress(
+  void wire__crate__api__search__search_all_books(
     NativePortType port_,
-    JSAny progress,
-  ) => wasmModule.wire__crate__api__storage__save_reading_progress(
+    String query,
+    int limit,
+  ) => wasmModule.wire__crate__api__search__search_all_books(
     port_,
-    progress,
+    query,
+    limit,
   );
 
-  void wire__crate__api__storage__search_books(
+  void wire__crate__api__data__book__search_books(
     NativePortType port_,
     String keyword,
-  ) => wasmModule.wire__crate__api__storage__search_books(port_, keyword);
+  ) => wasmModule.wire__crate__api__data__book__search_books(port_, keyword);
 
-  void wire__crate__api__dictionary__search_dictionary_definitions(
+  void wire__crate__api__data__vocabulary__search_vocabulary_words(
     NativePortType port_,
     String query,
-    int limit,
-  ) => wasmModule.wire__crate__api__dictionary__search_dictionary_definitions(
+  ) => wasmModule.wire__crate__api__data__vocabulary__search_vocabulary_words(
     port_,
     query,
-    limit,
   );
-
-  void wire__crate__api__search__search_in_book(
-    NativePortType port_,
-    String book_id,
-    String query,
-    int limit,
-  ) => wasmModule.wire__crate__api__search__search_in_book(
-    port_,
-    book_id,
-    query,
-    limit,
-  );
-
-  void wire__crate__api__vocabulary__search_vocabulary(
-    NativePortType port_,
-    String query,
-  ) => wasmModule.wire__crate__api__vocabulary__search_vocabulary(port_, query);
 
   void wire__crate__api__dictionary__segment_text(
     NativePortType port_,
     String text,
   ) => wasmModule.wire__crate__api__dictionary__segment_text(port_, text);
 
-  void wire__crate__api__storage__set_categories_for_book(
+  void wire__crate__api__data__category__set_categories_for_book(
     NativePortType port_,
     String book_id,
     JSAny category_ids,
-  ) => wasmModule.wire__crate__api__storage__set_categories_for_book(
+  ) => wasmModule.wire__crate__api__data__category__set_categories_for_book(
     port_,
     book_id,
     category_ids,
@@ -2468,22 +3092,20 @@ class RustLibWire implements BaseWire {
   );
 
   JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__dictionary__suggest_mdict(String prefix, int limit) =>
+      wasmModule.wire__crate__api__dictionary__suggest_mdict(prefix, limit);
+
+  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__core__supports_chunked_pagination(String file_path) =>
+      wasmModule.wire__crate__api__core__supports_chunked_pagination(file_path);
+
+  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
   wire__crate__api__cover__supports_cover_extraction(String file_path) =>
       wasmModule.wire__crate__api__cover__supports_cover_extraction(file_path);
 
   JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__book__supports_format(String format) =>
-      wasmModule.wire__crate__api__book__supports_format(format);
-
-  void wire__crate__api__storage__sync_bookmarks(
-    NativePortType port_,
-    JSAny local_bookmarks,
-    JSAny remote_bookmarks,
-  ) => wasmModule.wire__crate__api__storage__sync_bookmarks(
-    port_,
-    local_bookmarks,
-    remote_bookmarks,
-  );
+  wire__crate__api__core__supports_format(String format) =>
+      wasmModule.wire__crate__api__core__supports_format(format);
 
   JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
   wire__crate__api__test_connection() =>
@@ -2499,44 +3121,123 @@ class RustLibWire implements BaseWire {
     config,
   );
 
-  void wire__crate__api__storage__update_book_pin(
+  void wire__crate__api__data__book__update_book_metadata(
+    NativePortType port_,
+    String book_id,
+    String? title,
+    String? author,
+    String? description,
+  ) => wasmModule.wire__crate__api__data__book__update_book_metadata(
+    port_,
+    book_id,
+    title,
+    author,
+    description,
+  );
+
+  void wire__crate__api__data__book__update_book_pin(
     NativePortType port_,
     String book_id,
     bool is_pinned,
-  ) => wasmModule.wire__crate__api__storage__update_book_pin(
+  ) => wasmModule.wire__crate__api__data__book__update_book_pin(
     port_,
     book_id,
     is_pinned,
   );
 
-  void wire__crate__api__storage__update_book_status(
+  void wire__crate__api__data__book__update_book_status(
     NativePortType port_,
     String book_id,
     int status,
-  ) => wasmModule.wire__crate__api__storage__update_book_status(
+  ) => wasmModule.wire__crate__api__data__book__update_book_status(
     port_,
     book_id,
     status,
   );
 
-  void wire__crate__api__storage__update_daily_stats(
+  void wire__crate__api__data__book__update_book_title(
+    NativePortType port_,
+    String book_id,
+    String title,
+  ) => wasmModule.wire__crate__api__data__book__update_book_title(
+    port_,
+    book_id,
+    title,
+  );
+
+  void wire__crate__api__data__stats__update_daily_stats(
     NativePortType port_,
     JSAny stats,
-  ) => wasmModule.wire__crate__api__storage__update_daily_stats(port_, stats);
+  ) => wasmModule.wire__crate__api__data__stats__update_daily_stats(
+    port_,
+    stats,
+  );
 
-  void wire__crate__api__storage__update_note(
-    NativePortType port_,
-    JSAny note,
-  ) => wasmModule.wire__crate__api__storage__update_note(port_, note);
-
-  void wire__crate__api__vocabulary__update_vocabulary_status(
+  void wire__crate__api__data__vocabulary__update_vocabulary_status(
     NativePortType port_,
     String id,
-    String status,
-  ) => wasmModule.wire__crate__api__vocabulary__update_vocabulary_status(
+    int status,
+  ) => wasmModule.wire__crate__api__data__vocabulary__update_vocabulary_status(
     port_,
     id,
     status,
+  );
+
+  void wire__crate__api__data__book__upsert_book(
+    NativePortType port_,
+    JSAny book,
+  ) => wasmModule.wire__crate__api__data__book__upsert_book(port_, book);
+
+  void wire__crate__api__data__bookmark__upsert_bookmark(
+    NativePortType port_,
+    JSAny bookmark,
+  ) => wasmModule.wire__crate__api__data__bookmark__upsert_bookmark(
+    port_,
+    bookmark,
+  );
+
+  void wire__crate__api__data__category__upsert_category(
+    NativePortType port_,
+    String name,
+    String color,
+    int sort_order,
+    String? description,
+    String? category_id,
+  ) => wasmModule.wire__crate__api__data__category__upsert_category(
+    port_,
+    name,
+    color,
+    sort_order,
+    description,
+    category_id,
+  );
+
+  void wire__crate__api__data__chapter__upsert_chapters(
+    NativePortType port_,
+    String book_id,
+    JSAny chapters,
+  ) => wasmModule.wire__crate__api__data__chapter__upsert_chapters(
+    port_,
+    book_id,
+    chapters,
+  );
+
+  void wire__crate__api__dictionary__upsert_dictionary(
+    NativePortType port_,
+    JSAny dict,
+  ) => wasmModule.wire__crate__api__dictionary__upsert_dictionary(port_, dict);
+
+  void wire__crate__api__data__note__upsert_note(
+    NativePortType port_,
+    JSAny note,
+  ) => wasmModule.wire__crate__api__data__note__upsert_note(port_, note);
+
+  void wire__crate__api__data__progress__upsert_progress(
+    NativePortType port_,
+    JSAny progress,
+  ) => wasmModule.wire__crate__api__data__progress__upsert_progress(
+    port_,
+    progress,
   );
 
   void
@@ -2562,17 +3263,6 @@ external RustLibWasmModule get wasmModule;
 @JS()
 @anonymous
 extension type RustLibWasmModule._(JSObject _) implements JSObject {
-  external void wire__crate__api__vocabulary__add_vocabulary_word(
-    NativePortType port_,
-    String word,
-    String pinyin,
-    String translation,
-    String? context_sentence,
-    String? book_id,
-    JSAny? chapter_index,
-    JSAny? char_offset,
-  );
-
   external void wire__crate__api__bilingual__align_bilingual_content(
     NativePortType port_,
     String chinese_content,
@@ -2580,28 +3270,73 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     double min_similarity,
   );
 
-  external void wire__crate__api__storage__assign_category_to_book(
+  external void wire__crate__api__data__category__assign_category_to_book(
     NativePortType port_,
     String book_id,
     String category_id,
   );
 
-  external void wire__crate__api__search__clear_all_search_index(
-    NativePortType port_,
-  );
+  external void wire__crate__api__search__clear_all(NativePortType port_);
 
-  external void wire__crate__api__storage__clear_categories_for_book(
+  external void wire__crate__api__data__bookmark__clear_bookmarks_by_book(
     NativePortType port_,
     String book_id,
   );
 
-  external void wire__crate__api__storage__clear_reading_progress(
+  external void wire__crate__api__data__category__clear_categories_by_book(
     NativePortType port_,
     String book_id,
   );
 
-  external void
-  wire__crate__api__bilingual_highlight__create_bilingual_highlight_pair(
+  external void wire__crate__api__data__category__clear_category_from_book(
+    NativePortType port_,
+    String book_id,
+    String category_id,
+  );
+
+  external void wire__crate__api__data__chapter__clear_chapters_by_book(
+    NativePortType port_,
+    String book_id,
+  );
+
+  external void wire__crate__api__data__note__clear_notes_by_book(
+    NativePortType port_,
+    String book_id,
+  );
+
+  external void wire__crate__api__data__progress__clear_progress(
+    NativePortType port_,
+    String book_id,
+  );
+
+  external void wire__crate__api__data__session__clear_sessions_by_book(
+    NativePortType port_,
+    String book_id,
+  );
+
+  external void wire__crate__api__dictionary__close_dictionary(
+    NativePortType port_,
+  );
+
+  external void wire__crate__api__data__bookmark__count_bookmarks_by_book(
+    NativePortType port_,
+    String book_id,
+  );
+
+  external void wire__crate__api__data__book__count_books(NativePortType port_);
+
+  external void wire__crate__api__data__note__create_annotation(
+    NativePortType port_,
+    String book_id,
+    int chapter_index,
+    JSAny char_offset,
+    String content,
+    String? selected_text,
+    String? language,
+    String? paired_note_id,
+  );
+
+  external void wire__crate__api__bilingual__create_bilingual_highlight_pair(
     NativePortType port_,
     String source_book_id,
     int source_chapter_index,
@@ -2618,83 +3353,138 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     int highlight_color,
   );
 
-  external void wire__crate__api__storage__create_bookmark(
+  external void wire__crate__api__data__bookmark__create_bookmark(
     NativePortType port_,
-    JSAny bookmark,
+    String book_id,
+    int chapter_index,
+    JSAny char_offset,
+    String title,
   );
 
-  external void wire__crate__api__storage__create_note(
+  external void wire__crate__api__data__category__create_category(
     NativePortType port_,
-    JSAny note,
+    String name,
+    String color,
+    int sort_order,
+    String? description,
   );
 
-  external void wire__crate__api__book__create_page_streamer(
+  external void wire__crate__api__dictionary__create_dictionary(
+    NativePortType port_,
+    String name,
+    String file_path,
+    String dict_type,
+    String? lang_from,
+    String? lang_to,
+    bool is_enabled,
+    JSAny word_count,
+  );
+
+  external void wire__crate__api__data__note__create_highlight(
+    NativePortType port_,
+    String book_id,
+    int chapter_index,
+    JSAny char_offset,
+    JSAny length,
+    String selected_text,
+    int color,
+    String? language,
+    String? paired_note_id,
+  );
+
+  external void wire__crate__api__core__create_page_streamer(
     NativePortType port_,
     String file_path,
     int chapter_index,
     JSAny config,
   );
 
-  external void
-  wire__crate__api__bilingual_highlight__delete_bilingual_highlight_pair(
+  external void wire__crate__api__data__session__create_session(
+    NativePortType port_,
+    String book_id,
+    int chapter_index,
+    JSAny start_char_offset,
+    JSAny end_char_offset,
+    JSAny started_at,
+  );
+
+  external void wire__crate__api__data__vocabulary__create_vocabulary_word(
+    NativePortType port_,
+    String word,
+    String pinyin,
+    String translation,
+    String? context_sentence,
+    String? book_id,
+    JSAny? chapter_index,
+    JSAny? char_offset,
+    String? word_list,
+  );
+
+  external void wire__crate__api__data__book__create_web_book(
+    NativePortType port_,
+    String title,
+    String author,
+    String file_path,
+    int chapter_count,
+    JSAny total_characters,
+    String? cover_path,
+    String? description,
+  );
+
+  external void wire__crate__api__bilingual__delete_bilingual_highlight_pair(
     NativePortType port_,
     String note_id,
   );
 
-  external void wire__crate__api__storage__delete_book(
+  external void wire__crate__api__data__book__delete_book(
     NativePortType port_,
     String book_id,
   );
 
-  external void wire__crate__api__search__delete_book_search_index(
-    NativePortType port_,
-    String book_id,
-  );
-
-  external void wire__crate__api__storage__delete_bookmark(
+  external void wire__crate__api__data__bookmark__delete_bookmark(
     NativePortType port_,
     String bookmark_id,
   );
 
-  external void wire__crate__api__storage__delete_bookmarks_by_book(
+  external void wire__crate__api__search__delete_by_book(
     NativePortType port_,
     String book_id,
   );
 
-  external void wire__crate__api__storage__delete_category(
+  external void wire__crate__api__data__category__delete_category(
     NativePortType port_,
     String category_id,
   );
 
-  external void wire__crate__api__storage__delete_chapters_by_book(
-    NativePortType port_,
-    String book_id,
-  );
-
-  external void wire__crate__api__storage__delete_note(
-    NativePortType port_,
-    String note_id,
-  );
-
-  external void wire__crate__api__storage__delete_notes_by_book(
-    NativePortType port_,
-    String book_id,
-  );
-
-  external void wire__crate__api__storage__delete_sessions_by_book(
-    NativePortType port_,
-    String book_id,
-  );
-
-  external void wire__crate__api__vocabulary__delete_vocabulary_word(
+  external void wire__crate__api__dictionary__delete_dictionary(
     NativePortType port_,
     String id,
   );
 
-  external void wire__crate__api__storage__export_database(
+  external void wire__crate__api__data__note__delete_note(
+    NativePortType port_,
+    String note_id,
+  );
+
+  external void wire__crate__api__data__vocabulary__delete_vocabulary(
+    NativePortType port_,
+    String id,
+  );
+
+  external void wire__crate__api__backup__export_database(
     NativePortType port_,
     String dest_path,
   );
+
+  external void wire__crate__api__cover__extract_and_save_cover(
+    NativePortType port_,
+    String book_id,
+    String file_path,
+    String output_dir,
+  );
+
+  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__dictionary__extract_audio(String audio_key);
 
   external void wire__crate__api__cover__extract_book_cover(
     NativePortType port_,
@@ -2702,95 +3492,57 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     String output_dir,
   );
 
-  external void wire__crate__api__book__extract_metadata(
+  external void wire__crate__api__core__extract_metadata(
     NativePortType port_,
     String file_path,
   );
 
-  external void wire__crate__api__dictionary__fuzzy_search_dictionary(
-    NativePortType port_,
-    String prefix,
-    int limit,
-  );
-
-  external void wire__crate__api__storage__get_all_books(NativePortType port_);
-
-  external void wire__crate__api__storage__get_all_categories(
+  external void wire__crate__api__vocab_marker__get_all_vocabulary_words(
     NativePortType port_,
   );
 
-  external void
-  wire__crate__api__bilingual_highlight__get_bilingual_highlight_pairs(
+  external void wire__crate__api__bilingual__get_bilingual_highlight_pairs(
     NativePortType port_,
     String book_id,
     int chapter_index,
   );
 
-  external void wire__crate__api__storage__get_book(
+  external void wire__crate__api__data__book__get_book(
     NativePortType port_,
     String book_id,
   );
 
-  external void wire__crate__api__storage__get_book_count(NativePortType port_);
+  external void wire__crate__api__data__book__get_book_by_file_path(
+    NativePortType port_,
+    String validated_path,
+  );
 
-  external void wire__crate__api__storage__get_bookmark(
+  external void wire__crate__api__data__bookmark__get_bookmark(
     NativePortType port_,
     String bookmark_id,
   );
 
-  external void wire__crate__api__storage__get_bookmark_stats(
-    NativePortType port_,
-    String book_id,
-  );
-
-  external void wire__crate__api__storage__get_bookmarks(
-    NativePortType port_,
-    String book_id,
-  );
-
-  external void wire__crate__api__storage__get_books_by_status(
-    NativePortType port_,
-    int status,
-  );
-
-  external void wire__crate__api__storage__get_books_paginated(
-    NativePortType port_,
-    int limit,
-    int offset,
-    String? sort_by,
-    String? sort_order,
-  );
-
-  external void wire__crate__api__storage__get_categories_for_book(
-    NativePortType port_,
-    String book_id,
-  );
-
-  external void wire__crate__api__storage__get_category(
+  external void wire__crate__api__data__category__get_category(
     NativePortType port_,
     String category_id,
   );
 
-  external void wire__crate__api__book__get_chapter(
+  external void wire__crate__api__core__get_chapter(
     NativePortType port_,
     String file_path,
     int chapter_index,
     JSAny? config,
   );
 
-  external void wire__crate__api__storage__get_chapter_by_index(
+  external void wire__crate__api__data__chapter__get_chapter_by_index(
     NativePortType port_,
     String book_id,
     int chapter_index,
   );
 
-  external void wire__crate__api__storage__get_chapters_by_book(
+  external void wire__crate__api__dictionary__get_dictionary(
     NativePortType port_,
-    String book_id,
-  );
-
-  external void wire__crate__api__dictionary__get_dictionary_info(
-    NativePortType port_,
+    String id,
   );
 
   external void wire__crate__api__epub__get_epub_chapter_rich_content(
@@ -2805,195 +3557,260 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     String file_path,
   );
 
-  external void wire__crate__api__file__get_file_size(
+  external void wire__crate__api__data__stats__get_global_reading_stats(
+    NativePortType port_,
+  );
+
+  external void wire__crate__api__md__get_md_chapter_rich_content(
     NativePortType port_,
     String file_path,
-  );
-
-  external void wire__crate__api__storage__get_global_reading_stats(
-    NativePortType port_,
-  );
-
-  external void wire__crate__api__storage__get_note_stats(
-    NativePortType port_,
-    String book_id,
-  );
-
-  external void wire__crate__api__storage__get_notes(
-    NativePortType port_,
-    String book_id,
-    int? note_type,
-  );
-
-  external void wire__crate__api__storage__get_notes_in_chapter(
-    NativePortType port_,
-    String book_id,
     int chapter_index,
-    int? note_type,
   );
 
-  external void wire__crate__api__storage__get_pinned_books(
-    NativePortType port_,
-  );
-
-  external void wire__crate__api__storage__get_reading_progress(
+  external void wire__crate__api__data__note__get_note_stats(
     NativePortType port_,
     String book_id,
   );
 
-  external void wire__crate__api__storage__get_reading_sessions(
+  external void wire__crate__api__core__get_paginated_chunk(
+    NativePortType port_,
+    String file_path,
+    int chapter_index,
+    int chunk_index,
+    JSAny config,
+  );
+
+  external void wire__crate__api__core__get_pdf_page(
+    NativePortType port_,
+    String file_path,
+    int page_index,
+  );
+
+  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__core__get_pdf_total_pages(String file_path);
+
+  external void wire__crate__api__data__progress__get_progress(
     NativePortType port_,
     String book_id,
-    JSAny limit,
   );
 
-  external void wire__crate__api__storage__get_reading_stats_range(
+  external void wire__crate__api__data__stats__get_reading_stats_by_days(
     NativePortType port_,
-    String start_date,
-    String end_date,
+    int days,
   );
 
-  external void wire__crate__api__storage__get_recent_sessions(
+  external void
+  wire__crate__api__data__stats__get_reading_stats_by_days_with_fill(
     NativePortType port_,
-    JSAny limit,
+    int days,
   );
 
-  external void wire__crate__api__storage__get_recently_read_books(
+  external void wire__crate__api__data__stats__get_reading_stats_by_range(
     NativePortType port_,
-    JSAny limit,
-  );
-
-  external void wire__crate__api__storage__get_sessions_by_date_range(
-    NativePortType port_,
-    String book_id,
     String start_date,
     String end_date,
   );
 
   external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__book__get_supported_formats();
+  wire__crate__api__core__get_supported_formats();
 
-  external void wire__crate__api__storage__get_today_reading_stats(
+  external void wire__crate__api__data__stats__get_today_reading_stats(
     NativePortType port_,
   );
 
-  external void wire__crate__api__vocabulary__get_vocabulary_stats(
+  external void wire__crate__api__data__vocabulary__get_vocabulary_stats(
     NativePortType port_,
   );
 
-  external void wire__crate__api__vocabulary__get_vocabulary_words(
+  external void wire__crate__api__epub__image_format_extension(
     NativePortType port_,
-    String? book_id,
-    String? status,
+    int that,
   );
 
-  external void wire__crate__api__storage__import_bookmarks(
+  external void wire__crate__api__epub__image_format_from_extension(
+    NativePortType port_,
+    String ext,
+  );
+
+  external void wire__crate__api__epub__image_format_mime_type(
+    NativePortType port_,
+    int that,
+  );
+
+  external void wire__crate__api__data__bookmark__import_bookmarks(
     NativePortType port_,
     JSAny bookmarks,
   );
 
-  external void wire__crate__api__search__index_chapter_content(
+  external void wire__crate__api__search__index_chapter(
     NativePortType port_,
     String book_id,
-    int chapter_id,
+    String chapter_id,
+    String chapter_index,
     String chapter_title,
     String content,
   );
 
   external void wire__crate__api__dictionary__init_dictionary(
     NativePortType port_,
-    String path,
+    String mdx_path,
+    String? mdd_path,
   );
 
   external void wire__crate__api__search__init_search_engine(
     NativePortType port_,
   );
 
-  external void wire__crate__api__storage__init_storage(
+  external void wire__crate__api__data__init__init_storage(
     NativePortType port_,
     String data_dir,
   );
 
-  external void wire__crate__api__dictionary__lookup_word(
+  external void wire__crate__api__data__progress__list_all_progresses(
     NativePortType port_,
-    String word,
   );
 
-  external void wire__crate__api__book__paginate_all_content(
+  external void wire__crate__api__data__bookmark__list_bookmarks_by_book(
+    NativePortType port_,
+    String book_id,
+  );
+
+  external void wire__crate__api__data__book__list_books(NativePortType port_);
+
+  external void wire__crate__api__data__category__list_books_by_category(
+    NativePortType port_,
+    String category_id,
+  );
+
+  external void wire__crate__api__data__book__list_books_by_status(
+    NativePortType port_,
+    int status,
+  );
+
+  external void wire__crate__api__data__book__list_books_paginated(
+    NativePortType port_,
+    int limit,
+    int offset,
+    String? sort_by,
+    String? sort_order,
+  );
+
+  external void wire__crate__api__data__category__list_categories(
+    NativePortType port_,
+  );
+
+  external void wire__crate__api__data__category__list_categories_by_book(
+    NativePortType port_,
+    String book_id,
+  );
+
+  external void wire__crate__api__data__chapter__list_chapters_by_book(
+    NativePortType port_,
+    String book_id,
+  );
+
+  external void wire__crate__api__dictionary__list_dictionaries(
+    NativePortType port_,
+  );
+
+  external void wire__crate__api__data__note__list_notes_by_book(
+    NativePortType port_,
+    String book_id,
+    int? note_type,
+  );
+
+  external void wire__crate__api__data__note__list_notes_in_chapter(
+    NativePortType port_,
+    String book_id,
+    int chapter_index,
+    int? note_type,
+  );
+
+  external void wire__crate__api__data__book__list_pinned_books(
+    NativePortType port_,
+  );
+
+  external void wire__crate__api__data__book__list_recently_opened_books(
+    NativePortType port_,
+    JSAny limit,
+  );
+
+  external void wire__crate__api__data__session__list_sessions_by_book(
+    NativePortType port_,
+    String book_id,
+    JSAny limit,
+  );
+
+  external void wire__crate__api__data__session__list_sessions_by_date_range(
+    NativePortType port_,
+    String book_id,
+    String start_date,
+    String end_date,
+  );
+
+  external void wire__crate__api__data__session__list_sessions_by_recent(
+    NativePortType port_,
+    JSAny limit,
+  );
+
+  external void wire__crate__api__data__vocabulary__list_vocabulary_by_status(
+    NativePortType port_,
+    String? book_id,
+    int? status,
+    String? word_list,
+  );
+
+  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__dictionary__lookup_mdict(String word);
+
+  external void wire__crate__api__core__paginate_all_content(
     NativePortType port_,
     String file_path,
     int chapter_index,
     JSAny config,
   );
 
-  external void wire__crate__api__book__parse_book(
+  external void wire__crate__api__core__parse_book(
     NativePortType port_,
     String file_path,
   );
 
-  external void wire__crate__api__file__read_file_chunk(
+  external void wire__crate__api__data__note__render_notes_to_string(
     NativePortType port_,
-    String file_path,
-    JSAny start_pos,
-    JSAny chunk_size,
+    JSAny notes,
+    String book_title,
+    String format,
   );
 
-  external void wire__crate__api__storage__record_reading_session(
-    NativePortType port_,
-    JSAny session,
-  );
-
-  external void wire__crate__api__storage__remove_category_from_book(
-    NativePortType port_,
-    String book_id,
-    String category_id,
-  );
-
-  external void wire__crate__api__storage__restore_database(
+  external void wire__crate__api__backup__restore_database(
     NativePortType port_,
     String backup_path,
   );
 
-  external void wire__crate__api__storage__save_book(
+  external void wire__crate__api__vocab_marker__scan_for_vocabulary(
     NativePortType port_,
-    JSAny book,
+    String text,
   );
 
-  external void wire__crate__api__storage__save_category(
-    NativePortType port_,
-    JSAny category,
-  );
-
-  external void wire__crate__api__storage__save_chapters(
+  external void wire__crate__api__search__search(
     NativePortType port_,
     String book_id,
-    JSAny chapters,
+    String query,
+    int limit,
   );
 
-  external void wire__crate__api__storage__save_reading_progress(
+  external void wire__crate__api__search__search_all_books(
     NativePortType port_,
-    JSAny progress,
+    String query,
+    int limit,
   );
 
-  external void wire__crate__api__storage__search_books(
+  external void wire__crate__api__data__book__search_books(
     NativePortType port_,
     String keyword,
   );
 
-  external void wire__crate__api__dictionary__search_dictionary_definitions(
-    NativePortType port_,
-    String query,
-    int limit,
-  );
-
-  external void wire__crate__api__search__search_in_book(
-    NativePortType port_,
-    String book_id,
-    String query,
-    int limit,
-  );
-
-  external void wire__crate__api__vocabulary__search_vocabulary(
+  external void wire__crate__api__data__vocabulary__search_vocabulary_words(
     NativePortType port_,
     String query,
   );
@@ -3003,7 +3820,7 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     String text,
   );
 
-  external void wire__crate__api__storage__set_categories_for_book(
+  external void wire__crate__api__data__category__set_categories_for_book(
     NativePortType port_,
     String book_id,
     JSAny category_ids,
@@ -3016,16 +3833,16 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
   );
 
   external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__dictionary__suggest_mdict(String prefix, int limit);
+
+  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__core__supports_chunked_pagination(String file_path);
+
+  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
   wire__crate__api__cover__supports_cover_extraction(String file_path);
 
   external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__book__supports_format(String format);
-
-  external void wire__crate__api__storage__sync_bookmarks(
-    NativePortType port_,
-    JSAny local_bookmarks,
-    JSAny remote_bookmarks,
-  );
+  wire__crate__api__core__supports_format(String format);
 
   external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
   wire__crate__api__test_connection();
@@ -3036,32 +3853,81 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     JSAny config,
   );
 
-  external void wire__crate__api__storage__update_book_pin(
+  external void wire__crate__api__data__book__update_book_metadata(
+    NativePortType port_,
+    String book_id,
+    String? title,
+    String? author,
+    String? description,
+  );
+
+  external void wire__crate__api__data__book__update_book_pin(
     NativePortType port_,
     String book_id,
     bool is_pinned,
   );
 
-  external void wire__crate__api__storage__update_book_status(
+  external void wire__crate__api__data__book__update_book_status(
     NativePortType port_,
     String book_id,
     int status,
   );
 
-  external void wire__crate__api__storage__update_daily_stats(
+  external void wire__crate__api__data__book__update_book_title(
+    NativePortType port_,
+    String book_id,
+    String title,
+  );
+
+  external void wire__crate__api__data__stats__update_daily_stats(
     NativePortType port_,
     JSAny stats,
   );
 
-  external void wire__crate__api__storage__update_note(
+  external void wire__crate__api__data__vocabulary__update_vocabulary_status(
+    NativePortType port_,
+    String id,
+    int status,
+  );
+
+  external void wire__crate__api__data__book__upsert_book(
+    NativePortType port_,
+    JSAny book,
+  );
+
+  external void wire__crate__api__data__bookmark__upsert_bookmark(
+    NativePortType port_,
+    JSAny bookmark,
+  );
+
+  external void wire__crate__api__data__category__upsert_category(
+    NativePortType port_,
+    String name,
+    String color,
+    int sort_order,
+    String? description,
+    String? category_id,
+  );
+
+  external void wire__crate__api__data__chapter__upsert_chapters(
+    NativePortType port_,
+    String book_id,
+    JSAny chapters,
+  );
+
+  external void wire__crate__api__dictionary__upsert_dictionary(
+    NativePortType port_,
+    JSAny dict,
+  );
+
+  external void wire__crate__api__data__note__upsert_note(
     NativePortType port_,
     JSAny note,
   );
 
-  external void wire__crate__api__vocabulary__update_vocabulary_status(
+  external void wire__crate__api__data__progress__upsert_progress(
     NativePortType port_,
-    String id,
-    String status,
+    JSAny progress,
   );
 
   external void

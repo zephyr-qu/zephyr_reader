@@ -4,23 +4,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/vocabulary/application/vocabulary_view_model.dart';
 import 'package:zephyr_reader/features/vocabulary/data/vocabulary_service.dart';
 
-import '../../helpers/mock_rust_storage_service.dart';
-
 VocabularyViewModel createViewModel() {
-  return VocabularyViewModel(VocabularyService(MockRustStorageService()));
+  return VocabularyViewModel(VocabularyService());
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('VocabularyViewModel', () {
-    late MockRustStorageService storage;
     late VocabularyService service;
     late VocabularyViewModel vm;
 
     setUp(() {
-      storage = MockRustStorageService();
-      service = VocabularyService(storage);
+      service = VocabularyService();
       vm = VocabularyViewModel(service);
     });
 
@@ -29,7 +25,7 @@ void main() {
         expect(vm.words.value, isEmpty);
         expect(vm.stats.value, isNull);
         expect(vm.loading.value, isFalse);
-        expect(vm.filterStatus.value, equals('learning'));
+        expect(vm.filterStatus.value, equals('not_started'));
       });
 
       test('loadWords 应加载单词和统计', () async {
@@ -44,6 +40,7 @@ void main() {
           translation: '吸收',
         );
 
+        await vm.setFilter(null);
         await vm.loadWords();
 
         expect(vm.words.value.length, equals(2));
@@ -64,13 +61,14 @@ void main() {
         );
         await storage.updateVocabularyStatus(id: entry2.id, status: 'known');
 
+        await vm.setFilter('learning');
         await vm.loadWords();
 
         expect(vm.words.value.length, equals(1));
         expect(vm.words.value.first.status, equals('learning'));
       });
 
-      test('默认 filterStatus 为 learning 时无匹配应返回空列表', () async {
+      test('默认 filterStatus 为 not_started 时无匹配应返回空列表', () async {
         final entry = await storage.addVocabularyWord(
           word: 'test',
           pinyin: 'cè shì',
@@ -139,6 +137,7 @@ void main() {
           pinyin: 'cè shì',
           translation: '测试',
         );
+        await vm.setFilter(null);
         await vm.loadWords();
         expect(vm.words.value.length, equals(1));
 
@@ -154,6 +153,7 @@ void main() {
           pinyin: 'cè shì',
           translation: '测试',
         );
+        await vm.setFilter(null);
         await vm.loadWords();
         expect(vm.words.value.length, equals(1));
 
@@ -162,6 +162,7 @@ void main() {
       });
 
       test('refresh 应重新加载单词', () async {
+        await vm.setFilter(null);
         await vm.refresh();
         expect(vm.loading.value, isFalse);
       });

@@ -7,6 +7,7 @@
 /// - 冲突检测
 library;
 
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/features/sync/application/services/webdav_sync_service.dart';
@@ -20,10 +21,27 @@ void main() {
       // 初始化 Widget 绑定
       TestWidgetsFlutterBinding.ensureInitialized();
 
+      // Mock FlutterSecureStorage 平台通道
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+            (MethodCall methodCall) async {
+              return null;
+            },
+          );
+
       // 初始化测试用的 SharedPreferences
       SharedPreferences.setMockInitialValues({});
       prefs = await SharedPreferences.getInstance();
       configService = WebDavConfigService(prefs: prefs);
+    });
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+            null,
+          );
     });
 
     group('WebDAV 配置测试', () {

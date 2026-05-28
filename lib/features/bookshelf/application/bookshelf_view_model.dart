@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:signals_flutter/signals_flutter.dart';
+import 'package:signals/signals.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/data/category.dart' as category_api;
+import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-
-import '../data/repositories/rust_book_repository.dart';
 
 /// 书架排序方式
 enum BookshelfSortType {
@@ -29,17 +29,16 @@ enum BookshelfSortType {
 
 @injectable
 class BookshelfViewModel {
-  final BookRepository _repo;
   final SharedPreferences _prefs;
 
   /// 所有书籍
   final books = asyncSignal<List<Book>>(AsyncState.loading());
 
   /// 所有分类（立即从缓存获取）
-  final categories = signal<List<BookCategory>>([]);
+  final categories = signal<List<Category>>([]);
 
   /// 当前选中的分类
-  final selectedCategory = signal<BookCategory?>(null);
+  final selectedCategory = signal<Category?>(null);
 
   /// 当前选中的阅读状态
   final selectedStatus = signal<BookStatus?>(null);
@@ -59,26 +58,29 @@ class BookshelfViewModel {
   /// 默认排序方式
   final defaultSortType = signal<BookshelfSortType>(BookshelfSortType.lastRead);
 
-  void Function()? _disposeEffect;
+  /// 阅读进度映射 (bookId -> progress 0.0~1.0)
+  final readingProgress = signal<Map<String, double>>({});
 
-  BookshelfViewModel(this._repo, this._prefs) {
+  /// 最近阅读的书籍
+  final recentBooks = signal<List<Book>>([]);
+
+  /// 是否使用列表视图（false=网格视图）
+  final isListView = signal<bool>(false);
+
+  BookshelfViewModel(this._prefs) {
     _loadSettings();
     _loadCategories();
-    _disposeEffect = effect(() {
-      loadBooks();
-    });
+    loadBooks();
   }
 
-  void dispose() {
-    _disposeEffect?.call();
-  }
+  void dispose() {}
 
   Future<void> _loadCategories() async {
     try {
-      final data = await _repo.getAllCategories();
-      categories.value = data;
+      final data = await category_api.listCategories();
+      categories.value = data.cast<Category>();
     } catch (e, stack) {
-      debugPrint('BookshelfViewModel._loadCategories error: $e\n$stack');
+      Logging.error('BookshelfViewModel._loadCategories error', exception: e, stackTrace: stack);
       categories.value = [];
     }
   }
@@ -90,23 +92,26 @@ class BookshelfViewModel {
       List<Book> data;
 
       if (isSearching.value && searchKeyword.value.isNotEmpty) {
-        data = await _repo.searchBooks(searchKeyword.value);
+        data = await book_api.searchBooks(keyword: searchKeyword.value);
       } else {
-        final cat = selectedCategory.value;
-        final status = selectedStatus.value;
-        if (cat != null && status != null) {
-          data = await _repo.getBooksByCategory(cat);
-          data = data.where((b) => b.status == status).toList();
-        } else if (cat != null) {
-          data = await _repo.getBooksByCategory(cat);
-        } else if (status != null) {
-          data = await _repo.getBooksByStatus(status);
-        } else {
-          data = await _repo.getAllBooks();
-        }
+        data = await book_api.listBooks();
       }
 
       data = List.from(data);
+
+      recentBooks.value = await book_api.listRecentlyOpenedBooks(
+        limit: BigInt.from(10),
+      );
+
+      final allProgress = await progress_api.listAllProgresses();
+      final progressMap = <String, double>{};
+      for (final item in allProgress) {
+        if (item.progress != null) {
+          progressMap[item.book.bookId] = item.progress!.progress;
+        }
+      }
+      readingProgress.value = progressMap;
+
       data.sort((a, b) {
         switch (defaultSortType.value) {
           case BookshelfSortType.title:
@@ -129,16 +134,17 @@ class BookshelfViewModel {
     }
   }
 
-  Future<Set<String>> getBookCategoryIds(String bookId) async {
+  Future<Set<String>> getCategoryIds(String bookId) async {
     try {
-      return await _repo.getBookCategoryIds(bookId);
+      final cats = await category_api.listCategoriesByBook(bookId: bookId);
+      return cats.map((c) => c.id).toSet();
     } catch (_) {
       return {};
     }
   }
 
   /// 切换分类
-  void selectCategory(BookCategory? category) {
+  void selectCategory(Category? category) {
     selectedCategory.value = category;
     isSearching.value = false;
     searchKeyword.value = '';
@@ -170,18 +176,18 @@ class BookshelfViewModel {
   /// 删除书籍
   Future<bool> deleteBook(String id) async {
     try {
-      await _repo.deleteBook(id);
+      await book_api.deleteBook(bookId: id);
       await loadBooks();
       return true;
     } catch (e, stack) {
-      debugPrint('BookshelfViewModel.deleteBook error: $e\n$stack');
+      Logging.error('BookshelfViewModel.deleteBook error', exception: e, stackTrace: stack);
       return false;
     }
   }
 
   /// 获取书籍详情
   Future<Book?> getBookDetail(String id) async {
-    return await _repo.getBookById(id);
+    return await book_api.getBook(bookId: id);
   }
 
   // ==================== 分类管理 ====================
@@ -193,32 +199,33 @@ class BookshelfViewModel {
     int sortOrder = 0,
   }) async {
     try {
-      final category = BookCategory(
-        id: 'cat_${DateTime.now().millisecondsSinceEpoch}',
+      await category_api.upsertCategory(
         name: name,
         color: color,
         sortOrder: sortOrder,
-        isSystem: false,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
       );
-      await _repo.addCategory(category);
       await _loadCategories();
       return true;
     } catch (e, stack) {
-      debugPrint('BookshelfViewModel.addCategory error: $e\n$stack');
+      Logging.error('BookshelfViewModel.addCategory error', exception: e, stackTrace: stack);
       return false;
     }
   }
 
   /// 更新分类
-  Future<bool> updateCategory(BookCategory category) async {
+  Future<bool> updateCategory(Category category) async {
     try {
-      await _repo.updateCategory(category);
+      await category_api.upsertCategory(
+        name: category.name,
+        color: category.color,
+        sortOrder: category.sortOrder,
+        description: category.description,
+        categoryId: category.id,
+      );
       await _loadCategories();
       return true;
     } catch (e, stack) {
-      debugPrint('BookshelfViewModel.updateCategory error: $e\n$stack');
+      Logging.error('BookshelfViewModel.updateCategory error', exception: e, stackTrace: stack);
       return false;
     }
   }
@@ -226,11 +233,11 @@ class BookshelfViewModel {
   /// 删除分类
   Future<bool> removeCategory(String id) async {
     try {
-      final category = await _repo.getCategoryById(id);
-      if (category == null || category.isSystem) {
+      final category = await category_api.getCategory(categoryId: id);
+      if (category == null) {
         return false;
       }
-      await _repo.deleteCategory(id);
+      await category_api.deleteCategory(categoryId: id);
       await _loadCategories();
       if (selectedCategory.value?.id == id) {
         selectedCategory.value = categories.value.isEmpty
@@ -239,7 +246,7 @@ class BookshelfViewModel {
       }
       return true;
     } catch (e, stack) {
-      debugPrint('BookshelfViewModel.removeCategory error: $e\n$stack');
+      Logging.error('BookshelfViewModel.removeCategory error', exception: e, stackTrace: stack);
       return false;
     }
   }
@@ -250,10 +257,13 @@ class BookshelfViewModel {
     List<String> categoryIds,
   ) async {
     try {
-      await _repo.updateBookCategories(bookId, categoryIds);
+      await category_api.setCategoriesForBook(
+        bookId: bookId,
+        categoryIds: categoryIds,
+      );
       return true;
     } catch (e, stack) {
-      debugPrint('BookshelfViewModel.updateBookCategories error: $e\n$stack');
+      Logging.error('BookshelfViewModel.updateBookCategories error', exception: e, stackTrace: stack);
       return false;
     }
   }
@@ -262,6 +272,7 @@ class BookshelfViewModel {
       'bookshelf.show_reading_progress';
   static const String _keyShowRecentReading = 'bookshelf.show_recent_reading';
   static const String _keyDefaultSortType = 'bookshelf.default_sort_type';
+  static const String _keyIsListView = 'bookshelf.is_list_view';
 
   void _loadSettings() {
     showReadingProgress.value = _prefs.getBool(_keyShowReadingProgress) ?? true;
@@ -269,6 +280,7 @@ class BookshelfViewModel {
     defaultSortType.value = BookshelfSortType.fromKey(
       _prefs.getString(_keyDefaultSortType) ?? 'last_read',
     );
+    isListView.value = _prefs.getBool(_keyIsListView) ?? false;
   }
 
   Future<void> setShowReadingProgress(bool value) async {
@@ -286,27 +298,8 @@ class BookshelfViewModel {
     await _prefs.setString(_keyDefaultSortType, type.key);
   }
 
-  Future<BookshelfSortType?> showSortTypeDialog(BuildContext context) async {
-    return showDialog<BookshelfSortType>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('选择排序方式'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: BookshelfSortType.values.map((type) {
-            return ListTile(
-              title: Text(type.displayName),
-              trailing: defaultSortType.value == type
-                  ? Icon(
-                      PhosphorIconsRegular.check,
-                      color: Theme.of(context).colorScheme.primary,
-                    )
-                  : null,
-              onTap: () => Navigator.pop(context, type),
-            );
-          }).toList(),
-        ),
-      ),
-    );
+  void toggleViewMode() {
+    isListView.value = !isListView.value;
+    _prefs.setBool(_keyIsListView, isListView.value);
   }
 }

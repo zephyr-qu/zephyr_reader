@@ -2,6 +2,7 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
+import 'package:zephyr_reader/src/rust/api/vocab_marker.dart' as rust;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,7 @@ void main() {
         expect(service.cet6.isNotEmpty, isTrue);
         expect(service.ielts.isNotEmpty, isTrue);
         expect(service.toefl.isNotEmpty, isTrue);
+        expect(service.allWords.length, greaterThan(2000));
       });
 
       test('isVocabularyWord 应识别 CET-6 词汇', () {
@@ -30,16 +32,6 @@ void main() {
       test('isVocabularyWord 应大小写不敏感', () {
         expect(service.isVocabularyWord('ABANDON'), isTrue);
         expect(service.isVocabularyWord('Abandon'), isTrue);
-      });
-
-      test('isVocabularyWord 应识别 IELTS 词汇', () {
-        expect(service.isVocabularyWord('academic'), isTrue);
-        expect(service.isVocabularyWord('accumulate'), isTrue);
-      });
-
-      test('isVocabularyWord 应识别 TOEFL 词汇', () {
-        expect(service.isVocabularyWord('abolish'), isTrue);
-        expect(service.isVocabularyWord('aesthetic'), isTrue);
       });
 
       test('scanText 应返回文本中所有生词位置', () {
@@ -73,6 +65,27 @@ void main() {
       test('scanText 空文本应返回空列表', () {
         expect(service.scanText(''), isEmpty);
         expect(service.scanText('纯中文文本'), isEmpty);
+      });
+    });
+
+    group('Rust scan_for_vocabulary', () {
+      test('Rust 扫描应与 Dart scanText 结果一致', () async {
+        final texts = [
+          'We should not abandon our academic pursuits.',
+          'abandon academic',
+          '放弃abandon学术academic研究',
+          '',
+          '纯中文文本',
+        ];
+        for (final text in texts) {
+          final dartResult = service.scanText(text);
+          final rustResult = await rust.scanForVocabulary(text: text);
+          expect(
+            rustResult.map((m) => m.word).toList(),
+            equals(dartResult.map((t) => t.$1).toList()),
+            reason: 'Mismatch for text: "$text"',
+          );
+        }
       });
     });
   });

@@ -4,8 +4,9 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:signals_hooks/signals_hooks.dart';
 
 import '../application/services/webdav_sync_service.dart';
 
@@ -13,7 +14,7 @@ import '../application/services/webdav_sync_service.dart';
 class ConflictResolutionPage extends HookWidget {
   final EnhancedWebDavSyncService syncService;
   final ConflictInfo conflictInfo;
-  final Function(ConflictResolution resolution)? onResolved;
+  final void Function(ConflictResolution resolution)? onResolved;
 
   const ConflictResolutionPage({
     super.key,
@@ -24,8 +25,8 @@ class ConflictResolutionPage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isResolving = useState(false);
-    final selectedResolution = useState<ConflictResolution?>(null);
+    final isResolving = useSignal(false);
+    final selectedResolution = useSignal<ConflictResolution?>(null);
 
     return Scaffold(
       appBar: AppBar(
@@ -37,7 +38,7 @@ class ConflictResolutionPage extends HookWidget {
               onPressed: () => _resolveConflict(
                 context,
                 selectedResolution.value!,
-                isResolving,
+                (v) => isResolving.value = v,
               ),
               tooltip: '确认解决',
             ),
@@ -52,7 +53,7 @@ class ConflictResolutionPage extends HookWidget {
             _buildConflictInfoCard(conflictInfo),
             const SizedBox(height: 24),
             // 解决策略选择
-            _buildResolutionOptions(context, selectedResolution, conflictInfo),
+            _buildResolutionOptions(context, selectedResolution.value, (v) => selectedResolution.value = v, conflictInfo),
             const SizedBox(height: 24),
             // 数据对比
             _buildDataComparison(context, conflictInfo),
@@ -141,7 +142,8 @@ class ConflictResolutionPage extends HookWidget {
 
   Widget _buildResolutionOptions(
     BuildContext context,
-    ValueNotifier<ConflictResolution?> selectedResolution,
+    ConflictResolution? selectedResolution,
+    ValueChanged<ConflictResolution> onSelect,
     ConflictInfo conflictInfo,
   ) {
     return Card(
@@ -163,6 +165,7 @@ class ConflictResolutionPage extends HookWidget {
               PhosphorIconsRegular.cloudArrowUp,
               Colors.blue,
               selectedResolution,
+              onSelect,
             ),
             const SizedBox(height: 12),
             _buildResolutionOption(
@@ -173,6 +176,7 @@ class ConflictResolutionPage extends HookWidget {
               PhosphorIconsRegular.cloudArrowDown,
               Colors.green,
               selectedResolution,
+              onSelect,
             ),
             const SizedBox(height: 12),
             _buildResolutionOption(
@@ -183,6 +187,7 @@ class ConflictResolutionPage extends HookWidget {
               PhosphorIconsRegular.gitMerge,
               Colors.orange,
               selectedResolution,
+              onSelect,
             ),
           ],
         ),
@@ -197,14 +202,13 @@ class ConflictResolutionPage extends HookWidget {
     String subtitle,
     IconData icon,
     Color color,
-    ValueNotifier<ConflictResolution?> selectedResolution,
+    ConflictResolution? selectedResolution,
+    ValueChanged<ConflictResolution> onSelect,
   ) {
-    final isSelected = selectedResolution.value == resolution;
+    final isSelected = selectedResolution == resolution;
 
     return InkWell(
-      onTap: () {
-        selectedResolution.value = resolution;
-      },
+      onTap: () => onSelect(resolution),
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -430,9 +434,9 @@ class ConflictResolutionPage extends HookWidget {
   Future<void> _resolveConflict(
     BuildContext context,
     ConflictResolution resolution,
-    ValueNotifier<bool> isResolving,
+    ValueChanged<bool> setIsResolving,
   ) async {
-    isResolving.value = true;
+    setIsResolving(true);
 
     try {
       final success = await syncService.resolveConflict(
@@ -471,7 +475,7 @@ class ConflictResolutionPage extends HookWidget {
         );
       }
     } finally {
-      isResolving.value = false;
+      setIsResolving(false);
     }
   }
 

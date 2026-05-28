@@ -4,9 +4,13 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../domain/error.dart';
-import '../domain/types.dart';
 import '../frb_generated.dart';
+import '../storage/models.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+part 'bilingual.freezed.dart';
+
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`
 
 /// 对齐双语文本（基于相似度匹配）
 ///
@@ -62,3 +66,125 @@ Future<BilingualAlignment> simpleBilingualAlign({
   chineseContent: chineseContent,
   englishContent: englishContent,
 );
+
+/// 创建双语高亮配对
+///
+/// 同时创建两个高亮 Note，通过 `paired_note_id` 互相链接。
+/// 创建后两个高亮可通过 `paired_note_id` 相互查询。
+Future<BilingualHighlightPair> createBilingualHighlightPair({
+  required String sourceBookId,
+  required int sourceChapterIndex,
+  required PlatformInt64 sourceCharOffset,
+  required PlatformInt64 sourceLength,
+  required String sourceSelectedText,
+  required String sourceLanguage,
+  required String targetBookId,
+  required int targetChapterIndex,
+  required PlatformInt64 targetCharOffset,
+  required PlatformInt64 targetLength,
+  required String targetSelectedText,
+  required String targetLanguage,
+  required int highlightColor,
+}) => RustLib.instance.api.crateApiBilingualCreateBilingualHighlightPair(
+  sourceBookId: sourceBookId,
+  sourceChapterIndex: sourceChapterIndex,
+  sourceCharOffset: sourceCharOffset,
+  sourceLength: sourceLength,
+  sourceSelectedText: sourceSelectedText,
+  sourceLanguage: sourceLanguage,
+  targetBookId: targetBookId,
+  targetChapterIndex: targetChapterIndex,
+  targetCharOffset: targetCharOffset,
+  targetLength: targetLength,
+  targetSelectedText: targetSelectedText,
+  targetLanguage: targetLanguage,
+  highlightColor: highlightColor,
+);
+
+/// 获取指定章节的双语高亮配对列表
+Future<List<BilingualHighlightPair>> getBilingualHighlightPairs({
+  required String bookId,
+  required int chapterIndex,
+}) => RustLib.instance.api.crateApiBilingualGetBilingualHighlightPairs(
+  bookId: bookId,
+  chapterIndex: chapterIndex,
+);
+
+/// 删除一对双语高亮
+///
+/// 传入任意一个 note_id，会同时删除配对的另一个高亮
+Future<void> deleteBilingualHighlightPair({required String noteId}) => RustLib
+    .instance
+    .api
+    .crateApiBilingualDeleteBilingualHighlightPair(noteId: noteId);
+
+/// 对齐片段
+class AlignedSegment {
+  final String chinese;
+  final String english;
+  final double similarityScore;
+  final BigInt chinesePosition;
+  final BigInt englishPosition;
+
+  const AlignedSegment({
+    required this.chinese,
+    required this.english,
+    required this.similarityScore,
+    required this.chinesePosition,
+    required this.englishPosition,
+  });
+
+  @override
+  int get hashCode =>
+      chinese.hashCode ^
+      english.hashCode ^
+      similarityScore.hashCode ^
+      chinesePosition.hashCode ^
+      englishPosition.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AlignedSegment &&
+          runtimeType == other.runtimeType &&
+          chinese == other.chinese &&
+          english == other.english &&
+          similarityScore == other.similarityScore &&
+          chinesePosition == other.chinesePosition &&
+          englishPosition == other.englishPosition;
+}
+
+/// 双语对齐结果
+class BilingualAlignment {
+  final List<AlignedSegment> segments;
+  final List<String> unmatchedChinese;
+  final List<String> unmatchedEnglish;
+
+  const BilingualAlignment({
+    required this.segments,
+    required this.unmatchedChinese,
+    required this.unmatchedEnglish,
+  });
+
+  @override
+  int get hashCode =>
+      segments.hashCode ^ unmatchedChinese.hashCode ^ unmatchedEnglish.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BilingualAlignment &&
+          runtimeType == other.runtimeType &&
+          segments == other.segments &&
+          unmatchedChinese == other.unmatchedChinese &&
+          unmatchedEnglish == other.unmatchedEnglish;
+}
+
+/// 双语高亮配对
+@freezed
+sealed class BilingualHighlightPair with _$BilingualHighlightPair {
+  const factory BilingualHighlightPair({
+    required Note sourceNote,
+    Note? targetNote,
+  }) = _BilingualHighlightPair;
+}

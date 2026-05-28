@@ -13,7 +13,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
-import 'package:zephyr_reader/features/reader/data/custom_font_service.dart';
+import 'package:zephyr_reader/core/reader/custom_font_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
@@ -47,6 +47,7 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage>
           _buildFontSection(context, fontSize, lineHeight),
           _buildPageSection(context, enableAnimation),
           _buildScreenSection(context, keepScreenOn, showBattery, showTime),
+          _buildReaderAppearanceSection(context),
           _buildClickZoneSection(context, clickZone),
           _buildResetSection(
             context,
@@ -187,6 +188,90 @@ class _ReadingSettingsPageState extends State<ReadingSettingsPage>
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildReaderAppearanceSection(BuildContext context) {
+    final bgIndex = useSignal(getIt<ReaderConfig>().readerBgColorIndex.value);
+
+    return _buildSection(
+      context,
+      title: '阅读外观',
+      children: [_buildBgColorPicker(context, bgIndex)],
+    );
+  }
+
+  Widget _buildBgColorPicker(BuildContext context, Signal<int> bgIndex) {
+    const bgColors = [
+      Color(0xFFFAFAFA),
+      Color(0xFFF5F0E8),
+      Color(0xFFFFF8E7),
+      Color(0xFFC7EDCC),
+      Color(0xFFF0F0F0),
+    ];
+    final cs = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 10),
+            child: Text(
+              '阅读背景色',
+              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+            ),
+          ),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: List.generate(bgColors.length, (i) {
+              final isDark = bgColors[i].computeLuminance() < 0.5;
+              final isSelected = bgIndex.value == i;
+              return GestureDetector(
+                onTap: () {
+                  bgIndex.value = i;
+                  getIt<ReaderConfig>().setReaderBgColorIndex(i);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: bgColors[i],
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected
+                          ? DesignTokens.warmAccent
+                          : cs.outlineVariant.withValues(alpha: 0.3),
+                      width: isSelected ? 2.5 : 1,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: DesignTokens.warmAccent.withValues(
+                                alpha: 0.25,
+                              ),
+                              blurRadius: 6,
+                              spreadRadius: 0,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: isSelected
+                      ? Icon(
+                          PhosphorIconsBold.check,
+                          size: 18,
+                          color: isDark ? Colors.white : Colors.black54,
+                        )
+                      : null,
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
     );
   }
 

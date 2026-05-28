@@ -4,11 +4,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 
-import 'package:zephyr_reader/di/service_locator.dart';
-import 'package:zephyr_reader/features/reader/data/note_repository.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class NoteManagePage extends StatefulWidget {
@@ -26,7 +25,6 @@ class NoteManagePage extends StatefulWidget {
 }
 
 class _NoteManagePageState extends State<NoteManagePage> {
-  final _noteService = getIt<NoteRepository>();
   List<Note> _notes = [];
   bool _loading = true;
 
@@ -39,61 +37,49 @@ class _NoteManagePageState extends State<NoteManagePage> {
   Future<void> _loadNotes() async {
     setState(() => _loading = true);
     try {
-      _notes = await _noteService.getNotes(widget.bookId);
+      _notes = await note_api.listNotesByBook(bookId: widget.bookId);
     } catch (_) {
       _notes = [];
     }
     if (mounted) setState(() => _loading = false);
   }
 
-  String _formatNotesAsMarkdown() {
-    final buf = StringBuffer();
-    buf.writeln('# ${widget.bookTitle} - 读书笔记');
-    buf.writeln('---');
-    buf.writeln();
-    for (int i = 0; i < _notes.length; i++) {
-      final n = _notes[i];
-      buf.writeln(
-        '## ${n.noteType == NoteType.highlight ? "高亮" : "笔记"} #${i + 1}',
-      );
-      buf.writeln();
-      buf.writeln('- **章节**: 第 ${n.chapterIndex + 1} 章');
-      if (n.selectedText != null && n.selectedText!.isNotEmpty) {
-        buf.writeln('- **原文**: "${n.selectedText}"');
-      }
-      buf.writeln(
-        '- **时间**: ${n.createdAt.toLocal().toString().substring(0, 19)}',
-      );
-      buf.writeln();
-      if (n.content.isNotEmpty && n.content != (n.selectedText ?? '')) {
-        buf.writeln('> ${n.content}');
-        buf.writeln();
-      }
-      buf.writeln('---');
-      buf.writeln();
+  String _formatLabel(String format) {
+    switch (format) {
+      case 'markdown':
+        return 'md';
+      case 'html':
+        return 'html';
+      default:
+        return 'txt';
     }
-    buf.writeln();
-    buf.writeln('*由 Zephyr Reader 导出*');
-    return buf.toString();
   }
 
-  Future<void> _exportMarkdown(BuildContext context) async {
+  Future<void> _doExport(String format) async {
     try {
+      final content = await note_api.renderNotesToString(
+        notes: _notes,
+        bookTitle: widget.bookTitle,
+        format: format,
+      );
       final dir = await getApplicationDocumentsDirectory();
-      final filename =
-          '${widget.bookTitle}_读书笔记_${DateTime.now().millisecondsSinceEpoch}.md';
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final name = widget.bookTitle.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+      final ext = _formatLabel(format);
+      final filename = '${name}_读书笔记_$ts.$ext';
       final file = File('${dir.path}/$filename');
-      await file.writeAsString(_formatNotesAsMarkdown());
-      if (context.mounted) {
+      await file.writeAsString(content, flush: true);
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('已导出到: ${file.path}'),
-            duration: const Duration(seconds: 4),
+            content: Text('已导出: ${file.path}'),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(label: '关闭', onPressed: () {}),
           ),
         );
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('导出失败: $e')));
@@ -109,10 +95,18 @@ class _NoteManagePageState extends State<NoteManagePage> {
         title: Text('${widget.bookTitle} - 笔记'),
         actions: [
           if (!_loading && _notes.isNotEmpty)
-            IconButton(
+            PopupMenuButton<String>(
               icon: const Icon(PhosphorIconsRegular.fileArrowDown),
-              tooltip: '导出 Markdown',
-              onPressed: () => _exportMarkdown(context),
+              tooltip: '导出笔记',
+              onSelected: (format) => _doExport(format),
+              itemBuilder: (c) => [
+                const PopupMenuItem(
+                  value: 'markdown',
+                  child: Text('导出 Markdown'),
+                ),
+                const PopupMenuItem(value: 'txt', child: Text('导出纯文本')),
+                const PopupMenuItem(value: 'html', child: Text('导出 HTML')),
+              ],
             ),
         ],
       ),

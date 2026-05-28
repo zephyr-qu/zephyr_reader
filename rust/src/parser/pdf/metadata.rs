@@ -20,14 +20,14 @@ pub fn extract_metadata_from_path(file_path: &str) -> PdfMetadata {
             // 这里保留占位符，实际项目中可能需要额外的库
 
             tracing::debug!(
-                "PDF 元数据提取完成：title={:?}, author={:?}, pages={}",
+                "PDF metadata extraction complete: title={:?}, author={:?}, pages={}",
                 metadata.title,
                 metadata.author,
                 metadata.page_count
             );
         }
         Err(e) => {
-            tracing::warn!("PDF 文档打开失败，无法提取元数据：{}", e);
+            tracing::warn!("PDF document open failed, unable to extract metadata: {}", e);
         }
     }
 

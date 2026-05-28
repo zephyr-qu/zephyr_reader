@@ -9,57 +9,6 @@ use std::path::Path;
 use crate::domain::{ AppError};
 use crate::text::constants::PDF_CHARS_PER_PAGE;
 
-/// 从 PDF 文件中提取指定页面的文本
-///
-/// # 参数
-///
-/// * `file_path` - PDF 文件路径
-/// * `page_index` - 页面索引（从 0 开始）
-///
-/// # 返回值
-///
-/// * `Ok(String)` - 提取的文本内容
-/// * `Err(AppError)` - 提取失败
-pub fn get_pdf_page_text(file_path: &str, page_index: usize) -> Result<String,AppError> {
-    if !Path::new(file_path).exists() {
-        return Err(AppError::file_not_found(file_path));
-    }
-
-    let pdfium = Pdfium;
-    let load_result = pdfium.load_pdf_from_file(file_path, None);
-    let pdf =
-        load_result.map_err(|e| AppError::pdf_parse_error(format!("打开 PDF 文件失败：{}", e)))?;
-
-    let num_pages: usize = pdf.pages().len() as usize;
-    if page_index >= num_pages {
-        return Err(AppError::pdf_parse_error(format!(
-            "页面索引超出范围：{} (总共 {} 页)",
-            page_index, num_pages
-        )));
-    }
-
-    let page = pdf
-        .pages()
-        .get(page_index as PdfPageIndex)
-        .map_err(|e| AppError::pdf_parse_error(format!("获取页面失败：{}", e)))?;
-
-    // 使用 pdfium-render 提取页面文本
-    let page_text = page
-        .text()
-        .map_err(|e| AppError::pdf_parse_error(format!("提取页面文本失败：{}", e)))?;
-
-    // 使用 chars() 获取所有字符并拼接
-    let chars = page_text.chars();
-    let mut text = String::new();
-    for char_obj in chars.iter() {
-        if let Some(ch) = char_obj.unicode_char() {
-            text.push(ch);
-        }
-    }
-
-    Ok(text)
-}
-
 /// 从 PDF 文件中提取指定页面范围的文本
 ///
 /// # 参数
@@ -80,12 +29,12 @@ pub fn get_chapter_text(file_path: &str, start_page: usize, end_page: usize) -> 
     let pdfium = Pdfium;
     let load_result = pdfium.load_pdf_from_file(file_path, None);
     let pdf =
-        load_result.map_err(|e| AppError::pdf_parse_error(format!("打开 PDF 文件失败：{}", e)))?;
+        load_result.map_err(|e| AppError::pdf_parse_error(format!("failed to open PDF file: {}", e)))?;
 
     let num_pages: usize = pdf.pages().len() as usize;
     if start_page >= num_pages {
         return Err(AppError::pdf_parse_error(format!(
-            "起始页面超出范围：{} (总共 {} 页)",
+            "start page out of range: {} (total {} pages)",
             start_page, num_pages
         )));
     }
@@ -93,7 +42,7 @@ pub fn get_chapter_text(file_path: &str, start_page: usize, end_page: usize) -> 
     let actual_end = end_page.min(num_pages);
     if actual_end <= start_page {
         return Err(AppError::pdf_parse_error(format!(
-            "无效的页面范围：{} - {}",
+            "invalid page range: {} - {}",
             start_page, end_page
         )));
     }
@@ -101,11 +50,11 @@ pub fn get_chapter_text(file_path: &str, start_page: usize, end_page: usize) -> 
     let mut chapter_text = String::new();
     for page_index in start_page..actual_end {
         let page = pdf.pages().get(page_index as PdfPageIndex).map_err(|e| {
-            AppError::pdf_parse_error(format!("获取页面 {} 失败：{}", page_index, e))
+            AppError::pdf_parse_error(format!("failed to get page {}: {}", page_index, e))
         })?;
 
         let page_text = page.text().map_err(|e| {
-            AppError::pdf_parse_error(format!("提取页面 {} 文本失败：{}", page_index, e))
+            AppError::pdf_parse_error(format!("failed to extract page {} text: {}", page_index, e))
         })?;
 
         // 使用 chars() 获取所有字符并拼接
@@ -159,18 +108,6 @@ mod tests {
     use super::*;
     use std::fs;
     use tempfile::TempDir;
-
-    #[test]
-    fn test_get_pdf_page_text_file_not_found() {
-        let result = get_pdf_page_text("non_existent.pdf", 0);
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(
-            matches!(err, AppError::FileNotFound { .. }),
-            "Expected FileNotFound error, got: {:?}",
-            err
-        );
-    }
 
     #[test]
     #[ignore = "需要 Pdfium 库支持，在 CI 环境中跳过"]

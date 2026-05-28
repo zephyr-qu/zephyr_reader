@@ -1,17 +1,19 @@
 import 'package:injectable/injectable.dart';
-import 'package:signals_flutter/signals_flutter.dart';
-
-import '../data/search_service.dart';
+import 'package:signals/signals.dart';
+import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
+import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
+import 'package:zephyr_reader/src/rust/api/search.dart';
+import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 搜索视图模型
 @injectable
 class SearchViewModel {
-  final SearchRepository _repo;
-
   /// 搜索关键词
   final keyword = signal<String>('');
 
-  /// 搜索结果
+  /// 搜索结果（FTS5 精确搜索）
   final results = asyncSignal<List<SearchResult>>(AsyncState.data([]));
 
   /// 是否正在搜索
@@ -23,10 +25,23 @@ class SearchViewModel {
   /// 是否有更多数据
   final hasMore = signal<bool>(false);
 
-  SearchViewModel(this._repo);
+  // ── 全量搜索（多源聚合） ──
 
-  /// 执行搜索
-  Future<void> search({bool loadMore = false}) async {
+  /// 全量搜索结果
+  final allBooks = signal<List<Book>>([]);
+  final titleHits = signal<List<Book>>([]);
+  final contentHits = signal<List<SearchResult>>([]);
+  final vocabHits = signal<List<Vocab>>([]);
+  final noteHits = signal<List<Note>>([]);
+  final allBooksMap = signal<Map<String, Book>>({});
+  final durationMs = signal<int>(0);
+  final hasSearched = signal<bool>(false);
+  final searchError = signal<String?>(null);
+
+  SearchViewModel();
+
+  /// 执行 FTS5 搜索（简单搜索）
+  Future<void> searchBook({bool loadMore = false}) async {
     if (keyword.value.isEmpty) {
       results.value = AsyncState.data([]);
       return;
@@ -44,7 +59,10 @@ class SearchViewModel {
           : <SearchResult>[];
       results.value = AsyncState.loading();
 
-      final data = await _repo.search(keyword.value, page: currentPage.value);
+      final data = await searchAllBooks(
+        query: keyword.value,
+        limit: currentPage.value,
+      );
 
       if (loadMore) {
         results.value = AsyncState.data([...previous, ...data]);
@@ -52,7 +70,7 @@ class SearchViewModel {
         results.value = AsyncState.data(data);
       }
 
-      hasMore.value = data.length >= 20; // 假设每页20条
+      hasMore.value = data.length >= 20;
     } catch (e) {
       results.value = AsyncState.error(e);
     } finally {
@@ -65,7 +83,77 @@ class SearchViewModel {
     if (!hasMore.value || isSearching.value) return;
 
     currentPage.value++;
-    await search(loadMore: true);
+    await searchBook(loadMore: true);
+  }
+
+  /// 全量多源搜索（书籍+笔记+生词）
+  Future<void> doFullSearch(String query) async {
+    isSearching.value = true;
+    searchError.value = null;
+    hasSearched.value = false;
+
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      final allBooksFuture = book_api.listBooks();
+      final titleHitsFuture = book_api.searchBooks(keyword: query);
+      final vocabHitsFuture = vocab_api.searchVocabularyWords(query: query);
+
+      final allBooksResult = await allBooksFuture;
+      final bookMap = {for (final b in allBooksResult) b.bookId: b};
+
+      Future<List<SearchResult>> ftsSearch() async {
+        try {
+          return await searchAllBooks(query: query, limit: 50);
+        } catch (_) {
+          return [];
+        }
+      }
+
+      final results = await Future.wait([
+        titleHitsFuture,
+        ftsSearch(),
+        vocabHitsFuture,
+      ]);
+
+      final matchedBooks = results[0] as List<Book>;
+      final contentSearchResults = results[1] as List<SearchResult>;
+      final vocabList = results[2] as List<Vocab>;
+
+      final noteResults = <Note>[];
+      try {
+        final notesByBook = await Future.wait(
+          allBooksResult
+              .map((b) => note_api.listNotesByBook(bookId: b.bookId)),
+        );
+        final lowerQuery = query.toLowerCase();
+        for (final notes in notesByBook) {
+          for (final note in notes) {
+            if (note.content.toLowerCase().contains(lowerQuery) ||
+                (note.selectedText?.toLowerCase().contains(lowerQuery) ==
+                    true)) {
+              noteResults.add(note);
+            }
+          }
+        }
+      } catch (_) {}
+
+      stopwatch.stop();
+
+      allBooks.value = allBooksResult;
+      allBooksMap.value = bookMap;
+      titleHits.value = matchedBooks;
+      contentHits.value = contentSearchResults;
+      vocabHits.value = vocabList;
+      noteHits.value = noteResults;
+      durationMs.value = stopwatch.elapsedMilliseconds;
+      hasSearched.value = true;
+    } catch (e) {
+      searchError.value = e.toString();
+      hasSearched.value = true;
+    } finally {
+      isSearching.value = false;
+    }
   }
 
   /// 更新搜索关键词
@@ -78,5 +166,14 @@ class SearchViewModel {
     keyword.value = '';
     results.value = AsyncState.data([]);
     currentPage.value = 1;
+    titleHits.value = [];
+    contentHits.value = [];
+    vocabHits.value = [];
+    noteHits.value = [];
+    allBooks.value = [];
+    allBooksMap.value = {};
+    durationMs.value = 0;
+    hasSearched.value = false;
+    searchError.value = null;
   }
 }

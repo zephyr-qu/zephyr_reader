@@ -13,8 +13,7 @@ class Assets {
   const Assets._();
 
   static const String aEnv = '.env';
-  static const String dictionary = 'assets/dictionary.db';
 
   /// List of all assets
-  static List<String> get values => [aEnv, dictionary];
+  static List<String> get values => [aEnv];
 }

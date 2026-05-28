@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import 'package:signals_flutter/signals_flutter.dart';
+import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/article/application/article_view_model.dart';
 import 'package:zephyr_reader/features/article/domain/models/article.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
@@ -13,23 +13,31 @@ import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 /// 文章列表页面
-class ArticleListPage extends StatelessWidget {
-  const ArticleListPage({super.key});
+class ArticleListPage extends HookWidget {
+  final ArticleViewModel vm;
+
+  const ArticleListPage({super.key, required this.vm});
 
   @override
   Widget build(BuildContext context) {
-    final vm = getIt<ArticleViewModel>();
     final theme = Theme.of(context);
     final deviceType = LayoutBreakpoints.getDeviceType(context);
+
+    // Load on mount
+    useEffect(() {
+      vm.load();
+      return null;
+    }, []);
+
+    // Bind VM signal
+    final articlesState = useSignalValue<AsyncState<List<Article>>, AsyncSignal<List<Article>>>(vm.articles);
 
     return Scaffold(
       body: CustomScrollView(
         physics: adaptiveScrollPhysics(context),
         slivers: [
-          // 顶部 AppBar - 带书架/文章切换
           _buildAppBar(context, theme, deviceType),
-          // 文章列表
-          _buildArticleList(context, vm, theme, deviceType),
+          _buildArticleList(context, articlesState, theme, deviceType),
         ],
       ),
     );
@@ -48,7 +56,6 @@ class ArticleListPage extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // 书架标题（可点击切换）
           GestureDetector(
             onTap: () => context.go('/bookshelf'),
             child: Text(
@@ -59,7 +66,6 @@ class ArticleListPage extends StatelessWidget {
               ),
             ),
           ),
-          // 斜线分隔符
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: DesignTokens.spacing(Spacing.sm),
@@ -71,11 +77,8 @@ class ArticleListPage extends StatelessWidget {
               ),
             ),
           ),
-          // 文章标题（可点击切换）
           GestureDetector(
-            onTap: () {
-              // 当前已在文章页面，无需操作
-            },
+            onTap: () {},
             child: Text(
               '文章',
               style: theme.textTheme.titleLarge?.copyWith(
@@ -103,90 +106,92 @@ class ArticleListPage extends StatelessWidget {
 
   Widget _buildArticleList(
     BuildContext context,
-    ArticleViewModel vm,
+    AsyncState<List<Article>> articlesState,
     ThemeData theme,
     DeviceType deviceType,
   ) {
     final pagePadding = LayoutBreakpoints.getPagePadding(context);
 
+    // Loading 状态
+    if (articlesState.isLoading) {
+      return SliverPadding(
+        padding: pagePadding,
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate((context, index) {
+            return RepaintBoundary(
+              child: _buildSkeletonCard(context, index),
+            );
+          }, childCount: 5),
+        ),
+      );
+    }
+
+    // Error 状态
+    if (articlesState.hasError) {
+      return SliverPadding(
+        padding: pagePadding,
+        sliver: SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(DesignTokens.spacing(Spacing.xl)),
+              child: EmptyState(
+                icon: PhosphorIconsRegular.warningCircle,
+                title: '加载失败',
+                subtitle: articlesState.error?.toString() ?? '未知错误',
+                actionLabel: '重试',
+                onAction: vm.load,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final articles = articlesState.value ?? [];
+
+    // Empty 状态
+    if (articles.isEmpty) {
+      return SliverPadding(
+        padding: pagePadding,
+        sliver: SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(DesignTokens.spacing(Spacing.xl)),
+              child: EmptyState(
+                icon: PhosphorIconsRegular.fileText,
+                title: '暂无文章',
+                subtitle: '文章列表空空如也',
+                actionLabel: '刷新',
+                onAction: vm.load,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 文章列表
     return SliverPadding(
       padding: pagePadding,
-      sliver: Watch.builder(
-        builder: (context) {
-          final async = vm.articles.value;
-
-          // Loading 状态 - 骨架屏
-          if (async.isLoading) {
-            return SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                return RepaintBoundary(
-                  child: _buildSkeletonCard(context, index),
-                );
-              }, childCount: 5),
-            );
-          }
-
-          // Error 状态
-          if (async.hasError) {
-            return SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: Padding(
-                  padding: EdgeInsets.all(DesignTokens.spacing(Spacing.xl)),
-                  child: EmptyState(
-                    icon: PhosphorIconsRegular.warningCircle,
-                    title: '加载失败',
-                    subtitle: async.error?.toString() ?? '未知错误',
-                    actionLabel: '重试',
-                    onAction: vm.load,
-                  ),
-                ),
-              ),
-            );
-          }
-
-          final articles = async.value ?? [];
-
-          // Empty 状态
-          if (articles.isEmpty) {
-            return SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: Padding(
-                  padding: EdgeInsets.all(DesignTokens.spacing(Spacing.xl)),
-                  child: EmptyState(
-                    icon: PhosphorIconsRegular.fileText,
-                    title: '暂无文章',
-                    subtitle: '文章列表空空如也',
-                    actionLabel: '刷新',
-                    onAction: vm.load,
-                  ),
-                ),
-              ),
-            );
-          }
-
-          // 文章列表
-          return SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              if (index >= articles.length) return const SizedBox.shrink();
-              final article = articles[index];
-              return RepaintBoundary(
-                child: _buildArticleCard(context, article, theme, index)
-                    .animate()
-                    .fadeIn(delay: (100 * index).ms, duration: 400.ms)
-                    .slideY(begin: 0.05, end: 0),
-              );
-            }, childCount: articles.length),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate((context, index) {
+          if (index >= articles.length) return const SizedBox.shrink();
+          final article = articles[index];
+          return RepaintBoundary(
+            child: _buildArticleCard(context, article, theme, index)
+                .animate()
+                .fadeIn(delay: (100 * index).ms, duration: 400.ms)
+                .slideY(begin: 0.05, end: 0),
           );
-        },
+        }, childCount: articles.length),
       ),
     );
   }
 
   Widget _buildSkeletonCard(BuildContext context, int index) {
     final theme = Theme.of(context);
-
     return Container(
       margin: EdgeInsets.only(bottom: DesignTokens.spacing(Spacing.md)),
       child: Card(
@@ -195,7 +200,6 @@ class ArticleListPage extends StatelessWidget {
           padding: EdgeInsets.all(DesignTokens.spacing(Spacing.md)),
           child: Row(
             children: [
-              // 封面骨架
               Container(
                 width: 100,
                 height: 100,
@@ -205,7 +209,6 @@ class ArticleListPage extends StatelessWidget {
                 ),
               ),
               SizedBox(width: DesignTokens.spacing(Spacing.md)),
-              // 内容骨架
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,7 +284,6 @@ class ArticleListPage extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 封面图
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
@@ -322,12 +324,10 @@ class ArticleListPage extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: DesignTokens.spacing(Spacing.md)),
-                // 文章内容
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 标题
                       Text(
                         article.title,
                         style: theme.textTheme.titleMedium?.copyWith(
@@ -338,7 +338,6 @@ class ArticleListPage extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       SizedBox(height: DesignTokens.spacing(Spacing.sm)),
-                      // 摘要
                       Text(
                         article.summary,
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -349,10 +348,8 @@ class ArticleListPage extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const Spacer(),
-                      // 元信息
                       Row(
                         children: [
-                          // 作者
                           Container(
                             padding: EdgeInsets.symmetric(
                               horizontal: DesignTokens.spacing(Spacing.sm),
@@ -379,8 +376,7 @@ class ArticleListPage extends StatelessWidget {
                                   child: Text(
                                     article.author,
                                     style: theme.textTheme.labelSmall?.copyWith(
-                                      color:
-                                          theme.colorScheme.onPrimaryContainer,
+                                      color: theme.colorScheme.onPrimaryContainer,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -390,7 +386,6 @@ class ArticleListPage extends StatelessWidget {
                             ),
                           ),
                           SizedBox(width: DesignTokens.spacing(Spacing.sm)),
-                          // 阅读时长
                           Container(
                             padding: EdgeInsets.symmetric(
                               horizontal: DesignTokens.spacing(Spacing.sm),
@@ -416,15 +411,13 @@ class ArticleListPage extends StatelessWidget {
                                 Text(
                                   '${article.readDuration}分钟',
                                   style: theme.textTheme.labelSmall?.copyWith(
-                                    color:
-                                        theme.colorScheme.onTertiaryContainer,
+                                    color: theme.colorScheme.onTertiaryContainer,
                                   ),
                                 ),
                               ],
                             ),
                           ),
                           const Spacer(),
-                          // 箭头
                           Icon(
                             PhosphorIconsLight.caretRight,
                             size: 14,

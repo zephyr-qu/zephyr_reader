@@ -1,37 +1,59 @@
 library;
 
+import 'dart:async';
+
 import 'package:injectable/injectable.dart';
-import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/features/vocabulary/data/vocabulary_service.dart';
+import 'package:signals/signals.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 @injectable
 class VocabularyViewModel {
-  final VocabularyService _service;
-
-  final words = signal<List<VocabEntry>>([]);
+  final words = asyncSignal<List<Vocab>>(AsyncState.data([]));
   final stats = signal<VocabStats?>(null);
-  final loading = signal<bool>(false);
-  final error = signal<String?>(null);
-  final filterStatus = signal<String?>('learning');
+  final filterStatus = signal<VocabStatus?>(VocabStatus.new_);
+  final filterWordList = signal<String?>(null);
   final searchQuery = signal<String>('');
 
-  VocabularyViewModel(this._service);
+  /// bookId -> bookTitle lookup map
+  final bookTitles = signal<Map<String, String>>({});
+
+  VocabularyViewModel();
 
   Future<void> loadWords({String? bookId}) async {
-    loading.value = true;
-    error.value = null;
+    words.value = AsyncState.loading();
     try {
       final results = await Future.wait([
-        _service.getWords(bookId: bookId, status: filterStatus.value),
-        _service.getStats(),
+        vocab_api.listVocabularyByStatus(
+          bookId: bookId,
+          status: filterStatus.value,
+          wordList: filterWordList.value,
+        ),
+        vocab_api.getVocabularyStats(),
       ]);
-      words.value = results[0] as List<VocabEntry>;
-      stats.value = results[1] as VocabStats;
+      final loadedWords = results[0] as List<Vocab>;
+      words.value = AsyncState.data(loadedWords);
+
+      final s = results[1] as VocabStats;
+      stats.value = s;
     } catch (e) {
-      error.value = '加载失败: $e';
-    } finally {
-      loading.value = false;
+      words.value = AsyncState.error(e, StackTrace.current);
+    }
+    unawaited(_loadBookTitles());
+  }
+
+  Future<void> _loadBookTitles() async {
+    try {
+      final allBooks = await book_api.listBooks();
+      final map = <String, String>{};
+      for (final book in allBooks) {
+        map[book.bookId] = book.title;
+      }
+      bookTitles.value = map;
+    } catch (e) {
+      Logging.error('加载书籍标题失败', exception: e);
     }
   }
 
@@ -39,18 +61,30 @@ class VocabularyViewModel {
     await loadWords();
   }
 
-  Future<void> setFilter(String? status) async {
+  Future<void> setFilter(VocabStatus? status) async {
     filterStatus.value = status;
     await loadWords();
   }
 
-  Future<void> updateStatus(String id, String status) async {
-    await _service.updateStatus(id, status);
+  Future<void> setWordListFilter(String? wordList) async {
+    filterWordList.value = wordList;
+    await loadWords();
+  }
+
+  Future<void> updateStatus(String id, String s) async {
+    final status = switch (s) {
+      'new' || '' => VocabStatus.new_,
+      'learning' => VocabStatus.learning,
+      'mastered' => VocabStatus.mastered,
+      'ignored' => VocabStatus.ignored,
+      _ => VocabStatus.new_,
+    };
+    await vocab_api.updateVocabularyStatus(id: id, status: status);
     await loadWords();
   }
 
   Future<void> deleteWord(String id) async {
-    await _service.delete(id);
+    await vocab_api.deleteVocabulary(id: id);
     await loadWords();
   }
 }

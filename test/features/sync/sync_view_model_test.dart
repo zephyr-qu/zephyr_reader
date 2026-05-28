@@ -7,6 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/core/local/file_storage.dart';
 import 'package:zephyr_reader/features/sync/application/sync_view_model.dart';
 import 'package:zephyr_reader/features/sync/data/sync_service.dart';
+import 'package:zephyr_reader/features/sync/domain/repositories/sync_repository.dart'
+    hide SyncRepository;
 
 class _MockFileStorage implements FileStorage {
   String? storedContent;

@@ -1,28 +1,43 @@
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:zephyr_reader/features/article/application/article_view_model.dart';
 import 'package:zephyr_reader/features/article/page/article_detail_page.dart';
 import 'package:zephyr_reader/features/article/page/article_list_page.dart';
+import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/page/book_detail_page.dart';
 import 'package:zephyr_reader/features/bookshelf/page/bookshelf_page.dart';
 import 'package:zephyr_reader/features/bookshelf/page/category_management_page.dart';
+import 'package:zephyr_reader/features/bookshelf/page/wifi_transfer_page.dart';
 import 'package:zephyr_reader/features/home/page/home_page.dart';
+import 'package:zephyr_reader/features/learning_notes/application/learning_notes_view_model.dart';
+import 'package:zephyr_reader/features/learning_notes/page/learning_notes_page.dart';
 import 'package:zephyr_reader/features/home/page/splash_page.dart';
 import 'package:zephyr_reader/features/main_layout.dart';
 import 'package:zephyr_reader/features/profile/page/about_page.dart';
 import 'package:zephyr_reader/features/profile/page/app_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/profile_page.dart';
 import 'package:zephyr_reader/features/profile/page/reading_settings_page.dart';
+import 'package:zephyr_reader/features/profile/page/tts_settings_page.dart';
+import 'package:zephyr_reader/features/profile/page/typography_settings_page.dart';
+import 'package:zephyr_reader/features/profile/page/theme_brightness/theme_brightness_page.dart';
+import 'package:zephyr_reader/features/profile/page/other_settings/other_settings_page.dart';
+import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page.dart';
 import 'package:zephyr_reader/features/reader/page/note_manage_page.dart';
 import 'package:zephyr_reader/features/reader/page/bookmark_manage_page.dart';
+import 'package:zephyr_reader/features/search/application/search_view_model.dart';
 import 'package:zephyr_reader/features/search/page/search_page.dart';
 import 'package:zephyr_reader/features/search/page/book_search_page.dart';
+import 'package:zephyr_reader/features/vocabulary/application/vocabulary_view_model.dart';
 import 'package:zephyr_reader/features/statistics/page/statistics_page.dart';
+import 'package:zephyr_reader/features/statistics/application/reading_stats_service.dart';
 import 'package:zephyr_reader/features/statistics/page/reading_stats_page.dart';
 import 'package:zephyr_reader/shared/widget/not_found_page.dart';
 import 'package:zephyr_reader/features/sync/page/webdav_settings_page.dart';
 import 'package:zephyr_reader/features/sync/page/sync_history_page.dart';
+import 'package:zephyr_reader/features/sync/page/storage_sync_page.dart';
 import 'package:zephyr_reader/features/sync/page/backup_restore_page.dart';
 import 'package:zephyr_reader/features/vocabulary/page/vocabulary_page.dart';
 import 'package:zephyr_reader/features/statistics/page/reading_sessions_page.dart';
@@ -78,7 +93,7 @@ final router = GoRouter(
         GoRoute(
           name: RouteNames.bookshelf,
           path: RoutePaths.bookshelf,
-          builder: (_, _) => const BookshelfPage(),
+          builder: (_, _) => BookshelfPage(vm: GetIt.I<BookshelfViewModel>()),
         ),
         GoRoute(
           name: RouteNames.categoryManagement,
@@ -115,6 +130,26 @@ final router = GoRouter(
           builder: (_, _) => const ReadingSettingsPage(),
         ),
         GoRoute(
+          name: RouteNames.ttsSettings,
+          path: RoutePaths.ttsSettings,
+          builder: (_, _) => const TtsSettingsPage(),
+        ),
+        GoRoute(
+          name: RouteNames.typographySettings,
+          path: RoutePaths.typographySettings,
+          builder: (_, _) => const TypographySettingsPage(),
+        ),
+        GoRoute(
+          name: RouteNames.themeBrightness,
+          path: RoutePaths.themeBrightness,
+          builder: (_, _) => const ThemeBrightnessPage(),
+        ),
+        GoRoute(
+          name: RouteNames.otherSettings,
+          path: RoutePaths.otherSettings,
+          builder: (_, _) => const OtherSettingsPage(),
+        ),
+        GoRoute(
           name: RouteNames.appSettings,
           path: RoutePaths.appSettings,
           builder: (_, _) => const AppSettingsPage(),
@@ -129,7 +164,7 @@ final router = GoRouter(
         GoRoute(
           name: RouteNames.articles,
           path: RoutePaths.articles,
-          builder: (_, _) => const ArticleListPage(),
+          builder: (_, _) => ArticleListPage(vm: GetIt.I<ArticleViewModel>()),
         ),
         GoRoute(
           name: RouteNames.articleDetail,
@@ -139,7 +174,6 @@ final router = GoRouter(
             return ArticleDetailPage(articleId: id);
           },
         ),
-
       ],
     ),
 
@@ -151,7 +185,7 @@ final router = GoRouter(
         final bookId = state.pathParameters['bookId'] ?? '0';
         final chapterId =
             int.tryParse(state.pathParameters['chapterId'] ?? '') ?? 0;
-        return ReaderPage(bookId: bookId, initialChapterId: chapterId);
+        return ReaderPage(vm: GetIt.I<ReaderViewModel>(), bookId: bookId, initialChapterId: chapterId);
       },
     ),
 
@@ -159,7 +193,7 @@ final router = GoRouter(
     GoRoute(
       name: RouteNames.search,
       path: RoutePaths.search,
-      builder: (_, _) => const SearchPage(),
+      builder: (_, _) => SearchPage(vm: GetIt.I<SearchViewModel>()),
     ),
 
     // 同步相关路由
@@ -167,6 +201,11 @@ final router = GoRouter(
       name: RouteNames.sync,
       path: RoutePaths.sync,
       builder: (_, _) => const WebDavSettingsPage(),
+    ),
+    GoRoute(
+      name: RouteNames.storageSync,
+      path: RoutePaths.storageSync,
+      builder: (_, _) => const StorageSyncPage(),
     ),
     GoRoute(
       name: RouteNames.syncHistory,
@@ -193,7 +232,7 @@ final router = GoRouter(
     GoRoute(
       name: RouteNames.readingStats,
       path: RoutePaths.readingStats,
-      builder: (_, _) => const ReadingStatsPage(),
+      builder: (_, _) => ReadingStatsPage(vm: GetIt.I<ReadingStatsViewModel>()),
     ),
 
     // 笔记管理
@@ -221,7 +260,14 @@ final router = GoRouter(
     GoRoute(
       name: RouteNames.vocabulary,
       path: RoutePaths.vocabulary,
-      builder: (_, _) => const VocabularyPage(),
+      builder: (_, _) => VocabularyPage(vm: GetIt.I<VocabularyViewModel>()),
+    ),
+
+    // 学习与笔记
+    GoRoute(
+      name: RouteNames.learningNotes,
+      path: RoutePaths.learningNotes,
+      builder: (_, _) => LearningNotesPage(vm: GetIt.I<LearningNotesViewModel>()),
     ),
 
     // 阅读会话历史
@@ -236,6 +282,13 @@ final router = GoRouter(
       name: RouteNames.cacheManage,
       path: RoutePaths.cacheManage,
       builder: (_, _) => const CacheManagePage(),
+    ),
+
+    // WiFi 传书
+    GoRoute(
+      name: RouteNames.wifiTransfer,
+      path: RoutePaths.wifiTransfer,
+      builder: (_, _) => const WifiTransferPage(),
     ),
 
     // Splash 页面（独立页面，不使用 MainLayout）

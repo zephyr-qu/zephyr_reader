@@ -1,658 +1,701 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:get_it/get_it.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
-import 'package:zephyr_reader/features/bookshelf/data/repositories/rust_book_repository.dart';
-import 'package:zephyr_reader/features/search/application/search_view_model.dart';
-import 'package:zephyr_reader/features/search/application/services/full_text_search_service.dart';
-import 'package:zephyr_reader/features/search/data/search_service.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:signals_hooks/signals_hooks.dart';
+
 import 'package:zephyr_reader/core/routing/route_constants.dart';
-import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
-import 'package:zephyr_reader/core/presentation/widgets/cards.dart';
-import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/features/search/application/search_view_model.dart';
+import 'package:zephyr_reader/features/search/application/services/search_history_service.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-/// 搜索页面 - 响应式设计
-class SearchPage extends StatefulWidget {
-  const SearchPage({super.key});
+// ──────────────────────── Internal Models ────────────────────────
 
-  @override
-  State<SearchPage> createState() => _SearchPageState();
+class _BookSearchItem {
+  final Book book;
+  final String? snippet;
+  final String? chapterTitle;
+  _BookSearchItem({required this.book, this.snippet, this.chapterTitle});
 }
 
-class _SearchPageState extends State<SearchPage> {
-  final vm = getIt<SearchViewModel>();
-  final _searchController = TextEditingController();
-  final _scrollController = ScrollController();
-  final _historyService = SearchHistoryService();
+class _NoteSearchItem {
+  final Note note;
+  final Book book;
+  _NoteSearchItem({required this.note, required this.book});
+}
 
-  // 防止重复加载
-  bool _isLoadingMore = false;
+class _VocabSearchItem {
+  final Vocab vocab;
+  final String? bookTitle;
+  _VocabSearchItem({required this.vocab, this.bookTitle});
+}
 
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_onScroll);
-  }
+class _SearchResults {
+  final List<_BookSearchItem> books;
+  final List<_NoteSearchItem> notes;
+  final List<_VocabSearchItem> vocab;
+  final int durationMs;
+  _SearchResults({
+    required this.books,
+    required this.notes,
+    required this.vocab,
+    required this.durationMs,
+  });
+  int get totalCount => books.length + notes.length + vocab.length;
+}
 
-  @override
-  void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _searchController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
+// ──────────────────────── Page ────────────────────────
 
-  void _onScroll() {
-    try {
-      // 检查是否可滚动
-      if (!_scrollController.hasClients) return;
+class SearchPage extends HookWidget {
+  final SearchViewModel vm;
 
-      final position = _scrollController.position;
-      if (!position.hasContentDimensions) return;
-
-      // 防止重复加载
-      if (_isLoadingMore) return;
-      if (!vm.hasMore.value) return;
-
-      final threshold = position.maxScrollExtent - 200;
-      if (position.pixels >= threshold) {
-        _isLoadingMore = true;
-        vm
-            .loadMore()
-            .then((_) {
-              if (mounted) {
-                _isLoadingMore = false;
-              }
-            })
-            .catchError((_) {
-              if (mounted) {
-                _isLoadingMore = false;
-              }
-            });
-      }
-    } catch (e) {
-      debugPrint('Scroll error: $e');
-    }
-  }
+  const SearchPage({super.key, required this.vm});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final deviceType = LayoutBreakpoints.getDeviceType(context);
-    final pagePadding = LayoutBreakpoints.getPagePadding(context);
+    final controller = useTextEditingController();
+    final focusNode = useFocusNode();
+    final history = useMemoized(() => SearchHistoryService());
+    final debounceTimer = useRef<Timer?>(null);
+    final searchText = useSignal('');
+
+    // VM signal bindings
+    final isSearching = useSignalValue<bool, Signal<bool>>(vm.isSearching);
+    final hasSearched = useSignalValue<bool, Signal<bool>>(vm.hasSearched);
+    final searchError = useSignalValue<String?, Signal<String?>>(vm.searchError);
+
+    // Derived search results from VM raw signals
+    final searchResults = useComputed(() {
+      if (!vm.hasSearched.value) return null;
+      if (vm.searchError.value != null) return null;
+
+      final bookMap = vm.allBooksMap.value;
+      final allBooksList = vm.allBooks.value;
+
+      final seenBooks = <String>{};
+      final bookItems = <_BookSearchItem>[];
+
+      for (final hit in vm.contentHits.value) {
+        final book = bookMap[hit.bookId];
+        if (book == null || !seenBooks.add(hit.bookId)) continue;
+        bookItems.add(_BookSearchItem(
+          book: book,
+          snippet: hit.snippet,
+          chapterTitle: hit.chapterTitle,
+        ));
+      }
+      for (final book in vm.titleHits.value) {
+        if (seenBooks.add(book.bookId)) {
+          bookItems.add(_BookSearchItem(book: book));
+        }
+      }
+
+      final noteItems = vm.noteHits.value.map((note) {
+        final book = bookMap[note.bookId] ??
+            allBooksList.firstWhere((b) => b.bookId == note.bookId);
+        return _NoteSearchItem(note: note, book: book);
+      }).toList();
+
+      final vocabItems = vm.vocabHits.value.map((v) => _VocabSearchItem(
+        vocab: v,
+        bookTitle: v.bookId != null ? bookMap[v.bookId]?.title : null,
+      )).toList();
+
+      return _SearchResults(
+        books: bookItems,
+        notes: noteItems,
+        vocab: vocabItems,
+        durationMs: vm.durationMs.value,
+      );
+    });
+
+    // Debounced search effect
+    useEffect(() {
+      void onTextChanged() {
+        searchText.value = controller.text;
+        debounceTimer.value?.cancel();
+        final text = controller.text;
+        if (text.trim().isEmpty) {
+          vm.clear();
+          return;
+        }
+        debounceTimer.value = Timer(
+          const Duration(milliseconds: 300),
+          () {
+            vm.doFullSearch(text.trim());
+            history.addHistory(text.trim());
+          },
+        );
+      }
+      controller.addListener(onTextChanged);
+      return () {
+        controller.removeListener(onTextChanged);
+        debounceTimer.value?.cancel();
+      };
+    }, []);
+
+    // Autofocus
+    useEffect(() {
+      focusNode.requestFocus();
+      return null;
+    }, []);
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // 顶部 AppBar
-          _buildAppBar(context, theme, deviceType),
-          // 搜索栏
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: pagePadding.copyWith(
-                top: DesignTokens.spacing(Spacing.md),
-                bottom: DesignTokens.spacing(Spacing.md),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildSearchHeader(
+              context,
+              theme,
+              controller,
+              focusNode,
+              searchText.value,
+              vm,
+              history,
+              onClear: () {
+                controller.clear();
+                debounceTimer.value?.cancel();
+                vm.clear();
+              },
+              onSearch: (value) {
+                debounceTimer.value?.cancel();
+                vm.doFullSearch(value);
+                history.addHistory(value);
+              },
+            ),
+            if (hasSearched && searchResults.value != null)
+              _buildSummaryBar(theme, searchResults.value!),
+            Expanded(
+              child: _buildBody(
+                context,
+                theme,
+                isSearching,
+                hasSearched,
+                searchError,
+                searchResults.value,
+                history,
+                controller,
               ),
-              child: _buildSearchBar(context, theme),
-            ).animate().fadeIn(duration: 400.ms),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ──────────────── Search Header ────────────────
+
+  Widget _buildSearchHeader(
+    BuildContext context,
+    ThemeData theme,
+    TextEditingController controller,
+    FocusNode focusNode,
+    String currentText,
+    SearchViewModel vm,
+    SearchHistoryService history, {
+    required VoidCallback onClear,
+    required ValueChanged<String> onSearch,
+  }) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: controller,
+                focusNode: focusNode,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: '搜索书籍、笔记、生词...',
+                  hintStyle: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.5,
+                    ),
+                  ),
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(left: 16, right: 8),
+                    child: Icon(
+                      PhosphorIconsRegular.magnifyingGlass,
+                      size: 20,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  suffixIcon: currentText.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(PhosphorIconsRegular.x, size: 16),
+                          onPressed: onClear,
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                style: const TextStyle(fontSize: 15),
+                textInputAction: TextInputAction.search,
+                onSubmitted: (value) {
+                  if (value.trim().isNotEmpty) {
+                    onSearch(value.trim());
+                  }
+                },
+              ),
+            ),
           ),
-          // 搜索结果
-          _buildResults(context, theme, pagePadding),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: () => context.pop(),
+            child: Text(
+              '取消',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildAppBar(
+  // ──────────────── Summary Bar ────────────────
+
+  Widget _buildSummaryBar(ThemeData theme, _SearchResults results) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+      child: Text(
+        '找到 ${results.totalCount} 条结果 · 耗时 ${results.durationMs}ms',
+        style: TextStyle(
+          fontSize: 12,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
+  // ──────────────── Body ────────────────
+
+  Widget _buildBody(
     BuildContext context,
     ThemeData theme,
-    DeviceType deviceType,
+    bool isLoading,
+    bool hasSearched,
+    String? error,
+    _SearchResults? results,
+    SearchHistoryService history,
+    TextEditingController controller,
   ) {
-    return SliverAppBar(
-      floating: true,
-      elevation: 0,
-      scrolledUnderElevation: 2,
-      leading: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          GestureDetector(
-            onTap: () => GoRouter.of(context).go('/bookshelf'),
-            child: Text(
-              '书架',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.normal,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              PhosphorIconsRegular.warningCircle,
+              size: 40,
+              color: theme.colorScheme.error.withValues(alpha: 0.4),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: DesignTokens.spacing(Spacing.sm),
+            const SizedBox(height: 12),
+            Text(
+              '搜索出错',
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             ),
-            child: Text(
-              '/',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.outlineVariant,
-              ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => vm.doFullSearch(controller.text.trim()),
+              child: const Text('重试'),
             ),
-          ),
-          GestureDetector(
-            onTap: () => GoRouter.of(context).go('/articles'),
-            child: Text(
-              '文章',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.normal,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => context.push(RoutePaths.bookSearch),
-          child: const Text('全文搜索', style: TextStyle(fontSize: 13)),
+          ],
         ),
+      );
+    }
+
+    if (results != null && results.totalCount == 0) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              PhosphorIconsRegular.magnifyingGlass,
+              size: 40,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '未找到相关结果',
+              style: TextStyle(
+                fontSize: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '试试其他关键词',
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.6,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (results != null) {
+      return _buildResultsList(context, theme, results, controller.text.trim());
+    }
+
+    return _buildHistorySection(context, theme, history, controller, vm);
+  }
+
+  // ──────────────── Results List ────────────────
+
+  Widget _buildResultsList(
+    BuildContext context,
+    ThemeData theme,
+    _SearchResults results,
+    String query,
+  ) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      children: [
+        if (results.books.isNotEmpty)
+          _buildBookGroup(context, theme, results.books, query),
+        if (results.notes.isNotEmpty)
+          _buildNoteGroup(context, theme, results.notes, query),
+        if (results.vocab.isNotEmpty)
+          _buildVocabGroup(theme, results.vocab, query),
+        if (results.totalCount == 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 40),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(
+                    PhosphorIconsRegular.magnifyingGlass,
+                    size: 40,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '未找到相关结果',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildSearchBar(BuildContext context, ThemeData theme) {
-    final deviceType = LayoutBreakpoints.getDeviceType(context);
-    final isDesktop = deviceType == DeviceType.desktop;
+  // ──────────────── Book Group ────────────────
 
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? DesignTokens.spacing(Spacing.lg) : 20,
-        vertical: isDesktop ? DesignTokens.spacing(Spacing.md) : 12,
-      ),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: '搜索小说名称或作者',
-                hintStyle: TextStyle(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(
-                    alpha: 0.5,
-                  ),
-                ),
-                prefixIcon: Icon(
-                  PhosphorIconsRegular.magnifyingGlass,
-                  color: theme.colorScheme.primary,
-                ),
-                suffixIcon: Watch.builder(
-                  builder: (context) {
-                    if (vm.keyword.value.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    return IconButton(
-                      icon: const Icon(PhosphorIconsRegular.x),
-                      onPressed: () {
-                        _searchController.clear();
-                        vm.updateKeyword('');
-                        vm.clear();
-                      },
-                      tooltip: '清除',
-                    );
-                  },
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: theme.colorScheme.surface,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: isDesktop ? 20 : DesignTokens.spacing(Spacing.md),
-                  vertical: isDesktop ? 14 : 12,
-                ),
-              ),
-              style: theme.textTheme.bodyLarge,
-              onSubmitted: (value) {
-                _historyService.addHistory(value);
-                vm.updateKeyword(value);
-                vm.search();
-              },
-            ),
-          ),
-          const SizedBox(width: 12),
-          FilledButton.icon(
-            onPressed: () {
-              _historyService.addHistory(_searchController.text);
-              vm.updateKeyword(_searchController.text);
-              vm.search();
-            },
-            icon: const Icon(PhosphorIconsRegular.magnifyingGlass),
-            label: Text(isDesktop ? '搜索' : ''),
-            style: FilledButton.styleFrom(
-              padding: EdgeInsets.symmetric(
-                horizontal: isDesktop
-                    ? DesignTokens.spacing(Spacing.lg)
-                    : DesignTokens.spacing(Spacing.md),
-                vertical: 14,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ).animate().scale(duration: 300.ms, curve: Curves.easeOutBack),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildResults(
+  Widget _buildBookGroup(
     BuildContext context,
     ThemeData theme,
-    EdgeInsets pagePadding,
+    List<_BookSearchItem> items,
+    String query,
   ) {
-    return SliverPadding(
-      padding: pagePadding,
-      sliver: Watch.builder(
-        builder: (context) {
-          final async = vm.results.value;
+    return _ResultGroup(
+      icon: PhosphorIconsRegular.books,
+      title: '书籍',
+      count: items.length,
+      children: items
+          .map((item) => _buildBookCard(context, theme, item, query))
+          .toList(),
+    );
+  }
 
-          if (async.isLoading && vm.currentPage.value == 1) {
-            return SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
+  Widget _buildBookCard(
+    BuildContext context,
+    ThemeData theme,
+    _BookSearchItem item,
+    String query,
+  ) {
+    final book = item.book;
+    return GestureDetector(
+      onTap: () => context.pushNamed(
+        RouteNames.reader,
+        pathParameters: {'bookId': book.bookId, 'chapterId': '0'},
+      ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(12),
+              ),
+              child: SizedBox(
+                width: 40,
+                height: 56,
+                child: Container(
+                  color: theme.colorScheme.primaryContainer,
+                  child: book.coverPath != null
+                      ? Image.file(
+                          File(book.coverPath!),
+                          fit: BoxFit.cover,
+                          cacheWidth: 80,
+                          errorBuilder: (_, _, _) => Icon(
+                            PhosphorIconsRegular.book,
+                            size: 20,
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.4,
+                            ),
+                          ),
+                        )
+                      : Icon(
+                          PhosphorIconsRegular.book,
+                          size: 20,
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.4,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const CircularProgressIndicator(),
-                    SizedBox(height: DesignTokens.spacing(Spacing.md)),
                     Text(
-                      '搜索中...',
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                      book.title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${book.author ?? '未知作者'} · ${book.format.name.toUpperCase()}',
+                      style: TextStyle(
+                        fontSize: 11,
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          if (async.hasError) {
-            return SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      PhosphorIconsRegular.warningCircle,
-                      size: 64,
-                      color: theme.colorScheme.error,
-                    ),
-                    SizedBox(height: DesignTokens.spacing(Spacing.md)),
-                    Text('搜索失败：${async.error}'),
-                    SizedBox(height: DesignTokens.spacing(Spacing.lg)),
-                    FilledButton.icon(
-                      onPressed: () => vm.search(),
-                      icon: const Icon(PhosphorIconsRegular.arrowsClockwise),
-                      label: const Text('重试'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          final results = async.value ?? [];
-
-          if (results.isEmpty && vm.keyword.value.isNotEmpty) {
-            return SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      PhosphorIconsRegular.magnifyingGlassMinus,
-                      size: 80,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.3,
-                      ),
-                    ),
-                    SizedBox(height: DesignTokens.spacing(Spacing.lg)),
-                    Text(
-                      '未找到 "${vm.keyword.value}" 相关的小说',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          if (results.isEmpty) {
-            final history = _historyService.getHistory();
-            if (history.isNotEmpty) {
-              return SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    top: DesignTokens.spacing(Spacing.sm),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '搜索历史',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: theme.colorScheme.onSurface,
-                            ),
-                          ),
-                          TextButton.icon(
-                            onPressed: () {
-                              setState(() => _historyService.clearHistory());
-                            },
-                            icon: Icon(
-                              PhosphorIconsRegular.trash,
-                              size: 16,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            label: Text(
-                              '清空',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: DesignTokens.spacing(Spacing.sm)),
-                      Wrap(
-                        spacing: DesignTokens.spacing(Spacing.sm),
-                        runSpacing: DesignTokens.spacing(Spacing.sm),
-                        children: history.map((query) {
-                          return InputChip(
-                            label: Text(
-                              query,
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                            onPressed: () {
-                              _searchController.text = query;
-                              vm.updateKeyword(query);
-                              vm.search();
-                            },
-                            onDeleted: () {
-                              setState(
-                                () => _historyService.removeHistory(query),
-                              );
-                            },
-                            deleteIconColor: theme.colorScheme.onSurfaceVariant,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            visualDensity: VisualDensity.compact,
-                          );
-                        }).toList(),
-                      ),
+                    if (item.snippet != null) ...[
+                      const SizedBox(height: 6),
+                      _buildHighlightedSnippet(theme, item.snippet!, query),
                     ],
-                  ),
-                ),
-              );
-            }
-            return SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      PhosphorIconsRegular.book,
-                      size: 80,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                    ),
-                    SizedBox(height: DesignTokens.spacing(Spacing.lg)),
-                    Text(
-                      '输入关键词开始搜索',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
                   ],
                 ),
               ),
-            );
-          }
-
-          // 使用 SliverList 实现列表布局
-          final deviceType = LayoutBreakpoints.getDeviceType(context);
-
-          return SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              if (index < results.length) {
-                return _buildResultItem(results[index], theme, deviceType)
-                    .animate()
-                    .fadeIn(delay: (50 * index).ms, duration: 300.ms)
-                    .slideY(begin: 0.05, end: 0);
-              } else if (vm.hasMore.value) {
-                return Padding(
-                  padding: EdgeInsets.all(DesignTokens.spacing(Spacing.lg)),
-                  child: Watch.builder(
-                    builder: (context) {
-                      return vm.isSearching.value
-                          ? const Center(child: CircularProgressIndicator())
-                          : const Center(child: Text('没有更多了'));
-                    },
-                  ),
-                );
-              }
-              return const SizedBox.shrink();
-            }, childCount: results.length + (vm.hasMore.value ? 1 : 0)),
-          );
-        },
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildResultItem(
-    SearchResult result,
-    ThemeData theme,
-    DeviceType deviceType,
-  ) {
-    final isDesktop = deviceType == DeviceType.desktop;
+  // ──────────────── Note Group ────────────────
 
-    return Container(
-      margin: EdgeInsets.only(bottom: DesignTokens.spacing(Spacing.md)),
-      child: GradientCard(
-        padding: EdgeInsets.all(
-          isDesktop ? 20 : DesignTokens.spacing(Spacing.md),
+  Widget _buildNoteGroup(
+    BuildContext context,
+    ThemeData theme,
+    List<_NoteSearchItem> items,
+    String query,
+  ) {
+    return _ResultGroup(
+      icon: PhosphorIconsRegular.notePencil,
+      title: '笔记',
+      count: items.length,
+      children: items
+          .map((item) => _buildNoteCard(context, theme, item, query))
+          .toList(),
+    );
+  }
+
+  Widget _buildNoteCard(
+    BuildContext context,
+    ThemeData theme,
+    _NoteSearchItem item,
+    String query,
+  ) {
+    final note = item.note;
+    return GestureDetector(
+      onTap: () {
+        context.pushNamed(
+          RouteNames.reader,
+          pathParameters: {
+            'bookId': note.bookId,
+            'chapterId': '${note.chapterIndex}',
+          },
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: const Border(
+            left: BorderSide(color: Color(0xFFFFA726), width: 3),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        onTap: () => _showPreview(result),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (note.selectedText != null && note.selectedText!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  note.selectedText!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.4,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            _buildHighlightedSnippet(theme, note.content, query),
+            const SizedBox(height: 6),
+            Text(
+              '${item.book.title} · Ch.${note.chapterIndex + 1}',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ──────────────── Vocab Group ────────────────
+
+  Widget _buildVocabGroup(
+    ThemeData theme,
+    List<_VocabSearchItem> items,
+    String query,
+  ) {
+    return _ResultGroup(
+      icon: PhosphorIconsRegular.bookmarkSimple,
+      title: '生词',
+      count: items.length,
+      children: items
+          .map((item) => _buildVocabCard(theme, item, query))
+          .toList(),
+    );
+  }
+
+  Widget _buildVocabCard(
+    ThemeData theme,
+    _VocabSearchItem item,
+    String query,
+  ) {
+    final v = item.vocab;
+    return GestureDetector(
+      onTap: () {},
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 封面图
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: isDesktop ? 80 : 60,
-                height: isDesktop ? 120 : 80,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                ),
-                child: result.coverUrl != null
-                    ? Image.network(
-                        result.coverUrl!,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                        cacheWidth: 60,
-                        cacheHeight: 80,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildCoverPlaceholder(theme, isDesktop);
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                  : null,
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                theme.colorScheme.primary,
-                              ),
-                            ),
-                          );
-                        },
-                      )
-                    : _buildCoverPlaceholder(theme, isDesktop),
+            Container(
+              width: 8,
+              height: 8,
+              margin: const EdgeInsets.only(top: 6),
+              decoration: const BoxDecoration(
+                color: Color(0xFFAB47BC),
+                shape: BoxShape.circle,
               ),
             ),
-            SizedBox(width: isDesktop ? 20 : DesignTokens.spacing(Spacing.md)),
-            // 书籍信息
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _buildHighlightedSnippet(theme, v.word, query),
+                  const SizedBox(height: 3),
                   Text(
-                    result.title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    v.translation,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      height: 1.4,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: DesignTokens.spacing(Spacing.sm)),
-                  Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: DesignTokens.spacing(Spacing.sm),
-                          vertical: DesignTokens.spacing(Spacing.xs),
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(
-                            DesignTokens.radius(RadiusSize.sm),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              PhosphorIconsRegular.user,
-                              size: 12,
-                              color: theme.colorScheme.primary,
-                            ),
-                            SizedBox(width: DesignTokens.spacing(Spacing.xs)),
-                            Text(
-                              result.author,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onPrimaryContainer,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: DesignTokens.spacing(Spacing.sm)),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: DesignTokens.spacing(Spacing.sm),
-                          vertical: DesignTokens.spacing(Spacing.xs),
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.tertiaryContainer,
-                          borderRadius: BorderRadius.circular(
-                            DesignTokens.radius(RadiusSize.sm),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              PhosphorIconsRegular.bookOpen,
-                              size: 12,
-                              color: theme.colorScheme.tertiary,
-                            ),
-                            SizedBox(width: DesignTokens.spacing(Spacing.xs)),
-                            Text(
-                              '${result.totalChapters}章',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onTertiaryContainer,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (result.description != null) ...[
-                    const SizedBox(height: 12),
+                  if (item.bookTitle != null) ...[
+                    const SizedBox(height: 4),
                     Text(
-                      result.description!,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        height: 1.5,
+                      item.bookTitle!,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: theme.colorScheme.primary,
                       ),
-                      maxLines: isDesktop ? 3 : 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                  const Spacer(),
-                  Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: DesignTokens.spacing(Spacing.sm),
-                          vertical: DesignTokens.spacing(Spacing.xs),
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(
-                            DesignTokens.radius(RadiusSize.sm),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              PhosphorIconsRegular.hardDrives,
-                              size: 12,
-                              color: theme.colorScheme.secondary,
-                            ),
-                            SizedBox(width: DesignTokens.spacing(Spacing.xs)),
-                            Text(
-                              result.source,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSecondaryContainer,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Spacer(),
-                      Icon(
-                        PhosphorIconsLight.caretRight,
-                        size: 16,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -662,199 +705,228 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _buildCoverPlaceholder(ThemeData theme, bool isDesktop) {
-    return Center(
-      child: Icon(
-        PhosphorIconsRegular.book,
-        size: isDesktop ? 40 : 28,
-        color: theme.colorScheme.primary.withValues(alpha: 0.5),
+  // ──────────────── Snippet Highlighting ────────────────
+
+  Widget _buildHighlightedSnippet(ThemeData theme, String text, String query) {
+    if (query.isEmpty) {
+      return Text(
+        text,
+        style: TextStyle(
+          fontSize: 13,
+          color: theme.colorScheme.onSurface,
+          height: 1.4,
+        ),
+      );
+    }
+
+    final lowerText = text.toLowerCase();
+    final lowerQuery = query.toLowerCase();
+    final spans = <InlineSpan>[];
+    int lastEnd = 0;
+
+    int startIndex = 0;
+    while (true) {
+      final idx = lowerText.indexOf(lowerQuery, startIndex);
+      if (idx == -1) break;
+      if (idx > lastEnd) {
+        spans.add(TextSpan(text: text.substring(lastEnd, idx)));
+      }
+      spans.add(
+        TextSpan(
+          text: text.substring(idx, idx + query.length),
+          style: TextStyle(
+            backgroundColor: Colors.yellow.withValues(alpha: 0.4),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+      lastEnd = idx + query.length;
+      startIndex = idx + 1;
+    }
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(text: text.substring(lastEnd)));
+    }
+
+    return RichText(
+      text: TextSpan(
+        style: TextStyle(
+          fontSize: 13,
+          color: theme.colorScheme.onSurface,
+          height: 1.4,
+        ),
+        children: spans,
       ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
     );
   }
 
-  void _showPreview(SearchResult result) {
-    final theme = Theme.of(context);
-    final deviceType = LayoutBreakpoints.getDeviceType(context);
-    final isDesktop = deviceType == DeviceType.desktop;
+  // ──────────────── History Section ────────────────
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(result.title),
-        content: SizedBox(
-          width: isDesktop ? 500 : null,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (result.coverUrl != null)
-                  Center(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        result.coverUrl!,
-                        width: 120,
-                        height: 160,
-                        cacheWidth: 60,
-                        cacheHeight: 80,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: 120,
-                            height: 160,
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              PhosphorIconsRegular.book,
-                              size: 48,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                SizedBox(height: DesignTokens.spacing(Spacing.md)),
-                _buildInfoRow(
-                  label: '作者',
-                  value: result.author,
-                  icon: PhosphorIconsRegular.user,
-                  theme: theme,
-                ),
-                _buildInfoRow(
-                  label: '章节数',
-                  value: '${result.totalChapters} 章',
-                  icon: PhosphorIconsRegular.bookOpen,
-                  theme: theme,
-                ),
-                _buildInfoRow(
-                  label: '来源',
-                  value: result.source,
-                  icon: PhosphorIconsRegular.hardDrives,
-                  theme: theme,
-                ),
-                if (result.description != null) ...[
-                  SizedBox(height: DesignTokens.spacing(Spacing.md)),
-                  Text(
-                    '简介',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: DesignTokens.spacing(Spacing.sm)),
-                  Text(
-                    result.description!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      height: 1.6,
-                    ),
-                  ),
-                ],
-              ],
+  Widget _buildHistorySection(
+    BuildContext context,
+    ThemeData theme,
+    SearchHistoryService history,
+    TextEditingController controller,
+    SearchViewModel vm,
+  ) {
+    final historyList = history.getHistory();
+    if (historyList.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              PhosphorIconsRegular.magnifyingGlass,
+              size: 40,
+              color: theme.colorScheme.primary.withValues(alpha: 0.3),
             ),
-          ),
+            const SizedBox(height: 12),
+            Text(
+              '搜索书籍、笔记、生词',
+              style: TextStyle(
+                fontSize: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '搜索历史',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              GestureDetector(
+                onTap: history.clearHistory,
+                child: Text(
+                  '清除',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
           ),
-          FilledButton.icon(
-            onPressed: () async {
-              Navigator.pop(context);
-
-              // 添加到书架
-              final repo = GetIt.I.get<BookRepository>();
-              final book = await repo.createBook(
-                title: result.title,
-                author: result.author,
-                filePath: result.id,
-                fileFormat: 'web',
-                totalChapters: result.totalChapters,
-                description: result.description,
-                coverPath: result.coverUrl,
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: historyList.map((h) {
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: InkWell(
+                  onTap: () {
+                    controller.text = h;
+                    controller.selection = TextSelection.fromPosition(
+                      TextPosition(offset: h.length),
+                    );
+                    vm.doFullSearch(h);
+                  },
+                  child: Text(h, style: const TextStyle(fontSize: 13)),
+                ),
               );
-
-              if (!context.mounted) return;
-
-              if (book != null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        const Icon(PhosphorIconsFill.checkCircle),
-                        const SizedBox(width: 12),
-                        Text('已添加 ${result.title} 到书架'),
-                      ],
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Row(
-                      children: [
-                        Icon(PhosphorIconsRegular.info),
-                        SizedBox(width: 12),
-                        Text('添加失败，书籍可能已存在'),
-                      ],
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            },
-            icon: const Icon(PhosphorIconsRegular.bookmarkSimple),
-            label: const Text('添加到书架'),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
+            }).toList(),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildInfoRow({
-    required String label,
-    required String value,
-    required IconData icon,
-    required ThemeData theme,
-  }) {
+// ──────────────────────── Result Group Widget ────────────────────────
+
+class _ResultGroup extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final int count;
+  final List<Widget> children;
+
+  const _ResultGroup({
+    required this.icon,
+    required this.title,
+    required this.count,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: EdgeInsets.all(DesignTokens.spacing(Spacing.sm)),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(
-                DesignTokens.radius(RadiusSize.md),
-              ),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 10),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            child: Icon(icon, size: 18, color: theme.colorScheme.primary),
           ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              Text(
-                value,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
+          ...children,
         ],
       ),
     );

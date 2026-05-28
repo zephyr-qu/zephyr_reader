@@ -1,5 +1,5 @@
 import 'package:injectable/injectable.dart';
-import 'package:signals_flutter/signals_flutter.dart';
+import 'package:signals/signals.dart';
 
 import '../data/article_service.dart';
 import '../domain/models/article.dart';

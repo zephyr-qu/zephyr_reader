@@ -1,34 +1,34 @@
-//! EPUB 目录提取
-//! 从 NCX 或 Nav 文档中提取章节信息，支持多级目录
+//! EPUB table of contents extraction
+//! Extracts chapter information from NCX or Nav documents, supports multi-level TOC
 
 use super::unzip::EpubFile;
 use crate::storage::models::Chapter;
 
-/// 从 EPUB 中提取章节信息（支持多级目录）
-pub fn extract_chapters_from_epub(epub_file: &mut EpubFile) -> Vec<Chapter> {
+/// Extract chapter information from EPUB (supports multi-level TOC)
+pub fn extract_chapters_from_epub(epub_file: &mut EpubFile, book_id: &str) -> Vec<Chapter> {
     let toc = epub_file.toc();
     let spine = epub_file.spine();
 
-    tracing::info!("[extract_chapters_from_epub] spine 总数: {}, toc 总数: {}", spine.len(), toc.len());
+    tracing::info!("[extract_chapters_from_epub] spine total: {}, toc total: {}", spine.len(), toc.len());
     for (i, (label, href, lvl)) in toc.iter().enumerate() {
         tracing::info!("[extract_chapters_from_epub]   toc[{i}]: label={label:?} href={href:?} level={lvl}");
     }
 
     if toc.is_empty() {
-        // 如果没有目录，使用 spine 生成简单章节
-        let chapters = generate_chapters_from_spine(&spine);
-        tracing::info!("[extract_chapters_from_epub] 无 TOC，从 spine 生成 {} 章节", chapters.len());
+        // If no TOC, generate simple chapters from spine
+        let chapters = generate_chapters_from_spine(&spine, book_id);
+        tracing::info!("[extract_chapters_from_epub] No TOC, generating {} chapters from spine", chapters.len());
         return chapters;
     }
 
     let mut chapters = Vec::new();
     let mut chapter_id = 0i32;
 
-    extract_toc_items(epub_file, &toc, &mut chapters, &mut chapter_id);
+    extract_toc_items(epub_file, &toc, &mut chapters, &mut chapter_id, book_id);
 
-    tracing::info!("[extract_chapters_from_epub] 从 TOC 解析出 {} 章节", chapters.len());
+    tracing::info!("[extract_chapters_from_epub] Parsed {} chapters from TOC", chapters.len());
     for ch in &chapters {
-        tracing::info!("[extract_chapters_from_epub]   章[{}]: title={:?}, start_index={}", ch.chapter_index, ch.title, ch.start_index);
+        tracing::info!("[extract_chapters_from_epub]   ch[{}]: title={:?}, start_index={}", ch.chapter_index, ch.title, ch.start_index);
     }
 
     chapters
@@ -39,6 +39,7 @@ fn extract_toc_items(
     items: &[(String, String, i32)],
     chapters: &mut Vec<Chapter>,
     chapter_id: &mut i32,
+    book_id: &str,
 ) {
     let spine_len = epub_file.spine().len();
 
@@ -51,14 +52,13 @@ fn extract_toc_items(
 
         chapters.push(Chapter {
             id: uuid::Uuid::new_v4().to_string(),
-            book_id: String::new(),
+            book_id: book_id.to_string(),
             title: title.to_string(),
             start_index: index as i64,
             end_index: 0,
             content_length: 0,
             chapter_index: *chapter_id,
             level: *level,
-            content_file: String::new(),
             word_count: 0,
             cached_at: chrono::Utc::now(),
         });
@@ -84,7 +84,7 @@ fn extract_toc_items(
 }
 
 /// 从 spine 生成简单章节
-fn generate_chapters_from_spine(spine: &[String]) -> Vec<Chapter> {
+fn generate_chapters_from_spine(spine: &[String], book_id: &str) -> Vec<Chapter> {
     spine
         .iter()
         .enumerate()
@@ -94,14 +94,13 @@ fn generate_chapters_from_spine(spine: &[String]) -> Vec<Chapter> {
 
             Chapter {
                 id: uuid::Uuid::new_v4().to_string(),
-                book_id: String::new(),
+                book_id: book_id.to_string(),
                 title,
                 start_index: i as i64,
                 end_index: (i + 1) as i64,
                 content_length: 0,
                 chapter_index: i as i32,
                 level: 0,
-                content_file: String::new(),
                 word_count: 0,
                 cached_at: chrono::Utc::now(),
             }

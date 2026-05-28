@@ -4,25 +4,39 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api.dart';
+import 'api/backup.dart';
 import 'api/bilingual.dart';
-import 'api/bilingual_highlight.dart';
-import 'api/book.dart';
+import 'api/core.dart';
 import 'api/cover.dart';
+import 'api/data/book.dart';
+import 'api/data/bookmark.dart';
+import 'api/data/category.dart';
+import 'api/data/chapter.dart';
+import 'api/data/init.dart';
+import 'api/data/note.dart';
+import 'api/data/progress.dart';
+import 'api/data/session.dart';
+import 'api/data/stats.dart';
+import 'api/data/vocabulary.dart';
 import 'api/dictionary.dart';
 import 'api/epub.dart';
-import 'api/file.dart';
+import 'api/md.dart';
 import 'api/search.dart';
-import 'api/storage.dart';
 import 'api/typeset.dart';
-import 'api/vocabulary.dart';
+import 'api/vocab_marker.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
+import 'dictionary/models.dart';
 import 'domain/error.dart';
-import 'domain/parser.dart';
-import 'domain/types.dart';
+import 'domain/types/metadata.dart';
+import 'domain/types/pagination.dart';
+import 'domain/types/rich_text.dart';
+import 'domain/types/typeset.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
+import 'parser/book_parser.dart';
+import 'parser/provider.dart';
 import 'storage/models.dart';
 import 'text/pagination.dart';
 
@@ -72,9 +86,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Book dco_decode_book(dynamic raw);
 
   @protected
-  BookCategory dco_decode_book_category(dynamic raw);
-
-  @protected
   BookFormat dco_decode_book_format(dynamic raw);
 
   @protected
@@ -82,6 +93,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BookStatus dco_decode_book_status(dynamic raw);
+
+  @protected
+  BookWithProgress dco_decode_book_with_progress(dynamic raw);
 
   @protected
   Bookmark dco_decode_bookmark(dynamic raw);
@@ -96,13 +110,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Book dco_decode_box_autoadd_book(dynamic raw);
 
   @protected
-  BookCategory dco_decode_box_autoadd_book_category(dynamic raw);
-
-  @protected
   Bookmark dco_decode_box_autoadd_bookmark(dynamic raw);
 
   @protected
+  Category dco_decode_box_autoadd_category(dynamic raw);
+
+  @protected
   Chapter dco_decode_box_autoadd_chapter(dynamic raw);
+
+  @protected
+  DictEntry dco_decode_box_autoadd_dict_entry(dynamic raw);
+
+  @protected
+  DictSearchResult dco_decode_box_autoadd_dict_search_result(dynamic raw);
+
+  @protected
+  Dictionary dco_decode_box_autoadd_dictionary(dynamic raw);
 
   @protected
   double dco_decode_box_autoadd_f_32(dynamic raw);
@@ -123,13 +146,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ReadingProgress dco_decode_box_autoadd_reading_progress(dynamic raw);
 
   @protected
-  ReadingSession dco_decode_box_autoadd_reading_session(dynamic raw);
-
-  @protected
   ReadingStats dco_decode_box_autoadd_reading_stats(dynamic raw);
 
   @protected
+  TypesetCalibration dco_decode_box_autoadd_typeset_calibration(dynamic raw);
+
+  @protected
   TypesetConfig dco_decode_box_autoadd_typeset_config(dynamic raw);
+
+  @protected
+  VocabStatus dco_decode_box_autoadd_vocab_status(dynamic raw);
+
+  @protected
+  Category dco_decode_category(dynamic raw);
 
   @protected
   Chapter dco_decode_chapter(dynamic raw);
@@ -141,7 +170,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DictEntry dco_decode_dict_entry(dynamic raw);
 
   @protected
-  DictInfo dco_decode_dict_info(dynamic raw);
+  DictSearchResult dco_decode_dict_search_result(dynamic raw);
+
+  @protected
+  Dictionary dco_decode_dictionary(dynamic raw);
 
   @protected
   EpubMetadata dco_decode_epub_metadata(dynamic raw);
@@ -162,6 +194,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
+  ImageFormat dco_decode_image_format(dynamic raw);
+
+  @protected
   LanguageType dco_decode_language_type(dynamic raw);
 
   @protected
@@ -179,16 +214,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Book> dco_decode_list_book(dynamic raw);
 
   @protected
-  List<BookCategory> dco_decode_list_book_category(dynamic raw);
+  List<BookWithProgress> dco_decode_list_book_with_progress(dynamic raw);
 
   @protected
   List<Bookmark> dco_decode_list_bookmark(dynamic raw);
 
   @protected
+  List<Category> dco_decode_list_category(dynamic raw);
+
+  @protected
   List<Chapter> dco_decode_list_chapter(dynamic raw);
 
   @protected
-  List<DictEntry> dco_decode_list_dict_entry(dynamic raw);
+  List<Dictionary> dco_decode_list_dictionary(dynamic raw);
 
   @protected
   List<EpubTocItem> dco_decode_list_epub_toc_item(dynamic raw);
@@ -218,7 +256,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<SearchResult> dco_decode_list_search_result(dynamic raw);
 
   @protected
-  List<VocabEntry> dco_decode_list_vocab_entry(dynamic raw);
+  List<Vocab> dco_decode_list_vocab(dynamic raw);
+
+  @protected
+  List<VocabMatch> dco_decode_list_vocab_match(dynamic raw);
 
   @protected
   Note dco_decode_note(dynamic raw);
@@ -239,13 +280,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Book? dco_decode_opt_box_autoadd_book(dynamic raw);
 
   @protected
-  BookCategory? dco_decode_opt_box_autoadd_book_category(dynamic raw);
-
-  @protected
   Bookmark? dco_decode_opt_box_autoadd_bookmark(dynamic raw);
 
   @protected
+  Category? dco_decode_opt_box_autoadd_category(dynamic raw);
+
+  @protected
   Chapter? dco_decode_opt_box_autoadd_chapter(dynamic raw);
+
+  @protected
+  DictEntry? dco_decode_opt_box_autoadd_dict_entry(dynamic raw);
+
+  @protected
+  DictSearchResult? dco_decode_opt_box_autoadd_dict_search_result(dynamic raw);
+
+  @protected
+  Dictionary? dco_decode_opt_box_autoadd_dictionary(dynamic raw);
 
   @protected
   double? dco_decode_opt_box_autoadd_f_32(dynamic raw);
@@ -266,10 +316,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ReadingProgress? dco_decode_opt_box_autoadd_reading_progress(dynamic raw);
 
   @protected
+  TypesetCalibration? dco_decode_opt_box_autoadd_typeset_calibration(
+    dynamic raw,
+  );
+
+  @protected
   TypesetConfig? dco_decode_opt_box_autoadd_typeset_config(dynamic raw);
 
   @protected
+  VocabStatus? dco_decode_opt_box_autoadd_vocab_status(dynamic raw);
+
+  @protected
+  Uint8List? dco_decode_opt_list_prim_u_8_strict(dynamic raw);
+
+  @protected
   PageContent dco_decode_page_content(dynamic raw);
+
+  @protected
+  PageData dco_decode_page_data(dynamic raw);
 
   @protected
   ParseResult dco_decode_parse_result(dynamic raw);
@@ -293,7 +357,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SearchResult dco_decode_search_result(dynamic raw);
 
   @protected
+  TypesetCalibration dco_decode_typeset_calibration(dynamic raw);
+
+  @protected
   TypesetConfig dco_decode_typeset_config(dynamic raw);
+
+  @protected
+  int dco_decode_u_32(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
@@ -305,10 +375,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BigInt dco_decode_usize(dynamic raw);
 
   @protected
-  VocabEntry dco_decode_vocab_entry(dynamic raw);
+  Vocab dco_decode_vocab(dynamic raw);
+
+  @protected
+  VocabMatch dco_decode_vocab_match(dynamic raw);
 
   @protected
   VocabStats dco_decode_vocab_stats(dynamic raw);
+
+  @protected
+  VocabStatus dco_decode_vocab_status(dynamic raw);
 
   @protected
   PageStreamer
@@ -348,9 +424,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Book sse_decode_book(SseDeserializer deserializer);
 
   @protected
-  BookCategory sse_decode_book_category(SseDeserializer deserializer);
-
-  @protected
   BookFormat sse_decode_book_format(SseDeserializer deserializer);
 
   @protected
@@ -358,6 +431,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BookStatus sse_decode_book_status(SseDeserializer deserializer);
+
+  @protected
+  BookWithProgress sse_decode_book_with_progress(SseDeserializer deserializer);
 
   @protected
   Bookmark sse_decode_bookmark(SseDeserializer deserializer);
@@ -372,15 +448,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Book sse_decode_box_autoadd_book(SseDeserializer deserializer);
 
   @protected
-  BookCategory sse_decode_box_autoadd_book_category(
+  Bookmark sse_decode_box_autoadd_bookmark(SseDeserializer deserializer);
+
+  @protected
+  Category sse_decode_box_autoadd_category(SseDeserializer deserializer);
+
+  @protected
+  Chapter sse_decode_box_autoadd_chapter(SseDeserializer deserializer);
+
+  @protected
+  DictEntry sse_decode_box_autoadd_dict_entry(SseDeserializer deserializer);
+
+  @protected
+  DictSearchResult sse_decode_box_autoadd_dict_search_result(
     SseDeserializer deserializer,
   );
 
   @protected
-  Bookmark sse_decode_box_autoadd_bookmark(SseDeserializer deserializer);
-
-  @protected
-  Chapter sse_decode_box_autoadd_chapter(SseDeserializer deserializer);
+  Dictionary sse_decode_box_autoadd_dictionary(SseDeserializer deserializer);
 
   @protected
   double sse_decode_box_autoadd_f_32(SseDeserializer deserializer);
@@ -403,12 +488,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ReadingSession sse_decode_box_autoadd_reading_session(
+  ReadingStats sse_decode_box_autoadd_reading_stats(
     SseDeserializer deserializer,
   );
 
   @protected
-  ReadingStats sse_decode_box_autoadd_reading_stats(
+  TypesetCalibration sse_decode_box_autoadd_typeset_calibration(
     SseDeserializer deserializer,
   );
 
@@ -416,6 +501,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   TypesetConfig sse_decode_box_autoadd_typeset_config(
     SseDeserializer deserializer,
   );
+
+  @protected
+  VocabStatus sse_decode_box_autoadd_vocab_status(SseDeserializer deserializer);
+
+  @protected
+  Category sse_decode_category(SseDeserializer deserializer);
 
   @protected
   Chapter sse_decode_chapter(SseDeserializer deserializer);
@@ -427,7 +518,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DictEntry sse_decode_dict_entry(SseDeserializer deserializer);
 
   @protected
-  DictInfo sse_decode_dict_info(SseDeserializer deserializer);
+  DictSearchResult sse_decode_dict_search_result(SseDeserializer deserializer);
+
+  @protected
+  Dictionary sse_decode_dictionary(SseDeserializer deserializer);
 
   @protected
   EpubMetadata sse_decode_epub_metadata(SseDeserializer deserializer);
@@ -446,6 +540,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
+  ImageFormat sse_decode_image_format(SseDeserializer deserializer);
 
   @protected
   LanguageType sse_decode_language_type(SseDeserializer deserializer);
@@ -467,7 +564,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Book> sse_decode_list_book(SseDeserializer deserializer);
 
   @protected
-  List<BookCategory> sse_decode_list_book_category(
+  List<BookWithProgress> sse_decode_list_book_with_progress(
     SseDeserializer deserializer,
   );
 
@@ -475,10 +572,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Bookmark> sse_decode_list_bookmark(SseDeserializer deserializer);
 
   @protected
+  List<Category> sse_decode_list_category(SseDeserializer deserializer);
+
+  @protected
   List<Chapter> sse_decode_list_chapter(SseDeserializer deserializer);
 
   @protected
-  List<DictEntry> sse_decode_list_dict_entry(SseDeserializer deserializer);
+  List<Dictionary> sse_decode_list_dictionary(SseDeserializer deserializer);
 
   @protected
   List<EpubTocItem> sse_decode_list_epub_toc_item(SseDeserializer deserializer);
@@ -518,7 +618,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  List<VocabEntry> sse_decode_list_vocab_entry(SseDeserializer deserializer);
+  List<Vocab> sse_decode_list_vocab(SseDeserializer deserializer);
+
+  @protected
+  List<VocabMatch> sse_decode_list_vocab_match(SseDeserializer deserializer);
 
   @protected
   Note sse_decode_note(SseDeserializer deserializer);
@@ -539,15 +642,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Book? sse_decode_opt_box_autoadd_book(SseDeserializer deserializer);
 
   @protected
-  BookCategory? sse_decode_opt_box_autoadd_book_category(
+  Bookmark? sse_decode_opt_box_autoadd_bookmark(SseDeserializer deserializer);
+
+  @protected
+  Category? sse_decode_opt_box_autoadd_category(SseDeserializer deserializer);
+
+  @protected
+  Chapter? sse_decode_opt_box_autoadd_chapter(SseDeserializer deserializer);
+
+  @protected
+  DictEntry? sse_decode_opt_box_autoadd_dict_entry(
     SseDeserializer deserializer,
   );
 
   @protected
-  Bookmark? sse_decode_opt_box_autoadd_bookmark(SseDeserializer deserializer);
+  DictSearchResult? sse_decode_opt_box_autoadd_dict_search_result(
+    SseDeserializer deserializer,
+  );
 
   @protected
-  Chapter? sse_decode_opt_box_autoadd_chapter(SseDeserializer deserializer);
+  Dictionary? sse_decode_opt_box_autoadd_dictionary(
+    SseDeserializer deserializer,
+  );
 
   @protected
   double? sse_decode_opt_box_autoadd_f_32(SseDeserializer deserializer);
@@ -570,12 +686,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  TypesetCalibration? sse_decode_opt_box_autoadd_typeset_calibration(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   TypesetConfig? sse_decode_opt_box_autoadd_typeset_config(
     SseDeserializer deserializer,
   );
 
   @protected
+  VocabStatus? sse_decode_opt_box_autoadd_vocab_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  Uint8List? sse_decode_opt_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
   PageContent sse_decode_page_content(SseDeserializer deserializer);
+
+  @protected
+  PageData sse_decode_page_data(SseDeserializer deserializer);
 
   @protected
   ParseResult sse_decode_parse_result(SseDeserializer deserializer);
@@ -599,7 +731,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SearchResult sse_decode_search_result(SseDeserializer deserializer);
 
   @protected
+  TypesetCalibration sse_decode_typeset_calibration(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   TypesetConfig sse_decode_typeset_config(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
@@ -611,10 +751,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BigInt sse_decode_usize(SseDeserializer deserializer);
 
   @protected
-  VocabEntry sse_decode_vocab_entry(SseDeserializer deserializer);
+  Vocab sse_decode_vocab(SseDeserializer deserializer);
+
+  @protected
+  VocabMatch sse_decode_vocab_match(SseDeserializer deserializer);
 
   @protected
   VocabStats sse_decode_vocab_stats(SseDeserializer deserializer);
+
+  @protected
+  VocabStatus sse_decode_vocab_status(SseDeserializer deserializer);
 
   @protected
   int cst_encode_Chrono_Utc(DateTime raw) {
@@ -643,16 +789,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_book_category> cst_encode_box_autoadd_book_category(
-    BookCategory raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    final ptr = wire.cst_new_box_autoadd_book_category();
-    cst_api_fill_to_wire_book_category(raw, ptr.ref);
-    return ptr;
-  }
-
-  @protected
   ffi.Pointer<wire_cst_bookmark> cst_encode_box_autoadd_bookmark(Bookmark raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ptr = wire.cst_new_box_autoadd_bookmark();
@@ -661,10 +797,47 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  ffi.Pointer<wire_cst_category> cst_encode_box_autoadd_category(Category raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_category();
+    cst_api_fill_to_wire_category(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
   ffi.Pointer<wire_cst_chapter> cst_encode_box_autoadd_chapter(Chapter raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ptr = wire.cst_new_box_autoadd_chapter();
     cst_api_fill_to_wire_chapter(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_dict_entry> cst_encode_box_autoadd_dict_entry(
+    DictEntry raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_dict_entry();
+    cst_api_fill_to_wire_dict_entry(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_dict_search_result>
+  cst_encode_box_autoadd_dict_search_result(DictSearchResult raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_dict_search_result();
+    cst_api_fill_to_wire_dict_search_result(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_dictionary> cst_encode_box_autoadd_dictionary(
+    Dictionary raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_dictionary();
+    cst_api_fill_to_wire_dictionary(raw, ptr.ref);
     return ptr;
   }
 
@@ -710,22 +883,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_reading_session> cst_encode_box_autoadd_reading_session(
-    ReadingSession raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    final ptr = wire.cst_new_box_autoadd_reading_session();
-    cst_api_fill_to_wire_reading_session(raw, ptr.ref);
-    return ptr;
-  }
-
-  @protected
   ffi.Pointer<wire_cst_reading_stats> cst_encode_box_autoadd_reading_stats(
     ReadingStats raw,
   ) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ptr = wire.cst_new_box_autoadd_reading_stats();
     cst_api_fill_to_wire_reading_stats(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_typeset_calibration>
+  cst_encode_box_autoadd_typeset_calibration(TypesetCalibration raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_typeset_calibration();
+    cst_api_fill_to_wire_typeset_calibration(raw, ptr.ref);
     return ptr;
   }
 
@@ -737,6 +909,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     final ptr = wire.cst_new_box_autoadd_typeset_config();
     cst_api_fill_to_wire_typeset_config(raw, ptr.ref);
     return ptr;
+  }
+
+  @protected
+  ffi.Pointer<ffi.Int32> cst_encode_box_autoadd_vocab_status(VocabStatus raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return wire.cst_new_box_autoadd_vocab_status(cst_encode_vocab_status(raw));
   }
 
   @protected
@@ -789,13 +967,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_list_book_category> cst_encode_list_book_category(
-    List<BookCategory> raw,
-  ) {
+  ffi.Pointer<wire_cst_list_book_with_progress>
+  cst_encode_list_book_with_progress(List<BookWithProgress> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    final ans = wire.cst_new_list_book_category(raw.length);
+    final ans = wire.cst_new_list_book_with_progress(raw.length);
     for (var i = 0; i < raw.length; ++i) {
-      cst_api_fill_to_wire_book_category(raw[i], ans.ref.ptr[i]);
+      cst_api_fill_to_wire_book_with_progress(raw[i], ans.ref.ptr[i]);
     }
     return ans;
   }
@@ -813,6 +990,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  ffi.Pointer<wire_cst_list_category> cst_encode_list_category(
+    List<Category> raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_category(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_category(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
   ffi.Pointer<wire_cst_list_chapter> cst_encode_list_chapter(
     List<Chapter> raw,
   ) {
@@ -825,13 +1014,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_list_dict_entry> cst_encode_list_dict_entry(
-    List<DictEntry> raw,
+  ffi.Pointer<wire_cst_list_dictionary> cst_encode_list_dictionary(
+    List<Dictionary> raw,
   ) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    final ans = wire.cst_new_list_dict_entry(raw.length);
+    final ans = wire.cst_new_list_dictionary(raw.length);
     for (var i = 0; i < raw.length; ++i) {
-      cst_api_fill_to_wire_dict_entry(raw[i], ans.ref.ptr[i]);
+      cst_api_fill_to_wire_dictionary(raw[i], ans.ref.ptr[i]);
     }
     return ans;
   }
@@ -941,13 +1130,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_list_vocab_entry> cst_encode_list_vocab_entry(
-    List<VocabEntry> raw,
+  ffi.Pointer<wire_cst_list_vocab> cst_encode_list_vocab(List<Vocab> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_vocab(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_vocab(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_vocab_match> cst_encode_list_vocab_match(
+    List<VocabMatch> raw,
   ) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    final ans = wire.cst_new_list_vocab_entry(raw.length);
+    final ans = wire.cst_new_list_vocab_match(raw.length);
     for (var i = 0; i < raw.length; ++i) {
-      cst_api_fill_to_wire_vocab_entry(raw[i], ans.ref.ptr[i]);
+      cst_api_fill_to_wire_vocab_match(raw[i], ans.ref.ptr[i]);
     }
     return ans;
   }
@@ -973,16 +1172,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_book_category> cst_encode_opt_box_autoadd_book_category(
-    BookCategory? raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw == null
-        ? ffi.nullptr
-        : cst_encode_box_autoadd_book_category(raw);
-  }
-
-  @protected
   ffi.Pointer<wire_cst_bookmark> cst_encode_opt_box_autoadd_bookmark(
     Bookmark? raw,
   ) {
@@ -991,11 +1180,44 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  ffi.Pointer<wire_cst_category> cst_encode_opt_box_autoadd_category(
+    Category? raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_category(raw);
+  }
+
+  @protected
   ffi.Pointer<wire_cst_chapter> cst_encode_opt_box_autoadd_chapter(
     Chapter? raw,
   ) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? ffi.nullptr : cst_encode_box_autoadd_chapter(raw);
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_dict_entry> cst_encode_opt_box_autoadd_dict_entry(
+    DictEntry? raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_dict_entry(raw);
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_dict_search_result>
+  cst_encode_opt_box_autoadd_dict_search_result(DictSearchResult? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null
+        ? ffi.nullptr
+        : cst_encode_box_autoadd_dict_search_result(raw);
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_dictionary> cst_encode_opt_box_autoadd_dictionary(
+    Dictionary? raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_dictionary(raw);
   }
 
   @protected
@@ -1038,12 +1260,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  ffi.Pointer<wire_cst_typeset_calibration>
+  cst_encode_opt_box_autoadd_typeset_calibration(TypesetCalibration? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null
+        ? ffi.nullptr
+        : cst_encode_box_autoadd_typeset_calibration(raw);
+  }
+
+  @protected
   ffi.Pointer<wire_cst_typeset_config>
   cst_encode_opt_box_autoadd_typeset_config(TypesetConfig? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null
         ? ffi.nullptr
         : cst_encode_box_autoadd_typeset_config(raw);
+  }
+
+  @protected
+  ffi.Pointer<ffi.Int32> cst_encode_opt_box_autoadd_vocab_status(
+    VocabStatus? raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_vocab_status(raw);
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_prim_u_8_strict>
+  cst_encode_opt_list_prim_u_8_strict(Uint8List? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? ffi.nullptr : cst_encode_list_prim_u_8_strict(raw);
   }
 
   @protected
@@ -1183,7 +1429,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wireObj.file_mtime = cst_encode_opt_box_autoadd_i_64(apiObj.fileMtime);
     wireObj.title = cst_encode_String(apiObj.title);
     wireObj.author = cst_encode_opt_String(apiObj.author);
-    wireObj.description = cst_encode_opt_String(apiObj.description);
     wireObj.cover_path = cst_encode_opt_String(apiObj.coverPath);
     wireObj.chapter_count = cst_encode_i_32(apiObj.chapterCount);
     wireObj.total_characters = cst_encode_i_64(apiObj.totalCharacters);
@@ -1194,23 +1439,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     );
     wireObj.status = cst_encode_book_status(apiObj.status);
     wireObj.is_pinned = cst_encode_bool(apiObj.isPinned);
-  }
-
-  @protected
-  void cst_api_fill_to_wire_book_category(
-    BookCategory apiObj,
-    wire_cst_book_category wireObj,
-  ) {
-    wireObj.id = cst_encode_String(apiObj.id);
-    wireObj.name = cst_encode_String(apiObj.name);
     wireObj.description = cst_encode_opt_String(apiObj.description);
-    wireObj.color = cst_encode_String(apiObj.color);
-    wireObj.sort_order = cst_encode_i_32(apiObj.sortOrder);
-    wireObj.is_system = cst_encode_bool(apiObj.isSystem);
-    wireObj.created_at = cst_encode_Chrono_Utc(apiObj.createdAt);
-    wireObj.updated_at = cst_encode_opt_box_autoadd_Chrono_Utc(
-      apiObj.updatedAt,
-    );
+    wireObj.publisher = cst_encode_opt_String(apiObj.publisher);
+    wireObj.translator = cst_encode_opt_String(apiObj.translator);
+    wireObj.isbn = cst_encode_opt_String(apiObj.isbn);
   }
 
   @protected
@@ -1222,10 +1454,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wireObj.author = cst_encode_String(apiObj.author);
     wireObj.description = cst_encode_opt_String(apiObj.description);
     wireObj.cover_path = cst_encode_opt_String(apiObj.coverPath);
+    wireObj.publisher = cst_encode_opt_String(apiObj.publisher);
+    wireObj.translator = cst_encode_opt_String(apiObj.translator);
+    wireObj.isbn = cst_encode_opt_String(apiObj.isbn);
     wireObj.publish_year = cst_encode_opt_box_autoadd_i_32(apiObj.publishYear);
     wireObj.language = cst_encode_opt_String(apiObj.language);
     wireObj.chapter_count = cst_encode_i_32(apiObj.chapterCount);
     wireObj.total_characters = cst_encode_i_64(apiObj.totalCharacters);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_book_with_progress(
+    BookWithProgress apiObj,
+    wire_cst_book_with_progress wireObj,
+  ) {
+    cst_api_fill_to_wire_book(apiObj.book, wireObj.book);
+    wireObj.progress = cst_encode_opt_box_autoadd_reading_progress(
+      apiObj.progress,
+    );
   }
 
   @protected
@@ -1251,14 +1497,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  void cst_api_fill_to_wire_box_autoadd_book_category(
-    BookCategory apiObj,
-    ffi.Pointer<wire_cst_book_category> wireObj,
-  ) {
-    cst_api_fill_to_wire_book_category(apiObj, wireObj.ref);
-  }
-
-  @protected
   void cst_api_fill_to_wire_box_autoadd_bookmark(
     Bookmark apiObj,
     ffi.Pointer<wire_cst_bookmark> wireObj,
@@ -1267,11 +1505,43 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_box_autoadd_category(
+    Category apiObj,
+    ffi.Pointer<wire_cst_category> wireObj,
+  ) {
+    cst_api_fill_to_wire_category(apiObj, wireObj.ref);
+  }
+
+  @protected
   void cst_api_fill_to_wire_box_autoadd_chapter(
     Chapter apiObj,
     ffi.Pointer<wire_cst_chapter> wireObj,
   ) {
     cst_api_fill_to_wire_chapter(apiObj, wireObj.ref);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_box_autoadd_dict_entry(
+    DictEntry apiObj,
+    ffi.Pointer<wire_cst_dict_entry> wireObj,
+  ) {
+    cst_api_fill_to_wire_dict_entry(apiObj, wireObj.ref);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_box_autoadd_dict_search_result(
+    DictSearchResult apiObj,
+    ffi.Pointer<wire_cst_dict_search_result> wireObj,
+  ) {
+    cst_api_fill_to_wire_dict_search_result(apiObj, wireObj.ref);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_box_autoadd_dictionary(
+    Dictionary apiObj,
+    ffi.Pointer<wire_cst_dictionary> wireObj,
+  ) {
+    cst_api_fill_to_wire_dictionary(apiObj, wireObj.ref);
   }
 
   @protected
@@ -1291,19 +1561,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  void cst_api_fill_to_wire_box_autoadd_reading_session(
-    ReadingSession apiObj,
-    ffi.Pointer<wire_cst_reading_session> wireObj,
-  ) {
-    cst_api_fill_to_wire_reading_session(apiObj, wireObj.ref);
-  }
-
-  @protected
   void cst_api_fill_to_wire_box_autoadd_reading_stats(
     ReadingStats apiObj,
     ffi.Pointer<wire_cst_reading_stats> wireObj,
   ) {
     cst_api_fill_to_wire_reading_stats(apiObj, wireObj.ref);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_box_autoadd_typeset_calibration(
+    TypesetCalibration apiObj,
+    ffi.Pointer<wire_cst_typeset_calibration> wireObj,
+  ) {
+    cst_api_fill_to_wire_typeset_calibration(apiObj, wireObj.ref);
   }
 
   @protected
@@ -1315,11 +1585,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_category(
+    Category apiObj,
+    wire_cst_category wireObj,
+  ) {
+    wireObj.id = cst_encode_String(apiObj.id);
+    wireObj.name = cst_encode_String(apiObj.name);
+    wireObj.description = cst_encode_opt_String(apiObj.description);
+    wireObj.color = cst_encode_String(apiObj.color);
+    wireObj.sort_order = cst_encode_i_32(apiObj.sortOrder);
+    wireObj.is_system = cst_encode_bool(apiObj.isSystem);
+  }
+
+  @protected
   void cst_api_fill_to_wire_chapter(Chapter apiObj, wire_cst_chapter wireObj) {
     wireObj.id = cst_encode_String(apiObj.id);
     wireObj.book_id = cst_encode_String(apiObj.bookId);
     wireObj.title = cst_encode_String(apiObj.title);
-    wireObj.content_file = cst_encode_String(apiObj.contentFile);
     wireObj.chapter_index = cst_encode_i_32(apiObj.chapterIndex);
     wireObj.word_count = cst_encode_i_64(apiObj.wordCount);
     wireObj.cached_at = cst_encode_Chrono_Utc(apiObj.cachedAt);
@@ -1353,20 +1635,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     DictEntry apiObj,
     wire_cst_dict_entry wireObj,
   ) {
-    wireObj.simplified = cst_encode_String(apiObj.simplified);
-    wireObj.traditional = cst_encode_String(apiObj.traditional);
-    wireObj.pinyin = cst_encode_String(apiObj.pinyin);
-    wireObj.definitions = cst_encode_String(apiObj.definitions);
+    wireObj.word = cst_encode_String(apiObj.word);
+    wireObj.definition_html = cst_encode_String(apiObj.definitionHtml);
+    wireObj.audio_key = cst_encode_opt_String(apiObj.audioKey);
   }
 
   @protected
-  void cst_api_fill_to_wire_dict_info(
-    DictInfo apiObj,
-    wire_cst_dict_info wireObj,
+  void cst_api_fill_to_wire_dict_search_result(
+    DictSearchResult apiObj,
+    wire_cst_dict_search_result wireObj,
   ) {
-    wireObj.version = cst_encode_String(apiObj.version);
-    wireObj.source = cst_encode_String(apiObj.source);
-    wireObj.entry_count = cst_encode_i_64(apiObj.entryCount);
+    wireObj.exact = cst_encode_opt_box_autoadd_dict_entry(apiObj.exact);
+    wireObj.suggestions = cst_encode_list_String(apiObj.suggestions);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_dictionary(
+    Dictionary apiObj,
+    wire_cst_dictionary wireObj,
+  ) {
+    wireObj.id = cst_encode_String(apiObj.id);
+    wireObj.name = cst_encode_String(apiObj.name);
+    wireObj.file_path = cst_encode_String(apiObj.filePath);
+    wireObj.dict_type = cst_encode_String(apiObj.dictType);
+    wireObj.lang_from = cst_encode_opt_String(apiObj.langFrom);
+    wireObj.lang_to = cst_encode_opt_String(apiObj.langTo);
+    wireObj.is_enabled = cst_encode_bool(apiObj.isEnabled);
+    wireObj.word_count = cst_encode_i_64(apiObj.wordCount);
+    wireObj.added_at = cst_encode_Chrono_Utc(apiObj.addedAt);
   }
 
   @protected
@@ -1454,6 +1750,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wireObj.page_index = cst_encode_i_32(apiObj.pageIndex);
     wireObj.content = cst_encode_String(apiObj.content);
     wireObj.is_last_page = cst_encode_bool(apiObj.isLastPage);
+    wireObj.start_offset = cst_encode_i_64(apiObj.startOffset);
+    wireObj.end_offset = cst_encode_i_64(apiObj.endOffset);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_page_data(
+    PageData apiObj,
+    wire_cst_page_data wireObj,
+  ) {
+    wireObj.page_index = cst_encode_u_32(apiObj.pageIndex);
+    wireObj.text = cst_encode_String(apiObj.text);
   }
 
   @protected
@@ -1472,6 +1779,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ) {
     wireObj.book_id = cst_encode_String(apiObj.bookId);
     wireObj.chapter_index = cst_encode_i_32(apiObj.chapterIndex);
+    wireObj.chunk_index = cst_encode_i_32(apiObj.chunkIndex);
     wireObj.chapter_id = cst_encode_opt_String(apiObj.chapterId);
     wireObj.char_offset = cst_encode_i_64(apiObj.charOffset);
     wireObj.page_index = cst_encode_i_32(apiObj.pageIndex);
@@ -1490,7 +1798,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wireObj.id = cst_encode_String(apiObj.id);
     wireObj.book_id = cst_encode_String(apiObj.bookId);
     wireObj.chapter_index = cst_encode_i_32(apiObj.chapterIndex);
-    wireObj.chapter_id = cst_encode_opt_String(apiObj.chapterId);
     wireObj.start_char_offset = cst_encode_i_64(apiObj.startCharOffset);
     wireObj.end_char_offset = cst_encode_i_64(apiObj.endCharOffset);
     wireObj.started_at = cst_encode_Chrono_Utc(apiObj.startedAt);
@@ -1508,6 +1815,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wireObj.reading_time_seconds = cst_encode_i_64(apiObj.readingTimeSeconds);
     wireObj.characters_read = cst_encode_i_64(apiObj.charactersRead);
     wireObj.session_count = cst_encode_i_32(apiObj.sessionCount);
+    wireObj.last_session_id = cst_encode_opt_String(apiObj.lastSessionId);
   }
 
   @protected
@@ -1622,12 +1930,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     SearchResult apiObj,
     wire_cst_search_result wireObj,
   ) {
-    wireObj.chapter_id = cst_encode_i_32(apiObj.chapterId);
+    wireObj.book_id = cst_encode_String(apiObj.bookId);
+    wireObj.chapter_id = cst_encode_String(apiObj.chapterId);
+    wireObj.chapter_index = cst_encode_String(apiObj.chapterIndex);
     wireObj.chapter_title = cst_encode_String(apiObj.chapterTitle);
     wireObj.snippet = cst_encode_String(apiObj.snippet);
     wireObj.position = cst_encode_i_64(apiObj.position);
     wireObj.score = cst_encode_f_32(apiObj.score);
     wireObj.char_offset = cst_encode_i_64(apiObj.charOffset);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_typeset_calibration(
+    TypesetCalibration apiObj,
+    wire_cst_typeset_calibration wireObj,
+  ) {
+    wireObj.dpr = cst_encode_f_32(apiObj.dpr);
+    wireObj.cjk_width = cst_encode_f_32(apiObj.cjkWidth);
+    wireObj.ascii_width = cst_encode_f_32(apiObj.asciiWidth);
+    wireObj.digit_width = cst_encode_f_32(apiObj.digitWidth);
+    wireObj.punct_width = cst_encode_f_32(apiObj.punctWidth);
+    wireObj.latin_ext_width = cst_encode_f_32(apiObj.latinExtWidth);
+    wireObj.other_width = cst_encode_f_32(apiObj.otherWidth);
   }
 
   @protected
@@ -1647,13 +1971,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wireObj.hyphenation_language = cst_encode_opt_String(
       apiObj.hyphenationLanguage,
     );
+    wireObj.font_family = cst_encode_String(apiObj.fontFamily);
+    wireObj.calibration = cst_encode_opt_box_autoadd_typeset_calibration(
+      apiObj.calibration,
+    );
   }
 
   @protected
-  void cst_api_fill_to_wire_vocab_entry(
-    VocabEntry apiObj,
-    wire_cst_vocab_entry wireObj,
-  ) {
+  void cst_api_fill_to_wire_vocab(Vocab apiObj, wire_cst_vocab wireObj) {
     wireObj.id = cst_encode_String(apiObj.id);
     wireObj.word = cst_encode_String(apiObj.word);
     wireObj.pinyin = cst_encode_String(apiObj.pinyin);
@@ -1669,7 +1994,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wireObj.last_reviewed_at = cst_encode_opt_box_autoadd_Chrono_Utc(
       apiObj.lastReviewedAt,
     );
-    wireObj.status = cst_encode_String(apiObj.status);
+    wireObj.status = cst_encode_vocab_status(apiObj.status);
+    wireObj.word_list = cst_encode_opt_String(apiObj.wordList);
+    wireObj.dict_source = cst_encode_opt_String(apiObj.dictSource);
+    wireObj.dict_entry_hash = cst_encode_opt_String(apiObj.dictEntryHash);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_vocab_match(
+    VocabMatch apiObj,
+    wire_cst_vocab_match wireObj,
+  ) {
+    wireObj.word = cst_encode_String(apiObj.word);
+    wireObj.start = cst_encode_i_64(apiObj.start);
+    wireObj.end = cst_encode_i_64(apiObj.end);
   }
 
   @protected
@@ -1711,16 +2049,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int cst_encode_i_32(int raw);
 
   @protected
+  int cst_encode_image_format(ImageFormat raw);
+
+  @protected
   int cst_encode_language_type(LanguageType raw);
 
   @protected
   int cst_encode_note_type(NoteType raw);
 
   @protected
+  int cst_encode_u_32(int raw);
+
+  @protected
   int cst_encode_u_8(int raw);
 
   @protected
   void cst_encode_unit(void raw);
+
+  @protected
+  int cst_encode_vocab_status(VocabStatus raw);
 
   @protected
   void
@@ -1767,9 +2114,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_book(Book self, SseSerializer serializer);
 
   @protected
-  void sse_encode_book_category(BookCategory self, SseSerializer serializer);
-
-  @protected
   void sse_encode_book_format(BookFormat self, SseSerializer serializer);
 
   @protected
@@ -1777,6 +2121,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_book_status(BookStatus self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_book_with_progress(
+    BookWithProgress self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_bookmark(Bookmark self, SseSerializer serializer);
@@ -1794,16 +2144,31 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_book(Book self, SseSerializer serializer);
 
   @protected
-  void sse_encode_box_autoadd_book_category(
-    BookCategory self,
+  void sse_encode_box_autoadd_bookmark(Bookmark self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_category(Category self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_chapter(Chapter self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_dict_entry(
+    DictEntry self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_box_autoadd_bookmark(Bookmark self, SseSerializer serializer);
+  void sse_encode_box_autoadd_dict_search_result(
+    DictSearchResult self,
+    SseSerializer serializer,
+  );
 
   @protected
-  void sse_encode_box_autoadd_chapter(Chapter self, SseSerializer serializer);
+  void sse_encode_box_autoadd_dictionary(
+    Dictionary self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_box_autoadd_f_32(double self, SseSerializer serializer);
@@ -1833,14 +2198,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_box_autoadd_reading_session(
-    ReadingSession self,
+  void sse_encode_box_autoadd_reading_stats(
+    ReadingStats self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_box_autoadd_reading_stats(
-    ReadingStats self,
+  void sse_encode_box_autoadd_typeset_calibration(
+    TypesetCalibration self,
     SseSerializer serializer,
   );
 
@@ -1849,6 +2214,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     TypesetConfig self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_box_autoadd_vocab_status(
+    VocabStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_category(Category self, SseSerializer serializer);
 
   @protected
   void sse_encode_chapter(Chapter self, SseSerializer serializer);
@@ -1863,7 +2237,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_dict_entry(DictEntry self, SseSerializer serializer);
 
   @protected
-  void sse_encode_dict_info(DictInfo self, SseSerializer serializer);
+  void sse_encode_dict_search_result(
+    DictSearchResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_dictionary(Dictionary self, SseSerializer serializer);
 
   @protected
   void sse_encode_epub_metadata(EpubMetadata self, SseSerializer serializer);
@@ -1882,6 +2262,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_image_format(ImageFormat self, SseSerializer serializer);
 
   @protected
   void sse_encode_language_type(LanguageType self, SseSerializer serializer);
@@ -1905,8 +2288,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_book(List<Book> self, SseSerializer serializer);
 
   @protected
-  void sse_encode_list_book_category(
-    List<BookCategory> self,
+  void sse_encode_list_book_with_progress(
+    List<BookWithProgress> self,
     SseSerializer serializer,
   );
 
@@ -1914,11 +2297,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_bookmark(List<Bookmark> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_category(List<Category> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_chapter(List<Chapter> self, SseSerializer serializer);
 
   @protected
-  void sse_encode_list_dict_entry(
-    List<DictEntry> self,
+  void sse_encode_list_dictionary(
+    List<Dictionary> self,
     SseSerializer serializer,
   );
 
@@ -1974,8 +2360,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_list_vocab_entry(
-    List<VocabEntry> self,
+  void sse_encode_list_vocab(List<Vocab> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_vocab_match(
+    List<VocabMatch> self,
     SseSerializer serializer,
   );
 
@@ -2001,20 +2390,38 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_box_autoadd_book(Book? self, SseSerializer serializer);
 
   @protected
-  void sse_encode_opt_box_autoadd_book_category(
-    BookCategory? self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_opt_box_autoadd_bookmark(
     Bookmark? self,
     SseSerializer serializer,
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_category(
+    Category? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_chapter(
     Chapter? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_dict_entry(
+    DictEntry? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_dict_search_result(
+    DictSearchResult? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_dictionary(
+    Dictionary? self,
     SseSerializer serializer,
   );
 
@@ -2046,13 +2453,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_typeset_calibration(
+    TypesetCalibration? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_typeset_config(
     TypesetConfig? self,
     SseSerializer serializer,
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_vocab_status(
+    VocabStatus? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_list_prim_u_8_strict(
+    Uint8List? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_page_content(PageContent self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_page_data(PageData self, SseSerializer serializer);
 
   @protected
   void sse_encode_parse_result(ParseResult self, SseSerializer serializer);
@@ -2082,7 +2510,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_search_result(SearchResult self, SseSerializer serializer);
 
   @protected
+  void sse_encode_typeset_calibration(
+    TypesetCalibration self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_typeset_config(TypesetConfig self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);
@@ -2094,10 +2531,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_usize(BigInt self, SseSerializer serializer);
 
   @protected
-  void sse_encode_vocab_entry(VocabEntry self, SseSerializer serializer);
+  void sse_encode_vocab(Vocab self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_vocab_match(VocabMatch self, SseSerializer serializer);
 
   @protected
   void sse_encode_vocab_stats(VocabStats self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_vocab_status(VocabStatus self, SseSerializer serializer);
 }
 
 // Section: wire_class
@@ -2137,60 +2580,6 @@ class RustLibWire implements BaseWire {
   late final _store_dart_post_cobject = _store_dart_post_cobjectPtr
       .asFunction<void Function(DartPostCObjectFnType)>();
 
-  void wire__crate__api__vocabulary__add_vocabulary_word(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> word,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> pinyin,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> translation,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> context_sentence,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-    ffi.Pointer<ffi.Int64> chapter_index,
-    ffi.Pointer<ffi.Int64> char_offset,
-  ) {
-    return _wire__crate__api__vocabulary__add_vocabulary_word(
-      port_,
-      word,
-      pinyin,
-      translation,
-      context_sentence,
-      book_id,
-      chapter_index,
-      char_offset,
-    );
-  }
-
-  late final _wire__crate__api__vocabulary__add_vocabulary_wordPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Pointer<ffi.Int64>,
-            ffi.Pointer<ffi.Int64>,
-          )
-        >
-      >(
-        'frbgen_zephyr_reader_wire__crate__api__vocabulary__add_vocabulary_word',
-      );
-  late final _wire__crate__api__vocabulary__add_vocabulary_word =
-      _wire__crate__api__vocabulary__add_vocabulary_wordPtr
-          .asFunction<
-            void Function(
-              int,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              ffi.Pointer<ffi.Int64>,
-              ffi.Pointer<ffi.Int64>,
-            )
-          >();
-
   void wire__crate__api__bilingual__align_bilingual_content(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> chinese_content,
@@ -2229,19 +2618,19 @@ class RustLibWire implements BaseWire {
             )
           >();
 
-  void wire__crate__api__storage__assign_category_to_book(
+  void wire__crate__api__data__category__assign_category_to_book(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> category_id,
   ) {
-    return _wire__crate__api__storage__assign_category_to_book(
+    return _wire__crate__api__data__category__assign_category_to_book(
       port_,
       book_id,
       category_id,
     );
   }
 
-  late final _wire__crate__api__storage__assign_category_to_bookPtr =
+  late final _wire__crate__api__data__category__assign_category_to_bookPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -2251,10 +2640,10 @@ class RustLibWire implements BaseWire {
           )
         >
       >(
-        'frbgen_zephyr_reader_wire__crate__api__storage__assign_category_to_book',
+        'frbgen_zephyr_reader_wire__crate__api__data__category__assign_category_to_book',
       );
-  late final _wire__crate__api__storage__assign_category_to_book =
-      _wire__crate__api__storage__assign_category_to_bookPtr
+  late final _wire__crate__api__data__category__assign_category_to_book =
+      _wire__crate__api__data__category__assign_category_to_bookPtr
           .asFunction<
             void Function(
               int,
@@ -2263,29 +2652,28 @@ class RustLibWire implements BaseWire {
             )
           >();
 
-  void wire__crate__api__search__clear_all_search_index(int port_) {
-    return _wire__crate__api__search__clear_all_search_index(port_);
+  void wire__crate__api__search__clear_all(int port_) {
+    return _wire__crate__api__search__clear_all(port_);
   }
 
-  late final _wire__crate__api__search__clear_all_search_indexPtr =
+  late final _wire__crate__api__search__clear_allPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_zephyr_reader_wire__crate__api__search__clear_all_search_index',
+        'frbgen_zephyr_reader_wire__crate__api__search__clear_all',
       );
-  late final _wire__crate__api__search__clear_all_search_index =
-      _wire__crate__api__search__clear_all_search_indexPtr
-          .asFunction<void Function(int)>();
+  late final _wire__crate__api__search__clear_all =
+      _wire__crate__api__search__clear_allPtr.asFunction<void Function(int)>();
 
-  void wire__crate__api__storage__clear_categories_for_book(
+  void wire__crate__api__data__bookmark__clear_bookmarks_by_book(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
   ) {
-    return _wire__crate__api__storage__clear_categories_for_book(
+    return _wire__crate__api__data__bookmark__clear_bookmarks_by_book(
       port_,
       book_id,
     );
   }
 
-  late final _wire__crate__api__storage__clear_categories_for_bookPtr =
+  late final _wire__crate__api__data__bookmark__clear_bookmarks_by_bookPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -2294,22 +2682,25 @@ class RustLibWire implements BaseWire {
           )
         >
       >(
-        'frbgen_zephyr_reader_wire__crate__api__storage__clear_categories_for_book',
+        'frbgen_zephyr_reader_wire__crate__api__data__bookmark__clear_bookmarks_by_book',
       );
-  late final _wire__crate__api__storage__clear_categories_for_book =
-      _wire__crate__api__storage__clear_categories_for_bookPtr
+  late final _wire__crate__api__data__bookmark__clear_bookmarks_by_book =
+      _wire__crate__api__data__bookmark__clear_bookmarks_by_bookPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__storage__clear_reading_progress(
+  void wire__crate__api__data__category__clear_categories_by_book(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
   ) {
-    return _wire__crate__api__storage__clear_reading_progress(port_, book_id);
+    return _wire__crate__api__data__category__clear_categories_by_book(
+      port_,
+      book_id,
+    );
   }
 
-  late final _wire__crate__api__storage__clear_reading_progressPtr =
+  late final _wire__crate__api__data__category__clear_categories_by_bookPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -2318,15 +2709,254 @@ class RustLibWire implements BaseWire {
           )
         >
       >(
-        'frbgen_zephyr_reader_wire__crate__api__storage__clear_reading_progress',
+        'frbgen_zephyr_reader_wire__crate__api__data__category__clear_categories_by_book',
       );
-  late final _wire__crate__api__storage__clear_reading_progress =
-      _wire__crate__api__storage__clear_reading_progressPtr
+  late final _wire__crate__api__data__category__clear_categories_by_book =
+      _wire__crate__api__data__category__clear_categories_by_bookPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__bilingual_highlight__create_bilingual_highlight_pair(
+  void wire__crate__api__data__category__clear_category_from_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> category_id,
+  ) {
+    return _wire__crate__api__data__category__clear_category_from_book(
+      port_,
+      book_id,
+      category_id,
+    );
+  }
+
+  late final _wire__crate__api__data__category__clear_category_from_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__category__clear_category_from_book',
+      );
+  late final _wire__crate__api__data__category__clear_category_from_book =
+      _wire__crate__api__data__category__clear_category_from_bookPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__data__chapter__clear_chapters_by_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__data__chapter__clear_chapters_by_book(
+      port_,
+      book_id,
+    );
+  }
+
+  late final _wire__crate__api__data__chapter__clear_chapters_by_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__chapter__clear_chapters_by_book',
+      );
+  late final _wire__crate__api__data__chapter__clear_chapters_by_book =
+      _wire__crate__api__data__chapter__clear_chapters_by_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__data__note__clear_notes_by_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__data__note__clear_notes_by_book(port_, book_id);
+  }
+
+  late final _wire__crate__api__data__note__clear_notes_by_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__note__clear_notes_by_book',
+      );
+  late final _wire__crate__api__data__note__clear_notes_by_book =
+      _wire__crate__api__data__note__clear_notes_by_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__data__progress__clear_progress(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__data__progress__clear_progress(port_, book_id);
+  }
+
+  late final _wire__crate__api__data__progress__clear_progressPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__progress__clear_progress',
+      );
+  late final _wire__crate__api__data__progress__clear_progress =
+      _wire__crate__api__data__progress__clear_progressPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__data__session__clear_sessions_by_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__data__session__clear_sessions_by_book(
+      port_,
+      book_id,
+    );
+  }
+
+  late final _wire__crate__api__data__session__clear_sessions_by_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__session__clear_sessions_by_book',
+      );
+  late final _wire__crate__api__data__session__clear_sessions_by_book =
+      _wire__crate__api__data__session__clear_sessions_by_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__dictionary__close_dictionary(int port_) {
+    return _wire__crate__api__dictionary__close_dictionary(port_);
+  }
+
+  late final _wire__crate__api__dictionary__close_dictionaryPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__dictionary__close_dictionary',
+      );
+  late final _wire__crate__api__dictionary__close_dictionary =
+      _wire__crate__api__dictionary__close_dictionaryPtr
+          .asFunction<void Function(int)>();
+
+  void wire__crate__api__data__bookmark__count_bookmarks_by_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__data__bookmark__count_bookmarks_by_book(
+      port_,
+      book_id,
+    );
+  }
+
+  late final _wire__crate__api__data__bookmark__count_bookmarks_by_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__bookmark__count_bookmarks_by_book',
+      );
+  late final _wire__crate__api__data__bookmark__count_bookmarks_by_book =
+      _wire__crate__api__data__bookmark__count_bookmarks_by_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__data__book__count_books(int port_) {
+    return _wire__crate__api__data__book__count_books(port_);
+  }
+
+  late final _wire__crate__api__data__book__count_booksPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__data__book__count_books',
+      );
+  late final _wire__crate__api__data__book__count_books =
+      _wire__crate__api__data__book__count_booksPtr
+          .asFunction<void Function(int)>();
+
+  void wire__crate__api__data__note__create_annotation(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_index,
+    int char_offset,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> content,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> selected_text,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> language,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> paired_note_id,
+  ) {
+    return _wire__crate__api__data__note__create_annotation(
+      port_,
+      book_id,
+      chapter_index,
+      char_offset,
+      content,
+      selected_text,
+      language,
+      paired_note_id,
+    );
+  }
+
+  late final _wire__crate__api__data__note__create_annotationPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__data__note__create_annotation');
+  late final _wire__crate__api__data__note__create_annotation =
+      _wire__crate__api__data__note__create_annotationPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__bilingual__create_bilingual_highlight_pair(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> source_book_id,
     int source_chapter_index,
@@ -2342,7 +2972,7 @@ class RustLibWire implements BaseWire {
     ffi.Pointer<wire_cst_list_prim_u_8_strict> target_language,
     int highlight_color,
   ) {
-    return _wire__crate__api__bilingual_highlight__create_bilingual_highlight_pair(
+    return _wire__crate__api__bilingual__create_bilingual_highlight_pair(
       port_,
       source_book_id,
       source_chapter_index,
@@ -2360,7 +2990,7 @@ class RustLibWire implements BaseWire {
     );
   }
 
-  late final _wire__crate__api__bilingual_highlight__create_bilingual_highlight_pairPtr =
+  late final _wire__crate__api__bilingual__create_bilingual_highlight_pairPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -2381,10 +3011,10 @@ class RustLibWire implements BaseWire {
           )
         >
       >(
-        'frbgen_zephyr_reader_wire__crate__api__bilingual_highlight__create_bilingual_highlight_pair',
+        'frbgen_zephyr_reader_wire__crate__api__bilingual__create_bilingual_highlight_pair',
       );
-  late final _wire__crate__api__bilingual_highlight__create_bilingual_highlight_pair =
-      _wire__crate__api__bilingual_highlight__create_bilingual_highlight_pairPtr
+  late final _wire__crate__api__bilingual__create_bilingual_highlight_pair =
+      _wire__crate__api__bilingual__create_bilingual_highlight_pairPtr
           .asFunction<
             void Function(
               int,
@@ -2404,47 +3034,205 @@ class RustLibWire implements BaseWire {
             )
           >();
 
-  void wire__crate__api__storage__create_bookmark(
+  void wire__crate__api__data__bookmark__create_bookmark(
     int port_,
-    ffi.Pointer<wire_cst_bookmark> bookmark,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_index,
+    int char_offset,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> title,
   ) {
-    return _wire__crate__api__storage__create_bookmark(port_, bookmark);
+    return _wire__crate__api__data__bookmark__create_bookmark(
+      port_,
+      book_id,
+      chapter_index,
+      char_offset,
+      title,
+    );
   }
 
-  late final _wire__crate__api__storage__create_bookmarkPtr =
+  late final _wire__crate__api__data__bookmark__create_bookmarkPtr =
       _lookup<
         ffi.NativeFunction<
-          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_bookmark>)
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__create_bookmark');
-  late final _wire__crate__api__storage__create_bookmark =
-      _wire__crate__api__storage__create_bookmarkPtr
-          .asFunction<void Function(int, ffi.Pointer<wire_cst_bookmark>)>();
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__bookmark__create_bookmark',
+      );
+  late final _wire__crate__api__data__bookmark__create_bookmark =
+      _wire__crate__api__data__bookmark__create_bookmarkPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
 
-  void wire__crate__api__storage__create_note(
+  void wire__crate__api__data__category__create_category(
     int port_,
-    ffi.Pointer<wire_cst_note> note,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> name,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> color,
+    int sort_order,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> description,
   ) {
-    return _wire__crate__api__storage__create_note(port_, note);
+    return _wire__crate__api__data__category__create_category(
+      port_,
+      name,
+      color,
+      sort_order,
+      description,
+    );
   }
 
-  late final _wire__crate__api__storage__create_notePtr =
+  late final _wire__crate__api__data__category__create_categoryPtr =
       _lookup<
         ffi.NativeFunction<
-          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_note>)
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__create_note');
-  late final _wire__crate__api__storage__create_note =
-      _wire__crate__api__storage__create_notePtr
-          .asFunction<void Function(int, ffi.Pointer<wire_cst_note>)>();
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__category__create_category',
+      );
+  late final _wire__crate__api__data__category__create_category =
+      _wire__crate__api__data__category__create_categoryPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
 
-  void wire__crate__api__book__create_page_streamer(
+  void wire__crate__api__dictionary__create_dictionary(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> name,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> dict_type,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> lang_from,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> lang_to,
+    bool is_enabled,
+    int word_count,
+  ) {
+    return _wire__crate__api__dictionary__create_dictionary(
+      port_,
+      name,
+      file_path,
+      dict_type,
+      lang_from,
+      lang_to,
+      is_enabled,
+      word_count,
+    );
+  }
+
+  late final _wire__crate__api__dictionary__create_dictionaryPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Bool,
+            ffi.Int64,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__dictionary__create_dictionary');
+  late final _wire__crate__api__dictionary__create_dictionary =
+      _wire__crate__api__dictionary__create_dictionaryPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              bool,
+              int,
+            )
+          >();
+
+  void wire__crate__api__data__note__create_highlight(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_index,
+    int char_offset,
+    int length,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> selected_text,
+    int color,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> language,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> paired_note_id,
+  ) {
+    return _wire__crate__api__data__note__create_highlight(
+      port_,
+      book_id,
+      chapter_index,
+      char_offset,
+      length,
+      selected_text,
+      color,
+      language,
+      paired_note_id,
+    );
+  }
+
+  late final _wire__crate__api__data__note__create_highlightPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Int64,
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__data__note__create_highlight');
+  late final _wire__crate__api__data__note__create_highlight =
+      _wire__crate__api__data__note__create_highlightPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              int,
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__core__create_page_streamer(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
     int chapter_index,
     ffi.Pointer<wire_cst_typeset_config> config,
   ) {
-    return _wire__crate__api__book__create_page_streamer(
+    return _wire__crate__api__core__create_page_streamer(
       port_,
       file_path,
       chapter_index,
@@ -2452,7 +3240,7 @@ class RustLibWire implements BaseWire {
     );
   }
 
-  late final _wire__crate__api__book__create_page_streamerPtr =
+  late final _wire__crate__api__core__create_page_streamerPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -2462,9 +3250,9 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_typeset_config>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__book__create_page_streamer');
-  late final _wire__crate__api__book__create_page_streamer =
-      _wire__crate__api__book__create_page_streamerPtr
+      >('frbgen_zephyr_reader_wire__crate__api__core__create_page_streamer');
+  late final _wire__crate__api__core__create_page_streamer =
+      _wire__crate__api__core__create_page_streamerPtr
           .asFunction<
             void Function(
               int,
@@ -2474,17 +3262,171 @@ class RustLibWire implements BaseWire {
             )
           >();
 
-  void wire__crate__api__bilingual_highlight__delete_bilingual_highlight_pair(
+  void wire__crate__api__data__session__create_session(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_index,
+    int start_char_offset,
+    int end_char_offset,
+    int started_at,
+  ) {
+    return _wire__crate__api__data__session__create_session(
+      port_,
+      book_id,
+      chapter_index,
+      start_char_offset,
+      end_char_offset,
+      started_at,
+    );
+  }
+
+  late final _wire__crate__api__data__session__create_sessionPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Int64,
+            ffi.Int64,
+            ffi.Int64,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__data__session__create_session');
+  late final _wire__crate__api__data__session__create_session =
+      _wire__crate__api__data__session__create_sessionPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              int,
+              int,
+              int,
+            )
+          >();
+
+  void wire__crate__api__data__vocabulary__create_vocabulary_word(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> word,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> pinyin,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> translation,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> context_sentence,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<ffi.Int64> chapter_index,
+    ffi.Pointer<ffi.Int64> char_offset,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> word_list,
+  ) {
+    return _wire__crate__api__data__vocabulary__create_vocabulary_word(
+      port_,
+      word,
+      pinyin,
+      translation,
+      context_sentence,
+      book_id,
+      chapter_index,
+      char_offset,
+      word_list,
+    );
+  }
+
+  late final _wire__crate__api__data__vocabulary__create_vocabulary_wordPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<ffi.Int64>,
+            ffi.Pointer<ffi.Int64>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__vocabulary__create_vocabulary_word',
+      );
+  late final _wire__crate__api__data__vocabulary__create_vocabulary_word =
+      _wire__crate__api__data__vocabulary__create_vocabulary_wordPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<ffi.Int64>,
+              ffi.Pointer<ffi.Int64>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__data__book__create_web_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> title,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> author,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+    int chapter_count,
+    int total_characters,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> cover_path,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> description,
+  ) {
+    return _wire__crate__api__data__book__create_web_book(
+      port_,
+      title,
+      author,
+      file_path,
+      chapter_count,
+      total_characters,
+      cover_path,
+      description,
+    );
+  }
+
+  late final _wire__crate__api__data__book__create_web_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__data__book__create_web_book');
+  late final _wire__crate__api__data__book__create_web_book =
+      _wire__crate__api__data__book__create_web_bookPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__bilingual__delete_bilingual_highlight_pair(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> note_id,
   ) {
-    return _wire__crate__api__bilingual_highlight__delete_bilingual_highlight_pair(
+    return _wire__crate__api__bilingual__delete_bilingual_highlight_pair(
       port_,
       note_id,
     );
   }
 
-  late final _wire__crate__api__bilingual_highlight__delete_bilingual_highlight_pairPtr =
+  late final _wire__crate__api__bilingual__delete_bilingual_highlight_pairPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -2493,22 +3435,22 @@ class RustLibWire implements BaseWire {
           )
         >
       >(
-        'frbgen_zephyr_reader_wire__crate__api__bilingual_highlight__delete_bilingual_highlight_pair',
+        'frbgen_zephyr_reader_wire__crate__api__bilingual__delete_bilingual_highlight_pair',
       );
-  late final _wire__crate__api__bilingual_highlight__delete_bilingual_highlight_pair =
-      _wire__crate__api__bilingual_highlight__delete_bilingual_highlight_pairPtr
+  late final _wire__crate__api__bilingual__delete_bilingual_highlight_pair =
+      _wire__crate__api__bilingual__delete_bilingual_highlight_pairPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__storage__delete_book(
+  void wire__crate__api__data__book__delete_book(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
   ) {
-    return _wire__crate__api__storage__delete_book(port_, book_id);
+    return _wire__crate__api__data__book__delete_book(port_, book_id);
   }
 
-  late final _wire__crate__api__storage__delete_bookPtr =
+  late final _wire__crate__api__data__book__delete_bookPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -2516,67 +3458,24 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__delete_book');
-  late final _wire__crate__api__storage__delete_book =
-      _wire__crate__api__storage__delete_bookPtr
+      >('frbgen_zephyr_reader_wire__crate__api__data__book__delete_book');
+  late final _wire__crate__api__data__book__delete_book =
+      _wire__crate__api__data__book__delete_bookPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__search__delete_book_search_index(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-  ) {
-    return _wire__crate__api__search__delete_book_search_index(port_, book_id);
-  }
-
-  late final _wire__crate__api__search__delete_book_search_indexPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >(
-        'frbgen_zephyr_reader_wire__crate__api__search__delete_book_search_index',
-      );
-  late final _wire__crate__api__search__delete_book_search_index =
-      _wire__crate__api__search__delete_book_search_indexPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
-          >();
-
-  void wire__crate__api__storage__delete_bookmark(
+  void wire__crate__api__data__bookmark__delete_bookmark(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> bookmark_id,
   ) {
-    return _wire__crate__api__storage__delete_bookmark(port_, bookmark_id);
+    return _wire__crate__api__data__bookmark__delete_bookmark(
+      port_,
+      bookmark_id,
+    );
   }
 
-  late final _wire__crate__api__storage__delete_bookmarkPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__delete_bookmark');
-  late final _wire__crate__api__storage__delete_bookmark =
-      _wire__crate__api__storage__delete_bookmarkPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
-          >();
-
-  void wire__crate__api__storage__delete_bookmarks_by_book(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-  ) {
-    return _wire__crate__api__storage__delete_bookmarks_by_book(port_, book_id);
-  }
-
-  late final _wire__crate__api__storage__delete_bookmarks_by_bookPtr =
+  late final _wire__crate__api__data__bookmark__delete_bookmarkPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -2585,44 +3484,47 @@ class RustLibWire implements BaseWire {
           )
         >
       >(
-        'frbgen_zephyr_reader_wire__crate__api__storage__delete_bookmarks_by_book',
+        'frbgen_zephyr_reader_wire__crate__api__data__bookmark__delete_bookmark',
       );
-  late final _wire__crate__api__storage__delete_bookmarks_by_book =
-      _wire__crate__api__storage__delete_bookmarks_by_bookPtr
+  late final _wire__crate__api__data__bookmark__delete_bookmark =
+      _wire__crate__api__data__bookmark__delete_bookmarkPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__storage__delete_category(
+  void wire__crate__api__search__delete_by_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__search__delete_by_book(port_, book_id);
+  }
+
+  late final _wire__crate__api__search__delete_by_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__search__delete_by_book');
+  late final _wire__crate__api__search__delete_by_book =
+      _wire__crate__api__search__delete_by_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__data__category__delete_category(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> category_id,
   ) {
-    return _wire__crate__api__storage__delete_category(port_, category_id);
+    return _wire__crate__api__data__category__delete_category(
+      port_,
+      category_id,
+    );
   }
 
-  late final _wire__crate__api__storage__delete_categoryPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__delete_category');
-  late final _wire__crate__api__storage__delete_category =
-      _wire__crate__api__storage__delete_categoryPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
-          >();
-
-  void wire__crate__api__storage__delete_chapters_by_book(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-  ) {
-    return _wire__crate__api__storage__delete_chapters_by_book(port_, book_id);
-  }
-
-  late final _wire__crate__api__storage__delete_chapters_by_bookPtr =
+  late final _wire__crate__api__data__category__delete_categoryPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -2631,90 +3533,66 @@ class RustLibWire implements BaseWire {
           )
         >
       >(
-        'frbgen_zephyr_reader_wire__crate__api__storage__delete_chapters_by_book',
+        'frbgen_zephyr_reader_wire__crate__api__data__category__delete_category',
       );
-  late final _wire__crate__api__storage__delete_chapters_by_book =
-      _wire__crate__api__storage__delete_chapters_by_bookPtr
+  late final _wire__crate__api__data__category__delete_category =
+      _wire__crate__api__data__category__delete_categoryPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__storage__delete_note(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> note_id,
-  ) {
-    return _wire__crate__api__storage__delete_note(port_, note_id);
-  }
-
-  late final _wire__crate__api__storage__delete_notePtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__delete_note');
-  late final _wire__crate__api__storage__delete_note =
-      _wire__crate__api__storage__delete_notePtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
-          >();
-
-  void wire__crate__api__storage__delete_notes_by_book(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-  ) {
-    return _wire__crate__api__storage__delete_notes_by_book(port_, book_id);
-  }
-
-  late final _wire__crate__api__storage__delete_notes_by_bookPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__delete_notes_by_book');
-  late final _wire__crate__api__storage__delete_notes_by_book =
-      _wire__crate__api__storage__delete_notes_by_bookPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
-          >();
-
-  void wire__crate__api__storage__delete_sessions_by_book(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-  ) {
-    return _wire__crate__api__storage__delete_sessions_by_book(port_, book_id);
-  }
-
-  late final _wire__crate__api__storage__delete_sessions_by_bookPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >(
-        'frbgen_zephyr_reader_wire__crate__api__storage__delete_sessions_by_book',
-      );
-  late final _wire__crate__api__storage__delete_sessions_by_book =
-      _wire__crate__api__storage__delete_sessions_by_bookPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
-          >();
-
-  void wire__crate__api__vocabulary__delete_vocabulary_word(
+  void wire__crate__api__dictionary__delete_dictionary(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> id,
   ) {
-    return _wire__crate__api__vocabulary__delete_vocabulary_word(port_, id);
+    return _wire__crate__api__dictionary__delete_dictionary(port_, id);
   }
 
-  late final _wire__crate__api__vocabulary__delete_vocabulary_wordPtr =
+  late final _wire__crate__api__dictionary__delete_dictionaryPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__dictionary__delete_dictionary');
+  late final _wire__crate__api__dictionary__delete_dictionary =
+      _wire__crate__api__dictionary__delete_dictionaryPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__data__note__delete_note(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> note_id,
+  ) {
+    return _wire__crate__api__data__note__delete_note(port_, note_id);
+  }
+
+  late final _wire__crate__api__data__note__delete_notePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__data__note__delete_note');
+  late final _wire__crate__api__data__note__delete_note =
+      _wire__crate__api__data__note__delete_notePtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__data__vocabulary__delete_vocabulary(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> id,
+  ) {
+    return _wire__crate__api__data__vocabulary__delete_vocabulary(port_, id);
+  }
+
+  late final _wire__crate__api__data__vocabulary__delete_vocabularyPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -2723,22 +3601,22 @@ class RustLibWire implements BaseWire {
           )
         >
       >(
-        'frbgen_zephyr_reader_wire__crate__api__vocabulary__delete_vocabulary_word',
+        'frbgen_zephyr_reader_wire__crate__api__data__vocabulary__delete_vocabulary',
       );
-  late final _wire__crate__api__vocabulary__delete_vocabulary_word =
-      _wire__crate__api__vocabulary__delete_vocabulary_wordPtr
+  late final _wire__crate__api__data__vocabulary__delete_vocabulary =
+      _wire__crate__api__data__vocabulary__delete_vocabularyPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__storage__export_database(
+  void wire__crate__api__backup__export_database(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> dest_path,
   ) {
-    return _wire__crate__api__storage__export_database(port_, dest_path);
+    return _wire__crate__api__backup__export_database(port_, dest_path);
   }
 
-  late final _wire__crate__api__storage__export_databasePtr =
+  late final _wire__crate__api__backup__export_databasePtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -2746,11 +3624,69 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__export_database');
-  late final _wire__crate__api__storage__export_database =
-      _wire__crate__api__storage__export_databasePtr
+      >('frbgen_zephyr_reader_wire__crate__api__backup__export_database');
+  late final _wire__crate__api__backup__export_database =
+      _wire__crate__api__backup__export_databasePtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__cover__extract_and_save_cover(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> output_dir,
+  ) {
+    return _wire__crate__api__cover__extract_and_save_cover(
+      port_,
+      book_id,
+      file_path,
+      output_dir,
+    );
+  }
+
+  late final _wire__crate__api__cover__extract_and_save_coverPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__cover__extract_and_save_cover');
+  late final _wire__crate__api__cover__extract_and_save_cover =
+      _wire__crate__api__cover__extract_and_save_coverPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__dictionary__extract_audio(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> audio_key,
+  ) {
+    return _wire__crate__api__dictionary__extract_audio(audio_key);
+  }
+
+  late final _wire__crate__api__dictionary__extract_audioPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__dictionary__extract_audio');
+  late final _wire__crate__api__dictionary__extract_audio =
+      _wire__crate__api__dictionary__extract_audioPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
           >();
 
   void wire__crate__api__cover__extract_book_cover(
@@ -2785,14 +3721,14 @@ class RustLibWire implements BaseWire {
             )
           >();
 
-  void wire__crate__api__book__extract_metadata(
+  void wire__crate__api__core__extract_metadata(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
   ) {
-    return _wire__crate__api__book__extract_metadata(port_, file_path);
+    return _wire__crate__api__core__extract_metadata(port_, file_path);
   }
 
-  late final _wire__crate__api__book__extract_metadataPtr =
+  late final _wire__crate__api__core__extract_metadataPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -2800,80 +3736,38 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__book__extract_metadata');
-  late final _wire__crate__api__book__extract_metadata =
-      _wire__crate__api__book__extract_metadataPtr
+      >('frbgen_zephyr_reader_wire__crate__api__core__extract_metadata');
+  late final _wire__crate__api__core__extract_metadata =
+      _wire__crate__api__core__extract_metadataPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__dictionary__fuzzy_search_dictionary(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> prefix,
-    int limit,
-  ) {
-    return _wire__crate__api__dictionary__fuzzy_search_dictionary(
-      port_,
-      prefix,
-      limit,
-    );
+  void wire__crate__api__vocab_marker__get_all_vocabulary_words(int port_) {
+    return _wire__crate__api__vocab_marker__get_all_vocabulary_words(port_);
   }
 
-  late final _wire__crate__api__dictionary__fuzzy_search_dictionaryPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Int32,
-          )
-        >
-      >(
-        'frbgen_zephyr_reader_wire__crate__api__dictionary__fuzzy_search_dictionary',
-      );
-  late final _wire__crate__api__dictionary__fuzzy_search_dictionary =
-      _wire__crate__api__dictionary__fuzzy_search_dictionaryPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, int)
-          >();
-
-  void wire__crate__api__storage__get_all_books(int port_) {
-    return _wire__crate__api__storage__get_all_books(port_);
-  }
-
-  late final _wire__crate__api__storage__get_all_booksPtr =
+  late final _wire__crate__api__vocab_marker__get_all_vocabulary_wordsPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_zephyr_reader_wire__crate__api__storage__get_all_books',
+        'frbgen_zephyr_reader_wire__crate__api__vocab_marker__get_all_vocabulary_words',
       );
-  late final _wire__crate__api__storage__get_all_books =
-      _wire__crate__api__storage__get_all_booksPtr
+  late final _wire__crate__api__vocab_marker__get_all_vocabulary_words =
+      _wire__crate__api__vocab_marker__get_all_vocabulary_wordsPtr
           .asFunction<void Function(int)>();
 
-  void wire__crate__api__storage__get_all_categories(int port_) {
-    return _wire__crate__api__storage__get_all_categories(port_);
-  }
-
-  late final _wire__crate__api__storage__get_all_categoriesPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_zephyr_reader_wire__crate__api__storage__get_all_categories',
-      );
-  late final _wire__crate__api__storage__get_all_categories =
-      _wire__crate__api__storage__get_all_categoriesPtr
-          .asFunction<void Function(int)>();
-
-  void wire__crate__api__bilingual_highlight__get_bilingual_highlight_pairs(
+  void wire__crate__api__bilingual__get_bilingual_highlight_pairs(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
     int chapter_index,
   ) {
-    return _wire__crate__api__bilingual_highlight__get_bilingual_highlight_pairs(
+    return _wire__crate__api__bilingual__get_bilingual_highlight_pairs(
       port_,
       book_id,
       chapter_index,
     );
   }
 
-  late final _wire__crate__api__bilingual_highlight__get_bilingual_highlight_pairsPtr =
+  late final _wire__crate__api__bilingual__get_bilingual_highlight_pairsPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -2883,22 +3777,22 @@ class RustLibWire implements BaseWire {
           )
         >
       >(
-        'frbgen_zephyr_reader_wire__crate__api__bilingual_highlight__get_bilingual_highlight_pairs',
+        'frbgen_zephyr_reader_wire__crate__api__bilingual__get_bilingual_highlight_pairs',
       );
-  late final _wire__crate__api__bilingual_highlight__get_bilingual_highlight_pairs =
-      _wire__crate__api__bilingual_highlight__get_bilingual_highlight_pairsPtr
+  late final _wire__crate__api__bilingual__get_bilingual_highlight_pairs =
+      _wire__crate__api__bilingual__get_bilingual_highlight_pairsPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, int)
           >();
 
-  void wire__crate__api__storage__get_book(
+  void wire__crate__api__data__book__get_book(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
   ) {
-    return _wire__crate__api__storage__get_book(port_, book_id);
+    return _wire__crate__api__data__book__get_book(port_, book_id);
   }
 
-  late final _wire__crate__api__storage__get_bookPtr =
+  late final _wire__crate__api__data__book__get_bookPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -2906,151 +3800,24 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__get_book');
-  late final _wire__crate__api__storage__get_book =
-      _wire__crate__api__storage__get_bookPtr
+      >('frbgen_zephyr_reader_wire__crate__api__data__book__get_book');
+  late final _wire__crate__api__data__book__get_book =
+      _wire__crate__api__data__book__get_bookPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__storage__get_book_count(int port_) {
-    return _wire__crate__api__storage__get_book_count(port_);
-  }
-
-  late final _wire__crate__api__storage__get_book_countPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_zephyr_reader_wire__crate__api__storage__get_book_count',
-      );
-  late final _wire__crate__api__storage__get_book_count =
-      _wire__crate__api__storage__get_book_countPtr
-          .asFunction<void Function(int)>();
-
-  void wire__crate__api__storage__get_bookmark(
+  void wire__crate__api__data__book__get_book_by_file_path(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> bookmark_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> validated_path,
   ) {
-    return _wire__crate__api__storage__get_bookmark(port_, bookmark_id);
-  }
-
-  late final _wire__crate__api__storage__get_bookmarkPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__get_bookmark');
-  late final _wire__crate__api__storage__get_bookmark =
-      _wire__crate__api__storage__get_bookmarkPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
-          >();
-
-  void wire__crate__api__storage__get_bookmark_stats(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-  ) {
-    return _wire__crate__api__storage__get_bookmark_stats(port_, book_id);
-  }
-
-  late final _wire__crate__api__storage__get_bookmark_statsPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__get_bookmark_stats');
-  late final _wire__crate__api__storage__get_bookmark_stats =
-      _wire__crate__api__storage__get_bookmark_statsPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
-          >();
-
-  void wire__crate__api__storage__get_bookmarks(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-  ) {
-    return _wire__crate__api__storage__get_bookmarks(port_, book_id);
-  }
-
-  late final _wire__crate__api__storage__get_bookmarksPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__get_bookmarks');
-  late final _wire__crate__api__storage__get_bookmarks =
-      _wire__crate__api__storage__get_bookmarksPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
-          >();
-
-  void wire__crate__api__storage__get_books_by_status(int port_, int status) {
-    return _wire__crate__api__storage__get_books_by_status(port_, status);
-  }
-
-  late final _wire__crate__api__storage__get_books_by_statusPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Int32)>>(
-        'frbgen_zephyr_reader_wire__crate__api__storage__get_books_by_status',
-      );
-  late final _wire__crate__api__storage__get_books_by_status =
-      _wire__crate__api__storage__get_books_by_statusPtr
-          .asFunction<void Function(int, int)>();
-
-  void wire__crate__api__storage__get_books_paginated(
-    int port_,
-    int limit,
-    int offset,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> sort_by,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> sort_order,
-  ) {
-    return _wire__crate__api__storage__get_books_paginated(
+    return _wire__crate__api__data__book__get_book_by_file_path(
       port_,
-      limit,
-      offset,
-      sort_by,
-      sort_order,
+      validated_path,
     );
   }
 
-  late final _wire__crate__api__storage__get_books_paginatedPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Int32,
-            ffi.Int32,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__get_books_paginated');
-  late final _wire__crate__api__storage__get_books_paginated =
-      _wire__crate__api__storage__get_books_paginatedPtr
-          .asFunction<
-            void Function(
-              int,
-              int,
-              int,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            )
-          >();
-
-  void wire__crate__api__storage__get_categories_for_book(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-  ) {
-    return _wire__crate__api__storage__get_categories_for_book(port_, book_id);
-  }
-
-  late final _wire__crate__api__storage__get_categories_for_bookPtr =
+  late final _wire__crate__api__data__book__get_book_by_file_pathPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -3059,22 +3826,22 @@ class RustLibWire implements BaseWire {
           )
         >
       >(
-        'frbgen_zephyr_reader_wire__crate__api__storage__get_categories_for_book',
+        'frbgen_zephyr_reader_wire__crate__api__data__book__get_book_by_file_path',
       );
-  late final _wire__crate__api__storage__get_categories_for_book =
-      _wire__crate__api__storage__get_categories_for_bookPtr
+  late final _wire__crate__api__data__book__get_book_by_file_path =
+      _wire__crate__api__data__book__get_book_by_file_pathPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__storage__get_category(
+  void wire__crate__api__data__bookmark__get_bookmark(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> category_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> bookmark_id,
   ) {
-    return _wire__crate__api__storage__get_category(port_, category_id);
+    return _wire__crate__api__data__bookmark__get_bookmark(port_, bookmark_id);
   }
 
-  late final _wire__crate__api__storage__get_categoryPtr =
+  late final _wire__crate__api__data__bookmark__get_bookmarkPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -3082,20 +3849,42 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__get_category');
-  late final _wire__crate__api__storage__get_category =
-      _wire__crate__api__storage__get_categoryPtr
+      >('frbgen_zephyr_reader_wire__crate__api__data__bookmark__get_bookmark');
+  late final _wire__crate__api__data__bookmark__get_bookmark =
+      _wire__crate__api__data__bookmark__get_bookmarkPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__book__get_chapter(
+  void wire__crate__api__data__category__get_category(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> category_id,
+  ) {
+    return _wire__crate__api__data__category__get_category(port_, category_id);
+  }
+
+  late final _wire__crate__api__data__category__get_categoryPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__data__category__get_category');
+  late final _wire__crate__api__data__category__get_category =
+      _wire__crate__api__data__category__get_categoryPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__core__get_chapter(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
     int chapter_index,
     ffi.Pointer<wire_cst_typeset_config> config,
   ) {
-    return _wire__crate__api__book__get_chapter(
+    return _wire__crate__api__core__get_chapter(
       port_,
       file_path,
       chapter_index,
@@ -3103,7 +3892,7 @@ class RustLibWire implements BaseWire {
     );
   }
 
-  late final _wire__crate__api__book__get_chapterPtr =
+  late final _wire__crate__api__core__get_chapterPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -3113,9 +3902,9 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_typeset_config>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__book__get_chapter');
-  late final _wire__crate__api__book__get_chapter =
-      _wire__crate__api__book__get_chapterPtr
+      >('frbgen_zephyr_reader_wire__crate__api__core__get_chapter');
+  late final _wire__crate__api__core__get_chapter =
+      _wire__crate__api__core__get_chapterPtr
           .asFunction<
             void Function(
               int,
@@ -3125,19 +3914,19 @@ class RustLibWire implements BaseWire {
             )
           >();
 
-  void wire__crate__api__storage__get_chapter_by_index(
+  void wire__crate__api__data__chapter__get_chapter_by_index(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
     int chapter_index,
   ) {
-    return _wire__crate__api__storage__get_chapter_by_index(
+    return _wire__crate__api__data__chapter__get_chapter_by_index(
       port_,
       book_id,
       chapter_index,
     );
   }
 
-  late final _wire__crate__api__storage__get_chapter_by_indexPtr =
+  late final _wire__crate__api__data__chapter__get_chapter_by_indexPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -3146,21 +3935,23 @@ class RustLibWire implements BaseWire {
             ffi.Int32,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__get_chapter_by_index');
-  late final _wire__crate__api__storage__get_chapter_by_index =
-      _wire__crate__api__storage__get_chapter_by_indexPtr
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__chapter__get_chapter_by_index',
+      );
+  late final _wire__crate__api__data__chapter__get_chapter_by_index =
+      _wire__crate__api__data__chapter__get_chapter_by_indexPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, int)
           >();
 
-  void wire__crate__api__storage__get_chapters_by_book(
+  void wire__crate__api__dictionary__get_dictionary(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> id,
   ) {
-    return _wire__crate__api__storage__get_chapters_by_book(port_, book_id);
+    return _wire__crate__api__dictionary__get_dictionary(port_, id);
   }
 
-  late final _wire__crate__api__storage__get_chapters_by_bookPtr =
+  late final _wire__crate__api__dictionary__get_dictionaryPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -3168,24 +3959,12 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__get_chapters_by_book');
-  late final _wire__crate__api__storage__get_chapters_by_book =
-      _wire__crate__api__storage__get_chapters_by_bookPtr
+      >('frbgen_zephyr_reader_wire__crate__api__dictionary__get_dictionary');
+  late final _wire__crate__api__dictionary__get_dictionary =
+      _wire__crate__api__dictionary__get_dictionaryPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
-
-  void wire__crate__api__dictionary__get_dictionary_info(int port_) {
-    return _wire__crate__api__dictionary__get_dictionary_info(port_);
-  }
-
-  late final _wire__crate__api__dictionary__get_dictionary_infoPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_zephyr_reader_wire__crate__api__dictionary__get_dictionary_info',
-      );
-  late final _wire__crate__api__dictionary__get_dictionary_info =
-      _wire__crate__api__dictionary__get_dictionary_infoPtr
-          .asFunction<void Function(int)>();
 
   void wire__crate__api__epub__get_epub_chapter_rich_content(
     int port_,
@@ -3247,411 +4026,395 @@ class RustLibWire implements BaseWire {
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__file__get_file_size(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
-  ) {
-    return _wire__crate__api__file__get_file_size(port_, file_path);
+  void wire__crate__api__data__stats__get_global_reading_stats(int port_) {
+    return _wire__crate__api__data__stats__get_global_reading_stats(port_);
   }
 
-  late final _wire__crate__api__file__get_file_sizePtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__file__get_file_size');
-  late final _wire__crate__api__file__get_file_size =
-      _wire__crate__api__file__get_file_sizePtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
-          >();
-
-  void wire__crate__api__storage__get_global_reading_stats(int port_) {
-    return _wire__crate__api__storage__get_global_reading_stats(port_);
-  }
-
-  late final _wire__crate__api__storage__get_global_reading_statsPtr =
+  late final _wire__crate__api__data__stats__get_global_reading_statsPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_zephyr_reader_wire__crate__api__storage__get_global_reading_stats',
+        'frbgen_zephyr_reader_wire__crate__api__data__stats__get_global_reading_stats',
       );
-  late final _wire__crate__api__storage__get_global_reading_stats =
-      _wire__crate__api__storage__get_global_reading_statsPtr
+  late final _wire__crate__api__data__stats__get_global_reading_stats =
+      _wire__crate__api__data__stats__get_global_reading_statsPtr
           .asFunction<void Function(int)>();
 
-  void wire__crate__api__storage__get_note_stats(
+  void wire__crate__api__md__get_md_chapter_rich_content(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-  ) {
-    return _wire__crate__api__storage__get_note_stats(port_, book_id);
-  }
-
-  late final _wire__crate__api__storage__get_note_statsPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__get_note_stats');
-  late final _wire__crate__api__storage__get_note_stats =
-      _wire__crate__api__storage__get_note_statsPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
-          >();
-
-  void wire__crate__api__storage__get_notes(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-    ffi.Pointer<ffi.Int32> note_type,
-  ) {
-    return _wire__crate__api__storage__get_notes(port_, book_id, note_type);
-  }
-
-  late final _wire__crate__api__storage__get_notesPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Pointer<ffi.Int32>,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__get_notes');
-  late final _wire__crate__api__storage__get_notes =
-      _wire__crate__api__storage__get_notesPtr
-          .asFunction<
-            void Function(
-              int,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              ffi.Pointer<ffi.Int32>,
-            )
-          >();
-
-  void wire__crate__api__storage__get_notes_in_chapter(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
     int chapter_index,
-    ffi.Pointer<ffi.Int32> note_type,
   ) {
-    return _wire__crate__api__storage__get_notes_in_chapter(
+    return _wire__crate__api__md__get_md_chapter_rich_content(
       port_,
-      book_id,
+      file_path,
       chapter_index,
-      note_type,
     );
   }
 
-  late final _wire__crate__api__storage__get_notes_in_chapterPtr =
+  late final _wire__crate__api__md__get_md_chapter_rich_contentPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
             ffi.Int64,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Int32,
-            ffi.Pointer<ffi.Int32>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__get_notes_in_chapter');
-  late final _wire__crate__api__storage__get_notes_in_chapter =
-      _wire__crate__api__storage__get_notes_in_chapterPtr
-          .asFunction<
-            void Function(
-              int,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              int,
-              ffi.Pointer<ffi.Int32>,
-            )
-          >();
-
-  void wire__crate__api__storage__get_pinned_books(int port_) {
-    return _wire__crate__api__storage__get_pinned_books(port_);
-  }
-
-  late final _wire__crate__api__storage__get_pinned_booksPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_zephyr_reader_wire__crate__api__storage__get_pinned_books',
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__md__get_md_chapter_rich_content',
       );
-  late final _wire__crate__api__storage__get_pinned_books =
-      _wire__crate__api__storage__get_pinned_booksPtr
-          .asFunction<void Function(int)>();
-
-  void wire__crate__api__storage__get_reading_progress(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-  ) {
-    return _wire__crate__api__storage__get_reading_progress(port_, book_id);
-  }
-
-  late final _wire__crate__api__storage__get_reading_progressPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__get_reading_progress');
-  late final _wire__crate__api__storage__get_reading_progress =
-      _wire__crate__api__storage__get_reading_progressPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
-          >();
-
-  void wire__crate__api__storage__get_reading_sessions(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-    int limit,
-  ) {
-    return _wire__crate__api__storage__get_reading_sessions(
-      port_,
-      book_id,
-      limit,
-    );
-  }
-
-  late final _wire__crate__api__storage__get_reading_sessionsPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.UintPtr,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__get_reading_sessions');
-  late final _wire__crate__api__storage__get_reading_sessions =
-      _wire__crate__api__storage__get_reading_sessionsPtr
+  late final _wire__crate__api__md__get_md_chapter_rich_content =
+      _wire__crate__api__md__get_md_chapter_rich_contentPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, int)
           >();
 
-  void wire__crate__api__storage__get_reading_stats_range(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> start_date,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> end_date,
-  ) {
-    return _wire__crate__api__storage__get_reading_stats_range(
-      port_,
-      start_date,
-      end_date,
-    );
-  }
-
-  late final _wire__crate__api__storage__get_reading_stats_rangePtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >(
-        'frbgen_zephyr_reader_wire__crate__api__storage__get_reading_stats_range',
-      );
-  late final _wire__crate__api__storage__get_reading_stats_range =
-      _wire__crate__api__storage__get_reading_stats_rangePtr
-          .asFunction<
-            void Function(
-              int,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            )
-          >();
-
-  void wire__crate__api__storage__get_recent_sessions(int port_, int limit) {
-    return _wire__crate__api__storage__get_recent_sessions(port_, limit);
-  }
-
-  late final _wire__crate__api__storage__get_recent_sessionsPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.UintPtr)>>(
-        'frbgen_zephyr_reader_wire__crate__api__storage__get_recent_sessions',
-      );
-  late final _wire__crate__api__storage__get_recent_sessions =
-      _wire__crate__api__storage__get_recent_sessionsPtr
-          .asFunction<void Function(int, int)>();
-
-  void wire__crate__api__storage__get_recently_read_books(
-    int port_,
-    int limit,
-  ) {
-    return _wire__crate__api__storage__get_recently_read_books(port_, limit);
-  }
-
-  late final _wire__crate__api__storage__get_recently_read_booksPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.UintPtr)>>(
-        'frbgen_zephyr_reader_wire__crate__api__storage__get_recently_read_books',
-      );
-  late final _wire__crate__api__storage__get_recently_read_books =
-      _wire__crate__api__storage__get_recently_read_booksPtr
-          .asFunction<void Function(int, int)>();
-
-  void wire__crate__api__storage__get_sessions_by_date_range(
+  void wire__crate__api__data__note__get_note_stats(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__data__note__get_note_stats(port_, book_id);
+  }
+
+  late final _wire__crate__api__data__note__get_note_statsPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__data__note__get_note_stats');
+  late final _wire__crate__api__data__note__get_note_stats =
+      _wire__crate__api__data__note__get_note_statsPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__core__get_paginated_chunk(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+    int chapter_index,
+    int chunk_index,
+    ffi.Pointer<wire_cst_typeset_config> config,
+  ) {
+    return _wire__crate__api__core__get_paginated_chunk(
+      port_,
+      file_path,
+      chapter_index,
+      chunk_index,
+      config,
+    );
+  }
+
+  late final _wire__crate__api__core__get_paginated_chunkPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Uint32,
+            ffi.Pointer<wire_cst_typeset_config>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__core__get_paginated_chunk');
+  late final _wire__crate__api__core__get_paginated_chunk =
+      _wire__crate__api__core__get_paginated_chunkPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              int,
+              ffi.Pointer<wire_cst_typeset_config>,
+            )
+          >();
+
+  void wire__crate__api__core__get_pdf_page(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+    int page_index,
+  ) {
+    return _wire__crate__api__core__get_pdf_page(port_, file_path, page_index);
+  }
+
+  late final _wire__crate__api__core__get_pdf_pagePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Uint32,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__core__get_pdf_page');
+  late final _wire__crate__api__core__get_pdf_page =
+      _wire__crate__api__core__get_pdf_pagePtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, int)
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__core__get_pdf_total_pages(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+  ) {
+    return _wire__crate__api__core__get_pdf_total_pages(file_path);
+  }
+
+  late final _wire__crate__api__core__get_pdf_total_pagesPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__core__get_pdf_total_pages');
+  late final _wire__crate__api__core__get_pdf_total_pages =
+      _wire__crate__api__core__get_pdf_total_pagesPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__data__progress__get_progress(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__data__progress__get_progress(port_, book_id);
+  }
+
+  late final _wire__crate__api__data__progress__get_progressPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__data__progress__get_progress');
+  late final _wire__crate__api__data__progress__get_progress =
+      _wire__crate__api__data__progress__get_progressPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__data__stats__get_reading_stats_by_days(
+    int port_,
+    int days,
+  ) {
+    return _wire__crate__api__data__stats__get_reading_stats_by_days(
+      port_,
+      days,
+    );
+  }
+
+  late final _wire__crate__api__data__stats__get_reading_stats_by_daysPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Int32)>>(
+        'frbgen_zephyr_reader_wire__crate__api__data__stats__get_reading_stats_by_days',
+      );
+  late final _wire__crate__api__data__stats__get_reading_stats_by_days =
+      _wire__crate__api__data__stats__get_reading_stats_by_daysPtr
+          .asFunction<void Function(int, int)>();
+
+  void wire__crate__api__data__stats__get_reading_stats_by_days_with_fill(
+    int port_,
+    int days,
+  ) {
+    return _wire__crate__api__data__stats__get_reading_stats_by_days_with_fill(
+      port_,
+      days,
+    );
+  }
+
+  late final _wire__crate__api__data__stats__get_reading_stats_by_days_with_fillPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Int32)>>(
+        'frbgen_zephyr_reader_wire__crate__api__data__stats__get_reading_stats_by_days_with_fill',
+      );
+  late final _wire__crate__api__data__stats__get_reading_stats_by_days_with_fill =
+      _wire__crate__api__data__stats__get_reading_stats_by_days_with_fillPtr
+          .asFunction<void Function(int, int)>();
+
+  void wire__crate__api__data__stats__get_reading_stats_by_range(
+    int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> start_date,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> end_date,
   ) {
-    return _wire__crate__api__storage__get_sessions_by_date_range(
+    return _wire__crate__api__data__stats__get_reading_stats_by_range(
       port_,
-      book_id,
       start_date,
       end_date,
     );
   }
 
-  late final _wire__crate__api__storage__get_sessions_by_date_rangePtr =
+  late final _wire__crate__api__data__stats__get_reading_stats_by_rangePtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
             ffi.Int64,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
       >(
-        'frbgen_zephyr_reader_wire__crate__api__storage__get_sessions_by_date_range',
+        'frbgen_zephyr_reader_wire__crate__api__data__stats__get_reading_stats_by_range',
       );
-  late final _wire__crate__api__storage__get_sessions_by_date_range =
-      _wire__crate__api__storage__get_sessions_by_date_rangePtr
+  late final _wire__crate__api__data__stats__get_reading_stats_by_range =
+      _wire__crate__api__data__stats__get_reading_stats_by_rangePtr
           .asFunction<
             void Function(
               int,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             )
           >();
 
-  WireSyncRust2DartDco wire__crate__api__book__get_supported_formats() {
-    return _wire__crate__api__book__get_supported_formats();
+  WireSyncRust2DartDco wire__crate__api__core__get_supported_formats() {
+    return _wire__crate__api__core__get_supported_formats();
   }
 
-  late final _wire__crate__api__book__get_supported_formatsPtr =
+  late final _wire__crate__api__core__get_supported_formatsPtr =
       _lookup<ffi.NativeFunction<WireSyncRust2DartDco Function()>>(
-        'frbgen_zephyr_reader_wire__crate__api__book__get_supported_formats',
+        'frbgen_zephyr_reader_wire__crate__api__core__get_supported_formats',
       );
-  late final _wire__crate__api__book__get_supported_formats =
-      _wire__crate__api__book__get_supported_formatsPtr
+  late final _wire__crate__api__core__get_supported_formats =
+      _wire__crate__api__core__get_supported_formatsPtr
           .asFunction<WireSyncRust2DartDco Function()>();
 
-  void wire__crate__api__storage__get_today_reading_stats(int port_) {
-    return _wire__crate__api__storage__get_today_reading_stats(port_);
+  void wire__crate__api__data__stats__get_today_reading_stats(int port_) {
+    return _wire__crate__api__data__stats__get_today_reading_stats(port_);
   }
 
-  late final _wire__crate__api__storage__get_today_reading_statsPtr =
+  late final _wire__crate__api__data__stats__get_today_reading_statsPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_zephyr_reader_wire__crate__api__storage__get_today_reading_stats',
+        'frbgen_zephyr_reader_wire__crate__api__data__stats__get_today_reading_stats',
       );
-  late final _wire__crate__api__storage__get_today_reading_stats =
-      _wire__crate__api__storage__get_today_reading_statsPtr
+  late final _wire__crate__api__data__stats__get_today_reading_stats =
+      _wire__crate__api__data__stats__get_today_reading_statsPtr
           .asFunction<void Function(int)>();
 
-  void wire__crate__api__vocabulary__get_vocabulary_stats(int port_) {
-    return _wire__crate__api__vocabulary__get_vocabulary_stats(port_);
+  void wire__crate__api__data__vocabulary__get_vocabulary_stats(int port_) {
+    return _wire__crate__api__data__vocabulary__get_vocabulary_stats(port_);
   }
 
-  late final _wire__crate__api__vocabulary__get_vocabulary_statsPtr =
+  late final _wire__crate__api__data__vocabulary__get_vocabulary_statsPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_zephyr_reader_wire__crate__api__vocabulary__get_vocabulary_stats',
+        'frbgen_zephyr_reader_wire__crate__api__data__vocabulary__get_vocabulary_stats',
       );
-  late final _wire__crate__api__vocabulary__get_vocabulary_stats =
-      _wire__crate__api__vocabulary__get_vocabulary_statsPtr
+  late final _wire__crate__api__data__vocabulary__get_vocabulary_stats =
+      _wire__crate__api__data__vocabulary__get_vocabulary_statsPtr
           .asFunction<void Function(int)>();
 
-  void wire__crate__api__vocabulary__get_vocabulary_words(
+  void wire__crate__api__epub__image_format_extension(int port_, int that) {
+    return _wire__crate__api__epub__image_format_extension(port_, that);
+  }
+
+  late final _wire__crate__api__epub__image_format_extensionPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Int32)>>(
+        'frbgen_zephyr_reader_wire__crate__api__epub__image_format_extension',
+      );
+  late final _wire__crate__api__epub__image_format_extension =
+      _wire__crate__api__epub__image_format_extensionPtr
+          .asFunction<void Function(int, int)>();
+
+  void wire__crate__api__epub__image_format_from_extension(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> status,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> ext,
   ) {
-    return _wire__crate__api__vocabulary__get_vocabulary_words(
-      port_,
-      book_id,
-      status,
-    );
+    return _wire__crate__api__epub__image_format_from_extension(port_, ext);
   }
 
-  late final _wire__crate__api__vocabulary__get_vocabulary_wordsPtr =
+  late final _wire__crate__api__epub__image_format_from_extensionPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
             ffi.Int64,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
       >(
-        'frbgen_zephyr_reader_wire__crate__api__vocabulary__get_vocabulary_words',
+        'frbgen_zephyr_reader_wire__crate__api__epub__image_format_from_extension',
       );
-  late final _wire__crate__api__vocabulary__get_vocabulary_words =
-      _wire__crate__api__vocabulary__get_vocabulary_wordsPtr
+  late final _wire__crate__api__epub__image_format_from_extension =
+      _wire__crate__api__epub__image_format_from_extensionPtr
           .asFunction<
-            void Function(
-              int,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            )
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__storage__import_bookmarks(
+  void wire__crate__api__epub__image_format_mime_type(int port_, int that) {
+    return _wire__crate__api__epub__image_format_mime_type(port_, that);
+  }
+
+  late final _wire__crate__api__epub__image_format_mime_typePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Int32)>>(
+        'frbgen_zephyr_reader_wire__crate__api__epub__image_format_mime_type',
+      );
+  late final _wire__crate__api__epub__image_format_mime_type =
+      _wire__crate__api__epub__image_format_mime_typePtr
+          .asFunction<void Function(int, int)>();
+
+  void wire__crate__api__data__bookmark__import_bookmarks(
     int port_,
     ffi.Pointer<wire_cst_list_bookmark> bookmarks,
   ) {
-    return _wire__crate__api__storage__import_bookmarks(port_, bookmarks);
+    return _wire__crate__api__data__bookmark__import_bookmarks(
+      port_,
+      bookmarks,
+    );
   }
 
-  late final _wire__crate__api__storage__import_bookmarksPtr =
+  late final _wire__crate__api__data__bookmark__import_bookmarksPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_bookmark>)
         >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__import_bookmarks');
-  late final _wire__crate__api__storage__import_bookmarks =
-      _wire__crate__api__storage__import_bookmarksPtr
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__bookmark__import_bookmarks',
+      );
+  late final _wire__crate__api__data__bookmark__import_bookmarks =
+      _wire__crate__api__data__bookmark__import_bookmarksPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_bookmark>)
           >();
 
-  void wire__crate__api__search__index_chapter_content(
+  void wire__crate__api__search__index_chapter(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-    int chapter_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_index,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_title,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> content,
   ) {
-    return _wire__crate__api__search__index_chapter_content(
+    return _wire__crate__api__search__index_chapter(
       port_,
       book_id,
       chapter_id,
+      chapter_index,
       chapter_title,
       content,
     );
   }
 
-  late final _wire__crate__api__search__index_chapter_contentPtr =
+  late final _wire__crate__api__search__index_chapterPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
             ffi.Int64,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Int32,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__search__index_chapter_content');
-  late final _wire__crate__api__search__index_chapter_content =
-      _wire__crate__api__search__index_chapter_contentPtr
+      >('frbgen_zephyr_reader_wire__crate__api__search__index_chapter');
+  late final _wire__crate__api__search__index_chapter =
+      _wire__crate__api__search__index_chapterPtr
           .asFunction<
             void Function(
               int,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             )
@@ -3659,9 +4422,14 @@ class RustLibWire implements BaseWire {
 
   void wire__crate__api__dictionary__init_dictionary(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> path,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> mdx_path,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> mdd_path,
   ) {
-    return _wire__crate__api__dictionary__init_dictionary(port_, path);
+    return _wire__crate__api__dictionary__init_dictionary(
+      port_,
+      mdx_path,
+      mdd_path,
+    );
   }
 
   late final _wire__crate__api__dictionary__init_dictionaryPtr =
@@ -3670,13 +4438,18 @@ class RustLibWire implements BaseWire {
           ffi.Void Function(
             ffi.Int64,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
       >('frbgen_zephyr_reader_wire__crate__api__dictionary__init_dictionary');
   late final _wire__crate__api__dictionary__init_dictionary =
       _wire__crate__api__dictionary__init_dictionaryPtr
           .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
           >();
 
   void wire__crate__api__search__init_search_engine(int port_) {
@@ -3691,14 +4464,14 @@ class RustLibWire implements BaseWire {
       _wire__crate__api__search__init_search_enginePtr
           .asFunction<void Function(int)>();
 
-  void wire__crate__api__storage__init_storage(
+  void wire__crate__api__data__init__init_storage(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> data_dir,
   ) {
-    return _wire__crate__api__storage__init_storage(port_, data_dir);
+    return _wire__crate__api__data__init__init_storage(port_, data_dir);
   }
 
-  late final _wire__crate__api__storage__init_storagePtr =
+  late final _wire__crate__api__data__init__init_storagePtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -3706,42 +4479,481 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__init_storage');
-  late final _wire__crate__api__storage__init_storage =
-      _wire__crate__api__storage__init_storagePtr
+      >('frbgen_zephyr_reader_wire__crate__api__data__init__init_storage');
+  late final _wire__crate__api__data__init__init_storage =
+      _wire__crate__api__data__init__init_storagePtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__dictionary__lookup_word(
+  void wire__crate__api__data__progress__list_all_progresses(int port_) {
+    return _wire__crate__api__data__progress__list_all_progresses(port_);
+  }
+
+  late final _wire__crate__api__data__progress__list_all_progressesPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__data__progress__list_all_progresses',
+      );
+  late final _wire__crate__api__data__progress__list_all_progresses =
+      _wire__crate__api__data__progress__list_all_progressesPtr
+          .asFunction<void Function(int)>();
+
+  void wire__crate__api__data__bookmark__list_bookmarks_by_book(
     int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__data__bookmark__list_bookmarks_by_book(
+      port_,
+      book_id,
+    );
+  }
+
+  late final _wire__crate__api__data__bookmark__list_bookmarks_by_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__bookmark__list_bookmarks_by_book',
+      );
+  late final _wire__crate__api__data__bookmark__list_bookmarks_by_book =
+      _wire__crate__api__data__bookmark__list_bookmarks_by_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__data__book__list_books(int port_) {
+    return _wire__crate__api__data__book__list_books(port_);
+  }
+
+  late final _wire__crate__api__data__book__list_booksPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__data__book__list_books',
+      );
+  late final _wire__crate__api__data__book__list_books =
+      _wire__crate__api__data__book__list_booksPtr
+          .asFunction<void Function(int)>();
+
+  void wire__crate__api__data__category__list_books_by_category(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> category_id,
+  ) {
+    return _wire__crate__api__data__category__list_books_by_category(
+      port_,
+      category_id,
+    );
+  }
+
+  late final _wire__crate__api__data__category__list_books_by_categoryPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__category__list_books_by_category',
+      );
+  late final _wire__crate__api__data__category__list_books_by_category =
+      _wire__crate__api__data__category__list_books_by_categoryPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__data__book__list_books_by_status(
+    int port_,
+    int status,
+  ) {
+    return _wire__crate__api__data__book__list_books_by_status(port_, status);
+  }
+
+  late final _wire__crate__api__data__book__list_books_by_statusPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Int32)>>(
+        'frbgen_zephyr_reader_wire__crate__api__data__book__list_books_by_status',
+      );
+  late final _wire__crate__api__data__book__list_books_by_status =
+      _wire__crate__api__data__book__list_books_by_statusPtr
+          .asFunction<void Function(int, int)>();
+
+  void wire__crate__api__data__book__list_books_paginated(
+    int port_,
+    int limit,
+    int offset,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> sort_by,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> sort_order,
+  ) {
+    return _wire__crate__api__data__book__list_books_paginated(
+      port_,
+      limit,
+      offset,
+      sort_by,
+      sort_order,
+    );
+  }
+
+  late final _wire__crate__api__data__book__list_books_paginatedPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Int32,
+            ffi.Int32,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__book__list_books_paginated',
+      );
+  late final _wire__crate__api__data__book__list_books_paginated =
+      _wire__crate__api__data__book__list_books_paginatedPtr
+          .asFunction<
+            void Function(
+              int,
+              int,
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__data__category__list_categories(int port_) {
+    return _wire__crate__api__data__category__list_categories(port_);
+  }
+
+  late final _wire__crate__api__data__category__list_categoriesPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__data__category__list_categories',
+      );
+  late final _wire__crate__api__data__category__list_categories =
+      _wire__crate__api__data__category__list_categoriesPtr
+          .asFunction<void Function(int)>();
+
+  void wire__crate__api__data__category__list_categories_by_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__data__category__list_categories_by_book(
+      port_,
+      book_id,
+    );
+  }
+
+  late final _wire__crate__api__data__category__list_categories_by_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__category__list_categories_by_book',
+      );
+  late final _wire__crate__api__data__category__list_categories_by_book =
+      _wire__crate__api__data__category__list_categories_by_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__data__chapter__list_chapters_by_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__data__chapter__list_chapters_by_book(
+      port_,
+      book_id,
+    );
+  }
+
+  late final _wire__crate__api__data__chapter__list_chapters_by_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__chapter__list_chapters_by_book',
+      );
+  late final _wire__crate__api__data__chapter__list_chapters_by_book =
+      _wire__crate__api__data__chapter__list_chapters_by_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__dictionary__list_dictionaries(int port_) {
+    return _wire__crate__api__dictionary__list_dictionaries(port_);
+  }
+
+  late final _wire__crate__api__dictionary__list_dictionariesPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__dictionary__list_dictionaries',
+      );
+  late final _wire__crate__api__dictionary__list_dictionaries =
+      _wire__crate__api__dictionary__list_dictionariesPtr
+          .asFunction<void Function(int)>();
+
+  void wire__crate__api__data__note__list_notes_by_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<ffi.Int32> note_type,
+  ) {
+    return _wire__crate__api__data__note__list_notes_by_book(
+      port_,
+      book_id,
+      note_type,
+    );
+  }
+
+  late final _wire__crate__api__data__note__list_notes_by_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<ffi.Int32>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__note__list_notes_by_book',
+      );
+  late final _wire__crate__api__data__note__list_notes_by_book =
+      _wire__crate__api__data__note__list_notes_by_bookPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<ffi.Int32>,
+            )
+          >();
+
+  void wire__crate__api__data__note__list_notes_in_chapter(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int chapter_index,
+    ffi.Pointer<ffi.Int32> note_type,
+  ) {
+    return _wire__crate__api__data__note__list_notes_in_chapter(
+      port_,
+      book_id,
+      chapter_index,
+      note_type,
+    );
+  }
+
+  late final _wire__crate__api__data__note__list_notes_in_chapterPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Pointer<ffi.Int32>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__note__list_notes_in_chapter',
+      );
+  late final _wire__crate__api__data__note__list_notes_in_chapter =
+      _wire__crate__api__data__note__list_notes_in_chapterPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              ffi.Pointer<ffi.Int32>,
+            )
+          >();
+
+  void wire__crate__api__data__book__list_pinned_books(int port_) {
+    return _wire__crate__api__data__book__list_pinned_books(port_);
+  }
+
+  late final _wire__crate__api__data__book__list_pinned_booksPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__data__book__list_pinned_books',
+      );
+  late final _wire__crate__api__data__book__list_pinned_books =
+      _wire__crate__api__data__book__list_pinned_booksPtr
+          .asFunction<void Function(int)>();
+
+  void wire__crate__api__data__book__list_recently_opened_books(
+    int port_,
+    int limit,
+  ) {
+    return _wire__crate__api__data__book__list_recently_opened_books(
+      port_,
+      limit,
+    );
+  }
+
+  late final _wire__crate__api__data__book__list_recently_opened_booksPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.UintPtr)>>(
+        'frbgen_zephyr_reader_wire__crate__api__data__book__list_recently_opened_books',
+      );
+  late final _wire__crate__api__data__book__list_recently_opened_books =
+      _wire__crate__api__data__book__list_recently_opened_booksPtr
+          .asFunction<void Function(int, int)>();
+
+  void wire__crate__api__data__session__list_sessions_by_book(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    int limit,
+  ) {
+    return _wire__crate__api__data__session__list_sessions_by_book(
+      port_,
+      book_id,
+      limit,
+    );
+  }
+
+  late final _wire__crate__api__data__session__list_sessions_by_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.UintPtr,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__session__list_sessions_by_book',
+      );
+  late final _wire__crate__api__data__session__list_sessions_by_book =
+      _wire__crate__api__data__session__list_sessions_by_bookPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, int)
+          >();
+
+  void wire__crate__api__data__session__list_sessions_by_date_range(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> start_date,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> end_date,
+  ) {
+    return _wire__crate__api__data__session__list_sessions_by_date_range(
+      port_,
+      book_id,
+      start_date,
+      end_date,
+    );
+  }
+
+  late final _wire__crate__api__data__session__list_sessions_by_date_rangePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__session__list_sessions_by_date_range',
+      );
+  late final _wire__crate__api__data__session__list_sessions_by_date_range =
+      _wire__crate__api__data__session__list_sessions_by_date_rangePtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__data__session__list_sessions_by_recent(
+    int port_,
+    int limit,
+  ) {
+    return _wire__crate__api__data__session__list_sessions_by_recent(
+      port_,
+      limit,
+    );
+  }
+
+  late final _wire__crate__api__data__session__list_sessions_by_recentPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.UintPtr)>>(
+        'frbgen_zephyr_reader_wire__crate__api__data__session__list_sessions_by_recent',
+      );
+  late final _wire__crate__api__data__session__list_sessions_by_recent =
+      _wire__crate__api__data__session__list_sessions_by_recentPtr
+          .asFunction<void Function(int, int)>();
+
+  void wire__crate__api__data__vocabulary__list_vocabulary_by_status(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<ffi.Int32> status,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> word_list,
+  ) {
+    return _wire__crate__api__data__vocabulary__list_vocabulary_by_status(
+      port_,
+      book_id,
+      status,
+      word_list,
+    );
+  }
+
+  late final _wire__crate__api__data__vocabulary__list_vocabulary_by_statusPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<ffi.Int32>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__vocabulary__list_vocabulary_by_status',
+      );
+  late final _wire__crate__api__data__vocabulary__list_vocabulary_by_status =
+      _wire__crate__api__data__vocabulary__list_vocabulary_by_statusPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<ffi.Int32>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__dictionary__lookup_mdict(
     ffi.Pointer<wire_cst_list_prim_u_8_strict> word,
   ) {
-    return _wire__crate__api__dictionary__lookup_word(port_, word);
+    return _wire__crate__api__dictionary__lookup_mdict(word);
   }
 
-  late final _wire__crate__api__dictionary__lookup_wordPtr =
+  late final _wire__crate__api__dictionary__lookup_mdictPtr =
       _lookup<
         ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
+          WireSyncRust2DartDco Function(
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__dictionary__lookup_word');
-  late final _wire__crate__api__dictionary__lookup_word =
-      _wire__crate__api__dictionary__lookup_wordPtr
+      >('frbgen_zephyr_reader_wire__crate__api__dictionary__lookup_mdict');
+  late final _wire__crate__api__dictionary__lookup_mdict =
+      _wire__crate__api__dictionary__lookup_mdictPtr
           .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
           >();
 
-  void wire__crate__api__book__paginate_all_content(
+  void wire__crate__api__core__paginate_all_content(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
     int chapter_index,
     ffi.Pointer<wire_cst_typeset_config> config,
   ) {
-    return _wire__crate__api__book__paginate_all_content(
+    return _wire__crate__api__core__paginate_all_content(
       port_,
       file_path,
       chapter_index,
@@ -3749,7 +4961,7 @@ class RustLibWire implements BaseWire {
     );
   }
 
-  late final _wire__crate__api__book__paginate_all_contentPtr =
+  late final _wire__crate__api__core__paginate_all_contentPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -3759,9 +4971,9 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_typeset_config>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__book__paginate_all_content');
-  late final _wire__crate__api__book__paginate_all_content =
-      _wire__crate__api__book__paginate_all_contentPtr
+      >('frbgen_zephyr_reader_wire__crate__api__core__paginate_all_content');
+  late final _wire__crate__api__core__paginate_all_content =
+      _wire__crate__api__core__paginate_all_contentPtr
           .asFunction<
             void Function(
               int,
@@ -3771,14 +4983,14 @@ class RustLibWire implements BaseWire {
             )
           >();
 
-  void wire__crate__api__book__parse_book(
+  void wire__crate__api__core__parse_book(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
   ) {
-    return _wire__crate__api__book__parse_book(port_, file_path);
+    return _wire__crate__api__core__parse_book(port_, file_path);
   }
 
-  late final _wire__crate__api__book__parse_bookPtr =
+  late final _wire__crate__api__core__parse_bookPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -3786,112 +4998,59 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__book__parse_book');
-  late final _wire__crate__api__book__parse_book =
-      _wire__crate__api__book__parse_bookPtr
+      >('frbgen_zephyr_reader_wire__crate__api__core__parse_book');
+  late final _wire__crate__api__core__parse_book =
+      _wire__crate__api__core__parse_bookPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__file__read_file_chunk(
+  void wire__crate__api__data__note__render_notes_to_string(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
-    int start_pos,
-    int chunk_size,
+    ffi.Pointer<wire_cst_list_note> notes,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_title,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> format,
   ) {
-    return _wire__crate__api__file__read_file_chunk(
+    return _wire__crate__api__data__note__render_notes_to_string(
       port_,
-      file_path,
-      start_pos,
-      chunk_size,
+      notes,
+      book_title,
+      format,
     );
   }
 
-  late final _wire__crate__api__file__read_file_chunkPtr =
+  late final _wire__crate__api__data__note__render_notes_to_stringPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
             ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Int64,
-            ffi.Int64,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__file__read_file_chunk');
-  late final _wire__crate__api__file__read_file_chunk =
-      _wire__crate__api__file__read_file_chunkPtr
-          .asFunction<
-            void Function(
-              int,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              int,
-              int,
-            )
-          >();
-
-  void wire__crate__api__storage__record_reading_session(
-    int port_,
-    ffi.Pointer<wire_cst_reading_session> session,
-  ) {
-    return _wire__crate__api__storage__record_reading_session(port_, session);
-  }
-
-  late final _wire__crate__api__storage__record_reading_sessionPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_reading_session>)
-        >
-      >(
-        'frbgen_zephyr_reader_wire__crate__api__storage__record_reading_session',
-      );
-  late final _wire__crate__api__storage__record_reading_session =
-      _wire__crate__api__storage__record_reading_sessionPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_reading_session>)
-          >();
-
-  void wire__crate__api__storage__remove_category_from_book(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> category_id,
-  ) {
-    return _wire__crate__api__storage__remove_category_from_book(
-      port_,
-      book_id,
-      category_id,
-    );
-  }
-
-  late final _wire__crate__api__storage__remove_category_from_bookPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
+            ffi.Pointer<wire_cst_list_note>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
       >(
-        'frbgen_zephyr_reader_wire__crate__api__storage__remove_category_from_book',
+        'frbgen_zephyr_reader_wire__crate__api__data__note__render_notes_to_string',
       );
-  late final _wire__crate__api__storage__remove_category_from_book =
-      _wire__crate__api__storage__remove_category_from_bookPtr
+  late final _wire__crate__api__data__note__render_notes_to_string =
+      _wire__crate__api__data__note__render_notes_to_stringPtr
           .asFunction<
             void Function(
               int,
+              ffi.Pointer<wire_cst_list_note>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             )
           >();
 
-  void wire__crate__api__storage__restore_database(
+  void wire__crate__api__backup__restore_database(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> backup_path,
   ) {
-    return _wire__crate__api__storage__restore_database(port_, backup_path);
+    return _wire__crate__api__backup__restore_database(port_, backup_path);
   }
 
-  late final _wire__crate__api__storage__restore_databasePtr =
+  late final _wire__crate__api__backup__restore_databasePtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -3899,133 +5058,77 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__restore_database');
-  late final _wire__crate__api__storage__restore_database =
-      _wire__crate__api__storage__restore_databasePtr
+      >('frbgen_zephyr_reader_wire__crate__api__backup__restore_database');
+  late final _wire__crate__api__backup__restore_database =
+      _wire__crate__api__backup__restore_databasePtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__storage__save_book(
+  void wire__crate__api__vocab_marker__scan_for_vocabulary(
     int port_,
-    ffi.Pointer<wire_cst_book> book,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> text,
   ) {
-    return _wire__crate__api__storage__save_book(port_, book);
+    return _wire__crate__api__vocab_marker__scan_for_vocabulary(port_, text);
   }
 
-  late final _wire__crate__api__storage__save_bookPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_book>)
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__save_book');
-  late final _wire__crate__api__storage__save_book =
-      _wire__crate__api__storage__save_bookPtr
-          .asFunction<void Function(int, ffi.Pointer<wire_cst_book>)>();
-
-  void wire__crate__api__storage__save_category(
-    int port_,
-    ffi.Pointer<wire_cst_book_category> category,
-  ) {
-    return _wire__crate__api__storage__save_category(port_, category);
-  }
-
-  late final _wire__crate__api__storage__save_categoryPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_book_category>)
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__save_category');
-  late final _wire__crate__api__storage__save_category =
-      _wire__crate__api__storage__save_categoryPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_book_category>)
-          >();
-
-  void wire__crate__api__storage__save_chapters(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-    ffi.Pointer<wire_cst_list_chapter> chapters,
-  ) {
-    return _wire__crate__api__storage__save_chapters(port_, book_id, chapters);
-  }
-
-  late final _wire__crate__api__storage__save_chaptersPtr =
+  late final _wire__crate__api__vocab_marker__scan_for_vocabularyPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
             ffi.Int64,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Pointer<wire_cst_list_chapter>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__save_chapters');
-  late final _wire__crate__api__storage__save_chapters =
-      _wire__crate__api__storage__save_chaptersPtr
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__vocab_marker__scan_for_vocabulary',
+      );
+  late final _wire__crate__api__vocab_marker__scan_for_vocabulary =
+      _wire__crate__api__vocab_marker__scan_for_vocabularyPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__search__search(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> query,
+    int limit,
+  ) {
+    return _wire__crate__api__search__search(port_, book_id, query, limit);
+  }
+
+  late final _wire__crate__api__search__searchPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__search__search');
+  late final _wire__crate__api__search__search =
+      _wire__crate__api__search__searchPtr
           .asFunction<
             void Function(
               int,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              ffi.Pointer<wire_cst_list_chapter>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
             )
           >();
 
-  void wire__crate__api__storage__save_reading_progress(
-    int port_,
-    ffi.Pointer<wire_cst_reading_progress> progress,
-  ) {
-    return _wire__crate__api__storage__save_reading_progress(port_, progress);
-  }
-
-  late final _wire__crate__api__storage__save_reading_progressPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_reading_progress>)
-        >
-      >(
-        'frbgen_zephyr_reader_wire__crate__api__storage__save_reading_progress',
-      );
-  late final _wire__crate__api__storage__save_reading_progress =
-      _wire__crate__api__storage__save_reading_progressPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_reading_progress>)
-          >();
-
-  void wire__crate__api__storage__search_books(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> keyword,
-  ) {
-    return _wire__crate__api__storage__search_books(port_, keyword);
-  }
-
-  late final _wire__crate__api__storage__search_booksPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__search_books');
-  late final _wire__crate__api__storage__search_books =
-      _wire__crate__api__storage__search_booksPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
-          >();
-
-  void wire__crate__api__dictionary__search_dictionary_definitions(
+  void wire__crate__api__search__search_all_books(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> query,
     int limit,
   ) {
-    return _wire__crate__api__dictionary__search_dictionary_definitions(
-      port_,
-      query,
-      limit,
-    );
+    return _wire__crate__api__search__search_all_books(port_, query, limit);
   }
 
-  late final _wire__crate__api__dictionary__search_dictionary_definitionsPtr =
+  late final _wire__crate__api__search__search_all_booksPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -4034,59 +5137,46 @@ class RustLibWire implements BaseWire {
             ffi.Int32,
           )
         >
-      >(
-        'frbgen_zephyr_reader_wire__crate__api__dictionary__search_dictionary_definitions',
-      );
-  late final _wire__crate__api__dictionary__search_dictionary_definitions =
-      _wire__crate__api__dictionary__search_dictionary_definitionsPtr
+      >('frbgen_zephyr_reader_wire__crate__api__search__search_all_books');
+  late final _wire__crate__api__search__search_all_books =
+      _wire__crate__api__search__search_all_booksPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, int)
           >();
 
-  void wire__crate__api__search__search_in_book(
+  void wire__crate__api__data__book__search_books(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> query,
-    int limit,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> keyword,
   ) {
-    return _wire__crate__api__search__search_in_book(
+    return _wire__crate__api__data__book__search_books(port_, keyword);
+  }
+
+  late final _wire__crate__api__data__book__search_booksPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__data__book__search_books');
+  late final _wire__crate__api__data__book__search_books =
+      _wire__crate__api__data__book__search_booksPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__data__vocabulary__search_vocabulary_words(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> query,
+  ) {
+    return _wire__crate__api__data__vocabulary__search_vocabulary_words(
       port_,
-      book_id,
       query,
-      limit,
     );
   }
 
-  late final _wire__crate__api__search__search_in_bookPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Int32,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__search__search_in_book');
-  late final _wire__crate__api__search__search_in_book =
-      _wire__crate__api__search__search_in_bookPtr
-          .asFunction<
-            void Function(
-              int,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              int,
-            )
-          >();
-
-  void wire__crate__api__vocabulary__search_vocabulary(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> query,
-  ) {
-    return _wire__crate__api__vocabulary__search_vocabulary(port_, query);
-  }
-
-  late final _wire__crate__api__vocabulary__search_vocabularyPtr =
+  late final _wire__crate__api__data__vocabulary__search_vocabulary_wordsPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -4094,9 +5184,11 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__vocabulary__search_vocabulary');
-  late final _wire__crate__api__vocabulary__search_vocabulary =
-      _wire__crate__api__vocabulary__search_vocabularyPtr
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__vocabulary__search_vocabulary_words',
+      );
+  late final _wire__crate__api__data__vocabulary__search_vocabulary_words =
+      _wire__crate__api__data__vocabulary__search_vocabulary_wordsPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
@@ -4123,19 +5215,19 @@ class RustLibWire implements BaseWire {
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__storage__set_categories_for_book(
+  void wire__crate__api__data__category__set_categories_for_book(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
     ffi.Pointer<wire_cst_list_String> category_ids,
   ) {
-    return _wire__crate__api__storage__set_categories_for_book(
+    return _wire__crate__api__data__category__set_categories_for_book(
       port_,
       book_id,
       category_ids,
     );
   }
 
-  late final _wire__crate__api__storage__set_categories_for_bookPtr =
+  late final _wire__crate__api__data__category__set_categories_for_bookPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -4145,10 +5237,10 @@ class RustLibWire implements BaseWire {
           )
         >
       >(
-        'frbgen_zephyr_reader_wire__crate__api__storage__set_categories_for_book',
+        'frbgen_zephyr_reader_wire__crate__api__data__category__set_categories_for_book',
       );
-  late final _wire__crate__api__storage__set_categories_for_book =
-      _wire__crate__api__storage__set_categories_for_bookPtr
+  late final _wire__crate__api__data__category__set_categories_for_book =
+      _wire__crate__api__data__category__set_categories_for_bookPtr
           .asFunction<
             void Function(
               int,
@@ -4191,6 +5283,55 @@ class RustLibWire implements BaseWire {
             )
           >();
 
+  WireSyncRust2DartDco wire__crate__api__dictionary__suggest_mdict(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> prefix,
+    int limit,
+  ) {
+    return _wire__crate__api__dictionary__suggest_mdict(prefix, limit);
+  }
+
+  late final _wire__crate__api__dictionary__suggest_mdictPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__dictionary__suggest_mdict');
+  late final _wire__crate__api__dictionary__suggest_mdict =
+      _wire__crate__api__dictionary__suggest_mdictPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__core__supports_chunked_pagination(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
+  ) {
+    return _wire__crate__api__core__supports_chunked_pagination(file_path);
+  }
+
+  late final _wire__crate__api__core__supports_chunked_paginationPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__core__supports_chunked_pagination',
+      );
+  late final _wire__crate__api__core__supports_chunked_pagination =
+      _wire__crate__api__core__supports_chunked_paginationPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
   WireSyncRust2DartDco wire__crate__api__cover__supports_cover_extraction(
     ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
   ) {
@@ -4215,57 +5356,25 @@ class RustLibWire implements BaseWire {
             )
           >();
 
-  WireSyncRust2DartDco wire__crate__api__book__supports_format(
+  WireSyncRust2DartDco wire__crate__api__core__supports_format(
     ffi.Pointer<wire_cst_list_prim_u_8_strict> format,
   ) {
-    return _wire__crate__api__book__supports_format(format);
+    return _wire__crate__api__core__supports_format(format);
   }
 
-  late final _wire__crate__api__book__supports_formatPtr =
+  late final _wire__crate__api__core__supports_formatPtr =
       _lookup<
         ffi.NativeFunction<
           WireSyncRust2DartDco Function(
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__book__supports_format');
-  late final _wire__crate__api__book__supports_format =
-      _wire__crate__api__book__supports_formatPtr
+      >('frbgen_zephyr_reader_wire__crate__api__core__supports_format');
+  late final _wire__crate__api__core__supports_format =
+      _wire__crate__api__core__supports_formatPtr
           .asFunction<
             WireSyncRust2DartDco Function(
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            )
-          >();
-
-  void wire__crate__api__storage__sync_bookmarks(
-    int port_,
-    ffi.Pointer<wire_cst_list_bookmark> local_bookmarks,
-    ffi.Pointer<wire_cst_list_bookmark> remote_bookmarks,
-  ) {
-    return _wire__crate__api__storage__sync_bookmarks(
-      port_,
-      local_bookmarks,
-      remote_bookmarks,
-    );
-  }
-
-  late final _wire__crate__api__storage__sync_bookmarksPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_bookmark>,
-            ffi.Pointer<wire_cst_list_bookmark>,
-          )
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__sync_bookmarks');
-  late final _wire__crate__api__storage__sync_bookmarks =
-      _wire__crate__api__storage__sync_bookmarksPtr
-          .asFunction<
-            void Function(
-              int,
-              ffi.Pointer<wire_cst_list_bookmark>,
-              ffi.Pointer<wire_cst_list_bookmark>,
             )
           >();
 
@@ -4309,19 +5418,61 @@ class RustLibWire implements BaseWire {
             )
           >();
 
-  void wire__crate__api__storage__update_book_pin(
+  void wire__crate__api__data__book__update_book_metadata(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> title,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> author,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> description,
+  ) {
+    return _wire__crate__api__data__book__update_book_metadata(
+      port_,
+      book_id,
+      title,
+      author,
+      description,
+    );
+  }
+
+  late final _wire__crate__api__data__book__update_book_metadataPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__book__update_book_metadata',
+      );
+  late final _wire__crate__api__data__book__update_book_metadata =
+      _wire__crate__api__data__book__update_book_metadataPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__data__book__update_book_pin(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
     bool is_pinned,
   ) {
-    return _wire__crate__api__storage__update_book_pin(
+    return _wire__crate__api__data__book__update_book_pin(
       port_,
       book_id,
       is_pinned,
     );
   }
 
-  late final _wire__crate__api__storage__update_book_pinPtr =
+  late final _wire__crate__api__data__book__update_book_pinPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -4330,26 +5481,26 @@ class RustLibWire implements BaseWire {
             ffi.Bool,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__update_book_pin');
-  late final _wire__crate__api__storage__update_book_pin =
-      _wire__crate__api__storage__update_book_pinPtr
+      >('frbgen_zephyr_reader_wire__crate__api__data__book__update_book_pin');
+  late final _wire__crate__api__data__book__update_book_pin =
+      _wire__crate__api__data__book__update_book_pinPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, bool)
           >();
 
-  void wire__crate__api__storage__update_book_status(
+  void wire__crate__api__data__book__update_book_status(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
     int status,
   ) {
-    return _wire__crate__api__storage__update_book_status(
+    return _wire__crate__api__data__book__update_book_status(
       port_,
       book_id,
       status,
     );
   }
 
-  late final _wire__crate__api__storage__update_book_statusPtr =
+  late final _wire__crate__api__data__book__update_book_statusPtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -4358,62 +5509,28 @@ class RustLibWire implements BaseWire {
             ffi.Int32,
           )
         >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__update_book_status');
-  late final _wire__crate__api__storage__update_book_status =
-      _wire__crate__api__storage__update_book_statusPtr
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__book__update_book_status',
+      );
+  late final _wire__crate__api__data__book__update_book_status =
+      _wire__crate__api__data__book__update_book_statusPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, int)
           >();
 
-  void wire__crate__api__storage__update_daily_stats(
+  void wire__crate__api__data__book__update_book_title(
     int port_,
-    ffi.Pointer<wire_cst_reading_stats> stats,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> title,
   ) {
-    return _wire__crate__api__storage__update_daily_stats(port_, stats);
-  }
-
-  late final _wire__crate__api__storage__update_daily_statsPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_reading_stats>)
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__update_daily_stats');
-  late final _wire__crate__api__storage__update_daily_stats =
-      _wire__crate__api__storage__update_daily_statsPtr
-          .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_reading_stats>)
-          >();
-
-  void wire__crate__api__storage__update_note(
-    int port_,
-    ffi.Pointer<wire_cst_note> note,
-  ) {
-    return _wire__crate__api__storage__update_note(port_, note);
-  }
-
-  late final _wire__crate__api__storage__update_notePtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_note>)
-        >
-      >('frbgen_zephyr_reader_wire__crate__api__storage__update_note');
-  late final _wire__crate__api__storage__update_note =
-      _wire__crate__api__storage__update_notePtr
-          .asFunction<void Function(int, ffi.Pointer<wire_cst_note>)>();
-
-  void wire__crate__api__vocabulary__update_vocabulary_status(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> id,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> status,
-  ) {
-    return _wire__crate__api__vocabulary__update_vocabulary_status(
+    return _wire__crate__api__data__book__update_book_title(
       port_,
-      id,
-      status,
+      book_id,
+      title,
     );
   }
 
-  late final _wire__crate__api__vocabulary__update_vocabulary_statusPtr =
+  late final _wire__crate__api__data__book__update_book_titlePtr =
       _lookup<
         ffi.NativeFunction<
           ffi.Void Function(
@@ -4422,17 +5539,237 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
-      >(
-        'frbgen_zephyr_reader_wire__crate__api__vocabulary__update_vocabulary_status',
-      );
-  late final _wire__crate__api__vocabulary__update_vocabulary_status =
-      _wire__crate__api__vocabulary__update_vocabulary_statusPtr
+      >('frbgen_zephyr_reader_wire__crate__api__data__book__update_book_title');
+  late final _wire__crate__api__data__book__update_book_title =
+      _wire__crate__api__data__book__update_book_titlePtr
           .asFunction<
             void Function(
               int,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             )
+          >();
+
+  void wire__crate__api__data__stats__update_daily_stats(
+    int port_,
+    ffi.Pointer<wire_cst_reading_stats> stats,
+  ) {
+    return _wire__crate__api__data__stats__update_daily_stats(port_, stats);
+  }
+
+  late final _wire__crate__api__data__stats__update_daily_statsPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_reading_stats>)
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__stats__update_daily_stats',
+      );
+  late final _wire__crate__api__data__stats__update_daily_stats =
+      _wire__crate__api__data__stats__update_daily_statsPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_reading_stats>)
+          >();
+
+  void wire__crate__api__data__vocabulary__update_vocabulary_status(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> id,
+    int status,
+  ) {
+    return _wire__crate__api__data__vocabulary__update_vocabulary_status(
+      port_,
+      id,
+      status,
+    );
+  }
+
+  late final _wire__crate__api__data__vocabulary__update_vocabulary_statusPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__vocabulary__update_vocabulary_status',
+      );
+  late final _wire__crate__api__data__vocabulary__update_vocabulary_status =
+      _wire__crate__api__data__vocabulary__update_vocabulary_statusPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, int)
+          >();
+
+  void wire__crate__api__data__book__upsert_book(
+    int port_,
+    ffi.Pointer<wire_cst_book> book,
+  ) {
+    return _wire__crate__api__data__book__upsert_book(port_, book);
+  }
+
+  late final _wire__crate__api__data__book__upsert_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_book>)
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__data__book__upsert_book');
+  late final _wire__crate__api__data__book__upsert_book =
+      _wire__crate__api__data__book__upsert_bookPtr
+          .asFunction<void Function(int, ffi.Pointer<wire_cst_book>)>();
+
+  void wire__crate__api__data__bookmark__upsert_bookmark(
+    int port_,
+    ffi.Pointer<wire_cst_bookmark> bookmark,
+  ) {
+    return _wire__crate__api__data__bookmark__upsert_bookmark(port_, bookmark);
+  }
+
+  late final _wire__crate__api__data__bookmark__upsert_bookmarkPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_bookmark>)
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__bookmark__upsert_bookmark',
+      );
+  late final _wire__crate__api__data__bookmark__upsert_bookmark =
+      _wire__crate__api__data__bookmark__upsert_bookmarkPtr
+          .asFunction<void Function(int, ffi.Pointer<wire_cst_bookmark>)>();
+
+  void wire__crate__api__data__category__upsert_category(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> name,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> color,
+    int sort_order,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> description,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> category_id,
+  ) {
+    return _wire__crate__api__data__category__upsert_category(
+      port_,
+      name,
+      color,
+      sort_order,
+      description,
+      category_id,
+    );
+  }
+
+  late final _wire__crate__api__data__category__upsert_categoryPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__category__upsert_category',
+      );
+  late final _wire__crate__api__data__category__upsert_category =
+      _wire__crate__api__data__category__upsert_categoryPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  void wire__crate__api__data__chapter__upsert_chapters(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_chapter> chapters,
+  ) {
+    return _wire__crate__api__data__chapter__upsert_chapters(
+      port_,
+      book_id,
+      chapters,
+    );
+  }
+
+  late final _wire__crate__api__data__chapter__upsert_chaptersPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_chapter>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__chapter__upsert_chapters',
+      );
+  late final _wire__crate__api__data__chapter__upsert_chapters =
+      _wire__crate__api__data__chapter__upsert_chaptersPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_chapter>,
+            )
+          >();
+
+  void wire__crate__api__dictionary__upsert_dictionary(
+    int port_,
+    ffi.Pointer<wire_cst_dictionary> dict,
+  ) {
+    return _wire__crate__api__dictionary__upsert_dictionary(port_, dict);
+  }
+
+  late final _wire__crate__api__dictionary__upsert_dictionaryPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_dictionary>)
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__dictionary__upsert_dictionary');
+  late final _wire__crate__api__dictionary__upsert_dictionary =
+      _wire__crate__api__dictionary__upsert_dictionaryPtr
+          .asFunction<void Function(int, ffi.Pointer<wire_cst_dictionary>)>();
+
+  void wire__crate__api__data__note__upsert_note(
+    int port_,
+    ffi.Pointer<wire_cst_note> note,
+  ) {
+    return _wire__crate__api__data__note__upsert_note(port_, note);
+  }
+
+  late final _wire__crate__api__data__note__upsert_notePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_note>)
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__data__note__upsert_note');
+  late final _wire__crate__api__data__note__upsert_note =
+      _wire__crate__api__data__note__upsert_notePtr
+          .asFunction<void Function(int, ffi.Pointer<wire_cst_note>)>();
+
+  void wire__crate__api__data__progress__upsert_progress(
+    int port_,
+    ffi.Pointer<wire_cst_reading_progress> progress,
+  ) {
+    return _wire__crate__api__data__progress__upsert_progress(port_, progress);
+  }
+
+  late final _wire__crate__api__data__progress__upsert_progressPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_reading_progress>)
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__progress__upsert_progress',
+      );
+  late final _wire__crate__api__data__progress__upsert_progress =
+      _wire__crate__api__data__progress__upsert_progressPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_reading_progress>)
           >();
 
   void
@@ -4492,18 +5829,6 @@ class RustLibWire implements BaseWire {
   late final _cst_new_box_autoadd_book = _cst_new_box_autoadd_bookPtr
       .asFunction<ffi.Pointer<wire_cst_book> Function()>();
 
-  ffi.Pointer<wire_cst_book_category> cst_new_box_autoadd_book_category() {
-    return _cst_new_box_autoadd_book_category();
-  }
-
-  late final _cst_new_box_autoadd_book_categoryPtr =
-      _lookup<
-        ffi.NativeFunction<ffi.Pointer<wire_cst_book_category> Function()>
-      >('frbgen_zephyr_reader_cst_new_box_autoadd_book_category');
-  late final _cst_new_box_autoadd_book_category =
-      _cst_new_box_autoadd_book_categoryPtr
-          .asFunction<ffi.Pointer<wire_cst_book_category> Function()>();
-
   ffi.Pointer<wire_cst_bookmark> cst_new_box_autoadd_bookmark() {
     return _cst_new_box_autoadd_bookmark();
   }
@@ -4515,6 +5840,17 @@ class RustLibWire implements BaseWire {
   late final _cst_new_box_autoadd_bookmark = _cst_new_box_autoadd_bookmarkPtr
       .asFunction<ffi.Pointer<wire_cst_bookmark> Function()>();
 
+  ffi.Pointer<wire_cst_category> cst_new_box_autoadd_category() {
+    return _cst_new_box_autoadd_category();
+  }
+
+  late final _cst_new_box_autoadd_categoryPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_category> Function()>>(
+        'frbgen_zephyr_reader_cst_new_box_autoadd_category',
+      );
+  late final _cst_new_box_autoadd_category = _cst_new_box_autoadd_categoryPtr
+      .asFunction<ffi.Pointer<wire_cst_category> Function()>();
+
   ffi.Pointer<wire_cst_chapter> cst_new_box_autoadd_chapter() {
     return _cst_new_box_autoadd_chapter();
   }
@@ -4525,6 +5861,43 @@ class RustLibWire implements BaseWire {
       );
   late final _cst_new_box_autoadd_chapter = _cst_new_box_autoadd_chapterPtr
       .asFunction<ffi.Pointer<wire_cst_chapter> Function()>();
+
+  ffi.Pointer<wire_cst_dict_entry> cst_new_box_autoadd_dict_entry() {
+    return _cst_new_box_autoadd_dict_entry();
+  }
+
+  late final _cst_new_box_autoadd_dict_entryPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_dict_entry> Function()>>(
+        'frbgen_zephyr_reader_cst_new_box_autoadd_dict_entry',
+      );
+  late final _cst_new_box_autoadd_dict_entry =
+      _cst_new_box_autoadd_dict_entryPtr
+          .asFunction<ffi.Pointer<wire_cst_dict_entry> Function()>();
+
+  ffi.Pointer<wire_cst_dict_search_result>
+  cst_new_box_autoadd_dict_search_result() {
+    return _cst_new_box_autoadd_dict_search_result();
+  }
+
+  late final _cst_new_box_autoadd_dict_search_resultPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Pointer<wire_cst_dict_search_result> Function()>
+      >('frbgen_zephyr_reader_cst_new_box_autoadd_dict_search_result');
+  late final _cst_new_box_autoadd_dict_search_result =
+      _cst_new_box_autoadd_dict_search_resultPtr
+          .asFunction<ffi.Pointer<wire_cst_dict_search_result> Function()>();
+
+  ffi.Pointer<wire_cst_dictionary> cst_new_box_autoadd_dictionary() {
+    return _cst_new_box_autoadd_dictionary();
+  }
+
+  late final _cst_new_box_autoadd_dictionaryPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_dictionary> Function()>>(
+        'frbgen_zephyr_reader_cst_new_box_autoadd_dictionary',
+      );
+  late final _cst_new_box_autoadd_dictionary =
+      _cst_new_box_autoadd_dictionaryPtr
+          .asFunction<ffi.Pointer<wire_cst_dictionary> Function()>();
 
   ffi.Pointer<ffi.Float> cst_new_box_autoadd_f_32(double value) {
     return _cst_new_box_autoadd_f_32(value);
@@ -4594,18 +5967,6 @@ class RustLibWire implements BaseWire {
       _cst_new_box_autoadd_reading_progressPtr
           .asFunction<ffi.Pointer<wire_cst_reading_progress> Function()>();
 
-  ffi.Pointer<wire_cst_reading_session> cst_new_box_autoadd_reading_session() {
-    return _cst_new_box_autoadd_reading_session();
-  }
-
-  late final _cst_new_box_autoadd_reading_sessionPtr =
-      _lookup<
-        ffi.NativeFunction<ffi.Pointer<wire_cst_reading_session> Function()>
-      >('frbgen_zephyr_reader_cst_new_box_autoadd_reading_session');
-  late final _cst_new_box_autoadd_reading_session =
-      _cst_new_box_autoadd_reading_sessionPtr
-          .asFunction<ffi.Pointer<wire_cst_reading_session> Function()>();
-
   ffi.Pointer<wire_cst_reading_stats> cst_new_box_autoadd_reading_stats() {
     return _cst_new_box_autoadd_reading_stats();
   }
@@ -4618,6 +5979,19 @@ class RustLibWire implements BaseWire {
       _cst_new_box_autoadd_reading_statsPtr
           .asFunction<ffi.Pointer<wire_cst_reading_stats> Function()>();
 
+  ffi.Pointer<wire_cst_typeset_calibration>
+  cst_new_box_autoadd_typeset_calibration() {
+    return _cst_new_box_autoadd_typeset_calibration();
+  }
+
+  late final _cst_new_box_autoadd_typeset_calibrationPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Pointer<wire_cst_typeset_calibration> Function()>
+      >('frbgen_zephyr_reader_cst_new_box_autoadd_typeset_calibration');
+  late final _cst_new_box_autoadd_typeset_calibration =
+      _cst_new_box_autoadd_typeset_calibrationPtr
+          .asFunction<ffi.Pointer<wire_cst_typeset_calibration> Function()>();
+
   ffi.Pointer<wire_cst_typeset_config> cst_new_box_autoadd_typeset_config() {
     return _cst_new_box_autoadd_typeset_config();
   }
@@ -4629,6 +6003,18 @@ class RustLibWire implements BaseWire {
   late final _cst_new_box_autoadd_typeset_config =
       _cst_new_box_autoadd_typeset_configPtr
           .asFunction<ffi.Pointer<wire_cst_typeset_config> Function()>();
+
+  ffi.Pointer<ffi.Int32> cst_new_box_autoadd_vocab_status(int value) {
+    return _cst_new_box_autoadd_vocab_status(value);
+  }
+
+  late final _cst_new_box_autoadd_vocab_statusPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Int32> Function(ffi.Int32)>>(
+        'frbgen_zephyr_reader_cst_new_box_autoadd_vocab_status',
+      );
+  late final _cst_new_box_autoadd_vocab_status =
+      _cst_new_box_autoadd_vocab_statusPtr
+          .asFunction<ffi.Pointer<ffi.Int32> Function(int)>();
 
   ffi.Pointer<wire_cst_list_String> cst_new_list_String(int len) {
     return _cst_new_list_String(len);
@@ -4688,18 +6074,23 @@ class RustLibWire implements BaseWire {
   late final _cst_new_list_book = _cst_new_list_bookPtr
       .asFunction<ffi.Pointer<wire_cst_list_book> Function(int)>();
 
-  ffi.Pointer<wire_cst_list_book_category> cst_new_list_book_category(int len) {
-    return _cst_new_list_book_category(len);
+  ffi.Pointer<wire_cst_list_book_with_progress> cst_new_list_book_with_progress(
+    int len,
+  ) {
+    return _cst_new_list_book_with_progress(len);
   }
 
-  late final _cst_new_list_book_categoryPtr =
+  late final _cst_new_list_book_with_progressPtr =
       _lookup<
         ffi.NativeFunction<
-          ffi.Pointer<wire_cst_list_book_category> Function(ffi.Int32)
+          ffi.Pointer<wire_cst_list_book_with_progress> Function(ffi.Int32)
         >
-      >('frbgen_zephyr_reader_cst_new_list_book_category');
-  late final _cst_new_list_book_category = _cst_new_list_book_categoryPtr
-      .asFunction<ffi.Pointer<wire_cst_list_book_category> Function(int)>();
+      >('frbgen_zephyr_reader_cst_new_list_book_with_progress');
+  late final _cst_new_list_book_with_progress =
+      _cst_new_list_book_with_progressPtr
+          .asFunction<
+            ffi.Pointer<wire_cst_list_book_with_progress> Function(int)
+          >();
 
   ffi.Pointer<wire_cst_list_bookmark> cst_new_list_bookmark(int len) {
     return _cst_new_list_bookmark(len);
@@ -4714,6 +6105,19 @@ class RustLibWire implements BaseWire {
   late final _cst_new_list_bookmark = _cst_new_list_bookmarkPtr
       .asFunction<ffi.Pointer<wire_cst_list_bookmark> Function(int)>();
 
+  ffi.Pointer<wire_cst_list_category> cst_new_list_category(int len) {
+    return _cst_new_list_category(len);
+  }
+
+  late final _cst_new_list_categoryPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_category> Function(ffi.Int32)
+        >
+      >('frbgen_zephyr_reader_cst_new_list_category');
+  late final _cst_new_list_category = _cst_new_list_categoryPtr
+      .asFunction<ffi.Pointer<wire_cst_list_category> Function(int)>();
+
   ffi.Pointer<wire_cst_list_chapter> cst_new_list_chapter(int len) {
     return _cst_new_list_chapter(len);
   }
@@ -4727,18 +6131,18 @@ class RustLibWire implements BaseWire {
   late final _cst_new_list_chapter = _cst_new_list_chapterPtr
       .asFunction<ffi.Pointer<wire_cst_list_chapter> Function(int)>();
 
-  ffi.Pointer<wire_cst_list_dict_entry> cst_new_list_dict_entry(int len) {
-    return _cst_new_list_dict_entry(len);
+  ffi.Pointer<wire_cst_list_dictionary> cst_new_list_dictionary(int len) {
+    return _cst_new_list_dictionary(len);
   }
 
-  late final _cst_new_list_dict_entryPtr =
+  late final _cst_new_list_dictionaryPtr =
       _lookup<
         ffi.NativeFunction<
-          ffi.Pointer<wire_cst_list_dict_entry> Function(ffi.Int32)
+          ffi.Pointer<wire_cst_list_dictionary> Function(ffi.Int32)
         >
-      >('frbgen_zephyr_reader_cst_new_list_dict_entry');
-  late final _cst_new_list_dict_entry = _cst_new_list_dict_entryPtr
-      .asFunction<ffi.Pointer<wire_cst_list_dict_entry> Function(int)>();
+      >('frbgen_zephyr_reader_cst_new_list_dictionary');
+  late final _cst_new_list_dictionary = _cst_new_list_dictionaryPtr
+      .asFunction<ffi.Pointer<wire_cst_list_dictionary> Function(int)>();
 
   ffi.Pointer<wire_cst_list_epub_toc_item> cst_new_list_epub_toc_item(int len) {
     return _cst_new_list_epub_toc_item(len);
@@ -4863,18 +6267,29 @@ class RustLibWire implements BaseWire {
   late final _cst_new_list_search_result = _cst_new_list_search_resultPtr
       .asFunction<ffi.Pointer<wire_cst_list_search_result> Function(int)>();
 
-  ffi.Pointer<wire_cst_list_vocab_entry> cst_new_list_vocab_entry(int len) {
-    return _cst_new_list_vocab_entry(len);
+  ffi.Pointer<wire_cst_list_vocab> cst_new_list_vocab(int len) {
+    return _cst_new_list_vocab(len);
   }
 
-  late final _cst_new_list_vocab_entryPtr =
+  late final _cst_new_list_vocabPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Pointer<wire_cst_list_vocab> Function(ffi.Int32)>
+      >('frbgen_zephyr_reader_cst_new_list_vocab');
+  late final _cst_new_list_vocab = _cst_new_list_vocabPtr
+      .asFunction<ffi.Pointer<wire_cst_list_vocab> Function(int)>();
+
+  ffi.Pointer<wire_cst_list_vocab_match> cst_new_list_vocab_match(int len) {
+    return _cst_new_list_vocab_match(len);
+  }
+
+  late final _cst_new_list_vocab_matchPtr =
       _lookup<
         ffi.NativeFunction<
-          ffi.Pointer<wire_cst_list_vocab_entry> Function(ffi.Int32)
+          ffi.Pointer<wire_cst_list_vocab_match> Function(ffi.Int32)
         >
-      >('frbgen_zephyr_reader_cst_new_list_vocab_entry');
-  late final _cst_new_list_vocab_entry = _cst_new_list_vocab_entryPtr
-      .asFunction<ffi.Pointer<wire_cst_list_vocab_entry> Function(int)>();
+      >('frbgen_zephyr_reader_cst_new_list_vocab_match');
+  late final _cst_new_list_vocab_match = _cst_new_list_vocab_matchPtr
+      .asFunction<ffi.Pointer<wire_cst_list_vocab_match> Function(int)>();
 
   int dummy_method_to_enforce_bundling() {
     return _dummy_method_to_enforce_bundling();
@@ -4904,6 +6319,64 @@ final class wire_cst_list_prim_u_8_strict extends ffi.Struct {
   external int len;
 }
 
+final class wire_cst_typeset_calibration extends ffi.Struct {
+  @ffi.Float()
+  external double dpr;
+
+  @ffi.Float()
+  external double cjk_width;
+
+  @ffi.Float()
+  external double ascii_width;
+
+  @ffi.Float()
+  external double digit_width;
+
+  @ffi.Float()
+  external double punct_width;
+
+  @ffi.Float()
+  external double latin_ext_width;
+
+  @ffi.Float()
+  external double other_width;
+}
+
+final class wire_cst_typeset_config extends ffi.Struct {
+  @ffi.Int32()
+  external int page_width;
+
+  @ffi.Int32()
+  external int page_height;
+
+  @ffi.Int32()
+  external int font_size;
+
+  @ffi.Float()
+  external double line_spacing;
+
+  @ffi.Float()
+  external double letter_spacing;
+
+  @ffi.Float()
+  external double paragraph_spacing;
+
+  @ffi.Uint8()
+  external int first_line_indent;
+
+  @ffi.Int32()
+  external int language;
+
+  @ffi.Bool()
+  external bool enable_hyphenation;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> hyphenation_language;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> font_family;
+
+  external ffi.Pointer<wire_cst_typeset_calibration> calibration;
+}
+
 final class wire_cst_bookmark extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
 
@@ -4921,6 +6394,13 @@ final class wire_cst_bookmark extends ffi.Struct {
 
   @ffi.Int64()
   external int created_at;
+}
+
+final class wire_cst_list_bookmark extends ffi.Struct {
+  external ffi.Pointer<wire_cst_bookmark> ptr;
+
+  @ffi.Int32()
+  external int len;
 }
 
 final class wire_cst_note extends ffi.Struct {
@@ -4959,68 +6439,35 @@ final class wire_cst_note extends ffi.Struct {
   external int updated_at;
 }
 
-final class wire_cst_typeset_config extends ffi.Struct {
-  @ffi.Int32()
-  external int page_width;
-
-  @ffi.Int32()
-  external int page_height;
-
-  @ffi.Int32()
-  external int font_size;
-
-  @ffi.Float()
-  external double line_spacing;
-
-  @ffi.Float()
-  external double letter_spacing;
-
-  @ffi.Float()
-  external double paragraph_spacing;
-
-  @ffi.Uint8()
-  external int first_line_indent;
-
-  @ffi.Int32()
-  external int language;
-
-  @ffi.Bool()
-  external bool enable_hyphenation;
-
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> hyphenation_language;
-}
-
-final class wire_cst_list_bookmark extends ffi.Struct {
-  external ffi.Pointer<wire_cst_bookmark> ptr;
+final class wire_cst_list_note extends ffi.Struct {
+  external ffi.Pointer<wire_cst_note> ptr;
 
   @ffi.Int32()
   external int len;
 }
 
-final class wire_cst_reading_session extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
-
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
+final class wire_cst_list_String extends ffi.Struct {
+  external ffi.Pointer<ffi.Pointer<wire_cst_list_prim_u_8_strict>> ptr;
 
   @ffi.Int32()
-  external int chapter_index;
+  external int len;
+}
 
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_id;
+final class wire_cst_reading_stats extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
 
-  @ffi.Int64()
-  external int start_char_offset;
-
-  @ffi.Int64()
-  external int end_char_offset;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> date;
 
   @ffi.Int64()
-  external int started_at;
+  external int reading_time_seconds;
 
   @ffi.Int64()
-  external int ended_at;
+  external int characters_read;
 
-  @ffi.Int64()
-  external int duration_seconds;
+  @ffi.Int32()
+  external int session_count;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> last_session_id;
 }
 
 final class wire_cst_book extends ffi.Struct {
@@ -5038,8 +6485,6 @@ final class wire_cst_book extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> title;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> author;
-
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> description;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> cover_path;
 
@@ -5062,27 +6507,14 @@ final class wire_cst_book extends ffi.Struct {
 
   @ffi.Bool()
   external bool is_pinned;
-}
-
-final class wire_cst_book_category extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
-
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> name;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> description;
 
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> color;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> publisher;
 
-  @ffi.Int32()
-  external int sort_order;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> translator;
 
-  @ffi.Bool()
-  external bool is_system;
-
-  @ffi.Int64()
-  external int created_at;
-
-  external ffi.Pointer<ffi.Int64> updated_at;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> isbn;
 }
 
 final class wire_cst_chapter extends ffi.Struct {
@@ -5091,8 +6523,6 @@ final class wire_cst_chapter extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> title;
-
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> content_file;
 
   @ffi.Int32()
   external int chapter_index;
@@ -5123,11 +6553,37 @@ final class wire_cst_list_chapter extends ffi.Struct {
   external int len;
 }
 
+final class wire_cst_dictionary extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> name;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> dict_type;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> lang_from;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> lang_to;
+
+  @ffi.Bool()
+  external bool is_enabled;
+
+  @ffi.Int64()
+  external int word_count;
+
+  @ffi.Int64()
+  external int added_at;
+}
+
 final class wire_cst_reading_progress extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
 
   @ffi.Int32()
   external int chapter_index;
+
+  @ffi.Int32()
+  external int chunk_index;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_id;
 
@@ -5153,26 +6609,34 @@ final class wire_cst_reading_progress extends ffi.Struct {
   external bool is_completed;
 }
 
-final class wire_cst_list_String extends ffi.Struct {
-  external ffi.Pointer<ffi.Pointer<wire_cst_list_prim_u_8_strict>> ptr;
+final class wire_cst_category extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> name;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> description;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> color;
 
   @ffi.Int32()
-  external int len;
+  external int sort_order;
+
+  @ffi.Bool()
+  external bool is_system;
 }
 
-final class wire_cst_reading_stats extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
+final class wire_cst_dict_entry extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> word;
 
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> date;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> definition_html;
 
-  @ffi.Int64()
-  external int reading_time_seconds;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> audio_key;
+}
 
-  @ffi.Int64()
-  external int characters_read;
+final class wire_cst_dict_search_result extends ffi.Struct {
+  external ffi.Pointer<wire_cst_dict_entry> exact;
 
-  @ffi.Int32()
-  external int session_count;
+  external ffi.Pointer<wire_cst_list_String> suggestions;
 }
 
 final class wire_cst_aligned_segment extends ffi.Struct {
@@ -5217,25 +6681,28 @@ final class wire_cst_list_book extends ffi.Struct {
   external int len;
 }
 
-final class wire_cst_list_book_category extends ffi.Struct {
-  external ffi.Pointer<wire_cst_book_category> ptr;
+final class wire_cst_book_with_progress extends ffi.Struct {
+  external wire_cst_book book;
+
+  external ffi.Pointer<wire_cst_reading_progress> progress;
+}
+
+final class wire_cst_list_book_with_progress extends ffi.Struct {
+  external ffi.Pointer<wire_cst_book_with_progress> ptr;
 
   @ffi.Int32()
   external int len;
 }
 
-final class wire_cst_dict_entry extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> simplified;
+final class wire_cst_list_category extends ffi.Struct {
+  external ffi.Pointer<wire_cst_category> ptr;
 
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> traditional;
-
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> pinyin;
-
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> definitions;
+  @ffi.Int32()
+  external int len;
 }
 
-final class wire_cst_list_dict_entry extends ffi.Struct {
-  external ffi.Pointer<wire_cst_dict_entry> ptr;
+final class wire_cst_list_dictionary extends ffi.Struct {
+  external ffi.Pointer<wire_cst_dictionary> ptr;
 
   @ffi.Int32()
   external int len;
@@ -5257,13 +6724,6 @@ final class wire_cst_list_epub_toc_item extends ffi.Struct {
   external int len;
 }
 
-final class wire_cst_list_note extends ffi.Struct {
-  external ffi.Pointer<wire_cst_note> ptr;
-
-  @ffi.Int32()
-  external int len;
-}
-
 final class wire_cst_page_content extends ffi.Struct {
   @ffi.Int32()
   external int chapter_index;
@@ -5275,6 +6735,12 @@ final class wire_cst_page_content extends ffi.Struct {
 
   @ffi.Bool()
   external bool is_last_page;
+
+  @ffi.Int64()
+  external int start_offset;
+
+  @ffi.Int64()
+  external int end_offset;
 }
 
 final class wire_cst_list_page_content extends ffi.Struct {
@@ -5282,6 +6748,30 @@ final class wire_cst_list_page_content extends ffi.Struct {
 
   @ffi.Int32()
   external int len;
+}
+
+final class wire_cst_reading_session extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
+
+  @ffi.Int32()
+  external int chapter_index;
+
+  @ffi.Int64()
+  external int start_char_offset;
+
+  @ffi.Int64()
+  external int end_char_offset;
+
+  @ffi.Int64()
+  external int started_at;
+
+  @ffi.Int64()
+  external int ended_at;
+
+  @ffi.Int64()
+  external int duration_seconds;
 }
 
 final class wire_cst_list_reading_session extends ffi.Struct {
@@ -5432,8 +6922,11 @@ final class wire_cst_list_rich_paragraph extends ffi.Struct {
 }
 
 final class wire_cst_search_result extends ffi.Struct {
-  @ffi.Int32()
-  external int chapter_id;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_id;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_index;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_title;
 
@@ -5456,7 +6949,7 @@ final class wire_cst_list_search_result extends ffi.Struct {
   external int len;
 }
 
-final class wire_cst_vocab_entry extends ffi.Struct {
+final class wire_cst_vocab extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> word;
@@ -5481,11 +6974,35 @@ final class wire_cst_vocab_entry extends ffi.Struct {
 
   external ffi.Pointer<ffi.Int64> last_reviewed_at;
 
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> status;
+  @ffi.Int32()
+  external int status;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> word_list;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> dict_source;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> dict_entry_hash;
 }
 
-final class wire_cst_list_vocab_entry extends ffi.Struct {
-  external ffi.Pointer<wire_cst_vocab_entry> ptr;
+final class wire_cst_list_vocab extends ffi.Struct {
+  external ffi.Pointer<wire_cst_vocab> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_vocab_match extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> word;
+
+  @ffi.Int64()
+  external int start;
+
+  @ffi.Int64()
+  external int end;
+}
+
+final class wire_cst_list_vocab_match extends ffi.Struct {
+  external ffi.Pointer<wire_cst_vocab_match> ptr;
 
   @ffi.Int32()
   external int len;
@@ -5602,6 +7119,12 @@ final class wire_cst_book_metadata extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> cover_path;
 
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> publisher;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> translator;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> isbn;
+
   external ffi.Pointer<ffi.Int32> publish_year;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> language;
@@ -5632,15 +7155,6 @@ final class wire_cst_chapter_content extends ffi.Struct {
   external int tag;
 
   external ChapterContentKind kind;
-}
-
-final class wire_cst_dict_info extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> version;
-
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> source;
-
-  @ffi.Int64()
-  external int entry_count;
 }
 
 final class wire_cst_epub_metadata extends ffi.Struct {
@@ -5701,6 +7215,13 @@ final class wire_cst_note_stats extends ffi.Struct {
   external int annotation_count;
 }
 
+final class wire_cst_page_data extends ffi.Struct {
+  @ffi.Uint32()
+  external int page_index;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> text;
+}
+
 final class wire_cst_parse_result extends ffi.Struct {
   external wire_cst_book book_info;
 
@@ -5721,16 +7242,14 @@ final class wire_cst_vocab_stats extends ffi.Struct {
   external int mastered_count;
 }
 
-const int EPUB_MIN_LINES_PER_PAGE = 10;
-
 const int EPUB_MIN_CHARS_PER_PAGE = 500;
 
 const int DEFAULT_PAGES_PER_CHAPTER = 10;
 
 const int SEARCH_CHUNK_SIZE = 500;
 
+const int LAYOUT_CACHE_VERSION = 2;
+
 const int PDF_CHARS_PER_PAGE = 500;
 
 const int MIN_CHARS_PER_LINE = 10;
-
-const int MIN_CHAPTER_LENGTH = 10;

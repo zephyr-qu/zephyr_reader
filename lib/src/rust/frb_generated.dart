@@ -4,26 +4,40 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api.dart';
+import 'api/backup.dart';
 import 'api/bilingual.dart';
-import 'api/bilingual_highlight.dart';
-import 'api/book.dart';
+import 'api/core.dart';
 import 'api/cover.dart';
+import 'api/data/book.dart';
+import 'api/data/bookmark.dart';
+import 'api/data/category.dart';
+import 'api/data/chapter.dart';
+import 'api/data/init.dart';
+import 'api/data/note.dart';
+import 'api/data/progress.dart';
+import 'api/data/session.dart';
+import 'api/data/stats.dart';
+import 'api/data/vocabulary.dart';
 import 'api/dictionary.dart';
 import 'api/epub.dart';
-import 'api/file.dart';
+import 'api/md.dart';
 import 'api/search.dart';
-import 'api/storage.dart';
 import 'api/typeset.dart';
-import 'api/vocabulary.dart';
+import 'api/vocab_marker.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dictionary/models.dart';
 import 'domain/error.dart';
-import 'domain/parser.dart';
-import 'domain/types.dart';
+import 'domain/types/metadata.dart';
+import 'domain/types/pagination.dart';
+import 'domain/types/rich_text.dart';
+import 'domain/types/typeset.dart';
 import 'frb_generated.dart';
 import 'frb_generated.io.dart'
     if (dart.library.js_interop) 'frb_generated.web.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'parser/book_parser.dart';
+import 'parser/provider.dart';
 import 'storage/models.dart';
 import 'text/pagination.dart';
 
@@ -80,7 +94,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 583713612;
+  int get rustContentHash => 2059830364;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -92,35 +106,59 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
-  Future<VocabEntry> crateApiVocabularyAddVocabularyWord({
-    required String word,
-    required String pinyin,
-    required String translation,
-    String? contextSentence,
-    String? bookId,
-    PlatformInt64? chapterIndex,
-    PlatformInt64? charOffset,
-  });
-
   Future<BilingualAlignment> crateApiBilingualAlignBilingualContent({
     required String chineseContent,
     required String englishContent,
     required double minSimilarity,
   });
 
-  Future<void> crateApiStorageAssignCategoryToBook({
+  Future<void> crateApiDataCategoryAssignCategoryToBook({
     required String bookId,
     required String categoryId,
   });
 
-  Future<void> crateApiSearchClearAllSearchIndex();
+  Future<void> crateApiSearchClearAll();
 
-  Future<void> crateApiStorageClearCategoriesForBook({required String bookId});
+  Future<void> crateApiDataBookmarkClearBookmarksByBook({
+    required String bookId,
+  });
 
-  Future<void> crateApiStorageClearReadingProgress({required String bookId});
+  Future<void> crateApiDataCategoryClearCategoriesByBook({
+    required String bookId,
+  });
 
-  Future<BilingualHighlightPair>
-  crateApiBilingualHighlightCreateBilingualHighlightPair({
+  Future<void> crateApiDataCategoryClearCategoryFromBook({
+    required String bookId,
+    required String categoryId,
+  });
+
+  Future<void> crateApiDataChapterClearChaptersByBook({required String bookId});
+
+  Future<void> crateApiDataNoteClearNotesByBook({required String bookId});
+
+  Future<void> crateApiDataProgressClearProgress({required String bookId});
+
+  Future<void> crateApiDataSessionClearSessionsByBook({required String bookId});
+
+  Future<void> crateApiDictionaryCloseDictionary();
+
+  Future<int> crateApiDataBookmarkCountBookmarksByBook({
+    required String bookId,
+  });
+
+  Future<PlatformInt64> crateApiDataBookCountBooks();
+
+  Future<Note> crateApiDataNoteCreateAnnotation({
+    required String bookId,
+    required int chapterIndex,
+    required PlatformInt64 charOffset,
+    required String content,
+    String? selectedText,
+    String? language,
+    String? pairedNoteId,
+  });
+
+  Future<BilingualHighlightPair> crateApiBilingualCreateBilingualHighlightPair({
     required String sourceBookId,
     required int sourceChapterIndex,
     required PlatformInt64 sourceCharOffset,
@@ -136,109 +174,145 @@ abstract class RustLibApi extends BaseApi {
     required int highlightColor,
   });
 
-  Future<void> crateApiStorageCreateBookmark({required Bookmark bookmark});
+  Future<Bookmark> crateApiDataBookmarkCreateBookmark({
+    required String bookId,
+    required int chapterIndex,
+    required PlatformInt64 charOffset,
+    required String title,
+  });
 
-  Future<Note> crateApiStorageCreateNote({required Note note});
+  Future<Category> crateApiDataCategoryCreateCategory({
+    required String name,
+    required String color,
+    required int sortOrder,
+    String? description,
+  });
 
-  Future<PageStreamer> crateApiBookCreatePageStreamer({
+  Future<Dictionary> crateApiDictionaryCreateDictionary({
+    required String name,
+    required String filePath,
+    required String dictType,
+    String? langFrom,
+    String? langTo,
+    required bool isEnabled,
+    required PlatformInt64 wordCount,
+  });
+
+  Future<Note> crateApiDataNoteCreateHighlight({
+    required String bookId,
+    required int chapterIndex,
+    required PlatformInt64 charOffset,
+    required PlatformInt64 length,
+    required String selectedText,
+    required int color,
+    String? language,
+    String? pairedNoteId,
+  });
+
+  Future<PageStreamer> crateApiCoreCreatePageStreamer({
     required String filePath,
     required int chapterIndex,
     required TypesetConfig config,
   });
 
-  Future<void> crateApiBilingualHighlightDeleteBilingualHighlightPair({
+  Future<ReadingSession> crateApiDataSessionCreateSession({
+    required String bookId,
+    required int chapterIndex,
+    required PlatformInt64 startCharOffset,
+    required PlatformInt64 endCharOffset,
+    required PlatformInt64 startedAt,
+  });
+
+  Future<Vocab> crateApiDataVocabularyCreateVocabularyWord({
+    required String word,
+    required String pinyin,
+    required String translation,
+    String? contextSentence,
+    String? bookId,
+    PlatformInt64? chapterIndex,
+    PlatformInt64? charOffset,
+    String? wordList,
+  });
+
+  Future<Book> crateApiDataBookCreateWebBook({
+    required String title,
+    required String author,
+    required String filePath,
+    required int chapterCount,
+    required PlatformInt64 totalCharacters,
+    String? coverPath,
+    String? description,
+  });
+
+  Future<void> crateApiBilingualDeleteBilingualHighlightPair({
     required String noteId,
   });
 
-  Future<void> crateApiStorageDeleteBook({required String bookId});
+  Future<void> crateApiDataBookDeleteBook({required String bookId});
 
-  Future<void> crateApiSearchDeleteBookSearchIndex({required String bookId});
+  Future<void> crateApiDataBookmarkDeleteBookmark({required String bookmarkId});
 
-  Future<void> crateApiStorageDeleteBookmark({required String bookmarkId});
+  Future<void> crateApiSearchDeleteByBook({required String bookId});
 
-  Future<void> crateApiStorageDeleteBookmarksByBook({required String bookId});
+  Future<void> crateApiDataCategoryDeleteCategory({required String categoryId});
 
-  Future<void> crateApiStorageDeleteCategory({required String categoryId});
+  Future<bool> crateApiDictionaryDeleteDictionary({required String id});
 
-  Future<void> crateApiStorageDeleteChaptersByBook({required String bookId});
+  Future<void> crateApiDataNoteDeleteNote({required String noteId});
 
-  Future<void> crateApiStorageDeleteNote({required String noteId});
+  Future<void> crateApiDataVocabularyDeleteVocabulary({required String id});
 
-  Future<void> crateApiStorageDeleteNotesByBook({required String bookId});
+  Future<void> crateApiBackupExportDatabase({required String destPath});
 
-  Future<void> crateApiStorageDeleteSessionsByBook({required String bookId});
+  Future<String> crateApiCoverExtractAndSaveCover({
+    required String bookId,
+    required String filePath,
+    required String outputDir,
+  });
 
-  Future<void> crateApiVocabularyDeleteVocabularyWord({required String id});
-
-  Future<void> crateApiStorageExportDatabase({required String destPath});
+  Uint8List? crateApiDictionaryExtractAudio({required String audioKey});
 
   Future<String> crateApiCoverExtractBookCover({
     required String filePath,
     required String outputDir,
   });
 
-  Future<BookMetadata> crateApiBookExtractMetadata({required String filePath});
+  Future<BookMetadata> crateApiCoreExtractMetadata({required String filePath});
 
-  Future<List<DictEntry>> crateApiDictionaryFuzzySearchDictionary({
-    required String prefix,
-    required int limit,
-  });
-
-  Future<List<Book>> crateApiStorageGetAllBooks();
-
-  Future<List<BookCategory>> crateApiStorageGetAllCategories();
+  Future<List<String>> crateApiVocabMarkerGetAllVocabularyWords();
 
   Future<List<BilingualHighlightPair>>
-  crateApiBilingualHighlightGetBilingualHighlightPairs({
+  crateApiBilingualGetBilingualHighlightPairs({
     required String bookId,
     required int chapterIndex,
   });
 
-  Future<Book?> crateApiStorageGetBook({required String bookId});
+  Future<Book?> crateApiDataBookGetBook({required String bookId});
 
-  Future<PlatformInt64> crateApiStorageGetBookCount();
-
-  Future<Bookmark?> crateApiStorageGetBookmark({required String bookmarkId});
-
-  Future<int> crateApiStorageGetBookmarkStats({required String bookId});
-
-  Future<List<Bookmark>> crateApiStorageGetBookmarks({required String bookId});
-
-  Future<List<Book>> crateApiStorageGetBooksByStatus({
-    required BookStatus status,
+  Future<Book?> crateApiDataBookGetBookByFilePath({
+    required String validatedPath,
   });
 
-  Future<List<Book>> crateApiStorageGetBooksPaginated({
-    required int limit,
-    required int offset,
-    String? sortBy,
-    String? sortOrder,
+  Future<Bookmark?> crateApiDataBookmarkGetBookmark({
+    required String bookmarkId,
   });
 
-  Future<List<BookCategory>> crateApiStorageGetCategoriesForBook({
-    required String bookId,
-  });
-
-  Future<BookCategory?> crateApiStorageGetCategory({
+  Future<Category?> crateApiDataCategoryGetCategory({
     required String categoryId,
   });
 
-  Future<ChapterContent> crateApiBookGetChapter({
+  Future<ChapterContent> crateApiCoreGetChapter({
     required String filePath,
     required int chapterIndex,
     TypesetConfig? config,
   });
 
-  Future<Chapter?> crateApiStorageGetChapterByIndex({
+  Future<Chapter?> crateApiDataChapterGetChapterByIndex({
     required String bookId,
     required int chapterIndex,
   });
 
-  Future<List<Chapter>> crateApiStorageGetChaptersByBook({
-    required String bookId,
-  });
-
-  Future<DictInfo> crateApiDictionaryGetDictionaryInfo();
+  Future<Dictionary?> crateApiDictionaryGetDictionary({required String id});
 
   Future<List<RichParagraph>> crateApiEpubGetEpubChapterRichContent({
     required String filePath,
@@ -248,141 +322,196 @@ abstract class RustLibApi extends BaseApi {
 
   Future<EpubMetadata> crateApiEpubGetEpubMetadata({required String filePath});
 
-  Future<PlatformInt64> crateApiFileGetFileSize({required String filePath});
+  Future<GlobalStats> crateApiDataStatsGetGlobalReadingStats();
 
-  Future<GlobalStats> crateApiStorageGetGlobalReadingStats();
+  Future<List<RichParagraph>> crateApiMdGetMdChapterRichContent({
+    required String filePath,
+    required int chapterIndex,
+  });
 
-  Future<NoteStats> crateApiStorageGetNoteStats({required String bookId});
+  Future<NoteStats> crateApiDataNoteGetNoteStats({required String bookId});
 
-  Future<List<Note>> crateApiStorageGetNotes({
+  Future<List<PageContent>> crateApiCoreGetPaginatedChunk({
+    required String filePath,
+    required int chapterIndex,
+    required int chunkIndex,
+    required TypesetConfig config,
+  });
+
+  Future<PageData> crateApiCoreGetPdfPage({
+    required String filePath,
+    required int pageIndex,
+  });
+
+  int crateApiCoreGetPdfTotalPages({required String filePath});
+
+  Future<ReadingProgress?> crateApiDataProgressGetProgress({
+    required String bookId,
+  });
+
+  Future<List<ReadingStats>> crateApiDataStatsGetReadingStatsByDays({
+    required int days,
+  });
+
+  Future<List<ReadingStats>> crateApiDataStatsGetReadingStatsByDaysWithFill({
+    required int days,
+  });
+
+  Future<List<ReadingStats>> crateApiDataStatsGetReadingStatsByRange({
+    required String startDate,
+    required String endDate,
+  });
+
+  List<String> crateApiCoreGetSupportedFormats();
+
+  Future<List<ReadingStats>> crateApiDataStatsGetTodayReadingStats();
+
+  Future<VocabStats> crateApiDataVocabularyGetVocabularyStats();
+
+  Future<String> crateApiEpubImageFormatExtension({required ImageFormat that});
+
+  Future<ImageFormat> crateApiEpubImageFormatFromExtension({
+    required String ext,
+  });
+
+  Future<String> crateApiEpubImageFormatMimeType({required ImageFormat that});
+
+  Future<void> crateApiDataBookmarkImportBookmarks({
+    required List<Bookmark> bookmarks,
+  });
+
+  Future<void> crateApiSearchIndexChapter({
+    required String bookId,
+    required String chapterId,
+    required String chapterIndex,
+    required String chapterTitle,
+    required String content,
+  });
+
+  Future<void> crateApiDictionaryInitDictionary({
+    required String mdxPath,
+    String? mddPath,
+  });
+
+  Future<void> crateApiSearchInitSearchEngine();
+
+  Future<void> crateApiDataInitInitStorage({required String dataDir});
+
+  Future<List<BookWithProgress>> crateApiDataProgressListAllProgresses();
+
+  Future<List<Bookmark>> crateApiDataBookmarkListBookmarksByBook({
+    required String bookId,
+  });
+
+  Future<List<Book>> crateApiDataBookListBooks();
+
+  Future<List<Book>> crateApiDataCategoryListBooksByCategory({
+    required String categoryId,
+  });
+
+  Future<List<Book>> crateApiDataBookListBooksByStatus({
+    required BookStatus status,
+  });
+
+  Future<List<Book>> crateApiDataBookListBooksPaginated({
+    required int limit,
+    required int offset,
+    String? sortBy,
+    String? sortOrder,
+  });
+
+  Future<List<Category>> crateApiDataCategoryListCategories();
+
+  Future<List<Category>> crateApiDataCategoryListCategoriesByBook({
+    required String bookId,
+  });
+
+  Future<List<Chapter>> crateApiDataChapterListChaptersByBook({
+    required String bookId,
+  });
+
+  Future<List<Dictionary>> crateApiDictionaryListDictionaries();
+
+  Future<List<Note>> crateApiDataNoteListNotesByBook({
     required String bookId,
     NoteType? noteType,
   });
 
-  Future<List<Note>> crateApiStorageGetNotesInChapter({
+  Future<List<Note>> crateApiDataNoteListNotesInChapter({
     required String bookId,
     required int chapterIndex,
     NoteType? noteType,
   });
 
-  Future<List<Book>> crateApiStorageGetPinnedBooks();
+  Future<List<Book>> crateApiDataBookListPinnedBooks();
 
-  Future<ReadingProgress?> crateApiStorageGetReadingProgress({
+  Future<List<Book>> crateApiDataBookListRecentlyOpenedBooks({
+    required BigInt limit,
+  });
+
+  Future<List<ReadingSession>> crateApiDataSessionListSessionsByBook({
     required String bookId,
-  });
-
-  Future<List<ReadingSession>> crateApiStorageGetReadingSessions({
-    required String bookId,
     required BigInt limit,
   });
 
-  Future<List<ReadingStats>> crateApiStorageGetReadingStatsRange({
-    required String startDate,
-    required String endDate,
-  });
-
-  Future<List<ReadingSession>> crateApiStorageGetRecentSessions({
-    required BigInt limit,
-  });
-
-  Future<List<Book>> crateApiStorageGetRecentlyReadBooks({
-    required BigInt limit,
-  });
-
-  Future<List<ReadingSession>> crateApiStorageGetSessionsByDateRange({
+  Future<List<ReadingSession>> crateApiDataSessionListSessionsByDateRange({
     required String bookId,
     required String startDate,
     required String endDate,
   });
 
-  List<String> crateApiBookGetSupportedFormats();
+  Future<List<ReadingSession>> crateApiDataSessionListSessionsByRecent({
+    required BigInt limit,
+  });
 
-  Future<List<ReadingStats>> crateApiStorageGetTodayReadingStats();
-
-  Future<VocabStats> crateApiVocabularyGetVocabularyStats();
-
-  Future<List<VocabEntry>> crateApiVocabularyGetVocabularyWords({
+  Future<List<Vocab>> crateApiDataVocabularyListVocabularyByStatus({
     String? bookId,
-    String? status,
+    VocabStatus? status,
+    String? wordList,
   });
 
-  Future<void> crateApiStorageImportBookmarks({
-    required List<Bookmark> bookmarks,
-  });
+  DictSearchResult? crateApiDictionaryLookupMdict({required String word});
 
-  Future<void> crateApiSearchIndexChapterContent({
-    required String bookId,
-    required int chapterId,
-    required String chapterTitle,
-    required String content,
-  });
-
-  Future<void> crateApiDictionaryInitDictionary({required String path});
-
-  Future<void> crateApiSearchInitSearchEngine();
-
-  Future<void> crateApiStorageInitStorage({required String dataDir});
-
-  Future<List<DictEntry>> crateApiDictionaryLookupWord({required String word});
-
-  Future<List<PageContent>> crateApiBookPaginateAllContent({
+  Future<List<PageContent>> crateApiCorePaginateAllContent({
     required String filePath,
     required int chapterIndex,
     required TypesetConfig config,
   });
 
-  Future<ParseResult> crateApiBookParseBook({required String filePath});
+  Future<ParseResult> crateApiCoreParseBook({required String filePath});
 
-  Future<String> crateApiFileReadFileChunk({
-    required String filePath,
-    required PlatformInt64 startPos,
-    required PlatformInt64 chunkSize,
+  Future<String> crateApiDataNoteRenderNotesToString({
+    required List<Note> notes,
+    required String bookTitle,
+    required String format,
   });
 
-  Future<void> crateApiStorageRecordReadingSession({
-    required ReadingSession session,
+  Future<void> crateApiBackupRestoreDatabase({required String backupPath});
+
+  Future<List<VocabMatch>> crateApiVocabMarkerScanForVocabulary({
+    required String text,
   });
 
-  Future<void> crateApiStorageRemoveCategoryFromBook({
-    required String bookId,
-    required String categoryId,
-  });
-
-  Future<void> crateApiStorageRestoreDatabase({required String backupPath});
-
-  Future<void> crateApiStorageSaveBook({required Book book});
-
-  Future<void> crateApiStorageSaveCategory({required BookCategory category});
-
-  Future<void> crateApiStorageSaveChapters({
-    required String bookId,
-    required List<Chapter> chapters,
-  });
-
-  Future<void> crateApiStorageSaveReadingProgress({
-    required ReadingProgress progress,
-  });
-
-  Future<List<Book>> crateApiStorageSearchBooks({required String keyword});
-
-  Future<List<DictEntry>> crateApiDictionarySearchDictionaryDefinitions({
-    required String query,
-    required int limit,
-  });
-
-  Future<List<SearchResult>> crateApiSearchSearchInBook({
+  Future<List<SearchResult>> crateApiSearchSearch({
     required String bookId,
     required String query,
     required int limit,
   });
 
-  Future<List<VocabEntry>> crateApiVocabularySearchVocabulary({
+  Future<List<SearchResult>> crateApiSearchSearchAllBooks({
+    required String query,
+    required int limit,
+  });
+
+  Future<List<Book>> crateApiDataBookSearchBooks({required String keyword});
+
+  Future<List<Vocab>> crateApiDataVocabularySearchVocabularyWords({
     required String query,
   });
 
   Future<List<String>> crateApiDictionarySegmentText({required String text});
 
-  Future<void> crateApiStorageSetCategoriesForBook({
+  Future<void> crateApiDataCategorySetCategoriesForBook({
     required String bookId,
     required List<String> categoryIds,
   });
@@ -392,14 +521,16 @@ abstract class RustLibApi extends BaseApi {
     required String englishContent,
   });
 
+  List<String> crateApiDictionarySuggestMdict({
+    required String prefix,
+    required int limit,
+  });
+
+  bool crateApiCoreSupportsChunkedPagination({required String filePath});
+
   bool crateApiCoverSupportsCoverExtraction({required String filePath});
 
-  bool crateApiBookSupportsFormat({required String format});
-
-  Future<List<Bookmark>> crateApiStorageSyncBookmarks({
-    required List<Bookmark> localBookmarks,
-    required List<Bookmark> remoteBookmarks,
-  });
+  bool crateApiCoreSupportsFormat({required String format});
 
   String crateApiTestConnection();
 
@@ -408,23 +539,58 @@ abstract class RustLibApi extends BaseApi {
     required TypesetConfig config,
   });
 
-  Future<void> crateApiStorageUpdateBookPin({
+  Future<void> crateApiDataBookUpdateBookMetadata({
+    required String bookId,
+    String? title,
+    String? author,
+    String? description,
+  });
+
+  Future<void> crateApiDataBookUpdateBookPin({
     required String bookId,
     required bool isPinned,
   });
 
-  Future<void> crateApiStorageUpdateBookStatus({
+  Future<void> crateApiDataBookUpdateBookStatus({
     required String bookId,
     required BookStatus status,
   });
 
-  Future<void> crateApiStorageUpdateDailyStats({required ReadingStats stats});
+  Future<void> crateApiDataBookUpdateBookTitle({
+    required String bookId,
+    required String title,
+  });
 
-  Future<void> crateApiStorageUpdateNote({required Note note});
+  Future<void> crateApiDataStatsUpdateDailyStats({required ReadingStats stats});
 
-  Future<void> crateApiVocabularyUpdateVocabularyStatus({
+  Future<void> crateApiDataVocabularyUpdateVocabularyStatus({
     required String id,
-    required String status,
+    required VocabStatus status,
+  });
+
+  Future<void> crateApiDataBookUpsertBook({required Book book});
+
+  Future<void> crateApiDataBookmarkUpsertBookmark({required Bookmark bookmark});
+
+  Future<Category> crateApiDataCategoryUpsertCategory({
+    required String name,
+    required String color,
+    required int sortOrder,
+    String? description,
+    String? categoryId,
+  });
+
+  Future<void> crateApiDataChapterUpsertChapters({
+    required String bookId,
+    required List<Chapter> chapters,
+  });
+
+  Future<void> crateApiDictionaryUpsertDictionary({required Dictionary dict});
+
+  Future<Note> crateApiDataNoteUpsertNote({required Note note});
+
+  Future<void> crateApiDataProgressUpsertProgress({
+    required ReadingProgress progress,
   });
 
   RustArcIncrementStrongCountFnType
@@ -443,70 +609,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required super.generalizedFrbRustBinding,
     required super.portManager,
   });
-
-  @override
-  Future<VocabEntry> crateApiVocabularyAddVocabularyWord({
-    required String word,
-    required String pinyin,
-    required String translation,
-    String? contextSentence,
-    String? bookId,
-    PlatformInt64? chapterIndex,
-    PlatformInt64? charOffset,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(word);
-          final arg1 = cst_encode_String(pinyin);
-          final arg2 = cst_encode_String(translation);
-          final arg3 = cst_encode_opt_String(contextSentence);
-          final arg4 = cst_encode_opt_String(bookId);
-          final arg5 = cst_encode_opt_box_autoadd_i_64(chapterIndex);
-          final arg6 = cst_encode_opt_box_autoadd_i_64(charOffset);
-          return wire.wire__crate__api__vocabulary__add_vocabulary_word(
-            port_,
-            arg0,
-            arg1,
-            arg2,
-            arg3,
-            arg4,
-            arg5,
-            arg6,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_vocab_entry,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiVocabularyAddVocabularyWordConstMeta,
-        argValues: [
-          word,
-          pinyin,
-          translation,
-          contextSentence,
-          bookId,
-          chapterIndex,
-          charOffset,
-        ],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiVocabularyAddVocabularyWordConstMeta =>
-      const TaskConstMeta(
-        debugName: 'add_vocabulary_word',
-        argNames: [
-          'word',
-          'pinyin',
-          'translation',
-          'contextSentence',
-          'bookId',
-          'chapterIndex',
-          'charOffset',
-        ],
-      );
 
   @override
   Future<BilingualAlignment> crateApiBilingualAlignBilingualContent({
@@ -545,7 +647,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<void> crateApiStorageAssignCategoryToBook({
+  Future<void> crateApiDataCategoryAssignCategoryToBook({
     required String bookId,
     required String categoryId,
   }) {
@@ -554,7 +656,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: (port_) {
           final arg0 = cst_encode_String(bookId);
           final arg1 = cst_encode_String(categoryId);
-          return wire.wire__crate__api__storage__assign_category_to_book(
+          return wire.wire__crate__api__data__category__assign_category_to_book(
             port_,
             arg0,
             arg1,
@@ -564,47 +666,49 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageAssignCategoryToBookConstMeta,
+        constMeta: kCrateApiDataCategoryAssignCategoryToBookConstMeta,
         argValues: [bookId, categoryId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageAssignCategoryToBookConstMeta =>
+  TaskConstMeta get kCrateApiDataCategoryAssignCategoryToBookConstMeta =>
       const TaskConstMeta(
         debugName: 'assign_category_to_book',
         argNames: ['bookId', 'categoryId'],
       );
 
   @override
-  Future<void> crateApiSearchClearAllSearchIndex() {
+  Future<void> crateApiSearchClearAll() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          return wire.wire__crate__api__search__clear_all_search_index(port_);
+          return wire.wire__crate__api__search__clear_all(port_);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiSearchClearAllSearchIndexConstMeta,
+        constMeta: kCrateApiSearchClearAllConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSearchClearAllSearchIndexConstMeta =>
-      const TaskConstMeta(debugName: 'clear_all_search_index', argNames: []);
+  TaskConstMeta get kCrateApiSearchClearAllConstMeta =>
+      const TaskConstMeta(debugName: 'clear_all', argNames: []);
 
   @override
-  Future<void> crateApiStorageClearCategoriesForBook({required String bookId}) {
+  Future<void> crateApiDataBookmarkClearBookmarksByBook({
+    required String bookId,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__storage__clear_categories_for_book(
+          return wire.wire__crate__api__data__bookmark__clear_bookmarks_by_book(
             port_,
             arg0,
           );
@@ -613,26 +717,93 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageClearCategoriesForBookConstMeta,
+        constMeta: kCrateApiDataBookmarkClearBookmarksByBookConstMeta,
         argValues: [bookId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageClearCategoriesForBookConstMeta =>
+  TaskConstMeta get kCrateApiDataBookmarkClearBookmarksByBookConstMeta =>
       const TaskConstMeta(
-        debugName: 'clear_categories_for_book',
+        debugName: 'clear_bookmarks_by_book',
         argNames: ['bookId'],
       );
 
   @override
-  Future<void> crateApiStorageClearReadingProgress({required String bookId}) {
+  Future<void> crateApiDataCategoryClearCategoriesByBook({
+    required String bookId,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__storage__clear_reading_progress(
+          return wire
+              .wire__crate__api__data__category__clear_categories_by_book(
+                port_,
+                arg0,
+              );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataCategoryClearCategoriesByBookConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataCategoryClearCategoriesByBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'clear_categories_by_book',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<void> crateApiDataCategoryClearCategoryFromBook({
+    required String bookId,
+    required String categoryId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_String(categoryId);
+          return wire
+              .wire__crate__api__data__category__clear_category_from_book(
+                port_,
+                arg0,
+                arg1,
+              );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataCategoryClearCategoryFromBookConstMeta,
+        argValues: [bookId, categoryId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataCategoryClearCategoryFromBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'clear_category_from_book',
+        argNames: ['bookId', 'categoryId'],
+      );
+
+  @override
+  Future<void> crateApiDataChapterClearChaptersByBook({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__data__chapter__clear_chapters_by_book(
             port_,
             arg0,
           );
@@ -641,22 +812,240 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageClearReadingProgressConstMeta,
+        constMeta: kCrateApiDataChapterClearChaptersByBookConstMeta,
         argValues: [bookId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageClearReadingProgressConstMeta =>
+  TaskConstMeta get kCrateApiDataChapterClearChaptersByBookConstMeta =>
       const TaskConstMeta(
-        debugName: 'clear_reading_progress',
+        debugName: 'clear_chapters_by_book',
         argNames: ['bookId'],
       );
 
   @override
-  Future<BilingualHighlightPair>
-  crateApiBilingualHighlightCreateBilingualHighlightPair({
+  Future<void> crateApiDataNoteClearNotesByBook({required String bookId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__data__note__clear_notes_by_book(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataNoteClearNotesByBookConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataNoteClearNotesByBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'clear_notes_by_book',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<void> crateApiDataProgressClearProgress({required String bookId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__data__progress__clear_progress(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataProgressClearProgressConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataProgressClearProgressConstMeta =>
+      const TaskConstMeta(debugName: 'clear_progress', argNames: ['bookId']);
+
+  @override
+  Future<void> crateApiDataSessionClearSessionsByBook({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__data__session__clear_sessions_by_book(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataSessionClearSessionsByBookConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataSessionClearSessionsByBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'clear_sessions_by_book',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<void> crateApiDictionaryCloseDictionary() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__dictionary__close_dictionary(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiDictionaryCloseDictionaryConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDictionaryCloseDictionaryConstMeta =>
+      const TaskConstMeta(debugName: 'close_dictionary', argNames: []);
+
+  @override
+  Future<int> crateApiDataBookmarkCountBookmarksByBook({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__data__bookmark__count_bookmarks_by_book(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_i_32,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataBookmarkCountBookmarksByBookConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookmarkCountBookmarksByBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'count_bookmarks_by_book',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<PlatformInt64> crateApiDataBookCountBooks() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__data__book__count_books(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_i_64,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataBookCountBooksConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookCountBooksConstMeta =>
+      const TaskConstMeta(debugName: 'count_books', argNames: []);
+
+  @override
+  Future<Note> crateApiDataNoteCreateAnnotation({
+    required String bookId,
+    required int chapterIndex,
+    required PlatformInt64 charOffset,
+    required String content,
+    String? selectedText,
+    String? language,
+    String? pairedNoteId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_i_64(charOffset);
+          final arg3 = cst_encode_String(content);
+          final arg4 = cst_encode_opt_String(selectedText);
+          final arg5 = cst_encode_opt_String(language);
+          final arg6 = cst_encode_opt_String(pairedNoteId);
+          return wire.wire__crate__api__data__note__create_annotation(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+            arg4,
+            arg5,
+            arg6,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_note,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataNoteCreateAnnotationConstMeta,
+        argValues: [
+          bookId,
+          chapterIndex,
+          charOffset,
+          content,
+          selectedText,
+          language,
+          pairedNoteId,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataNoteCreateAnnotationConstMeta =>
+      const TaskConstMeta(
+        debugName: 'create_annotation',
+        argNames: [
+          'bookId',
+          'chapterIndex',
+          'charOffset',
+          'content',
+          'selectedText',
+          'language',
+          'pairedNoteId',
+        ],
+      );
+
+  @override
+  Future<BilingualHighlightPair> crateApiBilingualCreateBilingualHighlightPair({
     required String sourceBookId,
     required int sourceChapterIndex,
     required PlatformInt64 sourceCharOffset,
@@ -688,7 +1077,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final arg11 = cst_encode_String(targetLanguage);
           final arg12 = cst_encode_i_32(highlightColor);
           return wire
-              .wire__crate__api__bilingual_highlight__create_bilingual_highlight_pair(
+              .wire__crate__api__bilingual__create_bilingual_highlight_pair(
                 port_,
                 arg0,
                 arg1,
@@ -709,8 +1098,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_bilingual_highlight_pair,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta:
-            kCrateApiBilingualHighlightCreateBilingualHighlightPairConstMeta,
+        constMeta: kCrateApiBilingualCreateBilingualHighlightPairConstMeta,
         argValues: [
           sourceBookId,
           sourceChapterIndex,
@@ -731,8 +1119,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     );
   }
 
-  TaskConstMeta
-  get kCrateApiBilingualHighlightCreateBilingualHighlightPairConstMeta =>
+  TaskConstMeta get kCrateApiBilingualCreateBilingualHighlightPairConstMeta =>
       const TaskConstMeta(
         debugName: 'create_bilingual_highlight_pair',
         argNames: [
@@ -753,51 +1140,218 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<void> crateApiStorageCreateBookmark({required Bookmark bookmark}) {
+  Future<Bookmark> crateApiDataBookmarkCreateBookmark({
+    required String bookId,
+    required int chapterIndex,
+    required PlatformInt64 charOffset,
+    required String title,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final arg0 = cst_encode_box_autoadd_bookmark(bookmark);
-          return wire.wire__crate__api__storage__create_bookmark(port_, arg0);
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_i_64(charOffset);
+          final arg3 = cst_encode_String(title);
+          return wire.wire__crate__api__data__bookmark__create_bookmark(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+          );
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
+          decodeSuccessData: dco_decode_bookmark,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageCreateBookmarkConstMeta,
-        argValues: [bookmark],
+        constMeta: kCrateApiDataBookmarkCreateBookmarkConstMeta,
+        argValues: [bookId, chapterIndex, charOffset, title],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageCreateBookmarkConstMeta =>
-      const TaskConstMeta(debugName: 'create_bookmark', argNames: ['bookmark']);
+  TaskConstMeta get kCrateApiDataBookmarkCreateBookmarkConstMeta =>
+      const TaskConstMeta(
+        debugName: 'create_bookmark',
+        argNames: ['bookId', 'chapterIndex', 'charOffset', 'title'],
+      );
 
   @override
-  Future<Note> crateApiStorageCreateNote({required Note note}) {
+  Future<Category> crateApiDataCategoryCreateCategory({
+    required String name,
+    required String color,
+    required int sortOrder,
+    String? description,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final arg0 = cst_encode_box_autoadd_note(note);
-          return wire.wire__crate__api__storage__create_note(port_, arg0);
+          final arg0 = cst_encode_String(name);
+          final arg1 = cst_encode_String(color);
+          final arg2 = cst_encode_i_32(sortOrder);
+          final arg3 = cst_encode_opt_String(description);
+          return wire.wire__crate__api__data__category__create_category(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_category,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataCategoryCreateCategoryConstMeta,
+        argValues: [name, color, sortOrder, description],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataCategoryCreateCategoryConstMeta =>
+      const TaskConstMeta(
+        debugName: 'create_category',
+        argNames: ['name', 'color', 'sortOrder', 'description'],
+      );
+
+  @override
+  Future<Dictionary> crateApiDictionaryCreateDictionary({
+    required String name,
+    required String filePath,
+    required String dictType,
+    String? langFrom,
+    String? langTo,
+    required bool isEnabled,
+    required PlatformInt64 wordCount,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(name);
+          final arg1 = cst_encode_String(filePath);
+          final arg2 = cst_encode_String(dictType);
+          final arg3 = cst_encode_opt_String(langFrom);
+          final arg4 = cst_encode_opt_String(langTo);
+          final arg5 = cst_encode_bool(isEnabled);
+          final arg6 = cst_encode_i_64(wordCount);
+          return wire.wire__crate__api__dictionary__create_dictionary(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+            arg4,
+            arg5,
+            arg6,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_dictionary,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDictionaryCreateDictionaryConstMeta,
+        argValues: [
+          name,
+          filePath,
+          dictType,
+          langFrom,
+          langTo,
+          isEnabled,
+          wordCount,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDictionaryCreateDictionaryConstMeta =>
+      const TaskConstMeta(
+        debugName: 'create_dictionary',
+        argNames: [
+          'name',
+          'filePath',
+          'dictType',
+          'langFrom',
+          'langTo',
+          'isEnabled',
+          'wordCount',
+        ],
+      );
+
+  @override
+  Future<Note> crateApiDataNoteCreateHighlight({
+    required String bookId,
+    required int chapterIndex,
+    required PlatformInt64 charOffset,
+    required PlatformInt64 length,
+    required String selectedText,
+    required int color,
+    String? language,
+    String? pairedNoteId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_i_64(charOffset);
+          final arg3 = cst_encode_i_64(length);
+          final arg4 = cst_encode_String(selectedText);
+          final arg5 = cst_encode_i_32(color);
+          final arg6 = cst_encode_opt_String(language);
+          final arg7 = cst_encode_opt_String(pairedNoteId);
+          return wire.wire__crate__api__data__note__create_highlight(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+            arg4,
+            arg5,
+            arg6,
+            arg7,
+          );
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_note,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageCreateNoteConstMeta,
-        argValues: [note],
+        constMeta: kCrateApiDataNoteCreateHighlightConstMeta,
+        argValues: [
+          bookId,
+          chapterIndex,
+          charOffset,
+          length,
+          selectedText,
+          color,
+          language,
+          pairedNoteId,
+        ],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageCreateNoteConstMeta =>
-      const TaskConstMeta(debugName: 'create_note', argNames: ['note']);
+  TaskConstMeta get kCrateApiDataNoteCreateHighlightConstMeta =>
+      const TaskConstMeta(
+        debugName: 'create_highlight',
+        argNames: [
+          'bookId',
+          'chapterIndex',
+          'charOffset',
+          'length',
+          'selectedText',
+          'color',
+          'language',
+          'pairedNoteId',
+        ],
+      );
 
   @override
-  Future<PageStreamer> crateApiBookCreatePageStreamer({
+  Future<PageStreamer> crateApiCoreCreatePageStreamer({
     required String filePath,
     required int chapterIndex,
     required TypesetConfig config,
@@ -808,7 +1362,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final arg0 = cst_encode_String(filePath);
           final arg1 = cst_encode_i_32(chapterIndex);
           final arg2 = cst_encode_box_autoadd_typeset_config(config);
-          return wire.wire__crate__api__book__create_page_streamer(
+          return wire.wire__crate__api__core__create_page_streamer(
             port_,
             arg0,
             arg1,
@@ -820,21 +1374,209 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
               dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiBookCreatePageStreamerConstMeta,
+        constMeta: kCrateApiCoreCreatePageStreamerConstMeta,
         argValues: [filePath, chapterIndex, config],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBookCreatePageStreamerConstMeta =>
+  TaskConstMeta get kCrateApiCoreCreatePageStreamerConstMeta =>
       const TaskConstMeta(
         debugName: 'create_page_streamer',
         argNames: ['filePath', 'chapterIndex', 'config'],
       );
 
   @override
-  Future<void> crateApiBilingualHighlightDeleteBilingualHighlightPair({
+  Future<ReadingSession> crateApiDataSessionCreateSession({
+    required String bookId,
+    required int chapterIndex,
+    required PlatformInt64 startCharOffset,
+    required PlatformInt64 endCharOffset,
+    required PlatformInt64 startedAt,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_i_64(startCharOffset);
+          final arg3 = cst_encode_i_64(endCharOffset);
+          final arg4 = cst_encode_i_64(startedAt);
+          return wire.wire__crate__api__data__session__create_session(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+            arg4,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_reading_session,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataSessionCreateSessionConstMeta,
+        argValues: [
+          bookId,
+          chapterIndex,
+          startCharOffset,
+          endCharOffset,
+          startedAt,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataSessionCreateSessionConstMeta =>
+      const TaskConstMeta(
+        debugName: 'create_session',
+        argNames: [
+          'bookId',
+          'chapterIndex',
+          'startCharOffset',
+          'endCharOffset',
+          'startedAt',
+        ],
+      );
+
+  @override
+  Future<Vocab> crateApiDataVocabularyCreateVocabularyWord({
+    required String word,
+    required String pinyin,
+    required String translation,
+    String? contextSentence,
+    String? bookId,
+    PlatformInt64? chapterIndex,
+    PlatformInt64? charOffset,
+    String? wordList,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(word);
+          final arg1 = cst_encode_String(pinyin);
+          final arg2 = cst_encode_String(translation);
+          final arg3 = cst_encode_opt_String(contextSentence);
+          final arg4 = cst_encode_opt_String(bookId);
+          final arg5 = cst_encode_opt_box_autoadd_i_64(chapterIndex);
+          final arg6 = cst_encode_opt_box_autoadd_i_64(charOffset);
+          final arg7 = cst_encode_opt_String(wordList);
+          return wire
+              .wire__crate__api__data__vocabulary__create_vocabulary_word(
+                port_,
+                arg0,
+                arg1,
+                arg2,
+                arg3,
+                arg4,
+                arg5,
+                arg6,
+                arg7,
+              );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_vocab,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataVocabularyCreateVocabularyWordConstMeta,
+        argValues: [
+          word,
+          pinyin,
+          translation,
+          contextSentence,
+          bookId,
+          chapterIndex,
+          charOffset,
+          wordList,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataVocabularyCreateVocabularyWordConstMeta =>
+      const TaskConstMeta(
+        debugName: 'create_vocabulary_word',
+        argNames: [
+          'word',
+          'pinyin',
+          'translation',
+          'contextSentence',
+          'bookId',
+          'chapterIndex',
+          'charOffset',
+          'wordList',
+        ],
+      );
+
+  @override
+  Future<Book> crateApiDataBookCreateWebBook({
+    required String title,
+    required String author,
+    required String filePath,
+    required int chapterCount,
+    required PlatformInt64 totalCharacters,
+    String? coverPath,
+    String? description,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(title);
+          final arg1 = cst_encode_String(author);
+          final arg2 = cst_encode_String(filePath);
+          final arg3 = cst_encode_i_32(chapterCount);
+          final arg4 = cst_encode_i_64(totalCharacters);
+          final arg5 = cst_encode_opt_String(coverPath);
+          final arg6 = cst_encode_opt_String(description);
+          return wire.wire__crate__api__data__book__create_web_book(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+            arg4,
+            arg5,
+            arg6,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_book,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataBookCreateWebBookConstMeta,
+        argValues: [
+          title,
+          author,
+          filePath,
+          chapterCount,
+          totalCharacters,
+          coverPath,
+          description,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookCreateWebBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'create_web_book',
+        argNames: [
+          'title',
+          'author',
+          'filePath',
+          'chapterCount',
+          'totalCharacters',
+          'coverPath',
+          'description',
+        ],
+      );
+
+  @override
+  Future<void> crateApiBilingualDeleteBilingualHighlightPair({
     required String noteId,
   }) {
     return handler.executeNormal(
@@ -842,7 +1584,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: (port_) {
           final arg0 = cst_encode_String(noteId);
           return wire
-              .wire__crate__api__bilingual_highlight__delete_bilingual_highlight_pair(
+              .wire__crate__api__bilingual__delete_bilingual_highlight_pair(
                 port_,
                 arg0,
               );
@@ -851,50 +1593,50 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta:
-            kCrateApiBilingualHighlightDeleteBilingualHighlightPairConstMeta,
+        constMeta: kCrateApiBilingualDeleteBilingualHighlightPairConstMeta,
         argValues: [noteId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta
-  get kCrateApiBilingualHighlightDeleteBilingualHighlightPairConstMeta =>
+  TaskConstMeta get kCrateApiBilingualDeleteBilingualHighlightPairConstMeta =>
       const TaskConstMeta(
         debugName: 'delete_bilingual_highlight_pair',
         argNames: ['noteId'],
       );
 
   @override
-  Future<void> crateApiStorageDeleteBook({required String bookId}) {
+  Future<void> crateApiDataBookDeleteBook({required String bookId}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__storage__delete_book(port_, arg0);
+          return wire.wire__crate__api__data__book__delete_book(port_, arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageDeleteBookConstMeta,
+        constMeta: kCrateApiDataBookDeleteBookConstMeta,
         argValues: [bookId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageDeleteBookConstMeta =>
+  TaskConstMeta get kCrateApiDataBookDeleteBookConstMeta =>
       const TaskConstMeta(debugName: 'delete_book', argNames: ['bookId']);
 
   @override
-  Future<void> crateApiSearchDeleteBookSearchIndex({required String bookId}) {
+  Future<void> crateApiDataBookmarkDeleteBookmark({
+    required String bookmarkId,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__search__delete_book_search_index(
+          final arg0 = cst_encode_String(bookmarkId);
+          return wire.wire__crate__api__data__bookmark__delete_bookmark(
             port_,
             arg0,
           );
@@ -903,51 +1645,50 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiSearchDeleteBookSearchIndexConstMeta,
-        argValues: [bookId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiSearchDeleteBookSearchIndexConstMeta =>
-      const TaskConstMeta(
-        debugName: 'delete_book_search_index',
-        argNames: ['bookId'],
-      );
-
-  @override
-  Future<void> crateApiStorageDeleteBookmark({required String bookmarkId}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(bookmarkId);
-          return wire.wire__crate__api__storage__delete_bookmark(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageDeleteBookmarkConstMeta,
+        constMeta: kCrateApiDataBookmarkDeleteBookmarkConstMeta,
         argValues: [bookmarkId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageDeleteBookmarkConstMeta =>
+  TaskConstMeta get kCrateApiDataBookmarkDeleteBookmarkConstMeta =>
       const TaskConstMeta(
         debugName: 'delete_bookmark',
         argNames: ['bookmarkId'],
       );
 
   @override
-  Future<void> crateApiStorageDeleteBookmarksByBook({required String bookId}) {
+  Future<void> crateApiSearchDeleteByBook({required String bookId}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__storage__delete_bookmarks_by_book(
+          return wire.wire__crate__api__search__delete_by_book(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiSearchDeleteByBookConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSearchDeleteByBookConstMeta =>
+      const TaskConstMeta(debugName: 'delete_by_book', argNames: ['bookId']);
+
+  @override
+  Future<void> crateApiDataCategoryDeleteCategory({
+    required String categoryId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(categoryId);
+          return wire.wire__crate__api__data__category__delete_category(
             port_,
             arg0,
           );
@@ -956,199 +1697,170 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageDeleteBookmarksByBookConstMeta,
-        argValues: [bookId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageDeleteBookmarksByBookConstMeta =>
-      const TaskConstMeta(
-        debugName: 'delete_bookmarks_by_book',
-        argNames: ['bookId'],
-      );
-
-  @override
-  Future<void> crateApiStorageDeleteCategory({required String categoryId}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(categoryId);
-          return wire.wire__crate__api__storage__delete_category(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageDeleteCategoryConstMeta,
+        constMeta: kCrateApiDataCategoryDeleteCategoryConstMeta,
         argValues: [categoryId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageDeleteCategoryConstMeta =>
+  TaskConstMeta get kCrateApiDataCategoryDeleteCategoryConstMeta =>
       const TaskConstMeta(
         debugName: 'delete_category',
         argNames: ['categoryId'],
       );
 
   @override
-  Future<void> crateApiStorageDeleteChaptersByBook({required String bookId}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__storage__delete_chapters_by_book(
-            port_,
-            arg0,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageDeleteChaptersByBookConstMeta,
-        argValues: [bookId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageDeleteChaptersByBookConstMeta =>
-      const TaskConstMeta(
-        debugName: 'delete_chapters_by_book',
-        argNames: ['bookId'],
-      );
-
-  @override
-  Future<void> crateApiStorageDeleteNote({required String noteId}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(noteId);
-          return wire.wire__crate__api__storage__delete_note(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageDeleteNoteConstMeta,
-        argValues: [noteId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageDeleteNoteConstMeta =>
-      const TaskConstMeta(debugName: 'delete_note', argNames: ['noteId']);
-
-  @override
-  Future<void> crateApiStorageDeleteNotesByBook({required String bookId}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__storage__delete_notes_by_book(
-            port_,
-            arg0,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageDeleteNotesByBookConstMeta,
-        argValues: [bookId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageDeleteNotesByBookConstMeta =>
-      const TaskConstMeta(
-        debugName: 'delete_notes_by_book',
-        argNames: ['bookId'],
-      );
-
-  @override
-  Future<void> crateApiStorageDeleteSessionsByBook({required String bookId}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__storage__delete_sessions_by_book(
-            port_,
-            arg0,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageDeleteSessionsByBookConstMeta,
-        argValues: [bookId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageDeleteSessionsByBookConstMeta =>
-      const TaskConstMeta(
-        debugName: 'delete_sessions_by_book',
-        argNames: ['bookId'],
-      );
-
-  @override
-  Future<void> crateApiVocabularyDeleteVocabularyWord({required String id}) {
+  Future<bool> crateApiDictionaryDeleteDictionary({required String id}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(id);
-          return wire.wire__crate__api__vocabulary__delete_vocabulary_word(
+          return wire.wire__crate__api__dictionary__delete_dictionary(
             port_,
             arg0,
           );
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
+          decodeSuccessData: dco_decode_bool,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiVocabularyDeleteVocabularyWordConstMeta,
+        constMeta: kCrateApiDictionaryDeleteDictionaryConstMeta,
         argValues: [id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiVocabularyDeleteVocabularyWordConstMeta =>
-      const TaskConstMeta(
-        debugName: 'delete_vocabulary_word',
-        argNames: ['id'],
-      );
+  TaskConstMeta get kCrateApiDictionaryDeleteDictionaryConstMeta =>
+      const TaskConstMeta(debugName: 'delete_dictionary', argNames: ['id']);
 
   @override
-  Future<void> crateApiStorageExportDatabase({required String destPath}) {
+  Future<void> crateApiDataNoteDeleteNote({required String noteId}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final arg0 = cst_encode_String(destPath);
-          return wire.wire__crate__api__storage__export_database(port_, arg0);
+          final arg0 = cst_encode_String(noteId);
+          return wire.wire__crate__api__data__note__delete_note(port_, arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageExportDatabaseConstMeta,
+        constMeta: kCrateApiDataNoteDeleteNoteConstMeta,
+        argValues: [noteId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataNoteDeleteNoteConstMeta =>
+      const TaskConstMeta(debugName: 'delete_note', argNames: ['noteId']);
+
+  @override
+  Future<void> crateApiDataVocabularyDeleteVocabulary({required String id}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(id);
+          return wire.wire__crate__api__data__vocabulary__delete_vocabulary(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataVocabularyDeleteVocabularyConstMeta,
+        argValues: [id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataVocabularyDeleteVocabularyConstMeta =>
+      const TaskConstMeta(debugName: 'delete_vocabulary', argNames: ['id']);
+
+  @override
+  Future<void> crateApiBackupExportDatabase({required String destPath}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(destPath);
+          return wire.wire__crate__api__backup__export_database(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiBackupExportDatabaseConstMeta,
         argValues: [destPath],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageExportDatabaseConstMeta =>
+  TaskConstMeta get kCrateApiBackupExportDatabaseConstMeta =>
       const TaskConstMeta(debugName: 'export_database', argNames: ['destPath']);
+
+  @override
+  Future<String> crateApiCoverExtractAndSaveCover({
+    required String bookId,
+    required String filePath,
+    required String outputDir,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_String(filePath);
+          final arg2 = cst_encode_String(outputDir);
+          return wire.wire__crate__api__cover__extract_and_save_cover(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiCoverExtractAndSaveCoverConstMeta,
+        argValues: [bookId, filePath, outputDir],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoverExtractAndSaveCoverConstMeta =>
+      const TaskConstMeta(
+        debugName: 'extract_and_save_cover',
+        argNames: ['bookId', 'filePath', 'outputDir'],
+      );
+
+  @override
+  Uint8List? crateApiDictionaryExtractAudio({required String audioKey}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final arg0 = cst_encode_String(audioKey);
+          return wire.wire__crate__api__dictionary__extract_audio(arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_opt_list_prim_u_8_strict,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiDictionaryExtractAudioConstMeta,
+        argValues: [audioKey],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDictionaryExtractAudioConstMeta =>
+      const TaskConstMeta(debugName: 'extract_audio', argNames: ['audioKey']);
 
   @override
   Future<String> crateApiCoverExtractBookCover({
@@ -1184,108 +1896,56 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<BookMetadata> crateApiBookExtractMetadata({required String filePath}) {
+  Future<BookMetadata> crateApiCoreExtractMetadata({required String filePath}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__book__extract_metadata(port_, arg0);
+          return wire.wire__crate__api__core__extract_metadata(port_, arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_book_metadata,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiBookExtractMetadataConstMeta,
+        constMeta: kCrateApiCoreExtractMetadataConstMeta,
         argValues: [filePath],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBookExtractMetadataConstMeta =>
+  TaskConstMeta get kCrateApiCoreExtractMetadataConstMeta =>
       const TaskConstMeta(
         debugName: 'extract_metadata',
         argNames: ['filePath'],
       );
 
   @override
-  Future<List<DictEntry>> crateApiDictionaryFuzzySearchDictionary({
-    required String prefix,
-    required int limit,
-  }) {
+  Future<List<String>> crateApiVocabMarkerGetAllVocabularyWords() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final arg0 = cst_encode_String(prefix);
-          final arg1 = cst_encode_i_32(limit);
-          return wire.wire__crate__api__dictionary__fuzzy_search_dictionary(
+          return wire.wire__crate__api__vocab_marker__get_all_vocabulary_words(
             port_,
-            arg0,
-            arg1,
           );
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_dict_entry,
-          decodeErrorData: dco_decode_app_error,
+          decodeSuccessData: dco_decode_list_String,
+          decodeErrorData: null,
         ),
-        constMeta: kCrateApiDictionaryFuzzySearchDictionaryConstMeta,
-        argValues: [prefix, limit],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiDictionaryFuzzySearchDictionaryConstMeta =>
-      const TaskConstMeta(
-        debugName: 'fuzzy_search_dictionary',
-        argNames: ['prefix', 'limit'],
-      );
-
-  @override
-  Future<List<Book>> crateApiStorageGetAllBooks() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__storage__get_all_books(port_);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_book,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetAllBooksConstMeta,
+        constMeta: kCrateApiVocabMarkerGetAllVocabularyWordsConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageGetAllBooksConstMeta =>
-      const TaskConstMeta(debugName: 'get_all_books', argNames: []);
-
-  @override
-  Future<List<BookCategory>> crateApiStorageGetAllCategories() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__storage__get_all_categories(port_);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_book_category,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetAllCategoriesConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetAllCategoriesConstMeta =>
-      const TaskConstMeta(debugName: 'get_all_categories', argNames: []);
+  TaskConstMeta get kCrateApiVocabMarkerGetAllVocabularyWordsConstMeta =>
+      const TaskConstMeta(debugName: 'get_all_vocabulary_words', argNames: []);
 
   @override
   Future<List<BilingualHighlightPair>>
-  crateApiBilingualHighlightGetBilingualHighlightPairs({
+  crateApiBilingualGetBilingualHighlightPairs({
     required String bookId,
     required int chapterIndex,
   }) {
@@ -1295,7 +1955,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final arg0 = cst_encode_String(bookId);
           final arg1 = cst_encode_i_32(chapterIndex);
           return wire
-              .wire__crate__api__bilingual_highlight__get_bilingual_highlight_pairs(
+              .wire__crate__api__bilingual__get_bilingual_highlight_pairs(
                 port_,
                 arg0,
                 arg1,
@@ -1305,261 +1965,127 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_list_bilingual_highlight_pair,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta:
-            kCrateApiBilingualHighlightGetBilingualHighlightPairsConstMeta,
+        constMeta: kCrateApiBilingualGetBilingualHighlightPairsConstMeta,
         argValues: [bookId, chapterIndex],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta
-  get kCrateApiBilingualHighlightGetBilingualHighlightPairsConstMeta =>
+  TaskConstMeta get kCrateApiBilingualGetBilingualHighlightPairsConstMeta =>
       const TaskConstMeta(
         debugName: 'get_bilingual_highlight_pairs',
         argNames: ['bookId', 'chapterIndex'],
       );
 
   @override
-  Future<Book?> crateApiStorageGetBook({required String bookId}) {
+  Future<Book?> crateApiDataBookGetBook({required String bookId}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__storage__get_book(port_, arg0);
+          return wire.wire__crate__api__data__book__get_book(port_, arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_opt_box_autoadd_book,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageGetBookConstMeta,
+        constMeta: kCrateApiDataBookGetBookConstMeta,
         argValues: [bookId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageGetBookConstMeta =>
+  TaskConstMeta get kCrateApiDataBookGetBookConstMeta =>
       const TaskConstMeta(debugName: 'get_book', argNames: ['bookId']);
 
   @override
-  Future<PlatformInt64> crateApiStorageGetBookCount() {
+  Future<Book?> crateApiDataBookGetBookByFilePath({
+    required String validatedPath,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          return wire.wire__crate__api__storage__get_book_count(port_);
+          final arg0 = cst_encode_String(validatedPath);
+          return wire.wire__crate__api__data__book__get_book_by_file_path(
+            port_,
+            arg0,
+          );
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_i_64,
+          decodeSuccessData: dco_decode_opt_box_autoadd_book,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageGetBookCountConstMeta,
-        argValues: [],
+        constMeta: kCrateApiDataBookGetBookByFilePathConstMeta,
+        argValues: [validatedPath],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageGetBookCountConstMeta =>
-      const TaskConstMeta(debugName: 'get_book_count', argNames: []);
+  TaskConstMeta get kCrateApiDataBookGetBookByFilePathConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_book_by_file_path',
+        argNames: ['validatedPath'],
+      );
 
   @override
-  Future<Bookmark?> crateApiStorageGetBookmark({required String bookmarkId}) {
+  Future<Bookmark?> crateApiDataBookmarkGetBookmark({
+    required String bookmarkId,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(bookmarkId);
-          return wire.wire__crate__api__storage__get_bookmark(port_, arg0);
+          return wire.wire__crate__api__data__bookmark__get_bookmark(
+            port_,
+            arg0,
+          );
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_opt_box_autoadd_bookmark,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageGetBookmarkConstMeta,
+        constMeta: kCrateApiDataBookmarkGetBookmarkConstMeta,
         argValues: [bookmarkId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageGetBookmarkConstMeta =>
+  TaskConstMeta get kCrateApiDataBookmarkGetBookmarkConstMeta =>
       const TaskConstMeta(debugName: 'get_bookmark', argNames: ['bookmarkId']);
 
   @override
-  Future<int> crateApiStorageGetBookmarkStats({required String bookId}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__storage__get_bookmark_stats(
-            port_,
-            arg0,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_i_32,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetBookmarkStatsConstMeta,
-        argValues: [bookId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetBookmarkStatsConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_bookmark_stats',
-        argNames: ['bookId'],
-      );
-
-  @override
-  Future<List<Bookmark>> crateApiStorageGetBookmarks({required String bookId}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__storage__get_bookmarks(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_bookmark,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetBookmarksConstMeta,
-        argValues: [bookId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetBookmarksConstMeta =>
-      const TaskConstMeta(debugName: 'get_bookmarks', argNames: ['bookId']);
-
-  @override
-  Future<List<Book>> crateApiStorageGetBooksByStatus({
-    required BookStatus status,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_book_status(status);
-          return wire.wire__crate__api__storage__get_books_by_status(
-            port_,
-            arg0,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_book,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetBooksByStatusConstMeta,
-        argValues: [status],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetBooksByStatusConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_books_by_status',
-        argNames: ['status'],
-      );
-
-  @override
-  Future<List<Book>> crateApiStorageGetBooksPaginated({
-    required int limit,
-    required int offset,
-    String? sortBy,
-    String? sortOrder,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_i_32(limit);
-          final arg1 = cst_encode_i_32(offset);
-          final arg2 = cst_encode_opt_String(sortBy);
-          final arg3 = cst_encode_opt_String(sortOrder);
-          return wire.wire__crate__api__storage__get_books_paginated(
-            port_,
-            arg0,
-            arg1,
-            arg2,
-            arg3,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_book,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetBooksPaginatedConstMeta,
-        argValues: [limit, offset, sortBy, sortOrder],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetBooksPaginatedConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_books_paginated',
-        argNames: ['limit', 'offset', 'sortBy', 'sortOrder'],
-      );
-
-  @override
-  Future<List<BookCategory>> crateApiStorageGetCategoriesForBook({
-    required String bookId,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__storage__get_categories_for_book(
-            port_,
-            arg0,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_book_category,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetCategoriesForBookConstMeta,
-        argValues: [bookId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetCategoriesForBookConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_categories_for_book',
-        argNames: ['bookId'],
-      );
-
-  @override
-  Future<BookCategory?> crateApiStorageGetCategory({
+  Future<Category?> crateApiDataCategoryGetCategory({
     required String categoryId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(categoryId);
-          return wire.wire__crate__api__storage__get_category(port_, arg0);
+          return wire.wire__crate__api__data__category__get_category(
+            port_,
+            arg0,
+          );
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_opt_box_autoadd_book_category,
+          decodeSuccessData: dco_decode_opt_box_autoadd_category,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageGetCategoryConstMeta,
+        constMeta: kCrateApiDataCategoryGetCategoryConstMeta,
         argValues: [categoryId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageGetCategoryConstMeta =>
+  TaskConstMeta get kCrateApiDataCategoryGetCategoryConstMeta =>
       const TaskConstMeta(debugName: 'get_category', argNames: ['categoryId']);
 
   @override
-  Future<ChapterContent> crateApiBookGetChapter({
+  Future<ChapterContent> crateApiCoreGetChapter({
     required String filePath,
     required int chapterIndex,
     TypesetConfig? config,
@@ -1570,7 +2096,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final arg0 = cst_encode_String(filePath);
           final arg1 = cst_encode_i_32(chapterIndex);
           final arg2 = cst_encode_opt_box_autoadd_typeset_config(config);
-          return wire.wire__crate__api__book__get_chapter(
+          return wire.wire__crate__api__core__get_chapter(
             port_,
             arg0,
             arg1,
@@ -1581,20 +2107,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_chapter_content,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiBookGetChapterConstMeta,
+        constMeta: kCrateApiCoreGetChapterConstMeta,
         argValues: [filePath, chapterIndex, config],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBookGetChapterConstMeta => const TaskConstMeta(
+  TaskConstMeta get kCrateApiCoreGetChapterConstMeta => const TaskConstMeta(
     debugName: 'get_chapter',
     argNames: ['filePath', 'chapterIndex', 'config'],
   );
 
   @override
-  Future<Chapter?> crateApiStorageGetChapterByIndex({
+  Future<Chapter?> crateApiDataChapterGetChapterByIndex({
     required String bookId,
     required int chapterIndex,
   }) {
@@ -1603,7 +2129,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: (port_) {
           final arg0 = cst_encode_String(bookId);
           final arg1 = cst_encode_i_32(chapterIndex);
-          return wire.wire__crate__api__storage__get_chapter_by_index(
+          return wire.wire__crate__api__data__chapter__get_chapter_by_index(
             port_,
             arg0,
             arg1,
@@ -1613,69 +2139,40 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_opt_box_autoadd_chapter,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageGetChapterByIndexConstMeta,
+        constMeta: kCrateApiDataChapterGetChapterByIndexConstMeta,
         argValues: [bookId, chapterIndex],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageGetChapterByIndexConstMeta =>
+  TaskConstMeta get kCrateApiDataChapterGetChapterByIndexConstMeta =>
       const TaskConstMeta(
         debugName: 'get_chapter_by_index',
         argNames: ['bookId', 'chapterIndex'],
       );
 
   @override
-  Future<List<Chapter>> crateApiStorageGetChaptersByBook({
-    required String bookId,
-  }) {
+  Future<Dictionary?> crateApiDictionaryGetDictionary({required String id}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__storage__get_chapters_by_book(
-            port_,
-            arg0,
-          );
+          final arg0 = cst_encode_String(id);
+          return wire.wire__crate__api__dictionary__get_dictionary(port_, arg0);
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_chapter,
+          decodeSuccessData: dco_decode_opt_box_autoadd_dictionary,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageGetChaptersByBookConstMeta,
-        argValues: [bookId],
+        constMeta: kCrateApiDictionaryGetDictionaryConstMeta,
+        argValues: [id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageGetChaptersByBookConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_chapters_by_book',
-        argNames: ['bookId'],
-      );
-
-  @override
-  Future<DictInfo> crateApiDictionaryGetDictionaryInfo() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__dictionary__get_dictionary_info(port_);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_dict_info,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiDictionaryGetDictionaryInfoConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiDictionaryGetDictionaryInfoConstMeta =>
-      const TaskConstMeta(debugName: 'get_dictionary_info', argNames: []);
+  TaskConstMeta get kCrateApiDictionaryGetDictionaryConstMeta =>
+      const TaskConstMeta(debugName: 'get_dictionary', argNames: ['id']);
 
   @override
   Future<List<RichParagraph>> crateApiEpubGetEpubChapterRichContent({
@@ -1739,33 +2236,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<PlatformInt64> crateApiFileGetFileSize({required String filePath}) {
+  Future<GlobalStats> crateApiDataStatsGetGlobalReadingStats() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__file__get_file_size(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_i_64,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiFileGetFileSizeConstMeta,
-        argValues: [filePath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiFileGetFileSizeConstMeta =>
-      const TaskConstMeta(debugName: 'get_file_size', argNames: ['filePath']);
-
-  @override
-  Future<GlobalStats> crateApiStorageGetGlobalReadingStats() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__storage__get_global_reading_stats(
+          return wire.wire__crate__api__data__stats__get_global_reading_stats(
             port_,
           );
         },
@@ -1773,453 +2248,86 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_global_stats,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageGetGlobalReadingStatsConstMeta,
+        constMeta: kCrateApiDataStatsGetGlobalReadingStatsConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageGetGlobalReadingStatsConstMeta =>
+  TaskConstMeta get kCrateApiDataStatsGetGlobalReadingStatsConstMeta =>
       const TaskConstMeta(debugName: 'get_global_reading_stats', argNames: []);
 
   @override
-  Future<NoteStats> crateApiStorageGetNoteStats({required String bookId}) {
+  Future<List<RichParagraph>> crateApiMdGetMdChapterRichContent({
+    required String filePath,
+    required int chapterIndex,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(filePath);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          return wire.wire__crate__api__md__get_md_chapter_rich_content(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_rich_paragraph,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiMdGetMdChapterRichContentConstMeta,
+        argValues: [filePath, chapterIndex],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiMdGetMdChapterRichContentConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_md_chapter_rich_content',
+        argNames: ['filePath', 'chapterIndex'],
+      );
+
+  @override
+  Future<NoteStats> crateApiDataNoteGetNoteStats({required String bookId}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__storage__get_note_stats(port_, arg0);
+          return wire.wire__crate__api__data__note__get_note_stats(port_, arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_note_stats,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageGetNoteStatsConstMeta,
+        constMeta: kCrateApiDataNoteGetNoteStatsConstMeta,
         argValues: [bookId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageGetNoteStatsConstMeta =>
+  TaskConstMeta get kCrateApiDataNoteGetNoteStatsConstMeta =>
       const TaskConstMeta(debugName: 'get_note_stats', argNames: ['bookId']);
 
   @override
-  Future<List<Note>> crateApiStorageGetNotes({
-    required String bookId,
-    NoteType? noteType,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          final arg1 = cst_encode_opt_box_autoadd_note_type(noteType);
-          return wire.wire__crate__api__storage__get_notes(port_, arg0, arg1);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_note,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetNotesConstMeta,
-        argValues: [bookId, noteType],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetNotesConstMeta => const TaskConstMeta(
-    debugName: 'get_notes',
-    argNames: ['bookId', 'noteType'],
-  );
-
-  @override
-  Future<List<Note>> crateApiStorageGetNotesInChapter({
-    required String bookId,
+  Future<List<PageContent>> crateApiCoreGetPaginatedChunk({
+    required String filePath,
     required int chapterIndex,
-    NoteType? noteType,
+    required int chunkIndex,
+    required TypesetConfig config,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
+          final arg0 = cst_encode_String(filePath);
           final arg1 = cst_encode_i_32(chapterIndex);
-          final arg2 = cst_encode_opt_box_autoadd_note_type(noteType);
-          return wire.wire__crate__api__storage__get_notes_in_chapter(
-            port_,
-            arg0,
-            arg1,
-            arg2,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_note,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetNotesInChapterConstMeta,
-        argValues: [bookId, chapterIndex, noteType],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetNotesInChapterConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_notes_in_chapter',
-        argNames: ['bookId', 'chapterIndex', 'noteType'],
-      );
-
-  @override
-  Future<List<Book>> crateApiStorageGetPinnedBooks() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__storage__get_pinned_books(port_);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_book,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetPinnedBooksConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetPinnedBooksConstMeta =>
-      const TaskConstMeta(debugName: 'get_pinned_books', argNames: []);
-
-  @override
-  Future<ReadingProgress?> crateApiStorageGetReadingProgress({
-    required String bookId,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__storage__get_reading_progress(
-            port_,
-            arg0,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_opt_box_autoadd_reading_progress,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetReadingProgressConstMeta,
-        argValues: [bookId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetReadingProgressConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_reading_progress',
-        argNames: ['bookId'],
-      );
-
-  @override
-  Future<List<ReadingSession>> crateApiStorageGetReadingSessions({
-    required String bookId,
-    required BigInt limit,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          final arg1 = cst_encode_usize(limit);
-          return wire.wire__crate__api__storage__get_reading_sessions(
-            port_,
-            arg0,
-            arg1,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_reading_session,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetReadingSessionsConstMeta,
-        argValues: [bookId, limit],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetReadingSessionsConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_reading_sessions',
-        argNames: ['bookId', 'limit'],
-      );
-
-  @override
-  Future<List<ReadingStats>> crateApiStorageGetReadingStatsRange({
-    required String startDate,
-    required String endDate,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(startDate);
-          final arg1 = cst_encode_String(endDate);
-          return wire.wire__crate__api__storage__get_reading_stats_range(
-            port_,
-            arg0,
-            arg1,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_reading_stats,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetReadingStatsRangeConstMeta,
-        argValues: [startDate, endDate],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetReadingStatsRangeConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_reading_stats_range',
-        argNames: ['startDate', 'endDate'],
-      );
-
-  @override
-  Future<List<ReadingSession>> crateApiStorageGetRecentSessions({
-    required BigInt limit,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_usize(limit);
-          return wire.wire__crate__api__storage__get_recent_sessions(
-            port_,
-            arg0,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_reading_session,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetRecentSessionsConstMeta,
-        argValues: [limit],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetRecentSessionsConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_recent_sessions',
-        argNames: ['limit'],
-      );
-
-  @override
-  Future<List<Book>> crateApiStorageGetRecentlyReadBooks({
-    required BigInt limit,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_usize(limit);
-          return wire.wire__crate__api__storage__get_recently_read_books(
-            port_,
-            arg0,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_book,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetRecentlyReadBooksConstMeta,
-        argValues: [limit],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetRecentlyReadBooksConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_recently_read_books',
-        argNames: ['limit'],
-      );
-
-  @override
-  Future<List<ReadingSession>> crateApiStorageGetSessionsByDateRange({
-    required String bookId,
-    required String startDate,
-    required String endDate,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          final arg1 = cst_encode_String(startDate);
-          final arg2 = cst_encode_String(endDate);
-          return wire.wire__crate__api__storage__get_sessions_by_date_range(
-            port_,
-            arg0,
-            arg1,
-            arg2,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_reading_session,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetSessionsByDateRangeConstMeta,
-        argValues: [bookId, startDate, endDate],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetSessionsByDateRangeConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_sessions_by_date_range',
-        argNames: ['bookId', 'startDate', 'endDate'],
-      );
-
-  @override
-  List<String> crateApiBookGetSupportedFormats() {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          return wire.wire__crate__api__book__get_supported_formats();
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_String,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiBookGetSupportedFormatsConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiBookGetSupportedFormatsConstMeta =>
-      const TaskConstMeta(debugName: 'get_supported_formats', argNames: []);
-
-  @override
-  Future<List<ReadingStats>> crateApiStorageGetTodayReadingStats() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__storage__get_today_reading_stats(port_);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_reading_stats,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageGetTodayReadingStatsConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageGetTodayReadingStatsConstMeta =>
-      const TaskConstMeta(debugName: 'get_today_reading_stats', argNames: []);
-
-  @override
-  Future<VocabStats> crateApiVocabularyGetVocabularyStats() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__vocabulary__get_vocabulary_stats(port_);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_vocab_stats,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiVocabularyGetVocabularyStatsConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiVocabularyGetVocabularyStatsConstMeta =>
-      const TaskConstMeta(debugName: 'get_vocabulary_stats', argNames: []);
-
-  @override
-  Future<List<VocabEntry>> crateApiVocabularyGetVocabularyWords({
-    String? bookId,
-    String? status,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_opt_String(bookId);
-          final arg1 = cst_encode_opt_String(status);
-          return wire.wire__crate__api__vocabulary__get_vocabulary_words(
-            port_,
-            arg0,
-            arg1,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_vocab_entry,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiVocabularyGetVocabularyWordsConstMeta,
-        argValues: [bookId, status],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiVocabularyGetVocabularyWordsConstMeta =>
-      const TaskConstMeta(
-        debugName: 'get_vocabulary_words',
-        argNames: ['bookId', 'status'],
-      );
-
-  @override
-  Future<void> crateApiStorageImportBookmarks({
-    required List<Bookmark> bookmarks,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_list_bookmark(bookmarks);
-          return wire.wire__crate__api__storage__import_bookmarks(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageImportBookmarksConstMeta,
-        argValues: [bookmarks],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageImportBookmarksConstMeta =>
-      const TaskConstMeta(
-        debugName: 'import_bookmarks',
-        argNames: ['bookmarks'],
-      );
-
-  @override
-  Future<void> crateApiSearchIndexChapterContent({
-    required String bookId,
-    required int chapterId,
-    required String chapterTitle,
-    required String content,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          final arg1 = cst_encode_i_32(chapterId);
-          final arg2 = cst_encode_String(chapterTitle);
-          final arg3 = cst_encode_String(content);
-          return wire.wire__crate__api__search__index_chapter_content(
+          final arg2 = cst_encode_u_32(chunkIndex);
+          final arg3 = cst_encode_box_autoadd_typeset_config(config);
+          return wire.wire__crate__api__core__get_paginated_chunk(
             port_,
             arg0,
             arg1,
@@ -2228,29 +2336,358 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
+          decodeSuccessData: dco_decode_list_page_content,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiSearchIndexChapterContentConstMeta,
-        argValues: [bookId, chapterId, chapterTitle, content],
+        constMeta: kCrateApiCoreGetPaginatedChunkConstMeta,
+        argValues: [filePath, chapterIndex, chunkIndex, config],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSearchIndexChapterContentConstMeta =>
+  TaskConstMeta get kCrateApiCoreGetPaginatedChunkConstMeta =>
       const TaskConstMeta(
-        debugName: 'index_chapter_content',
-        argNames: ['bookId', 'chapterId', 'chapterTitle', 'content'],
+        debugName: 'get_paginated_chunk',
+        argNames: ['filePath', 'chapterIndex', 'chunkIndex', 'config'],
       );
 
   @override
-  Future<void> crateApiDictionaryInitDictionary({required String path}) {
+  Future<PageData> crateApiCoreGetPdfPage({
+    required String filePath,
+    required int pageIndex,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final arg0 = cst_encode_String(path);
-          return wire.wire__crate__api__dictionary__init_dictionary(
+          final arg0 = cst_encode_String(filePath);
+          final arg1 = cst_encode_u_32(pageIndex);
+          return wire.wire__crate__api__core__get_pdf_page(port_, arg0, arg1);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_page_data,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiCoreGetPdfPageConstMeta,
+        argValues: [filePath, pageIndex],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreGetPdfPageConstMeta => const TaskConstMeta(
+    debugName: 'get_pdf_page',
+    argNames: ['filePath', 'pageIndex'],
+  );
+
+  @override
+  int crateApiCoreGetPdfTotalPages({required String filePath}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final arg0 = cst_encode_String(filePath);
+          return wire.wire__crate__api__core__get_pdf_total_pages(arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_u_32,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiCoreGetPdfTotalPagesConstMeta,
+        argValues: [filePath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreGetPdfTotalPagesConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_pdf_total_pages',
+        argNames: ['filePath'],
+      );
+
+  @override
+  Future<ReadingProgress?> crateApiDataProgressGetProgress({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__data__progress__get_progress(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_opt_box_autoadd_reading_progress,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataProgressGetProgressConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataProgressGetProgressConstMeta =>
+      const TaskConstMeta(debugName: 'get_progress', argNames: ['bookId']);
+
+  @override
+  Future<List<ReadingStats>> crateApiDataStatsGetReadingStatsByDays({
+    required int days,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_i_32(days);
+          return wire.wire__crate__api__data__stats__get_reading_stats_by_days(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_reading_stats,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataStatsGetReadingStatsByDaysConstMeta,
+        argValues: [days],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataStatsGetReadingStatsByDaysConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_reading_stats_by_days',
+        argNames: ['days'],
+      );
+
+  @override
+  Future<List<ReadingStats>> crateApiDataStatsGetReadingStatsByDaysWithFill({
+    required int days,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_i_32(days);
+          return wire
+              .wire__crate__api__data__stats__get_reading_stats_by_days_with_fill(
+                port_,
+                arg0,
+              );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_reading_stats,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataStatsGetReadingStatsByDaysWithFillConstMeta,
+        argValues: [days],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataStatsGetReadingStatsByDaysWithFillConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_reading_stats_by_days_with_fill',
+        argNames: ['days'],
+      );
+
+  @override
+  Future<List<ReadingStats>> crateApiDataStatsGetReadingStatsByRange({
+    required String startDate,
+    required String endDate,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(startDate);
+          final arg1 = cst_encode_String(endDate);
+          return wire.wire__crate__api__data__stats__get_reading_stats_by_range(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_reading_stats,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataStatsGetReadingStatsByRangeConstMeta,
+        argValues: [startDate, endDate],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataStatsGetReadingStatsByRangeConstMeta =>
+      const TaskConstMeta(
+        debugName: 'get_reading_stats_by_range',
+        argNames: ['startDate', 'endDate'],
+      );
+
+  @override
+  List<String> crateApiCoreGetSupportedFormats() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          return wire.wire__crate__api__core__get_supported_formats();
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreGetSupportedFormatsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreGetSupportedFormatsConstMeta =>
+      const TaskConstMeta(debugName: 'get_supported_formats', argNames: []);
+
+  @override
+  Future<List<ReadingStats>> crateApiDataStatsGetTodayReadingStats() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__data__stats__get_today_reading_stats(
+            port_,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_reading_stats,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataStatsGetTodayReadingStatsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataStatsGetTodayReadingStatsConstMeta =>
+      const TaskConstMeta(debugName: 'get_today_reading_stats', argNames: []);
+
+  @override
+  Future<VocabStats> crateApiDataVocabularyGetVocabularyStats() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__data__vocabulary__get_vocabulary_stats(
+            port_,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_vocab_stats,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataVocabularyGetVocabularyStatsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataVocabularyGetVocabularyStatsConstMeta =>
+      const TaskConstMeta(debugName: 'get_vocabulary_stats', argNames: []);
+
+  @override
+  Future<String> crateApiEpubImageFormatExtension({required ImageFormat that}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_image_format(that);
+          return wire.wire__crate__api__epub__image_format_extension(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiEpubImageFormatExtensionConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEpubImageFormatExtensionConstMeta =>
+      const TaskConstMeta(
+        debugName: 'image_format_extension',
+        argNames: ['that'],
+      );
+
+  @override
+  Future<ImageFormat> crateApiEpubImageFormatFromExtension({
+    required String ext,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(ext);
+          return wire.wire__crate__api__epub__image_format_from_extension(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_image_format,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiEpubImageFormatFromExtensionConstMeta,
+        argValues: [ext],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEpubImageFormatFromExtensionConstMeta =>
+      const TaskConstMeta(
+        debugName: 'image_format_from_extension',
+        argNames: ['ext'],
+      );
+
+  @override
+  Future<String> crateApiEpubImageFormatMimeType({required ImageFormat that}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_image_format(that);
+          return wire.wire__crate__api__epub__image_format_mime_type(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiEpubImageFormatMimeTypeConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEpubImageFormatMimeTypeConstMeta =>
+      const TaskConstMeta(
+        debugName: 'image_format_mime_type',
+        argNames: ['that'],
+      );
+
+  @override
+  Future<void> crateApiDataBookmarkImportBookmarks({
+    required List<Bookmark> bookmarks,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_list_bookmark(bookmarks);
+          return wire.wire__crate__api__data__bookmark__import_bookmarks(
             port_,
             arg0,
           );
@@ -2259,15 +2696,98 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
+        constMeta: kCrateApiDataBookmarkImportBookmarksConstMeta,
+        argValues: [bookmarks],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookmarkImportBookmarksConstMeta =>
+      const TaskConstMeta(
+        debugName: 'import_bookmarks',
+        argNames: ['bookmarks'],
+      );
+
+  @override
+  Future<void> crateApiSearchIndexChapter({
+    required String bookId,
+    required String chapterId,
+    required String chapterIndex,
+    required String chapterTitle,
+    required String content,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_String(chapterId);
+          final arg2 = cst_encode_String(chapterIndex);
+          final arg3 = cst_encode_String(chapterTitle);
+          final arg4 = cst_encode_String(content);
+          return wire.wire__crate__api__search__index_chapter(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+            arg4,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiSearchIndexChapterConstMeta,
+        argValues: [bookId, chapterId, chapterIndex, chapterTitle, content],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSearchIndexChapterConstMeta => const TaskConstMeta(
+    debugName: 'index_chapter',
+    argNames: [
+      'bookId',
+      'chapterId',
+      'chapterIndex',
+      'chapterTitle',
+      'content',
+    ],
+  );
+
+  @override
+  Future<void> crateApiDictionaryInitDictionary({
+    required String mdxPath,
+    String? mddPath,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(mdxPath);
+          final arg1 = cst_encode_opt_String(mddPath);
+          return wire.wire__crate__api__dictionary__init_dictionary(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
         constMeta: kCrateApiDictionaryInitDictionaryConstMeta,
-        argValues: [path],
+        argValues: [mdxPath, mddPath],
         apiImpl: this,
       ),
     );
   }
 
   TaskConstMeta get kCrateApiDictionaryInitDictionaryConstMeta =>
-      const TaskConstMeta(debugName: 'init_dictionary', argNames: ['path']);
+      const TaskConstMeta(
+        debugName: 'init_dictionary',
+        argNames: ['mdxPath', 'mddPath'],
+      );
 
   @override
   Future<void> crateApiSearchInitSearchEngine() {
@@ -2291,51 +2811,583 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: 'init_search_engine', argNames: []);
 
   @override
-  Future<void> crateApiStorageInitStorage({required String dataDir}) {
+  Future<void> crateApiDataInitInitStorage({required String dataDir}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(dataDir);
-          return wire.wire__crate__api__storage__init_storage(port_, arg0);
+          return wire.wire__crate__api__data__init__init_storage(port_, arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageInitStorageConstMeta,
+        constMeta: kCrateApiDataInitInitStorageConstMeta,
         argValues: [dataDir],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageInitStorageConstMeta =>
+  TaskConstMeta get kCrateApiDataInitInitStorageConstMeta =>
       const TaskConstMeta(debugName: 'init_storage', argNames: ['dataDir']);
 
   @override
-  Future<List<DictEntry>> crateApiDictionaryLookupWord({required String word}) {
+  Future<List<BookWithProgress>> crateApiDataProgressListAllProgresses() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final arg0 = cst_encode_String(word);
-          return wire.wire__crate__api__dictionary__lookup_word(port_, arg0);
+          return wire.wire__crate__api__data__progress__list_all_progresses(
+            port_,
+          );
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_dict_entry,
+          decodeSuccessData: dco_decode_list_book_with_progress,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiDictionaryLookupWordConstMeta,
+        constMeta: kCrateApiDataProgressListAllProgressesConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataProgressListAllProgressesConstMeta =>
+      const TaskConstMeta(debugName: 'list_all_progresses', argNames: []);
+
+  @override
+  Future<List<Bookmark>> crateApiDataBookmarkListBookmarksByBook({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__data__bookmark__list_bookmarks_by_book(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_bookmark,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataBookmarkListBookmarksByBookConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookmarkListBookmarksByBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'list_bookmarks_by_book',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<List<Book>> crateApiDataBookListBooks() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__data__book__list_books(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_book,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataBookListBooksConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookListBooksConstMeta =>
+      const TaskConstMeta(debugName: 'list_books', argNames: []);
+
+  @override
+  Future<List<Book>> crateApiDataCategoryListBooksByCategory({
+    required String categoryId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(categoryId);
+          return wire.wire__crate__api__data__category__list_books_by_category(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_book,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataCategoryListBooksByCategoryConstMeta,
+        argValues: [categoryId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataCategoryListBooksByCategoryConstMeta =>
+      const TaskConstMeta(
+        debugName: 'list_books_by_category',
+        argNames: ['categoryId'],
+      );
+
+  @override
+  Future<List<Book>> crateApiDataBookListBooksByStatus({
+    required BookStatus status,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_book_status(status);
+          return wire.wire__crate__api__data__book__list_books_by_status(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_book,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataBookListBooksByStatusConstMeta,
+        argValues: [status],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookListBooksByStatusConstMeta =>
+      const TaskConstMeta(
+        debugName: 'list_books_by_status',
+        argNames: ['status'],
+      );
+
+  @override
+  Future<List<Book>> crateApiDataBookListBooksPaginated({
+    required int limit,
+    required int offset,
+    String? sortBy,
+    String? sortOrder,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_i_32(limit);
+          final arg1 = cst_encode_i_32(offset);
+          final arg2 = cst_encode_opt_String(sortBy);
+          final arg3 = cst_encode_opt_String(sortOrder);
+          return wire.wire__crate__api__data__book__list_books_paginated(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_book,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataBookListBooksPaginatedConstMeta,
+        argValues: [limit, offset, sortBy, sortOrder],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookListBooksPaginatedConstMeta =>
+      const TaskConstMeta(
+        debugName: 'list_books_paginated',
+        argNames: ['limit', 'offset', 'sortBy', 'sortOrder'],
+      );
+
+  @override
+  Future<List<Category>> crateApiDataCategoryListCategories() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__data__category__list_categories(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_category,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataCategoryListCategoriesConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataCategoryListCategoriesConstMeta =>
+      const TaskConstMeta(debugName: 'list_categories', argNames: []);
+
+  @override
+  Future<List<Category>> crateApiDataCategoryListCategoriesByBook({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__data__category__list_categories_by_book(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_category,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataCategoryListCategoriesByBookConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataCategoryListCategoriesByBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'list_categories_by_book',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<List<Chapter>> crateApiDataChapterListChaptersByBook({
+    required String bookId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__data__chapter__list_chapters_by_book(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_chapter,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataChapterListChaptersByBookConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataChapterListChaptersByBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'list_chapters_by_book',
+        argNames: ['bookId'],
+      );
+
+  @override
+  Future<List<Dictionary>> crateApiDictionaryListDictionaries() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__dictionary__list_dictionaries(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_dictionary,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDictionaryListDictionariesConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDictionaryListDictionariesConstMeta =>
+      const TaskConstMeta(debugName: 'list_dictionaries', argNames: []);
+
+  @override
+  Future<List<Note>> crateApiDataNoteListNotesByBook({
+    required String bookId,
+    NoteType? noteType,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_opt_box_autoadd_note_type(noteType);
+          return wire.wire__crate__api__data__note__list_notes_by_book(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_note,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataNoteListNotesByBookConstMeta,
+        argValues: [bookId, noteType],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataNoteListNotesByBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'list_notes_by_book',
+        argNames: ['bookId', 'noteType'],
+      );
+
+  @override
+  Future<List<Note>> crateApiDataNoteListNotesInChapter({
+    required String bookId,
+    required int chapterIndex,
+    NoteType? noteType,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_i_32(chapterIndex);
+          final arg2 = cst_encode_opt_box_autoadd_note_type(noteType);
+          return wire.wire__crate__api__data__note__list_notes_in_chapter(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_note,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataNoteListNotesInChapterConstMeta,
+        argValues: [bookId, chapterIndex, noteType],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataNoteListNotesInChapterConstMeta =>
+      const TaskConstMeta(
+        debugName: 'list_notes_in_chapter',
+        argNames: ['bookId', 'chapterIndex', 'noteType'],
+      );
+
+  @override
+  Future<List<Book>> crateApiDataBookListPinnedBooks() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__data__book__list_pinned_books(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_book,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataBookListPinnedBooksConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookListPinnedBooksConstMeta =>
+      const TaskConstMeta(debugName: 'list_pinned_books', argNames: []);
+
+  @override
+  Future<List<Book>> crateApiDataBookListRecentlyOpenedBooks({
+    required BigInt limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_usize(limit);
+          return wire.wire__crate__api__data__book__list_recently_opened_books(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_book,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataBookListRecentlyOpenedBooksConstMeta,
+        argValues: [limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookListRecentlyOpenedBooksConstMeta =>
+      const TaskConstMeta(
+        debugName: 'list_recently_opened_books',
+        argNames: ['limit'],
+      );
+
+  @override
+  Future<List<ReadingSession>> crateApiDataSessionListSessionsByBook({
+    required String bookId,
+    required BigInt limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_usize(limit);
+          return wire.wire__crate__api__data__session__list_sessions_by_book(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_reading_session,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataSessionListSessionsByBookConstMeta,
+        argValues: [bookId, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataSessionListSessionsByBookConstMeta =>
+      const TaskConstMeta(
+        debugName: 'list_sessions_by_book',
+        argNames: ['bookId', 'limit'],
+      );
+
+  @override
+  Future<List<ReadingSession>> crateApiDataSessionListSessionsByDateRange({
+    required String bookId,
+    required String startDate,
+    required String endDate,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_String(startDate);
+          final arg2 = cst_encode_String(endDate);
+          return wire
+              .wire__crate__api__data__session__list_sessions_by_date_range(
+                port_,
+                arg0,
+                arg1,
+                arg2,
+              );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_reading_session,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataSessionListSessionsByDateRangeConstMeta,
+        argValues: [bookId, startDate, endDate],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataSessionListSessionsByDateRangeConstMeta =>
+      const TaskConstMeta(
+        debugName: 'list_sessions_by_date_range',
+        argNames: ['bookId', 'startDate', 'endDate'],
+      );
+
+  @override
+  Future<List<ReadingSession>> crateApiDataSessionListSessionsByRecent({
+    required BigInt limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_usize(limit);
+          return wire.wire__crate__api__data__session__list_sessions_by_recent(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_reading_session,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataSessionListSessionsByRecentConstMeta,
+        argValues: [limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataSessionListSessionsByRecentConstMeta =>
+      const TaskConstMeta(
+        debugName: 'list_sessions_by_recent',
+        argNames: ['limit'],
+      );
+
+  @override
+  Future<List<Vocab>> crateApiDataVocabularyListVocabularyByStatus({
+    String? bookId,
+    VocabStatus? status,
+    String? wordList,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_opt_String(bookId);
+          final arg1 = cst_encode_opt_box_autoadd_vocab_status(status);
+          final arg2 = cst_encode_opt_String(wordList);
+          return wire
+              .wire__crate__api__data__vocabulary__list_vocabulary_by_status(
+                port_,
+                arg0,
+                arg1,
+                arg2,
+              );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_vocab,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataVocabularyListVocabularyByStatusConstMeta,
+        argValues: [bookId, status, wordList],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataVocabularyListVocabularyByStatusConstMeta =>
+      const TaskConstMeta(
+        debugName: 'list_vocabulary_by_status',
+        argNames: ['bookId', 'status', 'wordList'],
+      );
+
+  @override
+  DictSearchResult? crateApiDictionaryLookupMdict({required String word}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final arg0 = cst_encode_String(word);
+          return wire.wire__crate__api__dictionary__lookup_mdict(arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_opt_box_autoadd_dict_search_result,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiDictionaryLookupMdictConstMeta,
         argValues: [word],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiDictionaryLookupWordConstMeta =>
-      const TaskConstMeta(debugName: 'lookup_word', argNames: ['word']);
+  TaskConstMeta get kCrateApiDictionaryLookupMdictConstMeta =>
+      const TaskConstMeta(debugName: 'lookup_mdict', argNames: ['word']);
 
   @override
-  Future<List<PageContent>> crateApiBookPaginateAllContent({
+  Future<List<PageContent>> crateApiCorePaginateAllContent({
     required String filePath,
     required int chapterIndex,
     required TypesetConfig config,
@@ -2346,7 +3398,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final arg0 = cst_encode_String(filePath);
           final arg1 = cst_encode_i_32(chapterIndex);
           final arg2 = cst_encode_box_autoadd_typeset_config(config);
-          return wire.wire__crate__api__book__paginate_all_content(
+          return wire.wire__crate__api__core__paginate_all_content(
             port_,
             arg0,
             arg1,
@@ -2357,54 +3409,54 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_list_page_content,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiBookPaginateAllContentConstMeta,
+        constMeta: kCrateApiCorePaginateAllContentConstMeta,
         argValues: [filePath, chapterIndex, config],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBookPaginateAllContentConstMeta =>
+  TaskConstMeta get kCrateApiCorePaginateAllContentConstMeta =>
       const TaskConstMeta(
         debugName: 'paginate_all_content',
         argNames: ['filePath', 'chapterIndex', 'config'],
       );
 
   @override
-  Future<ParseResult> crateApiBookParseBook({required String filePath}) {
+  Future<ParseResult> crateApiCoreParseBook({required String filePath}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__book__parse_book(port_, arg0);
+          return wire.wire__crate__api__core__parse_book(port_, arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_parse_result,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiBookParseBookConstMeta,
+        constMeta: kCrateApiCoreParseBookConstMeta,
         argValues: [filePath],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBookParseBookConstMeta =>
+  TaskConstMeta get kCrateApiCoreParseBookConstMeta =>
       const TaskConstMeta(debugName: 'parse_book', argNames: ['filePath']);
 
   @override
-  Future<String> crateApiFileReadFileChunk({
-    required String filePath,
-    required PlatformInt64 startPos,
-    required PlatformInt64 chunkSize,
+  Future<String> crateApiDataNoteRenderNotesToString({
+    required List<Note> notes,
+    required String bookTitle,
+    required String format,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final arg0 = cst_encode_String(filePath);
-          final arg1 = cst_encode_i_64(startPos);
-          final arg2 = cst_encode_i_64(chunkSize);
-          return wire.wire__crate__api__file__read_file_chunk(
+          final arg0 = cst_encode_list_note(notes);
+          final arg1 = cst_encode_String(bookTitle);
+          final arg2 = cst_encode_String(format);
+          return wire.wire__crate__api__data__note__render_notes_to_string(
             port_,
             arg0,
             arg1,
@@ -2413,273 +3465,75 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_String,
-          decodeErrorData: dco_decode_app_error,
+          decodeErrorData: null,
         ),
-        constMeta: kCrateApiFileReadFileChunkConstMeta,
-        argValues: [filePath, startPos, chunkSize],
+        constMeta: kCrateApiDataNoteRenderNotesToStringConstMeta,
+        argValues: [notes, bookTitle, format],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileReadFileChunkConstMeta => const TaskConstMeta(
-    debugName: 'read_file_chunk',
-    argNames: ['filePath', 'startPos', 'chunkSize'],
-  );
-
-  @override
-  Future<void> crateApiStorageRecordReadingSession({
-    required ReadingSession session,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_box_autoadd_reading_session(session);
-          return wire.wire__crate__api__storage__record_reading_session(
-            port_,
-            arg0,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageRecordReadingSessionConstMeta,
-        argValues: [session],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageRecordReadingSessionConstMeta =>
+  TaskConstMeta get kCrateApiDataNoteRenderNotesToStringConstMeta =>
       const TaskConstMeta(
-        debugName: 'record_reading_session',
-        argNames: ['session'],
+        debugName: 'render_notes_to_string',
+        argNames: ['notes', 'bookTitle', 'format'],
       );
 
   @override
-  Future<void> crateApiStorageRemoveCategoryFromBook({
-    required String bookId,
-    required String categoryId,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          final arg1 = cst_encode_String(categoryId);
-          return wire.wire__crate__api__storage__remove_category_from_book(
-            port_,
-            arg0,
-            arg1,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageRemoveCategoryFromBookConstMeta,
-        argValues: [bookId, categoryId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageRemoveCategoryFromBookConstMeta =>
-      const TaskConstMeta(
-        debugName: 'remove_category_from_book',
-        argNames: ['bookId', 'categoryId'],
-      );
-
-  @override
-  Future<void> crateApiStorageRestoreDatabase({required String backupPath}) {
+  Future<void> crateApiBackupRestoreDatabase({required String backupPath}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(backupPath);
-          return wire.wire__crate__api__storage__restore_database(port_, arg0);
+          return wire.wire__crate__api__backup__restore_database(port_, arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageRestoreDatabaseConstMeta,
+        constMeta: kCrateApiBackupRestoreDatabaseConstMeta,
         argValues: [backupPath],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageRestoreDatabaseConstMeta =>
+  TaskConstMeta get kCrateApiBackupRestoreDatabaseConstMeta =>
       const TaskConstMeta(
         debugName: 'restore_database',
         argNames: ['backupPath'],
       );
 
   @override
-  Future<void> crateApiStorageSaveBook({required Book book}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_box_autoadd_book(book);
-          return wire.wire__crate__api__storage__save_book(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageSaveBookConstMeta,
-        argValues: [book],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageSaveBookConstMeta =>
-      const TaskConstMeta(debugName: 'save_book', argNames: ['book']);
-
-  @override
-  Future<void> crateApiStorageSaveCategory({required BookCategory category}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_box_autoadd_book_category(category);
-          return wire.wire__crate__api__storage__save_category(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageSaveCategoryConstMeta,
-        argValues: [category],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageSaveCategoryConstMeta =>
-      const TaskConstMeta(debugName: 'save_category', argNames: ['category']);
-
-  @override
-  Future<void> crateApiStorageSaveChapters({
-    required String bookId,
-    required List<Chapter> chapters,
+  Future<List<VocabMatch>> crateApiVocabMarkerScanForVocabulary({
+    required String text,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final arg0 = cst_encode_String(bookId);
-          final arg1 = cst_encode_list_chapter(chapters);
-          return wire.wire__crate__api__storage__save_chapters(
-            port_,
-            arg0,
-            arg1,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageSaveChaptersConstMeta,
-        argValues: [bookId, chapters],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageSaveChaptersConstMeta =>
-      const TaskConstMeta(
-        debugName: 'save_chapters',
-        argNames: ['bookId', 'chapters'],
-      );
-
-  @override
-  Future<void> crateApiStorageSaveReadingProgress({
-    required ReadingProgress progress,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_box_autoadd_reading_progress(progress);
-          return wire.wire__crate__api__storage__save_reading_progress(
+          final arg0 = cst_encode_String(text);
+          return wire.wire__crate__api__vocab_marker__scan_for_vocabulary(
             port_,
             arg0,
           );
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
+          decodeSuccessData: dco_decode_list_vocab_match,
+          decodeErrorData: null,
         ),
-        constMeta: kCrateApiStorageSaveReadingProgressConstMeta,
-        argValues: [progress],
+        constMeta: kCrateApiVocabMarkerScanForVocabularyConstMeta,
+        argValues: [text],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageSaveReadingProgressConstMeta =>
-      const TaskConstMeta(
-        debugName: 'save_reading_progress',
-        argNames: ['progress'],
-      );
+  TaskConstMeta get kCrateApiVocabMarkerScanForVocabularyConstMeta =>
+      const TaskConstMeta(debugName: 'scan_for_vocabulary', argNames: ['text']);
 
   @override
-  Future<List<Book>> crateApiStorageSearchBooks({required String keyword}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(keyword);
-          return wire.wire__crate__api__storage__search_books(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_book,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageSearchBooksConstMeta,
-        argValues: [keyword],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageSearchBooksConstMeta =>
-      const TaskConstMeta(debugName: 'search_books', argNames: ['keyword']);
-
-  @override
-  Future<List<DictEntry>> crateApiDictionarySearchDictionaryDefinitions({
-    required String query,
-    required int limit,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(query);
-          final arg1 = cst_encode_i_32(limit);
-          return wire
-              .wire__crate__api__dictionary__search_dictionary_definitions(
-                port_,
-                arg0,
-                arg1,
-              );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_dict_entry,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiDictionarySearchDictionaryDefinitionsConstMeta,
-        argValues: [query, limit],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiDictionarySearchDictionaryDefinitionsConstMeta =>
-      const TaskConstMeta(
-        debugName: 'search_dictionary_definitions',
-        argNames: ['query', 'limit'],
-      );
-
-  @override
-  Future<List<SearchResult>> crateApiSearchSearchInBook({
+  Future<List<SearchResult>> crateApiSearchSearch({
     required String bookId,
     required String query,
     required int limit,
@@ -2690,55 +3544,109 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final arg0 = cst_encode_String(bookId);
           final arg1 = cst_encode_String(query);
           final arg2 = cst_encode_i_32(limit);
-          return wire.wire__crate__api__search__search_in_book(
-            port_,
-            arg0,
-            arg1,
-            arg2,
-          );
+          return wire.wire__crate__api__search__search(port_, arg0, arg1, arg2);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_list_search_result,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiSearchSearchInBookConstMeta,
+        constMeta: kCrateApiSearchSearchConstMeta,
         argValues: [bookId, query, limit],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSearchSearchInBookConstMeta => const TaskConstMeta(
-    debugName: 'search_in_book',
+  TaskConstMeta get kCrateApiSearchSearchConstMeta => const TaskConstMeta(
+    debugName: 'search',
     argNames: ['bookId', 'query', 'limit'],
   );
 
   @override
-  Future<List<VocabEntry>> crateApiVocabularySearchVocabulary({
+  Future<List<SearchResult>> crateApiSearchSearchAllBooks({
+    required String query,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(query);
+          final arg1 = cst_encode_i_32(limit);
+          return wire.wire__crate__api__search__search_all_books(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_search_result,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiSearchSearchAllBooksConstMeta,
+        argValues: [query, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSearchSearchAllBooksConstMeta =>
+      const TaskConstMeta(
+        debugName: 'search_all_books',
+        argNames: ['query', 'limit'],
+      );
+
+  @override
+  Future<List<Book>> crateApiDataBookSearchBooks({required String keyword}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(keyword);
+          return wire.wire__crate__api__data__book__search_books(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_book,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataBookSearchBooksConstMeta,
+        argValues: [keyword],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookSearchBooksConstMeta =>
+      const TaskConstMeta(debugName: 'search_books', argNames: ['keyword']);
+
+  @override
+  Future<List<Vocab>> crateApiDataVocabularySearchVocabularyWords({
     required String query,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(query);
-          return wire.wire__crate__api__vocabulary__search_vocabulary(
-            port_,
-            arg0,
-          );
+          return wire
+              .wire__crate__api__data__vocabulary__search_vocabulary_words(
+                port_,
+                arg0,
+              );
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_vocab_entry,
+          decodeSuccessData: dco_decode_list_vocab,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiVocabularySearchVocabularyConstMeta,
+        constMeta: kCrateApiDataVocabularySearchVocabularyWordsConstMeta,
         argValues: [query],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiVocabularySearchVocabularyConstMeta =>
-      const TaskConstMeta(debugName: 'search_vocabulary', argNames: ['query']);
+  TaskConstMeta get kCrateApiDataVocabularySearchVocabularyWordsConstMeta =>
+      const TaskConstMeta(
+        debugName: 'search_vocabulary_words',
+        argNames: ['query'],
+      );
 
   @override
   Future<List<String>> crateApiDictionarySegmentText({required String text}) {
@@ -2763,7 +3671,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: 'segment_text', argNames: ['text']);
 
   @override
-  Future<void> crateApiStorageSetCategoriesForBook({
+  Future<void> crateApiDataCategorySetCategoriesForBook({
     required String bookId,
     required List<String> categoryIds,
   }) {
@@ -2772,7 +3680,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: (port_) {
           final arg0 = cst_encode_String(bookId);
           final arg1 = cst_encode_list_String(categoryIds);
-          return wire.wire__crate__api__storage__set_categories_for_book(
+          return wire.wire__crate__api__data__category__set_categories_for_book(
             port_,
             arg0,
             arg1,
@@ -2782,14 +3690,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageSetCategoriesForBookConstMeta,
+        constMeta: kCrateApiDataCategorySetCategoriesForBookConstMeta,
         argValues: [bookId, categoryIds],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageSetCategoriesForBookConstMeta =>
+  TaskConstMeta get kCrateApiDataCategorySetCategoriesForBookConstMeta =>
       const TaskConstMeta(
         debugName: 'set_categories_for_book',
         argNames: ['bookId', 'categoryIds'],
@@ -2829,6 +3737,60 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  List<String> crateApiDictionarySuggestMdict({
+    required String prefix,
+    required int limit,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final arg0 = cst_encode_String(prefix);
+          final arg1 = cst_encode_i_32(limit);
+          return wire.wire__crate__api__dictionary__suggest_mdict(arg0, arg1);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiDictionarySuggestMdictConstMeta,
+        argValues: [prefix, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDictionarySuggestMdictConstMeta =>
+      const TaskConstMeta(
+        debugName: 'suggest_mdict',
+        argNames: ['prefix', 'limit'],
+      );
+
+  @override
+  bool crateApiCoreSupportsChunkedPagination({required String filePath}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final arg0 = cst_encode_String(filePath);
+          return wire.wire__crate__api__core__supports_chunked_pagination(arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCoreSupportsChunkedPaginationConstMeta,
+        argValues: [filePath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCoreSupportsChunkedPaginationConstMeta =>
+      const TaskConstMeta(
+        debugName: 'supports_chunked_pagination',
+        argNames: ['filePath'],
+      );
+
+  @override
   bool crateApiCoverSupportsCoverExtraction({required String filePath}) {
     return handler.executeSync(
       SyncTask(
@@ -2854,59 +3816,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  bool crateApiBookSupportsFormat({required String format}) {
+  bool crateApiCoreSupportsFormat({required String format}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final arg0 = cst_encode_String(format);
-          return wire.wire__crate__api__book__supports_format(arg0);
+          return wire.wire__crate__api__core__supports_format(arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_bool,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiBookSupportsFormatConstMeta,
+        constMeta: kCrateApiCoreSupportsFormatConstMeta,
         argValues: [format],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBookSupportsFormatConstMeta =>
+  TaskConstMeta get kCrateApiCoreSupportsFormatConstMeta =>
       const TaskConstMeta(debugName: 'supports_format', argNames: ['format']);
-
-  @override
-  Future<List<Bookmark>> crateApiStorageSyncBookmarks({
-    required List<Bookmark> localBookmarks,
-    required List<Bookmark> remoteBookmarks,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_list_bookmark(localBookmarks);
-          final arg1 = cst_encode_list_bookmark(remoteBookmarks);
-          return wire.wire__crate__api__storage__sync_bookmarks(
-            port_,
-            arg0,
-            arg1,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_bookmark,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageSyncBookmarksConstMeta,
-        argValues: [localBookmarks, remoteBookmarks],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageSyncBookmarksConstMeta =>
-      const TaskConstMeta(
-        debugName: 'sync_bookmarks',
-        argNames: ['localBookmarks', 'remoteBookmarks'],
-      );
 
   @override
   String crateApiTestConnection() {
@@ -2962,7 +3891,46 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
-  Future<void> crateApiStorageUpdateBookPin({
+  Future<void> crateApiDataBookUpdateBookMetadata({
+    required String bookId,
+    String? title,
+    String? author,
+    String? description,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_opt_String(title);
+          final arg2 = cst_encode_opt_String(author);
+          final arg3 = cst_encode_opt_String(description);
+          return wire.wire__crate__api__data__book__update_book_metadata(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataBookUpdateBookMetadataConstMeta,
+        argValues: [bookId, title, author, description],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookUpdateBookMetadataConstMeta =>
+      const TaskConstMeta(
+        debugName: 'update_book_metadata',
+        argNames: ['bookId', 'title', 'author', 'description'],
+      );
+
+  @override
+  Future<void> crateApiDataBookUpdateBookPin({
     required String bookId,
     required bool isPinned,
   }) {
@@ -2971,7 +3939,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: (port_) {
           final arg0 = cst_encode_String(bookId);
           final arg1 = cst_encode_bool(isPinned);
-          return wire.wire__crate__api__storage__update_book_pin(
+          return wire.wire__crate__api__data__book__update_book_pin(
             port_,
             arg0,
             arg1,
@@ -2981,21 +3949,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageUpdateBookPinConstMeta,
+        constMeta: kCrateApiDataBookUpdateBookPinConstMeta,
         argValues: [bookId, isPinned],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageUpdateBookPinConstMeta =>
+  TaskConstMeta get kCrateApiDataBookUpdateBookPinConstMeta =>
       const TaskConstMeta(
         debugName: 'update_book_pin',
         argNames: ['bookId', 'isPinned'],
       );
 
   @override
-  Future<void> crateApiStorageUpdateBookStatus({
+  Future<void> crateApiDataBookUpdateBookStatus({
     required String bookId,
     required BookStatus status,
   }) {
@@ -3004,7 +3972,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: (port_) {
           final arg0 = cst_encode_String(bookId);
           final arg1 = cst_encode_book_status(status);
-          return wire.wire__crate__api__storage__update_book_status(
+          return wire.wire__crate__api__data__book__update_book_status(
             port_,
             arg0,
             arg1,
@@ -3014,77 +3982,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiStorageUpdateBookStatusConstMeta,
+        constMeta: kCrateApiDataBookUpdateBookStatusConstMeta,
         argValues: [bookId, status],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiStorageUpdateBookStatusConstMeta =>
+  TaskConstMeta get kCrateApiDataBookUpdateBookStatusConstMeta =>
       const TaskConstMeta(
         debugName: 'update_book_status',
         argNames: ['bookId', 'status'],
       );
 
   @override
-  Future<void> crateApiStorageUpdateDailyStats({required ReadingStats stats}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_box_autoadd_reading_stats(stats);
-          return wire.wire__crate__api__storage__update_daily_stats(
-            port_,
-            arg0,
-          );
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageUpdateDailyStatsConstMeta,
-        argValues: [stats],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageUpdateDailyStatsConstMeta =>
-      const TaskConstMeta(debugName: 'update_daily_stats', argNames: ['stats']);
-
-  @override
-  Future<void> crateApiStorageUpdateNote({required Note note}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_box_autoadd_note(note);
-          return wire.wire__crate__api__storage__update_note(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_app_error,
-        ),
-        constMeta: kCrateApiStorageUpdateNoteConstMeta,
-        argValues: [note],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageUpdateNoteConstMeta =>
-      const TaskConstMeta(debugName: 'update_note', argNames: ['note']);
-
-  @override
-  Future<void> crateApiVocabularyUpdateVocabularyStatus({
-    required String id,
-    required String status,
+  Future<void> crateApiDataBookUpdateBookTitle({
+    required String bookId,
+    required String title,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final arg0 = cst_encode_String(id);
-          final arg1 = cst_encode_String(status);
-          return wire.wire__crate__api__vocabulary__update_vocabulary_status(
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_String(title);
+          return wire.wire__crate__api__data__book__update_book_title(
             port_,
             arg0,
             arg1,
@@ -3094,18 +4015,277 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
-        constMeta: kCrateApiVocabularyUpdateVocabularyStatusConstMeta,
+        constMeta: kCrateApiDataBookUpdateBookTitleConstMeta,
+        argValues: [bookId, title],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookUpdateBookTitleConstMeta =>
+      const TaskConstMeta(
+        debugName: 'update_book_title',
+        argNames: ['bookId', 'title'],
+      );
+
+  @override
+  Future<void> crateApiDataStatsUpdateDailyStats({
+    required ReadingStats stats,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_box_autoadd_reading_stats(stats);
+          return wire.wire__crate__api__data__stats__update_daily_stats(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataStatsUpdateDailyStatsConstMeta,
+        argValues: [stats],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataStatsUpdateDailyStatsConstMeta =>
+      const TaskConstMeta(debugName: 'update_daily_stats', argNames: ['stats']);
+
+  @override
+  Future<void> crateApiDataVocabularyUpdateVocabularyStatus({
+    required String id,
+    required VocabStatus status,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(id);
+          final arg1 = cst_encode_vocab_status(status);
+          return wire
+              .wire__crate__api__data__vocabulary__update_vocabulary_status(
+                port_,
+                arg0,
+                arg1,
+              );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataVocabularyUpdateVocabularyStatusConstMeta,
         argValues: [id, status],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiVocabularyUpdateVocabularyStatusConstMeta =>
+  TaskConstMeta get kCrateApiDataVocabularyUpdateVocabularyStatusConstMeta =>
       const TaskConstMeta(
         debugName: 'update_vocabulary_status',
         argNames: ['id', 'status'],
       );
+
+  @override
+  Future<void> crateApiDataBookUpsertBook({required Book book}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_box_autoadd_book(book);
+          return wire.wire__crate__api__data__book__upsert_book(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataBookUpsertBookConstMeta,
+        argValues: [book],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookUpsertBookConstMeta =>
+      const TaskConstMeta(debugName: 'upsert_book', argNames: ['book']);
+
+  @override
+  Future<void> crateApiDataBookmarkUpsertBookmark({
+    required Bookmark bookmark,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_box_autoadd_bookmark(bookmark);
+          return wire.wire__crate__api__data__bookmark__upsert_bookmark(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataBookmarkUpsertBookmarkConstMeta,
+        argValues: [bookmark],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookmarkUpsertBookmarkConstMeta =>
+      const TaskConstMeta(debugName: 'upsert_bookmark', argNames: ['bookmark']);
+
+  @override
+  Future<Category> crateApiDataCategoryUpsertCategory({
+    required String name,
+    required String color,
+    required int sortOrder,
+    String? description,
+    String? categoryId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(name);
+          final arg1 = cst_encode_String(color);
+          final arg2 = cst_encode_i_32(sortOrder);
+          final arg3 = cst_encode_opt_String(description);
+          final arg4 = cst_encode_opt_String(categoryId);
+          return wire.wire__crate__api__data__category__upsert_category(
+            port_,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
+            arg4,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_category,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataCategoryUpsertCategoryConstMeta,
+        argValues: [name, color, sortOrder, description, categoryId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataCategoryUpsertCategoryConstMeta =>
+      const TaskConstMeta(
+        debugName: 'upsert_category',
+        argNames: ['name', 'color', 'sortOrder', 'description', 'categoryId'],
+      );
+
+  @override
+  Future<void> crateApiDataChapterUpsertChapters({
+    required String bookId,
+    required List<Chapter> chapters,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          final arg1 = cst_encode_list_chapter(chapters);
+          return wire.wire__crate__api__data__chapter__upsert_chapters(
+            port_,
+            arg0,
+            arg1,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataChapterUpsertChaptersConstMeta,
+        argValues: [bookId, chapters],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataChapterUpsertChaptersConstMeta =>
+      const TaskConstMeta(
+        debugName: 'upsert_chapters',
+        argNames: ['bookId', 'chapters'],
+      );
+
+  @override
+  Future<void> crateApiDictionaryUpsertDictionary({required Dictionary dict}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_box_autoadd_dictionary(dict);
+          return wire.wire__crate__api__dictionary__upsert_dictionary(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDictionaryUpsertDictionaryConstMeta,
+        argValues: [dict],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDictionaryUpsertDictionaryConstMeta =>
+      const TaskConstMeta(debugName: 'upsert_dictionary', argNames: ['dict']);
+
+  @override
+  Future<Note> crateApiDataNoteUpsertNote({required Note note}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_box_autoadd_note(note);
+          return wire.wire__crate__api__data__note__upsert_note(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_note,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataNoteUpsertNoteConstMeta,
+        argValues: [note],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataNoteUpsertNoteConstMeta =>
+      const TaskConstMeta(debugName: 'upsert_note', argNames: ['note']);
+
+  @override
+  Future<void> crateApiDataProgressUpsertProgress({
+    required ReadingProgress progress,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_box_autoadd_reading_progress(progress);
+          return wire.wire__crate__api__data__progress__upsert_progress(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataProgressUpsertProgressConstMeta,
+        argValues: [progress],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataProgressUpsertProgressConstMeta =>
+      const TaskConstMeta(debugName: 'upsert_progress', argNames: ['progress']);
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_PageStreamer => wire
@@ -3233,8 +4413,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Book dco_decode_book(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 16)
-      throw Exception('unexpected arr length: expect 16 but see ${arr.length}');
+    if (arr.length != 19)
+      throw Exception('unexpected arr length: expect 19 but see ${arr.length}');
     return Book(
       bookId: dco_decode_String(arr[0]),
       filePath: dco_decode_String(arr[1]),
@@ -3243,33 +4423,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       fileMtime: dco_decode_opt_box_autoadd_i_64(arr[4]),
       title: dco_decode_String(arr[5]),
       author: dco_decode_opt_String(arr[6]),
-      description: dco_decode_opt_String(arr[7]),
-      coverPath: dco_decode_opt_String(arr[8]),
-      chapterCount: dco_decode_i_32(arr[9]),
-      totalCharacters: dco_decode_i_64(arr[10]),
-      format: dco_decode_book_format(arr[11]),
-      addedAt: dco_decode_Chrono_Utc(arr[12]),
-      lastOpenedAt: dco_decode_opt_box_autoadd_Chrono_Utc(arr[13]),
-      status: dco_decode_book_status(arr[14]),
-      isPinned: dco_decode_bool(arr[15]),
-    );
-  }
-
-  @protected
-  BookCategory dco_decode_book_category(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
-    return BookCategory(
-      id: dco_decode_String(arr[0]),
-      name: dco_decode_String(arr[1]),
-      description: dco_decode_opt_String(arr[2]),
-      color: dco_decode_String(arr[3]),
-      sortOrder: dco_decode_i_32(arr[4]),
-      isSystem: dco_decode_bool(arr[5]),
-      createdAt: dco_decode_Chrono_Utc(arr[6]),
-      updatedAt: dco_decode_opt_box_autoadd_Chrono_Utc(arr[7]),
+      coverPath: dco_decode_opt_String(arr[7]),
+      chapterCount: dco_decode_i_32(arr[8]),
+      totalCharacters: dco_decode_i_64(arr[9]),
+      format: dco_decode_book_format(arr[10]),
+      addedAt: dco_decode_Chrono_Utc(arr[11]),
+      lastOpenedAt: dco_decode_opt_box_autoadd_Chrono_Utc(arr[12]),
+      status: dco_decode_book_status(arr[13]),
+      isPinned: dco_decode_bool(arr[14]),
+      description: dco_decode_opt_String(arr[15]),
+      publisher: dco_decode_opt_String(arr[16]),
+      translator: dco_decode_opt_String(arr[17]),
+      isbn: dco_decode_opt_String(arr[18]),
     );
   }
 
@@ -3283,17 +4448,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BookMetadata dco_decode_book_metadata(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return BookMetadata(
       title: dco_decode_String(arr[0]),
       author: dco_decode_String(arr[1]),
       description: dco_decode_opt_String(arr[2]),
       coverPath: dco_decode_opt_String(arr[3]),
-      publishYear: dco_decode_opt_box_autoadd_i_32(arr[4]),
-      language: dco_decode_opt_String(arr[5]),
-      chapterCount: dco_decode_i_32(arr[6]),
-      totalCharacters: dco_decode_i_64(arr[7]),
+      publisher: dco_decode_opt_String(arr[4]),
+      translator: dco_decode_opt_String(arr[5]),
+      isbn: dco_decode_opt_String(arr[6]),
+      publishYear: dco_decode_opt_box_autoadd_i_32(arr[7]),
+      language: dco_decode_opt_String(arr[8]),
+      chapterCount: dco_decode_i_32(arr[9]),
+      totalCharacters: dco_decode_i_64(arr[10]),
     );
   }
 
@@ -3301,6 +4469,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BookStatus dco_decode_book_status(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return BookStatus.values[raw as int];
+  }
+
+  @protected
+  BookWithProgress dco_decode_book_with_progress(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BookWithProgress(
+      book: dco_decode_book(arr[0]),
+      progress: dco_decode_opt_box_autoadd_reading_progress(arr[1]),
+    );
   }
 
   @protected
@@ -3339,21 +4519,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  BookCategory dco_decode_box_autoadd_book_category(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_book_category(raw);
-  }
-
-  @protected
   Bookmark dco_decode_box_autoadd_bookmark(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_bookmark(raw);
   }
 
   @protected
+  Category dco_decode_box_autoadd_category(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_category(raw);
+  }
+
+  @protected
   Chapter dco_decode_box_autoadd_chapter(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_chapter(raw);
+  }
+
+  @protected
+  DictEntry dco_decode_box_autoadd_dict_entry(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_dict_entry(raw);
+  }
+
+  @protected
+  DictSearchResult dco_decode_box_autoadd_dict_search_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_dict_search_result(raw);
+  }
+
+  @protected
+  Dictionary dco_decode_box_autoadd_dictionary(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_dictionary(raw);
   }
 
   @protected
@@ -3393,15 +4591,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ReadingSession dco_decode_box_autoadd_reading_session(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_reading_session(raw);
-  }
-
-  @protected
   ReadingStats dco_decode_box_autoadd_reading_stats(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_reading_stats(raw);
+  }
+
+  @protected
+  TypesetCalibration dco_decode_box_autoadd_typeset_calibration(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_typeset_calibration(raw);
   }
 
   @protected
@@ -3411,23 +4609,44 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  VocabStatus dco_decode_box_autoadd_vocab_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_vocab_status(raw);
+  }
+
+  @protected
+  Category dco_decode_category(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return Category(
+      id: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      description: dco_decode_opt_String(arr[2]),
+      color: dco_decode_String(arr[3]),
+      sortOrder: dco_decode_i_32(arr[4]),
+      isSystem: dco_decode_bool(arr[5]),
+    );
+  }
+
+  @protected
   Chapter dco_decode_chapter(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 11)
-      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
     return Chapter(
       id: dco_decode_String(arr[0]),
       bookId: dco_decode_String(arr[1]),
       title: dco_decode_String(arr[2]),
-      contentFile: dco_decode_String(arr[3]),
-      chapterIndex: dco_decode_i_32(arr[4]),
-      wordCount: dco_decode_i_64(arr[5]),
-      cachedAt: dco_decode_Chrono_Utc(arr[6]),
-      level: dco_decode_i_32(arr[7]),
-      startIndex: dco_decode_i_64(arr[8]),
-      endIndex: dco_decode_i_64(arr[9]),
-      contentLength: dco_decode_i_64(arr[10]),
+      chapterIndex: dco_decode_i_32(arr[3]),
+      wordCount: dco_decode_i_64(arr[4]),
+      cachedAt: dco_decode_Chrono_Utc(arr[5]),
+      level: dco_decode_i_32(arr[6]),
+      startIndex: dco_decode_i_64(arr[7]),
+      endIndex: dco_decode_i_64(arr[8]),
+      contentLength: dco_decode_i_64(arr[9]),
     );
   }
 
@@ -3448,26 +4667,43 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   DictEntry dco_decode_dict_entry(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return DictEntry(
-      simplified: dco_decode_String(arr[0]),
-      traditional: dco_decode_String(arr[1]),
-      pinyin: dco_decode_String(arr[2]),
-      definitions: dco_decode_String(arr[3]),
+      word: dco_decode_String(arr[0]),
+      definitionHtml: dco_decode_String(arr[1]),
+      audioKey: dco_decode_opt_String(arr[2]),
     );
   }
 
   @protected
-  DictInfo dco_decode_dict_info(dynamic raw) {
+  DictSearchResult dco_decode_dict_search_result(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
-    return DictInfo(
-      version: dco_decode_String(arr[0]),
-      source: dco_decode_String(arr[1]),
-      entryCount: dco_decode_i_64(arr[2]),
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return DictSearchResult(
+      exact: dco_decode_opt_box_autoadd_dict_entry(arr[0]),
+      suggestions: dco_decode_list_String(arr[1]),
+    );
+  }
+
+  @protected
+  Dictionary dco_decode_dictionary(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return Dictionary(
+      id: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      filePath: dco_decode_String(arr[2]),
+      dictType: dco_decode_String(arr[3]),
+      langFrom: dco_decode_opt_String(arr[4]),
+      langTo: dco_decode_opt_String(arr[5]),
+      isEnabled: dco_decode_bool(arr[6]),
+      wordCount: dco_decode_i_64(arr[7]),
+      addedAt: dco_decode_Chrono_Utc(arr[8]),
     );
   }
 
@@ -3539,6 +4775,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ImageFormat dco_decode_image_format(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ImageFormat.values[raw as int];
+  }
+
+  @protected
   LanguageType dco_decode_language_type(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return LanguageType.values[raw as int];
@@ -3573,9 +4815,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  List<BookCategory> dco_decode_list_book_category(dynamic raw) {
+  List<BookWithProgress> dco_decode_list_book_with_progress(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_book_category).toList();
+    return (raw as List<dynamic>).map(dco_decode_book_with_progress).toList();
   }
 
   @protected
@@ -3585,15 +4827,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<Category> dco_decode_list_category(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_category).toList();
+  }
+
+  @protected
   List<Chapter> dco_decode_list_chapter(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_chapter).toList();
   }
 
   @protected
-  List<DictEntry> dco_decode_list_dict_entry(dynamic raw) {
+  List<Dictionary> dco_decode_list_dictionary(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_dict_entry).toList();
+    return (raw as List<dynamic>).map(dco_decode_dictionary).toList();
   }
 
   @protected
@@ -3651,9 +4899,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  List<VocabEntry> dco_decode_list_vocab_entry(dynamic raw) {
+  List<Vocab> dco_decode_list_vocab(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_vocab_entry).toList();
+    return (raw as List<dynamic>).map(dco_decode_vocab).toList();
+  }
+
+  @protected
+  List<VocabMatch> dco_decode_list_vocab_match(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_vocab_match).toList();
   }
 
   @protected
@@ -3718,21 +4972,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  BookCategory? dco_decode_opt_box_autoadd_book_category(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_book_category(raw);
-  }
-
-  @protected
   Bookmark? dco_decode_opt_box_autoadd_bookmark(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_bookmark(raw);
   }
 
   @protected
+  Category? dco_decode_opt_box_autoadd_category(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_category(raw);
+  }
+
+  @protected
   Chapter? dco_decode_opt_box_autoadd_chapter(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_chapter(raw);
+  }
+
+  @protected
+  DictEntry? dco_decode_opt_box_autoadd_dict_entry(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_dict_entry(raw);
+  }
+
+  @protected
+  DictSearchResult? dco_decode_opt_box_autoadd_dict_search_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_dict_search_result(raw);
+  }
+
+  @protected
+  Dictionary? dco_decode_opt_box_autoadd_dictionary(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_dictionary(raw);
   }
 
   @protected
@@ -3772,22 +5044,56 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TypesetCalibration? dco_decode_opt_box_autoadd_typeset_calibration(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_typeset_calibration(raw);
+  }
+
+  @protected
   TypesetConfig? dco_decode_opt_box_autoadd_typeset_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_typeset_config(raw);
   }
 
   @protected
+  VocabStatus? dco_decode_opt_box_autoadd_vocab_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_vocab_status(raw);
+  }
+
+  @protected
+  Uint8List? dco_decode_opt_list_prim_u_8_strict(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_list_prim_u_8_strict(raw);
+  }
+
+  @protected
   PageContent dco_decode_page_content(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return PageContent(
       chapterIndex: dco_decode_i_32(arr[0]),
       pageIndex: dco_decode_i_32(arr[1]),
       content: dco_decode_String(arr[2]),
       isLastPage: dco_decode_bool(arr[3]),
+      startOffset: dco_decode_i_64(arr[4]),
+      endOffset: dco_decode_i_64(arr[5]),
+    );
+  }
+
+  @protected
+  PageData dco_decode_page_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return PageData(
+      pageIndex: dco_decode_u_32(arr[0]),
+      text: dco_decode_String(arr[1]),
     );
   }
 
@@ -3807,19 +5113,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ReadingProgress dco_decode_reading_progress(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 10)
-      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return ReadingProgress(
       bookId: dco_decode_String(arr[0]),
       chapterIndex: dco_decode_i_32(arr[1]),
-      chapterId: dco_decode_opt_String(arr[2]),
-      charOffset: dco_decode_i_64(arr[3]),
-      pageIndex: dco_decode_i_32(arr[4]),
-      totalPages: dco_decode_i_32(arr[5]),
-      progress: dco_decode_f_32(arr[6]),
-      readingTimeSeconds: dco_decode_i_64(arr[7]),
-      lastReadAt: dco_decode_Chrono_Utc(arr[8]),
-      isCompleted: dco_decode_bool(arr[9]),
+      chunkIndex: dco_decode_i_32(arr[2]),
+      chapterId: dco_decode_opt_String(arr[3]),
+      charOffset: dco_decode_i_64(arr[4]),
+      pageIndex: dco_decode_i_32(arr[5]),
+      totalPages: dco_decode_i_32(arr[6]),
+      progress: dco_decode_f_32(arr[7]),
+      readingTimeSeconds: dco_decode_i_64(arr[8]),
+      lastReadAt: dco_decode_Chrono_Utc(arr[9]),
+      isCompleted: dco_decode_bool(arr[10]),
     );
   }
 
@@ -3827,18 +5134,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ReadingSession dco_decode_reading_session(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 9)
-      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return ReadingSession(
       id: dco_decode_String(arr[0]),
       bookId: dco_decode_String(arr[1]),
       chapterIndex: dco_decode_i_32(arr[2]),
-      chapterId: dco_decode_opt_String(arr[3]),
-      startCharOffset: dco_decode_i_64(arr[4]),
-      endCharOffset: dco_decode_i_64(arr[5]),
-      startedAt: dco_decode_Chrono_Utc(arr[6]),
-      endedAt: dco_decode_Chrono_Utc(arr[7]),
-      durationSeconds: dco_decode_i_64(arr[8]),
+      startCharOffset: dco_decode_i_64(arr[3]),
+      endCharOffset: dco_decode_i_64(arr[4]),
+      startedAt: dco_decode_Chrono_Utc(arr[5]),
+      endedAt: dco_decode_Chrono_Utc(arr[6]),
+      durationSeconds: dco_decode_i_64(arr[7]),
     );
   }
 
@@ -3846,14 +5152,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ReadingStats dco_decode_reading_stats(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return ReadingStats(
       bookId: dco_decode_String(arr[0]),
       date: dco_decode_String(arr[1]),
       readingTimeSeconds: dco_decode_i_64(arr[2]),
       charactersRead: dco_decode_i_64(arr[3]),
       sessionCount: dco_decode_i_32(arr[4]),
+      lastSessionId: dco_decode_opt_String(arr[5]),
     );
   }
 
@@ -3940,15 +5247,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   SearchResult dco_decode_search_result(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6)
-      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return SearchResult(
-      chapterId: dco_decode_i_32(arr[0]),
-      chapterTitle: dco_decode_String(arr[1]),
-      snippet: dco_decode_String(arr[2]),
-      position: dco_decode_i_64(arr[3]),
-      score: dco_decode_f_32(arr[4]),
-      charOffset: dco_decode_i_64(arr[5]),
+      bookId: dco_decode_String(arr[0]),
+      chapterId: dco_decode_String(arr[1]),
+      chapterIndex: dco_decode_String(arr[2]),
+      chapterTitle: dco_decode_String(arr[3]),
+      snippet: dco_decode_String(arr[4]),
+      position: dco_decode_i_64(arr[5]),
+      score: dco_decode_f_32(arr[6]),
+      charOffset: dco_decode_i_64(arr[7]),
+    );
+  }
+
+  @protected
+  TypesetCalibration dco_decode_typeset_calibration(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return TypesetCalibration(
+      dpr: dco_decode_f_32(arr[0]),
+      cjkWidth: dco_decode_f_32(arr[1]),
+      asciiWidth: dco_decode_f_32(arr[2]),
+      digitWidth: dco_decode_f_32(arr[3]),
+      punctWidth: dco_decode_f_32(arr[4]),
+      latinExtWidth: dco_decode_f_32(arr[5]),
+      otherWidth: dco_decode_f_32(arr[6]),
     );
   }
 
@@ -3956,8 +5282,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TypesetConfig dco_decode_typeset_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 10)
-      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
     return TypesetConfig(
       pageWidth: dco_decode_i_32(arr[0]),
       pageHeight: dco_decode_i_32(arr[1]),
@@ -3969,7 +5295,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       language: dco_decode_language_type(arr[7]),
       enableHyphenation: dco_decode_bool(arr[8]),
       hyphenationLanguage: dco_decode_opt_String(arr[9]),
+      fontFamily: dco_decode_String(arr[10]),
+      calibration: dco_decode_opt_box_autoadd_typeset_calibration(arr[11]),
     );
+  }
+
+  @protected
+  int dco_decode_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
   }
 
   @protected
@@ -3991,12 +5325,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  VocabEntry dco_decode_vocab_entry(dynamic raw) {
+  Vocab dco_decode_vocab(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 12)
-      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
-    return VocabEntry(
+    if (arr.length != 15)
+      throw Exception('unexpected arr length: expect 15 but see ${arr.length}');
+    return Vocab(
       id: dco_decode_String(arr[0]),
       word: dco_decode_String(arr[1]),
       pinyin: dco_decode_String(arr[2]),
@@ -4008,7 +5342,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       createdAt: dco_decode_Chrono_Utc(arr[8]),
       reviewCount: dco_decode_i_32(arr[9]),
       lastReviewedAt: dco_decode_opt_box_autoadd_Chrono_Utc(arr[10]),
-      status: dco_decode_String(arr[11]),
+      status: dco_decode_vocab_status(arr[11]),
+      wordList: dco_decode_opt_String(arr[12]),
+      dictSource: dco_decode_opt_String(arr[13]),
+      dictEntryHash: dco_decode_opt_String(arr[14]),
+    );
+  }
+
+  @protected
+  VocabMatch dco_decode_vocab_match(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return VocabMatch(
+      word: dco_decode_String(arr[0]),
+      start: dco_decode_i_64(arr[1]),
+      end: dco_decode_i_64(arr[2]),
     );
   }
 
@@ -4024,6 +5374,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       knownCount: dco_decode_i_64(arr[2]),
       masteredCount: dco_decode_i_64(arr[3]),
     );
+  }
+
+  @protected
+  VocabStatus dco_decode_vocab_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return VocabStatus.values[raw as int];
   }
 
   @protected
@@ -4175,7 +5531,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final var_fileMtime = sse_decode_opt_box_autoadd_i_64(deserializer);
     final var_title = sse_decode_String(deserializer);
     final var_author = sse_decode_opt_String(deserializer);
-    final var_description = sse_decode_opt_String(deserializer);
     final var_coverPath = sse_decode_opt_String(deserializer);
     final var_chapterCount = sse_decode_i_32(deserializer);
     final var_totalCharacters = sse_decode_i_64(deserializer);
@@ -4186,6 +5541,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     );
     final var_status = sse_decode_book_status(deserializer);
     final var_isPinned = sse_decode_bool(deserializer);
+    final var_description = sse_decode_opt_String(deserializer);
+    final var_publisher = sse_decode_opt_String(deserializer);
+    final var_translator = sse_decode_opt_String(deserializer);
+    final var_isbn = sse_decode_opt_String(deserializer);
     return Book(
       bookId: var_bookId,
       filePath: var_filePath,
@@ -4194,7 +5553,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       fileMtime: var_fileMtime,
       title: var_title,
       author: var_author,
-      description: var_description,
       coverPath: var_coverPath,
       chapterCount: var_chapterCount,
       totalCharacters: var_totalCharacters,
@@ -4203,29 +5561,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       lastOpenedAt: var_lastOpenedAt,
       status: var_status,
       isPinned: var_isPinned,
-    );
-  }
-
-  @protected
-  BookCategory sse_decode_book_category(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_id = sse_decode_String(deserializer);
-    final var_name = sse_decode_String(deserializer);
-    final var_description = sse_decode_opt_String(deserializer);
-    final var_color = sse_decode_String(deserializer);
-    final var_sortOrder = sse_decode_i_32(deserializer);
-    final var_isSystem = sse_decode_bool(deserializer);
-    final var_createdAt = sse_decode_Chrono_Utc(deserializer);
-    final var_updatedAt = sse_decode_opt_box_autoadd_Chrono_Utc(deserializer);
-    return BookCategory(
-      id: var_id,
-      name: var_name,
       description: var_description,
-      color: var_color,
-      sortOrder: var_sortOrder,
-      isSystem: var_isSystem,
-      createdAt: var_createdAt,
-      updatedAt: var_updatedAt,
+      publisher: var_publisher,
+      translator: var_translator,
+      isbn: var_isbn,
     );
   }
 
@@ -4243,6 +5582,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final var_author = sse_decode_String(deserializer);
     final var_description = sse_decode_opt_String(deserializer);
     final var_coverPath = sse_decode_opt_String(deserializer);
+    final var_publisher = sse_decode_opt_String(deserializer);
+    final var_translator = sse_decode_opt_String(deserializer);
+    final var_isbn = sse_decode_opt_String(deserializer);
     final var_publishYear = sse_decode_opt_box_autoadd_i_32(deserializer);
     final var_language = sse_decode_opt_String(deserializer);
     final var_chapterCount = sse_decode_i_32(deserializer);
@@ -4252,6 +5594,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       author: var_author,
       description: var_description,
       coverPath: var_coverPath,
+      publisher: var_publisher,
+      translator: var_translator,
+      isbn: var_isbn,
       publishYear: var_publishYear,
       language: var_language,
       chapterCount: var_chapterCount,
@@ -4264,6 +5609,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     final inner = sse_decode_i_32(deserializer);
     return BookStatus.values[inner];
+  }
+
+  @protected
+  BookWithProgress sse_decode_book_with_progress(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_book = sse_decode_book(deserializer);
+    final var_progress = sse_decode_opt_box_autoadd_reading_progress(
+      deserializer,
+    );
+    return BookWithProgress(book: var_book, progress: var_progress);
   }
 
   @protected
@@ -4306,23 +5661,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  BookCategory sse_decode_box_autoadd_book_category(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_book_category(deserializer));
-  }
-
-  @protected
   Bookmark sse_decode_box_autoadd_bookmark(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_bookmark(deserializer));
   }
 
   @protected
+  Category sse_decode_box_autoadd_category(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_category(deserializer));
+  }
+
+  @protected
   Chapter sse_decode_box_autoadd_chapter(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_chapter(deserializer));
+  }
+
+  @protected
+  DictEntry sse_decode_box_autoadd_dict_entry(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_dict_entry(deserializer));
+  }
+
+  @protected
+  DictSearchResult sse_decode_box_autoadd_dict_search_result(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_dict_search_result(deserializer));
+  }
+
+  @protected
+  Dictionary sse_decode_box_autoadd_dictionary(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_dictionary(deserializer));
   }
 
   @protected
@@ -4364,19 +5737,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ReadingSession sse_decode_box_autoadd_reading_session(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_reading_session(deserializer));
-  }
-
-  @protected
   ReadingStats sse_decode_box_autoadd_reading_stats(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_reading_stats(deserializer));
+  }
+
+  @protected
+  TypesetCalibration sse_decode_box_autoadd_typeset_calibration(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_typeset_calibration(deserializer));
   }
 
   @protected
@@ -4388,12 +5761,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  VocabStatus sse_decode_box_autoadd_vocab_status(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_vocab_status(deserializer));
+  }
+
+  @protected
+  Category sse_decode_category(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_id = sse_decode_String(deserializer);
+    final var_name = sse_decode_String(deserializer);
+    final var_description = sse_decode_opt_String(deserializer);
+    final var_color = sse_decode_String(deserializer);
+    final var_sortOrder = sse_decode_i_32(deserializer);
+    final var_isSystem = sse_decode_bool(deserializer);
+    return Category(
+      id: var_id,
+      name: var_name,
+      description: var_description,
+      color: var_color,
+      sortOrder: var_sortOrder,
+      isSystem: var_isSystem,
+    );
+  }
+
+  @protected
   Chapter sse_decode_chapter(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     final var_id = sse_decode_String(deserializer);
     final var_bookId = sse_decode_String(deserializer);
     final var_title = sse_decode_String(deserializer);
-    final var_contentFile = sse_decode_String(deserializer);
     final var_chapterIndex = sse_decode_i_32(deserializer);
     final var_wordCount = sse_decode_i_64(deserializer);
     final var_cachedAt = sse_decode_Chrono_Utc(deserializer);
@@ -4405,7 +5804,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       id: var_id,
       bookId: var_bookId,
       title: var_title,
-      contentFile: var_contentFile,
       chapterIndex: var_chapterIndex,
       wordCount: var_wordCount,
       cachedAt: var_cachedAt,
@@ -4436,28 +5834,46 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   DictEntry sse_decode_dict_entry(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_simplified = sse_decode_String(deserializer);
-    final var_traditional = sse_decode_String(deserializer);
-    final var_pinyin = sse_decode_String(deserializer);
-    final var_definitions = sse_decode_String(deserializer);
+    final var_word = sse_decode_String(deserializer);
+    final var_definitionHtml = sse_decode_String(deserializer);
+    final var_audioKey = sse_decode_opt_String(deserializer);
     return DictEntry(
-      simplified: var_simplified,
-      traditional: var_traditional,
-      pinyin: var_pinyin,
-      definitions: var_definitions,
+      word: var_word,
+      definitionHtml: var_definitionHtml,
+      audioKey: var_audioKey,
     );
   }
 
   @protected
-  DictInfo sse_decode_dict_info(SseDeserializer deserializer) {
+  DictSearchResult sse_decode_dict_search_result(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_version = sse_decode_String(deserializer);
-    final var_source = sse_decode_String(deserializer);
-    final var_entryCount = sse_decode_i_64(deserializer);
-    return DictInfo(
-      version: var_version,
-      source: var_source,
-      entryCount: var_entryCount,
+    final var_exact = sse_decode_opt_box_autoadd_dict_entry(deserializer);
+    final var_suggestions = sse_decode_list_String(deserializer);
+    return DictSearchResult(exact: var_exact, suggestions: var_suggestions);
+  }
+
+  @protected
+  Dictionary sse_decode_dictionary(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_id = sse_decode_String(deserializer);
+    final var_name = sse_decode_String(deserializer);
+    final var_filePath = sse_decode_String(deserializer);
+    final var_dictType = sse_decode_String(deserializer);
+    final var_langFrom = sse_decode_opt_String(deserializer);
+    final var_langTo = sse_decode_opt_String(deserializer);
+    final var_isEnabled = sse_decode_bool(deserializer);
+    final var_wordCount = sse_decode_i_64(deserializer);
+    final var_addedAt = sse_decode_Chrono_Utc(deserializer);
+    return Dictionary(
+      id: var_id,
+      name: var_name,
+      filePath: var_filePath,
+      dictType: var_dictType,
+      langFrom: var_langFrom,
+      langTo: var_langTo,
+      isEnabled: var_isEnabled,
+      wordCount: var_wordCount,
+      addedAt: var_addedAt,
     );
   }
 
@@ -4535,6 +5951,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ImageFormat sse_decode_image_format(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final inner = sse_decode_i_32(deserializer);
+    return ImageFormat.values[inner];
+  }
+
+  @protected
   LanguageType sse_decode_language_type(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     final inner = sse_decode_i_32(deserializer);
@@ -4594,15 +6017,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  List<BookCategory> sse_decode_list_book_category(
+  List<BookWithProgress> sse_decode_list_book_with_progress(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <BookCategory>[];
+    final ans_ = <BookWithProgress>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_book_category(deserializer));
+      ans_.add(sse_decode_book_with_progress(deserializer));
     }
     return ans_;
   }
@@ -4620,6 +6043,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<Category> sse_decode_list_category(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <Category>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_category(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<Chapter> sse_decode_list_chapter(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -4632,13 +6067,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  List<DictEntry> sse_decode_list_dict_entry(SseDeserializer deserializer) {
+  List<Dictionary> sse_decode_list_dictionary(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <DictEntry>[];
+    final ans_ = <Dictionary>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_dict_entry(deserializer));
+      ans_.add(sse_decode_dictionary(deserializer));
     }
     return ans_;
   }
@@ -4759,13 +6194,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  List<VocabEntry> sse_decode_list_vocab_entry(SseDeserializer deserializer) {
+  List<Vocab> sse_decode_list_vocab(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <VocabEntry>[];
+    final ans_ = <Vocab>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_vocab_entry(deserializer));
+      ans_.add(sse_decode_vocab(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<VocabMatch> sse_decode_list_vocab_match(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <VocabMatch>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_vocab_match(deserializer));
     }
     return ans_;
   }
@@ -4861,19 +6308,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  BookCategory? sse_decode_opt_box_autoadd_book_category(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_book_category(deserializer));
-    } else {
-      return null;
-    }
-  }
-
-  @protected
   Bookmark? sse_decode_opt_box_autoadd_bookmark(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -4885,11 +6319,61 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  Category? sse_decode_opt_box_autoadd_category(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_category(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   Chapter? sse_decode_opt_box_autoadd_chapter(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_chapter(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  DictEntry? sse_decode_opt_box_autoadd_dict_entry(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_dict_entry(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  DictSearchResult? sse_decode_opt_box_autoadd_dict_search_result(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_dict_search_result(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  Dictionary? sse_decode_opt_box_autoadd_dictionary(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_dictionary(deserializer));
     } else {
       return null;
     }
@@ -4964,6 +6448,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TypesetCalibration? sse_decode_opt_box_autoadd_typeset_calibration(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_typeset_calibration(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   TypesetConfig? sse_decode_opt_box_autoadd_typeset_config(
     SseDeserializer deserializer,
   ) {
@@ -4977,18 +6474,54 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  VocabStatus? sse_decode_opt_box_autoadd_vocab_status(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_vocab_status(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  Uint8List? sse_decode_opt_list_prim_u_8_strict(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_list_prim_u_8_strict(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   PageContent sse_decode_page_content(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     final var_chapterIndex = sse_decode_i_32(deserializer);
     final var_pageIndex = sse_decode_i_32(deserializer);
     final var_content = sse_decode_String(deserializer);
     final var_isLastPage = sse_decode_bool(deserializer);
+    final var_startOffset = sse_decode_i_64(deserializer);
+    final var_endOffset = sse_decode_i_64(deserializer);
     return PageContent(
       chapterIndex: var_chapterIndex,
       pageIndex: var_pageIndex,
       content: var_content,
       isLastPage: var_isLastPage,
+      startOffset: var_startOffset,
+      endOffset: var_endOffset,
     );
+  }
+
+  @protected
+  PageData sse_decode_page_data(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_pageIndex = sse_decode_u_32(deserializer);
+    final var_text = sse_decode_String(deserializer);
+    return PageData(pageIndex: var_pageIndex, text: var_text);
   }
 
   @protected
@@ -5004,6 +6537,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     final var_bookId = sse_decode_String(deserializer);
     final var_chapterIndex = sse_decode_i_32(deserializer);
+    final var_chunkIndex = sse_decode_i_32(deserializer);
     final var_chapterId = sse_decode_opt_String(deserializer);
     final var_charOffset = sse_decode_i_64(deserializer);
     final var_pageIndex = sse_decode_i_32(deserializer);
@@ -5015,6 +6549,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return ReadingProgress(
       bookId: var_bookId,
       chapterIndex: var_chapterIndex,
+      chunkIndex: var_chunkIndex,
       chapterId: var_chapterId,
       charOffset: var_charOffset,
       pageIndex: var_pageIndex,
@@ -5032,7 +6567,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final var_id = sse_decode_String(deserializer);
     final var_bookId = sse_decode_String(deserializer);
     final var_chapterIndex = sse_decode_i_32(deserializer);
-    final var_chapterId = sse_decode_opt_String(deserializer);
     final var_startCharOffset = sse_decode_i_64(deserializer);
     final var_endCharOffset = sse_decode_i_64(deserializer);
     final var_startedAt = sse_decode_Chrono_Utc(deserializer);
@@ -5042,7 +6576,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       id: var_id,
       bookId: var_bookId,
       chapterIndex: var_chapterIndex,
-      chapterId: var_chapterId,
       startCharOffset: var_startCharOffset,
       endCharOffset: var_endCharOffset,
       startedAt: var_startedAt,
@@ -5059,12 +6592,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final var_readingTimeSeconds = sse_decode_i_64(deserializer);
     final var_charactersRead = sse_decode_i_64(deserializer);
     final var_sessionCount = sse_decode_i_32(deserializer);
+    final var_lastSessionId = sse_decode_opt_String(deserializer);
     return ReadingStats(
       bookId: var_bookId,
       date: var_date,
       readingTimeSeconds: var_readingTimeSeconds,
       charactersRead: var_charactersRead,
       sessionCount: var_sessionCount,
+      lastSessionId: var_lastSessionId,
     );
   }
 
@@ -5185,19 +6720,46 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   SearchResult sse_decode_search_result(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_chapterId = sse_decode_i_32(deserializer);
+    final var_bookId = sse_decode_String(deserializer);
+    final var_chapterId = sse_decode_String(deserializer);
+    final var_chapterIndex = sse_decode_String(deserializer);
     final var_chapterTitle = sse_decode_String(deserializer);
     final var_snippet = sse_decode_String(deserializer);
     final var_position = sse_decode_i_64(deserializer);
     final var_score = sse_decode_f_32(deserializer);
     final var_charOffset = sse_decode_i_64(deserializer);
     return SearchResult(
+      bookId: var_bookId,
       chapterId: var_chapterId,
+      chapterIndex: var_chapterIndex,
       chapterTitle: var_chapterTitle,
       snippet: var_snippet,
       position: var_position,
       score: var_score,
       charOffset: var_charOffset,
+    );
+  }
+
+  @protected
+  TypesetCalibration sse_decode_typeset_calibration(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_dpr = sse_decode_f_32(deserializer);
+    final var_cjkWidth = sse_decode_f_32(deserializer);
+    final var_asciiWidth = sse_decode_f_32(deserializer);
+    final var_digitWidth = sse_decode_f_32(deserializer);
+    final var_punctWidth = sse_decode_f_32(deserializer);
+    final var_latinExtWidth = sse_decode_f_32(deserializer);
+    final var_otherWidth = sse_decode_f_32(deserializer);
+    return TypesetCalibration(
+      dpr: var_dpr,
+      cjkWidth: var_cjkWidth,
+      asciiWidth: var_asciiWidth,
+      digitWidth: var_digitWidth,
+      punctWidth: var_punctWidth,
+      latinExtWidth: var_latinExtWidth,
+      otherWidth: var_otherWidth,
     );
   }
 
@@ -5214,6 +6776,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final var_language = sse_decode_language_type(deserializer);
     final var_enableHyphenation = sse_decode_bool(deserializer);
     final var_hyphenationLanguage = sse_decode_opt_String(deserializer);
+    final var_fontFamily = sse_decode_String(deserializer);
+    final var_calibration = sse_decode_opt_box_autoadd_typeset_calibration(
+      deserializer,
+    );
     return TypesetConfig(
       pageWidth: var_pageWidth,
       pageHeight: var_pageHeight,
@@ -5225,7 +6791,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       language: var_language,
       enableHyphenation: var_enableHyphenation,
       hyphenationLanguage: var_hyphenationLanguage,
+      fontFamily: var_fontFamily,
+      calibration: var_calibration,
     );
+  }
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint32();
   }
 
   @protected
@@ -5246,7 +6820,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  VocabEntry sse_decode_vocab_entry(SseDeserializer deserializer) {
+  Vocab sse_decode_vocab(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     final var_id = sse_decode_String(deserializer);
     final var_word = sse_decode_String(deserializer);
@@ -5261,8 +6835,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final var_lastReviewedAt = sse_decode_opt_box_autoadd_Chrono_Utc(
       deserializer,
     );
-    final var_status = sse_decode_String(deserializer);
-    return VocabEntry(
+    final var_status = sse_decode_vocab_status(deserializer);
+    final var_wordList = sse_decode_opt_String(deserializer);
+    final var_dictSource = sse_decode_opt_String(deserializer);
+    final var_dictEntryHash = sse_decode_opt_String(deserializer);
+    return Vocab(
       id: var_id,
       word: var_word,
       pinyin: var_pinyin,
@@ -5275,7 +6852,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       reviewCount: var_reviewCount,
       lastReviewedAt: var_lastReviewedAt,
       status: var_status,
+      wordList: var_wordList,
+      dictSource: var_dictSource,
+      dictEntryHash: var_dictEntryHash,
     );
+  }
+
+  @protected
+  VocabMatch sse_decode_vocab_match(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_word = sse_decode_String(deserializer);
+    final var_start = sse_decode_i_64(deserializer);
+    final var_end = sse_decode_i_64(deserializer);
+    return VocabMatch(word: var_word, start: var_start, end: var_end);
   }
 
   @protected
@@ -5291,6 +6880,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       knownCount: var_knownCount,
       masteredCount: var_masteredCount,
     );
+  }
+
+  @protected
+  VocabStatus sse_decode_vocab_status(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final inner = sse_decode_i_32(deserializer);
+    return VocabStatus.values[inner];
   }
 
   @protected
@@ -5344,6 +6940,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int cst_encode_image_format(ImageFormat raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
   int cst_encode_language_type(LanguageType raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return cst_encode_i_32(raw.index);
@@ -5356,6 +6958,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int cst_encode_u_32(int raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
   int cst_encode_u_8(int raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw;
@@ -5365,6 +6973,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void cst_encode_unit(void raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw;
+  }
+
+  @protected
+  int cst_encode_vocab_status(VocabStatus raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
   }
 
   @protected
@@ -5504,7 +7118,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_box_autoadd_i_64(self.fileMtime, serializer);
     sse_encode_String(self.title, serializer);
     sse_encode_opt_String(self.author, serializer);
-    sse_encode_opt_String(self.description, serializer);
     sse_encode_opt_String(self.coverPath, serializer);
     sse_encode_i_32(self.chapterCount, serializer);
     sse_encode_i_64(self.totalCharacters, serializer);
@@ -5513,19 +7126,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_box_autoadd_Chrono_Utc(self.lastOpenedAt, serializer);
     sse_encode_book_status(self.status, serializer);
     sse_encode_bool(self.isPinned, serializer);
-  }
-
-  @protected
-  void sse_encode_book_category(BookCategory self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.id, serializer);
-    sse_encode_String(self.name, serializer);
     sse_encode_opt_String(self.description, serializer);
-    sse_encode_String(self.color, serializer);
-    sse_encode_i_32(self.sortOrder, serializer);
-    sse_encode_bool(self.isSystem, serializer);
-    sse_encode_Chrono_Utc(self.createdAt, serializer);
-    sse_encode_opt_box_autoadd_Chrono_Utc(self.updatedAt, serializer);
+    sse_encode_opt_String(self.publisher, serializer);
+    sse_encode_opt_String(self.translator, serializer);
+    sse_encode_opt_String(self.isbn, serializer);
   }
 
   @protected
@@ -5541,6 +7145,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.author, serializer);
     sse_encode_opt_String(self.description, serializer);
     sse_encode_opt_String(self.coverPath, serializer);
+    sse_encode_opt_String(self.publisher, serializer);
+    sse_encode_opt_String(self.translator, serializer);
+    sse_encode_opt_String(self.isbn, serializer);
     sse_encode_opt_box_autoadd_i_32(self.publishYear, serializer);
     sse_encode_opt_String(self.language, serializer);
     sse_encode_i_32(self.chapterCount, serializer);
@@ -5551,6 +7158,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_book_status(BookStatus self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_book_with_progress(
+    BookWithProgress self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_book(self.book, serializer);
+    sse_encode_opt_box_autoadd_reading_progress(self.progress, serializer);
   }
 
   @protected
@@ -5587,15 +7204,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_box_autoadd_book_category(
-    BookCategory self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_book_category(self, serializer);
-  }
-
-  @protected
   void sse_encode_box_autoadd_bookmark(
     Bookmark self,
     SseSerializer serializer,
@@ -5605,9 +7213,45 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_category(
+    Category self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_category(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_chapter(Chapter self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_chapter(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_dict_entry(
+    DictEntry self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_dict_entry(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_dict_search_result(
+    DictSearchResult self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_dict_search_result(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_dictionary(
+    Dictionary self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_dictionary(self, serializer);
   }
 
   @protected
@@ -5656,21 +7300,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_box_autoadd_reading_session(
-    ReadingSession self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_reading_session(self, serializer);
-  }
-
-  @protected
   void sse_encode_box_autoadd_reading_stats(
     ReadingStats self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_reading_stats(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_typeset_calibration(
+    TypesetCalibration self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_typeset_calibration(self, serializer);
   }
 
   @protected
@@ -5683,12 +7327,31 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_vocab_status(
+    VocabStatus self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_vocab_status(self, serializer);
+  }
+
+  @protected
+  void sse_encode_category(Category self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_opt_String(self.description, serializer);
+    sse_encode_String(self.color, serializer);
+    sse_encode_i_32(self.sortOrder, serializer);
+    sse_encode_bool(self.isSystem, serializer);
+  }
+
+  @protected
   void sse_encode_chapter(Chapter self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.id, serializer);
     sse_encode_String(self.bookId, serializer);
     sse_encode_String(self.title, serializer);
-    sse_encode_String(self.contentFile, serializer);
     sse_encode_i_32(self.chapterIndex, serializer);
     sse_encode_i_64(self.wordCount, serializer);
     sse_encode_Chrono_Utc(self.cachedAt, serializer);
@@ -5717,18 +7380,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_encode_dict_entry(DictEntry self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.simplified, serializer);
-    sse_encode_String(self.traditional, serializer);
-    sse_encode_String(self.pinyin, serializer);
-    sse_encode_String(self.definitions, serializer);
+    sse_encode_String(self.word, serializer);
+    sse_encode_String(self.definitionHtml, serializer);
+    sse_encode_opt_String(self.audioKey, serializer);
   }
 
   @protected
-  void sse_encode_dict_info(DictInfo self, SseSerializer serializer) {
+  void sse_encode_dict_search_result(
+    DictSearchResult self,
+    SseSerializer serializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.version, serializer);
-    sse_encode_String(self.source, serializer);
-    sse_encode_i_64(self.entryCount, serializer);
+    sse_encode_opt_box_autoadd_dict_entry(self.exact, serializer);
+    sse_encode_list_String(self.suggestions, serializer);
+  }
+
+  @protected
+  void sse_encode_dictionary(Dictionary self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.filePath, serializer);
+    sse_encode_String(self.dictType, serializer);
+    sse_encode_opt_String(self.langFrom, serializer);
+    sse_encode_opt_String(self.langTo, serializer);
+    sse_encode_bool(self.isEnabled, serializer);
+    sse_encode_i_64(self.wordCount, serializer);
+    sse_encode_Chrono_Utc(self.addedAt, serializer);
   }
 
   @protected
@@ -5784,6 +7462,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_image_format(ImageFormat self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
   void sse_encode_language_type(LanguageType self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
@@ -5832,14 +7516,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_list_book_category(
-    List<BookCategory> self,
+  void sse_encode_list_book_with_progress(
+    List<BookWithProgress> self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
-      sse_encode_book_category(item, serializer);
+      sse_encode_book_with_progress(item, serializer);
     }
   }
 
@@ -5853,6 +7537,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_category(List<Category> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_category(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_chapter(List<Chapter> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
@@ -5862,14 +7555,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_list_dict_entry(
-    List<DictEntry> self,
+  void sse_encode_list_dictionary(
+    List<Dictionary> self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
-      sse_encode_dict_entry(item, serializer);
+      sse_encode_dictionary(item, serializer);
     }
   }
 
@@ -5977,14 +7670,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_list_vocab_entry(
-    List<VocabEntry> self,
+  void sse_encode_list_vocab(List<Vocab> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_vocab(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_vocab_match(
+    List<VocabMatch> self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
-      sse_encode_vocab_entry(item, serializer);
+      sse_encode_vocab_match(item, serializer);
     }
   }
 
@@ -6055,19 +7757,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_opt_box_autoadd_book_category(
-    BookCategory? self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    sse_encode_bool(self != null, serializer);
-    if (self != null) {
-      sse_encode_box_autoadd_book_category(self, serializer);
-    }
-  }
-
-  @protected
   void sse_encode_opt_box_autoadd_bookmark(
     Bookmark? self,
     SseSerializer serializer,
@@ -6081,6 +7770,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_category(
+    Category? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_category(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_chapter(
     Chapter? self,
     SseSerializer serializer,
@@ -6090,6 +7792,45 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_chapter(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_dict_entry(
+    DictEntry? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_dict_entry(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_dict_search_result(
+    DictSearchResult? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_dict_search_result(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_dictionary(
+    Dictionary? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_dictionary(self, serializer);
     }
   }
 
@@ -6163,6 +7904,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_typeset_calibration(
+    TypesetCalibration? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_typeset_calibration(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_typeset_config(
     TypesetConfig? self,
     SseSerializer serializer,
@@ -6176,12 +7930,47 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_vocab_status(
+    VocabStatus? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_vocab_status(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_list_prim_u_8_strict(
+    Uint8List? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_list_prim_u_8_strict(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_page_content(PageContent self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.chapterIndex, serializer);
     sse_encode_i_32(self.pageIndex, serializer);
     sse_encode_String(self.content, serializer);
     sse_encode_bool(self.isLastPage, serializer);
+    sse_encode_i_64(self.startOffset, serializer);
+    sse_encode_i_64(self.endOffset, serializer);
+  }
+
+  @protected
+  void sse_encode_page_data(PageData self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_32(self.pageIndex, serializer);
+    sse_encode_String(self.text, serializer);
   }
 
   @protected
@@ -6199,6 +7988,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.bookId, serializer);
     sse_encode_i_32(self.chapterIndex, serializer);
+    sse_encode_i_32(self.chunkIndex, serializer);
     sse_encode_opt_String(self.chapterId, serializer);
     sse_encode_i_64(self.charOffset, serializer);
     sse_encode_i_32(self.pageIndex, serializer);
@@ -6218,7 +8008,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.id, serializer);
     sse_encode_String(self.bookId, serializer);
     sse_encode_i_32(self.chapterIndex, serializer);
-    sse_encode_opt_String(self.chapterId, serializer);
     sse_encode_i_64(self.startCharOffset, serializer);
     sse_encode_i_64(self.endCharOffset, serializer);
     sse_encode_Chrono_Utc(self.startedAt, serializer);
@@ -6234,6 +8023,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_64(self.readingTimeSeconds, serializer);
     sse_encode_i_64(self.charactersRead, serializer);
     sse_encode_i_32(self.sessionCount, serializer);
+    sse_encode_opt_String(self.lastSessionId, serializer);
   }
 
   @protected
@@ -6336,12 +8126,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_encode_search_result(SearchResult self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.chapterId, serializer);
+    sse_encode_String(self.bookId, serializer);
+    sse_encode_String(self.chapterId, serializer);
+    sse_encode_String(self.chapterIndex, serializer);
     sse_encode_String(self.chapterTitle, serializer);
     sse_encode_String(self.snippet, serializer);
     sse_encode_i_64(self.position, serializer);
     sse_encode_f_32(self.score, serializer);
     sse_encode_i_64(self.charOffset, serializer);
+  }
+
+  @protected
+  void sse_encode_typeset_calibration(
+    TypesetCalibration self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_f_32(self.dpr, serializer);
+    sse_encode_f_32(self.cjkWidth, serializer);
+    sse_encode_f_32(self.asciiWidth, serializer);
+    sse_encode_f_32(self.digitWidth, serializer);
+    sse_encode_f_32(self.punctWidth, serializer);
+    sse_encode_f_32(self.latinExtWidth, serializer);
+    sse_encode_f_32(self.otherWidth, serializer);
   }
 
   @protected
@@ -6357,6 +8164,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_language_type(self.language, serializer);
     sse_encode_bool(self.enableHyphenation, serializer);
     sse_encode_opt_String(self.hyphenationLanguage, serializer);
+    sse_encode_String(self.fontFamily, serializer);
+    sse_encode_opt_box_autoadd_typeset_calibration(
+      self.calibration,
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint32(self);
   }
 
   @protected
@@ -6377,7 +8195,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_vocab_entry(VocabEntry self, SseSerializer serializer) {
+  void sse_encode_vocab(Vocab self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.id, serializer);
     sse_encode_String(self.word, serializer);
@@ -6390,7 +8208,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_Chrono_Utc(self.createdAt, serializer);
     sse_encode_i_32(self.reviewCount, serializer);
     sse_encode_opt_box_autoadd_Chrono_Utc(self.lastReviewedAt, serializer);
-    sse_encode_String(self.status, serializer);
+    sse_encode_vocab_status(self.status, serializer);
+    sse_encode_opt_String(self.wordList, serializer);
+    sse_encode_opt_String(self.dictSource, serializer);
+    sse_encode_opt_String(self.dictEntryHash, serializer);
+  }
+
+  @protected
+  void sse_encode_vocab_match(VocabMatch self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.word, serializer);
+    sse_encode_i_64(self.start, serializer);
+    sse_encode_i_64(self.end, serializer);
   }
 
   @protected
@@ -6400,6 +8229,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_64(self.learningCount, serializer);
     sse_encode_i_64(self.knownCount, serializer);
     sse_encode_i_64(self.masteredCount, serializer);
+  }
+
+  @protected
+  void sse_encode_vocab_status(VocabStatus self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 }
 

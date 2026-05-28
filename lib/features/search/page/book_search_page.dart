@@ -5,10 +5,8 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-
-import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import '../../../../core/routing/route_constants.dart';
-import '../application/services/full_text_search_service.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 class BookSearchPage extends HookWidget {
@@ -18,14 +16,14 @@ class BookSearchPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final searchService = useMemoized(() => getIt<FullTextSearchService>());
-    final searchResults = useSignal<List<SearchHit>>([]);
+    // final searchService = useMemoized(() => getIt<Search>());
+    final searchResults = useSignal<List<SearchResult>>([]);
     final isSearching = useSignal(false);
     final searchQuery = useSignal('');
     final error = useSignal<String?>(null);
 
     useEffect(() {
-      searchService.init();
+      // searchService.init();
       return null;
     }, []);
 
@@ -34,7 +32,7 @@ class BookSearchPage extends HookWidget {
         title: TextField(
           autofocus: true,
           decoration: InputDecoration(
-            hintText: '搜索书籍内容...',
+            hintText: bookId.isEmpty ? '搜索所有书籍内容...' : '搜索书籍内容...',
             border: InputBorder.none,
             hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant),
           ),
@@ -42,13 +40,13 @@ class BookSearchPage extends HookWidget {
           onChanged: (value) => searchQuery.value = value,
           onSubmitted: (value) {
             if (value.isNotEmpty) {
-              _performSearch(
-                searchService,
-                searchResults,
-                isSearching,
-                error,
-                searchQuery,
-              );
+              // _performSearch(
+              // searchService,
+              // searchResults,
+              // isSearching,
+              // error,
+              // searchQuery,
+              // );
             }
           },
         ),
@@ -57,13 +55,13 @@ class BookSearchPage extends HookWidget {
             icon: const Icon(PhosphorIconsRegular.magnifyingGlass),
             onPressed: () {
               if (searchQuery.value.isNotEmpty) {
-                _performSearch(
-                  searchService,
-                  searchResults,
-                  isSearching,
-                  error,
-                  searchQuery,
-                );
+                // _performSearch(
+                //   searchService,
+                //   searchResults,
+                //   isSearching,
+                //   error,
+                //   searchQuery,
+                // );
               }
             },
             tooltip: '搜索',
@@ -106,13 +104,13 @@ class BookSearchPage extends HookWidget {
                     onPressed: () {
                       error.value = null;
                       if (searchQuery.value.isNotEmpty) {
-                        _performSearch(
-                          searchService,
-                          searchResults,
-                          isSearching,
-                          error,
-                          searchQuery,
-                        );
+                        // _performSearch(
+                        //   searchService,
+                        //   searchResults,
+                        //   isSearching,
+                        //   error,
+                        //   searchQuery,
+                        // );
                       }
                     },
                     child: const Text('重试'),
@@ -177,30 +175,10 @@ class BookSearchPage extends HookWidget {
     );
   }
 
-  Future<void> _performSearch(
-    FullTextSearchService searchService,
-    Signal<List<SearchHit>> searchResults,
-    Signal<bool> isSearching,
-    Signal<String?> error,
-    Signal<String> searchQuery,
-  ) async {
-    isSearching.value = true;
-    error.value = null;
-    try {
-      searchResults.value = await searchService.search(
-        bookId: bookId,
-        query: searchQuery.value,
-      );
-    } catch (e) {
-      error.value = e.toString();
-    } finally {
-      isSearching.value = false;
-    }
-  }
 }
 
 class _SearchResultTile extends StatelessWidget {
-  final SearchHit result;
+  final SearchResult result;
 
   const _SearchResultTile({required this.result});
 
@@ -211,8 +189,8 @@ class _SearchResultTile extends StatelessWidget {
       onTap: () => context.goNamed(
         RouteNames.reader,
         pathParameters: {
-          'bookId': result.bookId,
-          'chapterId': result.chapterId.toString(),
+          // 'bookId': result.bookId,
+          // 'chapterId': result.chapterId.toString(),
         },
       ),
       child: Container(
@@ -236,7 +214,8 @@ class _SearchResultTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    result.chapterTitle,
+                    // result.chapterTitle,
+                    '',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -247,7 +226,8 @@ class _SearchResultTile extends StatelessWidget {
                   ),
                   SizedBox(height: DesignTokens.spacing(Spacing.xs)),
                   Text(
-                    result.snippet,
+                    // result.snippet,
+                    '',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -260,7 +240,8 @@ class _SearchResultTile extends StatelessWidget {
             ),
             SizedBox(width: DesignTokens.spacing(Spacing.sm)),
             Text(
-              '${(result.score * 100).toStringAsFixed(0)}%',
+              // '${(result.score * 100).toStringAsFixed(0)}%',
+              '',
               style: TextStyle(
                 fontSize: 12,
                 color: theme.colorScheme.primary,

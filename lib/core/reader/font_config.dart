@@ -6,7 +6,15 @@ class FontConfig {
   static const String chineseFont = 'Noto Sans SC';
   static const String latinFont = 'Roboto';
 
-  static const List<String> fallbackStack = ['sans-serif'];
+  static const List<String> fallbackStack = [
+    'PingFang SC',
+    'Microsoft YaHei',
+    'Hiragino Sans GB',
+    'WenQuanYi Micro Hei',
+    'Noto Sans CJK SC',
+    'Source Han Sans SC',
+    'sans-serif',
+  ];
 
   static TextStyle readerStyle({
     required double fontSize,

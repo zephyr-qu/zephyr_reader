@@ -4,6 +4,8 @@
 
 use crate::domain::AppError;
 use crate::parser::get_cover_registry;
+use crate::storage::ensure_storage;
+use crate::storage::repos::BookRepository;
 use crate::utils::security::validate_file_path_async;
 use flutter_rust_bridge::frb;
 use std::path::Path;
@@ -18,6 +20,25 @@ pub async fn extract_book_cover(file_path: String, output_dir: String) -> Result
     registry.extract_cover(&validated_path, &output_dir)
 }
 
+/// 提取书籍封面并保存路径到数据库
+///
+/// 一次调用完成：提取封面 + 更新 DB 中的 cover_path。
+/// 替代 Dart 侧 extractBookCover + updateBook 的两步调用。
+#[frb]
+pub async fn extract_and_save_cover(
+    book_id: String,
+    file_path: String,
+    output_dir: String,
+) -> Result<String, AppError> {
+    let cover_path = extract_book_cover(file_path, output_dir).await?;
+    let storage = ensure_storage().map_err(|e| AppError::database_error(e.to_string()))?;
+    let pool = storage.pool().map_err(|e| AppError::database_error(e.to_string()))?;
+    BookRepository::update_cover_path(&pool, &book_id, &cover_path)
+        .await
+        .map_err(|e| AppError::database_error(e.to_string()))?;
+    Ok(cover_path)
+}
+
 /// 检查是否支持封面提取
 #[frb(sync)]
 pub fn supports_cover_extraction(file_path: String) -> bool {
@@ -30,4 +51,41 @@ pub fn supports_cover_extraction(file_path: String) -> bool {
 
     let registry = get_cover_registry();
     registry.supports_format(&extension)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_supports_epub() {
+        assert!(supports_cover_extraction("test.epub".to_string()));
+    }
+
+    #[test]
+    fn test_supports_pdf() {
+        assert!(supports_cover_extraction("test.pdf".to_string()));
+    }
+
+    #[test]
+    fn test_does_not_support_unknown() {
+        assert!(!supports_cover_extraction("test.xyz".to_string()));
+    }
+
+    #[test]
+    fn test_does_not_support_txt() {
+        assert!(!supports_cover_extraction("test.txt".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_extract_book_cover_file_not_found() {
+        let result = extract_book_cover("non_existent.epub".to_string(), "/tmp".to_string()).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_extract_book_cover_empty_output_dir() {
+        let result = extract_book_cover("non_existent.epub".to_string(), "".to_string()).await;
+        assert!(result.is_err());
+    }
 }

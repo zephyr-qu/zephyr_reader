@@ -4,7 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../domain/error.dart';
-import '../domain/types.dart';
+import '../domain/types/pagination.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
@@ -15,33 +15,43 @@ Future<void> initSearchEngine() =>
     RustLib.instance.api.crateApiSearchInitSearchEngine();
 
 /// 索引章节内容
-Future<void> indexChapterContent({
+Future<void> indexChapter({
   required String bookId,
-  required int chapterId,
+  required String chapterId,
+  required String chapterIndex,
   required String chapterTitle,
   required String content,
-}) => RustLib.instance.api.crateApiSearchIndexChapterContent(
+}) => RustLib.instance.api.crateApiSearchIndexChapter(
   bookId: bookId,
   chapterId: chapterId,
+  chapterIndex: chapterIndex,
   chapterTitle: chapterTitle,
   content: content,
 );
 
 /// 在书籍中搜索
-Future<List<SearchResult>> searchInBook({
+Future<List<SearchResult>> search({
   required String bookId,
   required String query,
   required int limit,
-}) => RustLib.instance.api.crateApiSearchSearchInBook(
+}) => RustLib.instance.api.crateApiSearchSearch(
   bookId: bookId,
   query: query,
   limit: limit,
 );
 
+/// 搜索所有书籍内容
+Future<List<SearchResult>> searchAllBooks({
+  required String query,
+  required int limit,
+}) => RustLib.instance.api.crateApiSearchSearchAllBooks(
+  query: query,
+  limit: limit,
+);
+
 /// 清除所有搜索索引
-Future<void> clearAllSearchIndex() =>
-    RustLib.instance.api.crateApiSearchClearAllSearchIndex();
+Future<void> clearAll() => RustLib.instance.api.crateApiSearchClearAll();
 
 /// 删除某本书的搜索索引
-Future<void> deleteBookSearchIndex({required String bookId}) =>
-    RustLib.instance.api.crateApiSearchDeleteBookSearchIndex(bookId: bookId);
+Future<void> deleteByBook({required String bookId}) =>
+    RustLib.instance.api.crateApiSearchDeleteByBook(bookId: bookId);

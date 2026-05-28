@@ -3,8 +3,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:zephyr_reader/core/local/rust_storage_service.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/src/rust/api/data/session.dart' as session_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class ReadingSessionsPage extends StatefulWidget {
@@ -15,7 +14,6 @@ class ReadingSessionsPage extends StatefulWidget {
 }
 
 class _ReadingSessionsPageState extends State<ReadingSessionsPage> {
-  final _storage = getIt<RustStorageService>();
   List<ReadingSession> _sessions = [];
   Map<String, Book> _bookCache = {};
   bool _loaded = false;
@@ -31,10 +29,10 @@ class _ReadingSessionsPageState extends State<ReadingSessionsPage> {
     setState(() => _loading = true);
     try {
       final results = await Future.wait([
-        _storage.getRecentSessions(100),
-        _storage.getAllBooks(),
+        session_api.listSessionsByRecent(limit: BigInt.from(100)),
+        session_api.listSessionsByBook(bookId: '', limit: BigInt.from(1)),
       ]);
-      final sessions = results[0] as List<ReadingSession>;
+      final sessions = results[0];
       final books = results[1] as List<Book>;
       if (mounted) {
         setState(() {
@@ -73,7 +71,7 @@ class _ReadingSessionsPageState extends State<ReadingSessionsPage> {
       ),
     );
     if (confirmed == true) {
-      await _storage.deleteSessionsByBook(bookId);
+      await session_api.clearSessionsByBook(bookId: bookId);
       await _load();
     }
   }

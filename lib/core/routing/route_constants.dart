@@ -37,11 +37,32 @@ abstract class RoutePaths {
   // 生词本
   static const String vocabulary = '/vocabulary';
 
+  // 学习与笔记
+  static const String learningNotes = '/learning-notes';
+
   // 阅读会话
   static const String readingSessions = '/statistics/sessions';
 
   // 缓存管理
   static const String cacheManage = '/settings/cache';
+
+  // 存储与同步
+  static const String storageSync = '/settings/storage-sync';
+
+  // TTS 朗读设置
+  static const String ttsSettings = '/settings/tts';
+
+  // 排版与字体设置
+  static const String typographySettings = '/settings/typography';
+
+  // 主题与亮度
+  static const String themeBrightness = '/settings/theme';
+
+  // 其他设置
+  static const String otherSettings = '/settings/other';
+
+  // WiFi 传书
+  static const String wifiTransfer = '/wifi-transfer';
 }
 
 abstract class RouteNames {
@@ -83,9 +104,30 @@ abstract class RouteNames {
   // 生词本
   static const String vocabulary = 'vocabulary';
 
+  // 学习与笔记
+  static const String learningNotes = 'learningNotes';
+
   // 阅读会话
   static const String readingSessions = 'readingSessions';
 
   // 缓存管理
   static const String cacheManage = 'cacheManage';
+
+  // 存储与同步
+  static const String storageSync = 'storageSync';
+
+  // TTS 朗读设置
+  static const String ttsSettings = 'ttsSettings';
+
+  // 排版与字体设置
+  static const String typographySettings = 'typographySettings';
+
+  // 主题与亮度
+  static const String themeBrightness = 'themeBrightness';
+
+  // 其他设置
+  static const String otherSettings = 'otherSettings';
+
+  // WiFi 传书
+  static const String wifiTransfer = 'wifiTransfer';
 }

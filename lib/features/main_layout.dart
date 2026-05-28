@@ -4,51 +4,56 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 底部导航栏配置
 enum BottomNavItem {
   home(
-    label: '首页',
     icon: PhosphorIconsRegular.house,
     activeIcon: PhosphorIconsFill.house,
     route: RoutePaths.home,
     routeName: RouteNames.home,
   ),
   bookshelf(
-    label: '书籍',
     icon: PhosphorIconsRegular.bookOpenText,
     activeIcon: PhosphorIconsFill.bookOpenText,
     route: RoutePaths.bookshelf,
     routeName: RouteNames.bookshelf,
   ),
   statistics(
-    label: '统计',
     icon: PhosphorIconsRegular.chartBar,
     activeIcon: PhosphorIconsFill.chartBar,
     route: RoutePaths.statistics,
     routeName: RouteNames.statistics,
   ),
   profile(
-    label: '我的',
     icon: PhosphorIconsRegular.user,
     activeIcon: PhosphorIconsFill.user,
     route: RoutePaths.profile,
     routeName: RouteNames.profile,
   );
 
-  final String label;
   final IconData icon;
   final IconData activeIcon;
   final String route;
   final String routeName;
 
   const BottomNavItem({
-    required this.label,
     required this.icon,
     required this.activeIcon,
     required this.route,
     required this.routeName,
   });
+
+  String label(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (this) {
+      BottomNavItem.home => l10n.tabHome,
+      BottomNavItem.bookshelf => l10n.tabBookshelf,
+      BottomNavItem.statistics => l10n.tabStatistics,
+      BottomNavItem.profile => l10n.tabProfile,
+    };
+  }
 
   /// 检查路由是否匹配（支持子路由）
   bool matchesRoute(String currentRoute) {
@@ -97,12 +102,13 @@ class _MainLayoutState extends State<MainLayout> {
             _buildSideBar(context, deviceType, currentIndex, theme),
             VerticalDivider(
               thickness: 1,
-              width: 1,
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
             ),
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeInOut,
+                switchOutCurve: Curves.easeInOut,
                 child: widget.child,
               ),
             ),
@@ -113,6 +119,8 @@ class _MainLayoutState extends State<MainLayout> {
       return Scaffold(
         body: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
+          switchInCurve: Curves.easeInOut,
+          switchOutCurve: Curves.easeInOut,
           child: widget.child,
         ),
         extendBody: true,
@@ -217,7 +225,7 @@ class _MainLayoutState extends State<MainLayout> {
     final inactiveColor = theme.colorScheme.onSurfaceVariant;
 
     return Semantics(
-      label: navItem.label,
+      label: navItem.label(context),
       button: true,
       child: GestureDetector(
         onTap: () => context.go(navItem.route),
@@ -233,7 +241,7 @@ class _MainLayoutState extends State<MainLayout> {
               if (isExtended) ...[
                 const SizedBox(width: 14),
                 Text(
-                  navItem.label,
+                  navItem.label(context),
                   style: TextStyle(
                     fontSize: 14,
                     color: isSelected ? activeColor : inactiveColor,
@@ -295,7 +303,7 @@ class _MainLayoutState extends State<MainLayout> {
             return NavigationDestination(
               icon: Icon(navItem.icon, size: 22),
               selectedIcon: Icon(navItem.activeIcon, size: 22),
-              label: navItem.label,
+              label: navItem.label(context),
             );
           }).toList(),
         ),

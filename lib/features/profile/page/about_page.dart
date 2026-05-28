@@ -174,7 +174,7 @@ class AboutPage extends HookWidget {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
+                    MaterialPageRoute<void>(
                       builder: (context) => const UserAgreementPage(),
                     ),
                   );
@@ -188,7 +188,7 @@ class AboutPage extends HookWidget {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
+                    MaterialPageRoute<void>(
                       builder: (context) => const PrivacyPolicyPage(),
                     ),
                   );

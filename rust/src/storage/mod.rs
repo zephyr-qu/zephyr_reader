@@ -18,6 +18,8 @@ pub use db::StorageManager;
 use anyhow::{Context, Result};
 use once_cell::sync::OnceCell;
 
+use crate::domain::AppError;
+
 // ==================== 全局存储实例 ====================
 
 pub(crate) static STORAGE: OnceCell<StorageManager> = OnceCell::new();
@@ -30,6 +32,14 @@ pub fn storage() -> Option<&'static StorageManager> {
 /// 确保存储已初始化
 pub fn ensure_storage() -> Result<&'static StorageManager> {
     storage().context("Storage not initialized. Call init_storage() first.")
+}
+
+/// 获取 storage pool 的简写，消除重复样板
+pub fn storage_pool() -> Result<sqlx::SqlitePool, AppError> {
+    ensure_storage()
+        .map_err(|e| AppError::database_error(e.to_string()))?
+        .pool()
+        .map_err(|e| AppError::database_error(e.to_string()))
 }
 
 #[cfg(test)]

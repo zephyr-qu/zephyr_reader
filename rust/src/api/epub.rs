@@ -4,10 +4,74 @@
 //! 通用解析功能请使用 core::parse_book。
 
 
-pub(crate) use crate::domain::AppError;
-pub use crate::domain::{EpubMetadata, RichParagraph, TypesetConfig};
-use crate::utils::security::validate_file_path_async;
+use crate::domain::{AppError, EpubMetadata, RichParagraph, TypesetConfig};
 use flutter_rust_bridge::frb;
+use serde::{Deserialize, Serialize};
+use crate::utils::security::validate_file_path_async;
+
+/// 图片格式
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[frb]
+pub enum ImageFormat {
+    Jpeg,
+    Png,
+    Gif,
+    Webp,
+    Bmp,
+    Svg,
+    Unknown,
+}
+
+impl ImageFormat {
+    pub fn from_extension(ext: &str) -> Self {
+        let ext = ext.strip_prefix('.').unwrap_or(ext);
+        match ext.to_lowercase().as_str() {
+            "jpg" | "jpeg" => ImageFormat::Jpeg,
+            "png" => ImageFormat::Png,
+            "gif" => ImageFormat::Gif,
+            "webp" => ImageFormat::Webp,
+            "bmp" => ImageFormat::Bmp,
+            "svg" => ImageFormat::Svg,
+            _ => ImageFormat::Unknown,
+        }
+    }
+
+    pub fn mime_type(&self) -> String {
+        match self {
+            ImageFormat::Jpeg => "image/jpeg",
+            ImageFormat::Png => "image/png",
+            ImageFormat::Gif => "image/gif",
+            ImageFormat::Webp => "image/webp",
+            ImageFormat::Bmp => "image/bmp",
+            ImageFormat::Svg => "image/svg+xml",
+            ImageFormat::Unknown => "application/octet-stream",
+        }.to_string()
+    }
+
+    pub fn extension(&self) -> String {
+        match self {
+            ImageFormat::Jpeg => "jpg",
+            ImageFormat::Png => "png",
+            ImageFormat::Gif => "gif",
+            ImageFormat::Webp => "webp",
+            ImageFormat::Bmp => "bmp",
+            ImageFormat::Svg => "svg",
+            ImageFormat::Unknown => "bin",
+        }.to_string()
+    }
+}
+
+/// EPUB 图片信息
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[frb(non_opaque)]
+pub struct EpubImageInfo {
+    pub href: String,
+    pub filename: String,
+    pub format: ImageFormat,
+    pub size_bytes: i64,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+}
 
 /// 快速获取 EPUB 元数据
 ///
@@ -53,5 +117,26 @@ pub async fn get_epub_chapter_rich_content(
     )
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
 
+    #[tokio::test]
+    async fn test_get_epub_metadata_file_not_found() {
+        let result = get_epub_metadata("non_existent.epub".into()).await;
+        assert!(result.is_err());
+        assert!(matches!(result, Err(AppError::FileNotFound { .. })));
+    }
+
+    #[tokio::test]
+    async fn test_get_epub_chapter_rich_content_file_not_found() {
+        let result = get_epub_chapter_rich_content(
+            "non_existent.epub".into(),
+            0,
+            TypesetConfig::default(),
+        )
+        .await;
+        assert!(result.is_err());
+    }
+}
 

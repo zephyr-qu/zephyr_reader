@@ -8,6 +8,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'models.freezed.dart';
 
+/// 书籍元数据
 @freezed
 sealed class Book with _$Book {
   const factory Book({
@@ -18,7 +19,6 @@ sealed class Book with _$Book {
     PlatformInt64? fileMtime,
     required String title,
     String? author,
-    String? description,
     String? coverPath,
     required int chapterCount,
     required PlatformInt64 totalCharacters,
@@ -27,27 +27,31 @@ sealed class Book with _$Book {
     DateTime? lastOpenedAt,
     required BookStatus status,
     required bool isPinned,
+    String? description,
+    String? publisher,
+    String? translator,
+    String? isbn,
   }) = _Book;
 }
 
-@freezed
-sealed class BookCategory with _$BookCategory {
-  const factory BookCategory({
-    required String id,
-    required String name,
-    String? description,
-    required String color,
-    required int sortOrder,
-    required bool isSystem,
-    required DateTime createdAt,
-    DateTime? updatedAt,
-  }) = _BookCategory;
-}
+/// 书籍文件格式
+///
+/// 数据库中存储为小写文本。`FromStr` 额外兼容 markdown 别名。
+enum BookFormat { txt, epub, pdf, md }
 
-enum BookFormat { txt, epub, pdf }
-
+/// 书籍阅读状态
 enum BookStatus { reading, completed, dropped, planned }
 
+/// 书籍+阅读进度聚合（LEFT JOIN 查询结果）
+@freezed
+sealed class BookWithProgress with _$BookWithProgress {
+  const factory BookWithProgress({
+    required Book book,
+    ReadingProgress? progress,
+  }) = _BookWithProgress;
+}
+
+/// 章节内书签
 @freezed
 sealed class Bookmark with _$Bookmark {
   const factory Bookmark({
@@ -61,13 +65,29 @@ sealed class Bookmark with _$Bookmark {
   }) = _Bookmark;
 }
 
+/// 书籍分类标签
+@freezed
+sealed class Category with _$Category {
+  const factory Category({
+    required String id,
+    required String name,
+    String? description,
+    required String color,
+    required int sortOrder,
+    required bool isSystem,
+  }) = _Category;
+}
+
+/// 章节信息
+///
+/// - `start_index` / `end_index` / `content_length` 标记了 `#[sqlx(default)]`，
+///   仅在数据库迁移新增这些列的过渡期内使用，迁移完成后应移除。
 @freezed
 sealed class Chapter with _$Chapter {
   const factory Chapter({
     required String id,
     required String bookId,
     required String title,
-    required String contentFile,
     required int chapterIndex,
     required PlatformInt64 wordCount,
     required DateTime cachedAt,
@@ -78,7 +98,23 @@ sealed class Chapter with _$Chapter {
   }) = _Chapter;
 }
 
-/// 全局阅读统计汇总
+/// 词典
+@freezed
+sealed class Dictionary with _$Dictionary {
+  const factory Dictionary({
+    required String id,
+    required String name,
+    required String filePath,
+    required String dictType,
+    String? langFrom,
+    String? langTo,
+    required bool isEnabled,
+    required PlatformInt64 wordCount,
+    required DateTime addedAt,
+  }) = _Dictionary;
+}
+
+/// 全局阅读统计汇总（应用层计算，非直接 DB 映射）
 @freezed
 sealed class GlobalStats with _$GlobalStats {
   const factory GlobalStats({
@@ -96,6 +132,7 @@ sealed class GlobalStats with _$GlobalStats {
   }) = _GlobalStats;
 }
 
+/// 高亮或批注笔记
 @freezed
 sealed class Note with _$Note {
   const factory Note({
@@ -116,7 +153,7 @@ sealed class Note with _$Note {
   }) = _Note;
 }
 
-/// 笔记统计
+/// 笔记统计摘要（可直接从聚合查询映射）
 @freezed
 sealed class NoteStats with _$NoteStats {
   const factory NoteStats({
@@ -126,13 +163,20 @@ sealed class NoteStats with _$NoteStats {
   }) = _NoteStats;
 }
 
+///
+/// 数据库中存储为小写文本（`highlight` / `annotation`）。
 enum NoteType { highlight, annotation }
 
+/// 单章阅读进度
+///
+/// - `page_index` / `total_pages` 标记了 `#[sqlx(default)]`，
+///   仅在数据库迁移新增这两列的过渡期内使用，迁移完成后应移除。
 @freezed
 sealed class ReadingProgress with _$ReadingProgress {
   const factory ReadingProgress({
     required String bookId,
     required int chapterIndex,
+    required int chunkIndex,
     String? chapterId,
     required PlatformInt64 charOffset,
     required int pageIndex,
@@ -144,13 +188,13 @@ sealed class ReadingProgress with _$ReadingProgress {
   }) = _ReadingProgress;
 }
 
+/// 单次连续阅读会话记录
 @freezed
 sealed class ReadingSession with _$ReadingSession {
   const factory ReadingSession({
     required String id,
     required String bookId,
     required int chapterIndex,
-    String? chapterId,
     required PlatformInt64 startCharOffset,
     required PlatformInt64 endCharOffset,
     required DateTime startedAt,
@@ -159,7 +203,7 @@ sealed class ReadingSession with _$ReadingSession {
   }) = _ReadingSession;
 }
 
-/// 每日阅读统计（按书聚合）
+/// 每日阅读统计
 @freezed
 sealed class ReadingStats with _$ReadingStats {
   const factory ReadingStats({
@@ -168,99 +212,59 @@ sealed class ReadingStats with _$ReadingStats {
     required PlatformInt64 readingTimeSeconds,
     required PlatformInt64 charactersRead,
     required int sessionCount,
+    String? lastSessionId,
   }) = _ReadingStats;
 }
 
-class VocabEntry {
-  final String id;
-  final String word;
-  final String pinyin;
-  final String translation;
-  final String? contextSentence;
-  final String? bookId;
-  final PlatformInt64? chapterIndex;
-  final PlatformInt64? charOffset;
-  final DateTime createdAt;
-  final int reviewCount;
-  final DateTime? lastReviewedAt;
-  final String status;
-
-  const VocabEntry({
-    required this.id,
-    required this.word,
-    required this.pinyin,
-    required this.translation,
-    this.contextSentence,
-    this.bookId,
-    this.chapterIndex,
-    this.charOffset,
-    required this.createdAt,
-    required this.reviewCount,
-    this.lastReviewedAt,
-    required this.status,
-  });
-
-  @override
-  int get hashCode =>
-      id.hashCode ^
-      word.hashCode ^
-      pinyin.hashCode ^
-      translation.hashCode ^
-      contextSentence.hashCode ^
-      bookId.hashCode ^
-      chapterIndex.hashCode ^
-      charOffset.hashCode ^
-      createdAt.hashCode ^
-      reviewCount.hashCode ^
-      lastReviewedAt.hashCode ^
-      status.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is VocabEntry &&
-          runtimeType == other.runtimeType &&
-          id == other.id &&
-          word == other.word &&
-          pinyin == other.pinyin &&
-          translation == other.translation &&
-          contextSentence == other.contextSentence &&
-          bookId == other.bookId &&
-          chapterIndex == other.chapterIndex &&
-          charOffset == other.charOffset &&
-          createdAt == other.createdAt &&
-          reviewCount == other.reviewCount &&
-          lastReviewedAt == other.lastReviewedAt &&
-          status == other.status;
+/// 生词条目
+///
+/// `status` 字段通过 `#[sqlx(try_from)]` 自动从 SQLite TEXT 解码为 `VocabStatus`，
+/// 非法值会导致 `FromRow` 解析失败（Fail visibly）。
+@freezed
+sealed class Vocab with _$Vocab {
+  const factory Vocab({
+    required String id,
+    required String word,
+    required String pinyin,
+    required String translation,
+    String? contextSentence,
+    String? bookId,
+    PlatformInt64? chapterIndex,
+    PlatformInt64? charOffset,
+    required DateTime createdAt,
+    required int reviewCount,
+    DateTime? lastReviewedAt,
+    required VocabStatus status,
+    String? wordList,
+    String? dictSource,
+    String? dictEntryHash,
+  }) = _Vocab;
 }
 
-class VocabStats {
-  final PlatformInt64 totalWords;
-  final PlatformInt64 learningCount;
-  final PlatformInt64 knownCount;
-  final PlatformInt64 masteredCount;
+/// 生词本统计摘要（应用层计算，非直接 DB 映射）
+@freezed
+sealed class VocabStats with _$VocabStats {
+  const factory VocabStats({
+    required PlatformInt64 totalWords,
+    required PlatformInt64 learningCount,
+    required PlatformInt64 knownCount,
+    required PlatformInt64 masteredCount,
+  }) = _VocabStats;
+}
 
-  const VocabStats({
-    required this.totalWords,
-    required this.learningCount,
-    required this.knownCount,
-    required this.masteredCount,
-  });
+/// 生词学习状态
+///
+/// 数据库中存储为小写文本（`new` / `learning` / `mastered` / `ignored`）。
+enum VocabStatus {
+  /// 新词，尚未开始学习
+  new_,
 
-  @override
-  int get hashCode =>
-      totalWords.hashCode ^
-      learningCount.hashCode ^
-      knownCount.hashCode ^
-      masteredCount.hashCode;
+  /// 学习中，正在复习周期内
+  learning,
 
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is VocabStats &&
-          runtimeType == other.runtimeType &&
-          totalWords == other.totalWords &&
-          learningCount == other.learningCount &&
-          knownCount == other.knownCount &&
-          masteredCount == other.masteredCount;
+  /// 已掌握，通过所有复习阶段
+  mastered,
+
+  /// 已忽略/移除出学习队列
+  ignored,
 }

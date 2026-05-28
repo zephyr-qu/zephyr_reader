@@ -4,10 +4,11 @@ library;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:get_it/get_it.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 
 import '../application/services/webdav_sync_service.dart';
@@ -25,14 +26,19 @@ class WebDavSettingsPage extends HookWidget {
     );
     final syncService = useMemoized(() => EnhancedWebDavSyncService());
     final syncVm = useMemoized(() => getIt<SyncViewModel>());
-    final isConfigured = useState(false);
-    final isTesting = useState(false);
-    final testResult = useState<bool?>(null);
-    final lastSyncTime = useState<DateTime?>(null);
-    final syncStatus = useState('未配置');
+    final isConfigured = useSignal(false);
+    final isTesting = useSignal(false);
+    final testResult = useSignal<bool?>(null);
+    final lastSyncTime = useSignal<DateTime?>(null);
+    final syncStatus = useSignal('未配置');
 
     useEffect(() {
-      _loadConfigStatus(configService, isConfigured, lastSyncTime, syncStatus);
+      _loadConfigStatus(
+        configService,
+        (v) => isConfigured.value = v,
+        (v) => lastSyncTime.value = v,
+        (v) => syncStatus.value = v,
+      );
       syncVm.loadPendingTasks();
       return null;
     }, []);
@@ -45,9 +51,9 @@ class WebDavSettingsPage extends HookWidget {
             icon: const Icon(PhosphorIconsRegular.arrowsClockwise),
             onPressed: () => _loadConfigStatus(
               configService,
-              isConfigured,
-              lastSyncTime,
-              syncStatus,
+              (v) => isConfigured.value = v,
+              (v) => lastSyncTime.value = v,
+              (v) => syncStatus.value = v,
             ),
             tooltip: '刷新状态',
           ),
@@ -71,8 +77,14 @@ class WebDavSettingsPage extends HookWidget {
             context,
             configService,
             isConfigured.value,
-            isTesting,
-            testResult,
+            isTesting.value,
+            testResult.value,
+            () => _testConnection(
+              context,
+              configService,
+              (v) => testResult.value = v,
+              (v) => isTesting.value = v,
+            ),
           ),
           const SizedBox(height: 24),
           // 自动同步设置
@@ -90,14 +102,14 @@ class WebDavSettingsPage extends HookWidget {
 
   Future<void> _loadConfigStatus(
     WebDavConfigService configService,
-    ValueNotifier<bool> isConfigured,
-    ValueNotifier<DateTime?> lastSyncTime,
-    ValueNotifier<String> syncStatus,
+    ValueChanged<bool> onConfigChanged,
+    ValueChanged<DateTime?> onTimeChanged,
+    ValueChanged<String> onStatusChanged,
   ) async {
     final config = await configService.getConfig();
-    isConfigured.value = config != null;
-    lastSyncTime.value = await configService.getLastSyncTime();
-    syncStatus.value = isConfigured.value ? '已配置' : '未配置';
+    onConfigChanged(config != null);
+    onTimeChanged(await configService.getLastSyncTime());
+    onStatusChanged(config != null ? '已配置' : '未配置');
   }
 
   Widget _buildSyncStatusCard(
@@ -162,8 +174,9 @@ class WebDavSettingsPage extends HookWidget {
     BuildContext context,
     WebDavConfigService configService,
     bool isConfigured,
-    ValueNotifier<bool> isTesting,
-    ValueNotifier<bool?> testResult,
+    bool isTesting,
+    bool? testResult,
+    VoidCallback onTestConnection,
   ) {
     return Card(
       child: Padding(
@@ -219,13 +232,8 @@ class WebDavSettingsPage extends HookWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _testConnection(
-                      context,
-                      configService,
-                      isTesting,
-                      testResult,
-                    ),
-                    icon: isTesting.value
+                    onPressed: onTestConnection,
+                    icon: isTesting
                         ? const SizedBox(
                             width: 16,
                             height: 16,
@@ -233,16 +241,16 @@ class WebDavSettingsPage extends HookWidget {
                           )
                         : const Icon(PhosphorIconsRegular.wifiHigh),
                     label: Text(
-                      testResult.value == null
+                      testResult == null
                           ? '测试连接'
-                          : testResult.value!
+                          : testResult
                           ? '连接成功'
                           : '连接失败',
                     ),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: testResult.value == null
+                      foregroundColor: testResult == null
                           ? null
-                          : testResult.value!
+                          : testResult
                           ? Colors.green
                           : Colors.red,
                     ),
@@ -259,15 +267,15 @@ class WebDavSettingsPage extends HookWidget {
   Future<void> _testConnection(
     BuildContext context,
     WebDavConfigService configService,
-    ValueNotifier<bool> isTesting,
-    ValueNotifier<bool?> testResult,
+    ValueChanged<bool?> onTestResult,
+    ValueChanged<bool> onTestingChanged,
   ) async {
-    isTesting.value = true;
-    testResult.value = null;
+    onTestingChanged(true);
+    onTestResult(null);
 
     try {
       final result = await configService.testCurrentConfig();
-      testResult.value = result;
+      onTestResult(result);
 
       if (!context.mounted) return;
 
@@ -278,7 +286,7 @@ class WebDavSettingsPage extends HookWidget {
         ),
       );
     } catch (e) {
-      testResult.value = false;
+      onTestResult(false);
 
       if (!context.mounted) return;
 
@@ -286,7 +294,7 @@ class WebDavSettingsPage extends HookWidget {
         SnackBar(content: Text('连接异常：$e'), backgroundColor: Colors.red),
       );
     } finally {
-      isTesting.value = false;
+      onTestingChanged(false);
     }
   }
 
@@ -306,14 +314,14 @@ class WebDavSettingsPage extends HookWidget {
     final remotePathController = TextEditingController(
       text: config?.remotePath ?? '/zephyr_reader',
     );
-    final selectedPreset = useState<WebDavPreset?>(null);
+    var selectedPreset = null as WebDavPreset?;
 
     if (!context.mounted) return;
 
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+        builder: (context, setDialogState) => AlertDialog(
           title: const Text('配置 WebDAV'),
           content: SingleChildScrollView(
             child: Column(
@@ -329,18 +337,20 @@ class WebDavSettingsPage extends HookWidget {
                   spacing: 8,
                   children: WebDavConfigService.getPresets().map((preset) {
                     final isSelected =
-                        selectedPreset.value?.name == preset.name;
+                        selectedPreset?.name == preset.name;
                     return ChoiceChip(
                       label: Text(preset.name),
                       selected: isSelected,
                       onSelected: (selected) {
-                        if (selected) {
-                          selectedPreset.value = preset;
-                          if (preset.baseUrl.isNotEmpty) {
-                            serverController.text = preset.baseUrl;
+                        setDialogState(() {
+                          if (selected) {
+                            selectedPreset = preset;
+                            if (preset.baseUrl.isNotEmpty) {
+                              serverController.text = preset.baseUrl;
+                            }
+                            remotePathController.text = preset.remotePath;
                           }
-                          remotePathController.text = preset.remotePath;
-                        }
+                        });
                       },
                     );
                   }).toList(),
@@ -513,8 +523,8 @@ class WebDavSettingsPage extends HookWidget {
     BuildContext context,
     WebDavConfigService configService,
   ) {
-    final autoSyncEnabled = useState(configService.autoSyncEnabled.value);
-    final syncInterval = useState(configService.autoSyncInterval.value);
+    final autoSyncEnabled = useSignal(configService.autoSyncEnabled.value);
+    final syncInterval = useSignal(configService.autoSyncInterval.value);
 
     return Card(
       child: Padding(
@@ -577,9 +587,9 @@ class WebDavSettingsPage extends HookWidget {
     EnhancedWebDavSyncService syncService,
     WebDavConfigService configService,
   ) {
-    final isSyncing = useState(false);
-    final syncMessage = useState('');
-    final syncProgress = useState(0.0);
+    final isSyncing = useSignal(false);
+    final syncMessage = useSignal('');
+    final syncProgress = useSignal(0.0);
     final conflicts = <ConflictInfo>[];
 
     Future<void> performSync(SyncDirection direction) async {
@@ -815,7 +825,7 @@ class WebDavSettingsPage extends HookWidget {
       for (final conflict in result) {
         if (!context.mounted) break;
         await Navigator.of(context).push(
-          MaterialPageRoute(
+          MaterialPageRoute<void>(
             builder: (context) => ConflictResolutionPage(
               syncService: syncService,
               conflictInfo: conflict,
@@ -881,7 +891,7 @@ class WebDavSettingsPage extends HookWidget {
   }
 
   void _showHelpDialog(BuildContext context) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('WebDAV 同步帮助'),

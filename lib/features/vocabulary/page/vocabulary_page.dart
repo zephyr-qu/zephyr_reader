@@ -1,33 +1,42 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:get_it/get_it.dart';
-import 'package:signals_flutter/signals_flutter.dart';
+import 'package:signals_hooks/signals_hooks.dart';
 
 import 'package:zephyr_reader/features/vocabulary/application/vocabulary_view_model.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
-class VocabularyPage extends StatefulWidget {
-  const VocabularyPage({super.key});
+class VocabularyPage extends HookWidget {
+  final VocabularyViewModel vm;
 
-  @override
-  State<VocabularyPage> createState() => _VocabularyPageState();
-}
-
-class _VocabularyPageState extends State<VocabularyPage> {
-  final _vm = GetIt.I.get<VocabularyViewModel>();
-
-  @override
-  void initState() {
-    super.initState();
-    _vm.loadWords();
-  }
+  const VocabularyPage({super.key, required this.vm});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // Load on mount
+    useEffect(() {
+      vm.loadWords();
+      return null;
+    }, []);
+
+    // Bind VM signals
+    final stats = useSignalValue<VocabStats?, Signal<VocabStats?>>(vm.stats);
+    final filterStatus = useSignalValue<VocabStatus?, Signal<VocabStatus?>>(
+      vm.filterStatus,
+    );
+    final filterWordList = useSignalValue<String?, Signal<String?>>(
+      vm.filterWordList,
+    );
+    final wordsState = useSignalValue<AsyncState<List<Vocab>>, AsyncSignal<List<Vocab>>>(vm.words);
+    final bookTitles = useSignalValue<Map<String, String>, Signal<Map<String, String>>>(
+      vm.bookTitles,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -40,7 +49,7 @@ class _VocabularyPageState extends State<VocabularyPage> {
         actions: [
           IconButton(
             icon: const Icon(PhosphorIconsRegular.arrowsClockwise),
-            onPressed: () => _vm.refresh(),
+            onPressed: () => vm.refresh(),
             tooltip: '刷新',
           ),
         ],
@@ -48,58 +57,165 @@ class _VocabularyPageState extends State<VocabularyPage> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildStatsRow(theme),
-            Expanded(child: _buildWordList(theme)),
+            _buildStatsRow(
+              theme,
+              stats,
+              filterStatus,
+              filterWordList,
+            ),
+            Expanded(
+              child: _buildWordList(
+                theme,
+                wordsState,
+                bookTitles,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  static const _filters = <String?, String>{
-    null: '全部',
-    'learning': '学习中',
-    'known': '已认识',
-    'mastered': '已掌握',
-  };
+  static const wordLists = ['CET-4', 'CET-6', 'IELTS', 'TOEFL'];
 
-  Widget _buildStatsRow(ThemeData theme) {
-    return Watch.builder(
-      builder: (context) {
-        final s = _vm.stats.value;
-        if (s == null) {
-          return SizedBox(height: DesignTokens.spacing(Spacing.sm));
-        }
-        final filterStatus = _vm.filterStatus.value;
-        return Padding(
+  Widget _buildStatsRow(
+    ThemeData theme,
+    VocabStats? stats,
+    VocabStatus? filterStatus,
+    String? filterWordList,
+  ) {
+    if (stats == null) {
+      return SizedBox(height: DesignTokens.spacing(Spacing.sm));
+    }
+    final notStartedCount =
+        stats.totalWords - stats.learningCount - stats.knownCount - stats.masteredCount;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _filterChip('全部', s.totalWords.toString(), null,
-                    filterStatus == null, theme),
+                _filterChip(
+                  '全部',
+                  stats.totalWords.toString(),
+                  filterStatus: null,
+                  selected: filterStatus == null,
+                  theme: theme,
+                ),
                 const SizedBox(width: 8),
-                _filterChip('学习中', s.learningCount.toString(), 'learning',
-                    filterStatus == 'learning', theme),
+                _filterChip(
+                  '未学',
+                  notStartedCount.toString(),
+                  filterStatus: VocabStatus.new_,
+                  selected: filterStatus.toString() == 'not_started',
+                  theme: theme,
+                ),
                 const SizedBox(width: 8),
-                _filterChip('已认识', s.knownCount.toString(), 'known',
-                    filterStatus == 'known', theme),
+                _filterChip(
+                  '学习中',
+                  stats.learningCount.toString(),
+                  filterStatus: VocabStatus.learning,
+                  selected: filterStatus.toString() == 'learning',
+                  theme: theme,
+                ),
                 const SizedBox(width: 8),
-                _filterChip('已掌握', s.masteredCount.toString(), 'mastered',
-                    filterStatus == 'mastered', theme),
+                _filterChip(
+                  '已忽略',
+                  stats.knownCount.toString(),
+                  filterStatus: VocabStatus.ignored,
+                  selected: filterStatus.toString() == 'ignored',
+                  theme: theme,
+                ),
+                const SizedBox(width: 8),
+                _filterChip(
+                  '已掌握',
+                  stats.masteredCount.toString(),
+                  filterStatus: VocabStatus.mastered,
+                  selected: filterStatus.toString() == 'mastered',
+                  theme: theme,
+                ),
               ],
             ),
           ),
-        );
-      },
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _filterChip(
+                  '全部词库',
+                  '',
+                  wordList: null,
+                  selected: filterWordList == null,
+                  theme: theme,
+                  isWordList: true,
+                ),
+                const SizedBox(width: 8),
+                for (final wl in wordLists)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _filterChip(
+                      wl,
+                      '',
+                      wordList: wl,
+                      selected: filterWordList == wl,
+                      theme: theme,
+                      isWordList: true,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _filterChip(
-      String label, String count, String? filterValue, bool selected, ThemeData theme) {
+    String label,
+    String count, {
+    VocabStatus? filterStatus,
+    String? wordList,
+    required bool selected,
+    required ThemeData theme,
+    bool isWordList = false,
+  }) {
+    if (isWordList) {
+      return GestureDetector(
+        onTap: () => vm.setWordListFilter(wordList),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: selected
+                ? theme.colorScheme.secondary.withValues(alpha: 0.12)
+                : theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected
+                  ? theme.colorScheme.secondary
+                  : Colors.transparent,
+              width: 1,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              color: selected ? theme.colorScheme.secondary : null,
+            ),
+          ),
+        ),
+      );
+    }
     return GestureDetector(
-      onTap: () => _vm.setFilter(filterValue),
+      onTap: () => vm.setFilter(filterStatus),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -109,9 +225,7 @@ class _VocabularyPageState extends State<VocabularyPage> {
               : theme.colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected
-                ? theme.colorScheme.primary
-                : Colors.transparent,
+            color: selected ? theme.colorScheme.primary : Colors.transparent,
             width: 1,
           ),
         ),
@@ -127,150 +241,165 @@ class _VocabularyPageState extends State<VocabularyPage> {
     );
   }
 
-  Widget _buildWordList(ThemeData theme) {
-    return Watch.builder(
-      builder: (context) {
-        if (_vm.loading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final err = _vm.error.value;
-        if (err != null) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  PhosphorIconsRegular.warningCircle,
-                  size: 48,
-                  color: theme.colorScheme.error,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  err,
-                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: DesignTokens.spacing(Spacing.md)),
-                FilledButton.tonal(
-                  onPressed: () => _vm.loadWords(),
-                  child: const Text('重试'),
-                ),
-              ],
+  Widget _buildWordList(
+    ThemeData theme,
+    AsyncState<List<Vocab>> wordsState,
+    Map<String, String> bookTitles,
+  ) {
+    if (wordsState.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final err = wordsState.error;
+    if (err != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              PhosphorIconsRegular.warningCircle,
+              size: 48,
+              color: theme.colorScheme.error,
             ),
-          );
-        }
-        final items = _vm.words.value;
-        if (items.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  PhosphorIconsRegular.bookmarkSimple,
-                  size: 48,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(
-                    alpha: 0.4,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '暂无生词',
-                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-                ),
-              ],
+            const SizedBox(height: 12),
+            Text(
+              err.toString(),
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+              textAlign: TextAlign.center,
             ),
-          );
-        }
-        return ListView.separated(
-          padding: EdgeInsets.symmetric(
-            horizontal: DesignTokens.spacing(Spacing.md),
-          ),
-          itemCount: items.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            final item = items[index];
-            return RepaintBoundary(
-              child: Dismissible(
-                key: ValueKey(item.id),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 20),
-                  color: Colors.red,
-                  child: const Icon(
-                    PhosphorIconsRegular.trash,
-                    color: Colors.white,
-                  ),
+            SizedBox(height: DesignTokens.spacing(Spacing.md)),
+            FilledButton.tonal(
+              onPressed: () => vm.loadWords(),
+              child: const Text('重试'),
+            ),
+          ],
+        ),
+      );
+    }
+    final items = wordsState.value ?? [];
+    if (items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              PhosphorIconsRegular.bookmarkSimple,
+              size: 48,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '暂无生词',
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView.separated(
+      padding: EdgeInsets.symmetric(
+        horizontal: DesignTokens.spacing(Spacing.md),
+      ),
+      itemCount: items.length,
+      separatorBuilder: (_, _) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return RepaintBoundary(
+          child: Dismissible(
+            key: ValueKey(item.id),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              color: Colors.red,
+              child: const Icon(
+                PhosphorIconsRegular.trash,
+                color: Colors.white,
+              ),
+            ),
+            onDismissed: (_) => vm.deleteWord(item.id),
+            child: ListTile(
+              contentPadding: EdgeInsets.symmetric(
+                vertical: DesignTokens.spacing(Spacing.xs),
+              ),
+              title: Text(
+                item.word,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
-                onDismissed: (_) => _vm.deleteWord(item.id),
-                child: ListTile(
-                  contentPadding: EdgeInsets.symmetric(
-                    vertical: DesignTokens.spacing(Spacing.xs),
-                  ),
-                  title: Text(
-                    item.word,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+              ),
+              subtitle: _buildSubtitle(item, bookTitles),
+              trailing: PopupMenuButton<String>(
+                initialValue: item.status.toString(),
+                onSelected: (s) => vm.updateStatus(item.id, s),
+                itemBuilder: (_) => [
+                  if (item.status.toString() != 'new')
+                    const PopupMenuItem(
+                      value: 'not_started',
+                      child: Text('未学'),
                     ),
+                  if (item.status.toString() != 'learning')
+                    const PopupMenuItem(
+                      value: 'learning',
+                      child: Text('学习中'),
+                    ),
+                  if (item.status.toString() != 'known')
+                    const PopupMenuItem(value: 'known', child: Text('已认识')),
+                  if (item.status.toString() != 'mastered')
+                    const PopupMenuItem(
+                      value: 'mastered',
+                      child: Text('已掌握'),
+                    ),
+                ],
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: DesignTokens.spacing(Spacing.sm),
+                    vertical: 2,
                   ),
-                  subtitle: item.pinyin.isNotEmpty
-                      ? Text(
-                          item.pinyin,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        )
-                      : null,
-                  trailing: PopupMenuButton<String>(
-                    initialValue: item.status,
-                    onSelected: (s) => _vm.updateStatus(item.id, s),
-                    itemBuilder: (_) => [
-                      if (item.status != 'learning')
-                        const PopupMenuItem(
-                          value: 'learning',
-                          child: Text('学习中'),
-                        ),
-                      if (item.status != 'known')
-                        const PopupMenuItem(value: 'known', child: Text('已认识')),
-                      if (item.status != 'mastered')
-                        const PopupMenuItem(
-                          value: 'mastered',
-                          child: Text('已掌握'),
-                        ),
-                    ],
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: DesignTokens.spacing(Spacing.sm),
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _statusColor(
-                          item.status,
-                        ).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        _statusLabel(item.status),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _statusColor(item.status),
-                        ),
-                      ),
+                  decoration: BoxDecoration(
+                    color: _statusColor(item.status.toString()).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _statusLabel(item.status.toString()),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _statusColor(item.status.toString()),
                     ),
                   ),
                 ),
               ),
-            );
-          },
+            ),
+          ),
         );
       },
     );
   }
 
+  Widget? _buildSubtitle(Vocab item, Map<String, String> bookTitles) {
+    final parts = <String>[];
+    if (item.pinyin.isNotEmpty) {
+      parts.add(item.pinyin);
+    }
+    if (item.bookId != null && item.bookId!.isNotEmpty) {
+      final title = bookTitles[item.bookId];
+      if (title != null && title.isNotEmpty) {
+        parts.add('来自《$title》');
+      }
+    }
+    if (parts.isEmpty) return null;
+    return Text(
+      parts.join(' · '),
+      style: const TextStyle(fontSize: 12, color: Colors.grey),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
   Color _statusColor(String status) {
     switch (status) {
+      case 'not_started':
+        return Colors.grey;
       case 'known':
         return Colors.green;
       case 'mastered':
@@ -282,6 +411,8 @@ class _VocabularyPageState extends State<VocabularyPage> {
 
   String _statusLabel(String status) {
     switch (status) {
+      case 'not_started':
+        return '未学';
       case 'known':
         return '已认识';
       case 'mastered':

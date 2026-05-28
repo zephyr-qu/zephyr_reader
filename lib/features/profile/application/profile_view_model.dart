@@ -1,22 +1,21 @@
 import 'package:injectable/injectable.dart';
-import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/core/local/rust_storage_service.dart';
+import 'package:signals/signals.dart';
+import 'package:zephyr_reader/src/rust/api/data/stats.dart' as stats_api;
+import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 @injectable
 class ProfileViewModel {
-  final RustStorageService _storage;
-
   final vocabStats = asyncSignal<VocabStats?>(AsyncState.loading());
   final globalStats = asyncSignal<GlobalStats?>(AsyncState.loading());
 
-  ProfileViewModel(this._storage);
+  ProfileViewModel();
 
   Future<void> loadStats() async {
     try {
       final results = await Future.wait([
-        _storage.getGlobalReadingStats(),
-        _storage.getVocabularyStats(),
+        stats_api.getGlobalReadingStats(),
+        vocab_api.getVocabularyStats(),
       ]);
       globalStats.value = AsyncState.data(results[0] as GlobalStats?);
       vocabStats.value = AsyncState.data(results[1] as VocabStats?);

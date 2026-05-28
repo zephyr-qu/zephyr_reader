@@ -81,11 +81,23 @@ class ReaderConfig {
   /// 页边距
   final padding = signal<double>(16.0);
 
+  /// 阅读背景色预设索引
+  final readerBgColorIndex = signal<int>(0);
+
   /// 是否自动翻页
   final autoScroll = signal<bool>(false);
 
   /// 自动翻页速度（秒）
   final autoScrollSpeed = signal<int>(30);
+
+  /// 字间距
+  final letterSpacing = signal<double>(0.0);
+
+  /// 标点挤压
+  final punctuationSqueeze = signal<bool>(true);
+
+  /// 中西文基线对齐
+  final baselineAlign = signal<bool>(true);
 
   ReaderConfig(this.prefs) {
     _loadSettings();
@@ -96,8 +108,12 @@ class ReaderConfig {
   static const String _keyLineHeight = 'reader_line_height';
   static const String _keyParagraphSpacing = 'reader_paragraph_spacing';
   static const String _keyPadding = 'reader_padding';
+  static const String _keyReaderBgColorIndex = 'reader_bg_color_index';
   static const String _keyAutoScroll = 'reader_auto_scroll';
   static const String _keyAutoScrollSpeed = 'reader_auto_scroll_speed';
+  static const String _keyLetterSpacing = 'reader_letter_spacing';
+  static const String _keyPunctuationSqueeze = 'reader_punctuation_squeeze';
+  static const String _keyBaselineAlign = 'reader_baseline_align';
 
   Future<void> _loadSettings() async {
     theme.value = ReaderTheme.fromId(
@@ -109,8 +125,12 @@ class ReaderConfig {
     lineHeight.value = prefs.getDouble(_keyLineHeight) ?? 1.6;
     paragraphSpacing.value = prefs.getDouble(_keyParagraphSpacing) ?? 16.0;
     padding.value = prefs.getDouble(_keyPadding) ?? 16.0;
+    readerBgColorIndex.value = prefs.getInt(_keyReaderBgColorIndex) ?? 0;
     autoScroll.value = prefs.getBool(_keyAutoScroll) ?? false;
     autoScrollSpeed.value = prefs.getInt(_keyAutoScrollSpeed) ?? 30;
+    letterSpacing.value = prefs.getDouble(_keyLetterSpacing) ?? 0.0;
+    punctuationSqueeze.value = prefs.getBool(_keyPunctuationSqueeze) ?? true;
+    baselineAlign.value = prefs.getBool(_keyBaselineAlign) ?? true;
   }
 
   Future<void> setTheme(ReaderTheme newTheme) async {
@@ -138,6 +158,11 @@ class ReaderConfig {
     await prefs.setDouble(_keyPadding, value);
   }
 
+  Future<void> setReaderBgColorIndex(int index) async {
+    readerBgColorIndex.value = index;
+    await prefs.setInt(_keyReaderBgColorIndex, index);
+  }
+
   Future<void> setAutoScroll(bool value) async {
     autoScroll.value = value;
     await prefs.setBool(_keyAutoScroll, value);
@@ -148,6 +173,21 @@ class ReaderConfig {
     await prefs.setInt(_keyAutoScrollSpeed, value);
   }
 
+  Future<void> setLetterSpacing(double value) async {
+    letterSpacing.value = value;
+    await prefs.setDouble(_keyLetterSpacing, value);
+  }
+
+  Future<void> setPunctuationSqueeze(bool value) async {
+    punctuationSqueeze.value = value;
+    await prefs.setBool(_keyPunctuationSqueeze, value);
+  }
+
+  Future<void> setBaselineAlign(bool value) async {
+    baselineAlign.value = value;
+    await prefs.setBool(_keyBaselineAlign, value);
+  }
+
   /// 重置为默认设置
   Future<void> resetToDefault() async {
     await setTheme(ReaderTheme.light);
@@ -155,7 +195,11 @@ class ReaderConfig {
     await setLineHeight(1.6);
     await setParagraphSpacing(16.0);
     await setPadding(16.0);
+    await setReaderBgColorIndex(0);
     await setAutoScroll(false);
     await setAutoScrollSpeed(30);
+    await setLetterSpacing(0.0);
+    await setPunctuationSqueeze(true);
+    await setBaselineAlign(true);
   }
 }
