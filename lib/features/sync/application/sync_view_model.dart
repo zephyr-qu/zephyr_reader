@@ -1,10 +1,8 @@
-import 'package:injectable/injectable.dart';
-import 'package:signals/signals.dart';
+import 'package:signals_flutter/signals_flutter.dart';
 
 import '../domain/repositories/sync_repository.dart';
 
 /// 同步视图模型
-@injectable
 class SyncViewModel {
   final SyncRepository _repo;
 

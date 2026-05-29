@@ -2,9 +2,10 @@ library;
 
 import 'dart:async';
 
-import 'package:signals/signals.dart';
+import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/learning_notes/application/models/note_with_book.dart';
+import 'package:zephyr_reader/shared/book_title_resolver.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as rust_book;
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as rust_note;
 import 'package:zephyr_reader/src/rust/api/data/stats.dart' as rust_stats;
@@ -164,15 +165,6 @@ class LearningNotesViewModel {
   }
 
   Future<void> _loadBookTitles() async {
-    try {
-      final allBooks = await rust_book.listBooks();
-      final map = <String, String>{};
-      for (final book in allBooks) {
-        map[book.bookId] = book.title;
-      }
-      bookTitles.value = map;
-    } catch (e) {
-      Logging.error('加载书籍标题失败', exception: e);
-    }
+    bookTitles.value = await loadBookTitles();
   }
 }

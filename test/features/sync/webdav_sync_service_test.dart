@@ -5,7 +5,6 @@
 /// - 连接测试
 /// - 数据同步
 /// - 冲突检测
-library;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';

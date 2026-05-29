@@ -2,7 +2,7 @@ library;
 
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 
 /// Flutter 侧字符宽度校准数据
 ///
@@ -85,14 +85,14 @@ Future<CalibrationData?> calibrateSafely({
       final ratio = result.cjkWidth / expectedCjk;
       if (ratio < 0.5 || ratio > 1.5) {
         if (attempt < maxRetries) {
-          debugPrint(
+          Logging.info(
             'calibrateSafely: CJK width ratio=$ratio (expected ~1.0), '
             'retrying ($attempt/$maxRetries)',
           );
           await Future<void>.delayed(retryDelay);
           continue;
         }
-        debugPrint(
+        Logging.info(
           'calibrateSafely: CJK width ratio=$ratio out of range, '
           'returning null after $maxRetries retries',
         );
@@ -102,11 +102,11 @@ Future<CalibrationData?> calibrateSafely({
       return result;
     } catch (e) {
       if (attempt < maxRetries) {
-        debugPrint('calibrateSafely: error ($attempt/$maxRetries): $e');
+        Logging.error('calibrateSafely: error ($attempt/$maxRetries): $e');
         await Future<void>.delayed(retryDelay);
         continue;
       }
-      debugPrint(
+      Logging.error(
         'calibrateSafely: returning null after $maxRetries retries: $e',
       );
       return null;

@@ -64,7 +64,6 @@ class ReadingProgressData {
   });
   double get progressPercent =>
       totalPages > 0 ? (pageIndex + 1) / totalPages : 0.0;
-  String get progressText => '${(progressPercent * 100).toStringAsFixed(1)}%';
 }
 
 @Injectable()
@@ -97,7 +96,7 @@ class ReaderRepository {
     try {
       final book = await book_api.getBook(bookId: bookId);
       if (book == null || book.filePath.isEmpty) {
-        debugPrint(
+        Logging.error(
           'getPaginatedChapterPages: book not found for bookId=$bookId',
         );
         return (pages: <PageInfo>[], cacheHit: false, isFallback: true);
@@ -134,7 +133,7 @@ class ReaderRepository {
 
       return (pages: pages, cacheHit: false, isFallback: false);
     } catch (e) {
-      debugPrint('getPaginatedChapterPages error: $e');
+      Logging.error('getPaginatedChapterPages error: $e');
       return (pages: <PageInfo>[], cacheHit: false, isFallback: true);
     }
   }
@@ -242,7 +241,7 @@ class ReaderRepository {
             _richParagraphCache[cacheKey]![chapterId] = paragraphs;
           }
         } catch (e) {
-          debugPrint('loadChapterContent EPUB rich typeset failed: $e');
+          Logging.error('loadChapterContent EPUB rich typeset failed: $e');
         }
       }
 
@@ -253,7 +252,7 @@ class ReaderRepository {
       _updateCache(cacheKey, chapterId, content, []);
       return content;
     } catch (e) {
-      debugPrint('loadChapterContent error: $e');
+      Logging.error('loadChapterContent error: $e');
       throw Exception('Failed to load chapter content: $e');
     }
   }
@@ -512,8 +511,8 @@ class ReaderRepository {
     }
     try {
       await loadChapterContent(bookId, chapterId);
-    } catch (_) {
-      // 预加载失败静默忽略
+    } catch (e) {
+      Logging.error('章节预加载失败', exception: e);
     }
   }
 

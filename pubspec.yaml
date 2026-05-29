@@ -5,7 +5,7 @@ version: 1.0.0+1
 
 environment:
   sdk: ^3.11.0
-  # flutter: '>=3.38.0'
+  flutter: '>=3.41.2'
 
 dependencies:
   flutter:
@@ -16,8 +16,8 @@ dependencies:
   go_router: ^17.0.1
 
   # --- State Management ---
-  signals_flutter: ^6.3.0
-  signals_hooks: ^0.4.0
+  signals_flutter: ^7.0.0
+  signals_hooks: ^7.0.0
   flutter_hooks: ^0.21.3+1
 
   # --- Dependency Injection ---
@@ -68,10 +68,16 @@ dependencies:
   # --- Dictionary ---
   flutter_widget_from_html_core: ^0.15.2
   audioplayers: ^6.1.0
+  # --- Async Utilities ---
+  async: ^2.13.0
 
-  signals: any
+  # --- Error Reporting ---
+  sentry_flutter: ^9.20.0
+  sentry_dio: ^9.19.0
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  flutter_driver:
     sdk: flutter
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
@@ -88,7 +94,7 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   freezed: ^3.2.5
-
+  mocktail: ^1.0.4
 flutter:
   uses-material-design: true
   generate: true

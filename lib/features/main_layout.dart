@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -55,7 +56,6 @@ enum BottomNavItem {
     };
   }
 
-  /// 检查路由是否匹配（支持子路由）
   bool matchesRoute(String currentRoute) {
     final normalizedRoute = currentRoute.split('?').first;
 
@@ -75,16 +75,11 @@ enum BottomNavItem {
 }
 
 /// 带自适应导航栏的主布局
-class MainLayout extends StatefulWidget {
+class MainLayout extends HookWidget {
   final Widget child;
 
   const MainLayout({super.key, required this.child});
 
-  @override
-  State<MainLayout> createState() => _MainLayoutState();
-}
-
-class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     final currentRoute = GoRouterState.of(context).uri.path;
@@ -109,7 +104,7 @@ class _MainLayoutState extends State<MainLayout> {
                 duration: const Duration(milliseconds: 300),
                 switchInCurve: Curves.easeInOut,
                 switchOutCurve: Curves.easeInOut,
-                child: widget.child,
+                child: child,
               ),
             ),
           ],
@@ -121,7 +116,7 @@ class _MainLayoutState extends State<MainLayout> {
           duration: const Duration(milliseconds: 300),
           switchInCurve: Curves.easeInOut,
           switchOutCurve: Curves.easeInOut,
-          child: widget.child,
+          child: child,
         ),
         extendBody: true,
         bottomNavigationBar: _buildBottomNavigationBar(
@@ -261,23 +256,7 @@ class _MainLayoutState extends State<MainLayout> {
     ThemeData theme,
     bool isExtended,
   ) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: Icon(
-              PhosphorIconsRegular.gearSix,
-              color: theme.colorScheme.onSurfaceVariant,
-              size: 20,
-            ),
-            onPressed: () => context.push(RoutePaths.appSettings),
-            tooltip: '设置',
-          ),
-        ],
-      ),
-    );
+    return const SizedBox.shrink();
   }
 
   Widget _buildBottomNavigationBar(

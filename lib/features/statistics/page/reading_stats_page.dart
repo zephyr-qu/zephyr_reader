@@ -36,9 +36,10 @@ class ReadingStatsPage extends HookWidget {
     final globalStats = useSignalValue<GlobalStats?, Signal<GlobalStats?>>(
       vm.globalStats,
     );
-    final dailyMinutes = useSignalValue<List<double>, ReadonlySignal<List<double>>>(
-      vm.dailyMinutes,
-    );
+    final dailyMinutes =
+        useSignalValue<List<double>, ReadonlySignal<List<double>>>(
+          vm.dailyMinutes,
+        );
 
     final totalMinutes = globalStats != null
         ? '${globalStats.totalReadingTimeSeconds ~/ 60} 分钟'
@@ -139,13 +140,13 @@ class ReadingStatsPage extends HookWidget {
                       touchTooltipData: BarTouchTooltipData(
                         getTooltipItem: (group, groupIndex, rod, rodIndex) =>
                             BarTooltipItem(
-                          '${rod.toY.toStringAsFixed(0)}分钟',
-                          TextStyle(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ),
+                              '${rod.toY.toStringAsFixed(0)}分钟',
+                              TextStyle(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
                       ),
                     ),
                     titlesData: FlTitlesData(

@@ -11,10 +11,7 @@ class _BookCover extends StatelessWidget {
   final Book book;
   final String statusLabel;
 
-  const _BookCover({
-    required this.book,
-    required this.statusLabel,
-  });
+  const _BookCover({required this.book, required this.statusLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -48,8 +45,9 @@ class _BookCover extends StatelessWidget {
                             child: Icon(
                               PhosphorIconsRegular.book,
                               size: 24,
-                              color:
-                                  theme.colorScheme.primary.withValues(alpha: 0.4),
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.4,
+                              ),
                             ),
                           ),
                         ),
@@ -58,7 +56,9 @@ class _BookCover extends StatelessWidget {
                         child: Icon(
                           PhosphorIconsRegular.book,
                           size: 24,
-                          color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.4,
+                          ),
                         ),
                       ),
               ),
@@ -154,15 +154,10 @@ class BookshelfBookContent extends StatelessWidget {
           children: [
             Text(
               '加载失败',
-              style: TextStyle(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             ),
             SizedBox(height: DesignTokens.spacing(Spacing.sm)),
-            TextButton(
-              onPressed: onRetry,
-              child: const Text('重试'),
-            ),
+            TextButton(onPressed: onRetry, child: const Text('重试')),
           ],
         ),
       );
@@ -188,10 +183,7 @@ class BookshelfBookContent extends StatelessWidget {
             SizedBox(height: DesignTokens.spacing(Spacing.md)),
             FilledButton.tonalIcon(
               onPressed: onImportTap,
-              icon: const Icon(
-                PhosphorIconsRegular.uploadSimple,
-                size: 18,
-              ),
+              icon: const Icon(PhosphorIconsRegular.uploadSimple, size: 18),
               label: const Text('导入书籍'),
             ),
           ],
@@ -228,7 +220,9 @@ class BookshelfBookContent extends StatelessWidget {
                     ? () {
                         if (selected) {
                           onSelectionChanged(
-                            selectedIds.where((id) => id != book.bookId).toSet(),
+                            selectedIds
+                                .where((id) => id != book.bookId)
+                                .toSet(),
                           );
                         } else {
                           onSelectionChanged({...selectedIds, book.bookId});

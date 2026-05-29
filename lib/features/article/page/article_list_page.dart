@@ -8,7 +8,7 @@ import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/features/article/application/article_view_model.dart';
 import 'package:zephyr_reader/features/article/domain/models/article.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
-import 'package:zephyr_reader/core/presentation/widgets/states.dart';
+import 'package:zephyr_reader/core/presentation/widgets/empty_state_widget.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
@@ -30,7 +30,10 @@ class ArticleListPage extends HookWidget {
     }, []);
 
     // Bind VM signal
-    final articlesState = useSignalValue<AsyncState<List<Article>>, AsyncSignal<List<Article>>>(vm.articles);
+    final articlesState =
+        useSignalValue<AsyncState<List<Article>>, AsyncSignal<List<Article>>>(
+          vm.articles,
+        );
 
     return Scaffold(
       body: CustomScrollView(
@@ -118,9 +121,7 @@ class ArticleListPage extends HookWidget {
         padding: pagePadding,
         sliver: SliverList(
           delegate: SliverChildBuilderDelegate((context, index) {
-            return RepaintBoundary(
-              child: _buildSkeletonCard(context, index),
-            );
+            return RepaintBoundary(child: _buildSkeletonCard(context, index));
           }, childCount: 5),
         ),
       );
@@ -135,12 +136,13 @@ class ArticleListPage extends HookWidget {
           child: Center(
             child: Padding(
               padding: EdgeInsets.all(DesignTokens.spacing(Spacing.xl)),
-              child: EmptyState(
+              child: EmptyStateWidget(
                 icon: PhosphorIconsRegular.warningCircle,
                 title: '加载失败',
                 subtitle: articlesState.error?.toString() ?? '未知错误',
                 actionLabel: '重试',
                 onAction: vm.load,
+                colorScheme: theme.colorScheme,
               ),
             ),
           ),
@@ -159,12 +161,13 @@ class ArticleListPage extends HookWidget {
           child: Center(
             child: Padding(
               padding: EdgeInsets.all(DesignTokens.spacing(Spacing.xl)),
-              child: EmptyState(
+              child: EmptyStateWidget(
                 icon: PhosphorIconsRegular.fileText,
                 title: '暂无文章',
                 subtitle: '文章列表空空如也',
                 actionLabel: '刷新',
                 onAction: vm.load,
+                colorScheme: theme.colorScheme,
               ),
             ),
           ),
@@ -376,7 +379,8 @@ class ArticleListPage extends HookWidget {
                                   child: Text(
                                     article.author,
                                     style: theme.textTheme.labelSmall?.copyWith(
-                                      color: theme.colorScheme.onPrimaryContainer,
+                                      color:
+                                          theme.colorScheme.onPrimaryContainer,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -411,7 +415,8 @@ class ArticleListPage extends HookWidget {
                                 Text(
                                   '${article.readDuration}分钟',
                                   style: theme.textTheme.labelSmall?.copyWith(
-                                    color: theme.colorScheme.onTertiaryContainer,
+                                    color:
+                                        theme.colorScheme.onTertiaryContainer,
                                   ),
                                 ),
                               ],

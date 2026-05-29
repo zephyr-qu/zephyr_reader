@@ -1,29 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:signals_flutter/signals_flutter.dart';
+import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
+import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
 import 'package:zephyr_reader/features/profile/page/theme_brightness/theme_brightness_view_model.dart';
 
-class ThemeBrightnessPage extends StatefulWidget {
-  const ThemeBrightnessPage({super.key});
+class ThemeBrightnessPage extends HookWidget {
+  final ThemeBrightnessViewModel vm;
 
-  @override
-  State<ThemeBrightnessPage> createState() => _ThemeBrightnessPageState();
-}
-
-class _ThemeBrightnessPageState extends State<ThemeBrightnessPage> {
-  final _vm = ThemeBrightnessViewModel();
-
-  @override
-  void initState() {
-    super.initState();
-    _vm.initialize();
-  }
+  const ThemeBrightnessPage({super.key, required this.vm});
 
   @override
   Widget build(BuildContext context) {
+    useEffect(() {
+      vm.initialize();
+      return null;
+    }, []);
+
     final cs = Theme.of(context).colorScheme;
+
+    final int bgIndex = useSignalValue(vm.readerBgColorIndex);
+    final AppThemeType themeType = useSignalValue(vm.themeType);
+    final bool amoled = useSignalValue(vm.amoledMode);
+    final int brightness = useSignalValue(vm.brightness);
+    final bool useSystemBrightness = useSignalValue(vm.useSystemBrightness);
+    final bool lowBatteryDim = useSignalValue(vm.lowBatteryDim);
+    final bool reduceWhitePoint = useSignalValue(vm.reduceWhitePoint);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -36,110 +42,95 @@ class _ThemeBrightnessPageState extends State<ThemeBrightnessPage> {
             letterSpacing: -0.5,
           ),
         ),
-        centerTitle: false,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
       ),
-      body: Watch.builder(
-        builder: (context) {
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-            children: [
-              _buildPreviewCard(cs),
-              const SizedBox(height: 24),
-              _buildAppThemeSection(cs),
-              const SizedBox(height: 24),
-              _buildBgColorSection(cs),
-              const SizedBox(height: 24),
-              _buildBrightnessSection(cs),
-              const SizedBox(height: 24),
-              _buildAdvancedSection(cs),
-            ],
-          );
-        },
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+        children: [
+          _buildPreviewCard(cs, bgIndex),
+          const SizedBox(height: 24),
+          _buildAppThemeSection(cs, themeType, amoled),
+          const SizedBox(height: 24),
+          _buildBgColorSection(cs, bgIndex),
+          const SizedBox(height: 24),
+          _buildBrightnessSection(
+            cs,
+            brightness,
+            useSystemBrightness,
+            lowBatteryDim,
+          ),
+          const SizedBox(height: 24),
+          _buildAdvancedSection(cs, amoled, reduceWhitePoint),
+        ],
       ),
     );
   }
 
-  // ==================== Live Preview ====================
+  Widget _buildPreviewCard(ColorScheme cs, int bgIndex) {
+    final previewColors = _previewColors();
+    final colors = previewColors[bgIndex.clamp(0, previewColors.length - 1)];
+    final bg = colors.$1;
+    final fg = colors.$2;
 
-  Widget _buildPreviewCard(ColorScheme cs) {
-    return Watch.builder(
-      builder: (context) {
-        final bgIndex = _vm.readerBgColorIndex.value;
-        final previewColors = _previewColors(context);
-        final colors =
-            previewColors[bgIndex.clamp(0, previewColors.length - 1)];
-        final bg = colors.$1;
-        final fg = colors.$2;
-
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: bg.computeLuminance() > 0.5
-                  ? cs.outlineVariant.withValues(alpha: 0.15)
-                  : Colors.transparent,
-              width: 1,
-            ),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-          child: Stack(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: bg.computeLuminance() > 0.5
+              ? cs.outlineVariant.withValues(alpha: 0.15)
+              : Colors.transparent,
+          width: 1,
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      child: Stack(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 4),
-                  Text(
-                    '春风又绿江南岸，明月何时照我还。',
-                    style: TextStyle(fontSize: 16, height: 1.8, color: fg),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'The spring wind has greened the southern shore again.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 1.8,
-                      color: fg.withValues(alpha: 0.75),
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 4),
+              Text(
+                '春风又绿江南岸，明月何时照我还。',
+                style: TextStyle(fontSize: 16, height: 1.8, color: fg),
               ),
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: fg.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '实时预览',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: fg.withValues(alpha: 0.6),
-                    ),
-                  ),
+              const SizedBox(height: 4),
+              Text(
+                'The spring wind has greened the southern shore again.',
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.8,
+                  color: fg.withValues(alpha: 0.75),
+                  fontStyle: FontStyle.italic,
                 ),
               ),
             ],
           ),
-        );
-      },
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: fg.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '实时预览',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: fg.withValues(alpha: 0.6),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.04, end: 0);
   }
 
-  List<(Color, Color)> _previewColors(BuildContext context) {
+  List<(Color, Color)> _previewColors() {
     return [
       (const Color(0xFFFFFFFF), const Color(0xFF1D1D1F)),
       (const Color(0xFFF5E6C8), const Color(0xFF3E2723)),
@@ -150,13 +141,15 @@ class _ThemeBrightnessPageState extends State<ThemeBrightnessPage> {
     ];
   }
 
-  // ==================== App Theme ====================
-
-  Widget _buildAppThemeSection(ColorScheme cs) {
+  Widget _buildAppThemeSection(
+    ColorScheme cs,
+    AppThemeType themeType,
+    bool amoled,
+  ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionLabel('应用主题', cs),
+            SectionLabel(label: '应用主题', colorScheme: cs),
             Container(
               decoration: BoxDecoration(
                 color: cs.surface,
@@ -169,11 +162,32 @@ class _ThemeBrightnessPageState extends State<ThemeBrightnessPage> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  _modeOption(cs, '浅色', '☀️', AppThemeType.light),
+                  _modeOption(
+                    cs,
+                    '浅色',
+                    '☀️',
+                    AppThemeType.light,
+                    themeType,
+                    amoled,
+                  ),
                   const SizedBox(width: 8),
-                  _modeOption(cs, '深色', '🌙', AppThemeType.dark),
+                  _modeOption(
+                    cs,
+                    '深色',
+                    '🌙',
+                    AppThemeType.dark,
+                    themeType,
+                    amoled,
+                  ),
                   const SizedBox(width: 8),
-                  _modeOption(cs, '跟随系统', '🔄', AppThemeType.system),
+                  _modeOption(
+                    cs,
+                    '跟随系统',
+                    '🔄',
+                    AppThemeType.system,
+                    themeType,
+                    amoled,
+                  ),
                 ],
               ),
             ),
@@ -189,58 +203,54 @@ class _ThemeBrightnessPageState extends State<ThemeBrightnessPage> {
     String label,
     String emoji,
     AppThemeType type,
+    AppThemeType currentTheme,
+    bool amoled,
   ) {
-    return Watch.builder(
-      builder: (context) {
-        final active =
-            _vm.themeType.value == type ||
-            (type == AppThemeType.dark &&
-                _vm.themeType.value == AppThemeType.pureDark &&
-                _vm.amoledMode.value);
-        return Expanded(
-          child: GestureDetector(
-            onTap: () => _vm.setThemeType(type),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-              decoration: BoxDecoration(
-                color: active
-                    ? cs.primary.withValues(alpha: 0.08)
-                    : cs.surfaceContainerHighest.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: active ? cs.primary : Colors.transparent,
-                  width: 2,
-                ),
-              ),
-              child: Column(
-                children: [
-                  Text(emoji, style: const TextStyle(fontSize: 24)),
-                  const SizedBox(height: 6),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                      color: active ? cs.primary : cs.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
+    final active =
+        currentTheme == type ||
+        (type == AppThemeType.dark &&
+            currentTheme == AppThemeType.pureDark &&
+            amoled);
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => vm.setThemeType(type),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+          decoration: BoxDecoration(
+            color: active
+                ? cs.primary.withValues(alpha: 0.08)
+                : cs.surfaceContainerHighest.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: active ? cs.primary : Colors.transparent,
+              width: 2,
             ),
           ),
-        );
-      },
+          child: Column(
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 24)),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                  color: active ? cs.primary : cs.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  // ==================== Reading Background ====================
-
-  Widget _buildBgColorSection(ColorScheme cs) {
+  Widget _buildBgColorSection(ColorScheme cs, int activeIdx) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionLabel('阅读背景色', cs),
+            SectionLabel(label: '阅读背景色', colorScheme: cs),
             Container(
               decoration: BoxDecoration(
                 color: cs.surface,
@@ -251,67 +261,7 @@ class _ThemeBrightnessPageState extends State<ThemeBrightnessPage> {
                 ),
               ),
               padding: const EdgeInsets.all(16),
-              child: Watch.builder(
-                builder: (context) {
-                  final activeIdx = _vm.readerBgColorIndex.value;
-                  final colors = [
-                    const Color(0xFFFFFFFF),
-                    const Color(0xFFF5E6C8),
-                    const Color(0xFFFFF8E1),
-                    const Color(0xFFC8E6C9),
-                    const Color(0xFFECEFF1),
-                    const Color(0xFF000000),
-                  ];
-                  return SizedBox(
-                    height: 48,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: colors.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 10),
-                      itemBuilder: (_, i) {
-                        final active = i == activeIdx;
-                        return GestureDetector(
-                          onTap: () => _vm.setReaderBgColorIndex(i),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: colors[i],
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: active ? cs.primary : Colors.transparent,
-                                width: 3,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: cs.onSurface.withValues(alpha: 0.08),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
-                            ),
-                            transform: active
-                                ? Matrix4.diagonal3Values(1.1, 1.1, 1)
-                                : Matrix4.identity(),
-                            child: active
-                                ? Center(
-                                    child: Icon(
-                                      PhosphorIconsRegular.check,
-                                      size: 20,
-                                      color: colors[i].computeLuminance() > 0.3
-                                          ? Colors.black54
-                                          : Colors.white70,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
+              child: _buildBgColorPicker(cs, activeIdx),
             ),
           ],
         )
@@ -320,13 +270,75 @@ class _ThemeBrightnessPageState extends State<ThemeBrightnessPage> {
         .slideY(begin: 0.03, end: 0);
   }
 
-  // ==================== Brightness ====================
+  Widget _buildBgColorPicker(ColorScheme cs, int activeIdx) {
+    final colors = [
+      const Color(0xFFFFFFFF),
+      const Color(0xFFF5E6C8),
+      const Color(0xFFFFF8E1),
+      const Color(0xFFC8E6C9),
+      const Color(0xFFECEFF1),
+      const Color(0xFF000000),
+    ];
+    return SizedBox(
+      height: 48,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: colors.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (_, i) {
+          final active = i == activeIdx;
+          return GestureDetector(
+            onTap: () => vm.setReaderBgColorIndex(i),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: colors[i],
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: active ? cs.primary : Colors.transparent,
+                  width: 3,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: cs.onSurface.withValues(alpha: 0.08),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              transform: active
+                  ? Matrix4.diagonal3Values(1.1, 1.1, 1)
+                  : Matrix4.identity(),
+              child: active
+                  ? Center(
+                      child: Icon(
+                        PhosphorIconsRegular.check,
+                        size: 20,
+                        color: colors[i].computeLuminance() > 0.3
+                            ? Colors.black54
+                            : Colors.white70,
+                      ),
+                    )
+                  : null,
+            ),
+          );
+        },
+      ),
+    );
+  }
 
-  Widget _buildBrightnessSection(ColorScheme cs) {
+  Widget _buildBrightnessSection(
+    ColorScheme cs,
+    int brightness,
+    bool useSystemBrightness,
+    bool lowBatteryDim,
+  ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionLabel('亮度调节', cs),
+            SectionLabel(label: '亮度调节', colorScheme: cs),
             Container(
               decoration: BoxDecoration(
                 color: cs.surface,
@@ -338,26 +350,24 @@ class _ThemeBrightnessPageState extends State<ThemeBrightnessPage> {
               ),
               child: Column(
                 children: [
-                  _buildBrightnessSlider(cs),
-                  _buildToggleItem(
-                    cs,
+                  _buildBrightnessSlider(cs, brightness),
+                  SettingsToggleTile(
                     icon: PhosphorIconsRegular.sunHorizon,
-                    iconColor: const Color(0xFFF57C00),
-                    iconBg: const Color(0xFFFFF3E0),
+                    iconColor: MenuItemSemantic.warning.iconColor,
+                    iconBackground: MenuItemSemantic.warning.iconBackground,
                     title: '使用系统亮度',
-                    desc: '关闭后可独立调节阅读器亮度',
-                    value: _vm.useSystemBrightness.value,
-                    onChanged: (v) => _vm.setUseSystemBrightness(v),
+                    subtitle: '关闭后可独立调节阅读器亮度',
+                    value: useSystemBrightness,
+                    onChanged: (v) => vm.setUseSystemBrightness(v),
                   ),
-                  _buildToggleItem(
-                    cs,
+                  SettingsToggleTile(
                     icon: PhosphorIconsRegular.batteryLow,
-                    iconColor: const Color(0xFFD32F2F),
-                    iconBg: const Color(0xFFFFEBEE),
+                    iconColor: MenuItemSemantic.error.iconColor,
+                    iconBackground: MenuItemSemantic.error.iconBackground,
                     title: '低电量自动降亮',
-                    desc: '电量 < 20% 时自动降至 40%',
-                    value: _vm.lowBatteryDim.value,
-                    onChanged: (v) => _vm.setLowBatteryDim(v),
+                    subtitle: '电量 < 20% 时自动降至 40%',
+                    value: lowBatteryDim,
+                    onChanged: (v) => vm.setLowBatteryDim(v),
                   ),
                 ],
               ),
@@ -369,86 +379,79 @@ class _ThemeBrightnessPageState extends State<ThemeBrightnessPage> {
         .slideY(begin: 0.03, end: 0);
   }
 
-  Widget _buildBrightnessSlider(ColorScheme cs) {
-    return Watch.builder(
-      builder: (context) {
-        final val = _vm.brightness.value;
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildBrightnessSlider(ColorScheme cs, int val) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  const Text('🔆', style: TextStyle(fontSize: 16)),
-                  const SizedBox(width: 6),
-                  Text(
-                    '屏幕亮度',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: cs.onSurface,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: cs.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '$val%',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: cs.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SliderTheme(
-                data: SliderThemeData(
-                  trackHeight: 6,
-                  thumbShape: const RoundSliderThumbShape(
-                    enabledThumbRadius: 12,
-                  ),
-                  overlayShape: const RoundSliderOverlayShape(
-                    overlayRadius: 20,
-                  ),
-                  activeTrackColor: const Color(0xFFFFD54F),
-                  inactiveTrackColor: const Color(0xFF333333),
-                  thumbColor: Colors.white,
-                  overlayColor: cs.primary.withValues(alpha: 0.12),
+              const Text('🔆', style: TextStyle(fontSize: 16)),
+              const SizedBox(width: 6),
+              Text(
+                '屏幕亮度',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: cs.onSurface,
                 ),
-                child: Slider(
-                  value: val.toDouble(),
-                  min: 30,
-                  max: 100,
-                  divisions: 70,
-                  label: '$val%',
-                  onChanged: (v) => _vm.setBrightness(v.round()),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: cs.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$val%',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: cs.primary,
+                  ),
                 ),
               ),
             ],
           ),
-        );
-      },
+          const SizedBox(height: 12),
+          SliderTheme(
+            data: SliderThemeData(
+              trackHeight: 6,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+              activeTrackColor: const Color(0xFFFFD54F),
+              inactiveTrackColor: const Color(0xFF333333),
+              thumbColor: Colors.white,
+              overlayColor: cs.primary.withValues(alpha: 0.12),
+            ),
+            child: Slider(
+              value: val.toDouble(),
+              min: 30,
+              max: 100,
+              divisions: 70,
+              label: '$val%',
+              onChanged: (v) => vm.setBrightness(v.round()),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  // ==================== Advanced ====================
-
-  Widget _buildAdvancedSection(ColorScheme cs) {
+  Widget _buildAdvancedSection(
+    ColorScheme cs,
+    bool amoled,
+    bool reduceWhitePoint,
+  ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionLabel('高级选项', cs),
+            SectionLabel(label: '高级选项', colorScheme: cs),
             Container(
               decoration: BoxDecoration(
                 color: cs.surface,
@@ -460,25 +463,25 @@ class _ThemeBrightnessPageState extends State<ThemeBrightnessPage> {
               ),
               child: Column(
                 children: [
-                  _buildToggleItem(
-                    cs,
+                  SettingsToggleTile(
                     icon: PhosphorIconsRegular.circle,
-                    iconColor: const Color(0xFF1A1A1A),
-                    iconBg: const Color(0xFFE0E0E0),
+                    iconColor: MenuItemSemantic.experimental.iconColor,
+                    iconBackground:
+                        MenuItemSemantic.experimental.iconBackground,
                     title: '纯黑 AMOLED 模式',
-                    desc: '深色模式下使用 #000000 背景，节省 OLED 电量',
-                    value: _vm.amoledMode.value,
-                    onChanged: (v) => _vm.setAmoledMode(v),
+                    subtitle: '深色模式下使用 #000000 背景，节省 OLED 电量',
+                    value: amoled,
+                    onChanged: (v) => vm.setAmoledMode(v),
                   ),
-                  _buildToggleItem(
-                    cs,
+                  SettingsToggleTile(
                     icon: PhosphorIconsRegular.moonStars,
-                    iconColor: const Color(0xFF7B1FA2),
-                    iconBg: const Color(0xFFF3E5F5),
+                    iconColor: MenuItemSemantic.experimental.iconColor,
+                    iconBackground:
+                        MenuItemSemantic.experimental.iconBackground,
                     title: '降低白点值',
-                    desc: '在系统最低亮度基础上进一步减弱强光刺激',
-                    value: _vm.reduceWhitePoint.value,
-                    onChanged: (v) => _vm.setReduceWhitePoint(v),
+                    subtitle: '在系统最低亮度基础上进一步减弱强光刺激',
+                    value: reduceWhitePoint,
+                    onChanged: (v) => vm.setReduceWhitePoint(v),
                   ),
                 ],
               ),
@@ -488,90 +491,5 @@ class _ThemeBrightnessPageState extends State<ThemeBrightnessPage> {
         .animate()
         .fadeIn(duration: 300.ms, delay: 250.ms)
         .slideY(begin: 0.03, end: 0);
-  }
-
-  // ==================== Shared Widgets ====================
-
-  Widget _sectionLabel(String label, ColorScheme cs) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 10),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-          letterSpacing: 0.4,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildToggleItem(
-    ColorScheme cs, {
-    required IconData icon,
-    required Color iconColor,
-    required Color iconBg,
-    required String title,
-    required String desc,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: cs.outlineVariant.withValues(alpha: 0.15),
-            width: 0.5,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 16, color: iconColor),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: cs.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  desc,
-                  style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            height: 24,
-            child: Switch.adaptive(
-              value: value,
-              activeThumbColor: cs.primary,
-              activeTrackColor: cs.primary.withValues(alpha: 0.3),
-              onChanged: onChanged,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

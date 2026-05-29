@@ -5,18 +5,19 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/application/profile_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class ProfilePage extends HookWidget {
-  const ProfilePage({super.key});
+  final ProfileViewModel vm;
+
+  const ProfilePage({super.key, required this.vm});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final vm = useMemoized(() => getIt<ProfileViewModel>());
 
     useEffect(() {
       vm.loadStats();
@@ -39,10 +40,7 @@ class ProfilePage extends HookWidget {
           Center(
             child: Text(
               'Zephyr Reader v1.0.0',
-              style: TextStyle(
-                fontSize: 12,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: theme.textTheme.labelLarge,
             ),
           ),
           const SizedBox(height: 40),
@@ -55,14 +53,12 @@ class ProfilePage extends HookWidget {
     final theme = Theme.of(context);
     return Row(
       children: [
-        const CircleAvatar(
+        CircleAvatar(
           radius: 28,
           backgroundColor: DesignTokens.warmAccent,
           child: Text(
             '书',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
+            style: theme.textTheme.headlineMedium?.copyWith(
               color: Colors.white,
             ),
           ),
@@ -73,21 +69,12 @@ class ProfilePage extends HookWidget {
           children: [
             Text(
               '书友',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurface,
+              style: theme.textTheme.headlineMedium?.copyWith(
                 letterSpacing: -0.3,
               ),
             ),
             const SizedBox(height: 2),
-            Text(
-              '阅读是一种生活态度',
-              style: TextStyle(
-                fontSize: 13,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
+            Text('阅读是一种生活态度', style: theme.textTheme.bodyMedium),
           ],
         ),
       ],
@@ -118,15 +105,8 @@ class ProfilePage extends HookWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
-            error: (e) => Center(
-              child: Text(
-                '加载失败',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
+            error: (e) =>
+                Center(child: Text('加载失败', style: theme.textTheme.bodyMedium)),
             data: (stats) {
               final hours = stats != null
                   ? (stats.totalReadingTimeSeconds / 3600).round()
@@ -203,83 +183,60 @@ class ProfilePage extends HookWidget {
         _MenuItemData(
           PhosphorIconsRegular.bookOpen,
           '学习与笔记',
-          const Color(0xFFAB47BC),
-          const Color(0xFFF3E5F5),
+          MenuItemSemantic.education,
           () => context.push(RoutePaths.learningNotes),
         ),
         _MenuItemData(
           PhosphorIconsRegular.clockCounterClockwise,
           '阅读会话',
-          const Color(0xFF0891B2),
-          const Color(0xFFECFEFF),
+          MenuItemSemantic.reading,
           () => context.push(RoutePaths.readingSessions),
         ),
         _MenuItemData.withBadge(
           PhosphorIconsRegular.arrowsClockwise,
           '数据同步',
-          const Color(0xFF059669),
-          const Color(0xFFECFDF5),
+          MenuItemSemantic.success,
           '已同步',
           () => context.push(RoutePaths.sync),
         ),
         _MenuItemData(
           PhosphorIconsRegular.hardDrives,
           '存储与同步',
-          const Color(0xFF059669),
-          const Color(0xFFECFDF5),
+          MenuItemSemantic.success,
           () => context.push(RoutePaths.storageSync),
         ),
       ]),
       _MenuSectionData('阅读体验', [
         _MenuItemData(
-          PhosphorIconsRegular.bookOpen,
-          '阅读设置',
-          const Color(0xFFD97706),
-          const Color(0xFFFFFBEB),
-          () => context.push(RoutePaths.readingSettings),
-        ),
-        _MenuItemData(
           PhosphorIconsRegular.waveform,
           '朗读设置',
-          const Color(0xFF42A5F5),
-          const Color(0xFFE3F2FD),
+          MenuItemSemantic.info,
           () => context.push(RoutePaths.ttsSettings),
         ),
         _MenuItemData(
           PhosphorIconsRegular.textB,
           '排版与字体',
-          const Color(0xFF7C3AED),
-          const Color(0xFFF3E8FF),
+          MenuItemSemantic.typography,
           () => context.push(RoutePaths.typographySettings),
         ),
         _MenuItemData(
           PhosphorIconsRegular.palette,
           '主题与亮度',
-          const Color(0xFFF59E0B),
-          const Color(0xFFFFFBEB),
+          MenuItemSemantic.primary,
           () => context.push(RoutePaths.themeBrightness),
         ),
       ]),
       _MenuSectionData('系统', [
         _MenuItemData(
-          PhosphorIconsRegular.gearSix,
-          '应用设置',
-          const Color(0xFF6B7280),
-          const Color(0xFFF3F4F6),
-          () => context.push(RoutePaths.appSettings),
-        ),
-        _MenuItemData(
           PhosphorIconsRegular.dotsThreeOutline,
           '其他设置',
-          const Color(0xFF78909C),
-          const Color(0xFFF5F5F5),
+          MenuItemSemantic.neutral,
           () => context.push(RoutePaths.otherSettings),
         ),
         _MenuItemData(
           PhosphorIconsRegular.info,
           '关于',
-          const Color(0xFFEC4899),
-          const Color(0xFFFDF2F8),
+          MenuItemSemantic.about,
           () => context.push(RoutePaths.about),
         ),
       ]),
@@ -307,9 +264,7 @@ class ProfilePage extends HookWidget {
     final theme = Theme.of(context);
     return Text(
       section.label,
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
+      style: theme.textTheme.labelLarge?.copyWith(
         color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
         letterSpacing: 0.4,
       ),
@@ -363,10 +318,20 @@ class ProfilePage extends HookWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: item.bgColor,
+                  color: item.semantic.iconBackground,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(item.icon, size: 17, color: item.iconColor),
+                child: Icon(
+                  item.icon,
+                  size: 17,
+                  color: item.semantic.iconBackground(theme.brightness),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  item.icon,
+                  size: 17,
+                  color: item.semantic.iconColor(theme.brightness),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -388,18 +353,18 @@ class ProfilePage extends HookWidget {
                   ),
                   decoration: BoxDecoration(
                     color: item.badge == '已同步'
-                        ? const Color(0xFF059669).withValues(alpha: 0.1)
-                        : item.iconColor.withValues(alpha: 0.1),
+                        ? MenuItemSemantic.success.iconColor(theme.brightness).withValues(
+                            alpha: 0.1,
+                          )
+                        : item.semantic.iconColor(theme.brightness).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     item.badge!,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
+                    style: theme.textTheme.labelSmall?.copyWith(
                       color: item.badge == '已同步'
-                          ? const Color(0xFF059669)
-                          : item.iconColor,
+                          ? MenuItemSemantic.success.iconColor(theme.brightness)
+                          : item.semantic.iconColor(theme.brightness),
                     ),
                   ),
                 ),
@@ -427,22 +392,15 @@ class _MenuSectionData {
 class _MenuItemData {
   final IconData icon;
   final String title;
-  final Color iconColor;
-  final Color bgColor;
+  final MenuItemSemantic semantic;
   final String? badge;
   final VoidCallback onTap;
-  const _MenuItemData(
-    this.icon,
-    this.title,
-    this.iconColor,
-    this.bgColor,
-    this.onTap,
-  ) : badge = null;
+  const _MenuItemData(this.icon, this.title, this.semantic, this.onTap)
+    : badge = null;
   const _MenuItemData.withBadge(
     this.icon,
     this.title,
-    this.iconColor,
-    this.bgColor,
+    this.semantic,
     this.badge,
     this.onTap,
   );

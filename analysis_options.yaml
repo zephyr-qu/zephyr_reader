@@ -40,18 +40,15 @@ analyzer:
     strict-inference: true
     strict-raw-types: true
 
+
   exclude:
     - '**/*.g.dart'
     - '**/*.freezed.dart'
     - '**/*.config.dart'
     - 'rust_builder/**'
-    - '.qwen/**'
-    - '.trae/**'
-    - '.iflow/**'
     - 'lib/src/**'
 
   errors:
-    # 将某些 lint 规则升级为错误
     avoid_print: error
     prefer_const_constructors: warning
     prefer_final_locals: info

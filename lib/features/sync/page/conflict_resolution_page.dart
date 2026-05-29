@@ -8,11 +8,14 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
+import 'package:zephyr_reader/core/presentation/widgets/settings/help_item.dart';
+import 'package:zephyr_reader/core/utils/date_formatters.dart';
+import '../application/services/sync_models.dart';
 import '../application/services/webdav_sync_service.dart';
 
 /// 冲突解决页面
 class ConflictResolutionPage extends HookWidget {
-  final EnhancedWebDavSyncService syncService;
+  final WebDavSyncService syncService;
   final ConflictInfo conflictInfo;
   final void Function(ConflictResolution resolution)? onResolved;
 
@@ -53,7 +56,12 @@ class ConflictResolutionPage extends HookWidget {
             _buildConflictInfoCard(conflictInfo),
             const SizedBox(height: 24),
             // 解决策略选择
-            _buildResolutionOptions(context, selectedResolution.value, (v) => selectedResolution.value = v, conflictInfo),
+            _buildResolutionOptions(
+              context,
+              selectedResolution.value,
+              (v) => selectedResolution.value = v,
+              conflictInfo,
+            ),
             const SizedBox(height: 24),
             // 数据对比
             _buildDataComparison(context, conflictInfo),
@@ -99,12 +107,12 @@ class ConflictResolutionPage extends HookWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '本地修改时间：${_formatDateTime(conflictInfo.localModified)}',
+              '本地修改时间：${formatRelativeTime(conflictInfo.localModified)}',
               style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 4),
             Text(
-              '远程修改时间：${_formatDateTime(conflictInfo.remoteModified)}',
+              '远程修改时间：${formatRelativeTime(conflictInfo.remoteModified)}',
               style: const TextStyle(fontSize: 14),
             ),
             if (conflictInfo.autoResolution != null) ...[
@@ -292,7 +300,7 @@ class ConflictResolutionPage extends HookWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '修改时间：${_formatDateTime(conflictInfo.localModified)}',
+                        '修改时间：${formatRelativeTime(conflictInfo.localModified)}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey.shade600,
@@ -330,7 +338,7 @@ class ConflictResolutionPage extends HookWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '修改时间：${_formatDateTime(conflictInfo.remoteModified)}',
+                        '修改时间：${formatRelativeTime(conflictInfo.remoteModified)}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey.shade600,
@@ -359,22 +367,22 @@ class ConflictResolutionPage extends HookWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            _buildHelpItem(
-              '使用本地版本',
-              '当您在本地设备上进行了重要修改，且希望保留这些修改时使用。远程数据将被覆盖。',
-              PhosphorIconsRegular.info,
+            const HelpItem(
+              title: '使用本地版本',
+              description: '当您在本地设备上进行了重要修改，且希望保留这些修改时使用。远程数据将被覆盖。',
+              icon: PhosphorIconsRegular.info,
             ),
             const SizedBox(height: 12),
-            _buildHelpItem(
-              '使用远程版本',
-              '当远程数据是最新的，或者您希望放弃本地修改时使用。本地数据将被覆盖。',
-              PhosphorIconsRegular.info,
+            const HelpItem(
+              title: '使用远程版本',
+              description: '当远程数据是最新的，或者您希望放弃本地修改时使用。本地数据将被覆盖。',
+              icon: PhosphorIconsRegular.info,
             ),
             const SizedBox(height: 12),
-            _buildHelpItem(
-              '合并两个版本',
-              '系统会智能合并本地和远程的数据。适用于两个设备都有不同修改的场景。',
-              PhosphorIconsRegular.sparkle,
+            const HelpItem(
+              title: '合并两个版本',
+              description: '系统会智能合并本地和远程的数据。适用于两个设备都有不同修改的场景。',
+              icon: PhosphorIconsRegular.sparkle,
             ),
             const SizedBox(height: 16),
             Container(
@@ -405,29 +413,6 @@ class ConflictResolutionPage extends HookWidget {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildHelpItem(String title, String description, IconData icon) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: Colors.blue),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -500,21 +485,6 @@ class ConflictResolutionPage extends HookWidget {
         return '使用远程版本';
       case ConflictResolution.merge:
         return '合并两个版本';
-    }
-  }
-
-  String _formatDateTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inMinutes < 1) {
-      return '刚刚';
-    } else if (difference.inHours < 1) {
-      return '${difference.inMinutes}分钟前';
-    } else if (difference.inDays < 1) {
-      return '${difference.inHours}小时前';
-    } else {
-      return '${dateTime.month}-${dateTime.day} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
     }
   }
 }

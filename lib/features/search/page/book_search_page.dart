@@ -16,14 +16,12 @@ class BookSearchPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // final searchService = useMemoized(() => getIt<Search>());
     final searchResults = useSignal<List<SearchResult>>([]);
     final isSearching = useSignal(false);
     final searchQuery = useSignal('');
     final error = useSignal<String?>(null);
 
     useEffect(() {
-      // searchService.init();
       return null;
     }, []);
 
@@ -38,32 +36,11 @@ class BookSearchPage extends HookWidget {
           ),
           style: TextStyle(color: theme.colorScheme.onSurface),
           onChanged: (value) => searchQuery.value = value,
-          onSubmitted: (value) {
-            if (value.isNotEmpty) {
-              // _performSearch(
-              // searchService,
-              // searchResults,
-              // isSearching,
-              // error,
-              // searchQuery,
-              // );
-            }
-          },
         ),
         actions: [
           IconButton(
             icon: const Icon(PhosphorIconsRegular.magnifyingGlass),
-            onPressed: () {
-              if (searchQuery.value.isNotEmpty) {
-                // _performSearch(
-                //   searchService,
-                //   searchResults,
-                //   isSearching,
-                //   error,
-                //   searchQuery,
-                // );
-              }
-            },
+            onPressed: () {},
             tooltip: '搜索',
           ),
           if (searchResults.value.isNotEmpty)
@@ -78,108 +55,102 @@ class BookSearchPage extends HookWidget {
             ),
         ],
       ),
-      body: Watch.builder(
-        builder: (context) {
-          if (isSearching.value) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (error.value != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    PhosphorIconsRegular.warningCircle,
-                    size: 48,
-                    color: theme.colorScheme.primary,
-                  ),
-                  SizedBox(height: DesignTokens.spacing(Spacing.md)),
-                  Text(
-                    '搜索失败',
-                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-                  ),
-                  SizedBox(height: DesignTokens.spacing(Spacing.md)),
-                  FilledButton(
-                    onPressed: () {
-                      error.value = null;
-                      if (searchQuery.value.isNotEmpty) {
-                        // _performSearch(
-                        //   searchService,
-                        //   searchResults,
-                        //   isSearching,
-                        //   error,
-                        //   searchQuery,
-                        // );
-                      }
-                    },
-                    child: const Text('重试'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          final results = searchResults.value;
-
-          if (results.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    PhosphorIconsRegular.magnifyingGlassMinus,
-                    size: 64,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.3,
-                    ),
-                  ),
-                  SizedBox(height: DesignTokens.spacing(Spacing.md)),
-                  Text(
-                    searchQuery.value.isEmpty ? '请输入搜索关键词' : '未找到相关结果',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  if (searchQuery.value.isNotEmpty) ...[
-                    SizedBox(height: DesignTokens.spacing(Spacing.sm)),
-                    Text(
-                      '尝试其他关键词',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            );
-          }
-
-          return ListView.separated(
-            padding: EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: DesignTokens.spacing(Spacing.sm),
-            ),
-            itemCount: results.length,
-            separatorBuilder: (_, _) =>
-                Divider(height: 0.5, color: theme.dividerColor),
-            itemBuilder: (context, index) {
-              final result = results[index];
-              return _SearchResultTile(result: result);
-            },
-          );
+      body: _buildBody(
+        theme,
+        isSearching.value,
+        error.value,
+        searchResults.value,
+        searchQuery.value,
+        () {
+          error.value = null;
         },
       ),
     );
   }
 
+  Widget _buildBody(
+    ThemeData theme,
+    bool isSearching,
+    String? error,
+    List<SearchResult> results,
+    String query,
+    VoidCallback onRetry,
+  ) {
+    if (isSearching) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              PhosphorIconsRegular.warningCircle,
+              size: 48,
+              color: theme.colorScheme.primary,
+            ),
+            SizedBox(height: DesignTokens.spacing(Spacing.md)),
+            Text(
+              '搜索失败',
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            ),
+            SizedBox(height: DesignTokens.spacing(Spacing.md)),
+            FilledButton(onPressed: onRetry, child: const Text('重试')),
+          ],
+        ),
+      );
+    }
+
+    if (results.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              PhosphorIconsRegular.magnifyingGlassMinus,
+              size: 64,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+            ),
+            SizedBox(height: DesignTokens.spacing(Spacing.md)),
+            Text(
+              query.isEmpty ? '请输入搜索关键词' : '未找到相关结果',
+              style: TextStyle(
+                fontSize: 16,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            if (query.isNotEmpty) ...[
+              SizedBox(height: DesignTokens.spacing(Spacing.sm)),
+              Text(
+                '尝试其他关键词',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: DesignTokens.spacing(Spacing.sm),
+      ),
+      itemCount: results.length,
+      separatorBuilder: (_, _) =>
+          Divider(height: 0.5, color: theme.dividerColor),
+      itemBuilder: (context, index) =>
+          _SearchResultTile(result: results[index]),
+    );
+  }
 }
 
 class _SearchResultTile extends StatelessWidget {
   final SearchResult result;
-
   const _SearchResultTile({required this.result});
 
   @override
@@ -189,8 +160,8 @@ class _SearchResultTile extends StatelessWidget {
       onTap: () => context.goNamed(
         RouteNames.reader,
         pathParameters: {
-          // 'bookId': result.bookId,
-          // 'chapterId': result.chapterId.toString(),
+          'bookId': result.bookId,
+          'chapterId': result.chapterId,
         },
       ),
       child: Container(
@@ -200,55 +171,9 @@ class _SearchResultTile extends StatelessWidget {
             bottom: BorderSide(color: theme.dividerColor, width: 0.5),
           ),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              PhosphorIconsRegular.book,
-              size: 20,
-              color: theme.colorScheme.primary.withValues(alpha: 0.5),
-            ),
-            SizedBox(width: DesignTokens.spacing(Spacing.sm)),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    // result.chapterTitle,
-                    '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  SizedBox(height: DesignTokens.spacing(Spacing.xs)),
-                  Text(
-                    // result.snippet,
-                    '',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: DesignTokens.spacing(Spacing.sm)),
-            Text(
-              // '${(result.score * 100).toStringAsFixed(0)}%',
-              '',
-              style: TextStyle(
-                fontSize: 12,
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+        child: ListTile(
+          title: Text(result.snippet),
+          subtitle: Text(result.chapterTitle),
         ),
       ),
     );

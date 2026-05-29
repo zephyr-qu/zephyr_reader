@@ -1,81 +1,71 @@
-library;
-
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/core/local/file_storage.dart';
 import 'package:zephyr_reader/features/sync/application/sync_view_model.dart';
 import 'package:zephyr_reader/features/sync/data/sync_service.dart';
 import 'package:zephyr_reader/features/sync/domain/repositories/sync_repository.dart'
     hide SyncRepository;
 
-class _MockFileStorage implements FileStorage {
-  String? storedContent;
+// ===== Mock classes using mocktail =====
 
-  @override
-  Future<void> init() async {}
+class _MockFileStorage extends Mock implements FileStorage {}
 
-  @override
-  Future<Directory> get appDirectory async => Directory.systemTemp;
+// ===== Helper function to create ViewModel =====
 
-  @override
-  Future<Directory> get tempDirectory async => Directory.systemTemp;
-
-  @override
-  Future<bool> saveString(
-    String filename,
-    String content, {
-    bool useTemp = false,
-  }) async {
-    storedContent = content;
-    return true;
-  }
-
-  @override
-  Future<String?> readString(String filename, {bool useTemp = false}) async =>
-      storedContent;
-
-  @override
-  Future<bool> saveBytes(
-    String filename,
-    Uint8List bytes, {
-    bool useTemp = false,
-  }) async => true;
-
-  @override
-  Future<Uint8List?> readBytes(String filename, {bool useTemp = false}) async =>
-      null;
-
-  @override
-  Future<bool> exists(String filename, {bool useTemp = false}) async =>
-      storedContent != null;
-
-  @override
-  Future<bool> delete(String filename, {bool useTemp = false}) async {
-    storedContent = null;
-    return true;
-  }
-
-  @override
-  Future<bool> clearTemp() async => true;
-
-  @override
-  Future<int> getUsage({bool includeTemp = false}) async => 0;
+SyncViewModel createViewModel({FileStorage? fileStorage}) {
+  return SyncViewModel(SyncRepository(fileStorage ?? _MockFileStorage()));
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('SyncViewModel', () {
-    late _MockFileStorage fileStorage;
+    late FileStorage fileStorage;
     late SyncRepository repo;
     late SyncViewModel vm;
 
     setUp(() {
       fileStorage = _MockFileStorage();
       repo = SyncRepository(fileStorage);
-      vm = SyncViewModel(repo);
+      vm = createViewModel(fileStorage: fileStorage);
+
+      // Configure file storage mocks
+      when(() => fileStorage.init()).thenAnswer((_) async {});
+      when(
+        () => fileStorage.appDirectory,
+      ).thenAnswer((_) async => Directory.systemTemp);
+      when(
+        () => fileStorage.tempDirectory,
+      ).thenAnswer((_) async => Directory.systemTemp);
+      when(
+        () => fileStorage.saveString(
+          any(),
+          any(),
+          useTemp: any(named: 'useTemp'),
+        ),
+      ).thenAnswer((_) async => true);
+      when(
+        () => fileStorage.readString(any(), useTemp: any(named: 'useTemp')),
+      ).thenAnswer((_) async => null);
+      when(
+        () =>
+            fileStorage.saveBytes(any(), any(), useTemp: any(named: 'useTemp')),
+      ).thenAnswer((_) async => true);
+      when(
+        () => fileStorage.readBytes(any(), useTemp: any(named: 'useTemp')),
+      ).thenAnswer((_) async => null);
+      when(
+        () => fileStorage.exists(any(), useTemp: any(named: 'useTemp')),
+      ).thenAnswer((_) async => false);
+      when(
+        () => fileStorage.delete(any(), useTemp: any(named: 'useTemp')),
+      ).thenAnswer((_) async => true);
+      when(() => fileStorage.clearTemp()).thenAnswer((_) async => true);
+      when(
+        () => fileStorage.getUsage(includeTemp: any(named: 'includeTemp')),
+      ).thenAnswer((_) async => 0);
     });
 
     group('同步任务管理', () {

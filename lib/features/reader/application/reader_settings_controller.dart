@@ -1,6 +1,6 @@
-import 'package:signals/signals.dart';
-
+import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
+
 import 'reader_enums.dart';
 
 /// 阅读器设置控制器

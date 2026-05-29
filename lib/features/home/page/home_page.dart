@@ -143,16 +143,17 @@ const _quotes = [
 
 // 首页主页面，HookWidget 驱动状态
 class HomePage extends HookWidget {
-  const HomePage({super.key});
+  final HomeViewModel vm;
+
+  const HomePage({super.key, required this.vm});
 
   @override
   Widget build(BuildContext context) {
-    // 获取 VM 实例
-    final vm = useMemoized(() => HomeViewModel());
-
-    // 订阅 VM 的信号（Widget 卸载时自动取消订阅）
-    final recentBooks = useExistingSignal(vm.recentBooks);
-    final dailyRecords = useExistingSignal(vm.dailyRecords);
+    // 订阅 VM 的信号
+    final AsyncState<List<Book>> recentBooks = useSignalValue(vm.recentBooks);
+    final AsyncState<List<ReadingStats>> dailyRecords = useSignalValue(
+      vm.dailyRecords,
+    );
 
     // 获取主题和本地化
     final theme = Theme.of(context);
@@ -170,9 +171,9 @@ class HomePage extends HookWidget {
         ? l10n.greetingAfternoon
         : l10n.greetingEvening;
 
-    return recentBooks.value.map(
+    return recentBooks.map(
       loading: () => const _HomeLoadingSkeleton(),
-      error: (error, stack) => _buildErrorView(
+      error: (Object error, StackTrace? stack) => _buildErrorView(
         context: context,
         theme: theme,
         l10n: l10n,
@@ -181,9 +182,9 @@ class HomePage extends HookWidget {
       ),
       data: (books) {
         // 同时检查 dailyRecords 的状态
-        return dailyRecords.value.map(
+        return dailyRecords.map(
           loading: () => const _HomeLoadingSkeleton(),
-          error: (error, stack) => _buildErrorView(
+          error: (Object error, StackTrace? stack) => _buildErrorView(
             context: context,
             theme: theme,
             l10n: l10n,
@@ -494,66 +495,69 @@ class HomePage extends HookWidget {
           ),
         ),
         SizedBox(height: DesignTokens.spacing(Spacing.sm)),
-        SizedBox(
-          height: 180,
-          child: LineChart(
-            LineChartData(
-              lineBarsData: [
-                LineChartBarData(
-                  spots: spots,
-                  isCurved: true,
-                  color: theme.colorScheme.primary,
-                  barWidth: 2,
-                  isStrokeCapRound: true,
-                  preventCurveOverShooting: true,
-                  dotData: const FlDotData(show: false),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: SizedBox(
+            height: 180,
+            child: LineChart(
+              LineChartData(
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: true,
+                    color: theme.colorScheme.primary,
+                    barWidth: 2,
+                    isStrokeCapRound: true,
+                    preventCurveOverShooting: true,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    ),
                   ),
-                ),
-              ],
-              lineTouchData: const LineTouchData(enabled: false),
-              titlesData: FlTitlesData(
-                show: true,
-                topTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                rightTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                leftTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 16,
-                    interval: 1,
-                    getTitlesWidget: (value, meta) {
-                      final idx = value.toInt();
-                      if (idx < 0 || idx > 6) {
-                        return const SizedBox.shrink();
-                      }
-                      final d = now.subtract(Duration(days: 6 - idx));
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          df.format(d),
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: theme.colorScheme.onSurfaceVariant,
+                ],
+                lineTouchData: const LineTouchData(enabled: false),
+                titlesData: FlTitlesData(
+                  show: true,
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  leftTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 24,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        final idx = value.toInt();
+                        if (idx < 0 || idx > 6) {
+                          return const SizedBox.shrink();
+                        }
+                        final d = now.subtract(Duration(days: 6 - idx));
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            df.format(d),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
+                gridData: const FlGridData(show: false),
+                borderData: FlBorderData(show: false),
+                minY: 0,
+                maxY: ceiling,
               ),
-              gridData: const FlGridData(show: false),
-              borderData: FlBorderData(show: false),
-              minY: 0,
-              maxY: ceiling,
             ),
           ),
         ),
@@ -606,10 +610,7 @@ class HomePage extends HookWidget {
                 SizedBox(height: DesignTokens.spacing(Spacing.xs)),
                 Text(
                   book.author ?? l10n.unknownAuthor,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white.withValues(alpha: 0.8),
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.white),
                 ),
                 SizedBox(height: DesignTokens.spacing(Spacing.md)),
                 SizedBox(
@@ -675,10 +676,7 @@ class HomePage extends HookWidget {
                 SizedBox(height: DesignTokens.spacing(Spacing.xs)),
                 Text(
                   l10n.exploreNewWorld,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withValues(alpha: 0.8),
-                  ),
+                  style: const TextStyle(fontSize: 13, color: Colors.white),
                 ),
               ],
             ),

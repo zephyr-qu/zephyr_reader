@@ -1,14 +1,17 @@
 import 'package:flutter/foundation.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 
-import 'webdav_sync_service.dart';
+import 'sync_exceptions.dart';
+import 'sync_models.dart';
+import 'webdav_client_service.dart';
+import 'webdav_config_service.dart';
 
 class WebdavConnectionManager {
   final WebDavConfigService _configService;
   WebDavClientService? _client;
 
-  WebdavConnectionManager({
-    required WebDavConfigService configService,
-  }) : _configService = configService;
+  WebdavConnectionManager({required WebDavConfigService configService})
+    : _configService = configService;
 
   Future<WebDavClientService> getConnectedClient() async {
     if (_client != null && _client!.isInitialized) return _client!;
@@ -39,7 +42,7 @@ class WebdavConnectionManager {
       );
       return await client.ping();
     } catch (e) {
-      debugPrint('WebDAV 连接测试异常：$e');
+      Logging.error('WebDAV 连接测试异常：$e');
       return false;
     }
   }

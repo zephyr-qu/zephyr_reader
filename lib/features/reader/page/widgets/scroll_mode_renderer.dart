@@ -64,8 +64,7 @@ class ScrollModeRenderer extends StatelessWidget {
     );
 
     if (richSpan != null) {
-      final richParagraphs =
-          repo.getCachedRichParagraphs(bookId, chapterId);
+      final richParagraphs = repo.getCachedRichParagraphs(bookId, chapterId);
       if (richParagraphs != null && richParagraphs.any((p) => p.isImage)) {
         return _buildRichScrollWithImages(
           richParagraphs,
@@ -89,8 +88,10 @@ class ScrollModeRenderer extends StatelessWidget {
       return ListView.builder(
         controller: scrollController,
         physics: adaptiveScrollPhysics(context),
-        padding:
-            EdgeInsets.symmetric(horizontal: config.pageMargin, vertical: 20),
+        padding: EdgeInsets.symmetric(
+          horizontal: config.pageMargin,
+          vertical: 20,
+        ),
         itemCount: paragraphs.length,
         itemBuilder: (context, index) {
           final painted = HighlightPainter.paintRich(
@@ -105,17 +106,21 @@ class ScrollModeRenderer extends StatelessWidget {
           return RepaintBoundary(
             child: Padding(
               padding: EdgeInsets.only(
-                bottom:
-                    index < paragraphs.length - 1 ? config.paragraphSpacing : 0,
+                bottom: index < paragraphs.length - 1
+                    ? config.paragraphSpacing
+                    : 0,
               ),
               child: SelectableText.rich(
                 painted,
                 style: textStyle,
                 strutStyle: strutStyle,
                 textAlign: TextAlign.justify,
-                onSelectionChanged: (sel, cause) =>
-                    _onRichSelectionChanged(sel, paragraphs[index],
-                        paraOffsets[index], context),
+                onSelectionChanged: (sel, cause) => _onRichSelectionChanged(
+                  sel,
+                  paragraphs[index],
+                  paraOffsets[index],
+                  context,
+                ),
                 contextMenuBuilder: (_, _) => const SizedBox.shrink(),
               ),
             ),
@@ -141,8 +146,10 @@ class ScrollModeRenderer extends StatelessWidget {
     return ListView.builder(
       controller: scrollController,
       physics: adaptiveScrollPhysics(context),
-      padding:
-          EdgeInsets.symmetric(horizontal: config.pageMargin, vertical: 20),
+      padding: EdgeInsets.symmetric(
+        horizontal: config.pageMargin,
+        vertical: 20,
+      ),
       itemCount: paragraphList.length,
       itemBuilder: (context, index) {
         final painted = HighlightPainter.paintPlain(
@@ -157,16 +164,20 @@ class ScrollModeRenderer extends StatelessWidget {
         return RepaintBoundary(
           child: Padding(
             padding: EdgeInsets.only(
-              bottom:
-                  index < paragraphList.length - 1 ? config.paragraphSpacing : 0,
+              bottom: index < paragraphList.length - 1
+                  ? config.paragraphSpacing
+                  : 0,
             ),
             child: SelectableText.rich(
               painted,
               strutStyle: strutStyle,
               textAlign: TextAlign.justify,
-              onSelectionChanged: (sel, cause) =>
-                  _onPlainSelectionChanged(sel, paragraphList[index],
-                      offsets[index], context),
+              onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(
+                sel,
+                paragraphList[index],
+                offsets[index],
+                context,
+              ),
               contextMenuBuilder: (_, _) => const SizedBox.shrink(),
             ),
           ),
@@ -202,7 +213,9 @@ class ScrollModeRenderer extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           physics: adaptiveScrollPhysics(context),
           padding: EdgeInsets.symmetric(
-              horizontal: config.pageMargin, vertical: 20),
+            horizontal: config.pageMargin,
+            vertical: 20,
+          ),
           itemCount: textParagraphs.length,
           itemBuilder: (context, index) {
             final span = textParagraphs[index];
@@ -250,8 +263,10 @@ class ScrollModeRenderer extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         controller: scrollController,
         physics: adaptiveScrollPhysics(context),
-        padding:
-            EdgeInsets.symmetric(horizontal: config.pageMargin, vertical: 20),
+        padding: EdgeInsets.symmetric(
+          horizontal: config.pageMargin,
+          vertical: 20,
+        ),
         itemCount: paragraphList.length,
         itemBuilder: (context, index) {
           final painted = HighlightPainter.paintPlain(
@@ -275,9 +290,12 @@ class ScrollModeRenderer extends StatelessWidget {
                 painted,
                 strutStyle: strutStyle,
                 textAlign: TextAlign.start,
-                onSelectionChanged: (sel, cause) =>
-                    _onPlainSelectionChanged(
-                        sel, paragraphList[index], 0, context),
+                onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(
+                  sel,
+                  paragraphList[index],
+                  0,
+                  context,
+                ),
                 contextMenuBuilder: (_, _) => const SizedBox.shrink(),
               ),
             ),
@@ -314,13 +332,15 @@ class ScrollModeRenderer extends StatelessWidget {
       }
     }
 
-    final maxWidth = MediaQuery.of(context).size.width - 32;
+    final maxWidth = MediaQuery.sizeOf(context).width - 32;
 
     return ListView.builder(
       controller: scrollController,
       physics: adaptiveScrollPhysics(context),
-      padding:
-          EdgeInsets.symmetric(horizontal: config.pageMargin, vertical: 20),
+      padding: EdgeInsets.symmetric(
+        horizontal: config.pageMargin,
+        vertical: 20,
+      ),
       itemCount: richParagraphs.length,
       itemBuilder: (context, index) {
         final rp = richParagraphs[index];

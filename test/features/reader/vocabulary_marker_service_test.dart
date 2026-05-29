@@ -1,5 +1,3 @@
-library;
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
 import 'package:zephyr_reader/src/rust/api/vocab_marker.dart' as rust;
@@ -79,7 +77,7 @@ void main() {
         ];
         for (final text in texts) {
           final dartResult = service.scanText(text);
-          final rustResult = await rust.scanForVocabulary(text: text);
+          final rustResult = rust.scanForVocabulary(text: text);
           expect(
             rustResult.map((m) => m.word).toList(),
             equals(dartResult.map((t) => t.$1).toList()),

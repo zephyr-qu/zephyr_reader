@@ -53,6 +53,22 @@ typedef struct wire_cst_list_prim_u_8_strict {
   int32_t len;
 } wire_cst_list_prim_u_8_strict;
 
+typedef struct wire_cst_bilingual_highlight_params {
+  struct wire_cst_list_prim_u_8_strict *source_book_id;
+  int32_t source_chapter_index;
+  int64_t source_char_offset;
+  int64_t source_length;
+  struct wire_cst_list_prim_u_8_strict *source_selected_text;
+  struct wire_cst_list_prim_u_8_strict *source_language;
+  struct wire_cst_list_prim_u_8_strict *target_book_id;
+  int32_t target_chapter_index;
+  int64_t target_char_offset;
+  int64_t target_length;
+  struct wire_cst_list_prim_u_8_strict *target_selected_text;
+  struct wire_cst_list_prim_u_8_strict *target_language;
+  int32_t highlight_color;
+} wire_cst_bilingual_highlight_params;
+
 typedef struct wire_cst_typeset_calibration {
   float dpr;
   float cjk_width;
@@ -93,6 +109,11 @@ typedef struct wire_cst_list_bookmark {
   int32_t len;
 } wire_cst_list_bookmark;
 
+typedef struct wire_cst_list_String {
+  struct wire_cst_list_prim_u_8_strict **ptr;
+  int32_t len;
+} wire_cst_list_String;
+
 typedef struct wire_cst_note {
   struct wire_cst_list_prim_u_8_strict *id;
   struct wire_cst_list_prim_u_8_strict *book_id;
@@ -114,11 +135,6 @@ typedef struct wire_cst_list_note {
   struct wire_cst_note *ptr;
   int32_t len;
 } wire_cst_list_note;
-
-typedef struct wire_cst_list_String {
-  struct wire_cst_list_prim_u_8_strict **ptr;
-  int32_t len;
-} wire_cst_list_String;
 
 typedef struct wire_cst_reading_stats {
   struct wire_cst_list_prim_u_8_strict *book_id;
@@ -194,6 +210,17 @@ typedef struct wire_cst_reading_progress {
   int64_t last_read_at;
   bool is_completed;
 } wire_cst_reading_progress;
+
+typedef struct wire_cst_reading_session {
+  struct wire_cst_list_prim_u_8_strict *id;
+  struct wire_cst_list_prim_u_8_strict *book_id;
+  int32_t chapter_index;
+  int64_t start_char_offset;
+  int64_t end_char_offset;
+  int64_t started_at;
+  int64_t ended_at;
+  int64_t duration_seconds;
+} wire_cst_reading_session;
 
 typedef struct wire_cst_category {
   struct wire_cst_list_prim_u_8_strict *id;
@@ -288,17 +315,6 @@ typedef struct wire_cst_list_page_content {
   int32_t len;
 } wire_cst_list_page_content;
 
-typedef struct wire_cst_reading_session {
-  struct wire_cst_list_prim_u_8_strict *id;
-  struct wire_cst_list_prim_u_8_strict *book_id;
-  int32_t chapter_index;
-  int64_t start_char_offset;
-  int64_t end_char_offset;
-  int64_t started_at;
-  int64_t ended_at;
-  int64_t duration_seconds;
-} wire_cst_reading_session;
-
 typedef struct wire_cst_list_reading_session {
   struct wire_cst_reading_session *ptr;
   int32_t len;
@@ -308,6 +324,16 @@ typedef struct wire_cst_list_reading_stats {
   struct wire_cst_reading_stats *ptr;
   int32_t len;
 } wire_cst_list_reading_stats;
+
+typedef struct wire_cst_record_string_list_note {
+  struct wire_cst_list_prim_u_8_strict *field0;
+  struct wire_cst_list_note *field1;
+} wire_cst_record_string_list_note;
+
+typedef struct wire_cst_list_record_string_list_note {
+  struct wire_cst_record_string_list_note *ptr;
+  int32_t len;
+} wire_cst_list_record_string_list_note;
 
 typedef struct wire_cst_RichTextSpan_Plain {
   struct wire_cst_list_prim_u_8_strict *text;
@@ -499,6 +525,11 @@ typedef struct wire_cst_AppError_InternalError {
   struct wire_cst_list_prim_u_8_strict *reason;
 } wire_cst_AppError_InternalError;
 
+typedef struct wire_cst_AppError_TaskPanic {
+  struct wire_cst_list_prim_u_8_strict *task_name;
+  struct wire_cst_list_prim_u_8_strict *details;
+} wire_cst_AppError_TaskPanic;
+
 typedef struct wire_cst_AppError_Other {
   struct wire_cst_list_prim_u_8_strict *field0;
 } wire_cst_AppError_Other;
@@ -516,6 +547,7 @@ typedef union AppErrorKind {
   struct wire_cst_AppError_SecurityError SecurityError;
   struct wire_cst_AppError_InvalidInput InvalidInput;
   struct wire_cst_AppError_InternalError InternalError;
+  struct wire_cst_AppError_TaskPanic TaskPanic;
   struct wire_cst_AppError_Other Other;
 } AppErrorKind;
 
@@ -640,7 +672,7 @@ void frbgen_zephyr_reader_wire__crate__api__data__progress__clear_progress(int64
 void frbgen_zephyr_reader_wire__crate__api__data__session__clear_sessions_by_book(int64_t port_,
                                                                                   struct wire_cst_list_prim_u_8_strict *book_id);
 
-void frbgen_zephyr_reader_wire__crate__api__dictionary__close_dictionary(int64_t port_);
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__dictionary__close_dictionary(void);
 
 void frbgen_zephyr_reader_wire__crate__api__data__bookmark__count_bookmarks_by_book(int64_t port_,
                                                                                     struct wire_cst_list_prim_u_8_strict *book_id);
@@ -657,19 +689,7 @@ void frbgen_zephyr_reader_wire__crate__api__data__note__create_annotation(int64_
                                                                           struct wire_cst_list_prim_u_8_strict *paired_note_id);
 
 void frbgen_zephyr_reader_wire__crate__api__bilingual__create_bilingual_highlight_pair(int64_t port_,
-                                                                                       struct wire_cst_list_prim_u_8_strict *source_book_id,
-                                                                                       int32_t source_chapter_index,
-                                                                                       int64_t source_char_offset,
-                                                                                       int64_t source_length,
-                                                                                       struct wire_cst_list_prim_u_8_strict *source_selected_text,
-                                                                                       struct wire_cst_list_prim_u_8_strict *source_language,
-                                                                                       struct wire_cst_list_prim_u_8_strict *target_book_id,
-                                                                                       int32_t target_chapter_index,
-                                                                                       int64_t target_char_offset,
-                                                                                       int64_t target_length,
-                                                                                       struct wire_cst_list_prim_u_8_strict *target_selected_text,
-                                                                                       struct wire_cst_list_prim_u_8_strict *target_language,
-                                                                                       int32_t highlight_color);
+                                                                                       struct wire_cst_bilingual_highlight_params *params);
 
 void frbgen_zephyr_reader_wire__crate__api__data__bookmark__create_bookmark(int64_t port_,
                                                                             struct wire_cst_list_prim_u_8_strict *book_id,
@@ -765,7 +785,8 @@ void frbgen_zephyr_reader_wire__crate__api__cover__extract_and_save_cover(int64_
                                                                           struct wire_cst_list_prim_u_8_strict *file_path,
                                                                           struct wire_cst_list_prim_u_8_strict *output_dir);
 
-WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__dictionary__extract_audio(struct wire_cst_list_prim_u_8_strict *audio_key);
+void frbgen_zephyr_reader_wire__crate__api__dictionary__extract_audio(int64_t port_,
+                                                                      struct wire_cst_list_prim_u_8_strict *audio_key);
 
 void frbgen_zephyr_reader_wire__crate__api__cover__extract_book_cover(int64_t port_,
                                                                       struct wire_cst_list_prim_u_8_strict *file_path,
@@ -774,7 +795,7 @@ void frbgen_zephyr_reader_wire__crate__api__cover__extract_book_cover(int64_t po
 void frbgen_zephyr_reader_wire__crate__api__core__extract_metadata(int64_t port_,
                                                                    struct wire_cst_list_prim_u_8_strict *file_path);
 
-void frbgen_zephyr_reader_wire__crate__api__vocab_marker__get_all_vocabulary_words(int64_t port_);
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__vocab_marker__get_all_vocabulary_words(void);
 
 void frbgen_zephyr_reader_wire__crate__api__bilingual__get_bilingual_highlight_pairs(int64_t port_,
                                                                                      struct wire_cst_list_prim_u_8_strict *book_id,
@@ -831,7 +852,8 @@ void frbgen_zephyr_reader_wire__crate__api__core__get_pdf_page(int64_t port_,
                                                                struct wire_cst_list_prim_u_8_strict *file_path,
                                                                uint32_t page_index);
 
-WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__core__get_pdf_total_pages(struct wire_cst_list_prim_u_8_strict *file_path);
+void frbgen_zephyr_reader_wire__crate__api__core__get_pdf_total_pages(int64_t port_,
+                                                                      struct wire_cst_list_prim_u_8_strict *file_path);
 
 void frbgen_zephyr_reader_wire__crate__api__data__progress__get_progress(int64_t port_,
                                                                          struct wire_cst_list_prim_u_8_strict *book_id);
@@ -846,7 +868,7 @@ void frbgen_zephyr_reader_wire__crate__api__data__stats__get_reading_stats_by_ra
                                                                                     struct wire_cst_list_prim_u_8_strict *start_date,
                                                                                     struct wire_cst_list_prim_u_8_strict *end_date);
 
-WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__core__get_supported_formats(void);
+void frbgen_zephyr_reader_wire__crate__api__core__get_supported_formats(int64_t port_);
 
 void frbgen_zephyr_reader_wire__crate__api__data__stats__get_today_reading_stats(int64_t port_);
 
@@ -913,6 +935,9 @@ void frbgen_zephyr_reader_wire__crate__api__data__note__list_notes_by_book(int64
                                                                            struct wire_cst_list_prim_u_8_strict *book_id,
                                                                            int32_t *note_type);
 
+void frbgen_zephyr_reader_wire__crate__api__data__note__list_notes_by_books(int64_t port_,
+                                                                            struct wire_cst_list_String *book_ids);
+
 void frbgen_zephyr_reader_wire__crate__api__data__note__list_notes_in_chapter(int64_t port_,
                                                                               struct wire_cst_list_prim_u_8_strict *book_id,
                                                                               int32_t chapter_index,
@@ -940,7 +965,8 @@ void frbgen_zephyr_reader_wire__crate__api__data__vocabulary__list_vocabulary_by
                                                                                         int32_t *status,
                                                                                         struct wire_cst_list_prim_u_8_strict *word_list);
 
-WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__dictionary__lookup_mdict(struct wire_cst_list_prim_u_8_strict *word);
+void frbgen_zephyr_reader_wire__crate__api__dictionary__lookup_mdict(int64_t port_,
+                                                                     struct wire_cst_list_prim_u_8_strict *word);
 
 void frbgen_zephyr_reader_wire__crate__api__core__paginate_all_content(int64_t port_,
                                                                        struct wire_cst_list_prim_u_8_strict *file_path,
@@ -950,16 +976,14 @@ void frbgen_zephyr_reader_wire__crate__api__core__paginate_all_content(int64_t p
 void frbgen_zephyr_reader_wire__crate__api__core__parse_book(int64_t port_,
                                                              struct wire_cst_list_prim_u_8_strict *file_path);
 
-void frbgen_zephyr_reader_wire__crate__api__data__note__render_notes_to_string(int64_t port_,
-                                                                               struct wire_cst_list_note *notes,
-                                                                               struct wire_cst_list_prim_u_8_strict *book_title,
-                                                                               struct wire_cst_list_prim_u_8_strict *format);
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__data__note__render_notes_to_string(struct wire_cst_list_note *notes,
+                                                                                               struct wire_cst_list_prim_u_8_strict *book_title,
+                                                                                               struct wire_cst_list_prim_u_8_strict *format);
 
 void frbgen_zephyr_reader_wire__crate__api__backup__restore_database(int64_t port_,
                                                                      struct wire_cst_list_prim_u_8_strict *backup_path);
 
-void frbgen_zephyr_reader_wire__crate__api__vocab_marker__scan_for_vocabulary(int64_t port_,
-                                                                              struct wire_cst_list_prim_u_8_strict *text);
+WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__vocab_marker__scan_for_vocabulary(struct wire_cst_list_prim_u_8_strict *text);
 
 void frbgen_zephyr_reader_wire__crate__api__search__search(int64_t port_,
                                                            struct wire_cst_list_prim_u_8_strict *book_id,
@@ -968,7 +992,8 @@ void frbgen_zephyr_reader_wire__crate__api__search__search(int64_t port_,
 
 void frbgen_zephyr_reader_wire__crate__api__search__search_all_books(int64_t port_,
                                                                      struct wire_cst_list_prim_u_8_strict *query,
-                                                                     int32_t limit);
+                                                                     int32_t limit,
+                                                                     int32_t offset);
 
 void frbgen_zephyr_reader_wire__crate__api__data__book__search_books(int64_t port_,
                                                                      struct wire_cst_list_prim_u_8_strict *keyword);
@@ -987,8 +1012,9 @@ void frbgen_zephyr_reader_wire__crate__api__bilingual__simple_bilingual_align(in
                                                                               struct wire_cst_list_prim_u_8_strict *chinese_content,
                                                                               struct wire_cst_list_prim_u_8_strict *english_content);
 
-WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__dictionary__suggest_mdict(struct wire_cst_list_prim_u_8_strict *prefix,
-                                                                                      int32_t limit);
+void frbgen_zephyr_reader_wire__crate__api__dictionary__suggest_mdict(int64_t port_,
+                                                                      struct wire_cst_list_prim_u_8_strict *prefix,
+                                                                      int32_t limit);
 
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__core__supports_chunked_pagination(struct wire_cst_list_prim_u_8_strict *file_path);
 
@@ -1037,8 +1063,7 @@ void frbgen_zephyr_reader_wire__crate__api__data__category__upsert_category(int6
                                                                             struct wire_cst_list_prim_u_8_strict *name,
                                                                             struct wire_cst_list_prim_u_8_strict *color,
                                                                             int32_t sort_order,
-                                                                            struct wire_cst_list_prim_u_8_strict *description,
-                                                                            struct wire_cst_list_prim_u_8_strict *category_id);
+                                                                            struct wire_cst_list_prim_u_8_strict *description);
 
 void frbgen_zephyr_reader_wire__crate__api__data__chapter__upsert_chapters(int64_t port_,
                                                                            struct wire_cst_list_prim_u_8_strict *book_id,
@@ -1053,11 +1078,16 @@ void frbgen_zephyr_reader_wire__crate__api__data__note__upsert_note(int64_t port
 void frbgen_zephyr_reader_wire__crate__api__data__progress__upsert_progress(int64_t port_,
                                                                             struct wire_cst_reading_progress *progress);
 
+void frbgen_zephyr_reader_wire__crate__api__data__session__upsert_session(int64_t port_,
+                                                                          struct wire_cst_reading_session *session);
+
 void frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(const void *ptr);
 
 void frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(const void *ptr);
 
 int64_t *frbgen_zephyr_reader_cst_new_box_autoadd_Chrono_Utc(int64_t value);
+
+struct wire_cst_bilingual_highlight_params *frbgen_zephyr_reader_cst_new_box_autoadd_bilingual_highlight_params(void);
 
 struct wire_cst_book *frbgen_zephyr_reader_cst_new_box_autoadd_book(void);
 
@@ -1084,6 +1114,8 @@ struct wire_cst_note *frbgen_zephyr_reader_cst_new_box_autoadd_note(void);
 int32_t *frbgen_zephyr_reader_cst_new_box_autoadd_note_type(int32_t value);
 
 struct wire_cst_reading_progress *frbgen_zephyr_reader_cst_new_box_autoadd_reading_progress(void);
+
+struct wire_cst_reading_session *frbgen_zephyr_reader_cst_new_box_autoadd_reading_session(void);
 
 struct wire_cst_reading_stats *frbgen_zephyr_reader_cst_new_box_autoadd_reading_stats(void);
 
@@ -1123,6 +1155,8 @@ struct wire_cst_list_reading_session *frbgen_zephyr_reader_cst_new_list_reading_
 
 struct wire_cst_list_reading_stats *frbgen_zephyr_reader_cst_new_list_reading_stats(int32_t len);
 
+struct wire_cst_list_record_string_list_note *frbgen_zephyr_reader_cst_new_list_record_string_list_note(int32_t len);
+
 struct wire_cst_list_rich_paragraph *frbgen_zephyr_reader_cst_new_list_rich_paragraph(int32_t len);
 
 struct wire_cst_list_rich_text_span *frbgen_zephyr_reader_cst_new_list_rich_text_span(int32_t len);
@@ -1135,6 +1169,7 @@ struct wire_cst_list_vocab_match *frbgen_zephyr_reader_cst_new_list_vocab_match(
 static int64_t dummy_method_to_enforce_bundling(void) {
     int64_t dummy_var = 0;
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_Chrono_Utc);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_bilingual_highlight_params);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_book);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_bookmark);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_category);
@@ -1148,6 +1183,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_note);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_note_type);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_reading_progress);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_reading_session);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_reading_stats);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_typeset_calibration);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_typeset_config);
@@ -1167,6 +1203,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_prim_u_8_strict);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_reading_session);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_reading_stats);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_record_string_list_note);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_rich_paragraph);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_rich_text_span);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_search_result);
@@ -1241,6 +1278,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__note__delete_note);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__note__get_note_stats);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__note__list_notes_by_book);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__note__list_notes_by_books);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__note__list_notes_in_chapter);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__note__render_notes_to_string);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__note__upsert_note);
@@ -1253,6 +1291,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__session__list_sessions_by_book);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__session__list_sessions_by_date_range);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__session__list_sessions_by_recent);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__session__upsert_session);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__stats__get_global_reading_stats);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__stats__get_reading_stats_by_days);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__stats__get_reading_stats_by_days_with_fill);

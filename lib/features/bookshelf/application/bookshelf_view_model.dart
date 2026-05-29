@@ -1,7 +1,14 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:injectable/injectable.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:signals/signals.dart';
+import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
+import 'package:zephyr_reader/src/rust/api/cover.dart' as cover_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/category.dart' as category_api;
 import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
@@ -67,20 +74,25 @@ class BookshelfViewModel {
   /// 是否使用列表视图（false=网格视图）
   final isListView = signal<bool>(false);
 
+  /// 瞬态反馈消息（Page 通过 useSignalEffect 消费）
+  final feedback = signal<String?>(null);
+
   BookshelfViewModel(this._prefs) {
     _loadSettings();
     _loadCategories();
     loadBooks();
   }
 
-  void dispose() {}
-
   Future<void> _loadCategories() async {
     try {
       final data = await category_api.listCategories();
       categories.value = data.cast<Category>();
     } catch (e, stack) {
-      Logging.error('BookshelfViewModel._loadCategories error', exception: e, stackTrace: stack);
+      Logging.error(
+        'BookshelfViewModel._loadCategories error',
+        exception: e,
+        stackTrace: stack,
+      );
       categories.value = [];
     }
   }
@@ -143,6 +155,25 @@ class BookshelfViewModel {
     }
   }
 
+  Future<bool> _safeAction(
+    String label,
+    FutureOr<void> Function() action, {
+    FutureOr<void> Function()? onSuccess,
+  }) async {
+    try {
+      await action();
+      if (onSuccess != null) await onSuccess();
+      return true;
+    } catch (e, stack) {
+      Logging.error(
+        'BookshelfViewModel.$label error',
+        exception: e,
+        stackTrace: stack,
+      );
+      return false;
+    }
+  }
+
   /// 切换分类
   void selectCategory(Category? category) {
     selectedCategory.value = category;
@@ -174,16 +205,11 @@ class BookshelfViewModel {
   }
 
   /// 删除书籍
-  Future<bool> deleteBook(String id) async {
-    try {
-      await book_api.deleteBook(bookId: id);
-      await loadBooks();
-      return true;
-    } catch (e, stack) {
-      Logging.error('BookshelfViewModel.deleteBook error', exception: e, stackTrace: stack);
-      return false;
-    }
-  }
+  Future<bool> deleteBook(String id) => _safeAction(
+    'deleteBook',
+    () => book_api.deleteBook(bookId: id),
+    onSuccess: loadBooks,
+  );
 
   /// 获取书籍详情
   Future<Book?> getBookDetail(String id) async {
@@ -197,38 +223,27 @@ class BookshelfViewModel {
     required String name,
     String color = '#FF5722',
     int sortOrder = 0,
-  }) async {
-    try {
-      await category_api.upsertCategory(
-        name: name,
-        color: color,
-        sortOrder: sortOrder,
-      );
-      await _loadCategories();
-      return true;
-    } catch (e, stack) {
-      Logging.error('BookshelfViewModel.addCategory error', exception: e, stackTrace: stack);
-      return false;
-    }
-  }
+  }) => _safeAction(
+    'addCategory',
+    () => category_api.upsertCategory(
+      name: name,
+      color: color,
+      sortOrder: sortOrder,
+    ),
+    onSuccess: _loadCategories,
+  );
 
   /// 更新分类
-  Future<bool> updateCategory(Category category) async {
-    try {
-      await category_api.upsertCategory(
-        name: category.name,
-        color: category.color,
-        sortOrder: category.sortOrder,
-        description: category.description,
-        categoryId: category.id,
-      );
-      await _loadCategories();
-      return true;
-    } catch (e, stack) {
-      Logging.error('BookshelfViewModel.updateCategory error', exception: e, stackTrace: stack);
-      return false;
-    }
-  }
+  Future<bool> updateCategory(Category category) => _safeAction(
+    'updateCategory',
+    () => category_api.upsertCategory(
+      name: category.name,
+      color: category.color,
+      sortOrder: category.sortOrder,
+      description: category.description,
+    ),
+    onSuccess: _loadCategories,
+  );
 
   /// 删除分类
   Future<bool> removeCategory(String id) async {
@@ -246,26 +261,122 @@ class BookshelfViewModel {
       }
       return true;
     } catch (e, stack) {
-      Logging.error('BookshelfViewModel.removeCategory error', exception: e, stackTrace: stack);
+      Logging.error(
+        'BookshelfViewModel.removeCategory error',
+        exception: e,
+        stackTrace: stack,
+      );
       return false;
     }
   }
 
   /// 更新书籍分类
-  Future<bool> updateBookCategories(
-    String bookId,
-    List<String> categoryIds,
-  ) async {
-    try {
-      await category_api.setCategoriesForBook(
-        bookId: bookId,
-        categoryIds: categoryIds,
+  Future<bool> updateBookCategories(String bookId, List<String> categoryIds) =>
+      _safeAction(
+        'updateBookCategories',
+        () => category_api.setCategoriesForBook(
+          bookId: bookId,
+          categoryIds: categoryIds,
+        ),
+        onSuccess: loadBooks,
       );
-      return true;
+
+  Future<bool> reExtractCover(String bookId, String filePath) async {
+    try {
+      if (!cover_api.supportsCoverExtraction(filePath: filePath)) {
+        return false;
+      }
+      final appDir = await getApplicationDocumentsDirectory();
+      final coverDir = p.join(appDir.path, 'zephyr_reader', 'covers');
+      final coverPath = await cover_api.extractAndSaveCover(
+        bookId: bookId,
+        filePath: filePath,
+        outputDir: coverDir,
+      );
+      final success = coverPath.isNotEmpty;
+      if (success) await loadBooks();
+      return success;
     } catch (e, stack) {
-      Logging.error('BookshelfViewModel.updateBookCategories error', exception: e, stackTrace: stack);
+      Logging.error('reExtractCover error', exception: e, stackTrace: stack);
       return false;
     }
+  }
+
+  Future<bool> importBook(String filePath) async {
+    try {
+      final parseResult = await core_api.parseBook(filePath: filePath);
+      await book_api.upsertBook(book: parseResult.bookInfo);
+      await loadBooks();
+      feedback.value = '已导入：${parseResult.bookInfo.title}';
+      return true;
+    } catch (e, stack) {
+      Logging.error('importBook error', exception: e, stackTrace: stack);
+      feedback.value = '导入失败：$e';
+      return false;
+    }
+  }
+
+  Future<(int, String)> scanFolder(String folderPath) async {
+    final extensions = {'.txt', '.epub', '.pdf'};
+    final dir = Directory(folderPath);
+    final files = dir
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => extensions.contains(p.extension(f.path).toLowerCase()))
+        .map((f) => f.path)
+        .toList();
+    if (files.isEmpty) {
+      feedback.value = '未找到书籍文件';
+      return (0, '未找到书籍文件');
+    }
+    var count = 0;
+    for (final file in files) {
+      try {
+        final parseResult = await core_api.parseBook(filePath: file);
+        await book_api.upsertBook(book: parseResult.bookInfo);
+        count++;
+      } catch (_) {}
+    }
+    await loadBooks();
+    feedback.value = '扫描完成，导入了 $count 本书';
+    return (count, '扫描完成，导入了 $count 本书');
+  }
+
+  Future<void> batchUpdateStatus(
+    Iterable<String> bookIds,
+    String statusName,
+  ) async {
+    final status = BookStatus.values.byName(statusName);
+    for (final id in bookIds) {
+      await book_api.updateBookStatus(bookId: id, status: status);
+    }
+    await loadBooks();
+  }
+
+  Future<void> batchSetCategories(
+    Iterable<String> bookIds,
+    List<String> categoryIds,
+  ) async {
+    for (final id in bookIds) {
+      await category_api.setCategoriesForBook(
+        bookId: id,
+        categoryIds: categoryIds,
+      );
+    }
+    await loadBooks();
+  }
+
+  Future<void> toggleBookStatus(String bookId, BookStatus currentStatus) async {
+    final newStatus = currentStatus == BookStatus.reading
+        ? BookStatus.planned
+        : BookStatus.reading;
+    await book_api.updateBookStatus(bookId: bookId, status: newStatus);
+    await loadBooks();
+  }
+
+  Future<void> toggleBookPin(String bookId, bool isPinned) async {
+    await book_api.updateBookPin(bookId: bookId, isPinned: !isPinned);
+    await loadBooks();
   }
 
   static const String _keyShowReadingProgress =

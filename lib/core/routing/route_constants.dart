@@ -13,8 +13,6 @@ abstract class RoutePaths {
   static const String categoryManagement = '/bookshelf/categories';
 
   // 设置相关
-  static const String readingSettings = '/settings/reading';
-  static const String appSettings = '/settings/app';
   static const String about = '/about';
 
   // 同步相关
@@ -80,8 +78,6 @@ abstract class RouteNames {
   static const String categoryManagement = 'categoryManagement';
 
   // 设置相关
-  static const String readingSettings = 'readingSettings';
-  static const String appSettings = 'appSettings';
   static const String about = 'about';
 
   // 同步相关

@@ -1,22 +1,30 @@
 import 'dart:async';
+import 'dart:typed_data';
 
+import 'package:async/async.dart';
 import 'package:injectable/injectable.dart';
-import 'package:signals/signals.dart';
+import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/src/rust/api/bilingual.dart';
-import 'package:zephyr_reader/src/rust/api/search.dart' as search_api;
-import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
+import 'package:zephyr_reader/src/rust/api/bilingual.dart' as bilingual_api;
+import 'package:zephyr_reader/src/rust/api/bilingual.dart';
+import 'package:zephyr_reader/src/rust/api/data/bookmark.dart' as bookmark_api;
+import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
+import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
+import 'package:zephyr_reader/src/rust/api/dictionary.dart' as dict_api;
+import 'package:zephyr_reader/src/rust/api/search.dart' as search_api;
+import 'package:zephyr_reader/src/rust/dictionary/models.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../../core/reader/reader_config.dart';
 import '../data/repositories/rust_reader_repository.dart';
-import 'reader_enums.dart';
-import 'reader_settings_controller.dart';
-import 'bookmark_controller.dart';
 import 'annotation_controller.dart';
-import 'reader_search_controller.dart';
 import 'bilingual_controller.dart';
+import 'bookmark_controller.dart';
+import 'reader_enums.dart';
+import 'reader_search_controller.dart';
+import 'reader_settings_controller.dart';
 
 /// 阅读器视图模型
 ///
@@ -25,12 +33,20 @@ import 'bilingual_controller.dart';
 class ReaderViewModel {
   final ReaderRepository _repo;
   final ReaderConfig _config;
-  // final ReadingStatsService _statsService;
+
   final ReaderSettingsController _settingsController;
   final BookmarkController _bookmarkController;
   final ReaderSearchController _searchController;
   final AnnotationController _annotationController;
   final BilingualController _bilingualController;
+
+  /// 暴露设置控制器，替代 7 个纯转发方法
+  ReaderSettingsController get settings => _settingsController;
+
+  // ==================== 搜索索引生命周期 ====================
+
+  /// 章节全文索引操作，防止并发堆积
+  CancelableOperation<void>? _searchIndexOperation;
 
   // ==================== 设置信号转发 ====================
 
@@ -108,9 +124,6 @@ class ReaderViewModel {
   /// 是否显示工具栏
   final showToolbar = signal<bool>(false);
 
-  /// 工具栏闲置降透明度 (1.0 → 0.6)
-  final toolbarOpacity = signal<double>(1.0);
-
   final showSettings = signal<bool>(false);
 
   /// 阅读模式
@@ -167,11 +180,8 @@ class ReaderViewModel {
   Timer? _saveTimer;
   final List<void Function()> _disposers = [];
 
-  ReaderViewModel(
-    this._repo,
-    this._config,
-    // this._statsService,
-  ) : _settingsController = ReaderSettingsController(_config),
+  ReaderViewModel(this._repo, this._config)
+    : _settingsController = ReaderSettingsController(_config),
       _bookmarkController = BookmarkController(_repo),
       _searchController = ReaderSearchController(),
       _annotationController = AnnotationController(),
@@ -268,8 +278,8 @@ class ReaderViewModel {
         currentCharOffset.value = progress.charOffset;
         readingDuration.value = progress.readingTimeSeconds.toInt();
       }
-    } catch (_) {
-      // 进度加载失败，使用默认值
+    } catch (e) {
+      Logging.error('加载阅读进度失败', exception: e);
     }
   }
 
@@ -286,7 +296,6 @@ class ReaderViewModel {
     final shouldRestartSession =
         restartSession &&
         isReading.value &&
-        // _statsService.isSessionActive &&
         previousChapterIndex != chapterIndex;
 
     try {
@@ -296,8 +305,12 @@ class ReaderViewModel {
         chapterIndex,
       );
 
-      // 将章节内容索引到 FTS5（不阻塞 UI）
-      unawaited(_indexForSearch(chapterIndex, content));
+      // 将章节内容索引到 FTS5（不阻塞 UI，取消上一个并发索引）
+      await _searchIndexOperation?.cancel();
+      _searchIndexOperation = CancelableOperation.fromFuture(
+        _indexForSearch(chapterIndex, content),
+        onCancel: () {},
+      );
 
       // █ 字符宽度校准（仅首次执行，字体/字号/DPR 变化后重置） █
       if (_calibration.value == null) {
@@ -327,7 +340,9 @@ class ReaderViewModel {
 
       if (result.isFallback) {
         // 降级：Rust 排版失败，回退到 Dart 粗略分页
-        Logging.warning('loadChapter: Rust pagination fallback, using Dart approximate');
+        Logging.warning(
+          'loadChapter: Rust pagination fallback, using Dart approximate',
+        );
         pages = await _repo.calculatePages(
           bookId: bookId.value,
           chapterId: chapterIndex,
@@ -341,9 +356,6 @@ class ReaderViewModel {
         pages = result.pages;
         paginationFromCache = result.cacheHit;
       }
-
-      // █ 灰度期双写对比 █
-      _compareNewVsOldPagination(pages, content, chapterIndex);
 
       chapterContent.value = AsyncState.data(content);
       totalPages.value = pages.length;
@@ -373,9 +385,6 @@ class ReaderViewModel {
       _prefetchChapters(chapterIndex);
 
       if (shouldRestartSession) {
-        // _statsService.updateProgress(previousOffset);
-        // await _statsService.endReadingSession(previousOffset);
-        // _statsService.startReadingSession(
         //   bookId.value,
         //   chapterIndex,
         //   currentCharOffset.value,
@@ -401,7 +410,6 @@ class ReaderViewModel {
     if (pages != null && pageIndex < pages.length) {
       currentCharOffset.value = pages[pageIndex].startOffset;
     }
-    // _statsService.updateProgress(currentCharOffset.value);
     await _saveProgress();
   }
 
@@ -439,8 +447,8 @@ class ReaderViewModel {
         chapterTitle: title,
         content: content,
       );
-    } catch (_) {
-      // 索引失败不阻塞阅读
+    } catch (e) {
+      Logging.error('全文索引失败', exception: e);
     }
   }
 
@@ -491,8 +499,6 @@ class ReaderViewModel {
     isReading.value = true;
 
     _readingTimer?.cancel();
-    // if (!_statsService.isSessionActive) {
-    //   _statsService.startReadingSession(
     //     bookId.value,
     //     chapterIndex.value,
     //     currentCharOffset.value,
@@ -509,7 +515,6 @@ class ReaderViewModel {
     isReading.value = false;
     _readingTimer?.cancel();
 
-    // await _statsService.endReadingSession(currentCharOffset.value);
     await _saveProgress();
   }
 
@@ -523,7 +528,6 @@ class ReaderViewModel {
 
   /// 保存阅读进度
   Future<void> _saveProgress() async {
-    // _statsService.updateProgress(currentCharOffset.value);
     try {
       await _repo.updateReadingProgress(
         bookId: bookId.value,
@@ -650,7 +654,6 @@ class ReaderViewModel {
   void updateCurrentCharOffset(int charOffset) {
     final contentLength = chapterContent.value.value?.length ?? 0;
     currentCharOffset.value = charOffset.clamp(0, contentLength);
-    // _statsService.updateProgress(currentCharOffset.value);
   }
 
   void consumePendingJumpOffset() {
@@ -749,41 +752,6 @@ class ReaderViewModel {
     );
   }
 
-  /// 更新主题
-  Future<void> setTheme(ReaderTheme theme) async {
-    await _settingsController.setTheme(theme);
-  }
-
-  /// 更新字间距
-  void setLetterSpacing(double spacing) {
-    _settingsController.setLetterSpacing(spacing);
-  }
-
-  /// 更新段间距
-  void setParagraphSpacing(double spacing) {
-    _settingsController.setParagraphSpacing(spacing);
-  }
-
-  /// 更新页边距
-  void setPageMargin(double margin) {
-    _settingsController.setPageMargin(margin);
-  }
-
-  /// 更新书写方向
-  void setWritingDirection(WritingDirection direction) {
-    _settingsController.setWritingDirection(direction);
-  }
-
-  /// 更新阅读背景色
-  void setReaderBgColor(int index) {
-    _settingsController.setReaderBgColor(index);
-  }
-
-  /// 更新亮度
-  void setBrightness(double value) {
-    _settingsController.setBrightness(value);
-  }
-
   /// 更新阅读模式
   void setReadingMode(ReadingMode mode) {
     readingMode.value = mode;
@@ -808,40 +776,167 @@ class ReaderViewModel {
   }
 
   /// 获取阅读进度百分比
-  String get progressText {
+  late final ReadonlySignal<String> progressText = computed(() {
     final totalChapters = chapters.value.value?.length ?? 0;
     if (totalChapters == 0) return '0%';
-
     final chapterProgress = (chapterIndex.value + 1) / totalChapters;
     return '${(chapterProgress * 100).toStringAsFixed(1)}%';
-  }
+  });
 
   /// 获取当前章节标题
-  String get currentChapterTitle {
+  late final ReadonlySignal<String> currentChapterTitle = computed(() {
     final chapterList = chapters.value.value ?? [];
     if (chapterIndex.value >= 0 && chapterIndex.value < chapterList.length) {
       return chapterList[chapterIndex.value].title;
     }
     return '加载中...';
+  });
+
+  // ==================== 带反馈的 FFI 委托（Page 消费 toastMessage） ====================
+
+  Future<DictSearchResult?> lookupDictionary(String word) async {
+    try {
+      return await dict_api.lookupMdict(word: word);
+    } catch (e, stack) {
+      Logging.error(
+        'ReaderViewModel.lookupDictionary',
+        exception: e,
+        stackTrace: stack,
+      );
+      toastMessage.value = '词典查询失败';
+      return null;
+    }
   }
 
+  Future<void> addToVocabulary(String word, String context) async {
+    try {
+      await vocab_api.createVocabularyWord(
+        word: word,
+        pinyin: '',
+        translation: word,
+        contextSentence: context,
+      );
+      toastMessage.value = '已添加到生词本';
+    } catch (e, stack) {
+      Logging.error(
+        'ReaderViewModel.addToVocabulary',
+        exception: e,
+        stackTrace: stack,
+      );
+      toastMessage.value = '添加生词失败';
+    }
+  }
+
+  Future<void> createBilingualHighlight({
+    required String sourceBookId,
+    required int sourceChapterIndex,
+    required int sourceCharOffset,
+    required int sourceLength,
+    required String sourceSelectedText,
+    required String sourceLanguage,
+    required String targetBookId,
+    required int targetChapterIndex,
+    required int targetCharOffset,
+    required int targetLength,
+    required String targetSelectedText,
+    required String targetLanguage,
+    int highlightColor = 0xFFE91E63,
+  }) async {
+    try {
+      await bilingual_api.createBilingualHighlightPair(
+        params: BilingualHighlightParams(
+          sourceBookId: sourceBookId,
+          sourceChapterIndex: sourceChapterIndex,
+          sourceCharOffset: sourceCharOffset,
+          sourceLength: sourceLength,
+          sourceSelectedText: sourceSelectedText,
+          sourceLanguage: sourceLanguage,
+          targetBookId: targetBookId,
+          targetChapterIndex: targetChapterIndex,
+          targetCharOffset: targetCharOffset,
+          targetLength: targetLength,
+          targetSelectedText: targetSelectedText,
+          targetLanguage: targetLanguage,
+          highlightColor: highlightColor,
+        ),
+      );
+    } catch (e, stack) {
+      Logging.error(
+        'ReaderViewModel.createBilingualHighlight',
+        exception: e,
+        stackTrace: stack,
+      );
+      toastMessage.value = '双语高亮创建失败';
+    }
+  }
+
+  // ==================== Dictionary FFI wrappers ====================
+
+  Future<DictSearchResult?> lookupMdict(String word) =>
+      dict_api.lookupMdict(word: word);
+
+  Future<List<String>> segmentText(String text) =>
+      dict_api.segmentText(text: text);
+
+  Future<Uint8List?> extractAudio(String audioKey) =>
+      dict_api.extractAudio(audioKey: audioKey);
+
+  Future<void> initDictionary(String mdxPath, {String? mddPath}) =>
+      dict_api.initDictionary(mdxPath: mdxPath, mddPath: mddPath);
+
+  void closeDictionary() => dict_api.closeDictionary();
+
+  // ==================== Vocabulary FFI wrappers ====================
+
+  Future<Vocab> createVocabularyWord({
+    required String word,
+    required String pinyin,
+    required String translation,
+    String? contextSentence,
+    String? bookId,
+  }) => vocab_api.createVocabularyWord(
+    word: word,
+    pinyin: pinyin,
+    translation: translation,
+    contextSentence: contextSentence,
+    bookId: bookId,
+  );
+
+  // ==================== Bilingual FFI wrappers ====================
+
+  Future<void> createBilingualHighlightPair({
+    required bilingual_api.BilingualHighlightParams params,
+  }) => bilingual_api.createBilingualHighlightPair(params: params);
+
+  // ==================== Bookmark FFI wrappers ====================
+
+  Future<int> getBookmarkCount(String bookId) async {
+    final list = await bookmark_api.listBookmarksByBook(bookId: bookId);
+    return list.length;
+  }
+
+  // ==================== Note FFI wrappers ====================
+
+  Future<List<Note>> getNotesByBook(String bookId) =>
+      note_api.listNotesByBook(bookId: bookId);
+
   /// 清理资源（可安全重复调用，lazySingleton 复用）
-  void dispose() {
+  void resetForNewBook() {
     for (final disposer in _disposers) {
       disposer();
     }
     _disposers.clear();
+    _readingTimer?.cancel();
+    _saveTimer?.cancel();
+    _autoScrollTimer?.cancel();
+
     _settingsController.dispose();
     _bookmarkController.dispose();
     _searchController.dispose();
     _annotationController.dispose();
     _bilingualController.dispose();
-    isReading.value = false;
-    _readingTimer?.cancel();
-    _saveTimer?.cancel();
-    _autoScrollTimer?.cancel();
 
-    bookId.value = '0';
+    // 保留 bookId.value，不清除 — 单例复用
     chapterIndex.value = 0;
     chapters.value = AsyncState.data([]);
     chapterContent.value = AsyncState.data('');
@@ -855,7 +950,6 @@ class ReaderViewModel {
     showCatalog.value = false;
     showBookmarks.value = false;
     showToolbar.value = false;
-    toolbarOpacity.value = 1.0;
     showSettings.value = false;
     progressSaved.value = false;
     readingDuration.value = 0;
@@ -902,130 +996,5 @@ class ReaderViewModel {
       }
     }
     return pages.length - 1;
-  }
-
-  /// 灰度期双写对比：后台异步比较新旧分页结果
-  void _compareNewVsOldPagination(
-    List<PageInfo> newPages,
-    String content,
-    int chapterIndex,
-  ) {
-    // 只在 Debug 模式下执行
-    assert(() {
-      // 异步执行，不阻塞 UI
-      _comparePaginationAsync(newPages, content, chapterIndex);
-      return true;
-    }());
-  }
-
-  Future<void> _comparePaginationAsync(
-    List<PageInfo> newPages,
-    String content,
-    int chapterIndex,
-  ) async {
-    try {
-      final oldPages = _paginateApproximate(
-        content,
-        fontSize: fontSize.value,
-        lineHeight: lineHeight.value,
-        width: pageWidth.value,
-        height: pageHeight.value,
-        padding: 16,
-      );
-
-      if (newPages.length != oldPages.length) {
-        Logging.warning(
-          'PAGINATION MISMATCH chapter=$chapterIndex: '
-          'new=${newPages.length} pages vs old=${oldPages.length} pages',
-        );
-      }
-
-      // 逐页对比 offset 边界
-      for (int i = 0; i < newPages.length && i < oldPages.length; i++) {
-        final n = newPages[i];
-        final o = oldPages[i];
-        if (n.startOffset != o.startOffset || n.endOffset != o.endOffset) {
-          final diff = (n.startOffset - o.startOffset).abs();
-          if (diff > 5) {
-            Logging.debug(
-              'PAGE OFFSET DIFF page=$i: '
-              'new=[${n.startOffset},${n.endOffset}] '
-              'old=[${o.startOffset},${o.endOffset}] '
-              'diff=$diff chars',
-            );
-          }
-        }
-      }
-    } catch (e) {
-      Logging.error('comparePaginationAsync error', exception: e);
-    }
-  }
-
-  /// Dart 粗略分页（与 rust_reader_repository._paginateApproximate 一致）
-  List<PageInfo> _paginateApproximate(
-    String content, {
-    required double fontSize,
-    required double lineHeight,
-    required double width,
-    required double height,
-    required double padding,
-  }) {
-    final maxWidth = width - padding * 2;
-    final availableHeight = height - padding * 2;
-    final charsPerLine = (maxWidth / fontSize).floor().clamp(10, 200);
-    final linesPerPage = (availableHeight / (fontSize * lineHeight))
-        .floor()
-        .clamp(1, 100);
-    final charsPerPage = charsPerLine * linesPerPage;
-
-    final pages = <PageInfo>[];
-    var offset = 0;
-    var pageIndex = 0;
-
-    while (offset < content.length) {
-      var end = offset + charsPerPage;
-      if (end >= content.length) {
-        end = content.length;
-      } else {
-        final searchStart = (end - (charsPerLine ~/ 2)).clamp(
-          0,
-          content.length,
-        );
-        final newlinePos = content.lastIndexOf('\n', end);
-        if (newlinePos > searchStart) {
-          end = newlinePos + 1;
-        } else {
-          final paraBreak = content.lastIndexOf('\n\n', end);
-          if (paraBreak > searchStart) {
-            end = paraBreak + 2;
-          }
-        }
-      }
-
-      pages.add(
-        PageInfo(
-          pageIndex: pageIndex,
-          content: content.substring(offset, end),
-          richContent: null,
-          startOffset: offset,
-          endOffset: end,
-        ),
-      );
-      offset = end;
-      pageIndex++;
-    }
-
-    if (pages.isEmpty) {
-      pages.add(
-        PageInfo(
-          pageIndex: 0,
-          content: content,
-          richContent: null,
-          startOffset: 0,
-          endOffset: content.length,
-        ),
-      );
-    }
-    return pages;
   }
 }

@@ -1,20 +1,12 @@
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
-import 'package:zephyr_reader/src/rust/api/cover.dart' as cover_api;
-import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/api/data/category.dart' as category_api;
 import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_category_chips.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_batch_toolbar.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_book_content.dart';
@@ -40,6 +32,20 @@ class BookshelfPage extends HookWidget {
     final searchController = useTextEditingController();
     final batchMode = useSignal(false);
     final selectedIds = useSignal<Set<String>>({});
+
+    useSignalEffect(() {
+      final msg = vm.feedback.value;
+      if (msg != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        vm.feedback.value = null;
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -158,44 +164,51 @@ class BookshelfPage extends HookWidget {
               DesignTokens.spacing(Spacing.lg),
               0,
             ),
-            child: Watch.builder(builder: (_) {
-              return BookshelfStatusTabs(
-                selectedStatus: vm.selectedStatus.value,
-                onStatusChanged: (status) => vm.selectStatus(status),
-              );
-            }),
+            child: SignalBuilder(
+              builder: (_) {
+                return BookshelfStatusTabs(
+                  selectedStatus: vm.selectedStatus.value,
+                  onStatusChanged: (status) => vm.selectStatus(status),
+                );
+              },
+            ),
           ),
-          Watch.builder(builder: (_) {
-            return BookshelfCategoryChips(
-              categories: vm.categories.value,
-              selectedCategoryId: vm.selectedCategory.value?.id,
-              onCategoryChanged: (category) =>
-                  vm.selectCategory(category),
-            );
-          }),
+          SignalBuilder(
+            builder: (_) {
+              return BookshelfCategoryChips(
+                categories: vm.categories.value,
+                selectedCategoryId: vm.selectedCategory.value?.id,
+                onCategoryChanged: (category) => vm.selectCategory(category),
+              );
+            },
+          ),
           const Divider(height: 0.5),
           Expanded(
-            child: Watch.builder(builder: (_) {
-              final async = vm.books.value;
-              return BookshelfBookContent(
-                isLoading: async.isLoading,
-                hasError: async.hasError,
-                books: async.value ?? [],
-                crossAxisCount: crossAxisCount,
-                batchMode: batchMode.value,
-                selectedIds: selectedIds.value,
-                onRetry: vm.loadBooks,
-                onImportTap: () => _showImportDialog(context, vm),
-                onRefresh: vm.loadBooks,
-                onSelectionChanged: (ids) { selectedIds.value = ids; },
-                onBookTap: (book) => context.pushNamed(
-                  RouteNames.bookDetail,
-                  pathParameters: {'id': book.bookId},
-                ),
-                onBookLongPress: (book) =>
-                    _showBookActions(context, vm, book),
-              );
-            }),
+            child: SignalBuilder(
+              builder: (_) {
+                final async = vm.books.value;
+                return BookshelfBookContent(
+                  isLoading: async.isLoading,
+                  hasError: async.hasError,
+                  books: async.value ?? [],
+                  crossAxisCount: crossAxisCount,
+                  batchMode: batchMode.value,
+                  selectedIds: selectedIds.value,
+                  onRetry: vm.loadBooks,
+                  onImportTap: () => _showImportDialog(context, vm),
+                  onRefresh: vm.loadBooks,
+                  onSelectionChanged: (ids) {
+                    selectedIds.value = ids;
+                  },
+                  onBookTap: (book) => context.pushNamed(
+                    RouteNames.bookDetail,
+                    pathParameters: {'id': book.bookId},
+                  ),
+                  onBookLongPress: (book) =>
+                      _showBookActions(context, vm, book),
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -216,22 +229,10 @@ class BookshelfPage extends HookWidget {
                 await vm.loadBooks();
               },
               onBatchStatusChange: (status) async {
-                for (final id in selectedIds.value) {
-                  await book_api.updateBookStatus(
-                    bookId: id,
-                    status: BookStatus.values.byName(status),
-                  );
-                }
-                await vm.loadBooks();
+                await vm.batchUpdateStatus(selectedIds.value, status);
               },
               onBatchCategoryChange: (categoryIds) async {
-                for (final id in selectedIds.value) {
-                  await category_api.setCategoriesForBook(
-                    bookId: id,
-                    categoryIds: categoryIds,
-                  );
-                }
-                await vm.loadBooks();
+                await vm.batchSetCategories(selectedIds.value, categoryIds);
               },
             )
           : null,
@@ -285,9 +286,8 @@ class BookshelfPage extends HookWidget {
     );
     if (result == 'category') {
       final allCats = vm.categories.value;
-      final currentCats = await category_api.listCategoriesByBook(bookId: book.bookId);
+      final currentIds = await vm.getCategoryIds(book.bookId);
       if (!context.mounted) return;
-      final currentIds = currentCats.map((c) => c.id).toList();
       final tempSelected = Set<String>.from(currentIds);
       final selected = await showDialog<Set<String>>(
         context: context,
@@ -319,7 +319,8 @@ class BookshelfPage extends HookWidget {
                 child: const Text('取消'),
               ),
               FilledButton(
-                onPressed: () => Navigator.pop(c, Set.from(tempSelected)),
+                onPressed: () =>
+                    Navigator.pop(c, Set<String>.from(tempSelected)),
                 child: const Text('确定'),
               ),
             ],
@@ -327,36 +328,16 @@ class BookshelfPage extends HookWidget {
         ),
       );
       if (selected != null) {
-        await category_api.setCategoriesForBook(
-          bookId: book.bookId,
-          categoryIds: selected.toList(),
-        );
+        await vm.updateBookCategories(book.bookId, selected.toList());
       }
     } else if (result == 'status') {
-      final newStatus = book.status == BookStatus.reading
-          ? BookStatus.planned
-          : BookStatus.reading;
-      await book_api.updateBookStatus(bookId: book.bookId, status: newStatus);
-      await vm.loadBooks();
+      await vm.toggleBookStatus(book.bookId, book.status);
     } else if (result == 'cover') {
       if (!context.mounted) return;
-      if (await _reExtractCover(context, book)) await vm.loadBooks();
+      await vm.reExtractCover(book.bookId, book.filePath);
     } else if (result == 'pin') {
-      await book_api.updateBookPin(bookId: book.bookId, isPinned: !book.isPinned);
-      await vm.loadBooks();
+      await vm.toggleBookPin(book.bookId, book.isPinned);
     }
-  }
-
-  Future<bool> _reExtractCover(BuildContext context, Book book) async {
-    if (!cover_api.supportsCoverExtraction(filePath: book.filePath)) return false;
-    final appDir = await getApplicationDocumentsDirectory();
-    final coverDir = p.join(appDir.path, 'zephyr_reader', 'covers');
-    final coverPath = await cover_api.extractAndSaveCover(
-      bookId: book.bookId,
-      filePath: book.filePath,
-      outputDir: coverDir,
-    );
-    return coverPath.isNotEmpty;
   }
 
   Future<void> _showImportDialog(
@@ -371,30 +352,7 @@ class BookshelfPage extends HookWidget {
     if (result == null || result.files.isEmpty || !context.mounted) return;
     final filePath = result.files.single.path;
     if (filePath == null) return;
-    try {
-      final parseResult = await core_api.parseBook(filePath: filePath);
-      await book_api.upsertBook(book: parseResult.bookInfo);
-      await vm.loadBooks();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('已导入：${parseResult.bookInfo.title}'),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('导入失败：$e'),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    }
+    await vm.importBook(filePath);
   }
 
   Future<void> _showScanDialog(
@@ -409,39 +367,7 @@ class BookshelfPage extends HookWidget {
         duration: Duration(seconds: 1),
       ),
     );
-    final extensions = {'.txt', '.epub', '.pdf'};
-    final dir = Directory(folder);
-    final files = dir
-        .listSync(recursive: true)
-        .whereType<File>()
-        .where((f) => extensions.contains(p.extension(f.path).toLowerCase()))
-        .map((f) => f.path)
-        .toList();
-    if (files.isEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('未找到书籍文件')));
-      }
-      return;
-    }
-    var count = 0;
-    for (final file in files) {
-      try {
-        final parseResult = await core_api.parseBook(filePath: file);
-        await book_api.upsertBook(book: parseResult.bookInfo);
-        count++;
-      } catch (_) {}
-    }
-    await vm.loadBooks();
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('扫描完成，导入了 $count 本书'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+    await vm.scanFolder(folder);
   }
 
   void _showSettingsSheet(BuildContext context, BookshelfViewModel vm) {
@@ -657,10 +583,8 @@ class BookshelfPage extends HookWidget {
                     const SizedBox(width: 4),
                     Text(
                       vm.defaultSortType.value.displayName,
-                      style: const TextStyle(
-                        fontSize: 12,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: DesignTokens.warmAccent,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     Icon(
@@ -677,7 +601,6 @@ class BookshelfPage extends HookWidget {
       ),
     );
   }
-
 }
 
 class _MenuRow extends StatelessWidget {

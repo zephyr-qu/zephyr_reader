@@ -2,32 +2,23 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:zephyr_reader/core/reader/reader_config.dart';
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_slider_tile.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/core/reader/custom_font_service.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
 
-class TypographySettingsPage extends StatefulWidget {
-  const TypographySettingsPage({super.key});
+class TypographySettingsPage extends HookWidget {
+  final ReaderConfig config;
+  final FontRepository fontRepo;
 
-  @override
-  State<TypographySettingsPage> createState() => _TypographySettingsPageState();
-}
-
-class _TypographySettingsPageState extends State<TypographySettingsPage> {
-  final _config = getIt<ReaderConfig>();
-  final _fontRepo = getIt<FontRepository>();
-
-  double _fontSize = 18;
-  double _lineHeight = 1.6;
-  double _paragraphSpacing = 16;
-  double _letterSpacing = 0.0;
-  double _margin = 20;
-  String _currentFontId = 'system';
-  bool _punctuationSqueeze = true;
-  bool _baselineAlign = true;
-  bool _verticalMode = false;
-  bool _loaded = false;
+  const TypographySettingsPage({
+    super.key,
+    required this.config,
+    required this.fontRepo,
+  });
 
   static const _fontOptions = [
     _FontOption('system', '系统默认', 'system-ui', '永'),
@@ -36,58 +27,33 @@ class _TypographySettingsPageState extends State<TypographySettingsPage> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _loadSettings();
-  }
-
-  void _loadSettings() {
-    _fontSize = _config.fontSize.value.size;
-    _lineHeight = _config.lineHeight.value;
-    _paragraphSpacing = _config.paragraphSpacing.value;
-    _letterSpacing = _config.letterSpacing.value;
-    _margin = _config.padding.value;
-    _punctuationSqueeze = _config.punctuationSqueeze.value;
-    _baselineAlign = _config.baselineAlign.value;
-
-    final currentFontName = _fontRepo.currentFont.value?.name ?? '';
-    if (currentFontName.contains('宋') || currentFontName.contains('serif')) {
-      _currentFontId = 'serif';
-    } else if (currentFontName.contains('楷') ||
-        currentFontName.contains('kai')) {
-      _currentFontId = 'kaiti';
-    } else {
-      _currentFontId = 'system';
-    }
-
-    _loaded = true;
-    setState(() {});
-  }
-
-  String get _fontFamily {
-    switch (_currentFontId) {
-      case 'serif':
-        return 'serif';
-      case 'kaiti':
-        return 'KaiTi';
-      default:
-        return 'system-ui, sans-serif';
-    }
-  }
-
-  Future<void> _selectFont(String id) async {
-    setState(() => _currentFontId = id);
-    await _fontRepo.setCurrentFont(id);
-  }
-
-  Future<void> _reset() async {
-    await _config.resetToDefault();
-    await _selectFont('system');
-    _loadSettings();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final fontSize = useState(18.0);
+    final lineHeight = useState(1.6);
+    final paragraphSpacing = useState(16.0);
+    final letterSpacing = useState(0.0);
+    final margin = useState(20.0);
+    final currentFontId = useState('system');
+    final punctuationSqueeze = useState(true);
+    final baselineAlign = useState(true);
+    final verticalMode = useState(false);
+    final loaded = useState(false);
+
+    useEffect(() {
+      _loadSettings(
+        fontSize,
+        lineHeight,
+        paragraphSpacing,
+        letterSpacing,
+        margin,
+        punctuationSqueeze,
+        baselineAlign,
+        currentFontId,
+        loaded,
+      );
+      return null;
+    }, []);
+
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -102,36 +68,147 @@ class _TypographySettingsPageState extends State<TypographySettingsPage> {
             letterSpacing: -0.5,
           ),
         ),
-        centerTitle: false,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
       ),
-      body: _loaded
+      body: loaded.value
           ? ListView(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
               children: [
-                _buildPreview(cs),
+                _buildPreview(
+                  cs,
+                  fontSize.value,
+                  lineHeight.value,
+                  paragraphSpacing.value,
+                  letterSpacing.value,
+                  margin.value,
+                  currentFontId.value,
+                ),
                 const SizedBox(height: 24),
-                _buildFontGrid(cs),
+                _buildFontGrid(context, cs, currentFontId.value, currentFontId),
                 const SizedBox(height: 24),
-                _buildSliders(cs),
+                _buildSliders(
+                  context,
+                  cs,
+                  fontSize,
+                  lineHeight,
+                  paragraphSpacing,
+                  letterSpacing,
+                  margin,
+                ),
                 const SizedBox(height: 24),
-                _buildAdvancedCjk(cs),
+                _buildAdvancedCjk(
+                  context,
+                  cs,
+                  punctuationSqueeze,
+                  baselineAlign,
+                  verticalMode,
+                ),
                 const SizedBox(height: 12),
-                _buildReset(cs),
+                _buildReset(
+                  cs,
+                  fontSize,
+                  lineHeight,
+                  paragraphSpacing,
+                  letterSpacing,
+                  margin,
+                  punctuationSqueeze,
+                  baselineAlign,
+                  currentFontId,
+                  loaded,
+                ),
               ],
             )
           : Center(child: CircularProgressIndicator(color: cs.primary)),
     );
   }
 
-  // ==================== Live Preview ====================
+  void _loadSettings(
+    ValueNotifier<double> fontSize,
+    ValueNotifier<double> lineHeight,
+    ValueNotifier<double> paragraphSpacing,
+    ValueNotifier<double> letterSpacing,
+    ValueNotifier<double> margin,
+    ValueNotifier<bool> punctuationSqueeze,
+    ValueNotifier<bool> baselineAlign,
+    ValueNotifier<String> currentFontId,
+    ValueNotifier<bool> loaded,
+  ) {
+    fontSize.value = config.fontSize.value.size;
+    lineHeight.value = config.lineHeight.value;
+    paragraphSpacing.value = config.paragraphSpacing.value;
+    letterSpacing.value = config.letterSpacing.value;
+    margin.value = config.padding.value;
+    punctuationSqueeze.value = config.punctuationSqueeze.value;
+    baselineAlign.value = config.baselineAlign.value;
 
-  Widget _buildPreview(ColorScheme cs) {
+    final currentFontName = fontRepo.currentFont.value?.name ?? '';
+    if (currentFontName.contains('宋') || currentFontName.contains('serif')) {
+      currentFontId.value = 'serif';
+    } else if (currentFontName.contains('楷') ||
+        currentFontName.contains('kai')) {
+      currentFontId.value = 'kaiti';
+    } else {
+      currentFontId.value = 'system';
+    }
+
+    loaded.value = true;
+  }
+
+  String _fontFamily(String currentFontId) {
+    switch (currentFontId) {
+      case 'serif':
+        return 'serif';
+      case 'kaiti':
+        return 'KaiTi';
+      default:
+        return 'system-ui, sans-serif';
+    }
+  }
+
+  Future<void> _selectFont(
+    String id,
+    ValueNotifier<String> currentFontId,
+  ) async {
+    currentFontId.value = id;
+    await fontRepo.setCurrentFont(id);
+  }
+
+  Future<void> _reset(
+    ValueNotifier<double> fontSize,
+    ValueNotifier<double> lineHeight,
+    ValueNotifier<double> paragraphSpacing,
+    ValueNotifier<double> letterSpacing,
+    ValueNotifier<double> margin,
+    ValueNotifier<bool> punctuationSqueeze,
+    ValueNotifier<bool> baselineAlign,
+    ValueNotifier<String> currentFontId,
+    ValueNotifier<bool> loaded,
+  ) async {
+    await config.resetToDefault();
+    await fontRepo.setCurrentFont('system');
+    _loadSettings(
+      fontSize,
+      lineHeight,
+      paragraphSpacing,
+      letterSpacing,
+      margin,
+      punctuationSqueeze,
+      baselineAlign,
+      currentFontId,
+      loaded,
+    );
+  }
+
+  Widget _buildPreview(
+    ColorScheme cs,
+    double fontSize,
+    double lineHeight,
+    double paragraphSpacing,
+    double letterSpacing,
+    double margin,
+    String currentFontId,
+  ) {
     return Container(
-      padding: EdgeInsets.fromLTRB(_margin, 24, _margin, 24),
+      padding: EdgeInsets.fromLTRB(margin, 24, margin, 24),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(16),
@@ -173,21 +250,21 @@ class _TypographySettingsPageState extends State<TypographySettingsPage> {
                 Text(
                   '春风又绿江南岸，明月何时照我还。',
                   style: TextStyle(
-                    fontFamily: _fontFamily,
-                    fontSize: _fontSize * 1.05,
-                    height: _lineHeight,
-                    letterSpacing: _letterSpacing,
+                    fontFamily: _fontFamily(currentFontId),
+                    fontSize: fontSize * 1.05,
+                    height: lineHeight,
+                    letterSpacing: letterSpacing,
                     color: cs.onSurface,
                   ),
                 ),
-                SizedBox(height: _paragraphSpacing),
+                SizedBox(height: paragraphSpacing),
                 Text(
                   'The spring wind has greened the southern shore again.',
                   style: TextStyle(
-                    fontFamily: _fontFamily,
-                    fontSize: _fontSize * 0.9,
-                    height: _lineHeight,
-                    letterSpacing: _letterSpacing,
+                    fontFamily: _fontFamily(currentFontId),
+                    fontSize: fontSize * 0.9,
+                    height: lineHeight,
+                    letterSpacing: letterSpacing,
                     color: cs.onSurface.withValues(alpha: 0.75),
                     fontStyle: FontStyle.italic,
                   ),
@@ -200,13 +277,19 @@ class _TypographySettingsPageState extends State<TypographySettingsPage> {
     ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.04, end: 0);
   }
 
-  // ==================== Font Grid ====================
-
-  Widget _buildFontGrid(ColorScheme cs) {
+  Widget _buildFontGrid(
+    BuildContext context,
+    ColorScheme cs,
+    String currentFontId,
+    ValueNotifier<String> currentFontIdNotifier,
+  ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionLabel('字体选择'),
+            SectionLabel(
+              label: '字体选择',
+              colorScheme: Theme.of(context).colorScheme,
+            ),
             Container(
               decoration: BoxDecoration(
                 color: cs.surface,
@@ -219,10 +302,10 @@ class _TypographySettingsPageState extends State<TypographySettingsPage> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: _fontOptions.map((opt) {
-                  final active = _currentFontId == opt.id;
+                  final active = currentFontId == opt.id;
                   return Expanded(
                     child: GestureDetector(
-                      onTap: () => _selectFont(opt.id),
+                      onTap: () => _selectFont(opt.id, currentFontIdNotifier),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -276,67 +359,76 @@ class _TypographySettingsPageState extends State<TypographySettingsPage> {
         .slideY(begin: 0.04, end: 0);
   }
 
-  // ==================== Typography Sliders ====================
-
-  Widget _buildSliders(ColorScheme cs) {
+  Widget _buildSliders(
+    BuildContext context,
+    ColorScheme cs,
+    ValueNotifier<double> fontSize,
+    ValueNotifier<double> lineHeight,
+    ValueNotifier<double> paragraphSpacing,
+    ValueNotifier<double> letterSpacing,
+    ValueNotifier<double> margin,
+  ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionLabel('排版参数'),
-            _sectionCard([
-              _sliderItem(
-                cs,
-                '字号',
-                '${_fontSize.toInt()}px',
-                _fontSize,
-                12,
-                32,
-                (v) {
-                  setState(() => _fontSize = v.roundToDouble());
-                },
-              ),
-              _sliderItem(
-                cs,
-                '行距',
-                _lineHeight.toStringAsFixed(1),
-                _lineHeight,
-                1.0,
-                2.5,
-                (v) {
-                  setState(() => _lineHeight = v);
-                },
-                step: 0.1,
-              ),
-              _sliderItem(
-                cs,
-                '段间距',
-                '${_paragraphSpacing.toInt()}px',
-                _paragraphSpacing,
-                0,
-                24,
-                (v) {
-                  setState(() => _paragraphSpacing = v.roundToDouble());
-                },
-                step: 2,
-              ),
-              _sliderItem(
-                cs,
-                '字间距',
-                '${_letterSpacing.toStringAsFixed(1)}px',
-                _letterSpacing,
-                -0.5,
-                2.0,
-                (v) {
-                  setState(() => _letterSpacing = v);
-                },
-                step: 0.1,
-              ),
-              _sliderItem(cs, '页边距', '${_margin.toInt()}px', _margin, 16, 48, (
-                v,
-              ) {
-                setState(() => _margin = v.roundToDouble());
-              }, step: 2),
-            ]),
+            SectionLabel(
+              label: '排版参数',
+              colorScheme: Theme.of(context).colorScheme,
+            ),
+            SettingsCard(
+              colorScheme: Theme.of(context).colorScheme,
+              children: [
+                SettingsSliderTile(
+                  label: '字号',
+                  value: '${fontSize.value.toInt()}px',
+                  current: fontSize.value,
+                  min: 12,
+                  max: 32,
+                  onChanged: (v) => fontSize.value = v.roundToDouble(),
+                  colorScheme: cs,
+                ),
+                SettingsSliderTile(
+                  label: '行距',
+                  value: lineHeight.value.toStringAsFixed(1),
+                  current: lineHeight.value,
+                  min: 1.0,
+                  max: 2.5,
+                  onChanged: (v) => lineHeight.value = v,
+                  step: 0.1,
+                  colorScheme: cs,
+                ),
+                SettingsSliderTile(
+                  label: '段间距',
+                  value: '${paragraphSpacing.value.toInt()}px',
+                  current: paragraphSpacing.value,
+                  min: 0,
+                  max: 24,
+                  onChanged: (v) => paragraphSpacing.value = v.roundToDouble(),
+                  step: 2,
+                  colorScheme: cs,
+                ),
+                SettingsSliderTile(
+                  label: '字间距',
+                  value: '${letterSpacing.value.toStringAsFixed(1)}px',
+                  current: letterSpacing.value,
+                  min: -0.5,
+                  max: 2.0,
+                  onChanged: (v) => letterSpacing.value = v,
+                  step: 0.1,
+                  colorScheme: cs,
+                ),
+                SettingsSliderTile(
+                  label: '页边距',
+                  value: '${margin.value.toInt()}px',
+                  current: margin.value,
+                  min: 16,
+                  max: 48,
+                  onChanged: (v) => margin.value = v.roundToDouble(),
+                  step: 2,
+                  colorScheme: cs,
+                ),
+              ],
+            ),
           ],
         )
         .animate()
@@ -344,9 +436,13 @@ class _TypographySettingsPageState extends State<TypographySettingsPage> {
         .slideY(begin: 0.04, end: 0);
   }
 
-  // ==================== Advanced CJK ====================
-
-  Widget _buildAdvancedCjk(ColorScheme cs) {
+  Widget _buildAdvancedCjk(
+    BuildContext context,
+    ColorScheme cs,
+    ValueNotifier<bool> punctuationSqueeze,
+    ValueNotifier<bool> baselineAlign,
+    ValueNotifier<bool> verticalMode,
+  ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -385,21 +481,29 @@ class _TypographySettingsPageState extends State<TypographySettingsPage> {
                 ],
               ),
             ),
-            _sectionCard([
-              _toggleItem(cs, '标点挤压', '减少中文标点符号周围的空白', _punctuationSqueeze, (
-                v,
-              ) {
-                setState(() => _punctuationSqueeze = v);
-              }),
-              _toggleItem(cs, '中西文基线对齐', '强制统一行高，避免混排时文字跳动', _baselineAlign, (
-                v,
-              ) {
-                setState(() => _baselineAlign = v);
-              }),
-              _toggleItem(cs, '竖排模式', '从右向左阅读，适合古籍排版', _verticalMode, (v) {
-                setState(() => _verticalMode = v);
-              }),
-            ]),
+            SettingsCard(
+              colorScheme: Theme.of(context).colorScheme,
+              children: [
+                SettingsToggleTile(
+                  title: '标点挤压',
+                  subtitle: '减少中文标点符号周围的空白',
+                  value: punctuationSqueeze.value,
+                  onChanged: (v) => punctuationSqueeze.value = v,
+                ),
+                SettingsToggleTile(
+                  title: '中西文基线对齐',
+                  subtitle: '强制统一行高，避免混排时文字跳动',
+                  value: baselineAlign.value,
+                  onChanged: (v) => baselineAlign.value = v,
+                ),
+                SettingsToggleTile(
+                  title: '竖排模式',
+                  subtitle: '从右向左阅读，适合古籍排版',
+                  value: verticalMode.value,
+                  onChanged: (v) => verticalMode.value = v,
+                ),
+              ],
+            ),
           ],
         )
         .animate()
@@ -407,12 +511,31 @@ class _TypographySettingsPageState extends State<TypographySettingsPage> {
         .slideY(begin: 0.04, end: 0);
   }
 
-  // ==================== Reset ====================
-
-  Widget _buildReset(ColorScheme cs) {
+  Widget _buildReset(
+    ColorScheme cs,
+    ValueNotifier<double> fontSize,
+    ValueNotifier<double> lineHeight,
+    ValueNotifier<double> paragraphSpacing,
+    ValueNotifier<double> letterSpacing,
+    ValueNotifier<double> margin,
+    ValueNotifier<bool> punctuationSqueeze,
+    ValueNotifier<bool> baselineAlign,
+    ValueNotifier<String> currentFontId,
+    ValueNotifier<bool> loaded,
+  ) {
     return Center(
       child: TextButton(
-        onPressed: _reset,
+        onPressed: () => _reset(
+          fontSize,
+          lineHeight,
+          paragraphSpacing,
+          letterSpacing,
+          margin,
+          punctuationSqueeze,
+          baselineAlign,
+          currentFontId,
+          loaded,
+        ),
         child: Text(
           '恢复默认设置',
           style: TextStyle(
@@ -420,168 +543,6 @@ class _TypographySettingsPageState extends State<TypographySettingsPage> {
             color: cs.onSurfaceVariant.withValues(alpha: 0.6),
           ),
         ),
-      ),
-    );
-  }
-
-  // ==================== Shared Widgets ====================
-
-  Widget _sectionLabel(String label) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 10),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-          letterSpacing: 0.4,
-        ),
-      ),
-    );
-  }
-
-  Widget _sectionCard(List<Widget> children) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: cs.outlineVariant.withValues(alpha: 0.25),
-          width: 0.5,
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(children: children),
-    );
-  }
-
-  Widget _sliderItem(
-    ColorScheme cs,
-    String label,
-    String value,
-    double current,
-    double min,
-    double max,
-    ValueChanged<double> onChanged, {
-    double step = 1,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: cs.onSurface,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 2,
-                ),
-                decoration: BoxDecoration(
-                  color: cs.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: cs.primary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SliderTheme(
-            data: SliderThemeData(
-              trackHeight: 3,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 9),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-              activeTrackColor: cs.primary,
-              inactiveTrackColor: cs.onSurface.withValues(alpha: 0.08),
-              thumbColor: cs.primary,
-              overlayColor: cs.primary.withValues(alpha: 0.12),
-            ),
-            child: Slider(
-              value: current.clamp(min, max),
-              min: min,
-              max: max,
-              divisions: step > 0
-                  ? ((max - min) / step).round().clamp(1, 1000)
-                  : null,
-              onChanged: onChanged,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _toggleItem(
-    ColorScheme cs,
-    String label,
-    String desc,
-    bool value,
-    ValueChanged<bool> onChanged,
-  ) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: cs.outlineVariant.withValues(alpha: 0.15),
-            width: 0.5,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: cs.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  desc,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: cs.onSurfaceVariant.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            height: 24,
-            child: Switch.adaptive(
-              value: value,
-              activeThumbColor: DesignTokens.primary,
-              activeTrackColor: DesignTokens.primary.withValues(alpha: 0.3),
-              onChanged: onChanged,
-            ),
-          ),
-        ],
       ),
     );
   }

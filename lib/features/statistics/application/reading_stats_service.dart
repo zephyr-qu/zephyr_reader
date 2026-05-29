@@ -1,5 +1,6 @@
 import 'package:injectable/injectable.dart';
-import 'package:signals/signals.dart';
+import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/utils/date_formatters.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/data/session.dart' as session_api;
 import 'package:zephyr_reader/src/rust/api/data/stats.dart' as stats_api;
@@ -163,8 +164,8 @@ class ReadingStatsViewModel {
       final now = DateTime.now();
       final start = now.subtract(Duration(days: days));
       return await stats_api.getReadingStatsByRange(
-        startDate: _formatDate(start),
-        endDate: _formatDate(now),
+        startDate: formatDateYYYYMMDD(start),
+        endDate: formatDateYYYYMMDD(now),
       );
     } catch (e) {
       Logging.error('获取每日统计异常: $e');
@@ -175,7 +176,7 @@ class ReadingStatsViewModel {
   /// 获取今日阅读数据 (秒数, 字符数)
   Future<(int seconds, int characters)> getTodayReadingData() async {
     try {
-      final today = _formatDate(DateTime.now());
+      final today = formatDateYYYYMMDD(DateTime.now());
       final records = await stats_api.getReadingStatsByRange(
         startDate: today,
         endDate: today,
@@ -241,12 +242,6 @@ class ReadingStatsViewModel {
       Logging.error('获取会话历史异常: $e');
       return [];
     }
-  }
-
-  // ==================== 工具方法 ====================
-
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
   /// 释放信号资源（Injectable @disposeMethod）

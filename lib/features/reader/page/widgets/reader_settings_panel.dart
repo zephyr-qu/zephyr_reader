@@ -1,12 +1,14 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import '../../application/reader_enums.dart';
 
-class ReaderSettingsPanel extends StatefulWidget {
+class ReaderSettingsPanel extends HookWidget {
   final ThemeMode themeMode;
   final ReadingMode readingMode;
   final double fontSize;
@@ -56,40 +58,15 @@ class ReaderSettingsPanel extends StatefulWidget {
   });
 
   @override
-  State<ReaderSettingsPanel> createState() => _ReaderSettingsPanelState();
-}
-
-class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
-  static const _bgColors = [
-    Color(0xFFFAFAFA),
-    Color(0xFFF5F0E8),
-    Color(0xFFFFF8E7),
-    Color(0xFFC7EDCC),
-    Color(0xFFF0F0F0),
-  ];
-
-  Color get _textColor => widget.themeMode == ThemeMode.dark
-      ? const Color(0xFFE8E6E1)
-      : const Color(0xFF2C2C2C);
-
-  Color get _mutedColor => widget.themeMode == ThemeMode.dark
-      ? const Color(0xFF6B6B76)
-      : const Color(0xFF9C9C9C);
-
-  Color get _bgColor => widget.themeMode == ThemeMode.dark
-      ? const Color(0xFF111118)
-      : const Color(0xFFF8F6F0);
-
-  @override
   Widget build(BuildContext context) {
-    final accentColor = DesignTokens.warmAccent;
+    final readerTheme = Theme.of(context).extension<ReaderThemeExtension>()!;
 
     return Container(
-      color: _bgColor,
+      color: readerTheme.backgroundColor,
       child: SafeArea(
         child: Column(
           children: [
-            _buildHeader(accentColor),
+            _buildHeader(readerTheme),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -97,88 +74,92 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
                   _buildSectionHeader(
                     icon: PhosphorIconsRegular.palette,
                     title: '外观主题',
+                    mutedColor: readerTheme.mutedColor,
                   ),
                   _buildSliderTile(
                     label: '亮度',
-                    value: 1 - widget.brightnessValue,
+                    value: 1 - brightnessValue,
                     min: 0.3,
                     max: 1.0,
                     divisions: 14,
                     display:
-                        '${((1 - widget.brightnessValue) * 100).toStringAsFixed(0)}%',
-                    onChanged: (v) => widget.onBrightnessChanged(1 - v),
-                    accentColor: accentColor,
+                        '${((1 - brightnessValue) * 100).toStringAsFixed(0)}%',
+                    onChanged: (v) => onBrightnessChanged(1 - v),
+                    readerTheme: readerTheme,
                   ),
                   const SizedBox(height: 4),
-                  _buildThemeSelector(accentColor),
+                  _buildThemeSelector(readerTheme),
                   const SizedBox(height: 4),
-                  _buildBgColorPicker(accentColor),
+                  _buildBgColorPicker(readerTheme),
                   const Divider(height: 20, indent: 16, endIndent: 16),
                   _buildSectionHeader(
                     icon: PhosphorIconsRegular.bookOpenText,
                     title: '阅读模式',
+                    mutedColor: readerTheme.mutedColor,
                   ),
-                  _buildModeSelector(accentColor),
+                  _buildModeSelector(readerTheme),
                   const Divider(height: 20, indent: 16, endIndent: 16),
                   _buildSectionHeader(
                     icon: PhosphorIconsRegular.paragraph,
                     title: '版面布局',
+                    mutedColor: readerTheme.mutedColor,
                   ),
-                  _buildWritingDirectionSelector(accentColor),
+                  _buildWritingDirectionSelector(readerTheme),
                   _buildSliderTile(
                     label: '字间距',
-                    value: widget.letterSpacing,
+                    value: letterSpacing,
                     min: 0,
                     max: 8,
                     divisions: 16,
-                    display: widget.letterSpacing.toStringAsFixed(1),
-                    onChanged: widget.onLetterSpacingChanged,
-                    accentColor: accentColor,
+                    display: letterSpacing.toStringAsFixed(1),
+                    onChanged: onLetterSpacingChanged,
+                    readerTheme: readerTheme,
                   ),
                   _buildSliderTile(
                     label: '段间距',
-                    value: widget.paragraphSpacing,
+                    value: paragraphSpacing,
                     min: 4,
                     max: 32,
                     divisions: 14,
-                    display: widget.paragraphSpacing.toStringAsFixed(0),
-                    onChanged: widget.onParagraphSpacingChanged,
-                    accentColor: accentColor,
+                    display: paragraphSpacing.toStringAsFixed(0),
+                    onChanged: onParagraphSpacingChanged,
+                    readerTheme: readerTheme,
                   ),
                   _buildSliderTile(
                     label: '页边距',
-                    value: widget.pageMargin,
+                    value: pageMargin,
                     min: 8,
                     max: 40,
                     divisions: 16,
-                    display: '${widget.pageMargin.toStringAsFixed(0)}px',
-                    onChanged: widget.onPageMarginChanged,
-                    accentColor: accentColor,
+                    display: '${pageMargin.toStringAsFixed(0)}px',
+                    onChanged: onPageMarginChanged,
+                    readerTheme: readerTheme,
                   ),
                   const Divider(height: 20, indent: 16, endIndent: 16),
                   _buildSectionHeader(
                     icon: PhosphorIconsRegular.textT,
                     title: '文字排版',
+                    mutedColor: readerTheme.mutedColor,
                   ),
                   _buildSliderTile(
                     label: '字体大小',
-                    value: widget.fontSize,
+                    value: fontSize,
                     min: 12,
                     max: 32,
                     divisions: 20,
-                    display: '${widget.fontSize.toStringAsFixed(0)}px',
-                    onChanged: widget.onFontSizeChanged,
-                    accentColor: accentColor,
+                    display: '${fontSize.toStringAsFixed(0)}px',
+                    onChanged: onFontSizeChanged,
+                    readerTheme: readerTheme,
                   ),
                   _buildSliderTile(
                     label: '行间距',
-                    value: widget.lineHeight,
+                    value: lineHeight,
                     min: 1.0,
                     max: 3.0,
                     divisions: 20,
-                    display: widget.lineHeight.toStringAsFixed(1),
-                    onChanged: widget.onLineHeightChanged,
-                    accentColor: accentColor,
+                    display: lineHeight.toStringAsFixed(1),
+                    onChanged: onLineHeightChanged,
+                    readerTheme: readerTheme,
                   ),
                 ],
               ),
@@ -189,11 +170,11 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
     );
   }
 
-  Widget _buildHeader(Color accentColor) {
+  Widget _buildHeader(ReaderThemeExtension readerTheme) {
     return GestureDetector(
       onVerticalDragEnd: (details) {
         if (details.primaryVelocity != null && details.primaryVelocity! > 300) {
-          widget.onClose();
+          onClose();
         }
       },
       child: Container(
@@ -203,7 +184,7 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
             width: 36,
             height: 4,
             decoration: BoxDecoration(
-              color: _mutedColor.withValues(alpha: 0.5),
+              color: readerTheme.mutedColor.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -212,17 +193,21 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
     );
   }
 
-  Widget _buildSectionHeader({required IconData icon, required String title}) {
+  Widget _buildSectionHeader({
+    required IconData icon,
+    required String title,
+    required Color mutedColor,
+  }) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 14, 4, 6),
       child: Row(
         children: [
-          Icon(icon, size: 15, color: _mutedColor),
+          Icon(icon, size: 15, color: mutedColor),
           const SizedBox(width: 6),
           Text(
             title,
             style: TextStyle(
-              color: _mutedColor,
+              color: mutedColor,
               fontSize: 13,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.5,
@@ -233,7 +218,8 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
     );
   }
 
-  Widget _buildModeSelector(Color accentColor) {
+  Widget _buildModeSelector(ReaderThemeExtension readerTheme) {
+    final accentColor = readerTheme.accentColor;
     final modes = [
       (ReadingMode.scroll, '滚动', PhosphorIconsRegular.arrowsDownUp),
       (ReadingMode.pageTurn, '翻页', PhosphorIconsRegular.book),
@@ -247,9 +233,9 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
         spacing: 4,
         runSpacing: 4,
         children: modes.map((m) {
-          final isSelected = widget.readingMode == m.$1;
+          final isSelected = readingMode == m.$1;
           return GestureDetector(
-            onTap: () => widget.onReadingModeChanged(m.$1),
+            onTap: () => onReadingModeChanged(m.$1),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -261,7 +247,7 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
                 border: Border.all(
                   color: isSelected
                       ? accentColor
-                      : _mutedColor.withValues(alpha: 0.2),
+                      : readerTheme.mutedColor.withValues(alpha: 0.2),
                   width: isSelected ? 1.5 : 0.5,
                 ),
               ),
@@ -271,13 +257,13 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
                   Icon(
                     m.$3,
                     size: 14,
-                    color: isSelected ? accentColor : _mutedColor,
+                    color: isSelected ? accentColor : readerTheme.mutedColor,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     m.$2,
                     style: TextStyle(
-                      color: isSelected ? accentColor : _textColor,
+                      color: isSelected ? accentColor : readerTheme.textColor,
                       fontSize: 12,
                       fontWeight: isSelected
                           ? FontWeight.w600
@@ -293,7 +279,8 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
     );
   }
 
-  Widget _buildWritingDirectionSelector(Color accentColor) {
+  Widget _buildWritingDirectionSelector(ReaderThemeExtension readerTheme) {
+    final accentColor = readerTheme.accentColor;
     final directions = [
       (WritingDirection.horizontal, '横排', PhosphorIconsRegular.textT),
       (WritingDirection.vertical, '竖排', PhosphorIconsRegular.textAa),
@@ -303,12 +290,12 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Row(
         children: directions.map((d) {
-          final isSelected = widget.writingDirection == d.$1;
+          final isSelected = writingDirection == d.$1;
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: GestureDetector(
-                onTap: () => widget.onWritingDirectionChanged(d.$1),
+                onTap: () => onWritingDirectionChanged(d.$1),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(vertical: 7),
@@ -320,7 +307,7 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
                     border: Border.all(
                       color: isSelected
                           ? accentColor
-                          : _mutedColor.withValues(alpha: 0.2),
+                          : readerTheme.mutedColor.withValues(alpha: 0.2),
                       width: isSelected ? 1.5 : 0.5,
                     ),
                   ),
@@ -330,13 +317,17 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
                       Icon(
                         d.$3,
                         size: 14,
-                        color: isSelected ? accentColor : _mutedColor,
+                        color: isSelected
+                            ? accentColor
+                            : readerTheme.mutedColor,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         d.$2,
                         style: TextStyle(
-                          color: isSelected ? accentColor : _textColor,
+                          color: isSelected
+                              ? accentColor
+                              : readerTheme.textColor,
                           fontSize: 12,
                           fontWeight: isSelected
                               ? FontWeight.w600
@@ -354,7 +345,7 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
     );
   }
 
-  Widget _buildThemeSelector(Color accentColor) {
+  Widget _buildThemeSelector(ReaderThemeExtension readerTheme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Row(
@@ -363,9 +354,9 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
             child: _buildChip(
               label: '浅色',
               icon: PhosphorIconsRegular.sun,
-              selected: widget.themeMode == ThemeMode.light,
-              accentColor: accentColor,
-              onTap: () => widget.onThemeChanged(ThemeMode.light),
+              selected: themeMode == ThemeMode.light,
+              readerTheme: readerTheme,
+              onTap: () => onThemeChanged(ThemeMode.light),
             ),
           ),
           const SizedBox(width: 6),
@@ -373,9 +364,9 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
             child: _buildChip(
               label: '深色',
               icon: PhosphorIconsRegular.moon,
-              selected: widget.themeMode == ThemeMode.dark,
-              accentColor: accentColor,
-              onTap: () => widget.onThemeChanged(ThemeMode.dark),
+              selected: themeMode == ThemeMode.dark,
+              readerTheme: readerTheme,
+              onTap: () => onThemeChanged(ThemeMode.dark),
             ),
           ),
         ],
@@ -387,9 +378,10 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
     required String label,
     required IconData icon,
     required bool selected,
-    required Color accentColor,
+    required ReaderThemeExtension readerTheme,
     required VoidCallback onTap,
   }) {
+    final accentColor = readerTheme.accentColor;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -401,19 +393,25 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
               : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: selected ? accentColor : _mutedColor.withValues(alpha: 0.2),
+            color: selected
+                ? accentColor
+                : readerTheme.mutedColor.withValues(alpha: 0.2),
             width: selected ? 1.5 : 0.5,
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 14, color: selected ? accentColor : _mutedColor),
+            Icon(
+              icon,
+              size: 14,
+              color: selected ? accentColor : readerTheme.mutedColor,
+            ),
             const SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
-                color: selected ? accentColor : _textColor,
+                color: selected ? accentColor : readerTheme.textColor,
                 fontSize: 12,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
               ),
@@ -424,7 +422,8 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
     );
   }
 
-  Widget _buildBgColorPicker(Color accentColor) {
+  Widget _buildBgColorPicker(ReaderThemeExtension readerTheme) {
+    final accentColor = readerTheme.accentColor;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Column(
@@ -433,7 +432,7 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
           Text(
             '阅读背景',
             style: TextStyle(
-              color: _mutedColor,
+              color: readerTheme.mutedColor,
               fontSize: 11,
               fontWeight: FontWeight.w400,
             ),
@@ -442,24 +441,24 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
           Wrap(
             spacing: 6,
             runSpacing: 6,
-            children: List.generate(_bgColors.length, (i) {
-              final isDark = _bgColors[i].computeLuminance() < 0.5;
+            children: List.generate(ReaderBgColors.presets.length, (i) {
+              final isDark = ReaderBgColors.presets[i].computeLuminance() < 0.5;
               return GestureDetector(
-                onTap: () => widget.onReaderBgColorChanged(i),
+                onTap: () => onReaderBgColorChanged(i),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: _bgColors[i],
+                    color: ReaderBgColors.presets[i],
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: widget.readerBgColorIndex == i
+                      color: readerBgColorIndex == i
                           ? accentColor
-                          : _mutedColor.withValues(alpha: 0.15),
-                      width: widget.readerBgColorIndex == i ? 2.5 : 1,
+                          : readerTheme.mutedColor.withValues(alpha: 0.15),
+                      width: readerBgColorIndex == i ? 2.5 : 1,
                     ),
-                    boxShadow: widget.readerBgColorIndex == i
+                    boxShadow: readerBgColorIndex == i
                         ? [
                             BoxShadow(
                               color: accentColor.withValues(alpha: 0.2),
@@ -469,7 +468,7 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
                           ]
                         : null,
                   ),
-                  child: widget.readerBgColorIndex == i
+                  child: readerBgColorIndex == i
                       ? Icon(
                           PhosphorIconsBold.check,
                           size: 16,
@@ -493,9 +492,11 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
     required int divisions,
     required String display,
     required ValueChanged<double> onChanged,
-    required Color accentColor,
+    required ReaderThemeExtension readerTheme,
     Widget? preview,
   }) {
+    final accentColor = readerTheme.accentColor;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Column(
@@ -507,7 +508,7 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
               Text(
                 label,
                 style: TextStyle(
-                  color: _textColor,
+                  color: readerTheme.textColor,
                   fontSize: 13,
                   fontWeight: FontWeight.w400,
                 ),
@@ -535,7 +536,9 @@ class _ReaderSettingsPanelState extends State<ReaderSettingsPanel> {
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
               overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
               activeTrackColor: accentColor,
-              inactiveTrackColor: _mutedColor.withValues(alpha: 0.12),
+              inactiveTrackColor: readerTheme.mutedColor.withValues(
+                alpha: 0.12,
+              ),
               thumbColor: accentColor,
               overlayColor: accentColor.withValues(alpha: 0.08),
             ),

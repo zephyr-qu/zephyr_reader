@@ -92,8 +92,10 @@ class BilingualModeRenderer extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('无对照译文',
-                style: TextStyle(fontSize: 16, color: config.textColor)),
+            Text(
+              '无对照译文',
+              style: TextStyle(fontSize: 16, color: config.textColor),
+            ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: onRequestTranslation,
@@ -169,7 +171,10 @@ class BilingualModeRenderer extends StatelessWidget {
     return ListView.builder(
       controller: scrollController,
       physics: adaptiveScrollPhysics(context),
-      padding: EdgeInsets.symmetric(horizontal: config.pageMargin, vertical: 20),
+      padding: EdgeInsets.symmetric(
+        horizontal: config.pageMargin,
+        vertical: 20,
+      ),
       itemCount: alignment.segments.length,
       itemBuilder: (context, index) {
         final seg = alignment.segments[index];

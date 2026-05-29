@@ -47,8 +47,8 @@ class WifiTransferService {
         return;
       }
 
-      _port = _findAvailablePort;
-      _server = await HttpServer.bind(InternetAddress.anyIPv4, _port);
+      _port = await _findAvailablePort();
+      _server = await HttpServer.bind(InternetAddress.loopbackIPv4, _port);
       _running = true;
       _statusController.add(true);
 
@@ -92,7 +92,28 @@ class WifiTransferService {
     return '127.0.0.1';
   }
 
-  int get _findAvailablePort => 8080;
+  Future<int> _findAvailablePort() async {
+    for (int i = 0; i < 10; i++) {
+      try {
+        final port = await _tryBind(0);
+        return port;
+      } catch (e) {
+        Logging.error('端口绑定失败，重试', exception: e);
+      }
+    }
+    return 8080;
+  }
+
+  Future<int> _tryBind(int port) async {
+    final server = await HttpServer.bind(
+      InternetAddress.loopbackIPv4,
+      port == 0 ? 0 : port,
+      shared: false,
+    );
+    final actual = server.port;
+    await server.close();
+    return actual;
+  }
 
   void _handleRequest(HttpRequest request) {
     final path = request.uri.path;

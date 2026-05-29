@@ -8,7 +8,9 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
+import 'package:zephyr_reader/core/presentation/widgets/settings/help_item.dart';
 import '../../../../core/utils/logging.dart';
+import '../application/services/sync_models.dart';
 import '../application/services/webdav_sync_service.dart';
 
 /// 备份与恢复页面
@@ -17,7 +19,7 @@ class BackupRestorePage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final syncService = useMemoized(() => AdvancedWebDavSyncService());
+    final syncService = useMemoized(() => WebDavSyncService());
     final backups = useSignal<List<BackupInfo>>([]);
     final isBackingUp = useSignal(false);
     final isRestoring = useSignal(false);
@@ -34,7 +36,8 @@ class BackupRestorePage extends HookWidget {
         actions: [
           IconButton(
             icon: const Icon(PhosphorIconsRegular.arrowsClockwise),
-            onPressed: () => _loadBackups(syncService, (v) => backups.value = v),
+            onPressed: () =>
+                _loadBackups(syncService, (v) => backups.value = v),
             tooltip: '刷新',
           ),
         ],
@@ -45,7 +48,13 @@ class BackupRestorePage extends HookWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 创建备份卡片
-            _buildCreateBackupCard(syncService, context, isBackingUp.value, (v) => isBackingUp.value = v, (v) => backups.value = v),
+            _buildCreateBackupCard(
+              syncService,
+              context,
+              isBackingUp.value,
+              (v) => isBackingUp.value = v,
+              (v) => backups.value = v,
+            ),
             const SizedBox(height: 24),
             _buildBackupListCard(
               syncService,
@@ -66,7 +75,7 @@ class BackupRestorePage extends HookWidget {
   }
 
   Future<void> _loadBackups(
-    AdvancedWebDavSyncService syncService,
+    WebDavSyncService syncService,
     ValueChanged<List<BackupInfo>> onBackupsLoaded,
   ) async {
     try {
@@ -79,7 +88,7 @@ class BackupRestorePage extends HookWidget {
   }
 
   Widget _buildCreateBackupCard(
-    AdvancedWebDavSyncService syncService,
+    WebDavSyncService syncService,
     BuildContext context,
     bool isBackingUp,
     ValueChanged<bool> onBackingUpChanged,
@@ -138,7 +147,7 @@ class BackupRestorePage extends HookWidget {
   }
 
   Widget _buildBackupListCard(
-    AdvancedWebDavSyncService syncService,
+    WebDavSyncService syncService,
     BuildContext context,
     List<BackupInfo> backups,
     bool isRestoring,
@@ -185,8 +194,7 @@ class BackupRestorePage extends HookWidget {
                         onRestoringChanged,
                         onRestoringBackupChanged,
                       ),
-                      if (index < backups.length - 1)
-                        const Divider(height: 1),
+                      if (index < backups.length - 1) const Divider(height: 1),
                     ],
                   );
                 },
@@ -198,7 +206,7 @@ class BackupRestorePage extends HookWidget {
   }
 
   Widget _buildBackupListItem(
-    AdvancedWebDavSyncService syncService,
+    WebDavSyncService syncService,
     BuildContext context,
     BackupInfo backup,
     bool isRestoring,
@@ -280,22 +288,22 @@ class BackupRestorePage extends HookWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            _buildHelpItem(
-              '备份内容',
-              '包括阅读进度、书签、书架和设置等所有数据',
-              PhosphorIconsRegular.info,
+            const HelpItem(
+              title: '备份内容',
+              description: '包括阅读进度、书签、书架和设置等所有数据',
+              icon: PhosphorIconsRegular.info,
             ),
             const SizedBox(height: 12),
-            _buildHelpItem(
-              '备份位置',
-              '备份文件存储在本地设备，建议定期导出到安全位置',
-              PhosphorIconsRegular.folder,
+            const HelpItem(
+              title: '备份位置',
+              description: '备份文件存储在本地设备，建议定期导出到安全位置',
+              icon: PhosphorIconsRegular.folder,
             ),
             const SizedBox(height: 12),
-            _buildHelpItem(
-              '恢复数据',
-              '恢复操作会覆盖当前数据，请谨慎操作',
-              PhosphorIconsFill.warning,
+            const HelpItem(
+              title: '恢复数据',
+              description: '恢复操作会覆盖当前数据，请谨慎操作',
+              icon: PhosphorIconsFill.warning,
             ),
             const SizedBox(height: 16),
             Container(
@@ -329,31 +337,8 @@ class BackupRestorePage extends HookWidget {
     );
   }
 
-  Widget _buildHelpItem(String title, String description, IconData icon) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: Colors.blue),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Future<void> _createBackup(
-    AdvancedWebDavSyncService syncService,
+    WebDavSyncService syncService,
     BuildContext context,
     ValueChanged<bool> onBackingUpChanged,
     ValueChanged<List<BackupInfo>> onBackupsChanged,
@@ -391,7 +376,7 @@ class BackupRestorePage extends HookWidget {
   }
 
   Future<void> _restoreBackup(
-    AdvancedWebDavSyncService syncService,
+    WebDavSyncService syncService,
     BuildContext context,
     BackupInfo backup,
     ValueChanged<bool> onRestoringChanged,
@@ -454,7 +439,7 @@ class BackupRestorePage extends HookWidget {
   }
 
   Future<void> _deleteBackup(
-    AdvancedWebDavSyncService syncService,
+    WebDavSyncService syncService,
     BuildContext context,
     BackupInfo backup,
   ) async {

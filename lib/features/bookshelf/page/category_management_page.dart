@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
@@ -17,54 +17,37 @@ extension _CategoryColor on Category {
 }
 
 /// 分类管理页面
-class CategoryManagementPage extends StatefulWidget {
-  const CategoryManagementPage({super.key});
+class CategoryManagementPage extends HookWidget {
+  final BookshelfViewModel vm;
 
-  @override
-  State<CategoryManagementPage> createState() => _CategoryManagementPageState();
-}
+  const CategoryManagementPage({super.key, required this.vm});
 
-class _CategoryManagementPageState extends State<CategoryManagementPage> {
-  late final BookshelfViewModel _vm;
-  final _nameController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _vm = getIt<BookshelfViewModel>();
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
-  }
-
-  /// 预设颜色（key 是字符串，value 是 Color 对象）
-  final List<MapEntry<String, Color>> _colors = [
-    const MapEntry('#FF5722', Color(0xFFFF5722)),
-    const MapEntry('#F44336', Color(0xFFF44336)),
-    const MapEntry('#E91E63', Color(0xFFE91E63)),
-    const MapEntry('#9C27B0', Color(0xFF9C27B0)),
-    const MapEntry('#673AB7', Color(0xFF673AB7)),
-    const MapEntry('#3F51B5', Color(0xFF3F51B5)),
-    const MapEntry('#2196F3', Color(0xFF2196F3)),
-    const MapEntry('#03A9F4', Color(0xFF03A9F4)),
-    const MapEntry('#00BCD4', Color(0xFF00BCD4)),
-    const MapEntry('#009688', Color(0xFF009688)),
-    const MapEntry('#4CAF50', Color(0xFF4CAF50)),
-    const MapEntry('#8BC34A', Color(0xFF8BC34A)),
-    const MapEntry('#CDDC39', Color(0xFFCDDC39)),
-    const MapEntry('#FFEB3B', Color(0xFFFFEB3B)),
-    const MapEntry('#FFC107', Color(0xFFFFC107)),
-    const MapEntry('#FF9800', Color(0xFFFF9800)),
-    const MapEntry('#795548', Color(0xFF795548)),
-    const MapEntry('#607D8B', Color(0xFF607D8B)),
-    const MapEntry('#9E9E9E', Color(0xFF9E9E9E)),
+  final List<MapEntry<String, Color>> _colors = const [
+    MapEntry('#FF5722', Color(0xFFFF5722)),
+    MapEntry('#F44336', Color(0xFFF44336)),
+    MapEntry('#E91E63', Color(0xFFE91E63)),
+    MapEntry('#9C27B0', Color(0xFF9C27B0)),
+    MapEntry('#673AB7', Color(0xFF673AB7)),
+    MapEntry('#3F51B5', Color(0xFF3F51B5)),
+    MapEntry('#2196F3', Color(0xFF2196F3)),
+    MapEntry('#03A9F4', Color(0xFF03A9F4)),
+    MapEntry('#00BCD4', Color(0xFF00BCD4)),
+    MapEntry('#009688', Color(0xFF009688)),
+    MapEntry('#4CAF50', Color(0xFF4CAF50)),
+    MapEntry('#8BC34A', Color(0xFF8BC34A)),
+    MapEntry('#CDDC39', Color(0xFFCDDC39)),
+    MapEntry('#FFEB3B', Color(0xFFFFEB3B)),
+    MapEntry('#FFC107', Color(0xFFFFC107)),
+    MapEntry('#FF9800', Color(0xFFFF9800)),
+    MapEntry('#795548', Color(0xFF795548)),
+    MapEntry('#607D8B', Color(0xFF607D8B)),
+    MapEntry('#9E9E9E', Color(0xFF9E9E9E)),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final nameController = useTextEditingController();
+
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -73,14 +56,15 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
         actions: [
           IconButton(
             icon: const Icon(PhosphorIconsRegular.plus),
-            onPressed: _showAddCategoryDialog,
+            onPressed: () =>
+                _showAddCategoryDialog(context, nameController, theme),
             tooltip: '添加标签',
           ),
         ],
       ),
-      body: Watch.builder(
+      body: SignalBuilder(
         builder: (context) {
-          final categories = _vm.categories.value;
+          final categories = vm.categories.value;
 
           if (categories.isEmpty) {
             return Center(
@@ -114,10 +98,16 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
           return ReorderableListView.builder(
             padding: EdgeInsets.all(DesignTokens.spacing(Spacing.md)),
             itemCount: categories.length,
-            onReorder: _onReorder,
+            onReorder: (oldIndex, newIndex) =>
+                _onReorder(oldIndex, newIndex, vm),
             itemBuilder: (context, index) {
               final category = categories[index];
-              return _buildCategoryTile(category, theme);
+              return _buildCategoryTile(
+                context,
+                category,
+                theme,
+                nameController,
+              );
             },
           );
         },
@@ -125,7 +115,12 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     );
   }
 
-  Widget _buildCategoryTile(Category category, ThemeData theme) {
+  Widget _buildCategoryTile(
+    BuildContext context,
+    Category category,
+    ThemeData theme,
+    TextEditingController nameController,
+  ) {
     return Card(
       key: ValueKey(category.id),
       margin: EdgeInsets.only(bottom: DesignTokens.spacing(Spacing.sm)),
@@ -162,12 +157,18 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                 children: [
                   IconButton(
                     icon: const Icon(PhosphorIconsRegular.pencilSimpleLine),
-                    onPressed: () => _showEditCategoryDialog(category),
+                    onPressed: () => _showEditCategoryDialog(
+                      context,
+                      category,
+                      nameController,
+                      theme,
+                    ),
                     tooltip: '编辑',
                   ),
                   IconButton(
                     icon: const Icon(PhosphorIconsRegular.trash),
-                    onPressed: () => _showDeleteConfirm(category),
+                    onPressed: () =>
+                        _showDeleteConfirm(context, category, theme, vm),
                     tooltip: '删除',
                     color: theme.colorScheme.error,
                   ),
@@ -177,15 +178,18 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     );
   }
 
-  Future<void> _onReorder(int oldIndex, int newIndex) async {
-    final categories = List<Category>.from(_vm.categories.value);
+  Future<void> _onReorder(
+    int oldIndex,
+    int newIndex,
+    BookshelfViewModel vm,
+  ) async {
+    final categories = List<Category>.from(vm.categories.value);
     if (newIndex > oldIndex) {
       newIndex -= 1;
     }
     final item = categories.removeAt(oldIndex);
     categories.insert(newIndex, item);
 
-    // 更新排序
     for (int i = 0; i < categories.length; i++) {
       if (categories[i].sortOrder != i) {
         final oldCategory = categories[i];
@@ -197,13 +201,17 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
           isSystem: oldCategory.isSystem,
         );
         categories[i] = updated;
-        await _vm.updateCategory(updated);
+        await vm.updateCategory(updated);
       }
     }
   }
 
-  void _showAddCategoryDialog() {
-    _nameController.clear();
+  void _showAddCategoryDialog(
+    BuildContext context,
+    TextEditingController nameController,
+    ThemeData theme,
+  ) {
+    nameController.clear();
     String selectedColor = _colors.first.key;
 
     showDialog<void>(
@@ -215,7 +223,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: _nameController,
+                controller: nameController,
                 decoration: const InputDecoration(
                   labelText: '标签名称',
                   hintText: '输入标签名称',
@@ -233,11 +241,8 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                 children: _colors.map((entry) {
                   final isSelected = selectedColor == entry.key;
                   return GestureDetector(
-                    onTap: () {
-                      setDialogState(() {
-                        selectedColor = entry.key;
-                      });
-                    },
+                    onTap: () =>
+                        setDialogState(() => selectedColor = entry.key),
                     child: Container(
                       width: 40,
                       height: 40,
@@ -282,32 +287,23 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
             ),
             ElevatedButton(
               onPressed: () async {
-                final name = _nameController.text.trim();
+                final name = nameController.text.trim();
                 if (name.isEmpty) {
                   ScaffoldMessenger.of(
                     context,
                   ).showSnackBar(const SnackBar(content: Text('请输入标签名称')));
                   return;
                 }
-
-                final success = await _vm.addCategory(
+                final success = await vm.addCategory(
                   name: name,
                   color: selectedColor,
-                  sortOrder: _vm.categories.value.length,
+                  sortOrder: vm.categories.value.length,
                 );
-
                 if (!context.mounted) return;
                 Navigator.pop(context);
-
-                if (success) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('添加成功')));
-                } else {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('添加失败')));
-                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(success ? '添加成功' : '添加失败')),
+                );
               },
               child: const Text('添加'),
             ),
@@ -317,8 +313,13 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     );
   }
 
-  void _showEditCategoryDialog(Category category) {
-    _nameController.text = category.name;
+  void _showEditCategoryDialog(
+    BuildContext context,
+    Category category,
+    TextEditingController nameController,
+    ThemeData theme,
+  ) {
+    nameController.text = category.name;
     String selectedColor = category.color;
 
     showDialog<void>(
@@ -330,7 +331,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: _nameController,
+                controller: nameController,
                 decoration: const InputDecoration(
                   labelText: '标签名称',
                   hintText: '输入标签名称',
@@ -347,11 +348,8 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                 children: _colors.map((entry) {
                   final isSelected = selectedColor == entry.key;
                   return GestureDetector(
-                    onTap: () {
-                      setDialogState(() {
-                        selectedColor = entry.key;
-                      });
-                    },
+                    onTap: () =>
+                        setDialogState(() => selectedColor = entry.key),
                     child: Container(
                       width: 40,
                       height: 40,
@@ -396,36 +394,26 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
             ),
             ElevatedButton(
               onPressed: () async {
-                final name = _nameController.text.trim();
+                final name = nameController.text.trim();
                 if (name.isEmpty) {
                   ScaffoldMessenger.of(
                     context,
                   ).showSnackBar(const SnackBar(content: Text('请输入标签名称')));
                   return;
                 }
-
-                final oldCategory = category;
                 final updated = Category(
-                  id: oldCategory.id,
+                  id: category.id,
                   name: name,
                   color: selectedColor,
-                  sortOrder: oldCategory.sortOrder,
-                  isSystem: oldCategory.isSystem,
+                  sortOrder: category.sortOrder,
+                  isSystem: category.isSystem,
                 );
-                final success = await _vm.updateCategory(updated);
-
+                final success = await vm.updateCategory(updated);
                 if (!context.mounted) return;
                 Navigator.pop(context);
-
-                if (success) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('保存成功')));
-                } else {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('保存失败')));
-                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(success ? '保存成功' : '保存失败')),
+                );
               },
               child: const Text('保存'),
             ),
@@ -435,7 +423,12 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     );
   }
 
-  void _showDeleteConfirm(Category category) {
+  void _showDeleteConfirm(
+    BuildContext context,
+    Category category,
+    ThemeData theme,
+    BookshelfViewModel vm,
+  ) {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -449,19 +442,11 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              final success = await _vm.removeCategory(category.id);
-
+              final success = await vm.removeCategory(category.id);
               if (!context.mounted) return;
-
-              if (success) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('删除成功')));
-              } else {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('删除失败')));
-              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(success ? '删除成功' : '删除失败')),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.colorScheme.error,
@@ -473,6 +458,4 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
       ),
     );
   }
-
-  ThemeData get theme => Theme.of(context);
 }

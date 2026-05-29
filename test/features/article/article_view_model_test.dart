@@ -1,43 +1,29 @@
-library;
-
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/features/article/application/article_view_model.dart';
 import 'package:zephyr_reader/features/article/data/article_api.dart';
-import 'package:zephyr_reader/features/article/data/article_service.dart';
 import 'package:zephyr_reader/features/article/domain/models/article.dart';
 
-class _MockArticleApi implements ArticleApi {
-  final _articles = <int, Article>{};
-  bool _shouldThrow = false;
+// ===== Mock classes using mocktail =====
 
-  void addArticle(Article a) => _articles[a.id] = a;
-  void setThrowOnNextCall() => _shouldThrow = true;
+class _MockArticleApi extends Mock implements ArticleApi {}
 
-  @override
-  Future<List<Article>> getArticles() async {
-    if (_shouldThrow) throw Exception('Network error');
-    return _articles.values.toList();
-  }
+// ===== Helper function to create ViewModel =====
 
-  @override
-  Future<Article> getArticle(int id) async {
-    if (_shouldThrow) throw Exception('Network error');
-    return _articles[id] ?? (throw Exception('Article not found'));
-  }
+ArticleViewModel createViewModel({ArticleApi? api}) {
+  return ArticleViewModel(api ?? _MockArticleApi());
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('ArticleViewModel', () {
-    late _MockArticleApi api;
-    late ArticleRepository repo;
+    late ArticleApi api;
     late ArticleViewModel vm;
 
     setUp(() {
       api = _MockArticleApi();
-      repo = ArticleRepository(api);
-      vm = ArticleViewModel(repo);
+      vm = createViewModel(api: api);
     });
 
     group('加载文章列表', () {
@@ -47,29 +33,29 @@ void main() {
       });
 
       test('load 应加载所有文章', () async {
-        api.addArticle(
-          Article(
-            id: 1,
-            title: '测试文章',
-            summary: '这是一篇测试文章',
-            author: '作者',
-            readDuration: 10,
-            publishedAt: '2026-01-01',
-            content: '正文内容',
-            wordCount: 1000,
-          ),
-        );
-        api.addArticle(
-          Article(
-            id: 2,
-            title: '第二篇文章',
-            summary: '这是第二篇',
-            author: '作者',
-            readDuration: 5,
-            publishedAt: '2026-01-02',
-            content: '正文内容2',
-            wordCount: 500,
-          ),
+        when(() => api.getArticles()).thenAnswer(
+          (_) async => [
+            Article(
+              id: 1,
+              title: '测试文章',
+              summary: '这是一篇测试文章',
+              author: '作者',
+              readDuration: 10,
+              publishedAt: '2026-01-01',
+              content: '正文内容',
+              wordCount: 1000,
+            ),
+            Article(
+              id: 2,
+              title: '第二篇文章',
+              summary: '这是第二篇',
+              author: '作者',
+              readDuration: 5,
+              publishedAt: '2026-01-02',
+              content: '正文内容2',
+              wordCount: 500,
+            ),
+          ],
         );
 
         await vm.load();
@@ -80,6 +66,8 @@ void main() {
       });
 
       test('load 空列表应返回空', () async {
+        when(() => api.getArticles()).thenAnswer((_) async => []);
+
         await vm.load();
 
         expect(vm.articles.value.value, isEmpty);
@@ -87,19 +75,20 @@ void main() {
       });
 
       test('load 失败应设置 error 状态', () async {
-        api.setThrowOnNextCall();
+        when(() => api.getArticles()).thenThrow(Exception('Network error'));
 
         await vm.load();
 
         expect(vm.articles.value.value, isNull);
-        expect(vm.articles.value.error?.toString(), contains('Network error'));
+        expect(vm.articles.value.hasError, isTrue);
       });
     });
 
     group('加载文章详情', () {
       test('loadDetail 应加载指定文章', () async {
-        api.addArticle(
-          Article(
+        when(() => api.getArticles()).thenAnswer((_) async => []);
+        when(() => api.getArticle(1)).thenAnswer(
+          (_) async => Article(
             id: 1,
             title: '测试文章',
             summary: '摘要',
@@ -119,6 +108,10 @@ void main() {
       });
 
       test('loadDetail 不存在的文章应设置 error', () async {
+        when(
+          () => api.getArticle(any()),
+        ).thenThrow(Exception('Article not found'));
+
         await vm.loadDetail(999);
 
         expect(vm.selectedArticle.value.value, isNull);

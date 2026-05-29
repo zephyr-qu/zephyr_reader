@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
-import 'package:zephyr_reader/src/rust/api/data/bookmark.dart' as bookmark_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import '../../../../di/service_locator.dart';
@@ -32,8 +31,8 @@ class BookmarkManagePage extends HookWidget {
     useEffect(() {
       vm.loadBookmarks();
       () async {
-        final list = await bookmark_api.listBookmarksByBook(bookId: bookId);
-        bookmarkStats.value = list.length;
+        final count = await vm.getBookmarkCount(bookId);
+        bookmarkStats.value = count;
       }();
       return null;
     }, []);
@@ -112,7 +111,7 @@ class BookmarkManagePage extends HookWidget {
             ),
         ],
       ),
-      body: Watch.builder(
+      body: SignalBuilder(
         builder: (context) {
           final async = vm.bookmarks.value;
           if (async.isLoading) {

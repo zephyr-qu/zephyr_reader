@@ -278,8 +278,12 @@ class PaginatedModeRenderer extends StatelessWidget {
                   TextSpan(style: textStyle, children: [painted]),
                   strutStyle: strutStyle,
                   textAlign: TextAlign.justify,
-                  onSelectionChanged: (sel, cause) =>
-                      _onSelection(sel, page.content, page.startOffset, context),
+                  onSelectionChanged: (sel, cause) => _onSelection(
+                    sel,
+                    page.content,
+                    page.startOffset,
+                    context,
+                  ),
                   contextMenuBuilder: (_, _) => const SizedBox.shrink(),
                 ),
               ),

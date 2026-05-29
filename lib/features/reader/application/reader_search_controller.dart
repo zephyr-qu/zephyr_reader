@@ -1,4 +1,4 @@
-import 'package:signals/signals.dart';
+import 'package:signals_flutter/signals_flutter.dart';
 
 import '../domain/services/highlight_painter.dart';
 

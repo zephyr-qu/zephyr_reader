@@ -1,5 +1,6 @@
 import 'package:injectable/injectable.dart';
-import 'package:signals/signals.dart';
+import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
@@ -62,6 +63,7 @@ class SearchViewModel {
       final data = await searchAllBooks(
         query: keyword.value,
         limit: currentPage.value,
+        offset: (currentPage.value - 1) * 20,
       );
 
       if (loadMore) {
@@ -104,7 +106,7 @@ class SearchViewModel {
 
       Future<List<SearchResult>> ftsSearch() async {
         try {
-          return await searchAllBooks(query: query, limit: 50);
+          return await searchAllBooks(query: query, limit: 50, offset: 0);
         } catch (_) {
           return [];
         }
@@ -122,12 +124,11 @@ class SearchViewModel {
 
       final noteResults = <Note>[];
       try {
-        final notesByBook = await Future.wait(
-          allBooksResult
-              .map((b) => note_api.listNotesByBook(bookId: b.bookId)),
+        final notesBatch = await note_api.listNotesByBooks(
+          bookIds: allBooksResult.map((b) => b.bookId).toList(),
         );
         final lowerQuery = query.toLowerCase();
-        for (final notes in notesByBook) {
+        for (final (_, notes) in notesBatch) {
           for (final note in notes) {
             if (note.content.toLowerCase().contains(lowerQuery) ||
                 (note.selectedText?.toLowerCase().contains(lowerQuery) ==
@@ -136,7 +137,9 @@ class SearchViewModel {
             }
           }
         }
-      } catch (_) {}
+      } catch (e) {
+        Logging.error('搜索笔记失败', exception: e);
+      }
 
       stopwatch.stop();
 

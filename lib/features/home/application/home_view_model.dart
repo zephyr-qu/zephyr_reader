@@ -1,5 +1,5 @@
 import 'package:injectable/injectable.dart';
-import 'package:signals/signals.dart';
+import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/stats.dart' as stats_api;
@@ -11,8 +11,6 @@ class HomeViewModel {
   final dailyRecords = signal<AsyncState<List<ReadingStats>>>(
     AsyncState.loading(),
   );
-
-  final _refreshTrigger = signal(0);
 
   late final isLoading = computed(
     () => recentBooks.value.isLoading || dailyRecords.value.isLoading,
@@ -46,13 +44,6 @@ class HomeViewModel {
   }
 
   Future<void> refresh() async {
-    _refreshTrigger.value++;
     await loadData();
-  }
-
-  void dispose() {
-    recentBooks.dispose();
-    dailyRecords.dispose();
-    _refreshTrigger.dispose();
   }
 }

@@ -10,7 +10,7 @@ class VocabularyMarkerService {
 
   Future<void> ensureLoaded() async {
     if (_loaded) return;
-    final words = await rust.getAllVocabularyWords();
+    final words = rust.getAllVocabularyWords();
     _allWords = words.toSet();
     _loaded = true;
   }

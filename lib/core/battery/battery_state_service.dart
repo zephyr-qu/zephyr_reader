@@ -3,6 +3,7 @@ library;
 import 'dart:io';
 
 import 'package:system_state/system_state.dart';
+import 'package:zephyr_reader/core/utils/platform_guard.dart';
 
 class BatteryStateService {
   BatteryStateService._internal();
@@ -10,26 +11,17 @@ class BatteryStateService {
   factory BatteryStateService() => _instance;
   static final BatteryStateService _instance = BatteryStateService._internal();
 
-  Future<T> _guardAndroid<T>(Future<T> Function() fn, T defaultValue) async {
-    if (!Platform.isAndroid) return defaultValue;
-    try {
-      return await fn();
-    } catch (_) {
-      return defaultValue;
-    }
-  }
-
-  Future<bool> isCharging() async => _guardAndroid(
+  Future<bool> isCharging() async => guardAndroid(
     () async => (await SystemState.battery.getBatteryState()).isCharging,
     false,
   );
 
-  Future<int> getBatteryLevel() async => _guardAndroid(
+  Future<int> getBatteryLevel() async => guardAndroid(
     () async => (await SystemState.battery.getBatteryState()).batteryLevel,
     0,
   );
 
-  Future<BatteryState> getBatteryState() async => _guardAndroid(
+  Future<BatteryState> getBatteryState() async => guardAndroid(
     () async => await SystemState.battery.getBatteryState(),
     BatteryState.fromMap({
       'batteryLevel': 0,

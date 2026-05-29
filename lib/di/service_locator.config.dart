@@ -23,8 +23,6 @@ import 'package:zephyr_reader/di/app_module.dart' as _i431;
 import 'package:zephyr_reader/features/article/application/article_view_model.dart'
     as _i556;
 import 'package:zephyr_reader/features/article/data/article_api.dart' as _i569;
-import 'package:zephyr_reader/features/article/data/article_service.dart'
-    as _i582;
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart'
     as _i790;
 import 'package:zephyr_reader/features/home/application/home_view_model.dart'
@@ -41,8 +39,6 @@ import 'package:zephyr_reader/features/search/application/search_view_model.dart
     as _i1;
 import 'package:zephyr_reader/features/statistics/application/reading_stats_service.dart'
     as _i1072;
-import 'package:zephyr_reader/features/sync/application/sync_view_model.dart'
-    as _i988;
 import 'package:zephyr_reader/features/sync/data/sync_service.dart' as _i456;
 import 'package:zephyr_reader/features/sync/domain/repositories/sync_repository.dart'
     as _i499;
@@ -96,14 +92,8 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i849.ReaderConfig>(
       () => _i849.ReaderConfig(gh<_i460.SharedPreferences>()),
     );
-    gh.factoryAsync<_i988.SyncViewModel>(
-      () async => _i988.SyncViewModel(await getAsync<_i499.SyncRepository>()),
-    );
-    gh.lazySingleton<_i582.ArticleRepository>(
-      () => _i582.ArticleRepository(gh<_i569.ArticleApi>()),
-    );
     gh.factory<_i556.ArticleViewModel>(
-      () => _i556.ArticleViewModel(gh<_i582.ArticleRepository>()),
+      () => _i556.ArticleViewModel(gh<_i569.ArticleApi>()),
     );
     gh.lazySingleton<_i335.ReaderViewModel>(
       () => _i335.ReaderViewModel(

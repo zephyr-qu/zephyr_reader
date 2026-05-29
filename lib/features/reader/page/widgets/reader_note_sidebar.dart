@@ -1,51 +1,48 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
+import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-class ReaderNoteSidebar extends StatefulWidget {
+class ReaderNoteSidebar extends HookWidget {
   final String bookId;
   final String bookTitle;
   final void Function(int chapterIndex, int charOffset)? onNoteTap;
+  final ReaderViewModel vm;
 
   const ReaderNoteSidebar({
     super.key,
     required this.bookId,
     required this.bookTitle,
+    required this.vm,
     this.onNoteTap,
   });
 
   @override
-  State<ReaderNoteSidebar> createState() => _ReaderNoteSidebarState();
-}
-
-class _ReaderNoteSidebarState extends State<ReaderNoteSidebar> {
-  List<Note> _notes = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadNotes();
-  }
-
-  Future<void> _loadNotes() async {
-    setState(() => _loading = true);
-    try {
-      _notes = await note_api.listNotesByBook(bookId: widget.bookId);
-    } catch (_) {
-      _notes = [];
-    }
-    if (mounted) setState(() => _loading = false);
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final notes = useState<List<Note>>([]);
+    final loading = useState<bool>(true);
+
+    Future<void> loadNotes() async {
+      loading.value = true;
+      try {
+        notes.value = await vm.getNotesByBook(bookId);
+      } catch (_) {
+        notes.value = [];
+      }
+      loading.value = false;
+    }
+
+    useEffect(() {
+      loadNotes();
+      return null;
+    }, [bookId]);
+
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -78,7 +75,7 @@ class _ReaderNoteSidebarState extends State<ReaderNoteSidebar> {
                       PhosphorIconsRegular.arrowClockwise,
                       size: 20,
                     ),
-                    onPressed: _loadNotes,
+                    onPressed: loadNotes,
                     tooltip: '刷新',
                   ),
                   IconButton(
@@ -90,9 +87,9 @@ class _ReaderNoteSidebarState extends State<ReaderNoteSidebar> {
               ),
             ),
             Expanded(
-              child: _loading
+              child: loading.value
                   ? const Center(child: CircularProgressIndicator())
-                  : _notes.isEmpty
+                  : notes.value.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -118,13 +115,13 @@ class _ReaderNoteSidebarState extends State<ReaderNoteSidebar> {
                       padding: EdgeInsets.symmetric(
                         horizontal: DesignTokens.spacing(Spacing.md),
                       ),
-                      itemCount: _notes.length,
+                      itemCount: notes.value.length,
                       itemBuilder: (context, index) {
-                        final note = _notes[index];
+                        final note = notes.value[index];
                         return InkWell(
                           onTap: () {
                             Navigator.of(context).pop();
-                            widget.onNoteTap?.call(
+                            onNoteTap?.call(
                               note.chapterIndex,
                               note.charOffset.toInt(),
                             );
