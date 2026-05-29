@@ -19,10 +19,7 @@ class BuiltinDictionary {
 
     try {
       final byteData = await rootBundle.load(_assetPath);
-      await targetFile.writeAsBytes(
-        byteData.buffer.asUint8List(),
-        flush: true,
-      );
+      await targetFile.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
       Logging.info('内置词典已解压至 ${targetFile.path}');
       return targetFile.path;
     } catch (e, st) {

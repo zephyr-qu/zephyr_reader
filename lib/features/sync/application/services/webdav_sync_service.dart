@@ -6,971 +6,23 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:webdav_client/webdav_client.dart' as webdav;
-import 'package:zephyr_reader/core/battery/battery_state_service.dart';
-import 'package:zephyr_reader/core/network/network_state_service.dart';
+
 import 'package:zephyr_reader/core/utils/logging.dart';
 
+import 'sync_exceptions.dart';
+import 'sync_models.dart';
+import 'webdav_client_service.dart';
+import 'webdav_config_service.dart';
 import 'webdav_connection_manager.dart';
-
-class WebDavFileInfo {
-  final DateTime modified;
-
-  WebDavFileInfo({required this.modified});
-}
-
-class WebDavConfig {
-  final String baseUrl;
-  final String username;
-  final String password;
-  final String remotePath;
-
-  WebDavConfig({
-    required this.baseUrl,
-    required this.username,
-    required this.password,
-    required this.remotePath,
-  });
-
-  WebDavConfig copyWith({
-    String? baseUrl,
-    String? username,
-    String? password,
-    String? remotePath,
-  }) {
-    return WebDavConfig(
-      baseUrl: baseUrl ?? this.baseUrl,
-      username: username ?? this.username,
-      password: password ?? this.password,
-      remotePath: remotePath ?? this.remotePath,
-    );
-  }
-
-  bool get isValid {
-    return baseUrl.isNotEmpty &&
-        username.isNotEmpty &&
-        password.isNotEmpty &&
-        remotePath.isNotEmpty;
-  }
-
-  String get serverName {
-    try {
-      final uri = Uri.parse(baseUrl);
-      return uri.host;
-    } catch (e) {
-      return baseUrl;
-    }
-  }
-}
-
-enum SyncStatus { idle, syncing, success, failed, conflict }
-
-enum SyncDataType {
-  readingProgress('reading_progress.json'),
-  bookmarks('bookmarks.json'),
-  bookshelf('bookshelf.json'),
-  settings('settings.json');
-
-  final String filename;
-  const SyncDataType(this.filename);
-}
-
-enum SyncDirection { upload, download, both }
-
-enum SyncOperation { create, update, delete }
-
-enum ConflictResolution { useLocal, useRemote, merge }
-
-class SyncDataItem {
-  final SyncDataType type;
-  final String filename;
-  final DateTime localModified;
-  final DateTime? remoteModified;
-  final bool hasLocal;
-  final bool hasRemote;
-
-  SyncDataItem({
-    required this.type,
-    required this.filename,
-    required this.localModified,
-    this.remoteModified,
-    this.hasLocal = true,
-    this.hasRemote = true,
-  });
-
-  bool get needsSync =>
-      hasLocal != hasRemote || localModified != remoteModified;
-
-  String get conflictDescription {
-    if (!hasLocal && !hasRemote) {
-      return '本地和远程均无数据';
-    } else if (!hasLocal) {
-      return '仅远程有数据';
-    } else if (!hasRemote) {
-      return '仅本地有数据';
-    } else if (localModified.isAfter(remoteModified!)) {
-      return '本地版本更新';
-    } else if (remoteModified!.isAfter(localModified)) {
-      return '远程版本更新';
-    } else {
-      return '数据一致';
-    }
-  }
-}
-
-class RemoteFileInfo {
-  final String name;
-  final int size;
-  final DateTime modified;
-  final bool isDirectory;
-
-  RemoteFileInfo({
-    required this.name,
-    required this.size,
-    required this.modified,
-    this.isDirectory = false,
-  });
-
-  factory RemoteFileInfo.fromWebDavFile(dynamic file) {
-    return RemoteFileInfo(
-      name: (file.name as String?) ?? p.basename((file.path as String?) ?? ''),
-      size: (file.size as int?) ?? 0,
-      modified: (file.modified as DateTime?) ?? DateTime(1970),
-      isDirectory: (file.type as String?) == 'directory',
-    );
-  }
-
-  String get formattedSize {
-    if (size < 1024) {
-      return '$size B';
-    } else if (size < 1024 * 1024) {
-      return '${(size / 1024).toStringAsFixed(1)} KB';
-    } else {
-      return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
-    }
-  }
-}
-
-class SyncResult {
-  bool success;
-  int uploadedCount;
-  int downloadedCount;
-  int conflictCount;
-  String? error;
-  Map<SyncDataType, SyncOperationResult> details;
-
-  SyncResult({
-    this.success = false,
-    this.uploadedCount = 0,
-    this.downloadedCount = 0,
-    this.conflictCount = 0,
-    this.error,
-    Map<SyncDataType, SyncOperationResult>? details,
-  }) : details = details ?? {};
-
-  String get summary {
-    if (!success) {
-      return '同步失败：$error';
-    }
-    final parts = <String>[];
-    if (uploadedCount > 0) parts.add('上传 $uploadedCount 项');
-    if (downloadedCount > 0) parts.add('下载 $downloadedCount 项');
-    if (conflictCount > 0) parts.add('冲突 $conflictCount 项');
-    return parts.isEmpty ? '同步完成，无需更新' : parts.join(', ');
-  }
-
-  SyncResult copyWith({
-    bool? success,
-    int? uploadedCount,
-    int? downloadedCount,
-    int? conflictCount,
-    String? error,
-    Map<SyncDataType, SyncOperationResult>? details,
-  }) {
-    return SyncResult(
-      success: success ?? this.success,
-      uploadedCount: uploadedCount ?? this.uploadedCount,
-      downloadedCount: downloadedCount ?? this.downloadedCount,
-      conflictCount: conflictCount ?? this.conflictCount,
-      error: error ?? this.error,
-      details: details ?? this.details,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'success': success,
-      'uploadedCount': uploadedCount,
-      'downloadedCount': downloadedCount,
-      'conflictCount': conflictCount,
-      'error': error,
-    };
-  }
-
-  factory SyncResult.fromJson(Map<String, dynamic> json) {
-    return SyncResult(
-      success: json['success'] as bool? ?? false,
-      uploadedCount: json['uploadedCount'] as int? ?? 0,
-      downloadedCount: json['downloadedCount'] as int? ?? 0,
-      conflictCount: json['conflictCount'] as int? ?? 0,
-      error: json['error'] as String?,
-    );
-  }
-}
-
-class SyncOperationResult {
-  final bool success;
-  final String? error;
-  final DateTime? timestamp;
-
-  SyncOperationResult({this.success = false, this.error, this.timestamp});
-
-  factory SyncOperationResult.success() {
-    return SyncOperationResult(success: true, timestamp: DateTime.now());
-  }
-
-  factory SyncOperationResult.failure(String error) {
-    return SyncOperationResult(success: false, error: error);
-  }
-}
-
-enum SyncEventType {
-  started,
-  progress,
-  conflict,
-  conflictResolved,
-  completed,
-  failed,
-  cancelled,
-  recovered,
-}
-
-class SyncEvent {
-  final SyncEventType type;
-  final String message;
-  final SyncDataType? dataType;
-  final int? progress;
-  final int? total;
-  final ConflictInfo? conflictInfo;
-  final DateTime timestamp;
-
-  SyncEvent({
-    required this.type,
-    required this.message,
-    this.dataType,
-    this.progress,
-    this.total,
-    this.conflictInfo,
-    DateTime? timestamp,
-  }) : timestamp = timestamp ?? DateTime.now();
-
-  @override
-  String toString() {
-    return 'SyncEvent(${type.name}): $message';
-  }
-}
-
-class ConflictInfo {
-  final SyncDataType dataType;
-  final DateTime localModified;
-  final DateTime remoteModified;
-  final String localPreview;
-  final String remotePreview;
-  final ConflictResolution? autoResolution;
-
-  ConflictInfo({
-    required this.dataType,
-    required this.localModified,
-    required this.remoteModified,
-    required this.localPreview,
-    required this.remotePreview,
-    this.autoResolution,
-  });
-
-  String get description {
-    final localTime = _formatTime(localModified);
-    final remoteTime = _formatTime(remoteModified);
-    return '${dataType.name}: 本地 ($localTime) vs 远程 ($remoteTime)';
-  }
-
-  String _formatTime(DateTime time) {
-    final now = DateTime.now();
-    final diff = now.difference(time);
-    if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inHours < 1) return '${diff.inMinutes}分钟前';
-    if (diff.inDays < 1) return '${diff.inHours}小时前';
-    return '${time.month}-${time.day} ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-  }
-}
-
-class IncrementalSyncRecord {
-  final String key;
-  final dynamic data;
-  final DateTime modified;
-  final SyncOperation operation;
-
-  IncrementalSyncRecord({
-    required this.key,
-    required this.data,
-    required this.modified,
-    required this.operation,
-  });
-}
-
-class SyncHistoryRecord {
-  SyncHistoryRecord({
-    required this.id,
-    required this.startTime,
-    required this.endTime,
-    required this.direction,
-    required this.result,
-    this.uploadedBytes = 0,
-    this.downloadedBytes = 0,
-    this.changedFiles = const [],
-    this.errorMessage,
-  });
-
-  factory SyncHistoryRecord.fromJson(Map<String, dynamic> json) {
-    return SyncHistoryRecord(
-      id: json['id'] as String,
-      startTime: DateTime.parse(json['startTime'] as String),
-      endTime: DateTime.parse(json['endTime'] as String),
-      direction: SyncDirection.values.firstWhere(
-        (e) => e.name == json['direction'],
-        orElse: () => SyncDirection.both,
-      ),
-      result: SyncResult.fromJson(json['result'] as Map<String, dynamic>),
-      uploadedBytes: json['uploadedBytes'] as int? ?? 0,
-      downloadedBytes: json['downloadedBytes'] as int? ?? 0,
-      changedFiles: (json['changedFiles'] as List?)?.cast<String>() ?? [],
-      errorMessage: json['errorMessage'] as String?,
-    );
-  }
-  final String id;
-  final DateTime startTime;
-  final DateTime endTime;
-  final SyncDirection direction;
-  final SyncResult result;
-  final int uploadedBytes;
-  final int downloadedBytes;
-  final List<String> changedFiles;
-  final String? errorMessage;
-
-  int get uploadedCount => result.uploadedCount;
-  int get downloadedCount => result.downloadedCount;
-  Duration get duration => endTime.difference(startTime);
-
-  String get formattedDuration {
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    if (minutes > 0) {
-      return '$minutes 分 $seconds 秒';
-    }
-    return '$seconds 秒';
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'startTime': startTime.toIso8601String(),
-      'endTime': endTime.toIso8601String(),
-      'direction': direction.name,
-      'result': result.toJson(),
-      'uploadedBytes': uploadedBytes,
-      'downloadedBytes': downloadedBytes,
-      'changedFiles': changedFiles,
-      'errorMessage': errorMessage,
-    };
-  }
-}
-
-class IncrementalChange {
-  final SyncDataType dataType;
-  final String key;
-  final dynamic value;
-  final DateTime modified;
-  final SyncOperation operation;
-
-  IncrementalChange({
-    required this.dataType,
-    required this.key,
-    required this.value,
-    required this.modified,
-    required this.operation,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'dataType': dataType.name,
-      'key': key,
-      'value': value,
-      'modified': modified.toIso8601String(),
-      'operation': operation.name,
-    };
-  }
-
-  factory IncrementalChange.fromJson(Map<String, dynamic> json) {
-    return IncrementalChange(
-      dataType: SyncDataType.values.firstWhere(
-        (e) => e.name == json['dataType'],
-      ),
-      key: json['key'] as String,
-      value: json['value'],
-      modified: DateTime.parse(json['modified'] as String),
-      operation: SyncOperation.values.firstWhere(
-        (e) => e.name == json['operation'],
-      ),
-    );
-  }
-}
-
-class BackupInfo {
-  BackupInfo({
-    required this.id,
-    required this.timestamp,
-    required this.filePath,
-    required this.fileSize,
-    required this.includedDataTypes,
-    this.note,
-  });
-  final String id;
-  final DateTime timestamp;
-  final String filePath;
-  final int fileSize;
-  final List<String> includedDataTypes;
-  final String? note;
-
-  String get formattedTime {
-    return '${timestamp.year}-${timestamp.month.toString().padLeft(2, '0')}-${timestamp.day.toString().padLeft(2, '0')} '
-        '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
-  }
-
-  String get formattedSize {
-    if (fileSize < 1024) {
-      return '$fileSize B';
-    } else if (fileSize < 1024 * 1024) {
-      return '${(fileSize / 1024).toStringAsFixed(1)} KB';
-    } else {
-      return '${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB';
-    }
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'timestamp': timestamp.toIso8601String(),
-      'filePath': filePath,
-      'fileSize': fileSize,
-      'includedDataTypes': includedDataTypes,
-      'note': note,
-    };
-  }
-
-  factory BackupInfo.fromJson(Map<String, dynamic> json) {
-    return BackupInfo(
-      id: json['id'] as String,
-      timestamp: DateTime.parse(json['timestamp'] as String),
-      filePath: json['filePath'] as String,
-      fileSize: json['fileSize'] as int,
-      includedDataTypes: (json['includedDataTypes'] as List).cast<String>(),
-      note: json['note'] as String?,
-    );
-  }
-}
-
-class AutoSyncConfig {
-  bool enabled;
-  Duration interval;
-  SyncDirection direction;
-  bool onlyOnWifi;
-  bool requireCharging;
-
-  AutoSyncConfig({
-    this.enabled = false,
-    this.interval = const Duration(minutes: 30),
-    this.direction = SyncDirection.both,
-    this.onlyOnWifi = true,
-    this.requireCharging = false,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'enabled': enabled,
-      'intervalMinutes': interval.inMinutes,
-      'direction': direction.name,
-      'onlyOnWifi': onlyOnWifi,
-      'requireCharging': requireCharging,
-    };
-  }
-
-  factory AutoSyncConfig.fromJson(Map<String, dynamic> json) {
-    return AutoSyncConfig(
-      enabled: json['enabled'] as bool? ?? false,
-      interval: Duration(minutes: json['intervalMinutes'] as int? ?? 30),
-      direction: SyncDirection.values.firstWhere(
-        (e) => e.name == json['direction'],
-        orElse: () => SyncDirection.both,
-      ),
-      onlyOnWifi: json['onlyOnWifi'] as bool? ?? true,
-      requireCharging: json['requireCharging'] as bool? ?? false,
-    );
-  }
-}
-
-class WebDavPreset {
-  final String name;
-  final String baseUrl;
-  final String remotePath;
-  final String helpUrl;
-
-  WebDavPreset({
-    required this.name,
-    required this.baseUrl,
-    required this.remotePath,
-    required this.helpUrl,
-  });
-}
-
-class WebDavNotInitializedException implements Exception {
-  WebDavNotInitializedException();
-
-  @override
-  String toString() => 'WebDAV 客户端未初始化，请先调用 init() 方法';
-}
-
-class WebDavUnauthorizedException implements Exception {
-  final String message;
-
-  WebDavUnauthorizedException([this.message = '认证失败，请检查用户名和密码']);
-
-  @override
-  String toString() => 'WebDAV 认证失败：$message';
-}
-
-class WebDavFileNotFoundException implements Exception {
-  final String path;
-
-  WebDavFileNotFoundException(this.path);
-
-  @override
-  String toString() => 'WebDAV 文件不存在：$path';
-}
-
-class WebDavPermissionDeniedException implements Exception {
-  final String path;
-
-  WebDavPermissionDeniedException(this.path);
-
-  @override
-  String toString() => 'WebDAV 权限不足，无法访问：$path';
-}
-
-class WebDavConfigInvalidException implements Exception {
-  @override
-  String toString() => 'WebDAV 配置无效或未设置';
-}
-
-class WebDavSyncCancelledException implements Exception {
-  @override
-  String toString() => '同步操作已被取消';
-}
-
-class WebDavClientService {
-  webdav.Client? _client;
-  String? _baseUrl;
-  String? _username;
-  bool _isDebug = false;
-
-  Future<void> init({
-    required String baseUrl,
-    required String username,
-    required String password,
-    bool debug = false,
-  }) async {
-    try {
-      _baseUrl = baseUrl;
-      _username = username;
-      _isDebug = debug;
-
-      if (!baseUrl.endsWith('/')) {
-        baseUrl = '$baseUrl/';
-      }
-
-      _client = webdav.newClient(
-        baseUrl,
-        user: username,
-        password: password,
-        debug: debug,
-      );
-
-      await ping();
-
-      if (_isDebug) {
-        debugPrint('WebDAV 客户端初始化成功：$baseUrl');
-      }
-    } catch (e) {
-      debugPrint('WebDAV 客户端初始化失败：$e');
-      rethrow;
-    }
-  }
-
-  Future<bool> ping() async {
-    try {
-      if (_client == null) {
-        throw WebDavNotInitializedException();
-      }
-      await _client!.ping();
-      return true;
-    } catch (e) {
-      if (_isDebug) {
-        debugPrint('WebDAV ping 失败：$e');
-      }
-      return false;
-    }
-  }
-
-  void setHeaders(Map<String, String> headers) {
-    _checkInitialized();
-    _client!.setHeaders(headers);
-  }
-
-  void setConnectTimeout(int milliseconds) {
-    _checkInitialized();
-    _client!.setConnectTimeout(milliseconds);
-  }
-
-  void setSendTimeout(int milliseconds) {
-    _checkInitialized();
-    _client!.setSendTimeout(milliseconds);
-  }
-
-  void setReceiveTimeout(int milliseconds) {
-    _checkInitialized();
-    _client!.setReceiveTimeout(milliseconds);
-  }
-
-  Future<List<dynamic>> readDir(String path) async {
-    try {
-      _checkInitialized();
-      return await _client!.readDir(path);
-    } catch (e) {
-      debugPrint('WebDAV readDir 失败：$e');
-      rethrow;
-    }
-  }
-
-  Future<void> mkdir(String path, {CancelToken? cancelToken}) async {
-    try {
-      _checkInitialized();
-      await _client!.mkdir(path, cancelToken);
-    } catch (e) {
-      debugPrint('WebDAV mkdir 失败：$e');
-      rethrow;
-    }
-  }
-
-  Future<void> mkdirAll(String path, {CancelToken? cancelToken}) async {
-    try {
-      _checkInitialized();
-      await _client!.mkdirAll(path, cancelToken);
-    } catch (e) {
-      debugPrint('WebDAV mkdirAll 失败：$e');
-      rethrow;
-    }
-  }
-
-  Future<void> remove(String path, {CancelToken? cancelToken}) async {
-    try {
-      _checkInitialized();
-      await _client!.remove(path, cancelToken);
-    } catch (e) {
-      debugPrint('WebDAV remove 失败：$e');
-      rethrow;
-    }
-  }
-
-  Future<void> rename(
-    String oldPath,
-    String newPath,
-    bool overwrite, {
-    CancelToken? cancelToken,
-  }) async {
-    try {
-      _checkInitialized();
-      await _client!.rename(oldPath, newPath, overwrite, cancelToken);
-    } catch (e) {
-      debugPrint('WebDAV rename 失败：$e');
-      rethrow;
-    }
-  }
-
-  Future<void> copy(
-    String sourcePath,
-    String destPath,
-    bool overwrite, {
-    CancelToken? cancelToken,
-  }) async {
-    try {
-      _checkInitialized();
-      await _client!.copy(sourcePath, destPath, overwrite, cancelToken);
-    } catch (e) {
-      debugPrint('WebDAV copy 失败：$e');
-      rethrow;
-    }
-  }
-
-  Future<List<int>> read(
-    String path, {
-    void Function(int, int)? onProgress,
-    CancelToken? cancelToken,
-  }) async {
-    try {
-      _checkInitialized();
-      return await _client!.read(
-        path,
-        onProgress: onProgress,
-        cancelToken: cancelToken,
-      );
-    } catch (e) {
-      debugPrint('WebDAV read 失败：$e');
-      rethrow;
-    }
-  }
-
-  Future<void> read2File(
-    String remotePath,
-    String localPath, {
-    void Function(int, int)? onProgress,
-    CancelToken? cancelToken,
-  }) async {
-    try {
-      _checkInitialized();
-      await _client!.read2File(
-        remotePath,
-        localPath,
-        onProgress: onProgress,
-        cancelToken: cancelToken,
-      );
-    } catch (e) {
-      debugPrint('WebDAV read2File 失败：$e');
-      rethrow;
-    }
-  }
-
-  Future<void> writeFromFile(
-    String localPath,
-    String remotePath, {
-    void Function(int, int)? onProgress,
-    CancelToken? cancelToken,
-  }) async {
-    try {
-      _checkInitialized();
-      await _client!.writeFromFile(
-        localPath,
-        remotePath,
-        onProgress: onProgress,
-        cancelToken: cancelToken,
-      );
-    } catch (e) {
-      debugPrint('WebDAV writeFromFile 失败：$e');
-      rethrow;
-    }
-  }
-
-  Future<void> write(
-    String remotePath,
-    Uint8List data, {
-    void Function(int, int)? onProgress,
-    CancelToken? cancelToken,
-  }) async {
-    try {
-      _checkInitialized();
-      await _client!.write(
-        remotePath,
-        data,
-        onProgress: onProgress,
-        cancelToken: cancelToken,
-      );
-    } catch (e) {
-      debugPrint('WebDAV write 失败：$e');
-      rethrow;
-    }
-  }
-
-  bool get isInitialized => _client != null;
-
-  webdav.Client? get client => _client;
-
-  String? get baseUrl => _baseUrl;
-
-  String? get username => _username;
-
-  bool get isDebug => _isDebug;
-
-  void dispose() {
-    _client = null;
-    _baseUrl = null;
-    _username = null;
-    _isDebug = false;
-    if (kDebugMode) {
-      debugPrint('WebDAV 客户端已断开连接');
-    }
-  }
-
-  void _checkInitialized() {
-    if (_client == null) {
-      throw WebDavNotInitializedException();
-    }
-  }
-}
-
-class WebDavConfigService {
-  final SharedPreferences _prefs;
-  final FlutterSecureStorage _secureStorage;
-
-  final isConfigured = signal(false);
-  final autoSyncEnabled = signal(false);
-  final autoSyncInterval = signal(30);
-
-  WebDavConfigService({
-    required SharedPreferences prefs,
-    FlutterSecureStorage? secureStorage,
-  }) : _prefs = prefs,
-       _secureStorage = secureStorage ?? const FlutterSecureStorage() {
-    _loadConfigStatus();
-  }
-
-  static const String _keyBaseUrl = 'webdav.base_url';
-  static const String _keyUsername = 'webdav.username';
-  static const String _keyPassword = 'webdav.password';
-  static const String _keyRemotePath = 'webdav.remote_path';
-  static const String _keyAutoSync = 'webdav.auto_sync';
-  static const String _keySyncInterval = 'webdav.sync_interval';
-  static const String _keyLastSyncTime = 'webdav.last_sync_time';
-
-  void _loadConfigStatus() {
-    final baseUrl = _prefs.getString(_keyBaseUrl);
-    isConfigured.value = baseUrl != null && baseUrl.isNotEmpty;
-    autoSyncEnabled.value = _prefs.getBool(_keyAutoSync) ?? false;
-    autoSyncInterval.value = _prefs.getInt(_keySyncInterval) ?? 30;
-  }
-
-  Future<WebDavConfig?> getConfig() async {
-    final baseUrl = _prefs.getString(_keyBaseUrl);
-    final username = _prefs.getString(_keyUsername);
-    final password = await _secureStorage.read(key: _keyPassword);
-    final remotePath = _prefs.getString(_keyRemotePath);
-
-    if (baseUrl == null ||
-        baseUrl.isEmpty ||
-        username == null ||
-        username.isEmpty ||
-        password == null ||
-        password.isEmpty ||
-        remotePath == null ||
-        remotePath.isEmpty) {
-      return null;
-    }
-
-    return WebDavConfig(
-      baseUrl: baseUrl,
-      username: username,
-      password: password,
-      remotePath: remotePath,
-    );
-  }
-
-  Future<void> saveConfig(WebDavConfig config) async {
-    await _prefs.setString(_keyBaseUrl, config.baseUrl);
-    await _prefs.setString(_keyUsername, config.username);
-    await _prefs.setString(_keyRemotePath, config.remotePath);
-    await _secureStorage.write(key: _keyPassword, value: config.password);
-
-    isConfigured.value = true;
-    debugPrint('WebDAV 配置已保存');
-  }
-
-  Future<void> clearConfig() async {
-    await _prefs.remove(_keyBaseUrl);
-    await _prefs.remove(_keyUsername);
-    await _prefs.remove(_keyRemotePath);
-    await _secureStorage.delete(key: _keyPassword);
-
-    isConfigured.value = false;
-    debugPrint('WebDAV 配置已清除');
-  }
-
-  Future<void> setAutoSync({
-    required bool enabled,
-    int? intervalMinutes,
-  }) async {
-    await _prefs.setBool(_keyAutoSync, enabled);
-    if (intervalMinutes != null) {
-      await _prefs.setInt(_keySyncInterval, intervalMinutes);
-      autoSyncInterval.value = intervalMinutes;
-    }
-    autoSyncEnabled.value = enabled;
-  }
-
-  Future<bool> testCurrentConfig() async {
-    final config = await getConfig();
-    if (config == null) return false;
-
-    final connectionManager = WebdavConnectionManager(configService: this);
-    return await connectionManager.testConnection(config);
-  }
-
-  Future<DateTime?> getLastSyncTime() async {
-    final timestamp = _prefs.getInt(_keyLastSyncTime);
-    if (timestamp == null) return null;
-    return DateTime.fromMillisecondsSinceEpoch(timestamp);
-  }
-
-  Future<void> setLastSyncTime(DateTime time) async {
-    await _prefs.setInt(_keyLastSyncTime, time.millisecondsSinceEpoch);
-  }
-
-  static List<WebDavPreset> getPresets() {
-    return [
-      WebDavPreset(
-        name: '坚果云',
-        baseUrl: 'https://dav.jianguoyun.com/dav',
-        remotePath: '/zephyr_reader',
-        helpUrl: 'https://help.jianguoyun.com',
-      ),
-      WebDavPreset(
-        name: 'Nextcloud',
-        baseUrl: 'https://your-domain.com/remote.php/dav/files',
-        remotePath: '/zephyr_reader',
-        helpUrl: 'https://nextcloud.com',
-      ),
-      WebDavPreset(
-        name: 'ownCloud',
-        baseUrl: 'https://your-domain.com/remote.php/dav/files',
-        remotePath: '/zephyr_reader',
-        helpUrl: 'https://owncloud.com',
-      ),
-      WebDavPreset(
-        name: 'Seafile',
-        baseUrl: 'https://your-domain.com/seafhttp',
-        remotePath: '/zephyr_reader',
-        helpUrl: 'https://www.seafile.com',
-      ),
-      WebDavPreset(
-        name: '其他',
-        baseUrl: '',
-        remotePath: '/zephyr_reader',
-        helpUrl: '',
-      ),
-    ];
-  }
-}
+import 'webdav_backup_manager.dart';
+import 'webdav_conflict_resolver.dart';
+import 'webdav_auto_sync_service.dart';
 
 class WebDavSyncService {
   WebDavConfig? _config;
@@ -978,10 +30,12 @@ class WebDavSyncService {
 
   WebdavConnectionManager get _connectionManager =>
       _connectionManagerParam ??= WebdavConnectionManager(
-        configService:
-            WebDavConfigService(prefs: GetIt.I<SharedPreferences>()),
+        configService: WebDavConfigService(prefs: GetIt.I<SharedPreferences>()),
       );
 
+  late final WebdavConflictResolver _conflictResolver;
+  late final WebdavBackupManager _backupManager;
+  late final WebdavAutoSyncService _autoSyncService;
   WebDavClientService? _client;
   CancelToken? _cancelToken;
 
@@ -1003,14 +57,12 @@ class WebDavSyncService {
 
   final int maxRetries;
   final Duration retryDelay;
-  Timer? _syncTimer;
 
   static const String _dataDirName = 'data';
   static const String _syncSubDirName = 'zephyr_reader';
   static const String _backupDirName = 'backups';
   static const String _historyFile = 'sync_history.json';
   static const String _incrementalFile = 'sync_incremental.json';
-  static const String _autoSyncConfigFile = 'auto_sync_config.json';
   static const int _maxHistoryRecords = 50;
 
   WebDavSyncService({
@@ -1022,8 +74,28 @@ class WebDavSyncService {
     if (config != null) {
       setConfig(config);
     }
+    _conflictResolver = WebdavConflictResolver(
+      getClient: () => _client!,
+      getRemotePath: () => '',
+      emitEvent: _emitEvent,
+      conflicts: conflicts,
+      uploadFile: _uploadFile,
+      downloadFile: _downloadFile,
+      getFileInfo: _getFileInfo,
+      fileExists: _fileExists,
+    );
+    _backupManager = WebdavBackupManager(
+      emitEvent: _emitEvent,
+      backups: backups,
+      getLocalFile: _getLocalFile,
+      backupDirName: _backupDirName,
+    );
+    _autoSyncService = WebdavAutoSyncService(
+      config: autoSyncConfig,
+      onSync: (direction) => syncIncremental(direction: direction),
+      emitEvent: _emitEvent,
+    );
     _loadHistory();
-    _loadAutoSyncConfig();
   }
 
   void setConfig(WebDavConfig config) {
@@ -1083,7 +155,7 @@ class WebDavSyncService {
           throw WebDavSyncCancelledException();
         }
 
-        syncMessage.value = '同步${_getDataTypeName(dataType)}...';
+        syncMessage.value = '同步${dataType.displayName}...';
 
         try {
           final opResult = await _syncDataTypeWithConflictHandling(
@@ -1101,7 +173,7 @@ class WebDavSyncService {
                 SyncEvent(
                   type: SyncEventType.progress,
                   message:
-                      '同步${_getDataTypeName(dataType)}: ${progress.toStringAsFixed(0)}%',
+                      '同步${dataType.displayName}: ${progress.toStringAsFixed(0)}%',
                   dataType: dataType,
                   progress: progress.toInt(),
                   total: 100,
@@ -1125,9 +197,7 @@ class WebDavSyncService {
         } catch (e) {
           if (retryCount < maxRetries) {
             retryCount++;
-            Logging.debug(
-              '同步${_getDataTypeName(dataType)}失败，第 $retryCount 次重试...',
-            );
+            Logging.debug('同步${dataType.displayName}失败，第 $retryCount 次重试...');
             _emitEvent(
               SyncEvent(
                 type: SyncEventType.recovered,
@@ -1161,7 +231,7 @@ class WebDavSyncService {
             }
           } else {
             result.conflictCount++;
-            Logging.error('同步${_getDataTypeName(dataType)}失败，已达最大重试次数');
+            Logging.error('同步${dataType.displayName}失败，已达最大重试次数');
           }
         }
 
@@ -1211,7 +281,11 @@ class WebDavSyncService {
       final remoteExists = await _fileExists(remotePath);
 
       if (localExists && remoteExists && direction == SyncDirection.both) {
-        final conflictInfo = await _checkConflict(localFile, remotePath, type);
+        final conflictInfo = await _conflictResolver.checkConflict(
+          localFile,
+          remotePath,
+          type,
+        );
 
         if (conflictInfo != null) {
           if (autoResolveConflicts && conflictInfo.autoResolution != null) {
@@ -1224,7 +298,7 @@ class WebDavSyncService {
               ),
             );
 
-            return await _resolveConflict(
+            return await _conflictResolver.resolveConflict(
               type,
               conflictInfo.autoResolution!,
               localFile,
@@ -1259,127 +333,6 @@ class WebDavSyncService {
     } catch (e) {
       debugPrint('同步数据类型 ${type.name} 异常：$e');
       return SyncOperationResult.failure(e.toString());
-    }
-  }
-
-  Future<ConflictInfo?> _checkConflict(
-    File localFile,
-    String remotePath,
-    SyncDataType type,
-  ) async {
-    try {
-      final localStat = await localFile.stat();
-      final localModified = localStat.modified;
-
-      final remoteInfo = await _getFileInfo(remotePath);
-      if (remoteInfo == null) return null;
-
-      final remoteModified = remoteInfo.modified;
-
-      if ((localModified.difference(remoteModified)).inSeconds.abs() <= 1) {
-        return null;
-      }
-
-      final localContent = await localFile.readAsString();
-      final remoteContent = await _readRemoteFile(remotePath);
-
-      if (localContent == remoteContent) {
-        return null;
-      }
-
-      return ConflictInfo(
-        dataType: type,
-        localModified: localModified,
-        remoteModified: remoteModified,
-        localPreview: _generatePreview(localContent),
-        remotePreview: _generatePreview(remoteContent),
-        autoResolution: _determineAutoResolution(
-          localModified,
-          remoteModified,
-          type,
-        ),
-      );
-    } catch (e) {
-      Logging.debug('检查冲突失败：$e');
-      return null;
-    }
-  }
-
-  String _generatePreview(String content) {
-    try {
-      final json = jsonDecode(content);
-      if (json is Map) {
-        final keys = json.keys.take(3).join(', ');
-        return 'JSON 对象：{$keys, ...}';
-      } else if (json is List) {
-        return 'JSON 数组：${json.length} 项';
-      }
-      return json.toString();
-    } catch (e) {
-      return content.length > 50 ? '${content.substring(0, 50)}...' : content;
-    }
-  }
-
-  ConflictResolution? _determineAutoResolution(
-    DateTime localModified,
-    DateTime remoteModified,
-    SyncDataType type,
-  ) {
-    if (type == SyncDataType.settings) {
-      return ConflictResolution.useLocal;
-    }
-
-    if (type == SyncDataType.readingProgress ||
-        type == SyncDataType.bookmarks) {
-      return localModified.isAfter(remoteModified)
-          ? ConflictResolution.useLocal
-          : ConflictResolution.useRemote;
-    }
-
-    if (type == SyncDataType.bookshelf) {
-      return localModified.isAfter(remoteModified)
-          ? ConflictResolution.useLocal
-          : ConflictResolution.useRemote;
-    }
-
-    return null;
-  }
-
-  Future<SyncOperationResult> _resolveConflict(
-    SyncDataType type,
-    ConflictResolution resolution,
-    File localFile,
-    String remotePath, {
-    void Function(double progress)? onProgress,
-  }) async {
-    try {
-      switch (resolution) {
-        case ConflictResolution.useLocal:
-          if (await localFile.exists()) {
-            await _uploadFile(
-              localFile: localFile,
-              remotePath: remotePath,
-              onProgress: onProgress,
-            );
-          }
-          break;
-
-        case ConflictResolution.useRemote:
-          await _downloadFile(
-            remotePath: remotePath,
-            localFile: localFile,
-            onProgress: onProgress,
-          );
-          break;
-
-        case ConflictResolution.merge:
-          await _mergeData(type, localFile, remotePath);
-          break;
-      }
-
-      return SyncOperationResult.success();
-    } catch (e) {
-      return SyncOperationResult.failure('解决冲突失败：$e');
     }
   }
 
@@ -1429,126 +382,6 @@ class WebDavSyncService {
     }
   }
 
-  Future<void> _mergeData(
-    SyncDataType type,
-    File localFile,
-    String remotePath,
-  ) async {
-    try {
-      final localContent = await localFile.readAsString();
-      final remoteContent = await _readRemoteFile(remotePath);
-
-      dynamic localData;
-      dynamic remoteData;
-
-      try {
-        localData = jsonDecode(localContent);
-      } catch (e) {
-        localData = <String, dynamic>{};
-      }
-
-      try {
-        remoteData = jsonDecode(remoteContent);
-      } catch (e) {
-        remoteData = <String, dynamic>{};
-      }
-
-      dynamic mergedData;
-
-      if (localData is Map && remoteData is Map) {
-        mergedData = _deepMergeMaps(
-          Map<String, dynamic>.from(localData),
-          Map<String, dynamic>.from(remoteData),
-        );
-      } else if (localData is List && remoteData is List) {
-        mergedData = _mergeLists(localData, remoteData);
-      } else {
-        final localStat = await localFile.stat();
-        final remoteInfo = await _getFileInfo(remotePath);
-        mergedData = localStat.modified.isAfter(remoteInfo!.modified)
-            ? localData
-            : remoteData;
-      }
-
-      await localFile.writeAsString(jsonEncode(mergedData), flush: true);
-      await _uploadFile(localFile: localFile, remotePath: remotePath);
-    } catch (e) {
-      Logging.error('合并数据失败：$e');
-      rethrow;
-    }
-  }
-
-  Map<String, dynamic> _deepMergeMaps(
-    Map<String, dynamic> local,
-    Map<String, dynamic> remote,
-  ) {
-    final result = Map<String, dynamic>.from(local);
-
-    for (final entry in remote.entries) {
-      if (result.containsKey(entry.key)) {
-        if (result[entry.key] is Map && entry.value is Map) {
-          result[entry.key] = _deepMergeMaps(
-            Map<String, dynamic>.from(result[entry.key] as Map),
-            Map<String, dynamic>.from(entry.value as Map),
-          );
-        } else if (result[entry.key] is List && entry.value is List) {
-          result[entry.key] = _mergeLists(
-            result[entry.key] as List,
-            entry.value as List,
-          );
-        } else {
-          result[entry.key] = entry.value;
-        }
-      } else {
-        result[entry.key] = entry.value;
-      }
-    }
-
-    return result;
-  }
-
-  List<dynamic> _mergeLists(List<dynamic> local, List<dynamic> remote) {
-    final result = List<dynamic>.from(local);
-
-    for (final item in remote) {
-      if (!result.any((r) => _deepEquals(r, item))) {
-        result.add(item);
-      }
-    }
-
-    return result;
-  }
-
-  bool _deepEquals(dynamic a, dynamic b) {
-    if (a == b) return true;
-    if (a is Map && b is Map) {
-      if (a.length != b.length) return false;
-      for (final key in a.keys) {
-        if (!b.containsKey(key) || !_deepEquals(a[key], b[key])) {
-          return false;
-        }
-      }
-      return true;
-    }
-    if (a is List && b is List) {
-      if (a.length != b.length) return false;
-      for (int i = 0; i < a.length; i++) {
-        if (!_deepEquals(a[i], b[i])) return false;
-      }
-      return true;
-    }
-    return false;
-  }
-
-  Future<String> _readRemoteFile(String remotePath) async {
-    try {
-      final bytes = await _client!.read(remotePath);
-      return String.fromCharCodes(bytes);
-    } catch (e) {
-      throw Exception('读取远程文件失败：$e');
-    }
-  }
-
   Future<SyncResult> syncIncremental({
     SyncDirection direction = SyncDirection.both,
     void Function(double progress)? onProgress,
@@ -1589,7 +422,7 @@ class WebDavSyncService {
           throw WebDavSyncCancelledException();
         }
 
-        syncMessage.value = '同步${_getDataTypeName(dataType)}...';
+        syncMessage.value = '同步${dataType.displayName}...';
 
         final localFile = await _getLocalFile(dataType);
         final remotePath = _getRemotePath(dataType);
@@ -1793,99 +626,15 @@ class WebDavSyncService {
     List<SyncDataType>? dataTypes,
     String? note,
   }) async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final backupDir = Directory(p.join(appDir.path, _backupDirName));
-
-    if (!await backupDir.exists()) {
-      await backupDir.create(recursive: true);
-    }
-
-    final timestamp = DateTime.now();
-    final backupId = timestamp.millisecondsSinceEpoch.toString();
-    final backupFileName =
-        'backup_${timestamp.toIso8601String().replaceAll(':', '-')}.zip';
-    final backupFilePath = p.join(backupDir.path, backupFileName);
-
-    final includedTypes = dataTypes ?? SyncDataType.values;
-    final backupData = <String, dynamic>{};
-
-    for (final dataType in includedTypes) {
-      final localFile = await _getLocalFile(dataType);
-      if (await localFile.exists()) {
-        final content = await localFile.readAsString();
-        backupData[dataType.filename] = content;
-      }
-    }
-
-    final backupFile = File(backupFilePath);
-    final backupContent = jsonEncode(backupData);
-    await backupFile.writeAsString(backupContent, flush: true);
-
-    final backupInfo = BackupInfo(
-      id: backupId,
-      timestamp: timestamp,
-      filePath: backupFilePath,
-      fileSize: await backupFile.length(),
-      includedDataTypes: includedTypes.map((e) => e.name).toList(),
-      note: note,
-    );
-
-    backups.value = [...backups.value, backupInfo];
-    await _saveBackups();
-
-    _emitEvent(SyncEvent(type: SyncEventType.completed, message: '备份创建成功'));
-
-    return backupInfo;
+    return _backupManager.createBackup(dataTypes: dataTypes, note: note);
   }
 
   Future<bool> restoreBackup(BackupInfo backupInfo) async {
-    try {
-      final backupFile = File(backupInfo.filePath);
-      if (!await backupFile.exists()) {
-        throw Exception('备份文件不存在');
-      }
-
-      final content = await backupFile.readAsString();
-      final backupData = jsonDecode(content) as Map<String, dynamic>;
-
-      for (final entry in backupData.entries) {
-        final dataType = SyncDataType.values.firstWhere(
-          (e) => e.filename == entry.key,
-          orElse: () => SyncDataType.settings,
-        );
-
-        final localFile = await _getLocalFile(dataType);
-        await localFile.parent.create(recursive: true);
-        await localFile.writeAsString(entry.value as String, flush: true);
-      }
-
-      _emitEvent(SyncEvent(type: SyncEventType.completed, message: '备份恢复成功'));
-
-      return true;
-    } catch (e) {
-      debugPrint('恢复备份异常：$e');
-      _emitEvent(SyncEvent(type: SyncEventType.failed, message: '备份恢复失败：$e'));
-      return false;
-    }
+    return _backupManager.restoreBackup(backupInfo);
   }
 
   Future<bool> deleteBackup(BackupInfo backupInfo) async {
-    try {
-      final backupFile = File(backupInfo.filePath);
-      if (await backupFile.exists()) {
-        await backupFile.delete();
-      }
-
-      backups.value = backups.value
-          .where((b) => b.id != backupInfo.id)
-          .toList();
-      await _saveBackups();
-
-      return true;
-    } catch (e) {
-      debugPrint('删除备份异常：$e');
-      return false;
-    }
+    return _backupManager.deleteBackup(backupInfo);
   }
 
   List<BackupInfo> getBackups() {
@@ -1908,70 +657,15 @@ class WebDavSyncService {
   }
 
   void startAutoSync() {
-    _stopAutoSync();
-
-    final config = autoSyncConfig.value;
-    if (!config.enabled) {
-      return;
-    }
-
-    _syncTimer = Timer.periodic(config.interval, (_) async {
-      await _performAutoSync();
-    });
-
-    _emitEvent(
-      SyncEvent(
-        type: SyncEventType.started,
-        message: '定时同步已启动，间隔 ${config.interval.inMinutes} 分钟',
-      ),
-    );
+    _autoSyncService.start();
   }
 
   void stopAutoSync() {
-    _stopAutoSync();
-
-    _emitEvent(SyncEvent(type: SyncEventType.cancelled, message: '定时同步已停止'));
-  }
-
-  void _stopAutoSync() {
-    _syncTimer?.cancel();
-    _syncTimer = null;
-  }
-
-  Future<void> _performAutoSync() async {
-    final config = autoSyncConfig.value;
-    if (!config.enabled || _config == null) {
-      return;
-    }
-
-    if (config.onlyOnWifi) {
-      final isWifi = await NetworkStateService().isOnWifi();
-      if (!isWifi) {
-        debugPrint('定时同步跳过：非 WiFi 网络');
-        return;
-      }
-    }
-
-    if (config.requireCharging) {
-      final isCharging = await BatteryStateService().isCharging();
-      if (!isCharging) {
-        debugPrint('定时同步跳过：设备未充电');
-        return;
-      }
-    }
-
-    await syncIncremental(direction: config.direction);
+    _autoSyncService.stop();
   }
 
   Future<void> setAutoSyncConfig(AutoSyncConfig config) async {
-    autoSyncConfig.value = config;
-    await _saveAutoSyncConfig();
-
-    if (config.enabled) {
-      startAutoSync();
-    } else {
-      stopAutoSync();
-    }
+    await _autoSyncService.updateConfig(config);
   }
 
   Future<bool> resolveConflict({
@@ -1989,7 +683,7 @@ class WebDavSyncService {
         conflictInfo.dataType.filename,
       );
 
-      final result = await _resolveConflict(
+      final result = await _conflictResolver.resolveConflict(
         conflictInfo.dataType,
         resolution,
         localFile,
@@ -2073,22 +767,10 @@ class WebDavSyncService {
   void dispose() {
     cancelSync();
     stopAutoSync();
+    _autoSyncService.dispose();
     _eventController.close();
     _connectionManager.disconnect();
     _client = null;
-  }
-
-  String _getDataTypeName(SyncDataType type) {
-    switch (type) {
-      case SyncDataType.readingProgress:
-        return '阅读进度';
-      case SyncDataType.bookmarks:
-        return '书签';
-      case SyncDataType.bookshelf:
-        return '书架';
-      case SyncDataType.settings:
-        return '设置';
-    }
   }
 
   Future<bool> _ensureRemoteDirectory() async {
@@ -2280,49 +962,6 @@ class WebDavSyncService {
     }
   }
 
-  Future<void> _loadAutoSyncConfig() async {
-    try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final configFile = File(p.join(appDir.path, _autoSyncConfigFile));
-
-      if (await configFile.exists()) {
-        final content = await configFile.readAsString();
-        final json = jsonDecode(content) as Map<String, dynamic>;
-        autoSyncConfig.value = AutoSyncConfig.fromJson(json);
-      }
-    } catch (e) {
-      debugPrint('加载自动同步配置失败：$e');
-    }
-  }
-
-  Future<void> _saveAutoSyncConfig() async {
-    try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final configFile = File(p.join(appDir.path, _autoSyncConfigFile));
-
-      await configFile.writeAsString(
-        jsonEncode(autoSyncConfig.value.toJson()),
-        flush: true,
-      );
-    } catch (e) {
-      debugPrint('保存自动同步配置失败：$e');
-    }
-  }
-
-  Future<void> _saveBackups() async {
-    try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final backupListFile = File(
-        p.join(appDir.path, _backupDirName, 'backup_list.json'),
-      );
-
-      final jsonList = backups.value.map((info) => info.toJson()).toList();
-      await backupListFile.writeAsString(jsonEncode(jsonList), flush: true);
-    } catch (e) {
-      debugPrint('保存备份列表失败：$e');
-    }
-  }
-
   Future<File> _getLocalFile(SyncDataType type) async {
     final appDir = await getApplicationDocumentsDirectory();
     return File(p.join(appDir.path, _dataDirName, type.filename));
@@ -2340,17 +979,4 @@ class WebDavSyncService {
       return [];
     }
   }
-}
-
-class EnhancedWebDavSyncService extends WebDavSyncService {
-  EnhancedWebDavSyncService({
-    super.config,
-    super.connectionManager,
-    super.maxRetries,
-    super.retryDelay,
-  });
-}
-
-class AdvancedWebDavSyncService extends WebDavSyncService {
-  AdvancedWebDavSyncService({super.config, super.connectionManager});
 }

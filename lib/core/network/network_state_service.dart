@@ -3,6 +3,7 @@ library;
 import 'dart:io';
 
 import 'package:system_state/system_state.dart';
+import 'package:zephyr_reader/core/utils/platform_guard.dart';
 
 class NetworkStateService {
   static final NetworkStateService _instance = NetworkStateService._internal();
@@ -11,28 +12,19 @@ class NetworkStateService {
 
   NetworkStateService._internal();
 
-  Future<T> _guardAndroid<T>(Future<T> Function() fn, T defaultValue) async {
-    if (!Platform.isAndroid) return defaultValue;
-    try {
-      return await fn();
-    } catch (_) {
-      return defaultValue;
-    }
-  }
-
-  Future<bool> isOnWifi() async => _guardAndroid(
+  Future<bool> isOnWifi() async => guardAndroid(
     () async => (await SystemState.wifi.getWifi()).isConnected,
     false,
   );
 
-  Future<bool> isConnected() async => _guardAndroid(() async {
+  Future<bool> isConnected() async => guardAndroid(() async {
     final wifiState = await SystemState.wifi.getWifi();
     if (wifiState.isConnected) return true;
     final mobileDataState = await SystemState.mobileData.getMobileDataState();
     return mobileDataState.isMobileDataEnabled;
   }, false);
 
-  Future<WifiState> getWifiState() async => _guardAndroid(
+  Future<WifiState> getWifiState() async => guardAndroid(
     () async => SystemState.wifi.getWifi(),
     WifiState.fromMap({
       'isWifiEnabled': false,

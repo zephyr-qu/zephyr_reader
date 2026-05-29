@@ -2,31 +2,30 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
+import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_navigation_tile.dart';
+import 'package:zephyr_reader/core/utils/date_formatters.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/features/sync/application/storage_sync_view_model.dart';
 
-class StorageSyncPage extends StatefulWidget {
+class StorageSyncPage extends HookWidget {
   const StorageSyncPage({super.key});
 
   @override
-  State<StorageSyncPage> createState() => _StorageSyncPageState();
-}
-
-class _StorageSyncPageState extends State<StorageSyncPage> {
-  final _vm = StorageSyncViewModel();
-
-  @override
-  void initState() {
-    super.initState();
-    _vm.initialize();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final vm = useMemoized(() => StorageSyncViewModel());
+
+    useEffect(() {
+      vm.initialize();
+      return null;
+    }, []);
+
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -40,36 +39,31 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
             letterSpacing: -0.5,
           ),
         ),
-        centerTitle: false,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
             icon: const Icon(PhosphorIconsRegular.arrowsClockwise, size: 20),
-            onPressed: () => _vm.refresh(),
+            onPressed: () => vm.refresh(),
             tooltip: '刷新',
           ),
         ],
       ),
-      body: Watch.builder(
+      body: SignalBuilder(
         builder: (context) {
-          if (_vm.loading.value) {
+          if (vm.loading.value) {
             return const Center(child: CircularProgressIndicator());
           }
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
             children: [
-              _buildStatusHeader(cs),
+              _buildStatusHeader(cs, vm, context),
               const SizedBox(height: 20),
-              _buildStorageCard(cs),
+              _buildStorageCard(cs, vm),
               const SizedBox(height: 24),
-              _buildSyncConfigSection(cs),
+              _buildSyncConfigSection(cs, vm, context),
               const SizedBox(height: 24),
-              _buildDataManagementSection(cs),
+              _buildDataManagementSection(cs, vm, context),
               const SizedBox(height: 24),
-              _buildDangerZone(cs),
+              _buildDangerZone(cs, vm, context),
             ],
           );
         },
@@ -79,12 +73,16 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
 
   // ==================== Status Header ====================
 
-  Widget _buildStatusHeader(ColorScheme cs) {
-    return Watch.builder(
+  Widget _buildStatusHeader(
+    ColorScheme cs,
+    StorageSyncViewModel vm,
+    BuildContext context,
+  ) {
+    return SignalBuilder(
       builder: (context) {
-        final syncing = _vm.isSyncing.value;
-        final configured = _vm.isConfigured.value;
-        final lastTime = _vm.lastSyncTime.value;
+        final syncing = vm.isSyncing.value;
+        final configured = vm.isConfigured.value;
+        final lastTime = vm.lastSyncTime.value;
 
         String statusText;
         if (syncing) {
@@ -144,7 +142,7 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
                         ),
                         if (lastTime != null)
                           Text(
-                            '上次同步：${_formatDateTime(lastTime)}',
+                            '上次同步：${formatRelativeTime(lastTime)}',
                             style: TextStyle(
                               fontSize: 11,
                               color: Colors.white.withValues(alpha: 0.7),
@@ -155,7 +153,7 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
                   ),
                   GestureDetector(
                     onTap: configured
-                        ? () => _triggerSync()
+                        ? () => _triggerSync(vm, context)
                         : () => context.push(RoutePaths.sync),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -195,14 +193,14 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
 
   // ==================== Storage Card ====================
 
-  Widget _buildStorageCard(ColorScheme cs) {
-    return Watch.builder(
+  Widget _buildStorageCard(ColorScheme cs, StorageSyncViewModel vm) {
+    return SignalBuilder(
       builder: (context) {
-        final total = _vm.totalUsed.value;
-        final cache = _vm.cacheSize.value;
-        final books = _vm.booksSize.value;
-        final db = _vm.dbSize.value;
-        final available = _vm.totalAvailable.value;
+        final total = vm.totalUsed.value;
+        final cache = vm.cacheSize.value;
+        final books = vm.booksSize.value;
+        final db = vm.dbSize.value;
+        final available = vm.totalAvailable.value;
 
         final booksPct = total > 0 ? books / total : 0.0;
         final cachePct = total > 0 ? cache / total : 0.0;
@@ -233,7 +231,7 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
                     ),
                   ),
                   Text(
-                    '${_vm.formatBytes(total)} / ${available > 0 ? _vm.formatBytes(available) : '—'}',
+                    '${vm.formatBytes(total)} / ${available > 0 ? vm.formatBytes(available) : '—'}',
                     style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
                   ),
                 ],
@@ -270,19 +268,19 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
                   _legendDot(
                     const Color(0xFF42A5F5),
                     '书籍',
-                    _vm.formatBytes(books),
+                    vm.formatBytes(books),
                   ),
                   const SizedBox(width: 16),
                   _legendDot(
                     const Color(0xFFFFA726),
                     '数据库',
-                    _vm.formatBytes(db),
+                    vm.formatBytes(db),
                   ),
                   const SizedBox(width: 16),
                   _legendDot(
                     const Color(0xFFBDBDBD),
                     '缓存',
-                    _vm.formatBytes(cache),
+                    vm.formatBytes(cache),
                   ),
                 ],
               ),
@@ -317,63 +315,67 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
 
   // ==================== Sync Config Section ====================
 
-  Widget _buildSyncConfigSection(ColorScheme cs) {
+  Widget _buildSyncConfigSection(
+    ColorScheme cs,
+    StorageSyncViewModel vm,
+    BuildContext context,
+  ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionLabel('同步配置', cs),
-            _settingsCard([
-              _listItem(
-                cs,
-                icon: const Icon(
-                  PhosphorIconsRegular.cloud,
-                  size: 16,
-                  color: Color(0xFF5C6BC0),
+            SectionLabel(label: '同步配置', colorScheme: cs),
+            SettingsCard(
+              colorScheme: cs,
+              showDividers: true,
+              children: [
+                SettingsNavigationTile(
+                  iconWidget: const Icon(
+                    PhosphorIconsRegular.cloud,
+                    size: 16,
+                    color: Color(0xFF5C6BC0),
+                  ),
+                  iconBackground: const Color(0xFFE8EAF6),
+                  title: 'WebDAV 服务器',
+                  subtitle: vm.serverUrl.value.isNotEmpty
+                      ? vm.serverUrl.value
+                      : '未配置',
+                  onTap: () => context.push(RoutePaths.sync),
                 ),
-                iconBg: const Color(0xFFE8EAF6),
-                title: 'WebDAV 服务器',
-                subtitle: _vm.serverUrl.value.isNotEmpty
-                    ? _vm.serverUrl.value
-                    : '未配置',
-                onTap: () => context.push(RoutePaths.sync),
-              ),
-              _listItem(
-                cs,
-                icon: const Icon(
-                  PhosphorIconsRegular.clockClockwise,
-                  size: 16,
-                  color: Color(0xFF00897B),
+                SettingsNavigationTile(
+                  iconWidget: const Icon(
+                    PhosphorIconsRegular.clockClockwise,
+                    size: 16,
+                    color: Color(0xFF00897B),
+                  ),
+                  iconBackground: const Color(0xFFE0F2F1),
+                  title: '自动同步策略',
+                  subtitle: '启动时 + 每日首次打开',
+                  onTap: () => _showAutoSyncSheet(cs, context),
                 ),
-                iconBg: const Color(0xFFE0F2F1),
-                title: '自动同步策略',
-                subtitle: '启动时 + 每日首次打开',
-                onTap: () => _showAutoSyncSheet(cs),
-              ),
-              _listItem(
-                cs,
-                icon: const Icon(
-                  PhosphorIconsRegular.warningCircle,
-                  size: 16,
-                  color: Color(0xFFEF6C00),
+                SettingsNavigationTile(
+                  iconWidget: const Icon(
+                    PhosphorIconsRegular.warningCircle,
+                    size: 16,
+                    color: Color(0xFFEF6C00),
+                  ),
+                  iconBackground: const Color(0xFFFFF3E0),
+                  title: '冲突解决偏好',
+                  subtitle: '始终询问',
+                  onTap: () => context.push(RoutePaths.syncHistory),
                 ),
-                iconBg: const Color(0xFFFFF3E0),
-                title: '冲突解决偏好',
-                subtitle: '始终询问',
-                onTap: () => context.push(RoutePaths.syncHistory),
-              ),
-              _listItem(
-                cs,
-                icon: const Icon(
-                  PhosphorIconsRegular.listBullets,
-                  size: 16,
-                  color: Color(0xFF66BB6A),
+                SettingsNavigationTile(
+                  iconWidget: const Icon(
+                    PhosphorIconsRegular.listBullets,
+                    size: 16,
+                    color: Color(0xFF66BB6A),
+                  ),
+                  iconBackground: const Color(0xFFE8F5E9),
+                  title: '同步历史记录',
+                  subtitle: '查看最近同步详情',
+                  onTap: () => context.push(RoutePaths.syncHistory),
                 ),
-                iconBg: const Color(0xFFE8F5E9),
-                title: '同步历史记录',
-                subtitle: '查看最近同步详情',
-                onTap: () => context.push(RoutePaths.syncHistory),
-              ),
-            ]),
+              ],
+            ),
           ],
         )
         .animate()
@@ -381,96 +383,46 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
         .slideY(begin: 0.03, end: 0);
   }
 
-  Widget _listItem(
-    ColorScheme cs, {
-    required Widget icon,
-    required Color iconBg,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: icon,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: cs.onSurface,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              PhosphorIconsRegular.caretRight,
-              size: 14,
-              color: cs.onSurface.withValues(alpha: 0.3),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   // ==================== Data Management Section ====================
 
-  Widget _buildDataManagementSection(ColorScheme cs) {
+  Widget _buildDataManagementSection(
+    ColorScheme cs,
+    StorageSyncViewModel vm,
+    BuildContext context,
+  ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionLabel('数据管理', cs),
-            _settingsCard([
-              _listItem(
-                cs,
-                icon: const Icon(
-                  PhosphorIconsRegular.upload,
-                  size: 16,
-                  color: Color(0xFF42A5F5),
+            SectionLabel(label: '数据管理', colorScheme: cs),
+            SettingsCard(
+              colorScheme: cs,
+              showDividers: true,
+              children: [
+                SettingsNavigationTile(
+                  iconWidget: const Icon(
+                    PhosphorIconsRegular.upload,
+                    size: 16,
+                    color: Color(0xFF42A5F5),
+                  ),
+                  iconBackground: const Color(0xFFE3F2FD),
+                  title: '手动备份到 WebDAV',
+                  subtitle: '立即上传全部数据快照',
+                  onTap: () => context.push(RoutePaths.backupRestore),
                 ),
-                iconBg: const Color(0xFFE3F2FD),
-                title: '手动备份到 WebDAV',
-                subtitle: '立即上传全部数据快照',
-                onTap: () => context.push(RoutePaths.backupRestore),
-              ),
-              _listItem(
-                cs,
-                icon: const Icon(
-                  PhosphorIconsRegular.download,
-                  size: 16,
-                  color: Color(0xFFAB47BC),
+                SettingsNavigationTile(
+                  iconWidget: const Icon(
+                    PhosphorIconsRegular.download,
+                    size: 16,
+                    color: Color(0xFFAB47BC),
+                  ),
+                  iconBackground: const Color(0xFFF3E5F5),
+                  title: '从 WebDAV 恢复',
+                  subtitle: '覆盖本地数据（需谨慎）',
+                  onTap: () => context.push(RoutePaths.backupRestore),
                 ),
-                iconBg: const Color(0xFFF3E5F5),
-                title: '从 WebDAV 恢复',
-                subtitle: '覆盖本地数据（需谨慎）',
-                onTap: () => context.push(RoutePaths.backupRestore),
-              ),
-              _buildClearCacheItem(cs),
-            ]),
+                _buildClearCacheItem(cs, vm),
+              ],
+            ),
           ],
         )
         .animate()
@@ -478,11 +430,11 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
         .slideY(begin: 0.03, end: 0);
   }
 
-  Widget _buildClearCacheItem(ColorScheme cs) {
-    return Watch.builder(
+  Widget _buildClearCacheItem(ColorScheme cs, StorageSyncViewModel vm) {
+    return SignalBuilder(
       builder: (context) {
         return InkWell(
-          onTap: () => _confirmClearCache(cs),
+          onTap: () => _confirmClearCache(cs, vm, context),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
@@ -514,7 +466,7 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
                         ),
                       ),
                       Text(
-                        '释放 ${_vm.cacheSize.value > 0 ? _vm.formatBytes(_vm.cacheSize.value) : '0 B'} · 不影响书籍与笔记',
+                        '释放 ${vm.cacheSize.value > 0 ? vm.formatBytes(vm.cacheSize.value) : '0 B'} · 不影响书籍与笔记',
                         style: TextStyle(
                           fontSize: 11,
                           color: cs.onSurfaceVariant,
@@ -538,7 +490,11 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
 
   // ==================== Danger Zone ====================
 
-  Widget _buildDangerZone(ColorScheme cs) {
+  Widget _buildDangerZone(
+    ColorScheme cs,
+    StorageSyncViewModel vm,
+    BuildContext context,
+  ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -564,7 +520,7 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
                 ),
               ),
               child: InkWell(
-                onTap: () => _confirmReset(cs),
+                onTap: () => _confirmReset(cs, vm, context),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -627,14 +583,18 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
 
   // ==================== Dialogs ====================
 
-  void _confirmClearCache(ColorScheme cs) {
+  void _confirmClearCache(
+    ColorScheme cs,
+    StorageSyncViewModel vm,
+    BuildContext context,
+  ) {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('清理缓存'),
         content: Text(
-          '将释放 ${_vm.formatBytes(_vm.cacheSize.value)} 空间。'
+          '将释放 ${vm.formatBytes(vm.cacheSize.value)} 空间。'
           '不会影响您的书籍、笔记和生词数据。',
         ),
         actions: [
@@ -645,7 +605,7 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
-              _vm.clearCache();
+              vm.clearCache();
             },
             child: const Text('清理'),
           ),
@@ -654,7 +614,11 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
     );
   }
 
-  void _confirmReset(ColorScheme cs) {
+  void _confirmReset(
+    ColorScheme cs,
+    StorageSyncViewModel vm,
+    BuildContext context,
+  ) {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -676,7 +640,7 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
             style: FilledButton.styleFrom(backgroundColor: cs.error),
             onPressed: () {
               Navigator.pop(ctx);
-              _showFinalConfirm(cs);
+              _showFinalConfirm(cs, context);
             },
             child: const Text('继续'),
           ),
@@ -685,7 +649,7 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
     );
   }
 
-  void _showFinalConfirm(ColorScheme cs) {
+  void _showFinalConfirm(ColorScheme cs, BuildContext context) {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -709,7 +673,7 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
     );
   }
 
-  void _showAutoSyncSheet(ColorScheme cs) {
+  void _showAutoSyncSheet(ColorScheme cs, BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -727,11 +691,11 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 16),
-              _syncOption(cs, '启动时同步', '应用启动时自动执行一次完整同步'),
+              _syncOption(cs, '启动时同步', ctx, '应用启动时自动执行一次完整同步'),
               const SizedBox(height: 8),
-              _syncOption(cs, '每日首次打开', '每天首次打开应用时自动同步'),
+              _syncOption(cs, '每日首次打开', ctx, '每天首次打开应用时自动同步'),
               const SizedBox(height: 8),
-              _syncOption(cs, '仅手动同步', '不自动同步，仅通过按钮触发'),
+              _syncOption(cs, '仅手动同步', ctx, '不自动同步，仅通过按钮触发'),
             ],
           ),
         ),
@@ -739,7 +703,12 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
     );
   }
 
-  Widget _syncOption(ColorScheme cs, String title, String desc) {
+  Widget _syncOption(
+    ColorScheme cs,
+    String title,
+    BuildContext context,
+    String desc,
+  ) {
     return InkWell(
       onTap: () => Navigator.pop(context),
       borderRadius: BorderRadius.circular(12),
@@ -793,9 +762,12 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
 
   // ==================== Sync Action ====================
 
-  Future<void> _triggerSync() async {
-    final result = await _vm.triggerSync();
-    if (!mounted) return;
+  Future<void> _triggerSync(
+    StorageSyncViewModel vm,
+    BuildContext context,
+  ) async {
+    final result = await vm.triggerSync();
+    if (!context.mounted) return;
     if (result == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -817,69 +789,5 @@ class _StorageSyncPageState extends State<StorageSyncPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
-  }
-
-  // ==================== Shared Widgets ====================
-
-  Widget _sectionLabel(String label, ColorScheme cs) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 10),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-          letterSpacing: 0.4,
-        ),
-      ),
-    );
-  }
-
-  Widget _settingsCard(List<Widget> children) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: cs.outlineVariant.withValues(alpha: 0.2),
-          width: 0.5,
-        ),
-      ),
-      child: Column(
-        children: List.generate(children.length, (i) {
-          return Column(
-            children: [
-              if (i > 0)
-                Divider(
-                  height: 0.5,
-                  color: cs.outlineVariant.withValues(alpha: 0.15),
-                ),
-              children[i],
-            ],
-          );
-        }),
-      ),
-    );
-  }
-
-  String _formatDateTime(DateTime dt) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final date = DateTime(dt.year, dt.month, dt.day);
-    final diff = today.difference(date).inDays;
-
-    String prefix;
-    if (diff == 0) {
-      prefix = '今天';
-    } else if (diff == 1) {
-      prefix = '昨天';
-    } else {
-      prefix = '${dt.month}/${dt.day}';
-    }
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final minute = dt.minute.toString().padLeft(2, '0');
-    return '$prefix $hour:$minute';
   }
 }

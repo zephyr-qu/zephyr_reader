@@ -3,14 +3,17 @@ library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:signals_hooks/signals_hooks.dart';
 
 import 'package:path_provider/path_provider.dart';
+import 'package:zephyr_reader/core/presentation/widgets/empty_state_widget.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
+import 'package:zephyr_reader/features/reader/application/note_manage_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-class NoteManagePage extends StatefulWidget {
+class NoteManagePage extends HookWidget {
   final String bookId;
   final String bookTitle;
 
@@ -21,84 +24,23 @@ class NoteManagePage extends StatefulWidget {
   });
 
   @override
-  State<NoteManagePage> createState() => _NoteManagePageState();
-}
-
-class _NoteManagePageState extends State<NoteManagePage> {
-  List<Note> _notes = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadNotes();
-  }
-
-  Future<void> _loadNotes() async {
-    setState(() => _loading = true);
-    try {
-      _notes = await note_api.listNotesByBook(bookId: widget.bookId);
-    } catch (_) {
-      _notes = [];
-    }
-    if (mounted) setState(() => _loading = false);
-  }
-
-  String _formatLabel(String format) {
-    switch (format) {
-      case 'markdown':
-        return 'md';
-      case 'html':
-        return 'html';
-      default:
-        return 'txt';
-    }
-  }
-
-  Future<void> _doExport(String format) async {
-    try {
-      final content = await note_api.renderNotesToString(
-        notes: _notes,
-        bookTitle: widget.bookTitle,
-        format: format,
-      );
-      final dir = await getApplicationDocumentsDirectory();
-      final ts = DateTime.now().millisecondsSinceEpoch;
-      final name = widget.bookTitle.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
-      final ext = _formatLabel(format);
-      final filename = '${name}_读书笔记_$ts.$ext';
-      final file = File('${dir.path}/$filename');
-      await file.writeAsString(content, flush: true);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('已导出: ${file.path}'),
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(label: '关闭', onPressed: () {}),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('导出失败: $e')));
-      }
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final vm = useMemoized(
+      () => NoteManageViewModel(bookId: bookId, bookTitle: bookTitle),
+    );
+    final notes = useSignalValue<List<Note>, Signal<List<Note>>>(vm.notes);
+    final loading = useSignalValue<bool, Signal<bool>>(vm.loading);
+
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.bookTitle} - 笔记'),
+        title: Text('$bookTitle - 笔记'),
         actions: [
-          if (!_loading && _notes.isNotEmpty)
+          if (!loading && notes.isNotEmpty)
             PopupMenuButton<String>(
               icon: const Icon(PhosphorIconsRegular.fileArrowDown),
               tooltip: '导出笔记',
-              onSelected: (format) => _doExport(format),
+              onSelected: (format) => doExport(context, format, notes, vm),
               itemBuilder: (c) => [
                 const PopupMenuItem(
                   value: 'markdown',
@@ -110,36 +52,19 @@ class _NoteManagePageState extends State<NoteManagePage> {
             ),
         ],
       ),
-      body: _loading
+      body: loading
           ? const Center(child: CircularProgressIndicator())
-          : _notes.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    PhosphorIconsRegular.note,
-                    size: 64,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.3,
-                    ),
-                  ),
-                  SizedBox(height: DesignTokens.spacing(Spacing.md)),
-                  Text(
-                    '暂无笔记',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                ],
-              ),
+          : notes.isEmpty
+          ? EmptyStateWidget(
+              icon: PhosphorIconsRegular.note,
+              title: '暂无笔记',
+              colorScheme: theme.colorScheme,
             )
           : ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: _notes.length,
+              itemCount: notes.length,
               itemBuilder: (context, index) {
-                final note = _notes[index];
+                final note = notes[index];
                 return Container(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
@@ -190,5 +115,52 @@ class _NoteManagePageState extends State<NoteManagePage> {
               },
             ),
     );
+  }
+
+  String _formatLabel(String format) {
+    switch (format) {
+      case 'markdown':
+        return 'md';
+      case 'html':
+        return 'html';
+      default:
+        return 'txt';
+    }
+  }
+
+  Future<void> doExport(
+    BuildContext context,
+    String format,
+    List<Note> notes,
+    NoteManageViewModel vm,
+  ) async {
+    try {
+      final content = await vm.renderNotesToString(
+        notes: notes,
+        format: format,
+      );
+      final dir = await getApplicationDocumentsDirectory();
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final name = bookTitle.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+      final ext = _formatLabel(format);
+      final filename = '${name}_读书笔记_$ts.$ext';
+      final file = File('${dir.path}/$filename');
+      await file.writeAsString(content, flush: true);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('已导出: ${file.path}'),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(label: '关闭', onPressed: () {}),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('导出失败: $e')));
+      }
+    }
   }
 }

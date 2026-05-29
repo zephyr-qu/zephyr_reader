@@ -6,6 +6,48 @@
       "sourceType": "github",
       "skillPath": "skills/mobile-design/SKILL.md",
       "computedHash": "5b8b0be787a5ba9c3ecf51f652e784a59b449af211beb026ce7c668a9a14b88f"
+    },
+    "signals-dart": {
+      "source": "rodydavis/signals.dart",
+      "sourceType": "github",
+      "skillPath": "skills/signals-dart/SKILL.md",
+      "computedHash": "171ac03e0aed54efefb54f61b25ab00fc56bf3a1c731a2cf0c6985d10bc7242b"
+    },
+    "signals-flutter": {
+      "source": "rodydavis/signals.dart",
+      "sourceType": "github",
+      "skillPath": "skills/signals-flutter/SKILL.md",
+      "computedHash": "abc2b7b5d5e4d8fb85d447c732aed28bc802e78540291389847feb7eb02809ba"
+    },
+    "signals-hooks": {
+      "source": "rodydavis/signals.dart",
+      "sourceType": "github",
+      "skillPath": "skills/signals-hooks/SKILL.md",
+      "computedHash": "b5f52d8027dc1d7c7c53e219f05f66b669c43cce85a8742e8222996077c413cd"
+    },
+    "signals-lint": {
+      "source": "rodydavis/signals.dart",
+      "sourceType": "github",
+      "skillPath": "skills/signals-lint/SKILL.md",
+      "computedHash": "52411b0f322539e301047812fb7f0b95ab33fcd9060e4ba84a0041a692023487"
+    },
+    "signals-migration-6-to-7": {
+      "source": "rodydavis/signals.dart",
+      "sourceType": "github",
+      "skillPath": "skills/signals-migration-6-to-7/SKILL.md",
+      "computedHash": "ec853648469fed1d2e97be18f6ce4fecb80c7c0961ddce619784553375f2824c"
+    },
+    "signals-preact-dart": {
+      "source": "rodydavis/signals.dart",
+      "sourceType": "github",
+      "skillPath": "skills/signals-preact-dart/SKILL.md",
+      "computedHash": "fa6e058b1853b4b191f8ada093490978312fa1b08f4ddc449654038811c9f75b"
+    },
+    "signals_hooks": {
+      "source": "rodydavis/signals.dart",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/signals_hooks/SKILL.md",
+      "computedHash": "8da947894ad43d15d47022278513b6f03a30f83b89fe862b41645b74b569233d"
     }
   }
 }

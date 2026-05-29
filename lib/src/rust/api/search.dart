@@ -44,9 +44,11 @@ Future<List<SearchResult>> search({
 Future<List<SearchResult>> searchAllBooks({
   required String query,
   required int limit,
+  required int offset,
 }) => RustLib.instance.api.crateApiSearchSearchAllBooks(
   query: query,
   limit: limit,
+  offset: offset,
 );
 
 /// 清除所有搜索索引

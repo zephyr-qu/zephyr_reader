@@ -3,8 +3,9 @@ library;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 
 class ReaderBottomToolbar extends StatelessWidget {
   final int currentPageIndex;
@@ -31,11 +32,9 @@ class ReaderBottomToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = themeMode == ThemeMode.dark;
-    final textColor = isDark
-        ? const Color(0xFFE8E6E1)
-        : const Color(0xFF2C2C2C);
-    final accentColor = DesignTokens.warmAccent;
+    final readerTheme = Theme.of(context).extension<ReaderThemeExtension>()!;
+    final textColor = readerTheme.textColor;
+    final accentColor = readerTheme.accentColor;
 
     return ClipRect(
       child: BackdropFilter(
@@ -78,7 +77,9 @@ class ReaderBottomToolbar extends StatelessWidget {
                         ? PhosphorIconsLight.speakerHigh
                         : PhosphorIconsLight.speakerNone,
                     onTap: onTtsToggle,
-                    color: isTtsPlaying ? const Color(0xFF4CAF50) : textColor,
+                    color: isTtsPlaying
+                        ? readerTheme.ttsActiveColor
+                        : textColor,
                     tooltip: '朗读',
                   ),
                 ],
@@ -155,59 +156,37 @@ class _ProgressBadge extends StatelessWidget {
   }
 }
 
-class _PressScale extends StatefulWidget {
+class _PressScale extends HookWidget {
   final Widget child;
   final VoidCallback? onTap;
 
   const _PressScale({required this.child, this.onTap});
 
   @override
-  State<_PressScale> createState() => _PressScaleState();
-}
-
-class _PressScaleState extends State<_PressScale>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _anim;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-    );
-    _anim = Tween(
-      begin: 1.0,
-      end: 0.92,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  void _onTapDown(TapDownDetails _) => _ctrl.forward();
-  void _onTapUp(TapUpDetails _) {
-    _ctrl.reverse();
-    widget.onTap?.call();
-  }
-
-  void _onTapCancel() => _ctrl.reverse();
-
-  @override
   Widget build(BuildContext context) {
+    final ctrl = useAnimationController(
+      duration: const Duration(milliseconds: 200),
+    );
+    final anim = useMemoized(
+      () => Tween(
+        begin: 1.0,
+        end: 0.92,
+      ).animate(CurvedAnimation(parent: ctrl, curve: Curves.easeOutBack)),
+      [ctrl],
+    );
+
     return AnimatedBuilder(
-      animation: _anim,
-      builder: (context, child) => Transform.scale(
-        scale: _anim.value,
+      animation: anim,
+      builder: (context, _) => Transform.scale(
+        scale: anim.value,
         child: GestureDetector(
-          onTapDown: _onTapDown,
-          onTapUp: _onTapUp,
-          onTapCancel: _onTapCancel,
-          child: widget.child,
+          onTapDown: (_) {
+            ctrl.forward();
+            onTap?.call();
+          },
+          onTapUp: (_) => ctrl.reverse(),
+          onTapCancel: () => ctrl.reverse(),
+          child: child,
         ),
       ),
     );

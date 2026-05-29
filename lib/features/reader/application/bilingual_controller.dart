@@ -1,5 +1,4 @@
-import 'package:signals/signals.dart';
-
+import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 
 /// 双语对照控制器
@@ -8,7 +7,9 @@ import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 /// 对齐计算由 Coordinator 层传入章节内容和译文文本。
 class BilingualController {
   /// 双语对齐结果
-  final bilingualAlignment = asyncSignal<BilingualAlignment?>(AsyncState.data(null));
+  final bilingualAlignment = asyncSignal<BilingualAlignment?>(
+    AsyncState.data(null),
+  );
 
   /// 对照译文内容（由外部设置）
   final translationContent = signal<String>('');

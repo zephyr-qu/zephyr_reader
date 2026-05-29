@@ -1,50 +1,52 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/features/reader/application/cache_manage_view_model.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-class CacheManagePage extends StatefulWidget {
+class CacheManagePage extends HookWidget {
   final String? bookId;
-  const CacheManagePage({super.key, this.bookId});
+  final ReaderRepository repo;
+
+  const CacheManagePage({super.key, this.bookId, required this.repo});
 
   @override
-  State<CacheManagePage> createState() => _CacheManagePageState();
-}
+  Widget build(BuildContext context) {
+    final vm = useMemoized(
+      () => CacheManageViewModel(repo: repo, bookId: bookId),
+    );
+    final books = useSignalValue<List<Book>, Signal<List<Book>>>(vm.books);
+    final progressList =
+        useSignalValue<List<BookWithProgress>, Signal<List<BookWithProgress>>>(
+          vm.progressList,
+        );
+    final loaded = useSignalValue<bool, Signal<bool>>(vm.loaded);
 
-class _CacheManagePageState extends State<CacheManagePage> {
-  final _repo = getIt<ReaderRepository>();
-  List<Book> _books = [];
-  List<BookWithProgress> _progressList = [];
-  bool _loaded = false;
+    final theme = Theme.of(context);
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('缓存管理'),
+        actions: [
+          IconButton(
+            icon: const Icon(PhosphorIconsRegular.trashSimple),
+            onPressed: () => _clearAllCache(context, vm),
+            tooltip: '清空全部缓存',
+          ),
+        ],
+      ),
+      body: _buildBody(context, theme, vm, books, progressList, loaded),
+    );
   }
 
-  Future<void> _load() async {
-    try {
-      final books = await book_api.listBooks();
-      final allProgress = await progress_api.listAllProgresses();
-      if (mounted) {
-        setState(() {
-          _books = books;
-          _progressList = allProgress;
-          _loaded = true;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _loaded = true);
-    }
-  }
-
-  Future<void> _clearAllCache() async {
+  Future<void> _clearAllCache(
+    BuildContext context,
+    CacheManageViewModel vm,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -63,8 +65,8 @@ class _CacheManagePageState extends State<CacheManagePage> {
       ),
     );
     if (confirmed == true) {
-      _repo.clearAllCache();
-      if (mounted) {
+      vm.clearAllCache();
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('已清空全部缓存'),
@@ -75,10 +77,14 @@ class _CacheManagePageState extends State<CacheManagePage> {
     }
   }
 
-  Future<void> _clearProgress(String bookId, String title) async {
-    await progress_api.clearProgress(bookId: bookId);
-    await _load();
-    if (mounted) {
+  Future<void> _clearProgress(
+    BuildContext context,
+    String bookId,
+    String title,
+    CacheManageViewModel vm,
+  ) async {
+    await vm.clearProgress(bookId);
+    if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('已清除《$title》阅读进度'),
@@ -88,8 +94,8 @@ class _CacheManagePageState extends State<CacheManagePage> {
     }
   }
 
-  void _clearProgressCache() {
-    _repo.clearProgressCache();
+  void _clearProgressCache(BuildContext context, CacheManageViewModel vm) {
+    vm.clearProgressCache();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('已清除内存中的进度缓存'),
@@ -98,32 +104,20 @@ class _CacheManagePageState extends State<CacheManagePage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('缓存管理'),
-        actions: [
-          IconButton(
-            icon: const Icon(PhosphorIconsRegular.trashSimple),
-            onPressed: _clearAllCache,
-            tooltip: '清空全部缓存',
-          ),
-        ],
-      ),
-      body: _buildBody(theme),
-    );
-  }
-
-  Widget _buildBody(ThemeData theme) {
-    if (!_loaded) return const Center(child: CircularProgressIndicator());
+  Widget _buildBody(
+    BuildContext context,
+    ThemeData theme,
+    CacheManageViewModel vm,
+    List<Book> books,
+    List<BookWithProgress> progressList,
+    bool loaded,
+  ) {
+    if (!loaded) return const Center(child: CircularProgressIndicator());
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
-        _buildOverview(theme),
+        _buildOverview(context, theme, vm, books, progressList),
         const SizedBox(height: 24),
         Text(
           '阅读进度',
@@ -134,7 +128,7 @@ class _CacheManagePageState extends State<CacheManagePage> {
           ),
         ),
         const Divider(height: 12),
-        if (_progressList.isEmpty)
+        if (progressList.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Center(
@@ -145,7 +139,7 @@ class _CacheManagePageState extends State<CacheManagePage> {
             ),
           )
         else
-          ..._progressList.map((p) => _buildProgressItem(theme, p)),
+          ...progressList.map((p) => _buildProgressItem(context, theme, p, vm)),
         const SizedBox(height: 16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,7 +165,13 @@ class _CacheManagePageState extends State<CacheManagePage> {
     );
   }
 
-  Widget _buildOverview(ThemeData theme) {
+  Widget _buildOverview(
+    BuildContext context,
+    ThemeData theme,
+    CacheManageViewModel vm,
+    List<Book> books,
+    List<BookWithProgress> progressList,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -185,21 +185,21 @@ class _CacheManagePageState extends State<CacheManagePage> {
             children: [
               _overviewItem(
                 theme,
-                '${_books.length}',
+                '${books.length}',
                 '书籍数',
                 PhosphorIconsRegular.bookOpenText,
               ),
               const SizedBox(width: 24),
               _overviewItem(
                 theme,
-                '${_progressList.length}',
+                '${progressList.length}',
                 '有进度',
                 PhosphorIconsRegular.trendUp,
               ),
               const SizedBox(width: 24),
               _overviewItem(
                 theme,
-                '${_books.fold<int>(0, (s, b) => s + (b.chapterCount))}',
+                '${books.fold<int>(0, (s, b) => s + (b.chapterCount))}',
                 '总章节',
                 PhosphorIconsRegular.article,
               ),
@@ -209,7 +209,7 @@ class _CacheManagePageState extends State<CacheManagePage> {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: _clearAllCache,
+              onPressed: () => _clearAllCache(context, vm),
               icon: const Icon(PhosphorIconsRegular.trash, size: 18),
               label: const Text('清空全部缓存'),
             ),
@@ -218,7 +218,7 @@ class _CacheManagePageState extends State<CacheManagePage> {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: _clearProgressCache,
+              onPressed: () => _clearProgressCache(context, vm),
               icon: const Icon(PhosphorIconsRegular.cpu, size: 18),
               label: const Text('清除进度缓存'),
             ),
@@ -266,7 +266,12 @@ class _CacheManagePageState extends State<CacheManagePage> {
     );
   }
 
-  Widget _buildProgressItem(ThemeData theme, BookWithProgress item) {
+  Widget _buildProgressItem(
+    BuildContext context,
+    ThemeData theme,
+    BookWithProgress item,
+    CacheManageViewModel vm,
+  ) {
     final progress = item.progress;
     final book = item.book;
     final bookTitle = book.title;
@@ -298,7 +303,7 @@ class _CacheManagePageState extends State<CacheManagePage> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
+                if (progress != null) const SizedBox(height: 2),
                 if (progress != null)
                   Text(
                     '第 ${progress.chapterIndex} 章 · $dateStr',
@@ -316,7 +321,8 @@ class _CacheManagePageState extends State<CacheManagePage> {
               size: 18,
               color: theme.colorScheme.onSurfaceVariant,
             ),
-            onPressed: () => _clearProgress(book.bookId, bookTitle),
+            onPressed: () =>
+                _clearProgress(context, book.bookId, bookTitle, vm),
             tooltip: '清除进度',
           ),
         ],

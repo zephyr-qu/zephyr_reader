@@ -1,32 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:signals_flutter/signals_flutter.dart';
-
+import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_navigation_tile.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
+import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
 import 'package:zephyr_reader/features/profile/page/other_settings/other_settings_view_model.dart';
 import 'package:zephyr_reader/features/profile/page/privacy_policy_page.dart';
 import 'package:zephyr_reader/features/profile/page/user_agreement_page.dart';
 
-class OtherSettingsPage extends StatefulWidget {
-  const OtherSettingsPage({super.key});
+class OtherSettingsPage extends HookWidget {
+  final OtherSettingsViewModel vm;
 
-  @override
-  State<OtherSettingsPage> createState() => _OtherSettingsPageState();
-}
-
-class _OtherSettingsPageState extends State<OtherSettingsPage> {
-  final _vm = OtherSettingsViewModel();
-
-  @override
-  void initState() {
-    super.initState();
-    _vm.initialize();
-  }
+  const OtherSettingsPage({super.key, required this.vm});
 
   @override
   Widget build(BuildContext context) {
+    useEffect(() {
+      vm.initialize();
+      return null;
+    }, []);
+
     final cs = Theme.of(context).colorScheme;
+
+    final String localeLabel = useSignalValue(vm.localeLabel);
+    final String appVersion = useSignalValue(vm.appVersion);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -39,97 +41,89 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
             letterSpacing: -0.5,
           ),
         ),
-        centerTitle: false,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
         children: [
-          _buildBehaviorSection(cs),
+          _buildBehaviorSection(context, cs, localeLabel),
           const SizedBox(height: 24),
           _buildExperimentalSection(cs),
           const SizedBox(height: 24),
-          _buildLegalSection(cs),
+          _buildLegalSection(context, cs),
           const SizedBox(height: 24),
-          _buildDangerSection(cs),
+          _buildDangerSection(context, cs),
           const SizedBox(height: 24),
-          _buildVersionFooter(cs),
+          _buildVersionFooter(cs, appVersion),
         ],
       ),
     );
   }
 
-  // ==================== App Behavior ====================
-
-  Widget _buildBehaviorSection(ColorScheme cs) {
+  Widget _buildBehaviorSection(
+    BuildContext context,
+    ColorScheme cs,
+    String localeLabel,
+  ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionLabel('应用行为', cs),
-            _settingsCard([
-              _listItem(
-                cs,
-                icon: PhosphorIconsRegular.translate,
-                iconColor: const Color(0xFF42A5F5),
-                iconBg: const Color(0xFFE3F2FD),
-                title: '界面语言',
-                desc: '简体中文 / English',
-                trailing: Watch.builder(
-                  builder: (_) {
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _vm.localeLabel.value,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: cs.onSurfaceVariant,
-                          ),
+            SectionLabel(label: '应用行为', colorScheme: cs),
+            SettingsCard(
+              colorScheme: cs,
+              showDividers: true,
+              children: [
+                SettingsNavigationTile(
+                  icon: PhosphorIconsRegular.translate,
+                  iconColor: MenuItemSemantic.info.iconColor,
+                  iconBackground: MenuItemSemantic.info.iconBackground,
+                  title: '界面语言',
+                  subtitle: '简体中文 / English',
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        localeLabel,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cs.onSurfaceVariant,
                         ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          PhosphorIconsRegular.caretRight,
-                          size: 14,
-                          color: cs.onSurface.withValues(alpha: 0.3),
-                        ),
-                      ],
-                    );
-                  },
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        PhosphorIconsRegular.caretRight,
+                        size: 14,
+                        color: cs.onSurface.withValues(alpha: 0.3),
+                      ),
+                    ],
+                  ),
+                  onTap: () => _showLanguageSheet(context, cs),
                 ),
-                onTap: () => _showLanguageSheet(cs),
-              ),
-              _toggleItem(
-                cs,
-                icon: PhosphorIconsRegular.bell,
-                iconColor: const Color(0xFFEF6C00),
-                iconBg: const Color(0xFFFFF3E0),
-                title: '通知与提醒',
-                desc: '阅读目标提醒、同步完成通知',
-                value: _vm.notificationsEnabled.value,
-                onChanged: (v) => _vm.setNotifications(v),
-              ),
-              _toggleItem(
-                cs,
-                icon: PhosphorIconsRegular.arrowArcRight,
-                iconColor: const Color(0xFF43A047),
-                iconBg: const Color(0xFFE8F5E9),
-                title: '启动时检查更新',
-                desc: '仅前台启动时检测新版本',
-                value: _vm.startupCheckEnabled.value,
-                onChanged: (v) => _vm.setStartupCheck(v),
-              ),
-            ]),
+                SettingsToggleTile(
+                  icon: PhosphorIconsRegular.bell,
+                  iconColor: MenuItemSemantic.warning.iconColor,
+                  iconBackground: MenuItemSemantic.warning.iconBackground,
+                  title: '通知与提醒',
+                  subtitle: '阅读目标提醒、同步完成通知',
+                  value: vm.notificationsEnabled.value,
+                  onChanged: (v) => vm.setNotifications(v),
+                ),
+                SettingsToggleTile(
+                  icon: PhosphorIconsRegular.arrowArcRight,
+                  iconColor: MenuItemSemantic.success.iconColor,
+                  iconBackground: MenuItemSemantic.success.iconBackground,
+                  title: '启动时检查更新',
+                  subtitle: '仅前台启动时检测新版本',
+                  value: vm.startupCheckEnabled.value,
+                  onChanged: (v) => vm.setStartupCheck(v),
+                ),
+              ],
+            ),
           ],
         )
         .animate()
         .fadeIn(duration: 300.ms, delay: 100.ms)
         .slideY(begin: 0.03, end: 0);
   }
-
-  // ==================== Experimental Features ====================
 
   Widget _buildExperimentalSection(ColorScheme cs) {
     return Column(
@@ -170,38 +164,39 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
                 ],
               ),
             ),
-            _settingsCard([
-              _toggleItem(
-                cs,
-                icon: PhosphorIconsRegular.markdownLogo,
-                iconColor: const Color(0xFF8E24AA),
-                iconBg: const Color(0xFFF3E5F5),
-                title: 'Markdown 笔记预览',
-                desc: '在笔记列表中渲染 Markdown 格式',
-                value: _vm.markdownPreview.value,
-                onChanged: (v) => _vm.setMarkdownPreview(v),
-              ),
-              _toggleItem(
-                cs,
-                icon: PhosphorIconsRegular.paintBrush,
-                iconColor: const Color(0xFF00838F),
-                iconBg: const Color(0xFFE0F7FA),
-                title: '自定义 CSS 注入',
-                desc: '为 EPUB 内容注入用户样式表',
-                value: _vm.customCss.value,
-                onChanged: (v) => _vm.setCustomCss(v),
-              ),
-              _toggleItem(
-                cs,
-                icon: PhosphorIconsRegular.magnifyingGlass,
-                iconColor: const Color(0xFF546E7A),
-                iconBg: const Color(0xFFECEFF1),
-                title: '高级搜索语法',
-                desc: '支持 author: tag: regex: 等前缀',
-                value: _vm.advancedSearch.value,
-                onChanged: (v) => _vm.setAdvancedSearch(v),
-              ),
-            ]),
+            SettingsCard(
+              colorScheme: cs,
+              showDividers: true,
+              children: [
+                SettingsToggleTile(
+                  icon: PhosphorIconsRegular.markdownLogo,
+                  iconColor: MenuItemSemantic.experimental.iconColor,
+                  iconBackground: MenuItemSemantic.experimental.iconBackground,
+                  title: 'Markdown 笔记预览',
+                  subtitle: '在笔记列表中渲染 Markdown 格式',
+                  value: vm.markdownPreview.value,
+                  onChanged: (v) => vm.setMarkdownPreview(v),
+                ),
+                SettingsToggleTile(
+                  icon: PhosphorIconsRegular.paintBrush,
+                  iconColor: MenuItemSemantic.reading.iconColor,
+                  iconBackground: MenuItemSemantic.reading.iconBackground,
+                  title: '自定义 CSS 注入',
+                  subtitle: '为 EPUB 内容注入用户样式表',
+                  value: vm.customCss.value,
+                  onChanged: (v) => vm.setCustomCss(v),
+                ),
+                SettingsToggleTile(
+                  icon: PhosphorIconsRegular.magnifyingGlass,
+                  iconColor: MenuItemSemantic.neutral.iconColor,
+                  iconBackground: MenuItemSemantic.neutral.iconBackground,
+                  title: '高级搜索语法',
+                  subtitle: '支持 author: tag: regex: 等前缀',
+                  value: vm.advancedSearch.value,
+                  onChanged: (v) => vm.setAdvancedSearch(v),
+                ),
+              ],
+            ),
           ],
         )
         .animate()
@@ -209,56 +204,55 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
         .slideY(begin: 0.03, end: 0);
   }
 
-  // ==================== Legal & Compliance ====================
-
-  Widget _buildLegalSection(ColorScheme cs) {
+  Widget _buildLegalSection(BuildContext context, ColorScheme cs) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionLabel('法律与合规', cs),
-            _settingsCard([
-              _listItem(
-                cs,
-                icon: PhosphorIconsRegular.fileText,
-                iconColor: const Color(0xFF6D4C41),
-                iconBg: const Color(0xFFEFEBE9),
-                title: '用户协议',
-                desc: '',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (_) => const UserAgreementPage(),
+            SectionLabel(label: '法律与合规', colorScheme: cs),
+            SettingsCard(
+              colorScheme: cs,
+              showDividers: true,
+              children: [
+                SettingsNavigationTile(
+                  icon: PhosphorIconsRegular.fileText,
+                  iconColor: MenuItemSemantic.legal.iconColor,
+                  iconBackground: MenuItemSemantic.legal.iconBackground,
+                  title: '用户协议',
+                  subtitle: '',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const UserAgreementPage(),
+                    ),
                   ),
                 ),
-              ),
-              _listItem(
-                cs,
-                icon: PhosphorIconsRegular.shieldCheck,
-                iconColor: const Color(0xFF6D4C41),
-                iconBg: const Color(0xFFEFEBE9),
-                title: '隐私政策',
-                desc: '',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (_) => const PrivacyPolicyPage(),
+                SettingsNavigationTile(
+                  icon: PhosphorIconsRegular.shieldCheck,
+                  iconColor: MenuItemSemantic.legal.iconColor,
+                  iconBackground: MenuItemSemantic.legal.iconBackground,
+                  title: '隐私政策',
+                  subtitle: '',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const PrivacyPolicyPage(),
+                    ),
                   ),
                 ),
-              ),
-              _listItem(
-                cs,
-                icon: PhosphorIconsRegular.code,
-                iconColor: const Color(0xFF6D4C41),
-                iconBg: const Color(0xFFEFEBE9),
-                title: '开源许可证',
-                desc: 'Flutter / Rust / 第三方库许可',
-                onTap: () => showLicensePage(
-                  context: context,
-                  applicationName: 'Zephyr Reader',
-                  applicationVersion: _vm.appVersion.value,
+                SettingsNavigationTile(
+                  icon: PhosphorIconsRegular.code,
+                  iconColor: MenuItemSemantic.legal.iconColor,
+                  iconBackground: MenuItemSemantic.legal.iconBackground,
+                  title: '开源许可证',
+                  subtitle: 'Flutter / Rust / 第三方库许可',
+                  onTap: () => showLicensePage(
+                    context: context,
+                    applicationName: 'Zephyr Reader',
+                    applicationVersion: vm.appVersion.value,
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
           ],
         )
         .animate()
@@ -266,9 +260,7 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
         .slideY(begin: 0.03, end: 0);
   }
 
-  // ==================== Danger Zone ====================
-
-  Widget _buildDangerSection(ColorScheme cs) {
+  Widget _buildDangerSection(BuildContext context, ColorScheme cs) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -300,7 +292,7 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
                     icon: PhosphorIconsRegular.arrowCounterClockwise,
                     title: '重置所有设置',
                     desc: '恢复默认排版、主题、同步配置',
-                    onTap: () => _confirmResetSettings(cs),
+                    onTap: () => _confirmResetSettings(context, cs),
                   ),
                   Container(
                     height: 0.5,
@@ -311,7 +303,7 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
                     icon: PhosphorIconsRegular.trash,
                     title: '清除全部本地数据',
                     desc: '删除书籍、笔记、生词本、统计记录',
-                    onTap: () => _confirmClearData(cs),
+                    onTap: () => _confirmClearData(context, cs),
                   ),
                 ],
               ),
@@ -376,72 +368,64 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
     );
   }
 
-  // ==================== Version Footer ====================
-
-  Widget _buildVersionFooter(ColorScheme cs) {
-    return Watch.builder(
-      builder: (context) {
-        return Column(
+  Widget _buildVersionFooter(ColorScheme cs, String appVersion) {
+    return Column(
+      children: [
+        Text(
+          'Zephyr Reader $appVersion',
+          style: TextStyle(
+            fontSize: 11,
+            color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'Flutter 3.41.2 · Rust 1.82.0 · FRB 2.12.0',
+          style: TextStyle(
+            fontSize: 10,
+            color: cs.onSurfaceVariant.withValues(alpha: 0.4),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              'Zephyr Reader ${_vm.appVersion.value}',
-              style: TextStyle(
-                fontSize: 11,
-                color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+            GestureDetector(
+              onTap: () {},
+              child: Text(
+                '检查更新',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: cs.primary,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-            const SizedBox(height: 2),
             Text(
-              'Flutter 3.41.2 · Rust 1.82.0 · FRB 2.12.0',
+              ' · ',
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 11,
                 color: cs.onSurfaceVariant.withValues(alpha: 0.4),
               ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                GestureDetector(
-                  onTap: () {},
-                  child: Text(
-                    '检查更新',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: cs.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+            GestureDetector(
+              onTap: () {},
+              child: Text(
+                '反馈问题',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: cs.primary,
+                  fontWeight: FontWeight.w500,
                 ),
-                Text(
-                  ' · ',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: cs.onSurfaceVariant.withValues(alpha: 0.4),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {},
-                  child: Text(
-                    '反馈问题',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: cs.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
-        );
-      },
+        ),
+      ],
     );
   }
 
-  // ==================== Dialogs ====================
-
-  void _showLanguageSheet(ColorScheme cs) {
+  void _showLanguageSheet(BuildContext context, ColorScheme cs) {
     showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -459,11 +443,11 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 16),
-              _langOption(cs, '跟随系统', null),
+              _langOption(context, cs, '跟随系统', null),
               const SizedBox(height: 8),
-              _langOption(cs, '简体中文', 'zh'),
+              _langOption(context, cs, '简体中文', 'zh'),
               const SizedBox(height: 8),
-              _langOption(cs, 'English', 'en'),
+              _langOption(context, cs, 'English', 'en'),
             ],
           ),
         ),
@@ -471,13 +455,18 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
     );
   }
 
-  Widget _langOption(ColorScheme cs, String label, String? code) {
+  Widget _langOption(
+    BuildContext context,
+    ColorScheme cs,
+    String label,
+    String? code,
+  ) {
     final tm = ThemeManager.instance;
     return InkWell(
       onTap: () {
         tm.setLocale(code);
-        _vm.localeCode.value = code;
-        _vm.localeLabel.value = code == 'en' ? 'English' : '简体中文';
+        vm.localeCode.value = code;
+        vm.localeLabel.value = code == 'en' ? 'English' : '简体中文';
         Navigator.pop(context);
       },
       borderRadius: BorderRadius.circular(12),
@@ -525,7 +514,7 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
     );
   }
 
-  void _confirmResetSettings(ColorScheme cs) {
+  void _confirmResetSettings(BuildContext context, ColorScheme cs) {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -547,7 +536,7 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
             style: FilledButton.styleFrom(backgroundColor: cs.error),
             onPressed: () {
               Navigator.pop(ctx);
-              _vm.resetAllSettings();
+              vm.resetAllSettings();
             },
             child: const Text('确认重置'),
           ),
@@ -556,7 +545,7 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
     );
   }
 
-  void _confirmClearData(ColorScheme cs) {
+  void _confirmClearData(BuildContext context, ColorScheme cs) {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -580,185 +569,9 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
             style: FilledButton.styleFrom(backgroundColor: cs.error),
             onPressed: () {
               Navigator.pop(ctx);
-              _vm.clearAllLocalData();
+              vm.clearAllLocalData();
             },
             child: const Text('确认清除'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ==================== Shared Widgets ====================
-
-  Widget _sectionLabel(String label, ColorScheme cs) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 10),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-          letterSpacing: 0.4,
-        ),
-      ),
-    );
-  }
-
-  Widget _settingsCard(List<Widget> children) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: cs.outlineVariant.withValues(alpha: 0.2),
-          width: 0.5,
-        ),
-      ),
-      child: Column(
-        children: List.generate(children.length, (i) {
-          return Column(
-            children: [
-              if (i > 0)
-                Divider(
-                  height: 0.5,
-                  color: cs.outlineVariant.withValues(alpha: 0.15),
-                ),
-              children[i],
-            ],
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _listItem(
-    ColorScheme cs, {
-    required IconData icon,
-    required Color iconColor,
-    required Color iconBg,
-    required String title,
-    required String desc,
-    Widget? trailing,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, size: 16, color: iconColor),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: cs.onSurface,
-                    ),
-                  ),
-                  if (desc.isNotEmpty)
-                    Text(
-                      desc,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: cs.onSurfaceVariant,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-            trailing ??
-                Icon(
-                  PhosphorIconsRegular.caretRight,
-                  size: 14,
-                  color: cs.onSurface.withValues(alpha: 0.3),
-                ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _toggleItem(
-    ColorScheme cs, {
-    required IconData icon,
-    required Color iconColor,
-    required Color iconBg,
-    required String title,
-    required String desc,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: cs.outlineVariant.withValues(alpha: 0.15),
-            width: 0.5,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 16, color: iconColor),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: cs.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  desc,
-                  style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            height: 24,
-            child: Switch.adaptive(
-              value: value,
-              activeThumbColor: cs.primary,
-              activeTrackColor: cs.primary.withValues(alpha: 0.3),
-              onChanged: onChanged,
-            ),
           ),
         ],
       ),

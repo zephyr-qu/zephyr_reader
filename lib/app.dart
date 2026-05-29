@@ -10,8 +10,8 @@ import 'package:signals_hooks/signals_hooks.dart';
 import 'core/routing/app_router.dart';
 import 'l10n/app_localizations.dart';
 
-class MyApp extends HookWidget {
-  const MyApp({super.key});
+class ZephyrReaderApp extends HookWidget {
+  const ZephyrReaderApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -42,9 +42,7 @@ class MyApp extends HookWidget {
       });
     }
 
-    // Watch.builder 仅订阅 builder 内访问的信号（themeMode、appLocale），
-    // 不会因其他信号变化而重建 MaterialApp。
-    return Watch.builder(
+    return SignalBuilder(
       builder: (context) {
         return MaterialApp.router(
           routerConfig: router,

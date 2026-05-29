@@ -1,178 +1,252 @@
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:uuid/uuid.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/features/reader/application/reader_enums.dart';
 
+// ===== UUID helper =====
+const _uuid = Uuid();
+
+/// 创建测试用 Book 对象
+///
+/// 注意: PlatformInt64 是 flutter_rust_bridge 的 FFI 类型，在 Dart 侧实际为 int 的别名
+/// 可以直接使用 int 值赋值（如 fileSize, totalCharacters 等字段）
 Book createTestBook({
-  String id = 'book_1',
-  String title = '测试书籍',
-  String author = '测试作者',
-  int chapterCount = 3,
-  BookStatus status = BookStatus.reading,
-  bool isPinned = false,
-  int fileSize = 1000,
-  int totalChars = 50000,
+  String? bookId,
+  String title = 'Test Book',
+  String? author = 'Test Author',
+  String filePath = '/test/books/book_1.txt',
+  int fileSize = 1024,
+  DateTime? addedAt,
+  DateTime? lastOpenedAt,
 }) {
   return Book(
-    bookId: id,
-    filePath: '/test/books/$id.txt',
-    fileSize: fileSize,
+    bookId: bookId ?? _uuid.v4(),
+    filePath: filePath,
     title: title,
     author: author,
-    chapterCount: chapterCount,
-    totalCharacters: totalChars,
+    fileSize: fileSize,
+    addedAt: addedAt ?? DateTime.now(),
+    lastOpenedAt: lastOpenedAt,
+    chapterCount: 10,
+    totalCharacters: 50000,
     format: BookFormat.txt,
-    addedAt: DateTime(2026, 1, 1),
-    lastOpenedAt: DateTime(2026, 5, 18),
-    status: status,
-    isPinned: isPinned,
+    status: BookStatus.planned,
+    isPinned: false,
   );
 }
 
+/// 批量创建测试书籍
+List<Book> createTestBooks({int count = 10}) {
+  return List.generate(
+    count,
+    (i) => createTestBook(
+      bookId: 'book_$i',
+      title: 'Book Title $i',
+      author: i % 2 == 0 ? 'Author A' : 'Author B',
+    ),
+  );
+}
+
+/// 创建测试用 Chapter 对象
 Chapter createTestChapter({
-  String id = 'chapter_0',
-  String bookId = 'book_1',
-  String title = '第一章',
+  String? id,
+  String bookId = 'test_book_1',
+  String title = 'Test Chapter',
   int chapterIndex = 0,
-  int contentLength = 1000,
-  int startIndex = 0,
-  int endIndex = 1000,
+  int level = 0,
 }) {
   return Chapter(
-    id: id,
+    id: id ?? _uuid.v4(),
     bookId: bookId,
     title: title,
-    contentFile: '/test/books/book_1.txt',
     chapterIndex: chapterIndex,
-    wordCount: contentLength ~/ 5,
+    wordCount: 5000,
     cachedAt: DateTime.now(),
-    level: 1,
-    startIndex: startIndex,
-    endIndex: endIndex,
-    contentLength: contentLength,
+    level: level,
+    startIndex: 0,
+    endIndex: 5000,
+    contentLength: 5000,
   );
 }
 
+/// 批量创建测试章节
+List<Chapter> createTestChapters({
+  String bookId = 'test_book_1',
+  int count = 5,
+}) {
+  return List.generate(
+    count,
+    (i) =>
+        createTestChapter(bookId: bookId, chapterIndex: i, title: '第${i + 1}章'),
+  );
+}
+
+/// 创建测试用 Bookmark 对象
 Bookmark createTestBookmark({
-  String id = 'bm_1',
-  String bookId = 'book_1',
+  String? id,
+  String bookId = 'test_book_1',
   int chapterIndex = 0,
-  int charOffset = 100,
-  String title = '测试书签',
+  PlatformInt64 charOffset = 0,
+  String? title,
+  DateTime? createdAt,
 }) {
   return Bookmark(
-    id: id,
+    id: id ?? _uuid.v4(),
     bookId: bookId,
     chapterIndex: chapterIndex,
     charOffset: charOffset,
-    title: title,
-    createdAt: DateTime(2026, 5, 18),
+    title: title ?? '第${chapterIndex + 1}章',
+    createdAt: createdAt ?? DateTime.now(),
   );
 }
 
+/// 创建测试用 Category 对象
+Category createTestCategory({
+  String? id,
+  String name = 'Test Category',
+  String? description,
+  String color = '#FF5722',
+  int sortOrder = 0,
+}) {
+  return Category(
+    id: id ?? _uuid.v4(),
+    name: name,
+    description: description,
+    color: color,
+    sortOrder: sortOrder,
+    isSystem: false,
+  );
+}
+
+/// 创建测试用 Vocab 对象
+Vocab createTestVocab({
+  String? id,
+  String word = 'test',
+  String? contextSentence,
+  String? bookId,
+  VocabStatus status = VocabStatus.new_,
+  DateTime? createdAt,
+}) {
+  return Vocab(
+    id: id ?? _uuid.v4(),
+    word: word,
+    pinyin: 'test_pinyin',
+    translation: 'test_translation',
+    contextSentence: contextSentence,
+    bookId: bookId,
+    chapterIndex: null,
+    charOffset: null,
+    createdAt: createdAt ?? DateTime.now(),
+    reviewCount: 0,
+    lastReviewedAt: null,
+    status: status,
+    wordList: null,
+    dictSource: null,
+    dictEntryHash: null,
+  );
+}
+
+/// 批量创建测试生词
+List<Vocab> createTestVocabs({int count = 20}) {
+  final words = ['apple', 'banana', 'cherry', 'date', 'elderberry'];
+  return List.generate(
+    count,
+    (i) => createTestVocab(
+      word: words[i % words.length],
+      status: i < 5 ? VocabStatus.learning : VocabStatus.new_,
+    ),
+  );
+}
+
+/// 创建测试用 Note 对象
 Note createTestNote({
-  String id = 'note_1',
-  String bookId = 'book_1',
+  String? id,
+  String bookId = 'test_book_1',
   int chapterIndex = 0,
-  int charOffset = 50,
-  int length = 20,
+  PlatformInt64 charOffset = 0,
+  PlatformInt64 length = 4,
   NoteType noteType = NoteType.highlight,
-  String content = '测试高亮',
-  int? highlightColor = 0xFFFFEB3B,
+  String content = '测试笔记内容',
+  String? selectedText,
+  DateTime? createdAt,
 }) {
   return Note(
-    id: id,
+    id: id ?? _uuid.v4(),
     bookId: bookId,
     chapterIndex: chapterIndex,
     charOffset: charOffset,
     length: length,
     noteType: noteType,
     content: content,
-    selectedText: content,
-    highlightColor: highlightColor,
-    createdAt: DateTime(2026, 5, 18),
-    updatedAt: DateTime(2026, 5, 18),
+    selectedText: selectedText ?? '测试文本',
+    highlightColor: null,
+    pairedNoteId: null,
+    language: null,
+    createdAt: createdAt ?? DateTime.now(),
+    updatedAt: DateTime.now(),
   );
 }
 
-BookCategory createTestCategory({
-  String id = 'cat_1',
-  String name = '小说',
-  String color = '#FF5722',
-  bool isSystem = false,
-}) {
-  return BookCategory(
-    id: id,
-    name: name,
-    color: color,
-    sortOrder: 0,
-    isSystem: isSystem,
-    createdAt: DateTime(2026, 1, 1),
+/// 批量创建测试笔记
+List<Note> createTestNotes({String bookId = 'test_book_1', int count = 15}) {
+  final types = [NoteType.highlight, NoteType.note, NoteType.marker];
+  return List.generate(
+    count,
+    (i) => createTestNote(
+      bookId: bookId,
+      chapterIndex: i % 5,
+      noteType: types[i % types.length],
+    ),
   );
 }
 
-ReadingSession createTestSession({
-  String id = 'session_1',
-  String bookId = 'book_1',
-  int chapterIndex = 0,
-  int startCharOffset = 0,
-  int endCharOffset = 500,
-  int durationSeconds = 300,
-}) {
-  final now = DateTime.now();
-  return ReadingSession(
-    id: id,
-    bookId: bookId,
-    chapterIndex: chapterIndex,
-    startCharOffset: startCharOffset,
-    endCharOffset: endCharOffset,
-    startedAt: now.subtract(Duration(seconds: durationSeconds)),
-    endedAt: now,
-    durationSeconds: durationSeconds,
-  );
-}
+// ===== Reader 相关测试数据 =====
 
-VocabEntry createTestVocabEntry({
-  String id = 'vocab_1',
-  String word = 'abandon',
-  String translation = '放弃',
-  String status = 'learning',
-}) {
-  return VocabEntry(
-    id: id,
-    word: word,
-    pinyin: 'fàng qì',
-    translation: translation,
-    createdAt: DateTime(2026, 5, 18),
-    reviewCount: 0,
-    status: status,
-  );
-}
-
-List<ReadingStats> createTestDailyStats({
-  int days = 7,
-  int secondsPerDay = 1800,
-  int charsPerDay = 5000,
-}) {
-  final now = DateTime.now();
-  return List.generate(days, (i) {
-    final date = now.subtract(Duration(days: days - 1 - i));
-    return ReadingStats(
-      bookId: 'book_1',
-      date:
-          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
-      readingTimeSeconds: secondsPerDay,
-      charactersRead: charsPerDay,
-      sessionCount: 2,
-    );
-  });
-}
-
+/// 测试用的章节内容
 const String testChapterContent = '''
-第一章
-这是测试书籍的第一章内容。这里有一些中文文本用于测试阅读功能。
-
-第二天，他继续阅读这本书。这是一个很好的故事，讲述了关于知识的力量。
-
-在阅读过程中，用户可以标记重点、添加笔记，并且可以查看生词解释。
-
-第三章
-这是最后一章。故事在这里结束，主人公学到了很多知识。
+这是一段测试章节内容。
+它包含多行文本，用于模拟真实的章节内容。
+每行文字都有一定的字符数，方便测试阅读进度和分页功能。
+测试数据应该尽可能接近实际情况，以确保测试的有效性。
+最后一行测试数据结束。
 ''';
+
+/// 创建测试用的文章数据
+Map<String, dynamic> createTestArticle({
+  String id = 'article_1',
+  String title = '测试文章',
+  String content = '这是文章内容',
+}) {
+  return {
+    'id': id,
+    'title': title,
+    'content': content,
+    'createdAt': DateTime.now(),
+  };
+}
+
+/// 创建测试用的阅读统计
+Map<String, dynamic> createTestReadingStats({
+  int readMinutes = 30,
+  int pagesRead = 10,
+  DateTime? date,
+}) {
+  return {
+    'readMinutes': readMinutes,
+    'pagesRead': pagesRead,
+    'date': date ?? DateTime.now(),
+  };
+}
+
+/// 创建测试用的书签列表
+List<Bookmark> createTestBookmarkList({int count = 5}) {
+  return List.generate(
+    count,
+    (i) => createTestBookmark(chapterIndex: i, charOffset: i * 100),
+  );
+}
+
+/// 创建测试用的章节列表
+List<Chapter> createTestChapterList({int count = 10}) {
+  return List.generate(count, (i) => createTestChapter(chapterIndex: i));
+}

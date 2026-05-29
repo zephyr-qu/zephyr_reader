@@ -9,8 +9,7 @@ class BookshelfBatchToolbar extends StatelessWidget {
   final VoidCallback onCancel;
   final Future<void> Function() onDeleteAll;
   final Future<void> Function(String status) onBatchStatusChange;
-  final Future<void> Function(List<String> categoryIds)
-      onBatchCategoryChange;
+  final Future<void> Function(List<String> categoryIds) onBatchCategoryChange;
 
   const BookshelfBatchToolbar({
     super.key,
@@ -50,10 +49,7 @@ class BookshelfBatchToolbar extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            TextButton(
-              onPressed: onCancel,
-              child: const Text('取消'),
-            ),
+            TextButton(onPressed: onCancel, child: const Text('取消')),
             PopupMenuButton<String>(
               onSelected: (action) async {
                 if (action == 'delete') {
@@ -61,9 +57,7 @@ class BookshelfBatchToolbar extends StatelessWidget {
                     context: context,
                     builder: (c) => AlertDialog(
                       title: const Text('删除书籍'),
-                      content: Text(
-                        '确定要删除选中的 $selectedCount 本书吗？',
-                      ),
+                      content: Text('确定要删除选中的 $selectedCount 本书吗？'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(c, false),
@@ -122,7 +116,7 @@ class BookshelfBatchToolbar extends StatelessWidget {
                     await onBatchCategoryChange(tempIds.toList());
                   }
                 } else if (action == 'status') {
-                  await showDialog<String>(
+                  final status = await showDialog<String>(
                     context: context,
                     builder: (c) => AlertDialog(
                       title: const Text('更改状态'),
@@ -144,11 +138,10 @@ class BookshelfBatchToolbar extends StatelessWidget {
                         ],
                       ),
                     ),
-                  ).then((status) async {
-                    if (status != null) {
-                      await onBatchStatusChange(status);
-                    }
-                  });
+                  );
+                  if (status != null) {
+                    await onBatchStatusChange(status);
+                  }
                 }
               },
               itemBuilder: (c) => [
@@ -159,10 +152,7 @@ class BookshelfBatchToolbar extends StatelessWidget {
                       PhosphorIconsRegular.trash,
                       color: Colors.red,
                     ),
-                    title: Text(
-                      '删除',
-                      style: TextStyle(color: Colors.red),
-                    ),
+                    title: Text('删除', style: TextStyle(color: Colors.red)),
                     contentPadding: EdgeInsets.zero,
                     dense: true,
                   ),

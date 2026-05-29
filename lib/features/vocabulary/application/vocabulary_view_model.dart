@@ -3,9 +3,8 @@ library;
 import 'dart:async';
 
 import 'package:injectable/injectable.dart';
-import 'package:signals/signals.dart';
-import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/shared/book_title_resolver.dart';
 import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -45,16 +44,7 @@ class VocabularyViewModel {
   }
 
   Future<void> _loadBookTitles() async {
-    try {
-      final allBooks = await book_api.listBooks();
-      final map = <String, String>{};
-      for (final book in allBooks) {
-        map[book.bookId] = book.title;
-      }
-      bookTitles.value = map;
-    } catch (e) {
-      Logging.error('加载书籍标题失败', exception: e);
-    }
+    bookTitles.value = await loadBookTitles();
   }
 
   Future<void> refresh() async {

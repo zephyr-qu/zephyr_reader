@@ -1,14 +1,38 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-class ChapterListWidget extends StatefulWidget {
+const _cnNumerals = [
+  '一',
+  '二',
+  '三',
+  '四',
+  '五',
+  '六',
+  '七',
+  '八',
+  '九',
+  '十',
+  '十一',
+  '十二',
+  '十三',
+  '十四',
+  '十五',
+  '十六',
+  '十七',
+  '十八',
+  '十九',
+  '二十',
+];
+
+class ChapterListWidget extends HookWidget {
   final List<Chapter> chapters;
   final int currentChapterIndex;
-  final ThemeMode themeMode;
   final ValueChanged<int> onChapterSelected;
   final VoidCallback onClose;
 
@@ -16,87 +40,28 @@ class ChapterListWidget extends StatefulWidget {
     super.key,
     required this.chapters,
     required this.currentChapterIndex,
-    required this.themeMode,
     required this.onChapterSelected,
     required this.onClose,
   });
 
   @override
-  State<ChapterListWidget> createState() => _ChapterListWidgetState();
-}
-
-class _ChapterListWidgetState extends State<ChapterListWidget> {
-  final _scrollController = ScrollController();
-
-  static const _cnNumerals = [
-    '一',
-    '二',
-    '三',
-    '四',
-    '五',
-    '六',
-    '七',
-    '八',
-    '九',
-    '十',
-    '十一',
-    '十二',
-    '十三',
-    '十四',
-    '十五',
-    '十六',
-    '十七',
-    '十八',
-    '十九',
-    '二十',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToCurrent();
-    });
-  }
-
-  void _scrollToCurrent() {
-    final idx = widget.chapters.indexWhere(
-      (c) => c.chapterIndex == widget.currentChapterIndex,
-    );
-    if (idx >= 0 && _scrollController.hasClients) {
-      final offset = idx * 64.0;
-      final maxScroll = _scrollController.position.maxScrollExtent;
-      _scrollController.animateTo(
-        offset.clamp(0, maxScroll),
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeOutCubic,
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final isDark = widget.themeMode == ThemeMode.dark;
-    final bgColor = isDark ? const Color(0xFF111118) : const Color(0xFFF8F6F0);
-    final surfaceColor = isDark
-        ? const Color(0xFF1A1A24)
-        : const Color(0xFFFFFDF7);
-    final textColor = isDark
-        ? const Color(0xFFE8E6E1)
-        : const Color(0xFF2C2C2C);
-    final mutedColor = isDark
-        ? const Color(0xFF6B6B76)
-        : const Color(0xFF9C9C9C);
-    final accentColor = DesignTokens.warmAccent;
-    final dividerColor = isDark
-        ? const Color(0xFF2A2A35)
-        : const Color(0xFFEDEBE4);
+    final scrollController = useScrollController();
+
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToCurrent(scrollController, chapters, currentChapterIndex);
+      });
+      return null;
+    }, [chapters, currentChapterIndex]);
+
+    final readerTheme = Theme.of(context).extension<ReaderThemeExtension>()!;
+    final bgColor = readerTheme.backgroundColor;
+    final surfaceColor = readerTheme.surfaceColor;
+    final textColor = readerTheme.textColor;
+    final mutedColor = readerTheme.mutedColor;
+    final accentColor = readerTheme.accentColor;
+    final dividerColor = readerTheme.dividerColor;
 
     return Material(
       color: Colors.transparent,
@@ -108,18 +73,18 @@ class _ChapterListWidgetState extends State<ChapterListWidget> {
               _buildHeader(textColor, mutedColor, accentColor, dividerColor),
               Expanded(
                 child: ListView.builder(
-                  controller: _scrollController,
+                  controller: scrollController,
                   padding: EdgeInsets.only(
                     top: 4,
                     bottom: 24,
                     left: DesignTokens.spacing(Spacing.md),
                     right: DesignTokens.spacing(Spacing.sm),
                   ),
-                  itemCount: widget.chapters.length,
+                  itemCount: chapters.length,
                   itemBuilder: (context, index) {
-                    final chapter = widget.chapters[index];
+                    final chapter = chapters[index];
                     final isCurrent =
-                        chapter.chapterIndex == widget.currentChapterIndex;
+                        chapter.chapterIndex == currentChapterIndex;
                     final indent = (chapter.level - 1).clamp(0, 4);
                     return _buildChapterItem(
                       chapter: chapter,
@@ -130,7 +95,6 @@ class _ChapterListWidgetState extends State<ChapterListWidget> {
                       mutedColor: mutedColor,
                       accentColor: accentColor,
                       surfaceColor: surfaceColor,
-                      isDark: isDark,
                     );
                   },
                 ),
@@ -140,6 +104,25 @@ class _ChapterListWidgetState extends State<ChapterListWidget> {
         ),
       ),
     );
+  }
+
+  void _scrollToCurrent(
+    ScrollController controller,
+    List<Chapter> chapters,
+    int currentChapterIndex,
+  ) {
+    final idx = chapters.indexWhere(
+      (c) => c.chapterIndex == currentChapterIndex,
+    );
+    if (idx >= 0 && controller.hasClients) {
+      final offset = idx * 64.0;
+      final maxScroll = controller.position.maxScrollExtent;
+      controller.animateTo(
+        offset.clamp(0, maxScroll),
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   Widget _buildHeader(
@@ -186,7 +169,7 @@ class _ChapterListWidgetState extends State<ChapterListWidget> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              '${widget.chapters.length} 章',
+              '${chapters.length} 章',
               style: TextStyle(
                 color: accentColor,
                 fontSize: 11,
@@ -198,7 +181,7 @@ class _ChapterListWidgetState extends State<ChapterListWidget> {
           SizedBox(width: DesignTokens.spacing(Spacing.sm)),
           IconButton(
             icon: Icon(PhosphorIconsRegular.x, color: mutedColor, size: 22),
-            onPressed: widget.onClose,
+            onPressed: onClose,
             splashRadius: 20,
             tooltip: '关闭',
           ),
@@ -216,7 +199,6 @@ class _ChapterListWidgetState extends State<ChapterListWidget> {
     required Color mutedColor,
     required Color accentColor,
     required Color surfaceColor,
-    required bool isDark,
   }) {
     final showNumber = chapter.level <= 1;
     final cnNum = index < _cnNumerals.length
@@ -228,7 +210,7 @@ class _ChapterListWidgetState extends State<ChapterListWidget> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => widget.onChapterSelected(chapter.chapterIndex),
+          onTap: () => onChapterSelected(chapter.chapterIndex),
           borderRadius: BorderRadius.circular(10),
           splashColor: accentColor.withValues(alpha: 0.08),
           highlightColor: accentColor.withValues(alpha: 0.04),

@@ -2,7 +2,9 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
+import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
+import 'package:sentry_dio/sentry_dio.dart';
 import 'package:zephyr_reader/core/app_config.dart';
 import 'package:zephyr_reader/core/network/network_error.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
@@ -46,11 +48,13 @@ abstract class NetworkModule {
       ),
     );
 
+    dio.addSentry();
+
     dio.interceptors.add(
       PrettyDioLogger(
         requestHeader: true,
-        requestBody: true,
-        responseBody: true,
+        requestBody: kDebugMode,
+        responseBody: kDebugMode,
         responseHeader: false,
         error: true,
         compact: true,

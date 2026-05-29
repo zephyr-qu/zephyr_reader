@@ -13,20 +13,20 @@ class LayoutBreakpoints {
   static const double desktopMin = 840;
 
   static bool isPhone(BuildContext context) {
-    return MediaQuery.of(context).size.width < phoneMax;
+    return MediaQuery.sizeOf(context).width < phoneMax;
   }
 
   static bool isTablet(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
+    final width = MediaQuery.sizeOf(context).width;
     return width >= tabletMin && width < desktopMin;
   }
 
   static bool isDesktop(BuildContext context) {
-    return MediaQuery.of(context).size.width >= desktopMin;
+    return MediaQuery.sizeOf(context).width >= desktopMin;
   }
 
   static DeviceType getDeviceType(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
+    final width = MediaQuery.sizeOf(context).width;
     if (width < phoneMax) {
       return DeviceType.phone;
     } else if (width < desktopMin) {

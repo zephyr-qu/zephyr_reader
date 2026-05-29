@@ -1,5 +1,4 @@
-import 'package:signals/signals.dart';
-
+import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 

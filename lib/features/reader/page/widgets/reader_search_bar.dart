@@ -30,7 +30,7 @@ class ReaderSearchBar extends StatelessWidget {
     return Container(
       color: theme.colorScheme.surfaceContainerHigh,
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top,
+        top: MediaQuery.paddingOf(context).top,
         left: DesignTokens.spacing(Spacing.sm),
         right: DesignTokens.spacing(Spacing.sm),
         bottom: DesignTokens.spacing(Spacing.xs),

@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
+import 'package:zephyr_reader/core/presentation/widgets/empty_state_widget.dart';
+import 'package:zephyr_reader/core/presentation/widgets/selection_chip.dart';
 import 'package:zephyr_reader/features/vocabulary/application/vocabulary_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
@@ -33,10 +35,14 @@ class VocabularyPage extends HookWidget {
     final filterWordList = useSignalValue<String?, Signal<String?>>(
       vm.filterWordList,
     );
-    final wordsState = useSignalValue<AsyncState<List<Vocab>>, AsyncSignal<List<Vocab>>>(vm.words);
-    final bookTitles = useSignalValue<Map<String, String>, Signal<Map<String, String>>>(
-      vm.bookTitles,
-    );
+    final wordsState =
+        useSignalValue<AsyncState<List<Vocab>>, AsyncSignal<List<Vocab>>>(
+          vm.words,
+        );
+    final bookTitles =
+        useSignalValue<Map<String, String>, Signal<Map<String, String>>>(
+          vm.bookTitles,
+        );
 
     return Scaffold(
       appBar: AppBar(
@@ -57,19 +63,8 @@ class VocabularyPage extends HookWidget {
       body: SafeArea(
         child: Column(
           children: [
-            _buildStatsRow(
-              theme,
-              stats,
-              filterStatus,
-              filterWordList,
-            ),
-            Expanded(
-              child: _buildWordList(
-                theme,
-                wordsState,
-                bookTitles,
-              ),
-            ),
+            _buildStatsRow(theme, stats, filterStatus, filterWordList),
+            Expanded(child: _buildWordList(theme, wordsState, bookTitles)),
           ],
         ),
       ),
@@ -88,7 +83,10 @@ class VocabularyPage extends HookWidget {
       return SizedBox(height: DesignTokens.spacing(Spacing.sm));
     }
     final notStartedCount =
-        stats.totalWords - stats.learningCount - stats.knownCount - stats.masteredCount;
+        stats.totalWords -
+        stats.learningCount -
+        stats.knownCount -
+        stats.masteredCount;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -185,59 +183,25 @@ class VocabularyPage extends HookWidget {
     required ThemeData theme,
     bool isWordList = false,
   }) {
+    final cs = theme.colorScheme;
     if (isWordList) {
-      return GestureDetector(
+      return SelectionChip(
+        label: '$label $count',
+        selected: selected,
+        colorScheme: cs,
         onTap: () => vm.setWordListFilter(wordList),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: selected
-                ? theme.colorScheme.secondary.withValues(alpha: 0.12)
-                : theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected
-                  ? theme.colorScheme.secondary
-                  : Colors.transparent,
-              width: 1,
-            ),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-              color: selected ? theme.colorScheme.secondary : null,
-            ),
-          ),
-        ),
+        activeColor: cs.secondary,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        inactiveBgColor: cs.surfaceContainerHighest,
       );
     }
-    return GestureDetector(
+    return SelectionChip(
+      label: '$label $count',
+      selected: selected,
+      colorScheme: cs,
       onTap: () => vm.setFilter(filterStatus),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected
-              ? theme.colorScheme.primary.withValues(alpha: 0.12)
-              : theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? theme.colorScheme.primary : Colors.transparent,
-            width: 1,
-          ),
-        ),
-        child: Text(
-          '$label $count',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-            color: selected ? theme.colorScheme.primary : null,
-          ),
-        ),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      inactiveBgColor: cs.surfaceContainerHighest,
     );
   }
 
@@ -277,22 +241,11 @@ class VocabularyPage extends HookWidget {
     }
     final items = wordsState.value ?? [];
     if (items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              PhosphorIconsRegular.bookmarkSimple,
-              size: 48,
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '暂无生词',
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-            ),
-          ],
-        ),
+      return EmptyStateWidget(
+        icon: PhosphorIconsRegular.bookmarkSimple,
+        title: '暂无生词',
+        iconSize: 48,
+        colorScheme: theme.colorScheme,
       );
     }
     return ListView.separated(
@@ -339,17 +292,11 @@ class VocabularyPage extends HookWidget {
                       child: Text('未学'),
                     ),
                   if (item.status.toString() != 'learning')
-                    const PopupMenuItem(
-                      value: 'learning',
-                      child: Text('学习中'),
-                    ),
+                    const PopupMenuItem(value: 'learning', child: Text('学习中')),
                   if (item.status.toString() != 'known')
                     const PopupMenuItem(value: 'known', child: Text('已认识')),
                   if (item.status.toString() != 'mastered')
-                    const PopupMenuItem(
-                      value: 'mastered',
-                      child: Text('已掌握'),
-                    ),
+                    const PopupMenuItem(value: 'mastered', child: Text('已掌握')),
                 ],
                 child: Container(
                   padding: EdgeInsets.symmetric(
@@ -357,7 +304,9 @@ class VocabularyPage extends HookWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: _statusColor(item.status.toString()).withValues(alpha: 0.15),
+                    color: _statusColor(
+                      item.status.toString(),
+                    ).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(

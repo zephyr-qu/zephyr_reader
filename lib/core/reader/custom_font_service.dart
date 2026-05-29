@@ -12,13 +12,13 @@ library;
 
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/domain/models/font_info.dart';
 
 /// 字体仓库
@@ -94,7 +94,7 @@ class FontRepository {
         await loader.load();
         _registeredFamilies.add(family);
       } catch (e) {
-        debugPrint('字体注册失败 $family: $e');
+        Logging.error('字体注册失败 $family: $e');
       }
     }
   }
@@ -129,7 +129,7 @@ class FontRepository {
       currentFont.value = fonts.first;
     }
 
-    debugPrint('字体加载完成，共${fonts.length}个字体');
+    Logging.info('字体加载完成，共${fonts.length}个字体');
   }
 
   /// 加载本地字体
@@ -162,7 +162,7 @@ class FontRepository {
         }
       }
     } catch (e) {
-      debugPrint('加载本地字体失败：$e');
+      Logging.error('加载本地字体失败：$e');
     }
 
     return fonts;
@@ -178,7 +178,7 @@ class FontRepository {
     currentFont.value = font;
     await _prefs.setString(_keyCurrentFont, fontId);
 
-    debugPrint('设置字体：${font.name}');
+    Logging.info('设置字体：${font.name}');
   }
 
   /// 导入本地字体
@@ -247,7 +247,7 @@ class FontRepository {
       );
       return font.path;
     } catch (e) {
-      debugPrint('获取字体路径失败：$e');
+      Logging.error('获取字体路径失败：$e');
       return null;
     }
   }
@@ -267,9 +267,9 @@ class FontRepository {
       // 切换回系统默认
       await setCurrentFont('system');
 
-      debugPrint('清除所有自定义字体完成');
+      Logging.info('清除所有自定义字体完成');
     } catch (e) {
-      debugPrint('清除字体失败：$e');
+      Logging.error('清除字体失败：$e');
     }
   }
 

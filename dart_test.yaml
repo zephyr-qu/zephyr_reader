@@ -1,0 +1,35 @@
+# dart_test.yaml
+#
+# Zephyr Reader 测试配置
+
+# ─── 测试标签 ───
+tags:
+  ffi:
+    description: 需要 Rust FFI 初始化的测试
+    # 开发环境跳过: flutter test --exclude-tags=ffi
+    # CI 环境包含:   flutter test（在目标平台上）
+  slow:
+    description: 执行时间超过 10s 的慢测试
+    # 快速验证跳过: flutter test --exclude-tags=slow
+  widget:
+    description: Flutter Widget 测试（需要 TestWidgetsFlutterBinding）
+  e2e:
+    description: 端到端集成测试
+
+# ─── 超时配置 ───
+timeout: "30s"
+concurrency: 4
+# Windows 上限制并发以避免文件锁定问题
+# concurrency: 2 (platform: windows)
+
+# ─── 测试平台 ───
+platforms:
+  - vm              # Dart VM（主要平台）
+
+# ─── 测试文件模式 ───
+# 仅运行匹配模式的测试文件
+# 默认: **/*_test.dart（自动）
+
+# ─── 测试报告 ───
+# 生成测试报告文件
+reporter: expanded

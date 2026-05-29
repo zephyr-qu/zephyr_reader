@@ -94,7 +94,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 2059830364;
+  int get rustContentHash => 979886004;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -140,7 +140,7 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiDataSessionClearSessionsByBook({required String bookId});
 
-  Future<void> crateApiDictionaryCloseDictionary();
+  void crateApiDictionaryCloseDictionary();
 
   Future<int> crateApiDataBookmarkCountBookmarksByBook({
     required String bookId,
@@ -159,19 +159,7 @@ abstract class RustLibApi extends BaseApi {
   });
 
   Future<BilingualHighlightPair> crateApiBilingualCreateBilingualHighlightPair({
-    required String sourceBookId,
-    required int sourceChapterIndex,
-    required PlatformInt64 sourceCharOffset,
-    required PlatformInt64 sourceLength,
-    required String sourceSelectedText,
-    required String sourceLanguage,
-    required String targetBookId,
-    required int targetChapterIndex,
-    required PlatformInt64 targetCharOffset,
-    required PlatformInt64 targetLength,
-    required String targetSelectedText,
-    required String targetLanguage,
-    required int highlightColor,
+    required BilingualHighlightParams params,
   });
 
   Future<Bookmark> crateApiDataBookmarkCreateBookmark({
@@ -270,7 +258,7 @@ abstract class RustLibApi extends BaseApi {
     required String outputDir,
   });
 
-  Uint8List? crateApiDictionaryExtractAudio({required String audioKey});
+  Future<Uint8List?> crateApiDictionaryExtractAudio({required String audioKey});
 
   Future<String> crateApiCoverExtractBookCover({
     required String filePath,
@@ -279,7 +267,7 @@ abstract class RustLibApi extends BaseApi {
 
   Future<BookMetadata> crateApiCoreExtractMetadata({required String filePath});
 
-  Future<List<String>> crateApiVocabMarkerGetAllVocabularyWords();
+  List<String> crateApiVocabMarkerGetAllVocabularyWords();
 
   Future<List<BilingualHighlightPair>>
   crateApiBilingualGetBilingualHighlightPairs({
@@ -343,7 +331,7 @@ abstract class RustLibApi extends BaseApi {
     required int pageIndex,
   });
 
-  int crateApiCoreGetPdfTotalPages({required String filePath});
+  Future<int> crateApiCoreGetPdfTotalPages({required String filePath});
 
   Future<ReadingProgress?> crateApiDataProgressGetProgress({
     required String bookId,
@@ -362,7 +350,7 @@ abstract class RustLibApi extends BaseApi {
     required String endDate,
   });
 
-  List<String> crateApiCoreGetSupportedFormats();
+  Future<List<String>> crateApiCoreGetSupportedFormats();
 
   Future<List<ReadingStats>> crateApiDataStatsGetTodayReadingStats();
 
@@ -437,6 +425,10 @@ abstract class RustLibApi extends BaseApi {
     NoteType? noteType,
   });
 
+  Future<List<(String, List<Note>)>> crateApiDataNoteListNotesByBooks({
+    required List<String> bookIds,
+  });
+
   Future<List<Note>> crateApiDataNoteListNotesInChapter({
     required String bookId,
     required int chapterIndex,
@@ -470,7 +462,9 @@ abstract class RustLibApi extends BaseApi {
     String? wordList,
   });
 
-  DictSearchResult? crateApiDictionaryLookupMdict({required String word});
+  Future<DictSearchResult?> crateApiDictionaryLookupMdict({
+    required String word,
+  });
 
   Future<List<PageContent>> crateApiCorePaginateAllContent({
     required String filePath,
@@ -480,7 +474,7 @@ abstract class RustLibApi extends BaseApi {
 
   Future<ParseResult> crateApiCoreParseBook({required String filePath});
 
-  Future<String> crateApiDataNoteRenderNotesToString({
+  String crateApiDataNoteRenderNotesToString({
     required List<Note> notes,
     required String bookTitle,
     required String format,
@@ -488,9 +482,7 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiBackupRestoreDatabase({required String backupPath});
 
-  Future<List<VocabMatch>> crateApiVocabMarkerScanForVocabulary({
-    required String text,
-  });
+  List<VocabMatch> crateApiVocabMarkerScanForVocabulary({required String text});
 
   Future<List<SearchResult>> crateApiSearchSearch({
     required String bookId,
@@ -501,6 +493,7 @@ abstract class RustLibApi extends BaseApi {
   Future<List<SearchResult>> crateApiSearchSearchAllBooks({
     required String query,
     required int limit,
+    required int offset,
   });
 
   Future<List<Book>> crateApiDataBookSearchBooks({required String keyword});
@@ -521,7 +514,7 @@ abstract class RustLibApi extends BaseApi {
     required String englishContent,
   });
 
-  List<String> crateApiDictionarySuggestMdict({
+  Future<List<String>> crateApiDictionarySuggestMdict({
     required String prefix,
     required int limit,
   });
@@ -570,14 +563,15 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiDataBookUpsertBook({required Book book});
 
-  Future<void> crateApiDataBookmarkUpsertBookmark({required Bookmark bookmark});
+  Future<Bookmark> crateApiDataBookmarkUpsertBookmark({
+    required Bookmark bookmark,
+  });
 
   Future<Category> crateApiDataCategoryUpsertCategory({
     required String name,
     required String color,
     required int sortOrder,
     String? description,
-    String? categoryId,
   });
 
   Future<void> crateApiDataChapterUpsertChapters({
@@ -591,6 +585,10 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiDataProgressUpsertProgress({
     required ReadingProgress progress,
+  });
+
+  Future<ReadingSession> crateApiDataSessionUpsertSession({
+    required ReadingSession session,
   });
 
   RustArcIncrementStrongCountFnType
@@ -909,11 +907,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<void> crateApiDictionaryCloseDictionary() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__dictionary__close_dictionary(port_);
+  void crateApiDictionaryCloseDictionary() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          return wire.wire__crate__api__dictionary__close_dictionary();
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_unit,
@@ -1046,52 +1044,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @override
   Future<BilingualHighlightPair> crateApiBilingualCreateBilingualHighlightPair({
-    required String sourceBookId,
-    required int sourceChapterIndex,
-    required PlatformInt64 sourceCharOffset,
-    required PlatformInt64 sourceLength,
-    required String sourceSelectedText,
-    required String sourceLanguage,
-    required String targetBookId,
-    required int targetChapterIndex,
-    required PlatformInt64 targetCharOffset,
-    required PlatformInt64 targetLength,
-    required String targetSelectedText,
-    required String targetLanguage,
-    required int highlightColor,
+    required BilingualHighlightParams params,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final arg0 = cst_encode_String(sourceBookId);
-          final arg1 = cst_encode_i_32(sourceChapterIndex);
-          final arg2 = cst_encode_i_64(sourceCharOffset);
-          final arg3 = cst_encode_i_64(sourceLength);
-          final arg4 = cst_encode_String(sourceSelectedText);
-          final arg5 = cst_encode_String(sourceLanguage);
-          final arg6 = cst_encode_String(targetBookId);
-          final arg7 = cst_encode_i_32(targetChapterIndex);
-          final arg8 = cst_encode_i_64(targetCharOffset);
-          final arg9 = cst_encode_i_64(targetLength);
-          final arg10 = cst_encode_String(targetSelectedText);
-          final arg11 = cst_encode_String(targetLanguage);
-          final arg12 = cst_encode_i_32(highlightColor);
+          final arg0 = cst_encode_box_autoadd_bilingual_highlight_params(
+            params,
+          );
           return wire
               .wire__crate__api__bilingual__create_bilingual_highlight_pair(
                 port_,
                 arg0,
-                arg1,
-                arg2,
-                arg3,
-                arg4,
-                arg5,
-                arg6,
-                arg7,
-                arg8,
-                arg9,
-                arg10,
-                arg11,
-                arg12,
               );
         },
         codec: DcoCodec(
@@ -1099,21 +1063,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: dco_decode_app_error,
         ),
         constMeta: kCrateApiBilingualCreateBilingualHighlightPairConstMeta,
-        argValues: [
-          sourceBookId,
-          sourceChapterIndex,
-          sourceCharOffset,
-          sourceLength,
-          sourceSelectedText,
-          sourceLanguage,
-          targetBookId,
-          targetChapterIndex,
-          targetCharOffset,
-          targetLength,
-          targetSelectedText,
-          targetLanguage,
-          highlightColor,
-        ],
+        argValues: [params],
         apiImpl: this,
       ),
     );
@@ -1122,21 +1072,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiBilingualCreateBilingualHighlightPairConstMeta =>
       const TaskConstMeta(
         debugName: 'create_bilingual_highlight_pair',
-        argNames: [
-          'sourceBookId',
-          'sourceChapterIndex',
-          'sourceCharOffset',
-          'sourceLength',
-          'sourceSelectedText',
-          'sourceLanguage',
-          'targetBookId',
-          'targetChapterIndex',
-          'targetCharOffset',
-          'targetLength',
-          'targetSelectedText',
-          'targetLanguage',
-          'highlightColor',
-        ],
+        argNames: ['params'],
       );
 
   @override
@@ -1841,16 +1777,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Uint8List? crateApiDictionaryExtractAudio({required String audioKey}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+  Future<Uint8List?> crateApiDictionaryExtractAudio({
+    required String audioKey,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final arg0 = cst_encode_String(audioKey);
-          return wire.wire__crate__api__dictionary__extract_audio(arg0);
+          return wire.wire__crate__api__dictionary__extract_audio(port_, arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_opt_list_prim_u_8_strict,
-          decodeErrorData: null,
+          decodeErrorData: dco_decode_app_error,
         ),
         constMeta: kCrateApiDictionaryExtractAudioConstMeta,
         argValues: [audioKey],
@@ -1921,17 +1859,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<List<String>> crateApiVocabMarkerGetAllVocabularyWords() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__vocab_marker__get_all_vocabulary_words(
-            port_,
-          );
+  List<String> crateApiVocabMarkerGetAllVocabularyWords() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          return wire
+              .wire__crate__api__vocab_marker__get_all_vocabulary_words();
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_list_String,
-          decodeErrorData: null,
+          decodeErrorData: dco_decode_app_error,
         ),
         constMeta: kCrateApiVocabMarkerGetAllVocabularyWordsConstMeta,
         argValues: [],
@@ -2381,12 +2318,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
-  int crateApiCoreGetPdfTotalPages({required String filePath}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+  Future<int> crateApiCoreGetPdfTotalPages({required String filePath}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final arg0 = cst_encode_String(filePath);
-          return wire.wire__crate__api__core__get_pdf_total_pages(arg0);
+          return wire.wire__crate__api__core__get_pdf_total_pages(port_, arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_u_32,
@@ -2527,15 +2464,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  List<String> crateApiCoreGetSupportedFormats() {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          return wire.wire__crate__api__core__get_supported_formats();
+  Future<List<String>> crateApiCoreGetSupportedFormats() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__core__get_supported_formats(port_);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_list_String,
-          decodeErrorData: null,
+          decodeErrorData: dco_decode_app_error,
         ),
         constMeta: kCrateApiCoreGetSupportedFormatsConstMeta,
         argValues: [],
@@ -3141,6 +3078,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<List<(String, List<Note>)>> crateApiDataNoteListNotesByBooks({
+    required List<String> bookIds,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_list_String(bookIds);
+          return wire.wire__crate__api__data__note__list_notes_by_books(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_record_string_list_note,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataNoteListNotesByBooksConstMeta,
+        argValues: [bookIds],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataNoteListNotesByBooksConstMeta =>
+      const TaskConstMeta(
+        debugName: 'list_notes_by_books',
+        argNames: ['bookIds'],
+      );
+
+  @override
   Future<List<Note>> crateApiDataNoteListNotesInChapter({
     required String bookId,
     required int chapterIndex,
@@ -3365,16 +3332,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  DictSearchResult? crateApiDictionaryLookupMdict({required String word}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+  Future<DictSearchResult?> crateApiDictionaryLookupMdict({
+    required String word,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final arg0 = cst_encode_String(word);
-          return wire.wire__crate__api__dictionary__lookup_mdict(arg0);
+          return wire.wire__crate__api__dictionary__lookup_mdict(port_, arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_opt_box_autoadd_dict_search_result,
-          decodeErrorData: null,
+          decodeErrorData: dco_decode_app_error,
         ),
         constMeta: kCrateApiDictionaryLookupMdictConstMeta,
         argValues: [word],
@@ -3445,19 +3414,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: 'parse_book', argNames: ['filePath']);
 
   @override
-  Future<String> crateApiDataNoteRenderNotesToString({
+  String crateApiDataNoteRenderNotesToString({
     required List<Note> notes,
     required String bookTitle,
     required String format,
   }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
           final arg0 = cst_encode_list_note(notes);
           final arg1 = cst_encode_String(bookTitle);
           final arg2 = cst_encode_String(format);
           return wire.wire__crate__api__data__note__render_notes_to_string(
-            port_,
             arg0,
             arg1,
             arg2,
@@ -3506,21 +3474,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<List<VocabMatch>> crateApiVocabMarkerScanForVocabulary({
+  List<VocabMatch> crateApiVocabMarkerScanForVocabulary({
     required String text,
   }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
           final arg0 = cst_encode_String(text);
-          return wire.wire__crate__api__vocab_marker__scan_for_vocabulary(
-            port_,
-            arg0,
-          );
+          return wire.wire__crate__api__vocab_marker__scan_for_vocabulary(arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_list_vocab_match,
-          decodeErrorData: null,
+          decodeErrorData: dco_decode_app_error,
         ),
         constMeta: kCrateApiVocabMarkerScanForVocabularyConstMeta,
         argValues: [text],
@@ -3566,16 +3531,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Future<List<SearchResult>> crateApiSearchSearchAllBooks({
     required String query,
     required int limit,
+    required int offset,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(query);
           final arg1 = cst_encode_i_32(limit);
+          final arg2 = cst_encode_i_32(offset);
           return wire.wire__crate__api__search__search_all_books(
             port_,
             arg0,
             arg1,
+            arg2,
           );
         },
         codec: DcoCodec(
@@ -3583,7 +3551,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: dco_decode_app_error,
         ),
         constMeta: kCrateApiSearchSearchAllBooksConstMeta,
-        argValues: [query, limit],
+        argValues: [query, limit, offset],
         apiImpl: this,
       ),
     );
@@ -3592,7 +3560,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiSearchSearchAllBooksConstMeta =>
       const TaskConstMeta(
         debugName: 'search_all_books',
-        argNames: ['query', 'limit'],
+        argNames: ['query', 'limit', 'offset'],
       );
 
   @override
@@ -3737,20 +3705,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  List<String> crateApiDictionarySuggestMdict({
+  Future<List<String>> crateApiDictionarySuggestMdict({
     required String prefix,
     required int limit,
   }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final arg0 = cst_encode_String(prefix);
           final arg1 = cst_encode_i_32(limit);
-          return wire.wire__crate__api__dictionary__suggest_mdict(arg0, arg1);
+          return wire.wire__crate__api__dictionary__suggest_mdict(
+            port_,
+            arg0,
+            arg1,
+          );
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_list_String,
-          decodeErrorData: null,
+          decodeErrorData: dco_decode_app_error,
         ),
         constMeta: kCrateApiDictionarySuggestMdictConstMeta,
         argValues: [prefix, limit],
@@ -3846,7 +3818,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_String,
-          decodeErrorData: null,
+          decodeErrorData: dco_decode_app_error,
         ),
         constMeta: kCrateApiTestConnectionConstMeta,
         argValues: [],
@@ -4112,7 +4084,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: 'upsert_book', argNames: ['book']);
 
   @override
-  Future<void> crateApiDataBookmarkUpsertBookmark({
+  Future<Bookmark> crateApiDataBookmarkUpsertBookmark({
     required Bookmark bookmark,
   }) {
     return handler.executeNormal(
@@ -4125,7 +4097,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
+          decodeSuccessData: dco_decode_bookmark,
           decodeErrorData: dco_decode_app_error,
         ),
         constMeta: kCrateApiDataBookmarkUpsertBookmarkConstMeta,
@@ -4144,7 +4116,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required String color,
     required int sortOrder,
     String? description,
-    String? categoryId,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -4153,14 +4124,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final arg1 = cst_encode_String(color);
           final arg2 = cst_encode_i_32(sortOrder);
           final arg3 = cst_encode_opt_String(description);
-          final arg4 = cst_encode_opt_String(categoryId);
           return wire.wire__crate__api__data__category__upsert_category(
             port_,
             arg0,
             arg1,
             arg2,
             arg3,
-            arg4,
           );
         },
         codec: DcoCodec(
@@ -4168,7 +4137,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: dco_decode_app_error,
         ),
         constMeta: kCrateApiDataCategoryUpsertCategoryConstMeta,
-        argValues: [name, color, sortOrder, description, categoryId],
+        argValues: [name, color, sortOrder, description],
         apiImpl: this,
       ),
     );
@@ -4177,7 +4146,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiDataCategoryUpsertCategoryConstMeta =>
       const TaskConstMeta(
         debugName: 'upsert_category',
-        argNames: ['name', 'color', 'sortOrder', 'description', 'categoryId'],
+        argNames: ['name', 'color', 'sortOrder', 'description'],
       );
 
   @override
@@ -4287,6 +4256,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiDataProgressUpsertProgressConstMeta =>
       const TaskConstMeta(debugName: 'upsert_progress', argNames: ['progress']);
 
+  @override
+  Future<ReadingSession> crateApiDataSessionUpsertSession({
+    required ReadingSession session,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_box_autoadd_reading_session(session);
+          return wire.wire__crate__api__data__session__upsert_session(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_reading_session,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataSessionUpsertSessionConstMeta,
+        argValues: [session],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataSessionUpsertSessionConstMeta =>
+      const TaskConstMeta(debugName: 'upsert_session', argNames: ['session']);
+
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_PageStreamer => wire
       .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer;
@@ -4378,6 +4374,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case 11:
         return AppError_InternalError(reason: dco_decode_String(raw[1]));
       case 12:
+        return AppError_TaskPanic(
+          taskName: dco_decode_String(raw[1]),
+          details: dco_decode_String(raw[2]),
+        );
+      case 13:
         return AppError_Other(dco_decode_String(raw[1]));
       default:
         throw Exception('unreachable');
@@ -4406,6 +4407,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return BilingualHighlightPair(
       sourceNote: dco_decode_note(arr[0]),
       targetNote: dco_decode_opt_box_autoadd_note(arr[1]),
+    );
+  }
+
+  @protected
+  BilingualHighlightParams dco_decode_bilingual_highlight_params(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
+    return BilingualHighlightParams(
+      sourceBookId: dco_decode_String(arr[0]),
+      sourceChapterIndex: dco_decode_i_32(arr[1]),
+      sourceCharOffset: dco_decode_i_64(arr[2]),
+      sourceLength: dco_decode_i_64(arr[3]),
+      sourceSelectedText: dco_decode_String(arr[4]),
+      sourceLanguage: dco_decode_String(arr[5]),
+      targetBookId: dco_decode_String(arr[6]),
+      targetChapterIndex: dco_decode_i_32(arr[7]),
+      targetCharOffset: dco_decode_i_64(arr[8]),
+      targetLength: dco_decode_i_64(arr[9]),
+      targetSelectedText: dco_decode_String(arr[10]),
+      targetLanguage: dco_decode_String(arr[11]),
+      highlightColor: dco_decode_i_32(arr[12]),
     );
   }
 
@@ -4513,6 +4537,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BilingualHighlightParams dco_decode_box_autoadd_bilingual_highlight_params(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bilingual_highlight_params(raw);
+  }
+
+  @protected
   Book dco_decode_box_autoadd_book(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_book(raw);
@@ -4588,6 +4620,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ReadingProgress dco_decode_box_autoadd_reading_progress(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_reading_progress(raw);
+  }
+
+  @protected
+  ReadingSession dco_decode_box_autoadd_reading_session(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_reading_session(raw);
   }
 
   @protected
@@ -4881,6 +4919,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<(String, List<Note>)> dco_decode_list_record_string_list_note(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_record_string_list_note)
+        .toList();
+  }
+
+  @protected
   List<RichParagraph> dco_decode_list_rich_paragraph(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_rich_paragraph).toList();
@@ -5162,6 +5210,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       sessionCount: dco_decode_i_32(arr[4]),
       lastSessionId: dco_decode_opt_String(arr[5]),
     );
+  }
+
+  @protected
+  (String, List<Note>) dco_decode_record_string_list_note(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) {
+      throw Exception('Expected 2 elements, got ${arr.length}');
+    }
+    return (dco_decode_String(arr[0]), dco_decode_list_note(arr[1]));
   }
 
   @protected
@@ -5486,6 +5544,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         final var_reason = sse_decode_String(deserializer);
         return AppError_InternalError(reason: var_reason);
       case 12:
+        final var_taskName = sse_decode_String(deserializer);
+        final var_details = sse_decode_String(deserializer);
+        return AppError_TaskPanic(taskName: var_taskName, details: var_details);
+      case 13:
         final var_field0 = sse_decode_String(deserializer);
         return AppError_Other(var_field0);
       default:
@@ -5518,6 +5580,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return BilingualHighlightPair(
       sourceNote: var_sourceNote,
       targetNote: var_targetNote,
+    );
+  }
+
+  @protected
+  BilingualHighlightParams sse_decode_bilingual_highlight_params(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_sourceBookId = sse_decode_String(deserializer);
+    final var_sourceChapterIndex = sse_decode_i_32(deserializer);
+    final var_sourceCharOffset = sse_decode_i_64(deserializer);
+    final var_sourceLength = sse_decode_i_64(deserializer);
+    final var_sourceSelectedText = sse_decode_String(deserializer);
+    final var_sourceLanguage = sse_decode_String(deserializer);
+    final var_targetBookId = sse_decode_String(deserializer);
+    final var_targetChapterIndex = sse_decode_i_32(deserializer);
+    final var_targetCharOffset = sse_decode_i_64(deserializer);
+    final var_targetLength = sse_decode_i_64(deserializer);
+    final var_targetSelectedText = sse_decode_String(deserializer);
+    final var_targetLanguage = sse_decode_String(deserializer);
+    final var_highlightColor = sse_decode_i_32(deserializer);
+    return BilingualHighlightParams(
+      sourceBookId: var_sourceBookId,
+      sourceChapterIndex: var_sourceChapterIndex,
+      sourceCharOffset: var_sourceCharOffset,
+      sourceLength: var_sourceLength,
+      sourceSelectedText: var_sourceSelectedText,
+      sourceLanguage: var_sourceLanguage,
+      targetBookId: var_targetBookId,
+      targetChapterIndex: var_targetChapterIndex,
+      targetCharOffset: var_targetCharOffset,
+      targetLength: var_targetLength,
+      targetSelectedText: var_targetSelectedText,
+      targetLanguage: var_targetLanguage,
+      highlightColor: var_highlightColor,
     );
   }
 
@@ -5655,6 +5752,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BilingualHighlightParams sse_decode_box_autoadd_bilingual_highlight_params(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bilingual_highlight_params(deserializer));
+  }
+
+  @protected
   Book sse_decode_box_autoadd_book(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_book(deserializer));
@@ -5734,6 +5839,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_reading_progress(deserializer));
+  }
+
+  @protected
+  ReadingSession sse_decode_box_autoadd_reading_session(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_reading_session(deserializer));
   }
 
   @protected
@@ -6147,6 +6260,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final ans_ = <ReadingStats>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_reading_stats(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<(String, List<Note>)> sse_decode_list_record_string_list_note(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    final len_ = sse_decode_i_32(deserializer);
+    final ans_ = <(String, List<Note>)>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_record_string_list_note(deserializer));
     }
     return ans_;
   }
@@ -6601,6 +6728,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       sessionCount: var_sessionCount,
       lastSessionId: var_lastSessionId,
     );
+  }
+
+  @protected
+  (String, List<Note>) sse_decode_record_string_list_note(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_field0 = sse_decode_String(deserializer);
+    final var_field1 = sse_decode_list_note(deserializer);
+    return (var_field0, var_field1);
   }
 
   @protected
@@ -7081,8 +7218,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case AppError_InternalError(reason: final reason):
         sse_encode_i_32(11, serializer);
         sse_encode_String(reason, serializer);
-      case AppError_Other(field0: final field0):
+      case AppError_TaskPanic(taskName: final taskName, details: final details):
         sse_encode_i_32(12, serializer);
+        sse_encode_String(taskName, serializer);
+        sse_encode_String(details, serializer);
+      case AppError_Other(field0: final field0):
+        sse_encode_i_32(13, serializer);
         sse_encode_String(field0, serializer);
     }
   }
@@ -7106,6 +7247,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_note(self.sourceNote, serializer);
     sse_encode_opt_box_autoadd_note(self.targetNote, serializer);
+  }
+
+  @protected
+  void sse_encode_bilingual_highlight_params(
+    BilingualHighlightParams self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.sourceBookId, serializer);
+    sse_encode_i_32(self.sourceChapterIndex, serializer);
+    sse_encode_i_64(self.sourceCharOffset, serializer);
+    sse_encode_i_64(self.sourceLength, serializer);
+    sse_encode_String(self.sourceSelectedText, serializer);
+    sse_encode_String(self.sourceLanguage, serializer);
+    sse_encode_String(self.targetBookId, serializer);
+    sse_encode_i_32(self.targetChapterIndex, serializer);
+    sse_encode_i_64(self.targetCharOffset, serializer);
+    sse_encode_i_64(self.targetLength, serializer);
+    sse_encode_String(self.targetSelectedText, serializer);
+    sse_encode_String(self.targetLanguage, serializer);
+    sse_encode_i_32(self.highlightColor, serializer);
   }
 
   @protected
@@ -7195,6 +7357,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_Chrono_Utc(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bilingual_highlight_params(
+    BilingualHighlightParams self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bilingual_highlight_params(self, serializer);
   }
 
   @protected
@@ -7297,6 +7468,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_reading_progress(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_reading_session(
+    ReadingSession self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_reading_session(self, serializer);
   }
 
   @protected
@@ -7630,6 +7810,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_reading_stats(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_record_string_list_note(
+    List<(String, List<Note>)> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_record_string_list_note(item, serializer);
     }
   }
 
@@ -8024,6 +8216,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_64(self.charactersRead, serializer);
     sse_encode_i_32(self.sessionCount, serializer);
     sse_encode_opt_String(self.lastSessionId, serializer);
+  }
+
+  @protected
+  void sse_encode_record_string_list_note(
+    (String, List<Note>) self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.$1, serializer);
+    sse_encode_list_note(self.$2, serializer);
   }
 
   @protected

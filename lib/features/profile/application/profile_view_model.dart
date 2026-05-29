@@ -1,5 +1,5 @@
 import 'package:injectable/injectable.dart';
-import 'package:signals/signals.dart';
+import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/api/data/stats.dart' as stats_api;
 import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';

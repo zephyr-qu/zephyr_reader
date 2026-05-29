@@ -90,8 +90,7 @@ class _RecentBookCard extends StatelessWidget {
                         child: LinearProgressIndicator(
                           value: progress!.clamp(0.0, 1.0),
                           minHeight: 2,
-                          backgroundColor:
-                              Colors.black.withValues(alpha: 0.1),
+                          backgroundColor: Colors.black.withValues(alpha: 0.1),
                           valueColor: AlwaysStoppedAnimation(
                             theme.colorScheme.primary,
                           ),
@@ -184,10 +183,7 @@ class BookshelfRecentReading extends StatelessWidget {
                   onTap: () {
                     context.pushNamed(
                       RouteNames.reader,
-                      pathParameters: {
-                        'bookId': book.bookId,
-                        'chapterId': '0',
-                      },
+                      pathParameters: {'bookId': book.bookId, 'chapterId': '0'},
                     );
                   },
                 );

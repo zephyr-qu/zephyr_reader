@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/theme/theme_extension.dart';
 
@@ -238,6 +239,10 @@ class AppThemes {
             offset: Offset(0, 0),
           ),
         ),
+        if (isDark)
+          ReaderThemeExtension.dark()
+        else
+          ReaderThemeExtension.light(),
       ],
     );
   }
@@ -319,6 +324,11 @@ class AppThemes {
         color: onSurfaceVariant,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.2,
+      ),
+      labelSmall: TextStyle(
+        fontSize: 10,
+        color: onSurfaceVariant,
+        fontWeight: FontWeight.w400,
       ),
     );
   }

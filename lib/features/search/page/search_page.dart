@@ -66,7 +66,9 @@ class SearchPage extends HookWidget {
     // VM signal bindings
     final isSearching = useSignalValue<bool, Signal<bool>>(vm.isSearching);
     final hasSearched = useSignalValue<bool, Signal<bool>>(vm.hasSearched);
-    final searchError = useSignalValue<String?, Signal<String?>>(vm.searchError);
+    final searchError = useSignalValue<String?, Signal<String?>>(
+      vm.searchError,
+    );
 
     // Derived search results from VM raw signals
     final searchResults = useComputed(() {
@@ -82,11 +84,13 @@ class SearchPage extends HookWidget {
       for (final hit in vm.contentHits.value) {
         final book = bookMap[hit.bookId];
         if (book == null || !seenBooks.add(hit.bookId)) continue;
-        bookItems.add(_BookSearchItem(
-          book: book,
-          snippet: hit.snippet,
-          chapterTitle: hit.chapterTitle,
-        ));
+        bookItems.add(
+          _BookSearchItem(
+            book: book,
+            snippet: hit.snippet,
+            chapterTitle: hit.chapterTitle,
+          ),
+        );
       }
       for (final book in vm.titleHits.value) {
         if (seenBooks.add(book.bookId)) {
@@ -95,15 +99,20 @@ class SearchPage extends HookWidget {
       }
 
       final noteItems = vm.noteHits.value.map((note) {
-        final book = bookMap[note.bookId] ??
+        final book =
+            bookMap[note.bookId] ??
             allBooksList.firstWhere((b) => b.bookId == note.bookId);
         return _NoteSearchItem(note: note, book: book);
       }).toList();
 
-      final vocabItems = vm.vocabHits.value.map((v) => _VocabSearchItem(
-        vocab: v,
-        bookTitle: v.bookId != null ? bookMap[v.bookId]?.title : null,
-      )).toList();
+      final vocabItems = vm.vocabHits.value
+          .map(
+            (v) => _VocabSearchItem(
+              vocab: v,
+              bookTitle: v.bookId != null ? bookMap[v.bookId]?.title : null,
+            ),
+          )
+          .toList();
 
       return _SearchResults(
         books: bookItems,
@@ -123,14 +132,12 @@ class SearchPage extends HookWidget {
           vm.clear();
           return;
         }
-        debounceTimer.value = Timer(
-          const Duration(milliseconds: 300),
-          () {
-            vm.doFullSearch(text.trim());
-            history.addHistory(text.trim());
-          },
-        );
+        debounceTimer.value = Timer(const Duration(milliseconds: 300), () {
+          vm.doFullSearch(text.trim());
+          history.addHistory(text.trim());
+        });
       }
+
       controller.addListener(onTextChanged);
       return () {
         controller.removeListener(onTextChanged);
@@ -248,7 +255,7 @@ class SearchPage extends HookWidget {
                     vertical: 12,
                   ),
                 ),
-                style: const TextStyle(fontSize: 15),
+                style: theme.textTheme.bodyLarge,
                 textInputAction: TextInputAction.search,
                 onSubmitted: (value) {
                   if (value.trim().isNotEmpty) {
@@ -282,10 +289,7 @@ class SearchPage extends HookWidget {
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
       child: Text(
         '找到 ${results.totalCount} 条结果 · 耗时 ${results.durationMs}ms',
-        style: TextStyle(
-          fontSize: 12,
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
+        style: theme.textTheme.labelLarge,
       ),
     );
   }
@@ -352,8 +356,7 @@ class SearchPage extends HookWidget {
             const SizedBox(height: 4),
             Text(
               '试试其他关键词',
-              style: TextStyle(
-                fontSize: 12,
+              style: theme.textTheme.labelLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant.withValues(
                   alpha: 0.6,
                 ),
@@ -593,10 +596,8 @@ class SearchPage extends HookWidget {
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
                   note.selectedText!,
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: theme.textTheme.labelLarge?.copyWith(
                     fontStyle: FontStyle.italic,
-                    color: theme.colorScheme.onSurfaceVariant,
                     height: 1.4,
                   ),
                   maxLines: 2,
@@ -607,9 +608,7 @@ class SearchPage extends HookWidget {
             const SizedBox(height: 6),
             Text(
               '${item.book.title} · Ch.${note.chapterIndex + 1}',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
+              style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.primary,
               ),
             ),
@@ -636,11 +635,7 @@ class SearchPage extends HookWidget {
     );
   }
 
-  Widget _buildVocabCard(
-    ThemeData theme,
-    _VocabSearchItem item,
-    String query,
-  ) {
+  Widget _buildVocabCard(ThemeData theme, _VocabSearchItem item, String query) {
     final v = item.vocab;
     return GestureDetector(
       onTap: () {},
@@ -679,8 +674,7 @@ class SearchPage extends HookWidget {
                   const SizedBox(height: 3),
                   Text(
                     v.translation,
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: theme.textTheme.labelLarge?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                       height: 1.4,
                     ),
@@ -689,9 +683,7 @@ class SearchPage extends HookWidget {
                     const SizedBox(height: 4),
                     Text(
                       item.bookTitle!,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
+                      style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.primary,
                       ),
                     ),
@@ -711,8 +703,7 @@ class SearchPage extends HookWidget {
     if (query.isEmpty) {
       return Text(
         text,
-        style: TextStyle(
-          fontSize: 13,
+        style: theme.textTheme.bodyMedium?.copyWith(
           color: theme.colorScheme.onSurface,
           height: 1.4,
         ),
@@ -749,8 +740,7 @@ class SearchPage extends HookWidget {
 
     return RichText(
       text: TextSpan(
-        style: TextStyle(
-          fontSize: 13,
+        style: theme.textTheme.bodyMedium?.copyWith(
           color: theme.colorScheme.onSurface,
           height: 1.4,
         ),
@@ -814,8 +804,7 @@ class SearchPage extends HookWidget {
                 onTap: history.clearHistory,
                 child: Text(
                   '清除',
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: theme.textTheme.labelLarge?.copyWith(
                     color: theme.colorScheme.primary,
                   ),
                 ),
@@ -851,7 +840,7 @@ class SearchPage extends HookWidget {
                     );
                     vm.doFullSearch(h);
                   },
-                  child: Text(h, style: const TextStyle(fontSize: 13)),
+                  child: Text(h, style: theme.textTheme.bodyMedium),
                 ),
               );
             }).toList(),

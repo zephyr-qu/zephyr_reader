@@ -10,7 +10,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'bilingual.freezed.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// 对齐双语文本（基于相似度匹配）
 ///
@@ -72,33 +72,9 @@ Future<BilingualAlignment> simpleBilingualAlign({
 /// 同时创建两个高亮 Note，通过 `paired_note_id` 互相链接。
 /// 创建后两个高亮可通过 `paired_note_id` 相互查询。
 Future<BilingualHighlightPair> createBilingualHighlightPair({
-  required String sourceBookId,
-  required int sourceChapterIndex,
-  required PlatformInt64 sourceCharOffset,
-  required PlatformInt64 sourceLength,
-  required String sourceSelectedText,
-  required String sourceLanguage,
-  required String targetBookId,
-  required int targetChapterIndex,
-  required PlatformInt64 targetCharOffset,
-  required PlatformInt64 targetLength,
-  required String targetSelectedText,
-  required String targetLanguage,
-  required int highlightColor,
+  required BilingualHighlightParams params,
 }) => RustLib.instance.api.crateApiBilingualCreateBilingualHighlightPair(
-  sourceBookId: sourceBookId,
-  sourceChapterIndex: sourceChapterIndex,
-  sourceCharOffset: sourceCharOffset,
-  sourceLength: sourceLength,
-  sourceSelectedText: sourceSelectedText,
-  sourceLanguage: sourceLanguage,
-  targetBookId: targetBookId,
-  targetChapterIndex: targetChapterIndex,
-  targetCharOffset: targetCharOffset,
-  targetLength: targetLength,
-  targetSelectedText: targetSelectedText,
-  targetLanguage: targetLanguage,
-  highlightColor: highlightColor,
+  params: params,
 );
 
 /// 获取指定章节的双语高亮配对列表
@@ -187,4 +163,71 @@ sealed class BilingualHighlightPair with _$BilingualHighlightPair {
     required Note sourceNote,
     Note? targetNote,
   }) = _BilingualHighlightPair;
+}
+
+class BilingualHighlightParams {
+  final String sourceBookId;
+  final int sourceChapterIndex;
+  final PlatformInt64 sourceCharOffset;
+  final PlatformInt64 sourceLength;
+  final String sourceSelectedText;
+  final String sourceLanguage;
+  final String targetBookId;
+  final int targetChapterIndex;
+  final PlatformInt64 targetCharOffset;
+  final PlatformInt64 targetLength;
+  final String targetSelectedText;
+  final String targetLanguage;
+  final int highlightColor;
+
+  const BilingualHighlightParams({
+    required this.sourceBookId,
+    required this.sourceChapterIndex,
+    required this.sourceCharOffset,
+    required this.sourceLength,
+    required this.sourceSelectedText,
+    required this.sourceLanguage,
+    required this.targetBookId,
+    required this.targetChapterIndex,
+    required this.targetCharOffset,
+    required this.targetLength,
+    required this.targetSelectedText,
+    required this.targetLanguage,
+    required this.highlightColor,
+  });
+
+  @override
+  int get hashCode =>
+      sourceBookId.hashCode ^
+      sourceChapterIndex.hashCode ^
+      sourceCharOffset.hashCode ^
+      sourceLength.hashCode ^
+      sourceSelectedText.hashCode ^
+      sourceLanguage.hashCode ^
+      targetBookId.hashCode ^
+      targetChapterIndex.hashCode ^
+      targetCharOffset.hashCode ^
+      targetLength.hashCode ^
+      targetSelectedText.hashCode ^
+      targetLanguage.hashCode ^
+      highlightColor.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BilingualHighlightParams &&
+          runtimeType == other.runtimeType &&
+          sourceBookId == other.sourceBookId &&
+          sourceChapterIndex == other.sourceChapterIndex &&
+          sourceCharOffset == other.sourceCharOffset &&
+          sourceLength == other.sourceLength &&
+          sourceSelectedText == other.sourceSelectedText &&
+          sourceLanguage == other.sourceLanguage &&
+          targetBookId == other.targetBookId &&
+          targetChapterIndex == other.targetChapterIndex &&
+          targetCharOffset == other.targetCharOffset &&
+          targetLength == other.targetLength &&
+          targetSelectedText == other.targetSelectedText &&
+          targetLanguage == other.targetLanguage &&
+          highlightColor == other.highlightColor;
 }

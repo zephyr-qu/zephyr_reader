@@ -1,87 +1,57 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:zephyr_reader/src/rust/api/data/session.dart' as session_api;
+import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/features/statistics/application/reading_sessions_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-class ReadingSessionsPage extends StatefulWidget {
+class ReadingSessionsPage extends HookWidget {
   const ReadingSessionsPage({super.key});
 
   @override
-  State<ReadingSessionsPage> createState() => _ReadingSessionsPageState();
-}
-
-class _ReadingSessionsPageState extends State<ReadingSessionsPage> {
-  List<ReadingSession> _sessions = [];
-  Map<String, Book> _bookCache = {};
-  bool _loaded = false;
-  bool _loading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() => _loading = true);
-    try {
-      final results = await Future.wait([
-        session_api.listSessionsByRecent(limit: BigInt.from(100)),
-        session_api.listSessionsByBook(bookId: '', limit: BigInt.from(1)),
-      ]);
-      final sessions = results[0];
-      final books = results[1] as List<Book>;
-      if (mounted) {
-        setState(() {
-          _sessions = sessions;
-          _bookCache = {for (final b in books) b.bookId: b};
-          _loaded = true;
-          _loading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _loaded = true;
-          _loading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _deleteSessionsByBook(String bookId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('删除会话记录'),
-        content: const Text('确定要删除本书的所有阅读会话记录吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      await session_api.clearSessionsByBook(bookId: bookId);
-      await _load();
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final vm = useMemoized(() => ReadingSessionsViewModel());
+    final sessions =
+        useSignalValue<List<ReadingSession>, Signal<List<ReadingSession>>>(
+          vm.sessions,
+        );
+    final bookCache =
+        useSignalValue<Map<String, Book>, Signal<Map<String, Book>>>(
+          vm.bookCache,
+        );
+    final loaded = useSignalValue<bool, Signal<bool>>(vm.loaded);
+    final loading = useSignalValue<bool, Signal<bool>>(vm.loading);
+
+    Future<void> deleteSessionsByBook(String bookId) async {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('删除会话记录'),
+          content: const Text('确定要删除本书的所有阅读会话记录吗？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('删除'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed == true) {
+        await vm.deleteSessionsByBook(bookId);
+      }
+    }
+
     final theme = Theme.of(context);
 
     final grouped = <String, List<ReadingSession>>{};
-    for (final s in _sessions) {
+    for (final s in sessions) {
       grouped.putIfAbsent(s.bookId, () => []).add(s);
     }
 
@@ -89,27 +59,42 @@ class _ReadingSessionsPageState extends State<ReadingSessionsPage> {
       appBar: AppBar(
         title: const Text('阅读会话'),
         actions: [
-          if (_sessions.isNotEmpty)
+          if (sessions.isNotEmpty)
             IconButton(
               icon: const Icon(PhosphorIconsRegular.arrowsClockwise),
-              onPressed: _load,
+              onPressed: vm.load,
               tooltip: '刷新',
             ),
         ],
       ),
-      body: _buildBody(theme, grouped),
+      body: _buildBody(
+        context,
+        theme,
+        grouped,
+        sessions,
+        bookCache,
+        loaded,
+        loading,
+        deleteSessionsByBook,
+      ),
     );
   }
 
   Widget _buildBody(
+    BuildContext context,
     ThemeData theme,
     Map<String, List<ReadingSession>> grouped,
+    List<ReadingSession> sessions,
+    Map<String, Book> bookCache,
+    bool loaded,
+    bool loading,
+    Future<void> Function(String) deleteSessionsByBook,
   ) {
-    if (!_loaded && _loading) {
+    if (!loaded && loading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_sessions.isEmpty) {
+    if (sessions.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -142,11 +127,11 @@ class _ReadingSessionsPageState extends State<ReadingSessionsPage> {
       );
     }
 
-    final totalDuration = _sessions.fold<int>(
+    final totalDuration = sessions.fold<int>(
       0,
       (sum, s) => sum + s.durationSeconds,
     );
-    final totalSessions = _sessions.length;
+    final totalSessions = sessions.length;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -163,7 +148,13 @@ class _ReadingSessionsPageState extends State<ReadingSessionsPage> {
         ),
         const Divider(height: 12),
         ...grouped.entries.map(
-          (entry) => _buildBookSessionGroup(theme, entry.key, entry.value),
+          (entry) => _buildBookSessionGroup(
+            theme,
+            entry.key,
+            entry.value,
+            bookCache,
+            () => deleteSessionsByBook(entry.key),
+          ),
         ),
       ],
     );
@@ -238,8 +229,10 @@ class _ReadingSessionsPageState extends State<ReadingSessionsPage> {
     ThemeData theme,
     String bookId,
     List<ReadingSession> sessions,
+    Map<String, Book> bookCache,
+    VoidCallback onDelete,
   ) {
-    final book = _bookCache[bookId];
+    final book = bookCache[bookId];
     final bookTitle = book?.title ?? '未知书籍';
     final totalTime = sessions.fold<int>(
       0,
@@ -270,7 +263,7 @@ class _ReadingSessionsPageState extends State<ReadingSessionsPage> {
                 ),
               ),
               GestureDetector(
-                onTap: () => _deleteSessionsByBook(bookId),
+                onTap: onDelete,
                 child: Icon(
                   PhosphorIconsRegular.trash,
                   size: 18,
