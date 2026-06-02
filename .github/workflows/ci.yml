@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('rust/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+      - run: cargo clippy --all-targets -- -D warnings
+        working-directory: rust
+      - run: cargo test
+        working-directory: rust
+      - run: cargo fmt --all -- --check
+        working-directory: rust
+
+  dart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: dart analyze --fatal-infos
+      - run: flutter test
+
+  codegen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install LLVM/Clang (for ffigen)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm-dev libclang-dev
+      - run: cargo install flutter_rust_bridge_codegen@2.12.0
+      - run: flutter pub get
+      - run: flutter_rust_bridge_codegen generate
+      - name: Check for unstaged codegen diffs
+        run: |
+          if [ -n "$(git diff --exit-code)" ]; then
+            echo "::error::FRB codegen output differs from committed files."
+            echo "Run 'flutter_rust_bridge_codegen generate' and commit the result."
+            git diff
+            exit 1
+          fi
+
+  build-android:
+    needs: [rust, dart, codegen]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+      - name: Install LLVM/Clang (for Rust cross-compilation)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm-dev libclang-dev
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/target
+          key: ${{ runner.os }}-cargo-android-${{ hashFiles('rust/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-android-
+      - run: flutter build apk --release --target-platform=android-arm64
