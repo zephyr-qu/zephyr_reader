@@ -1,15 +1,15 @@
-library;
 
-import 'package:flutter/material.dart';
+
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/backup/application/backup_view_model.dart';
 import 'package:zephyr_reader/features/backup/page/widgets/backup_action_tile.dart';
 import 'package:zephyr_reader/features/backup/page/widgets/backup_status_card.dart';
 import 'package:zephyr_reader/features/backup/page/widgets/restore_confirm_dialog.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/backup.dart';
 

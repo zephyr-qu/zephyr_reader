@@ -1,5 +1,3 @@
-library;
-
 import 'dart:io';
 
 import 'package:system_state/system_state.dart';

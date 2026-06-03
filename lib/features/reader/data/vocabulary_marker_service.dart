@@ -1,5 +1,3 @@
-library;
-
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/src/rust/api/vocab_marker.dart' as rust;
 

@@ -233,8 +233,6 @@ class ChapterManager {
         await onChapterLoaded();
       }
 
-      // 章节级 GC：只保留前后 5 章
-      _repo.gcChapterCache(bookId.value, chapterIndex);
 
       // 预加载前后章节（不阻塞 UI）
       _prefetchChapters(chapterIndex);
@@ -254,7 +252,7 @@ class ChapterManager {
     }
 
     this.pageIndex.value = pageIndex;
-    final pages = _repo.getCachedPages(bookId.value, chapterIndex.value);
+    final pages = _repo.currentPages;
     if (pages != null && pageIndex < pages.length) {
       currentCharOffset.value = pages[pageIndex].startOffset;
     }

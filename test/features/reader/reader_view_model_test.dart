@@ -339,8 +339,7 @@ void main() {
         ],
       ));
       when(() => repo.loadReadingProgress(any())).thenAnswer((_) async => null);
-      when(() => repo.gcChapterCache(any(), any())).thenAnswer((_) {});
-      when(() => repo.getCachedPages(any(), any())).thenReturn(null);
+      when(() => repo.currentPages).thenReturn(null);
       when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {});
       when(() => repo.updateReadingProgress(
         bookId: any(named: 'bookId'),

@@ -1,7 +1,6 @@
-library;
-
 import 'dart:ui' as ui;
 
+import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 
 /// Flutter 侧字符宽度校准数据
@@ -130,4 +129,80 @@ double _measureWidth(String text, double fontSize, String fontFamily) {
   final constraints = const ui.ParagraphConstraints(width: 10000);
   final paragraphObj = paragraph.build()..layout(constraints);
   return paragraphObj.maxIntrinsicWidth / text.length;
+}
+
+// ===== Typeset config builder =====
+
+/// 将 Flutter UI 参数转换为 Rust TypesetConfig
+///
+/// [width] / [height]: 页面可用逻辑像素（dp），来自 MediaQuery.size - padding
+/// [fontSize]: 字体大小（逻辑像素 dp）
+/// [lineHeight]: 行高倍数（如 1.5）
+/// [padding]: 四边距（逻辑像素 dp）
+/// [devicePixelRatio]: 设备像素比
+/// [calibration]: 字符宽度校准数据（可选）
+/// [fontFamily]: 当前字体系列名
+TypesetConfig buildTypesetConfig({
+  required double width,
+  required double height,
+  required double fontSize,
+  required double lineHeight,
+  double padding = 16,
+  double devicePixelRatio = 1.0,
+  int firstLineIndent = 2,
+  CalibrationData? calibration,
+  String fontFamily = 'Noto Sans SC',
+}) {
+  final scale = devicePixelRatio;
+  final rustCalibration = calibration != null
+      ? TypesetCalibration(
+          dpr: calibration.dpr,
+          cjkWidth: calibration.cjkWidth,
+          asciiWidth: calibration.asciiWidth,
+          digitWidth: calibration.digitWidth,
+          punctWidth: calibration.punctWidth,
+          otherWidth: calibration.otherWidth,
+          latinExtWidth: 0.0,
+        )
+      : null;
+
+  return TypesetConfig(
+    pageWidth: (width * scale).round(),
+    pageHeight: (height * scale).round(),
+    fontSize: (fontSize * scale).round(),
+    lineSpacing: lineHeight,
+    letterSpacing: 0,
+    paragraphSpacing: lineHeight,
+    firstLineIndent: firstLineIndent,
+    language: LanguageType.mixed,
+    enableHyphenation: false,
+    fontFamily: fontFamily,
+    calibration: rustCalibration,
+  );
+}
+
+/// 从 MediaQuery 中提取 devicePixelRatio 并构建配置
+TypesetConfig buildTypesetConfigFromMediaQuery({
+  required dynamic mediaQuery,
+  required double width,
+  required double height,
+  required double fontSize,
+  required double lineHeight,
+  double padding = 16,
+  int firstLineIndent = 2,
+  CalibrationData? calibration,
+  String fontFamily = 'Noto Sans SC',
+}) {
+  final dpr = mediaQuery.devicePixelRatio as double;
+  return buildTypesetConfig(
+    width: width,
+    height: height,
+    fontSize: fontSize,
+    lineHeight: lineHeight,
+    padding: padding,
+    devicePixelRatio: dpr,
+    firstLineIndent: firstLineIndent,
+    calibration: calibration,
+    fontFamily: fontFamily,
+  );
 }

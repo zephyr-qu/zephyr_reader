@@ -57,7 +57,7 @@ class ScrollModeRenderer extends HookWidget {
       () => config.buildStrutStyle(),
       [config.fontSize, config.lineHeight, config.fontFamily],
     );
-    final richSpan = repo.getCachedRichTextSpan(bookId, chapterId);
+    final richSpan = repo.currentRichContent;
     final paragraphList = useMemoized(
       () => content
           .split('\n\n')
@@ -66,12 +66,7 @@ class ScrollModeRenderer extends HookWidget {
           .toList(),
       [content],
     );
-    final richParagraphs = useMemoized(
-      () => richSpan != null
-          ? repo.getCachedRichParagraphs(bookId, chapterId)
-          : null,
-      [richSpan, bookId, chapterId],
-    );
+    final richParagraphs = repo.currentRichParagraphs;
     final richTextParagraphs = useMemoized(
       () => richSpan != null ? _extractParagraphSpans(richSpan) : null,
       [richSpan],

@@ -1,6 +1,6 @@
 import 'package:injectable/injectable.dart';
+import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/stats.dart' as stats_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -25,21 +25,20 @@ class HomeViewModel {
   }
 
   Future<void> loadData() async {
-    recentBooks.value = AsyncState.loading();
-    dailyRecords.value = AsyncState.loading();
-
-    try {
-      final results = await Future.wait([
+    final results = await safeLoad(
+      () => Future.wait([
         book_api.listRecentlyOpenedBooks(limit: BigInt.from(4)),
         stats_api.getReadingStatsByDaysWithFill(days: 7),
-      ]);
-
+      ]),
+      label: '加载首页数据',
+    );
+    if (results != null) {
       recentBooks.value = AsyncState.data(results[0] as List<Book>);
       dailyRecords.value = AsyncState.data(results[1] as List<ReadingStats>);
-    } catch (e) {
-      Logging.error(e.toString());
-      recentBooks.value = AsyncState.error(e, StackTrace.current);
-      dailyRecords.value = AsyncState.error(e, StackTrace.current);
+    } else {
+      final err = AsyncState<List<Book>>.error('加载失败');
+      recentBooks.value = err;
+      dailyRecords.value = AsyncState<List<ReadingStats>>.error('加载失败');
     }
   }
 

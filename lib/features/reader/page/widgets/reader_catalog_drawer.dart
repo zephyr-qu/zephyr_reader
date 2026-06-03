@@ -1,5 +1,3 @@
-library;
-
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 

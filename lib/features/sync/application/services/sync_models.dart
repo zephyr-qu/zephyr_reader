@@ -1,3 +1,4 @@
+
 class WebDavConfig {
   final String baseUrl;
   final String username;
@@ -10,6 +11,19 @@ class WebDavConfig {
     required this.password,
     required this.remotePath,
   });
+
+  Map<String, dynamic> toJson() => {
+    'baseUrl': baseUrl,
+    'username': username,
+    'remotePath': remotePath,
+  };
+
+  factory WebDavConfig.fromJson(Map<String, dynamic> json) => WebDavConfig(
+    baseUrl: json['baseUrl'] as String,
+    username: json['username'] as String,
+    remotePath: json['remotePath'] as String,
+    password: '', // filled separately from secure storage
+  );
 
   WebDavConfig copyWith({
     String? baseUrl,
@@ -78,29 +92,4 @@ class SyncResult {
     if (downloadedCount > 0) parts.add('下载 $downloadedCount 项');
     return parts.isEmpty ? '同步完成，无需更新' : parts.join(', ');
   }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'success': success,
-      'uploadedCount': uploadedCount,
-      'downloadedCount': downloadedCount,
-      'error': error,
-    };
-  }
-
-  factory SyncResult.fromJson(Map<String, dynamic> json) {
-    return SyncResult(
-      success: json['success'] as bool? ?? false,
-      uploadedCount: json['uploadedCount'] as int? ?? 0,
-      downloadedCount: json['downloadedCount'] as int? ?? 0,
-      error: json['error'] as String?,
-    );
-  }
-}
-
-/// WebDAV 配置的宿主接口，允许配置对话框与任意 ViewModel 协作
-abstract class WebDavConfigHost {
-  Future<WebDavConfig?> getConfig();
-  Future<void> saveConfig(WebDavConfig config);
-  Future<void> clearConfig();
 }

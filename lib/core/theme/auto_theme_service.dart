@@ -1,7 +1,6 @@
 /// 自动主题切换服务
 ///
 /// 根据日落日出时间自动切换亮色/深色主题
-library;
 
 import 'dart:async';
 
@@ -12,23 +11,31 @@ import 'package:signals_flutter/signals_flutter.dart';
 import '../settings/persisted_signal.dart';
 import '../settings/settings_keys.dart';
 import '../utils/logging.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
+
 class AutoThemeService {
   final SharedPreferences _prefs;
   Timer? _autoSwitchTimer;
 
   /// 是否启用自动主题切换
   late final autoThemeEnabled = persistedBool(
-    _prefs, SettingsKeys.autoThemeEnabled, false,
+    _prefs,
+    SettingsKeys.autoThemeEnabled,
+    false,
   );
 
   /// 深色模式开始时间（小时）
   late final darkModeStartHour = persistedInt(
-    _prefs, SettingsKeys.darkModeStartHour, 18,
+    _prefs,
+    SettingsKeys.darkModeStartHour,
+    18,
   );
 
   /// 深色模式结束时间（小时）
   late final darkModeEndHour = persistedInt(
-    _prefs, SettingsKeys.darkModeEndHour, 6,
+    _prefs,
+    SettingsKeys.darkModeEndHour,
+    6,
   );
 
   /// 当前主题模式
@@ -147,4 +154,13 @@ enum ThemeTimePreset {
     }
     return ThemeTimePreset.custom;
   }
+}
+
+
+extension ThemeTimePresetX on ThemeTimePreset {
+  String l10nLabel(AppLocalizations l10n) => switch (this) {
+    ThemeTimePreset.sunsetToSunrise => l10n.timePresetSunsetToSunrise,
+    ThemeTimePreset.eveningToMorning => l10n.timePresetEveningToMorning,
+    ThemeTimePreset.custom => l10n.timePresetCustom,
+  };
 }

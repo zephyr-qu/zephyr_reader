@@ -1,20 +1,17 @@
 /// 阅读器仓库
-library;
 
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/bookmark.dart' as bookmark_api;
 import 'package:zephyr_reader/src/rust/api/data/chapter.dart' as chapter_api;
 import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
 import 'package:zephyr_reader/src/rust/api/epub.dart' as epub;
-import 'package:zephyr_reader/src/rust/domain/types/metadata.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
-import 'package:zephyr_reader/features/reader/data/typeset_config_builder.dart';
 
 /// 分页信息
 class PageInfo {
@@ -32,17 +29,6 @@ class PageInfo {
   });
 }
 
-/// 章节内容缓存项
-class ChapterCacheItem {
-  final String content;
-  final List<PageInfo> pages;
-  final DateTime loadedAt;
-  ChapterCacheItem({
-    required this.content,
-    required this.pages,
-    required this.loadedAt,
-  });
-}
 
 /// 阅读进度数据
 class ReadingProgressData {
@@ -68,11 +54,14 @@ class ReadingProgressData {
 
 @Injectable()
 class ReaderRepository {
-  final Map<String, Map<int, ChapterCacheItem>> _cache = {};
-  final Map<String, Map<int, TextSpan>> _richContentCache = {};
-  final Map<String, Map<int, List<RichParagraph>>> _richParagraphCache = {};
-  static const int maxCacheSize = 10;
   ReadingProgressData? _currentProgress;
+
+  /// 当前章节的分页结果
+  List<PageInfo>? currentPages;
+
+  /// 当前章节的富文本内容（EPUB）
+  TextSpan? currentRichContent;
+  List<RichParagraph>? currentRichParagraphs;
 
   ReaderRepository();
 
@@ -131,6 +120,7 @@ class ReaderRepository {
           )
           .toList();
 
+      currentPages = pages;
       return (pages: pages, cacheHit: false, isFallback: false);
     } catch (e) {
       Logging.error('getPaginatedChapterPages error: $e');
@@ -138,13 +128,6 @@ class ReaderRepository {
     }
   }
 
-  Future<EpubMetadata?> getEpubMetadata(String filePath) async {
-    try {
-      return await epub.getEpubMetadata(filePath: filePath);
-    } catch (_) {
-      return null;
-    }
-  }
 
   Future<Chapter?> getChapter(String bookId, int chapterIndex) async {
     try {
@@ -190,10 +173,6 @@ class ReaderRepository {
   // ===== From ChapterContentService =====
 
   Future<String> loadChapterContent(String bookId, int chapterId) async {
-    final cacheKey = bookId.toString();
-    if (_cache[cacheKey]?[chapterId] != null) {
-      return _cache[cacheKey]![chapterId]!.content;
-    }
 
     try {
       final book = await book_api.getBook(bookId: bookId);
@@ -233,12 +212,10 @@ class ReaderRepository {
             config: config,
           );
           if (paragraphs.isNotEmpty) {
-            final (richSpan, plainText) = _richParagraphsToRichText(paragraphs);
-            content = plainText;
-            _richContentCache[cacheKey] ??= {};
-            _richContentCache[cacheKey]![chapterId] = richSpan;
-            _richParagraphCache[cacheKey] ??= {};
-            _richParagraphCache[cacheKey]![chapterId] = paragraphs;
+            final result = _richParagraphsToRichText(paragraphs);
+            content = result.$2;
+            currentRichContent = result.$1;
+            currentRichParagraphs = paragraphs;
           }
         } catch (e) {
           Logging.error('loadChapterContent EPUB rich typeset failed: $e');
@@ -249,7 +226,6 @@ class ReaderRepository {
         throw Exception('Chapter content is empty');
       }
 
-      _updateCache(cacheKey, chapterId, content, []);
       return content;
     } catch (e) {
       Logging.error('loadChapterContent error: $e');
@@ -380,15 +356,9 @@ class ReaderRepository {
     required double height,
     required double padding,
   }) async {
-    final cacheKey = bookId.toString();
-    if (_cache.containsKey(cacheKey) &&
-        _cache[cacheKey]!.containsKey(chapterId)) {
-      final cached = _cache[cacheKey]![chapterId]!;
-      if (cached.pages.isNotEmpty) return cached.pages;
-    }
-    final content = await loadChapterContent(bookId, chapterId);
 
     // 统一走字符估算分页：毫秒级完成，SelectableText 渲染时自行精确换行
+    final content = await loadChapterContent(bookId, chapterId);
     final pages = _paginateApproximate(
       content,
       fontSize: fontSize,
@@ -397,8 +367,7 @@ class ReaderRepository {
       height: height,
       padding: padding,
     );
-
-    if (pages.isNotEmpty) _updateCache(cacheKey, chapterId, content, pages);
+    currentPages = pages;
     return pages;
   }
 
@@ -470,139 +439,13 @@ class ReaderRepository {
     }
     return pages;
   }
-
-  void _updateCache(
-    String cacheKey,
-    int chapterId,
-    String content,
-    List<PageInfo> pages,
-  ) {
-    if (_cache.length >= maxCacheSize) _clearOldestCache();
-    if (!_cache.containsKey(cacheKey)) _cache[cacheKey] = {};
-    _cache[cacheKey]![chapterId] = ChapterCacheItem(
-      content: content,
-      pages: pages,
-      loadedAt: DateTime.now(),
-    );
-  }
-
-  void _clearOldestCache() {
-    if (_cache.isEmpty && _richContentCache.isEmpty) return;
-    String? oldestKey;
-    DateTime? oldestTime;
-
-    // Check main cache
-    for (final entry in _cache.entries) {
-      for (final chapterEntry in entry.value.entries) {
-        if (oldestTime == null ||
-            chapterEntry.value.loadedAt.isBefore(oldestTime)) {
-          oldestTime = chapterEntry.value.loadedAt;
-          oldestKey = entry.key;
-        }
-      }
-    }
-    // Also check rich content cache (may have entries without main cache)
-    for (final entry in _richContentCache.entries) {
-      for (final _ in entry.value.entries) {
-        // Rich cache items don't have timestamps, so use current time
-        // to deprioritize them if main cache has no entries
-        if (oldestTime == null) {
-          oldestTime = DateTime.now();
-          oldestKey = entry.key;
-        }
-      }
-    }
-    if (oldestKey != null) {
-      _cache.remove(oldestKey);
-      _richContentCache.remove(oldestKey);
-      _richParagraphCache.remove(oldestKey);
-    }
-  }
-
-  /// 预加载章节内容到缓存（静默失败，不抛异常）
+  /// 预加载章节内容（静默失败）
   Future<void> preloadChapter(String bookId, int chapterId) async {
-    final cacheKey = bookId.toString();
-    if (_cache.containsKey(cacheKey) &&
-        _cache[cacheKey]!.containsKey(chapterId)) {
-      return;
-    }
     try {
       await loadChapterContent(bookId, chapterId);
     } catch (e) {
       Logging.error('章节预加载失败', exception: e);
     }
-  }
-
-  void clearBookCache(int bookId) {
-    final key = bookId.toString();
-    _cache.remove(key);
-    _richContentCache.remove(key);
-    _richParagraphCache.remove(key);
-  }
-
-  void clearAllCache() {
-    _cache.clear();
-    _richContentCache.clear();
-    _richParagraphCache.clear();
-  }
-
-  String? getCachedContent(int bookId, int chapterId) {
-    final cacheKey = bookId.toString();
-    if (_cache.containsKey(cacheKey) &&
-        _cache[cacheKey]!.containsKey(chapterId)) {
-      return _cache[cacheKey]![chapterId]!.content;
-    }
-    return null;
-  }
-
-  TextSpan? getCachedRichTextSpan(String bookId, int chapterId) {
-    return _richContentCache[bookId]?[chapterId];
-  }
-
-  List<RichParagraph>? getCachedRichParagraphs(String bookId, int chapterId) {
-    return _richParagraphCache[bookId]?[chapterId];
-  }
-
-  List<PageInfo>? getCachedPages(String bookId, int chapterId) {
-    final cacheKey = bookId.toString();
-    if (_cache.containsKey(cacheKey) &&
-        _cache[cacheKey]!.containsKey(chapterId)) {
-      return _cache[cacheKey]![chapterId]!.pages;
-    }
-    return null;
-  }
-
-  /// 章节级 GC：只保留当前章节前后 N 章的缓存
-  void gcChapterCache(String bookId, int currentChapter, {int keepRange = 5}) {
-    final key = bookId.toString();
-    final minKeep = currentChapter - keepRange;
-    final maxKeep = currentChapter + keepRange;
-
-    void clean(Map<dynamic, dynamic> map) {
-      final bookCache = map[key];
-      if (bookCache == null) return;
-      // ignore: inference_failure_on_untyped_parameter
-      bookCache.removeWhere((k, _) {
-        final ci = k as int;
-        return ci < minKeep || ci > maxKeep;
-      });
-    }
-
-    clean(_cache);
-    clean(_richContentCache);
-    clean(_richParagraphCache);
-  }
-
-  String? getPageContent(int bookId, int chapterId, int pageIndex) {
-    final cacheKey = bookId.toString();
-    if (_cache.containsKey(cacheKey) &&
-        _cache[cacheKey]!.containsKey(chapterId)) {
-      final pages = _cache[cacheKey]![chapterId]!.pages;
-      if (pageIndex >= 0 && pageIndex < pages.length) {
-        return pages[pageIndex].content;
-      }
-    }
-    return null;
   }
 
   // ===== From ReadingProgressService =====
@@ -669,25 +512,6 @@ class ReaderRepository {
     if (_currentProgress?.bookId == bookId) _currentProgress = null;
   }
 
-  Future<List<ReadingProgressData>> getAllReadingProgress() async {
-    final items = await progress_api.listAllProgresses();
-    return items
-        .map((item) {
-          final rp = item.progress;
-          if (rp == null) return null;
-          return ReadingProgressData(
-            bookId: rp.bookId,
-            chapterIndex: rp.chapterIndex,
-            charOffset: rp.charOffset.toInt(),
-            pageIndex: rp.pageIndex,
-            totalPages: rp.totalPages,
-            readingTimeSeconds: rp.readingTimeSeconds.toInt(),
-            lastReadAt: rp.lastReadAt,
-          );
-        })
-        .nonNulls
-        .toList();
-  }
 
   void clearProgressCache() => _currentProgress = null;
 }

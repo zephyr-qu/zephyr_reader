@@ -1,13 +1,12 @@
-library;
-
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
-import '../../../../core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+
+import '../../../../core/routing/route_constants.dart';
 
 class BookSearchPage extends HookWidget {
   final String bookId;

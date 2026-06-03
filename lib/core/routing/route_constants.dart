@@ -18,9 +18,6 @@ abstract class RoutePaths {
   // 阅读统计详情
   static const String readingStats = '/statistics/detail';
 
-  // 笔记管理
-  static const String noteManage = '/reader/:bookId/notes';
-
   // 书签管理
   static const String bookmarkManage = '/reader/:bookId/bookmarks';
 
@@ -78,9 +75,6 @@ abstract class RouteNames {
 
   // 阅读统计详情
   static const String readingStats = 'readingStats';
-
-  // 笔记管理
-  static const String noteManage = 'noteManage';
 
   // 书签管理
   static const String bookmarkManage = 'bookmarkManage';

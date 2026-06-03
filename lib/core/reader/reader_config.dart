@@ -3,6 +3,7 @@ import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 阅读器翻页点击区域布局
@@ -75,6 +76,31 @@ enum ReaderFontSize {
       orElse: () => ReaderFontSize.medium,
     );
   }
+}
+
+
+extension ReaderThemeX on ReaderTheme {
+  String l10nLabel(AppLocalizations l10n) => switch (this) {
+    ReaderTheme.light => l10n.readerThemeLight,
+    ReaderTheme.dark => l10n.readerThemeDark,
+    ReaderTheme.sepia => l10n.readerThemeSepia,
+  };
+}
+
+extension ReaderFontSizeX on ReaderFontSize {
+  String l10nLabel(AppLocalizations l10n) => switch (this) {
+    ReaderFontSize.small => l10n.readerFontSizeSmall,
+    ReaderFontSize.medium => l10n.readerFontSizeMedium,
+    ReaderFontSize.large => l10n.readerFontSizeLarge,
+    ReaderFontSize.xLarge => l10n.readerFontSizeXLarge,
+  };
+}
+
+extension TapLayoutX on TapLayout {
+  String l10nLabel(AppLocalizations l10n) => switch (this) {
+    TapLayout.rightHanded => l10n.tapLayoutRightHanded,
+    TapLayout.leftHanded => l10n.tapLayoutLeftHanded,
+  };
 }
 
 /// 阅读器配置

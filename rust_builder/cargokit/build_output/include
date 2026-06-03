@@ -580,6 +580,22 @@ typedef struct wire_cst_bilingual_alignment {
   struct wire_cst_list_String *unmatched_english;
 } wire_cst_bilingual_alignment;
 
+typedef struct wire_cst_note_stats {
+  int32_t total_count;
+  int32_t highlight_count;
+  int32_t annotation_count;
+} wire_cst_note_stats;
+
+typedef struct wire_cst_book_detail {
+  struct wire_cst_book *book;
+  struct wire_cst_reading_progress *progress;
+  struct wire_cst_note_stats note_stats;
+  struct wire_cst_list_chapter *chapters;
+  struct wire_cst_list_category *categories;
+  struct wire_cst_list_reading_session *sessions;
+  struct wire_cst_list_vocab *vocab_list;
+} wire_cst_book_detail;
+
 typedef struct wire_cst_book_metadata {
   struct wire_cst_list_prim_u_8_strict *title;
   struct wire_cst_list_prim_u_8_strict *author;
@@ -633,12 +649,6 @@ typedef struct wire_cst_global_stats {
   int32_t total_notes_count;
   int32_t total_bookmarks_count;
 } wire_cst_global_stats;
-
-typedef struct wire_cst_note_stats {
-  int32_t total_count;
-  int32_t highlight_count;
-  int32_t annotation_count;
-} wire_cst_note_stats;
 
 typedef struct wire_cst_page_data {
   uint32_t page_index;
@@ -831,6 +841,9 @@ void frbgen_zephyr_reader_wire__crate__api__data__book__get_book(int64_t port_,
 
 void frbgen_zephyr_reader_wire__crate__api__data__book__get_book_by_file_path(int64_t port_,
                                                                               struct wire_cst_list_prim_u_8_strict *validated_path);
+
+void frbgen_zephyr_reader_wire__crate__api__data__book__get_book_detail(int64_t port_,
+                                                                        struct wire_cst_list_prim_u_8_strict *book_id);
 
 void frbgen_zephyr_reader_wire__crate__api__data__bookmark__get_bookmark(int64_t port_,
                                                                          struct wire_cst_list_prim_u_8_strict *bookmark_id);
@@ -1272,6 +1285,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__book__delete_book);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__book__get_book);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__book__get_book_by_file_path);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__book__get_book_detail);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__book__list_books);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__book__list_books_by_status);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__data__book__list_books_paginated);

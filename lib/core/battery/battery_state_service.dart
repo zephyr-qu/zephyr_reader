@@ -1,5 +1,3 @@
-library;
-
 import 'dart:io';
 
 import 'package:system_state/system_state.dart';
@@ -23,11 +21,7 @@ class BatteryStateService {
 
   Future<BatteryState> getBatteryState() async => guardAndroid(
     () async => await SystemState.battery.getBatteryState(),
-    BatteryState.fromMap({
-      'level': 0,
-      'temperature': 0,
-      'isCharging': false,
-    }),
+    BatteryState.fromMap({'level': 0, 'temperature': 0, 'isCharging': false}),
   );
 
   void listen(void Function(BatteryState state) callback) {

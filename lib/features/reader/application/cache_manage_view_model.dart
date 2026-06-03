@@ -35,9 +35,8 @@ class CacheManageViewModel {
     await load();
   }
 
-  void clearAllCache() {
-    repo.clearAllCache();
-  }
+  /// 缓存已由 Rust sled 管理，Dart 端无需清理
+  void clearAllCache() {}
 
   void clearProgressCache() {
     repo.clearProgressCache();

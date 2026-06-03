@@ -6,7 +6,6 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/core/presentation/widgets/connectivity_banner.dart';
 import 'package:zephyr_reader/core/utils/haptic.dart';
 
 /// 底部导航栏配置
@@ -102,18 +101,14 @@ class MainLayout extends HookWidget {
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
             ),
             Expanded(
-              child: ConnectivityBanner(
-                child: child,
-              ),
+              child: child,
             ),
           ],
         ),
       );
     } else {
       return Scaffold(
-        body: ConnectivityBanner(
-          child: child,
-        ),
+        body: child,
         extendBody: false,
         bottomNavigationBar: _buildBottomNavigationBar(
           context,
@@ -277,29 +272,67 @@ class MainLayout extends HookWidget {
     int currentIndex,
     ThemeData theme,
   ) {
+    final activeColor = theme.colorScheme.primary;
+    final inactiveColor = theme.colorScheme.onSurfaceVariant;
+
     return Container(
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: theme.dividerColor, width: 0.5)),
       ),
       child: SafeArea(
         top: false,
-        child: NavigationBar(
-          height: 56,
-          selectedIndex: currentIndex,
-          elevation: 0,
-          indicatorColor: Colors.transparent,
-          backgroundColor: theme.colorScheme.surface,
-          onDestinationSelected: (index) {
-            context.go(BottomNavItem.values[index].route);
-            hapticFeedback(HapticType.light);
-          },
-          destinations: BottomNavItem.values.map((navItem) {
-            return NavigationDestination(
-              icon: Icon(navItem.icon, size: 22),
-              selectedIcon: Icon(navItem.activeIcon, size: 22),
-              label: navItem.label(context),
-            );
-          }).toList(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: BottomNavItem.values.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value;
+              final isSelected = index == currentIndex;
+
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    context.go(item.route);
+                    hapticFeedback(HapticType.light);
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedScale(
+                    scale: isSelected ? 1.0 : 0.9,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutBack,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isSelected ? item.activeIcon : item.icon,
+                          size: 22,
+                          color: isSelected ? activeColor : inactiveColor,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          item.label(context),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isSelected ? activeColor : inactiveColor,
+                            fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          height: 2,
+                          width: isSelected ? 20 : 0,
+                          decoration: BoxDecoration(
+                            color: activeColor,
+                            borderRadius: BorderRadius.circular(1),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
         ),
       ),
     );

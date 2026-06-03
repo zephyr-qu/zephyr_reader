@@ -1,5 +1,3 @@
-library;
-
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -119,7 +117,7 @@ class _BarButton extends StatelessWidget {
       ),
     );
   }
-  }
+}
 
 class _ProgressBadge extends StatelessWidget {
   final int pageIndex;
@@ -156,4 +154,3 @@ class _ProgressBadge extends StatelessWidget {
     );
   }
 }
-

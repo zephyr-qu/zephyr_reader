@@ -161,7 +161,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   }
 
   Widget _buildPageTurn(BuildContext context) {
-    final cachedPages = repo.getCachedPages(bookId, chapterId);
+    final cachedPages = repo.currentPages;
     if (cachedPages != null && cachedPages.isNotEmpty) {
       final index = pageIndex.clamp(0, cachedPages.length - 1);
       final page = cachedPages[index];
@@ -213,7 +213,7 @@ class PaginatedModeRenderer extends StatelessWidget {
     if (readingMode == ReadingMode.pageTurn) {
       return _buildPageTurn(context);
     }
-    final cachedPages = repo.getCachedPages(bookId, chapterId);
+    final cachedPages = repo.currentPages;
     if (cachedPages != null && cachedPages.isNotEmpty) {
       return PageView.builder(
         controller: pageController,

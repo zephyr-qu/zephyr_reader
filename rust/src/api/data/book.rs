@@ -8,9 +8,59 @@ use super::async_storage;
 use crate::api::search;
 use crate::domain::AppError;
 use crate::storage::ensure_storage;
-use crate::storage::repos::{BookRepository, LayoutCacheRepository};
+use crate::storage::repos::{
+    BookRepository, CategoryRepository, ChapterRepository, LayoutCacheRepository,
+    NoteRepository, ProgressRepository, SessionRepository, VocabRepository,
+};
 
-pub use crate::storage::models::{Book, BookFormat, BookStatus};
+pub use crate::storage::models::{
+    Book, BookFormat, BookStatus, Category, Chapter, NoteStats, ReadingProgress,
+    ReadingSession, Vocab,
+};
+
+/// 书籍详情聚合（1 次 FFI 替代 7 次调用）
+#[frb(dart_metadata = ("freezed"))]
+pub struct BookDetail {
+    pub book: Option<Book>,
+    pub progress: Option<ReadingProgress>,
+    pub note_stats: NoteStats,
+    pub chapters: Vec<Chapter>,
+    pub categories: Vec<Category>,
+    pub sessions: Vec<ReadingSession>,
+    pub vocab_list: Vec<Vocab>,
+}
+
+/// 获取书籍详情（聚合查询，一次调用返回所有详情页数据）
+#[frb]
+pub async fn get_book_detail(book_id: String) -> Result<BookDetail, AppError> {
+
+    let pool = crate::storage::storage_pool()?;
+
+    let book = BookRepository::find_by_id(&pool, &book_id).await
+        .map_err(|e| AppError::database_error(e.to_string()))?;
+    let progress = ProgressRepository::find_by_book(&pool, &book_id).await
+        .map_err(|e| AppError::database_error(e.to_string()))?;
+    let note_stats = NoteRepository::find_note_stats(&pool, &book_id).await
+        .map_err(|e| AppError::database_error(e.to_string()))?;
+    let chapters = ChapterRepository::find_by_book(&pool, &book_id).await
+        .map_err(|e| AppError::database_error(e.to_string()))?;
+    let categories = CategoryRepository::list_by_book(&pool, &book_id).await
+        .map_err(|e| AppError::database_error(e.to_string()))?;
+    let sessions = SessionRepository::find_by_book(&pool, &book_id, 100).await
+        .map_err(|e| AppError::database_error(e.to_string()))?;
+    let vocab_list = VocabRepository::find_by_status(&pool, Some(&book_id), None, None).await
+        .map_err(|e| AppError::database_error(e.to_string()))?;
+
+    Ok(BookDetail {
+        book,
+        progress,
+        note_stats,
+        chapters,
+        categories,
+        sessions,
+        vocab_list,
+    })
+}
 
 /// 获取所有书籍列表
 ///

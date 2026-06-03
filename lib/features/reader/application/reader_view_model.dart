@@ -2,19 +2,18 @@ import 'dart:async';
 
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
+import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../../core/reader/reader_config.dart';
 import '../data/repositories/rust_reader_repository.dart';
-import 'annotation_controller.dart';
-import 'bilingual_controller.dart';
-import 'bookmark_controller.dart';
+import '../domain/services/highlight_painter.dart';
 import 'chapter_manager.dart';
 import 'reading_session_manager.dart';
-import 'reader_search_controller.dart';
 
 /// 阅读器视图模型 — Facade
 ///
@@ -26,15 +25,10 @@ class ReaderViewModel {
   final ReaderRepository _repo;
   final ReaderConfig _config;
 
-  final BookmarkController _bookmarkController;
-  final ReaderSearchController _searchController;
-  final AnnotationController _annotationController;
-  final BilingualController _bilingualController;
-
-  /// 阅读配置（含翻页布局等）
+  /// 阅读配置
   ReaderConfig get config => _config;
 
-  // ==================== 快捷 getter 代理（ChapterManager） ====================
+  // ==================== 快捷 getter（ChapterManager） ====================
 
   Signal<String> get bookId => chapterManager.bookId;
   Signal<int> get chapterIndex => chapterManager.chapterIndex;
@@ -58,21 +52,30 @@ class ReaderViewModel {
   late final ReadonlySignal<double> fontSizeDouble =
       computed(() => _config.fontSize.value);
 
-  // ==================== 快捷 getter 代理（Controller） ====================
+  // ==================== 搜索 信号 ====================
 
-  AsyncSignal<List<Bookmark>> get bookmarks => _bookmarkController.bookmarks;
-  Signal<bool> get showSearch => _searchController.showSearch;
-  Signal<String> get searchQuery => _searchController.searchQuery;
-  Signal<int> get searchMatches => _searchController.searchMatches;
-  Signal<int> get searchCurrentIndex => _searchController.searchCurrentIndex;
-  Signal<int> get searchMatchParagraph => _searchController.searchMatchParagraph;
-  Signal<String> get selectedText => _annotationController.selectedText;
-  Signal<int> get selectionStart => _annotationController.selectionStart;
-  Signal<int> get selectionEnd => _annotationController.selectionEnd;
-  Signal<bool> get showSelectionToolbar => _annotationController.showSelectionToolbar;
-  Signal<List<Note>> get highlights => _annotationController.highlights;
-  AsyncSignal<BilingualAlignment?> get bilingualAlignment => _bilingualController.bilingualAlignment;
-  Signal<String> get translationContent => _bilingualController.translationContent;
+  final showSearch = signal<bool>(false);
+  final searchQuery = signal<String>('');
+  final searchMatches = signal<int>(0);
+  final searchCurrentIndex = signal<int>(0);
+  final searchMatchParagraph = signal<int>(-1);
+
+  // ==================== 书签 信号 ====================
+
+  final bookmarks = asyncSignal<List<Bookmark>>(AsyncState.data([]));
+
+  // ==================== 批注 信号 ====================
+
+  final selectedText = signal<String>('');
+  final selectionStart = signal<int>(0);
+  final selectionEnd = signal<int>(0);
+  final showSelectionToolbar = signal<bool>(false);
+  final highlights = signal<List<Note>>([]);
+
+  // ==================== 双语 信号 ====================
+
+  final bilingualAlignment = asyncSignal<BilingualAlignment?>(AsyncState.data(null));
+  final translationContent = signal<String>('');
 
   // ==================== UI 面板状态 ====================
 
@@ -89,17 +92,9 @@ class ReaderViewModel {
   late final ChapterManager chapterManager;
   late final ReadingSessionManager sessionManager;
 
-  ReaderViewModel(
-    this._repo,
-    this._config,
-    this._bookmarkController,
-    this._searchController,
-    this._annotationController,
-    this._bilingualController,
-  ) {
+  ReaderViewModel(this._repo, this._config) {
     chapterManager = ChapterManager(_repo, _config);
     sessionManager = ReadingSessionManager(_repo, chapterManager);
-    // 监听自动滚动设置
     _disposers.add(
       effect(() {
         if (_config.autoScroll.value && sessionManager.isReading.value) {
@@ -151,7 +146,7 @@ class ReaderViewModel {
         );
       }
 
-      await _bookmarkController.loadBookmarks(bookId);
+      await loadBookmarks();
       sessionManager.startReading();
       sessionManager.startAutoSave();
     } catch (e) {
@@ -224,39 +219,61 @@ class ReaderViewModel {
 
   // ==================== 搜索（委托给 SearchController） ====================
 
-  void toggleSearch() => _searchController.toggleSearch();
-  void updateSearch(
-    String query, {
-    int matches = 0,
-    int currentIndex = 0,
-    int paragraphIndex = -1,
-  }) => _searchController.updateSearch(
-    query,
-    matches: matches,
-    currentIndex: currentIndex,
-    paragraphIndex: paragraphIndex,
-  );
-  void nextSearchMatch() => _searchController.nextSearchMatch();
-  void prevSearchMatch() => _searchController.prevSearchMatch();
+  void toggleSearch() {
+    showSearch.value = !showSearch.value;
+    if (!showSearch.value) {
+      searchQuery.value = '';
+      searchMatches.value = 0;
+      searchCurrentIndex.value = 0;
+      searchMatchParagraph.value = -1;
+    }
+  }
 
-  // ==================== 书签（委托给 BookmarkController） ====================
+  void updateSearch(String query, {int matches = 0, int currentIndex = 0, int paragraphIndex = -1}) {
+    searchQuery.value = query;
+    HighlightPainter.invalidateCache();
+    searchMatches.value = matches;
+    searchCurrentIndex.value = currentIndex.clamp(0, (matches - 1).clamp(0, 999999));
+    searchMatchParagraph.value = paragraphIndex;
+  }
+
+  void nextSearchMatch() {
+    if (searchMatches.value <= 0) return;
+    searchCurrentIndex.value = (searchCurrentIndex.value + 1) % searchMatches.value;
+  }
+
+  void prevSearchMatch() {
+    if (searchMatches.value <= 0) return;
+    searchCurrentIndex.value = (searchCurrentIndex.value - 1 + searchMatches.value) % searchMatches.value;
+  }
+
+  // ==================== 书签 ====================
 
   Future<void> loadBookmarks() async {
-    await _bookmarkController.loadBookmarks(bookId.value);
+    await bookmarks.loadAsync(() => _repo.getBookmarks(bookId.value), label: 'loadBookmarks');
   }
 
   Future<bool> addBookmark() async {
-    return await _bookmarkController.addBookmark(
-      bookId.value,
-      chapterIndex.value,
-      currentCharOffset.value,
-    );
+    try {
+      await _repo.addBookmark(bookId.value, chapterIndex.value, currentCharOffset.value);
+      await loadBookmarks();
+      return true;
+    } catch (e) {
+      Logging.error('addBookmark error', exception: e);
+      return false;
+    }
   }
 
   Future<bool> deleteBookmark(String bookmarkId) async {
-    return await _bookmarkController.deleteBookmark(bookmarkId, bookId.value);
+    try {
+      final success = await _repo.deleteBookmark(bookmarkId);
+      if (success) await loadBookmarks();
+      return success;
+    } catch (e) {
+      Logging.error('deleteBookmark error', exception: e);
+      return false;
+    }
   }
-
   Future<void> jumpToBookmark(Bookmark bookmark) async {
     await jumpToPosition(bookmark.chapterIndex, bookmark.charOffset.toInt());
     showBookmarks.value = false;
@@ -293,54 +310,64 @@ class ReaderViewModel {
     }
   }
 
-  // ==================== 划词批注（委托给 AnnotationController） ====================
+  // ==================== 划词批注 ====================
 
   Future<void> loadHighlights() async {
-    await _annotationController.loadHighlights(
-      bookId.value,
-      chapterIndex.value,
-    );
-  }
-
-  void updateSelection(String text, int start, int end) =>
-      _annotationController.updateSelection(text, start, end);
-
-  void clearSelection() => _annotationController.clearSelection();
-
-  Future<void> saveHighlight() async {
-    if (_annotationController.selectedText.value.isEmpty) return;
     try {
-      await _annotationController.createHighlight(
+      highlights.value = await note_api.listNotesInChapter(
         bookId: bookId.value,
         chapterIndex: chapterIndex.value,
-        selectionStart: _annotationController.selectionStart.value,
-        selectionEnd: _annotationController.selectionEnd.value,
-        selectedText: _annotationController.selectedText.value,
       );
-      hapticFeedback(HapticType.medium);
+    } catch (_) {
+      highlights.value = [];
+    }
+    HighlightPainter.invalidateCache();
+  }
+
+  void updateSelection(String text, int start, int end) {
+    selectedText.value = text;
+    selectionStart.value = start;
+    selectionEnd.value = end;
+    showSelectionToolbar.value = text.isNotEmpty;
+  }
+
+  void clearSelection() {
+    selectedText.value = '';
+    selectionStart.value = 0;
+    selectionEnd.value = 0;
+    showSelectionToolbar.value = false;
+  }
+
+  Future<void> saveHighlight() async {
+    if (selectedText.value.isEmpty) return;
+    try {
+      await note_api.createHighlight(
+        bookId: bookId.value,
+        chapterIndex: chapterIndex.value,
+        charOffset: selectionStart.value,
+        length: selectionEnd.value - selectionStart.value,
+        selectedText: selectedText.value,
+        color: 0xFFFFEB3B,
+      );
       await loadHighlights();
-      _annotationController.clearSelection();
+      clearSelection();
     } catch (e) {
       toastMessage.value = '保存高亮失败';
     }
   }
 
   Future<void> saveAnnotation(String annotationContent) async {
-    if (_annotationController.selectedText.value.isEmpty ||
-        annotationContent.isEmpty) {
-      return;
-    }
+    if (selectedText.value.isEmpty || annotationContent.isEmpty) return;
     try {
-      await _annotationController.createAnnotation(
+      await note_api.createAnnotation(
         bookId: bookId.value,
         chapterIndex: chapterIndex.value,
-        selectionStart: _annotationController.selectionStart.value,
-        selectionEnd: _annotationController.selectionEnd.value,
-        selectedText: _annotationController.selectedText.value,
-        annotationContent: annotationContent,
+        charOffset: selectionStart.value,
+        content: annotationContent,
+        selectedText: selectedText.value,
       );
       await loadHighlights();
-      _annotationController.clearSelection();
+      clearSelection();
     } catch (e) {
       toastMessage.value = '保存笔记失败';
     }
@@ -348,7 +375,7 @@ class ReaderViewModel {
 
   Future<void> deleteNote(String noteId) async {
     try {
-      await _annotationController.deleteNote(noteId);
+      await note_api.deleteNote(noteId: noteId);
       hapticFeedback(HapticType.heavy);
       await loadHighlights();
     } catch (e) {
@@ -358,7 +385,7 @@ class ReaderViewModel {
 
   Future<void> updateNote(Note note) async {
     try {
-      await _annotationController.updateNote(note);
+      await note_api.upsertNote(note: note);
       await loadHighlights();
     } catch (e) {
       toastMessage.value = '更新笔记失败';
@@ -395,7 +422,7 @@ class ReaderViewModel {
   }
 
   void setTranslationContent(String content) {
-    _bilingualController.translationContent.value = content;
+    translationContent.value = content;
     if (readingMode.value == ReadingMode.bilingual) {
       _runBilingualAlignment();
     }
@@ -403,8 +430,16 @@ class ReaderViewModel {
 
   Future<void> _runBilingualAlignment() async {
     final content = chapterContent.value.value ?? '';
-    final translation = _bilingualController.translationContent.value;
-    await _bilingualController.runAlignment(content, translation);
+    final translation = translationContent.value;
+    if (translation.isEmpty) return;
+    await bilingualAlignment.loadAsync(
+      () => alignBilingualContent(
+        chineseContent: content,
+        englishContent: translation,
+        minSimilarity: 0.5,
+      ),
+      label: '双语对齐',
+    );
   }
 
   // ==================== 双语高亮 ====================
@@ -443,11 +478,7 @@ class ReaderViewModel {
         ),
       );
     } catch (e, stack) {
-      Logging.error(
-        'ReaderViewModel.createBilingualHighlight',
-        exception: e,
-        stackTrace: stack,
-      );
+      Logging.error('ReaderViewModel.createBilingualHighlight', exception: e, stackTrace: stack);
       toastMessage.value = '双语高亮创建失败';
     }
   }
@@ -462,10 +493,6 @@ class ReaderViewModel {
 
     chapterManager.reset();
     sessionManager.reset();
-    _bookmarkController.dispose();
-    _searchController.dispose();
-    _annotationController.dispose();
-    _bilingualController.dispose();
 
     toastMessage.value = '';
     showCatalog.value = false;

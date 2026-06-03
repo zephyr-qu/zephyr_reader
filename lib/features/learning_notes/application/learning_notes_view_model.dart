@@ -1,11 +1,10 @@
-library;
+
 
 import 'dart:async';
-import 'package:injectable/injectable.dart';
 
+import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-
 import 'package:zephyr_reader/shared/book_title_resolver.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as rust_book;
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as rust_note;

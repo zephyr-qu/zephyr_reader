@@ -43,28 +43,26 @@ Future<void> main() async {
         return true;
       };
 
-      if (kReleaseMode) {
-        ErrorWidget.builder = (details) {
-          Logging.error(
-            'Widget 构建错误',
-            exception: details.exception,
-            stackTrace: details.stack,
-          );
-          return const Material(
-            color: Colors.black,
-            child: Center(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  '出现了一些问题，应用即将重新启动。',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                  textAlign: TextAlign.center,
-                ),
+      ErrorWidget.builder = (details) {
+        Logging.error(
+          'Widget 构建错误',
+          exception: details.exception,
+          stackTrace: details.stack,
+        );
+        return const Material(
+          color: Colors.black,
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                '出现了一些问题，应用即将重新启动。',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+                textAlign: TextAlign.center,
               ),
             ),
-          );
-        };
-      }
+          ),
+        );
+      };
 
       runApp(const ZephyrReaderApp());
     },
