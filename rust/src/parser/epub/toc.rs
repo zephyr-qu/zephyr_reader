@@ -9,15 +9,24 @@ pub fn extract_chapters_from_epub(epub_file: &mut EpubFile, book_id: &str) -> Ve
     let toc = epub_file.toc();
     let spine = epub_file.spine();
 
-    tracing::info!("[extract_chapters_from_epub] spine total: {}, toc total: {}", spine.len(), toc.len());
+    tracing::info!(
+        "[extract_chapters_from_epub] spine total: {}, toc total: {}",
+        spine.len(),
+        toc.len()
+    );
     for (i, (label, href, lvl)) in toc.iter().enumerate() {
-        tracing::info!("[extract_chapters_from_epub]   toc[{i}]: label={label:?} href={href:?} level={lvl}");
+        tracing::info!(
+            "[extract_chapters_from_epub]   toc[{i}]: label={label:?} href={href:?} level={lvl}"
+        );
     }
 
     if toc.is_empty() {
         // If no TOC, generate simple chapters from spine
         let chapters = generate_chapters_from_spine(&spine, book_id);
-        tracing::info!("[extract_chapters_from_epub] No TOC, generating {} chapters from spine", chapters.len());
+        tracing::info!(
+            "[extract_chapters_from_epub] No TOC, generating {} chapters from spine",
+            chapters.len()
+        );
         return chapters;
     }
 
@@ -26,9 +35,17 @@ pub fn extract_chapters_from_epub(epub_file: &mut EpubFile, book_id: &str) -> Ve
 
     extract_toc_items(epub_file, &toc, &mut chapters, &mut chapter_id, book_id);
 
-    tracing::info!("[extract_chapters_from_epub] Parsed {} chapters from TOC", chapters.len());
+    tracing::info!(
+        "[extract_chapters_from_epub] Parsed {} chapters from TOC",
+        chapters.len()
+    );
     for ch in &chapters {
-        tracing::info!("[extract_chapters_from_epub]   ch[{}]: title={:?}, start_index={}", ch.chapter_index, ch.title, ch.start_index);
+        tracing::info!(
+            "[extract_chapters_from_epub]   ch[{}]: title={:?}, start_index={}",
+            ch.chapter_index,
+            ch.title,
+            ch.start_index
+        );
     }
 
     chapters

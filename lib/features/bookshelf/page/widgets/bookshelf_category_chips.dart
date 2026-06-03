@@ -48,12 +48,12 @@ class BookshelfCategoryChips extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? theme.colorScheme.primaryContainer
+                        ? DesignTokens.warmAccent.withValues(alpha: 0.15)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected
-                          ? theme.colorScheme.primary
+                          ? DesignTokens.warmAccent
                           : theme.colorScheme.outlineVariant,
                     ),
                   ),

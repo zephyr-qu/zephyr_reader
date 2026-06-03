@@ -2,6 +2,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 class ReaderSearchBar extends StatelessWidget {
@@ -26,6 +27,7 @@ class ReaderSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     return Container(
       color: theme.colorScheme.surfaceContainerHigh,
@@ -42,7 +44,7 @@ class ReaderSearchBar extends StatelessWidget {
             IconButton(
               icon: const Icon(PhosphorIconsLight.caretLeft, size: 20),
               onPressed: onClose,
-              tooltip: '关闭搜索',
+              tooltip: l10n.closeSearch,
             ),
             Expanded(
               child: TextField(
@@ -51,7 +53,7 @@ class ReaderSearchBar extends StatelessWidget {
                 style: const TextStyle(fontSize: 14),
                 onChanged: onChanged,
                 decoration: InputDecoration(
-                  hintText: '在章节内搜索...',
+                  hintText: l10n.searchInChapterHint,
                   border: InputBorder.none,
                   isDense: true,
                   contentPadding: EdgeInsets.symmetric(
@@ -68,12 +70,12 @@ class ReaderSearchBar extends StatelessWidget {
             IconButton(
               icon: const Icon(PhosphorIconsLight.caretLeft, size: 20),
               onPressed: matchCount > 0 ? onPrev : null,
-              tooltip: '上一个',
+              tooltip: l10n.prev,
             ),
             IconButton(
               icon: const Icon(PhosphorIconsLight.caretRight, size: 20),
               onPressed: matchCount > 0 ? onNext : null,
-              tooltip: '下一个',
+              tooltip: l10n.next,
             ),
           ],
         ),

@@ -3,11 +3,10 @@
 //! 提供 EPUB 特有的功能，如富文本章节解析。
 //! 通用解析功能请使用 core::parse_book。
 
-
 use crate::domain::{AppError, EpubMetadata, RichParagraph, TypesetConfig};
+use crate::utils::security::validate_file_path_async;
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
-use crate::utils::security::validate_file_path_async;
 
 /// 图片格式
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,7 +44,8 @@ impl ImageFormat {
             ImageFormat::Bmp => "image/bmp",
             ImageFormat::Svg => "image/svg+xml",
             ImageFormat::Unknown => "application/octet-stream",
-        }.to_string()
+        }
+        .to_string()
     }
 
     pub fn extension(&self) -> String {
@@ -57,7 +57,8 @@ impl ImageFormat {
             ImageFormat::Bmp => "bmp",
             ImageFormat::Svg => "svg",
             ImageFormat::Unknown => "bin",
-        }.to_string()
+        }
+        .to_string()
     }
 }
 
@@ -130,13 +131,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_epub_chapter_rich_content_file_not_found() {
-        let result = get_epub_chapter_rich_content(
-            "non_existent.epub".into(),
-            0,
-            TypesetConfig::default(),
-        )
-        .await;
+        let result =
+            get_epub_chapter_rich_content("non_existent.epub".into(), 0, TypesetConfig::default())
+                .await;
         assert!(result.is_err());
     }
 }
-

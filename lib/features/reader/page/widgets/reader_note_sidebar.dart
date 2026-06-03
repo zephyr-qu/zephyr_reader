@@ -6,6 +6,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
+import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class ReaderNoteSidebar extends HookWidget {
@@ -31,7 +32,7 @@ class ReaderNoteSidebar extends HookWidget {
     Future<void> loadNotes() async {
       loading.value = true;
       try {
-        notes.value = await vm.getNotesByBook(bookId);
+        notes.value = await note_api.listNotesByBook(bookId: bookId);
       } catch (_) {
         notes.value = [];
       }

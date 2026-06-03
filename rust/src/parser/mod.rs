@@ -11,9 +11,70 @@ pub mod registry;
 pub mod txt;
 
 pub use cover_extractor::get_cover_registry;
-pub use epub::create_epub_parser;
-pub use md::parse::create_md_parser;
-pub use pdf::create_pdf_parser;
-pub use txt::create_txt_parser;
 
+use crate::domain::{AppError, ParseResult};
+use crate::parser::book_parser::BookMetadata;
+use crate::parser::epub::EpubParser;
+use crate::parser::md::parse::MdParser;
+use crate::parser::pdf::PdfParser;
+use crate::parser::txt::TxtParser;
 
+/// 解析器枚举，统一封裝各格式解析器
+#[derive(Clone, Copy)]
+pub enum Parser {
+    Txt(TxtParser),
+    Epub(EpubParser),
+    Pdf(PdfParser),
+    Md(MdParser),
+}
+
+impl Parser {
+    pub fn name(self) -> &'static str {
+        match self {
+            Parser::Txt(_) => "TXT Parser",
+            Parser::Epub(_) => "EPUB Parser",
+            Parser::Pdf(_) => "PDF Parser",
+            Parser::Md(_) => "MD Parser",
+        }
+    }
+
+    pub fn supported_formats(self) -> &'static [&'static str] {
+        match self {
+            Parser::Txt(_) => &["txt", "text"],
+            Parser::Epub(_) => &["epub"],
+            Parser::Pdf(_) => &["pdf"],
+            Parser::Md(_) => &["md", "markdown", "mdown", "mkdn"],
+        }
+    }
+
+    pub async fn parse(self, file_path: &str) -> Result<ParseResult, AppError> {
+        match self {
+            Parser::Txt(p) => p.parse(file_path).await,
+            Parser::Epub(p) => p.parse(file_path).await,
+            Parser::Pdf(p) => p.parse(file_path).await,
+            Parser::Md(p) => p.parse(file_path).await,
+        }
+    }
+
+    pub async fn extract_metadata(self, file_path: &str) -> Result<BookMetadata, AppError> {
+        match self {
+            Parser::Txt(p) => p.extract_metadata(file_path).await,
+            Parser::Epub(p) => p.extract_metadata(file_path).await,
+            Parser::Pdf(p) => p.extract_metadata(file_path).await,
+            Parser::Md(p) => p.extract_metadata(file_path).await,
+        }
+    }
+
+    pub async fn extract_chapter(
+        self,
+        file_path: &str,
+        chapter_index: i32,
+    ) -> Result<String, AppError> {
+        match self {
+            Parser::Txt(p) => p.extract_chapter(file_path, chapter_index).await,
+            Parser::Epub(p) => p.extract_chapter(file_path, chapter_index).await,
+            Parser::Pdf(p) => p.extract_chapter(file_path, chapter_index).await,
+            Parser::Md(p) => p.extract_chapter(file_path, chapter_index).await,
+        }
+    }
+}

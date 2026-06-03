@@ -8,13 +8,11 @@ pub mod provider;
 pub mod text;
 
 use std::path::Path;
-use std::sync::Arc;
 
-use async_trait::async_trait;
 use flutter_rust_bridge::frb;
 
-use crate::domain::{ ParseResult, AppError};
-use crate::parser::book_parser::{BookMetadata, BookParser};
+use crate::domain::{AppError, ParseResult};
+use crate::parser::book_parser::BookMetadata;
 
 pub use images::extract_pdf_cover;
 pub use parse::get_pdf_metadata;
@@ -25,6 +23,7 @@ pub use text::get_chapter_text;
 pub const DEFAULT_PAGES_PER_CHAPTER: usize = 10;
 
 /// PDF 文件解析器
+#[derive(Clone, Copy)]
 #[frb(opaque)]
 pub struct PdfParser;
 
@@ -32,39 +31,30 @@ impl PdfParser {
     pub fn new() -> Self {
         Self
     }
-}
 
-impl Default for PdfParser {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[async_trait]
-impl BookParser for PdfParser {
-    fn name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         "PDF Parser"
     }
 
-    fn supported_formats(&self) -> Vec<&str> {
+    pub fn supported_formats(&self) -> Vec<&str> {
         vec!["pdf"]
     }
 
-    async fn parse(&self, file_path: &str) -> Result<ParseResult,AppError> {
+    pub async fn parse(&self, file_path: &str) -> Result<ParseResult, AppError> {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || parse_pdf(fp))
             .await
             .map_err(|e| AppError::internal(format!("PDF parse task failed: {}", e)))?
     }
 
-    async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata,AppError> {
+    pub async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata, AppError> {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || -> Result<BookMetadata, AppError> {
             if !Path::new(&fp).exists() {
                 return Err(AppError::file_not_found(&fp));
             }
 
-            let metadata = get_pdf_metadata(fp.clone());
+            let metadata = get_pdf_metadata(fp.clone())?;
 
             let title = metadata.title.clone().unwrap_or_else(|| {
                 Path::new(&fp)
@@ -76,7 +66,9 @@ impl BookParser for PdfParser {
 
             Ok(BookMetadata {
                 title,
-                author: metadata.author.unwrap_or_else(|| "Unknown Author".to_string()),
+                author: metadata
+                    .author
+                    .unwrap_or_else(|| "Unknown Author".to_string()),
                 description: None,
                 cover_path: None,
                 publisher: None,
@@ -88,24 +80,30 @@ impl BookParser for PdfParser {
                 total_characters: 0,
             })
         })
-            .await
-            .map_err(|e| AppError::internal(format!("PDF metadata extraction failed: {}", e)))?
+        .await
+        .map_err(|e| AppError::internal(format!("PDF metadata extraction failed: {}", e)))?
     }
 
-    async fn extract_chapter(&self, file_path: &str, chapter_index: i32) -> Result<String,AppError> {
+    pub async fn extract_chapter(
+        &self,
+        file_path: &str,
+        chapter_index: i32,
+    ) -> Result<String, AppError> {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || {
             let start_page = (chapter_index as usize * DEFAULT_PAGES_PER_CHAPTER) as u32;
             let end_page = ((chapter_index as usize + 1) * DEFAULT_PAGES_PER_CHAPTER) as u32;
             get_chapter_text(&fp, start_page as usize, end_page as usize)
         })
-            .await
-            .map_err(|e| AppError::internal(format!("PDF chapter extraction failed: {}", e)))?
+        .await
+        .map_err(|e| AppError::internal(format!("PDF chapter extraction failed: {}", e)))?
     }
 }
 
-pub fn create_pdf_parser() -> Arc<dyn BookParser> {
-    Arc::new(PdfParser::new())
+impl Default for PdfParser {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

@@ -5,27 +5,57 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/presentation/widgets/skeleton_widget.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
+import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+
+// ─── Bottom-Left Triangle Clipper ──────────────────────────────────────────
+
+class _BottomLeftTriangleClipper extends CustomClipper<Path> {
+  const _BottomLeftTriangleClipper();
+
+  @override
+  Path getClip(Size size) {
+    return Path()
+      ..moveTo(0, size.height)
+      ..lineTo(0, size.height * 0.38)
+      ..lineTo(size.width * 0.42, size.height)
+      ..close();
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+// ─── Book Cover ─────────────────────────────────────────────────────────────
 
 class _BookCover extends StatelessWidget {
   final Book book;
   final String statusLabel;
+  final double? progress;
 
-  const _BookCover({required this.book, required this.statusLabel});
+  const _BookCover({
+    required this.book,
+    required this.statusLabel,
+    this.progress,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final showProgress = progress != null && progress! > 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Stack(
             children: [
+              // Cover image / placeholder
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer,
+                  color: cs.primaryContainer,
                   borderRadius: BorderRadius.circular(
                     DesignTokens.radius(RadiusSize.sm),
                   ),
@@ -45,9 +75,7 @@ class _BookCover extends StatelessWidget {
                             child: Icon(
                               PhosphorIconsRegular.book,
                               size: 24,
-                              color: theme.colorScheme.primary.withValues(
-                                alpha: 0.4,
-                              ),
+                              color: cs.primary.withValues(alpha: 0.4),
                             ),
                           ),
                         ),
@@ -56,32 +84,76 @@ class _BookCover extends StatelessWidget {
                         child: Icon(
                           PhosphorIconsRegular.book,
                           size: 24,
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.4,
-                          ),
+                          color: cs.primary.withValues(alpha: 0.4),
                         ),
                       ),
               ),
+
+              // Status tag - top-right
               if (book.status == BookStatus.reading)
                 Positioned(
                   top: 6,
-                  left: 6,
+                  right: 6,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 6,
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
+                      color: cs.primary,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       statusLabel,
                       style: TextStyle(
                         fontSize: 10,
-                        color: theme.colorScheme.onPrimary,
+                        color: cs.onPrimary,
                         fontWeight: FontWeight.w500,
                       ),
+                    ),
+                  ),
+                ),
+
+              // Progress triangle overlay - bottom-left
+              if (showProgress)
+                Positioned.fill(
+                  child: ClipPath(
+                    clipper: const _BottomLeftTriangleClipper(),
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
+
+              // Progress percentage text
+              if (showProgress)
+                Positioned(
+                  left: 7,
+                  bottom: 7,
+                  child: Text(
+                    '${(progress! * 100).round()}%',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      height: 1,
+                    ),
+                  ),
+                ),
+
+              // Progress bar at bottom
+              if (showProgress)
+                Positioned(
+                  left: 4,
+                  right: 4,
+                  bottom: 4,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(1.5),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      backgroundColor: Colors.black.withValues(alpha: 0.15),
+                      valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+                      minHeight: 3,
                     ),
                   ),
                 ),
@@ -95,7 +167,7 @@ class _BookCover extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 12,
-            color: theme.colorScheme.onSurface,
+            color: cs.onSurface,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -117,6 +189,7 @@ class BookshelfBookContent extends StatelessWidget {
   final ValueChanged<Set<String>> onSelectionChanged;
   final void Function(Book) onBookTap;
   final void Function(Book) onBookLongPress;
+  final Map<String, double> readingProgress;
 
   const BookshelfBookContent({
     super.key,
@@ -132,6 +205,7 @@ class BookshelfBookContent extends StatelessWidget {
     required this.onSelectionChanged,
     required this.onBookTap,
     required this.onBookLongPress,
+    required this.readingProgress,
   });
 
   String _statusLabel(String statusName) {
@@ -206,7 +280,7 @@ class BookshelfBookContent extends StatelessWidget {
           ),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            childAspectRatio: 0.55,
+            childAspectRatio: 0.62,
             crossAxisSpacing: 14,
             mainAxisSpacing: 18,
           ),
@@ -231,6 +305,7 @@ class BookshelfBookContent extends StatelessWidget {
                     : () => onBookTap(book),
                 onLongPress: () {
                   if (!batchMode) {
+                    hapticFeedback(HapticType.medium);
                     onBookLongPress(book);
                   }
                 },
@@ -239,6 +314,7 @@ class BookshelfBookContent extends StatelessWidget {
                     _BookCover(
                       book: book,
                       statusLabel: _statusLabel(book.status.name),
+                      progress: readingProgress[book.bookId],
                     ),
                     if (batchMode)
                       Positioned(

@@ -15,7 +15,7 @@ void main() {
       test('应返回单例', () {
         final service1 = BatteryStateService();
         final service2 = BatteryStateService();
-        expect(service1, identical(service2, service1));
+      expect(identical(service1, service2), isTrue);
       });
     });
 
@@ -53,7 +53,7 @@ void main() {
 
         expect(state.isCharging, isA<bool>());
         expect(state.batteryLevel, isA<int>());
-        expect(state.temperature, isA<double>());
+        expect(state.temperature, isA<int>());
       });
     });
 

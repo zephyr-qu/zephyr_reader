@@ -6,7 +6,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/presentation/widgets/selection_chip.dart';
 import 'package:zephyr_reader/core/utils/date_formatters.dart';
 import 'package:zephyr_reader/features/learning_notes/application/learning_notes_view_model.dart';
-import 'package:zephyr_reader/features/learning_notes/application/models/note_with_book.dart';
+
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class LearningNotesNoteTab extends StatelessWidget {

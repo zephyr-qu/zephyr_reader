@@ -1,14 +1,6 @@
-import 'dart:convert';
-
 import 'package:dio/dio.dart';
-import 'package:dio_smart_retry/dio_smart_retry.dart';
-import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
-import 'package:sentry_dio/sentry_dio.dart';
-import 'package:zephyr_reader/core/app_config.dart';
-import 'package:zephyr_reader/core/network/network_error.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 @module
 abstract class NetworkModule {
@@ -18,15 +10,14 @@ abstract class NetworkModule {
   Dio _createDio() {
     final dio = Dio(
       BaseOptions(
-        baseUrl: AppConfig.baseUrl,
+        baseUrl: 'https://api.example.com',
         responseType: ResponseType.json,
-        connectTimeout: const Duration(
-          seconds: AppConfig.connectTimeoutSeconds,
-        ),
-        receiveTimeout: const Duration(
-          seconds: AppConfig.receiveTimeoutSeconds,
-        ),
-        headers: AppConfig.defaultHeaders,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
       ),
     );
 
@@ -35,51 +26,56 @@ abstract class NetworkModule {
   }
 
   void _setupInterceptors(Dio dio) {
-    dio.interceptors.add(
-      RetryInterceptor(
-        dio: dio,
-        retries: AppConfig.retries,
-        retryDelays: const [
-          Duration(milliseconds: 500),
-          Duration(milliseconds: 1000),
-          Duration(milliseconds: 2000),
-        ],
-        retryEvaluator: (err, _) => err.type != DioExceptionType.cancel,
-      ),
-    );
+    // 简单重试（最大 3 次，指数退避），代替 dio_smart_retry
+    dio.interceptors.add(_SimpleRetryInterceptor());
 
-    dio.addSentry();
-
+    // 调试日志（Dio 内置，代替 pretty_dio_logger）
     dio.interceptors.add(
-      PrettyDioLogger(
-        requestHeader: true,
-        requestBody: kDebugMode,
-        responseBody: kDebugMode,
-        responseHeader: false,
+      LogInterceptor(
+        requestBody: true,
+        responseBody: true,
         error: true,
-        compact: true,
-        maxWidth: 90,
       ),
     );
 
+    // 统一错误日志
     dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
-          return handler.next(options);
-        },
-        onResponse: (response, handler) {
-          if (response.data.runtimeType == String) {
-            response.data =
-                json.decode(response.data as String) as Map<String, dynamic>;
-          }
-          return handler.next(response);
-        },
         onError: (error, handler) {
-          final apiError = handleError(error);
-          Logging.error(apiError.toString());
+          Logging.error('HTTP ${error.type.name}: ${error.message}');
           return handler.next(error);
         },
       ),
     );
+  }
+}
+
+/// 轻量重试拦截器，不依赖 dio_smart_retry
+class _SimpleRetryInterceptor extends Interceptor {
+  static const _maxRetries = 3;
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    if (err.type == DioExceptionType.cancel) {
+      return handler.next(err);
+    }
+
+    final retryCount =
+        (err.requestOptions.extra['_retryCount'] as int? ?? 0) + 1;
+    if (retryCount > _maxRetries) {
+      return handler.next(err);
+    }
+
+    err.requestOptions.extra['_retryCount'] = retryCount;
+
+    // 指数退避: 500ms, 1s, 2s
+    await Future.delayed(Duration(milliseconds: 500 * (1 << (retryCount - 1))));
+
+    try {
+      final response = await Dio().fetch<dynamic>(err.requestOptions);
+      return handler.resolve(response);
+    } catch (_) {
+      return handler.next(err);
+    }
   }
 }

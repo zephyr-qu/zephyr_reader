@@ -3,10 +3,10 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
-import '../../application/reader_enums.dart';
 
 class ReaderSettingsPanel extends HookWidget {
   final ThemeMode themeMode;
@@ -30,6 +30,8 @@ class ReaderSettingsPanel extends HookWidget {
   final ValueChanged<int> onReaderBgColorChanged;
   final double brightnessValue;
   final ValueChanged<double> onBrightnessChanged;
+  final TapLayout tapLayout;
+  final ValueChanged<TapLayout> onTapLayoutChanged;
   final VoidCallback onClose;
 
   const ReaderSettingsPanel({
@@ -52,6 +54,8 @@ class ReaderSettingsPanel extends HookWidget {
     required this.onWritingDirectionChanged,
     required this.readerBgColorIndex,
     required this.onReaderBgColorChanged,
+    required this.tapLayout,
+    required this.onTapLayoutChanged,
     required this.brightnessValue,
     required this.onBrightnessChanged,
     required this.onClose,
@@ -60,6 +64,7 @@ class ReaderSettingsPanel extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final readerTheme = Theme.of(context).extension<ReaderThemeExtension>()!;
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       color: readerTheme.backgroundColor,
@@ -73,11 +78,11 @@ class ReaderSettingsPanel extends HookWidget {
                 children: [
                   _buildSectionHeader(
                     icon: PhosphorIconsRegular.palette,
-                    title: '外观主题',
+                    title: l10n.appearanceSection,
                     mutedColor: readerTheme.mutedColor,
                   ),
                   _buildSliderTile(
-                    label: '亮度',
+                    label: l10n.brightness,
                     value: 1 - brightnessValue,
                     min: 0.3,
                     max: 1.0,
@@ -88,25 +93,27 @@ class ReaderSettingsPanel extends HookWidget {
                     readerTheme: readerTheme,
                   ),
                   const SizedBox(height: 4),
-                  _buildThemeSelector(readerTheme),
+                  _buildThemeSelector(readerTheme, l10n),
                   const SizedBox(height: 4),
-                  _buildBgColorPicker(readerTheme),
+                  _buildBgColorPicker(readerTheme, l10n),
+                  const SizedBox(height: 8),
+                  _buildTapLayoutToggle(readerTheme, l10n),
                   const Divider(height: 20, indent: 16, endIndent: 16),
                   _buildSectionHeader(
                     icon: PhosphorIconsRegular.bookOpenText,
-                    title: '阅读模式',
+                    title: l10n.readingModeSection,
                     mutedColor: readerTheme.mutedColor,
                   ),
-                  _buildModeSelector(readerTheme),
+                  _buildModeSelector(readerTheme, l10n),
                   const Divider(height: 20, indent: 16, endIndent: 16),
                   _buildSectionHeader(
                     icon: PhosphorIconsRegular.paragraph,
-                    title: '版面布局',
+                    title: l10n.layoutSection,
                     mutedColor: readerTheme.mutedColor,
                   ),
-                  _buildWritingDirectionSelector(readerTheme),
+                  _buildWritingDirectionSelector(readerTheme, l10n),
                   _buildSliderTile(
-                    label: '字间距',
+                    label: l10n.letterSpacing,
                     value: letterSpacing,
                     min: 0,
                     max: 8,
@@ -116,7 +123,7 @@ class ReaderSettingsPanel extends HookWidget {
                     readerTheme: readerTheme,
                   ),
                   _buildSliderTile(
-                    label: '段间距',
+                    label: l10n.paragraphSpacing,
                     value: paragraphSpacing,
                     min: 4,
                     max: 32,
@@ -126,7 +133,7 @@ class ReaderSettingsPanel extends HookWidget {
                     readerTheme: readerTheme,
                   ),
                   _buildSliderTile(
-                    label: '页边距',
+                    label: l10n.pageMargin,
                     value: pageMargin,
                     min: 8,
                     max: 40,
@@ -138,11 +145,11 @@ class ReaderSettingsPanel extends HookWidget {
                   const Divider(height: 20, indent: 16, endIndent: 16),
                   _buildSectionHeader(
                     icon: PhosphorIconsRegular.textT,
-                    title: '文字排版',
+                    title: l10n.typographySection,
                     mutedColor: readerTheme.mutedColor,
                   ),
                   _buildSliderTile(
-                    label: '字体大小',
+                    label: l10n.fontSize,
                     value: fontSize,
                     min: 12,
                     max: 32,
@@ -152,7 +159,7 @@ class ReaderSettingsPanel extends HookWidget {
                     readerTheme: readerTheme,
                   ),
                   _buildSliderTile(
-                    label: '行间距',
+                    label: l10n.lineHeight,
                     value: lineHeight,
                     min: 1.0,
                     max: 3.0,
@@ -218,13 +225,13 @@ class ReaderSettingsPanel extends HookWidget {
     );
   }
 
-  Widget _buildModeSelector(ReaderThemeExtension readerTheme) {
+  Widget _buildModeSelector(ReaderThemeExtension readerTheme, AppLocalizations l10n) {
     final accentColor = readerTheme.accentColor;
     final modes = [
-      (ReadingMode.scroll, '滚动', PhosphorIconsRegular.arrowsDownUp),
-      (ReadingMode.pageTurn, '翻页', PhosphorIconsRegular.book),
-      (ReadingMode.pagination, '分页', PhosphorIconsFill.bookOpenText),
-      (ReadingMode.bilingual, '对照', PhosphorIconsRegular.translate),
+      (ReadingMode.scroll, l10n.scrollMode, PhosphorIconsRegular.arrowsDownUp),
+      (ReadingMode.pageTurn, l10n.pageTurnMode, PhosphorIconsRegular.book),
+      (ReadingMode.pagination, l10n.paginationMode, PhosphorIconsFill.bookOpenText),
+      (ReadingMode.bilingual, l10n.bilingualMode, PhosphorIconsRegular.translate),
     ];
 
     return Padding(
@@ -279,11 +286,11 @@ class ReaderSettingsPanel extends HookWidget {
     );
   }
 
-  Widget _buildWritingDirectionSelector(ReaderThemeExtension readerTheme) {
+  Widget _buildWritingDirectionSelector(ReaderThemeExtension readerTheme, AppLocalizations l10n) {
     final accentColor = readerTheme.accentColor;
     final directions = [
-      (WritingDirection.horizontal, '横排', PhosphorIconsRegular.textT),
-      (WritingDirection.vertical, '竖排', PhosphorIconsRegular.textAa),
+      (WritingDirection.horizontal, l10n.horizontal, PhosphorIconsRegular.textT),
+      (WritingDirection.vertical, l10n.vertical, PhosphorIconsRegular.textAa),
     ];
 
     return Padding(
@@ -345,14 +352,14 @@ class ReaderSettingsPanel extends HookWidget {
     );
   }
 
-  Widget _buildThemeSelector(ReaderThemeExtension readerTheme) {
+  Widget _buildThemeSelector(ReaderThemeExtension readerTheme, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Row(
         children: [
           Expanded(
             child: _buildChip(
-              label: '浅色',
+              label: l10n.themeLight,
               icon: PhosphorIconsRegular.sun,
               selected: themeMode == ThemeMode.light,
               readerTheme: readerTheme,
@@ -362,7 +369,7 @@ class ReaderSettingsPanel extends HookWidget {
           const SizedBox(width: 6),
           Expanded(
             child: _buildChip(
-              label: '深色',
+              label: l10n.themeDark,
               icon: PhosphorIconsRegular.moon,
               selected: themeMode == ThemeMode.dark,
               readerTheme: readerTheme,
@@ -422,7 +429,7 @@ class ReaderSettingsPanel extends HookWidget {
     );
   }
 
-  Widget _buildBgColorPicker(ReaderThemeExtension readerTheme) {
+  Widget _buildBgColorPicker(ReaderThemeExtension readerTheme, AppLocalizations l10n) {
     final accentColor = readerTheme.accentColor;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -430,7 +437,7 @@ class ReaderSettingsPanel extends HookWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '阅读背景',
+            l10n.readerBgColor,
             style: TextStyle(
               color: readerTheme.mutedColor,
               fontSize: 11,
@@ -447,8 +454,8 @@ class ReaderSettingsPanel extends HookWidget {
                 onTap: () => onReaderBgColorChanged(i),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  width: 36,
-                  height: 36,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: ReaderBgColors.presets[i],
                     shape: BoxShape.circle,
@@ -478,6 +485,96 @@ class ReaderSettingsPanel extends HookWidget {
                 ),
               );
             }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTapLayoutToggle(
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+  ) {
+    final accentColor = readerTheme.accentColor;
+    final options = [
+      (
+        TapLayout.rightHanded,
+        l10n.tapLayoutRightHanded,
+        PhosphorIconsRegular.handPointing
+      ),
+      (
+        TapLayout.leftHanded,
+        l10n.tapLayoutLeftHanded,
+        PhosphorIconsRegular.handFist
+      ),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.tapLayout,
+            style: TextStyle(
+              color: readerTheme.mutedColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: options.map((opt) {
+              final isSelected = tapLayout == opt.$1;
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: GestureDetector(
+                    onTap: () => onTapLayoutChanged(opt.$1),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 7),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? accentColor.withValues(alpha: 0.1)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: isSelected
+                              ? accentColor
+                              : readerTheme.mutedColor.withValues(alpha: 0.2),
+                          width: isSelected ? 1.5 : 0.5,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            opt.$3,
+                            size: 14,
+                            color: isSelected
+                                ? accentColor
+                                : readerTheme.mutedColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            opt.$2,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? accentColor
+                                  : readerTheme.textColor,
+                              fontSize: 12,
+                              fontWeight:
+                                  isSelected ? FontWeight.w600 : FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),

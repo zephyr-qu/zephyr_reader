@@ -12,6 +12,7 @@ import 'package:zephyr_reader/core/presentation/widgets/empty_state_widget.dart'
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/features/reader/application/note_manage_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 
 class NoteManagePage extends HookWidget {
   final String bookId;
@@ -147,19 +148,11 @@ class NoteManagePage extends HookWidget {
       final file = File('${dir.path}/$filename');
       await file.writeAsString(content, flush: true);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('已导出: ${file.path}'),
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(label: '关闭', onPressed: () {}),
-          ),
-        );
+        showInfoSnack(context, '已导出: ${file.path}');
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('导出失败: $e')));
+        showInfoSnack(context, '导出失败: $e');
       }
     }
   }

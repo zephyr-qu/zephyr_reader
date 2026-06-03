@@ -4,15 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/reader/application/cache_manage_view_model.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 
 class CacheManagePage extends HookWidget {
+  late final ReaderRepository repo = getIt<ReaderRepository>();
   final String? bookId;
-  final ReaderRepository repo;
 
-  const CacheManagePage({super.key, this.bookId, required this.repo});
+  CacheManagePage({super.key, this.bookId});
 
   @override
   Widget build(BuildContext context) {
@@ -67,12 +69,7 @@ class CacheManagePage extends HookWidget {
     if (confirmed == true) {
       vm.clearAllCache();
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('已清空全部缓存'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        showInfoSnack(context, '已清空全部缓存');
       }
     }
   }
@@ -85,23 +82,13 @@ class CacheManagePage extends HookWidget {
   ) async {
     await vm.clearProgress(bookId);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('已清除《$title》阅读进度'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      showInfoSnack(context, '已清除《$title》阅读进度');
     }
   }
 
   void _clearProgressCache(BuildContext context, CacheManageViewModel vm) {
     vm.clearProgressCache();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('已清除内存中的进度缓存'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    showInfoSnack(context, '已清除内存中的进度缓存');
   }
 
   Widget _buildBody(

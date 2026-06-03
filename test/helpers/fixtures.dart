@@ -1,15 +1,13 @@
-import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:uuid/uuid.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/features/reader/application/reader_enums.dart';
 
 // ===== UUID helper =====
 const _uuid = Uuid();
 
 /// 创建测试用 Book 对象
 ///
-/// 注意: PlatformInt64 是 flutter_rust_bridge 的 FFI 类型，在 Dart 侧实际为 int 的别名
-/// 可以直接使用 int 值赋值（如 fileSize, totalCharacters 等字段）
+/// 所有 `PlatformInt64` 字段（如 fileSize, charOffset）在 Dart 侧实际为 `int`，
+/// 直接使用 `int` 类型赋值即可。
 Book createTestBook({
   String? bookId,
   String title = 'Test Book',
@@ -18,20 +16,32 @@ Book createTestBook({
   int fileSize = 1024,
   DateTime? addedAt,
   DateTime? lastOpenedAt,
+  String? publisher,
+  String? translator,
+  String? isbn,
+  String? description,
+  String? coverPath,
 }) {
   return Book(
     bookId: bookId ?? _uuid.v4(),
     filePath: filePath,
+    fileHash: null,
+    fileSize: fileSize,
+    fileMtime: null,
     title: title,
     author: author,
-    fileSize: fileSize,
-    addedAt: addedAt ?? DateTime.now(),
-    lastOpenedAt: lastOpenedAt,
+    coverPath: coverPath,
     chapterCount: 10,
     totalCharacters: 50000,
     format: BookFormat.txt,
+    addedAt: addedAt ?? DateTime.now(),
+    lastOpenedAt: lastOpenedAt,
     status: BookStatus.planned,
     isPinned: false,
+    description: description,
+    publisher: publisher,
+    translator: translator,
+    isbn: isbn,
   );
 }
 
@@ -86,7 +96,7 @@ Bookmark createTestBookmark({
   String? id,
   String bookId = 'test_book_1',
   int chapterIndex = 0,
-  PlatformInt64 charOffset = 0,
+  int charOffset = 0,
   String? title,
   DateTime? createdAt,
 }) {
@@ -163,8 +173,8 @@ Note createTestNote({
   String? id,
   String bookId = 'test_book_1',
   int chapterIndex = 0,
-  PlatformInt64 charOffset = 0,
-  PlatformInt64 length = 4,
+  int charOffset = 0,
+  int length = 4,
   NoteType noteType = NoteType.highlight,
   String content = '测试笔记内容',
   String? selectedText,
@@ -189,7 +199,7 @@ Note createTestNote({
 
 /// 批量创建测试笔记
 List<Note> createTestNotes({String bookId = 'test_book_1', int count = 15}) {
-  final types = [NoteType.highlight, NoteType.note, NoteType.marker];
+  final types = [NoteType.highlight, NoteType.annotation];
   return List.generate(
     count,
     (i) => createTestNote(

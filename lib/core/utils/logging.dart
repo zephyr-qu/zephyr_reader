@@ -1,4 +1,5 @@
 import 'package:logger/logger.dart';
+import 'dart:io';
 
 class Logging {
   static final _logger = Logger(
@@ -21,12 +22,17 @@ class Logging {
     Object? exception,
     StackTrace? stackTrace,
   }) {
-    if (exception != null && stackTrace != null) {
-      _logger.e(message, error: exception, stackTrace: stackTrace);
-    } else if (exception != null) {
-      _logger.e(message, error: exception);
-    } else {
-      _logger.e(message);
+    try {
+      if (exception != null && stackTrace != null) {
+        _logger.e(message, error: exception, stackTrace: stackTrace);
+      } else if (exception != null) {
+        _logger.e(message, error: exception);
+      } else {
+        _logger.e(message);
+      }
+    } catch (e) {
+      // Logger 自身异常时 fallback 到 stderr，不静默丢失
+      stderr.writeln('[Logging.error]  (logger threw: )');
     }
   }
 

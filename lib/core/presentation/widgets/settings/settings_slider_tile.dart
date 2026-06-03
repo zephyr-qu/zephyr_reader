@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/utils/haptic.dart';
 
 class SettingsSliderTile extends StatelessWidget {
   final String label;
@@ -78,7 +79,10 @@ class SettingsSliderTile extends StatelessWidget {
               divisions: step > 0
                   ? ((max - min) / step).round().clamp(1, 1000)
                   : null,
-              onChanged: onChanged,
+              onChanged: (value) {
+                hapticFeedback(HapticType.selection);
+                onChanged(value);
+              },
             ),
           ),
         ],

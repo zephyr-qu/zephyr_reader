@@ -135,7 +135,7 @@ impl SearchEngine {
         }
 
         sqlx::query_as::<_, SearchResult>(
-            "SELECT book_id, chapter_id, chapter_title, \
+            "SELECT book_id, chapter_id, chapter_index, chapter_title, \
                     snippet(search_index, 0, '<mark>', '</mark>', '...', 48) AS snippet, \
                     position, \
                     position AS char_offset, \
@@ -164,7 +164,7 @@ impl SearchEngine {
         }
 
         sqlx::query_as::<_, SearchResult>(
-            "SELECT book_id, chapter_id, chapter_title, \
+            "SELECT book_id, chapter_id, chapter_index, chapter_title, \
                 snippet(search_index, 0, '<mark>', '</mark>', '...', 48) AS snippet, \
                 position, \
                 position AS char_offset, \

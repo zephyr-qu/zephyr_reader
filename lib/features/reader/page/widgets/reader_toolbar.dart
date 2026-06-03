@@ -39,10 +39,11 @@ class ReaderToolbar extends HookWidget {
             child: Row(
               children: [
                 const SizedBox(width: 4),
-                _PressScale(
+                const SizedBox(width: 4),
+                GestureDetector(
                   onTap: onClose,
                   child: Padding(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(14),
                     child: Icon(
                       PhosphorIconsLight.caretLeft,
                       size: 20,
@@ -54,35 +55,32 @@ class ReaderToolbar extends HookWidget {
                 Expanded(
                   child: GestureDetector(
                     onTap: onToggleToolbar,
-                    child: _PressScale(
-                      onTap: onToggleToolbar,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: TextStyle(
-                              color: textColor,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              height: 1.2,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            height: 1.2,
                           ),
-                          if (progress.isNotEmpty)
-                            Text(
-                              progress,
-                              style: TextStyle(
-                                color: accentColor.withValues(alpha: 0.8),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w400,
-                                letterSpacing: 0.3,
-                              ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (progress.isNotEmpty)
+                          Text(
+                            progress,
+                            style: TextStyle(
+                              color: accentColor.withValues(alpha: 0.8),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
+                              letterSpacing: 0.3,
                             ),
-                        ],
-                      ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -90,43 +88,6 @@ class ReaderToolbar extends HookWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PressScale extends HookWidget {
-  final Widget child;
-  final VoidCallback? onTap;
-
-  const _PressScale({required this.child, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final ctrl = useAnimationController(
-      duration: const Duration(milliseconds: 200),
-    );
-    final anim = useMemoized(
-      () => Tween(
-        begin: 1.0,
-        end: 0.92,
-      ).animate(CurvedAnimation(parent: ctrl, curve: Curves.easeOutBack)),
-      [ctrl],
-    );
-
-    return AnimatedBuilder(
-      animation: anim,
-      builder: (context, _) => Transform.scale(
-        scale: anim.value,
-        child: GestureDetector(
-          onTapDown: (_) {
-            ctrl.forward();
-            onTap?.call();
-          },
-          onTapUp: (_) => ctrl.reverse(),
-          onTapCancel: () => ctrl.reverse(),
-          child: child,
         ),
       ),
     );

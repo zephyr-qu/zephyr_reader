@@ -17,14 +17,13 @@
 | `test/features/reader/reader_view_model_test.dart` | 543 |
 | `test/features/sync/webdav_sync_service_test.dart` | 416 |
 | `test/features/sync/sync_view_model_test.dart` | 155 |
-| `test/features/article/article_view_model_test.dart` | 127 |
 | `test/features/home/application/home_view_model_test.dart` | 202 |
 | `test/features/statistics/reading_stats_service_test.dart` | 99 |
 | `test/features/reader/vocabulary_marker_service_test.dart` | 92 |
 | `test/features/bookshelf/bookshelf_view_model_test.dart` | 60 |
 | `test/features/vocabulary/vocabulary_view_model_test.dart` | 51 |
 | `test/features/search/search_view_model_test.dart` | 52 |
-| `test/core/reader/font_config_test.dart` | 161 |
+| `test/features/reader/page/widgets/reader_render_config_test.dart` | 207 |
 | `integration_test/` | **空目录, 0 文件** |
 
 ---
@@ -49,7 +48,7 @@
 | 14 | 代码质量 | **Medium** | `test_helper.dart:171-178` | `extension on AsyncValue<Object?>` 使用了错误的类型名(应为 `AsyncState`) |
 | 15 | HookBuilder 测试 | **Medium** | `test_helper.dart:53-56,65-68` | `runWithFakeAsync/advanceAndPump` 在 fake_async 闭包中调用 `pump()` 无效果 |
 | 16 | Mock 模式 | **Medium** | `reader_view_model_test.dart:64` | 所有信号 Mock 用 `TestWidgetsFlutterBinding` 但不做 widget 测试, 纯浪费 |
-| 17 | 信号断言 | **Medium** | `article_view_model_test.dart:88` | `error?.toString()` 直接调用类型不安全的 toString 而非结构化错误字段 |
+| 17 | 信号断言 | — | ~~article_view_model_test.dart:88~~ | ✅ 文件已随 ArticleApi 整条链路删除 |
 | 18 | 信号断言 | **Medium** | `home_view_model_test.dart:61-67` | 测试 `'computed 属性应在依赖变化时更新'` 仅断言初始状态, 未触发变化 |
 | 19 | 代码质量 | **Medium** | 全部 `test/**/*.dart` | `library;` 声明缺少库名, 违反 Effective Dart |
 | 20 | 测试覆盖率 | **Medium** | `test/` 全局 | 缺少 `dart_test.yaml` / `flutter_test_config.dart` 统一测试配置 |
@@ -185,7 +184,7 @@ class _MockReaderViewModel extends Mock implements ReaderViewModel {}
 | SA-2 | **High** | `vocabulary_view_model_test.dart:41-43` | `deleteWord` 同 `updateStatus`, 零断言 | 需 Mock Repository 验证 `deleteWord` 被调用 |
 | SA-3 | **High** | `vocabulary_view_model_test.dart:46-49` | `refresh` 零断言 | 同上 |
 | SA-4 | **High** | `home_view_model_test.dart:78-80` | `returnsNormally` 不验证数据是否被加载 | 应断言 `vm.recentBooks.value.hasData` |
-| SA-5 | **Medium** | `article_view_model_test.dart:88` | `vm.articles.value.error?.toString()` 是脆弱的字符串断言, 取决于 Exception.toString() 实现 | 使用 `(vm.articles.value as AsyncError).error.toString()` 或 `vm.articles.value.errorMessage` |
+| SA-5 | — | ~~article_view_model_test.dart:88~~ | ✅ 文件已随 ArticleApi 整条链路删除 | 见下方说明 |
 | SA-6 | **Medium** | `home_view_model_test.dart:61-67` | 测试名承诺验证 computed 更新, 实际只断言初始值 | 需在信号变化前后分别断言值 |
 | SA-7 | **Low** | `reading_stats_service_test.dart:49-57` | "short session discarded" 测试注释写明 "can't easily check internal state" — 测试本身不完整 | Mock repository 并验证 save 未被调用 |
 
@@ -205,16 +204,11 @@ test('updateStatus converts string and updates signal', () async {
 });
 ```
 
-**SA-5 — article_view_model_test.dart:86-88**:
-
-```dart
-// 脆弱的 toString 断言 → 类型安全结构断言
-expect(vm.articles.value.hasError, isTrue);
-expect(
-  vm.articles.value.error.toString(),
-  contains('Network error'),
-);
-```
+**SA-5 — ~~article_view_model_test.dart:86-88~~ ✅ 文件已删除**
+>
+**说明**：`article_view_model_test.dart` 随 ArticleApi 整条链路（占位代码）在过度设计清理中已删除。
+>
+**参考**：类似问题在 `home_view_model_test.dart:61-67`（SA-6）仍有对应实例。
 
 ---
 
@@ -462,7 +456,7 @@ static void setupNullReturn<T>() {
 |------|------|------|
 | **Widget 测试 (HookBuilder)** | 0 个, 所有 `useSignal`/`useSignalEffect` 未覆盖 | 每个 page 至少 1 个 smoke test |
 | **集成测试** | `integration_test/` 目录为空 | 至少添加 app 启动 + 主题切换的集成测试 |
-| **错误状态测试** | 仅 `article_view_model_test.dart:82-89` | 每个 ViewModel 需覆盖: 网络失败、空数据、超时 |
+| **错误状态测试** | ~~article_view_model_test.dart:82-89~~ ✅ 文件已删除 | 其他 ViewModel 仍需补充错误状态测试 |
 | **并发测试** | 仅 `home_view_model_test.dart:193-200` (性能组) | 关键路径如书籍导入、页码计算需并发安全测试 |
 | **Dispose 清理验证** | 部分测试有 `tearDown(() => vm.dispose())` 但无人验证 dispose 后信号状态 | 需断言 dispose 后信号访问行为 |
 | **Rust FFI 兼容性** | `vocabulary_marker_service_test.dart:71` 直接调用 | 集成测试中验证 Dart/Rust 交叉结果一致性 |

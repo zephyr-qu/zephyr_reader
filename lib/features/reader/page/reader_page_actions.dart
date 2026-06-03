@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+import 'package:zephyr_reader/src/rust/api/dictionary.dart' as dict_api;
+import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
 import '../application/reader_view_model.dart';
 
 String _stripHtml(String html) {
@@ -21,6 +24,7 @@ Future<void> addToVocabulary(
   int? charOffset,
 }) async {
   final trimmed = word.trim();
+  final l10n = AppLocalizations.of(context)!;
   if (trimmed.isEmpty) return;
 
   try {
@@ -31,7 +35,7 @@ Future<void> addToVocabulary(
         translation = '${translation.substring(0, 200)}…';
       }
     } else {
-      final result = await vm.lookupMdict(trimmed);
+      final result = await dict_api.lookupMdict(word: trimmed);
       final entry = result?.exact;
       translation = entry != null ? _stripHtml(entry.definitionHtml) : trimmed;
       if (translation.length > 200) {
@@ -39,16 +43,16 @@ Future<void> addToVocabulary(
       }
     }
 
-    await vm.createVocabularyWord(
+    await vocab_api.createVocabularyWord(
       word: trimmed,
       pinyin: '',
       translation: translation.isEmpty ? trimmed : translation,
       bookId: bookId,
       contextSentence: null,
     );
-    vm.toastMessage.value = '已加入生词本：$trimmed';
+    vm.toastMessage.value = l10n.addedToVocabulary(trimmed);
   } catch (e) {
-    vm.toastMessage.value = '加入生词本失败：$e';
+    vm.toastMessage.value = l10n.addToVocabFailed(e.toString());
   }
 }
 
@@ -57,11 +61,12 @@ Future<void> onBilingualHighlight(
   ReaderViewModel vm,
 ) async {
   final text = vm.selectedText.value;
+  final l10n = AppLocalizations.of(context)!;
   if (text.isEmpty) return;
 
   final alignment = vm.bilingualAlignment.value.value;
   if (alignment == null || alignment.segments.isEmpty) {
-    vm.toastMessage.value = '没有对照译文，无法创建双语高亮';
+    vm.toastMessage.value = l10n.bilingualNoAlignment;
     return;
   }
 
@@ -100,7 +105,7 @@ Future<void> onBilingualHighlight(
   }
 
   if (segmentIndex == -1) {
-    vm.toastMessage.value = '未找到对应的段落';
+    vm.toastMessage.value = l10n.bilingualNoParagraph;
     return;
   }
 
@@ -124,5 +129,5 @@ Future<void> onBilingualHighlight(
 
   vm.clearSelection();
   await vm.loadHighlights();
-  vm.toastMessage.value = '双语高亮已创建';
+  vm.toastMessage.value = l10n.bilingualHighlightCreated;
 }

@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 void main() {
@@ -44,7 +43,7 @@ void main() {
       recentBooks.value = AsyncState.data(<Book>[]);
       await tester.pump();
       expect(boundValue.isLoading, isFalse);
-      expect(boundValue.hasData, isTrue);
+      expect(boundValue.hasValue, isTrue);
       expect(find.text('loading: false'), findsOneWidget);
     });
 
@@ -60,13 +59,14 @@ void main() {
             builder: (context) {
               bound = useSignalValue(dailyRecords);
               return Column(
+                textDirection: TextDirection.ltr,
                 children: [
                   Text(
                     'isLoading: ${bound.isLoading}',
                     textDirection: TextDirection.ltr,
                   ),
                   Text(
-                    'hasData: ${bound.hasData}',
+                    'hasData: ${bound.hasValue}',
                     textDirection: TextDirection.ltr,
                   ),
                   Text(
@@ -74,7 +74,6 @@ void main() {
                     textDirection: TextDirection.ltr,
                   ),
                 ],
-                textDirection: TextDirection.ltr,
               );
             },
           ),
@@ -112,7 +111,7 @@ void main() {
             builder: (context) {
               bound = useSignalValue(records);
               return Text(
-                'items: ${bound.hasData ? bound.data?.length ?? 0 : "n/a"}',
+                'items: ${bound.hasValue ? bound.value?.length ?? 0 : "n/a"}',
                 textDirection: TextDirection.ltr,
               );
             },

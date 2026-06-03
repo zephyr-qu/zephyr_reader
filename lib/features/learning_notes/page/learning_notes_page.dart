@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
 import 'package:zephyr_reader/features/learning_notes/application/learning_notes_view_model.dart';
-import 'package:zephyr_reader/features/learning_notes/application/models/note_with_book.dart';
+
 import 'package:zephyr_reader/features/learning_notes/page/widgets/note_tab_widget.dart';
 import 'package:zephyr_reader/features/learning_notes/page/widgets/stat_dashboard_widget.dart';
 import 'package:zephyr_reader/features/learning_notes/page/widgets/tab_switcher_widget.dart';
@@ -12,10 +13,8 @@ import 'package:zephyr_reader/features/learning_notes/page/widgets/vocab_tab_wid
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class LearningNotesPage extends HookWidget {
-  final LearningNotesViewModel vm;
-
-  const LearningNotesPage({super.key, required this.vm});
-
+  late final LearningNotesViewModel vm = getIt<LearningNotesViewModel>();
+  LearningNotesPage({super.key});
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -59,7 +58,6 @@ class LearningNotesPage extends HookWidget {
 
     if (loading && vocabList.isEmpty) {
       return Scaffold(
-        backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: const Text(
             '学习与笔记',
@@ -75,7 +73,6 @@ class LearningNotesPage extends HookWidget {
     }
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text(
           '学习与笔记',

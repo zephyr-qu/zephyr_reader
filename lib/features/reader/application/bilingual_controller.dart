@@ -1,3 +1,4 @@
+import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 
@@ -5,7 +6,9 @@ import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 ///
 /// 管理双语对齐结果、翻译内容、加载状态。
 /// 对齐计算由 Coordinator 层传入章节内容和译文文本。
+@injectable
 class BilingualController {
+  /// 双语对齐结果
   /// 双语对齐结果
   final bilingualAlignment = asyncSignal<BilingualAlignment?>(
     AsyncState.data(null),

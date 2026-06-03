@@ -1,19 +1,18 @@
 {
   "@@locale": "zh",
   "@@info": "Zephyr Reader 简体中文翻译",
-
   "appName": "Zephyr Reader",
-  "@appName": {"description": "应用名称"},
-
+  "@appName": {
+    "description": "应用名称"
+  },
   "tabHome": "首页",
   "tabBookshelf": "书架",
   "tabStatistics": "统计",
   "tabProfile": "我的",
-
+  "back": "返回",
   "continueReading": "继续阅读",
   "recentReading": "最近阅读",
   "noReadingRecord": "暂无阅读记录",
-
   "bookshelf": "书架",
   "searchBooks": "搜索书籍",
   "importBook": "导入书籍",
@@ -24,7 +23,6 @@
   "gridView": "网格视图",
   "listView": "列表视图",
   "noBooks": "暂无书籍",
-
   "bookDetail": "书籍详情",
   "author": "作者",
   "translator": "译者",
@@ -48,7 +46,6 @@
   "delete": "删除",
   "confirmDelete": "确认删除",
   "cancel": "取消",
-
   "reader": "阅读器",
   "scrollMode": "滚动",
   "pageTurnMode": "翻页",
@@ -68,9 +65,24 @@
   "font": "字体",
   "defaultFont": "系统默认",
   "chapterN": "第 {n} 章",
-  "@chapterN": {"placeholders": {"n": {"type": "int"}}},
+  "@chapterN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "pageInfo": "{current}/{total}",
-  "@pageInfo": {"placeholders": {"current": {"type": "int"}, "total": {"type": "int"}}},
+  "@pageInfo": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "bookmarks": "书签",
   "addBookmark": "添加书签",
   "noBookmarks": "暂无书签",
@@ -80,7 +92,6 @@
   "ttsPause": "暂停",
   "ttsStop": "停止",
   "ttsSpeed": "语速",
-
   "selectionCopy": "复制",
   "selectionHighlight": "高亮",
   "selectionNote": "笔记",
@@ -92,12 +103,10 @@
   "highlightBlue": "蓝色",
   "highlightPink": "粉色",
   "highlightPurple": "紫色",
-
   "dictionary": "词典",
   "lookupWord": "查词",
   "addToVocabulary": "加入生词本",
   "noDefinition": "未找到释义",
-
   "vocabulary": "生词本",
   "vocabularyBook": "生词本",
   "wordCount": "词数",
@@ -110,7 +119,6 @@
   "statusLearning": "学习中",
   "statusMastered": "已掌握",
   "fromBook": "来自",
-
   "statistics": "阅读统计",
   "annualReport": "年度阅览报告",
   "readingOverview": "阅读概览",
@@ -127,9 +135,14 @@
   "readingTrend": "本周阅读趋势",
   "readingRhythm": "阅读节奏",
   "recentDays": "近 {days} 天",
-  "@recentDays": {"placeholders": {"days": {"type": "int"}}},
+  "@recentDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "sessions": "阅读会话",
-
   "settings": "设置",
   "appSettings": "应用设置",
   "readingSettings": "阅读设置",
@@ -164,7 +177,6 @@
   "userAgreement": "用户协议",
   "privacyPolicy": "隐私政策",
   "resetToDefault": "重置为默认值",
-
   "sync": "同步",
   "webdavConfig": "WebDAV 配置",
   "serverUrl": "服务器地址",
@@ -180,7 +192,6 @@
   "conflictResolution": "冲突解决",
   "useLocal": "使用本地版本",
   "useRemote": "使用远程版本",
-
   "loading": "加载中…",
   "error": "出错了",
   "retry": "重试",
@@ -193,7 +204,6 @@
   "empty": "暂无内容",
   "search": "搜索",
   "unknownAuthor": "未知作者",
-
   "greetingMorning": "早上好",
   "greetingNoon": "中午好",
   "greetingAfternoon": "下午好",
@@ -202,5 +212,478 @@
   "startReadingJourney": "开始你的阅读之旅",
   "exploreNewWorld": "打开一本书，探索新的世界",
   "goToBookshelf": "去书库",
-  "splashTagline": "轻如风，阅无界"
+  "splashTagline": "轻如风，阅无界",
+  "bookshelfSearchHint": "搜索书籍...",
+  "bookshelfSettings": "书架设置",
+  "bookshelfEmpty": "书架空空如也",
+  "closeSearch": "关闭搜索",
+  "scanFolder": "扫描文件夹",
+  "batchManage": "批量管理",
+  "globalSearch": "全局搜索",
+  "editCategory": "编辑分类",
+  "markAsUnread": "标记为未开始",
+  "markAsReading": "标记为阅读中",
+  "reExtractCover": "补提取封面",
+  "unpin": "取消置顶",
+  "pinTop": "置顶",
+  "selectCategory": "选择分类",
+  "bookImported": "已导入：{title}",
+  "importFailed": "导入失败：{error}",
+  "scanningFolder": "正在扫描文件夹...",
+  "noBookFilesFound": "未找到书籍文件",
+  "scanComplete": "扫描完成，导入了 {count} 本书",
+  "showReadingProgress": "显示阅读进度",
+  "showRecentReading": "显示最近阅读",
+  "defaultSort": "默认排序",
+  "selectSortMethod": "选择排序方式",
+  "moveCategory": "移动分类",
+  "changeStatus": "更改状态",
+  "apply": "应用",
+  "selectedBooksCount": "已选 {count} 本",
+  "bookInfo": "书籍信息",
+  "chapterCountLabel": "章节数",
+  "totalChars": "总字符",
+  "addedTime": "添加时间",
+  "chapterList": "章节列表",
+  "collapse": "收起",
+  "viewAllChapters": "查看全部 {count} 章",
+  "category": "分类",
+  "weeklyReadingTime": "本周阅读时长",
+  "dangerZone": "危险操作",
+  "deleteBook": "删除本书",
+  "confirmDeleteBookMessage": "确定要删除本书吗？此操作不可恢复。",
+  "deleteFailed": "删除失败：{error}",
+  "loadFailed": "加载失败",
+  "appearanceSection": "外观主题",
+  "readingModeSection": "阅读模式",
+  "layoutSection": "版面布局",
+  "typographySection": "文字排版",
+  "searchInChapterHint": "在章节内搜索...",
+  "previous": "上一个",
+  "next": "下一个",
+  "currentlyReading": "正在阅读",
+  "setBilingualTranslation": "设置对照译文",
+  "pasteTranslationHint": "粘贴或输入当前章节的译文内容：",
+  "addNote": "添加笔记",
+  "noteHintText": "输入你的笔记内容…",
+  "editNote": "编辑笔记",
+  "deleteHighlight": "删除高亮",
+  "profileDisplayName": "书友",
+  "profileTagline": "阅读是一种生活态度",
+  "consecutiveDaysLabel": "连续天数",
+  "sectionStudyMgmt": "学习与管理",
+  "sectionReadingExp": "阅读体验",
+  "sectionSystem": "系统",
+  "learningNotes": "学习与笔记",
+  "readingSessions": "阅读会话",
+  "storageSync": "存储与同步",
+  "ttsSettings": "朗读设置",
+  "typographySettings": "排版与字体",
+  "themeBrightness": "主题与亮度",
+  "otherSettings": "其他设置",
+  "synced": "已同步",
+  "appVersionDisplay": "Zephyr Reader v{version}",
+  "appIntroduction": "应用介绍",
+  "coreFeatures": "核心特性",
+  "techStack": "技术栈",
+  "moreInfo": "更多信息",
+  "checkUpdate": "检查更新",
+  "openSourceLicense": "开源许可证",
+  "feedback": "问题反馈",
+  "alreadyLatestVersion": "已是最新版本",
+  "cannotOpenLink": "无法打开链接",
+  "aboutFeature1": "纯离线使用，无需网络",
+  "aboutFeature2": "支持 EPUB、TXT、PDF 格式",
+  "aboutFeature3": "智能排版引擎",
+  "aboutFeature4": "双语对照阅读",
+  "aboutFeature5": "生词本与学习记录",
+  "aboutFeature6": "WebDAV 多端同步",
+  "copyrightFooter": "© 2026 Zephyr Reader",
+  "madeWithFooter": "Made with Flutter · Rust · ❤",
+  "errorFileNotFound": "文件不存在",
+  "errorFileReadError": "文件读取失败",
+  "errorUnsupportedFormat": "不支持的格式",
+  "errorEpubParse": "EPUB 解析错误",
+  "errorDatabase": "数据库错误",
+  "errorInternal": "内部错误",
+  "errorTaskPanic": "任务执行异常：{task}",
+  "selectDictionaryFile": "选择词典文件",
+  "selectMdxDescription": "请选择一个 .mdx 格式的词典文件…",
+  "invalidMdxFile": "请选择有效的 .mdx 文件",
+  "dictionaryLoadFailed": "词典加载失败，请检查文件是否有效",
+  "pronunciation": "发音",
+  "noExactMatch": "未找到精确匹配，您是否想查：",
+  "wordSegmentation": "分词：",
+  "bilingualNoAlignment": "没有对照译文，无法创建双语高亮",
+  "bilingualNoParagraph": "未找到对应的段落",
+  "bilingualHighlightCreated": "双语高亮已创建",
+  "selectFile": "选择文件",
+  "categoryManagement": "标签管理",
+  "@bookImported": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "@importFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@scanComplete": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@viewAllChapters": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@deleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@appVersionDisplay": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorTaskPanic": {
+    "placeholders": {
+      "task": {
+        "type": "String"
+      }
+    }
+  },
+  "@selectedBooksCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aboutTitle": "关于",
+  "@aboutTitle": {
+    "description": "简体中文翻译 - 关于页面标题"
+  },
+  "aboutTagline": "如和风般轻盈的阅读体验",
+  "@aboutTagline": {
+    "description": "简体中文翻译 - 应用标语"
+  },
+  "aboutSectionFeatures": "核心特性",
+  "@aboutSectionFeatures": {
+    "description": "简体中文翻译 - 核心特性分区标题"
+  },
+  "aboutSectionTechStack": "技术栈",
+  "@aboutSectionTechStack": {
+    "description": "简体中文翻译 - 技术栈分区标题"
+  },
+  "aboutSectionLinks": "更多信息",
+  "@aboutSectionLinks": {
+    "description": "简体中文翻译 - 链接分区标题"
+  },
+  "aboutDescription": "Zephyr Reader 是一款基于 Flutter + Rust 架构的离线双语小说阅读器。纯本地设计，无后台、无广告、无数据收集，专注于中英双语阅读体验。",
+  "@aboutDescription": {
+    "description": "简体中文翻译 - 应用描述"
+  },
+  "aboutFeatureOffline": "纯离线使用",
+  "@aboutFeatureOffline": {
+    "description": "简体中文翻译 - 特性：离线"
+  },
+  "aboutFeatureOfflineDesc": "核心功能 100% 离线可用，无后台无广告",
+  "@aboutFeatureOfflineDesc": {
+    "description": "简体中文翻译 - 特性描述：离线"
+  },
+  "aboutFeaturePerformance": "高性能解析",
+  "@aboutFeaturePerformance": {
+    "description": "简体中文翻译 - 特性：高性能"
+  },
+  "aboutFeaturePerformanceDesc": "Rust 引擎驱动，大文件瞬间解析",
+  "@aboutFeaturePerformanceDesc": {
+    "description": "简体中文翻译 - 特性描述：高性能"
+  },
+  "aboutFeatureBilingual": "双语排版",
+  "@aboutFeatureBilingual": {
+    "description": "简体中文翻译 - 特性：双语"
+  },
+  "aboutFeatureBilingualDesc": "中英文同等优先，优雅对照阅读",
+  "@aboutFeatureBilingualDesc": {
+    "description": "简体中文翻译 - 特性描述：双语"
+  },
+  "aboutFeatureThemes": "多主题支持",
+  "@aboutFeatureThemes": {
+    "description": "简体中文翻译 - 特性：主题"
+  },
+  "aboutFeatureThemesDesc": "亮色 / 深色 / 纯黑夜间模式",
+  "@aboutFeatureThemesDesc": {
+    "description": "简体中文翻译 - 特性描述：主题"
+  },
+  "aboutFeatureAdaptive": "设备适配",
+  "@aboutFeatureAdaptive": {
+    "description": "简体中文翻译 - 特性：适配"
+  },
+  "aboutFeatureAdaptiveDesc": "手机与平板双端自适应布局",
+  "@aboutFeatureAdaptiveDesc": {
+    "description": "简体中文翻译 - 特性描述：适配"
+  },
+  "aboutFeatureSync": "WebDAV 同步",
+  "@aboutFeatureSync": {
+    "description": "简体中文翻译 - 特性：同步"
+  },
+  "aboutFeatureSyncDesc": "跨设备数据同步与安全备份",
+  "@aboutFeatureSyncDesc": {
+    "description": "简体中文翻译 - 特性描述：同步"
+  },
+  "aboutCheckUpdate": "检查更新",
+  "@aboutCheckUpdate": {
+    "description": "简体中文翻译 - 检查更新链接"
+  },
+  "aboutLatestVersion": "已是最新版本",
+  "@aboutLatestVersion": {
+    "description": "简体中文翻译 - 已是最新提示"
+  },
+  "aboutUserAgreement": "用户协议",
+  "@aboutUserAgreement": {
+    "description": "简体中文翻译 - 用户协议链接"
+  },
+  "aboutPrivacyPolicy": "隐私政策",
+  "@aboutPrivacyPolicy": {
+    "description": "简体中文翻译 - 隐私政策链接"
+  },
+  "aboutOpenSourceLicense": "开源许可证",
+  "@aboutOpenSourceLicense": {
+    "description": "简体中文翻译 - 开源许可证链接"
+  },
+  "aboutFeedback": "问题反馈",
+  "@aboutFeedback": {
+    "description": "简体中文翻译 - 问题反馈链接"
+  },
+  "aboutCannotOpenLink": "无法打开链接",
+  "@aboutCannotOpenLink": {
+    "description": "简体中文翻译 - 链接打开失败提示"
+  },
+  "unknownVersion": "未知",
+  "@unknownVersion": {
+    "description": "简体中文 - 未知版本号"
+  },
+  "prev": "上一个",
+  "@prev": {
+    "description": "上一个搜索结果"
+  },
+  "readAloud": "朗读",
+  "@readAloud": {
+    "description": "朗读功能"
+  },
+  "addedToVocabulary": "已加入生词本：{word}",
+  "@addedToVocabulary": {
+    "description": "加入生词本成功提示，{word}为单词",
+    "placeholders": {
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "addToVocabFailed": "加入生词本失败：{error}",
+  "@addToVocabFailed": {
+    "description": "加入生词本失败提示，{error}为错误信息",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "readerThemeLight": "日间",
+  "@readerThemeLight": {
+    "description": "读者主题-日间"
+  },
+  "readerThemeDark": "夜间",
+  "@readerThemeDark": {
+    "description": "读者主题-夜间"
+  },
+  "readerThemeSepia": "护眼",
+  "@readerThemeSepia": {
+    "description": "读者主题-护眼"
+  },
+  "readerFontSizeSmall": "小",
+  "@readerFontSizeSmall": {
+    "description": "字号-小"
+  },
+  "readerFontSizeMedium": "中",
+  "@readerFontSizeMedium": {
+    "description": "字号-中"
+  },
+  "readerFontSizeLarge": "大",
+  "@readerFontSizeLarge": {
+    "description": "字号-大"
+  },
+  "readerFontSizeXLarge": "特大",
+  "@readerFontSizeXLarge": {
+    "description": "字号-特大"
+  },
+  "sortLastRead": "最近阅读",
+  "@sortLastRead": {
+    "description": "排序-最近阅读"
+  },
+  "sortCreatedAt": "添加时间",
+  "@sortCreatedAt": {
+    "description": "排序-添加时间"
+  },
+  "sortTitle": "书名",
+  "@sortTitle": {
+    "description": "排序-书名"
+  },
+  "sortAuthor": "作者",
+  "@sortAuthor": {
+    "description": "排序-作者"
+  },
+  "sortProgress": "阅读进度",
+  "@sortProgress": {
+    "description": "排序-阅读进度"
+  },
+  "themeSystem": "系统",
+  "@themeSystem": {
+    "description": "主题-跟随系统"
+  },
+  "introLabel": "简介",
+  "@introLabel": {
+    "description": "书籍简介标签"
+  },
+  "currentChapter": "当前",
+  "bookTitle": "书名",
+  "@bookTitle": {
+    "description": "书籍名称标签"
+  },
+  "@currentChapter": {
+    "description": "当前章节标签"
+  },
+  "editMetadata": "编辑元数据",
+  "@editMetadata": {
+    "description": "编辑书籍元数据"
+  },
+  "statReadingTime": "累计时长",
+  "@statReadingTime": {
+    "description": "读书统计-时长"
+  },
+  "statReadingCount": "阅读次数",
+  "@statReadingCount": {
+    "description": "读书统计-次数"
+  },
+  "statEstimatedRemaining": "预计剩余",
+  "@statEstimatedRemaining": {
+    "description": "读书统计-预计剩余"
+  },
+  "expand": "展开",
+  "@expand": {
+    "description": "展开按钮"
+  },
+  "tocTitle": "目录（{count} 章）",
+  "@tocTitle": {
+    "description": "目录标题，{count}为章节数",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "totalChapters": "{count} 章",
+  "@totalChapters": {
+    "description": "章节总数, {count}为数字",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "isbn": "ISBN",
+  "@isbn": {
+    "description": "ISBN标签"
+  },
+  "bookIntro": "简介",
+  "@bookIntro": {
+    "description": "书籍简介区域标题"
+  },
+  "timePresetSunsetToSunrise": "日落到日出",
+  "@timePresetSunsetToSunrise": {
+    "description": "定时主题-日落到日出"
+  },
+  "timePresetEveningToMorning": "傍晚到早晨",
+  "@timePresetEveningToMorning": {
+    "description": "定时主题-傍晚到早晨"
+  },
+  "timePresetCustom": "自定义",
+  "@timePresetCustom": {
+    "description": "定时主题-自定义"
+  },
+  "appTheme": "应用主题",
+  "@appTheme": {
+    "description": "应用主题区域标题"
+  },
+  "bookFormat": "格式",
+  "@bookFormat": {
+    "description": "书籍格式"
+  },
+  "bookIntroLabel": "简介",
+  "@bookIntroLabel": {
+    "description": "书籍简介区域"
+  },
+  "sortDialogTitle": "选择排序方式",
+  "@sortDialogTitle": {
+    "description": "排序方式弹窗标题"
+  },
+  "tapLayoutRightHanded": "右手模式",
+  "@tapLayoutRightHanded": {
+    "description": "点击区域-右手模式"
+  },
+  "tapLayoutLeftHanded": "左手模式",
+  "@tapLayoutLeftHanded": {
+    "description": "点击区域-左手模式"
+  },
+  "tapLayout": "点击区域",
+  "@tapLayout": {
+    "description": "翻页点击区域"
+  },
+  "timeJustNow": "刚刚",
+  "@timeJustNow": {
+    "description": "刚刚（相对时间）"
+  },
+  "timeMinutesAgo": "{minutes} 分钟前",
+  "@timeMinutesAgo": {
+    "description": "N 分钟前",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "timeHoursAgo": "{hours} 小时前",
+  "@timeHoursAgo": {
+    "description": "N 小时前",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "lastSyncTime": "上次同步：{time}",
+  "@lastSyncTime": {
+    "description": "上次同步时间",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  }
 }

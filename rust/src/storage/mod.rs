@@ -13,16 +13,17 @@ pub mod kv_store;
 pub mod models;
 pub mod repos;
 
+use std::sync::OnceLock;
+
 pub use db::StorageManager;
 
 use anyhow::{Context, Result};
-use once_cell::sync::OnceCell;
 
 use crate::domain::AppError;
 
 // ==================== 全局存储实例 ====================
 
-pub(crate) static STORAGE: OnceCell<StorageManager> = OnceCell::new();
+pub(crate) static STORAGE: OnceLock<StorageManager> = OnceLock::new();
 
 /// 获取全局存储实例
 pub fn storage() -> Option<&'static StorageManager> {
@@ -37,7 +38,7 @@ pub fn ensure_storage() -> Result<&'static StorageManager> {
 /// 获取 storage pool 的简写，消除重复样板
 pub fn storage_pool() -> Result<sqlx::SqlitePool, AppError> {
     ensure_storage()
-        .map_err(|e| AppError::database_error(e.to_string()))?
+        .map_err(|_| AppError::storage_not_initialized())?
         .pool()
         .map_err(|e| AppError::database_error(e.to_string()))
 }

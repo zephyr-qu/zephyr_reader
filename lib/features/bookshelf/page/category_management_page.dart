@@ -5,6 +5,8 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 
 extension _CategoryColor on Category {
   Color? get colorValue {
@@ -18,9 +20,9 @@ extension _CategoryColor on Category {
 
 /// 分类管理页面
 class CategoryManagementPage extends HookWidget {
-  final BookshelfViewModel vm;
+  late final BookshelfViewModel vm = getIt<BookshelfViewModel>();
 
-  const CategoryManagementPage({super.key, required this.vm});
+  CategoryManagementPage({super.key});
 
   final List<MapEntry<String, Color>> _colors = const [
     MapEntry('#FF5722', Color(0xFFFF5722)),
@@ -49,6 +51,7 @@ class CategoryManagementPage extends HookWidget {
     final nameController = useTextEditingController();
 
     final theme = Theme.of(context);
+    final vm = useMemoized(() => getIt<BookshelfViewModel>(), []);
 
     return Scaffold(
       appBar: AppBar(
@@ -57,7 +60,7 @@ class CategoryManagementPage extends HookWidget {
           IconButton(
             icon: const Icon(PhosphorIconsRegular.plus),
             onPressed: () =>
-                _showAddCategoryDialog(context, nameController, theme),
+                _showAddCategoryDialog(context, nameController, theme, vm),
             tooltip: '添加标签',
           ),
         ],
@@ -107,6 +110,7 @@ class CategoryManagementPage extends HookWidget {
                 category,
                 theme,
                 nameController,
+                vm,
               );
             },
           );
@@ -120,6 +124,7 @@ class CategoryManagementPage extends HookWidget {
     Category category,
     ThemeData theme,
     TextEditingController nameController,
+    BookshelfViewModel vm,
   ) {
     return Card(
       key: ValueKey(category.id),
@@ -162,6 +167,7 @@ class CategoryManagementPage extends HookWidget {
                       category,
                       nameController,
                       theme,
+                      vm,
                     ),
                     tooltip: '编辑',
                   ),
@@ -210,6 +216,7 @@ class CategoryManagementPage extends HookWidget {
     BuildContext context,
     TextEditingController nameController,
     ThemeData theme,
+    BookshelfViewModel vm,
   ) {
     nameController.clear();
     String selectedColor = _colors.first.key;
@@ -289,9 +296,7 @@ class CategoryManagementPage extends HookWidget {
               onPressed: () async {
                 final name = nameController.text.trim();
                 if (name.isEmpty) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('请输入标签名称')));
+                  showInfoSnack(context, '请输入标签名称');
                   return;
                 }
                 final success = await vm.addCategory(
@@ -301,9 +306,7 @@ class CategoryManagementPage extends HookWidget {
                 );
                 if (!context.mounted) return;
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(success ? '添加成功' : '添加失败')),
-                );
+                showInfoSnack(context, success ? '添加成功' : '添加失败');
               },
               child: const Text('添加'),
             ),
@@ -318,6 +321,7 @@ class CategoryManagementPage extends HookWidget {
     Category category,
     TextEditingController nameController,
     ThemeData theme,
+    BookshelfViewModel vm,
   ) {
     nameController.text = category.name;
     String selectedColor = category.color;
@@ -396,9 +400,7 @@ class CategoryManagementPage extends HookWidget {
               onPressed: () async {
                 final name = nameController.text.trim();
                 if (name.isEmpty) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('请输入标签名称')));
+                  showInfoSnack(context, '请输入标签名称');
                   return;
                 }
                 final updated = Category(
@@ -411,9 +413,7 @@ class CategoryManagementPage extends HookWidget {
                 final success = await vm.updateCategory(updated);
                 if (!context.mounted) return;
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(success ? '保存成功' : '保存失败')),
-                );
+                showInfoSnack(context, success ? '保存成功' : '保存失败');
               },
               child: const Text('保存'),
             ),
@@ -444,9 +444,7 @@ class CategoryManagementPage extends HookWidget {
               Navigator.pop(context);
               final success = await vm.removeCategory(category.id);
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(success ? '删除成功' : '删除失败')),
-              );
+              showInfoSnack(context, success ? '删除成功' : '删除失败');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.colorScheme.error,

@@ -15,7 +15,6 @@ import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/features/reader/application/reader_enums.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page_actions.dart';
@@ -35,21 +34,25 @@ import 'widgets/reader_toolbar.dart';
 import 'widgets/selection_toolbar.dart';
 
 class ReaderPage extends HookWidget {
-  final ReaderViewModel vm;
+  late final ReaderViewModel vm = getIt<ReaderViewModel>();
   final String bookId;
   final int initialChapterId;
+  final int initialPageIndex;
 
-  const ReaderPage({
+
+  ReaderPage({
     super.key,
-    required this.vm,
     required this.bookId,
     this.initialChapterId = 0,
+    this.initialPageIndex = 0,
   });
 
   @override
   Widget build(BuildContext context) {
     final fontRepo = useMemoized(() => getIt<FontRepository>());
     final ttsService = useMemoized(() => getIt<TtsService>());
+    final config = useMemoized(() => getIt<ReaderConfig>());
+    final tapLayout = useSignalValue<TapLayout, Signal<TapLayout>>(config.tapLayout.signal);
     final scaffoldKey = useMemoized(() => GlobalKey<ScaffoldState>());
     final searchController = useTextEditingController();
     final vocabWords = useSignal<Set<String>>({});
@@ -88,9 +91,13 @@ class ReaderPage extends HookWidget {
         vm.pageHeight.value = mq.size.height - mq.padding.vertical;
         vm.devicePixelRatio.value = mq.devicePixelRatio;
         vm.updateFont(fontRepo.currentFontFamily);
-        vm.initialize(bookId, initialChapterId: initialChapterId);
+        vm.initialize(bookId, initialChapterId: initialChapterId, initialPageIndex: initialPageIndex);
       });
       return vm.resetForNewBook;
+    }, []);
+    // Cancel auto-hide timer on widget dispose to prevent leak.
+    useEffect(() {
+      return () => autoHideTimer.value?.cancel();
     }, []);
 
     // ── Bind VM signals via custom Hook ──
@@ -109,9 +116,11 @@ class ReaderPage extends HookWidget {
     }
 
     final baseTheme = Theme.of(context);
-    final readerExt = b.themeMode == ThemeMode.dark
-        ? ReaderThemeExtension.dark()
-        : ReaderThemeExtension.light();
+    final readerExt = switch (b.readerTheme) {
+      ReaderTheme.dark => ReaderThemeExtension.dark(),
+      ReaderTheme.sepia => ReaderThemeExtension.sepia(),
+      ReaderTheme.light => ReaderThemeExtension.light(),
+    };
     final readerData = baseTheme.copyWith(
       extensions: [readerExt, ...baseTheme.extensions.values],
     );
@@ -149,50 +158,57 @@ class ReaderPage extends HookWidget {
             child: SafeArea(
               child: Stack(
                 children: [
-                  ReaderContent(
-                    bookId: b.currentBookId,
-                    chapterId: b.chapterIndex,
-                    pageIndex: b.pageIndex,
-                    totalPages: b.totalPages,
-                    fontSize: b.fontSize,
-                    lineHeight: b.lineHeight,
-                    themeMode: b.themeMode,
-                    readingMode: b.currentReadingMode,
-                    content: b.content,
-                    isLoading: b.isLoading,
-                    error: b.error,
-                    bilingualAlignment: b.bilingualAlign,
-                    isBilingualLoading: b.isBilingualLoading,
-                    bilingualError: b.bilingualError,
-                    onRequestTranslation: () =>
-                        _showTranslationDialog(context, vm),
-                    onPageChanged: vm.loadPage,
-                    onRetry: () => vm.loadChapter(
-                      b.chapterIndex,
-                      initialCharOffset: vm.currentCharOffset.value,
-                      restartSession: false,
+                  // Reader controls its own font size via settings;
+                  // suppress system text scaling to avoid double-scaling.
+                  MediaQuery(
+                    data: MediaQuery.of(
+                      context,
+                    ).copyWith(textScaler: TextScaler.noScaling),
+                    child: ReaderContent(
+                      bookId: b.currentBookId,
+                      chapterId: b.chapterIndex,
+                      pageIndex: b.pageIndex,
+                      totalPages: b.totalPages,
+                      fontSize: b.fontSize,
+                      lineHeight: b.lineHeight,
+                      themeMode: b.themeMode,
+                      readingMode: b.currentReadingMode,
+                      content: b.content,
+                      isLoading: b.isLoading,
+                      error: b.error,
+                      bilingualAlignment: b.bilingualAlign,
+                      isBilingualLoading: b.isBilingualLoading,
+                      bilingualError: b.bilingualError,
+                      onRequestTranslation: () =>
+                          _showTranslationDialog(context, vm),
+                      onPageChanged: vm.loadPage,
+                      onRetry: () => vm.loadChapter(
+                        b.chapterIndex,
+                        initialCharOffset: vm.currentCharOffset.value,
+                        restartSession: false,
+                      ),
+                      autoScrollTick: b.autoScrollTick,
+                      highlights: b.highlights,
+                      onSelectionChanged: vm.updateSelection,
+                      onSelectionGlobalPosition: (pos) =>
+                          selectionGlobalPos.value = pos,
+                      onHighlightTap: (note) =>
+                          _showHighlightMenu(context, vm, note),
+                      fontFamily: fontFamily,
+                      searchQuery: b.searchQuery,
+                      searchMatchHighlight: b.searchMatchHighlight,
+                      letterSpacing: b.letterSpacing,
+                      paragraphSpacing: b.paragraphSpacing,
+                      pageMargin: b.pageMargin,
+                      writingDirection: b.writingDirection,
+                      showVocabularyMark: true,
+                      vocabularyWords: vocabWords.value,
+                      showSentenceSplit: true,
+                      bgIndex: b.bgIndex,
+                      jumpToCharOffset: b.pendingJumpCharOffset,
+                      onPositionChanged: vm.updateCurrentCharOffset,
+                      onJumpHandled: vm.consumePendingJumpOffset,
                     ),
-                    autoScrollTick: b.autoScrollTick,
-                    highlights: b.highlights,
-                    onSelectionChanged: vm.updateSelection,
-                    onSelectionGlobalPosition: (pos) =>
-                        selectionGlobalPos.value = pos,
-                    onHighlightTap: (note) =>
-                        _showHighlightMenu(context, vm, note),
-                    fontFamily: fontFamily,
-                    searchQuery: b.searchQuery,
-                    searchMatchHighlight: b.searchMatchHighlight,
-                    letterSpacing: b.letterSpacing,
-                    paragraphSpacing: b.paragraphSpacing,
-                    pageMargin: b.pageMargin,
-                    writingDirection: b.writingDirection,
-                    showVocabularyMark: true,
-                    vocabularyWords: vocabWords.value,
-                    showSentenceSplit: true,
-                    bgIndex: b.bgIndex,
-                    jumpToCharOffset: b.pendingJumpCharOffset,
-                    onPositionChanged: vm.updateCurrentCharOffset,
-                    onJumpHandled: vm.consumePendingJumpOffset,
                   ),
                   if (b.brightness > 0)
                     IgnorePointer(
@@ -342,31 +358,31 @@ class ReaderPage extends HookWidget {
                       child: ReaderSettingsPanel(
                         themeMode: b.themeMode,
                         readingMode: b.currentReadingMode,
-                        fontSize: vm.fontSize.value,
-                        lineHeight: vm.lineHeight.value,
-                        letterSpacing: vm.letterSpacing.value,
-                        paragraphSpacing: vm.paragraphSpacing.value,
-                        pageMargin: vm.pageMargin.value,
-                        writingDirection: vm.writingDirection.value,
+                        fontSize: vm.config.fontSize.value,
+                        lineHeight: vm.config.lineHeight.value,
+                        letterSpacing: vm.config.letterSpacing.value,
+                        paragraphSpacing: vm.config.paragraphSpacing.value,
+                        pageMargin: vm.config.pageMargin,
+                        writingDirection: vm.config.writingDirection.value,
                         onReadingModeChanged: vm.setReadingMode,
                         onFontSizeChanged: vm.setFontSize,
                         onLineHeightChanged: vm.setLineHeight,
-                        onThemeChanged: (tm) => vm.settings.setTheme(
+                        onThemeChanged: (tm) => config.theme.value =
                           tm == ThemeMode.dark
                               ? ReaderTheme.dark
                               : ReaderTheme.light,
-                        ),
-                        onLetterSpacingChanged: vm.settings.setLetterSpacing,
-                        onParagraphSpacingChanged:
-                            vm.settings.setParagraphSpacing,
-                        onPageMarginChanged: vm.settings.setPageMargin,
+                        onLetterSpacingChanged: (v) => config.letterSpacing.value = v,
+                        onParagraphSpacingChanged: (v) => config.paragraphSpacing.value = v,
+                        onPageMarginChanged: (m) => config.padding.value = m,
                         onWritingDirectionChanged:
-                            vm.settings.setWritingDirection,
+                            (d) => vm.config.writingDirection.value = d,
                         onClose: vm.toggleSettings,
-                        readerBgColorIndex: vm.readerBgColorIndex.value,
-                        onReaderBgColorChanged: vm.settings.setReaderBgColor,
-                        brightnessValue: vm.brightnessOverlay.value,
-                        onBrightnessChanged: vm.settings.setBrightness,
+                        readerBgColorIndex: vm.config.readerBgColorIndex.value,
+                        onReaderBgColorChanged: (v) => config.readerBgColorIndex.value = v,
+                        brightnessValue: vm.config.brightnessOverlay.value,
+                        onBrightnessChanged: (v) => vm.config.brightnessOverlay.value = v.clamp(0.0, 1.0),
+                        tapLayout: config.tapLayout.value,
+                        onTapLayoutChanged: (layout) => config.tapLayout.value = layout,
                       ),
                     ),
                   ),
@@ -421,20 +437,38 @@ class ReaderPage extends HookWidget {
                         onTapUp: (details) {
                           final w = context.size?.width ?? 1;
                           final third = w / 3;
-                          if (details.localPosition.dx < third) {
-                            if (vm.pageIndex.value > 0) {
-                              vm.previousPage();
-                              hapticFeedback(HapticType.light);
-                            }
-                          } else if (details.localPosition.dx < third * 2) {
+                          final isLeftZone = details.localPosition.dx < third;
+                          final isRightZone = details.localPosition.dx >= third * 2;
+                          late final bool goBack, goForward;
+                          switch (tapLayout) {
+                            case TapLayout.rightHanded:
+                              goBack = isLeftZone;
+                              goForward = isRightZone;
+                            case TapLayout.leftHanded:
+                              goBack = isRightZone;
+                              goForward = isLeftZone;
+                          }
+                          if (goBack && vm.pageIndex.value > 0) {
+                            vm.previousPage();
+                            hapticFeedback(HapticType.light);
+                          } else if (goForward &&
+                              vm.pageIndex.value < vm.totalPages.value - 1) {
+                            vm.nextPage();
+                            hapticFeedback(HapticType.light);
+                          } else if (!goBack && !goForward) {
                             vm.toggleToolbar();
                             hapticFeedback(HapticType.selection);
                             resetHideTimer();
-                          } else {
-                            if (vm.pageIndex.value < vm.totalPages.value - 1) {
-                              vm.nextPage();
-                              hapticFeedback(HapticType.light);
-                            }
+                          }
+                        },
+                        onHorizontalDragEnd: (details) {
+                          if (details.primaryVelocity == null) return;
+                          if (details.primaryVelocity! < -30) {
+                            vm.nextPage();
+                            hapticFeedback(HapticType.light);
+                          } else if (details.primaryVelocity! > 30) {
+                            vm.previousPage();
+                            hapticFeedback(HapticType.light);
                           }
                         },
                       ),

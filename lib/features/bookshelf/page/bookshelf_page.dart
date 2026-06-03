@@ -1,27 +1,34 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
+import 'package:zephyr_reader/features/bookshelf/application/bookshelf_sort_type_ext.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_category_chips.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_batch_toolbar.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_book_content.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_status_tabs.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/theme/menu_colors.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 
 class BookshelfPage extends HookWidget {
-  final BookshelfViewModel vm;
+  late final BookshelfViewModel vm = getIt<BookshelfViewModel>();
 
-  const BookshelfPage({super.key, required this.vm});
+  BookshelfPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final deviceType = LayoutBreakpoints.getDeviceType(context);
     final crossAxisCount = deviceType == DeviceType.desktop
         ? 4
@@ -36,13 +43,7 @@ class BookshelfPage extends HookWidget {
     useSignalEffect(() {
       final msg = vm.feedback.value;
       if (msg != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(msg),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        showInfoSnack(context, msg);
         vm.feedback.value = null;
       }
     });
@@ -54,7 +55,7 @@ class BookshelfPage extends HookWidget {
                 controller: searchController,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: '搜索书籍...',
+                  hintText: l10n.bookshelfSearchHint,
                   border: InputBorder.none,
                   hintStyle: TextStyle(
                     color: theme.colorScheme.onSurfaceVariant,
@@ -67,7 +68,7 @@ class BookshelfPage extends HookWidget {
                   if (v.isNotEmpty && !vm.isSearching.value) vm.startSearch();
                 },
               )
-            : const Text('书架'),
+            : Text(l10n.tabBookshelf),
         actions: [
           if (isSearching.value)
             IconButton(
@@ -77,13 +78,13 @@ class BookshelfPage extends HookWidget {
                 searchController.clear();
                 vm.stopSearch();
               },
-              tooltip: '关闭搜索',
+              tooltip: l10n.closeSearch,
             )
           else ...[
             IconButton(
               icon: const Icon(PhosphorIconsRegular.magnifyingGlass),
               onPressed: () => isSearching.value = true,
-              tooltip: '搜索',
+              tooltip: l10n.search,
               // arrow closure — trivial, negligible rebuild cost
             ),
             PopupMenuButton<String>(
@@ -109,43 +110,43 @@ class BookshelfPage extends HookWidget {
                 }
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'import',
                   child: _MenuRow(
-                    icon: PhosphorIconsRegular.uploadSimple,
-                    label: '导入书籍',
+                    icon: PhosphorIconsFill.uploadSimple,
+                    label: l10n.importBook,
                     color: DesignTokens.warmAccent,
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'scan',
                   child: _MenuRow(
-                    icon: PhosphorIconsRegular.folderOpen,
-                    label: '扫描文件夹',
+                    icon: PhosphorIconsFill.folderOpen,
+                    label: l10n.scanFolder,
                     color: DesignTokens.warmAccent,
                   ),
                 ),
                 const PopupMenuDivider(),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'batch',
                   child: _MenuRow(
-                    icon: PhosphorIconsRegular.checkSquare,
-                    label: '批量管理',
+                    icon: PhosphorIconsFill.checkSquare,
+                    label: l10n.batchManage,
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'search',
                   child: _MenuRow(
-                    icon: PhosphorIconsRegular.magnifyingGlassPlus,
-                    label: '全局搜索',
+                    icon: PhosphorIconsFill.magnifyingGlassPlus,
+                    label: l10n.globalSearch,
                   ),
                 ),
                 const PopupMenuDivider(),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'settings',
                   child: _MenuRow(
-                    icon: PhosphorIconsRegular.sliders,
-                    label: '书架设置',
+                    icon: PhosphorIconsFill.sliders,
+                    label: l10n.bookshelfSettings,
                     color: DesignTokens.warmAccent,
                   ),
                 ),
@@ -154,61 +155,84 @@ class BookshelfPage extends HookWidget {
           ],
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Stack(
         children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              DesignTokens.spacing(Spacing.lg),
-              12,
-              DesignTokens.spacing(Spacing.lg),
-              0,
-            ),
-            child: SignalBuilder(
-              builder: (_) {
-                return BookshelfStatusTabs(
-                  selectedStatus: vm.selectedStatus.value,
-                  onStatusChanged: (status) => vm.selectStatus(status),
-                );
-              },
+          // Warm decorative wash
+          Positioned(
+            top: -60,
+            left: -40,
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    DesignTokens.warmAccent.withValues(alpha: 0.07),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
             ),
           ),
-          SignalBuilder(
-            builder: (_) {
-              return BookshelfCategoryChips(
-                categories: vm.categories.value,
-                selectedCategoryId: vm.selectedCategory.value?.id,
-                onCategoryChanged: (category) => vm.selectCategory(category),
-              );
-            },
-          ),
-          const Divider(height: 0.5),
-          Expanded(
-            child: SignalBuilder(
-              builder: (_) {
-                final async = vm.books.value;
-                return BookshelfBookContent(
-                  isLoading: async.isLoading,
-                  hasError: async.hasError,
-                  books: async.value ?? [],
-                  crossAxisCount: crossAxisCount,
-                  batchMode: batchMode.value,
-                  selectedIds: selectedIds.value,
-                  onRetry: vm.loadBooks,
-                  onImportTap: () => _showImportDialog(context, vm),
-                  onRefresh: vm.loadBooks,
-                  onSelectionChanged: (ids) {
-                    selectedIds.value = ids;
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  DesignTokens.spacing(Spacing.lg),
+                  12,
+                  DesignTokens.spacing(Spacing.lg),
+                  0,
+                ),
+                child: SignalBuilder(
+                  builder: (_) {
+                    return BookshelfStatusTabs(
+                      selectedStatus: vm.selectedStatus.value,
+                      onStatusChanged: (status) => vm.selectStatus(status),
+                    );
                   },
-                  onBookTap: (book) => context.pushNamed(
-                    RouteNames.bookDetail,
-                    pathParameters: {'id': book.bookId},
-                  ),
-                  onBookLongPress: (book) =>
-                      _showBookActions(context, vm, book),
-                );
-              },
-            ),
+                ),
+              ),
+              SignalBuilder(
+                builder: (_) {
+                  return BookshelfCategoryChips(
+                    categories: vm.categories.value,
+                    selectedCategoryId: vm.selectedCategory.value?.id,
+                    onCategoryChanged: (category) => vm.selectCategory(category),
+                  );
+                },
+              ),
+              const Divider(height: 0.5),
+              Expanded(
+                child: SignalBuilder(
+                  builder: (_) {
+                    final async = vm.books.value;
+                    return BookshelfBookContent(
+                      isLoading: async.isLoading,
+                      hasError: async.hasError,
+                      books: async.value ?? [],
+                      crossAxisCount: crossAxisCount,
+                      batchMode: batchMode.value,
+                      selectedIds: selectedIds.value,
+                      readingProgress: vm.readingProgress.value,
+                      onRetry: vm.loadBooks,
+                      onImportTap: () => _showImportDialog(context, vm),
+                      onRefresh: vm.loadBooks,
+                      onSelectionChanged: (ids) {
+                        selectedIds.value = ids;
+                      },
+                      onBookTap: (book) => context.pushNamed(
+                        RouteNames.bookDetail,
+                        pathParameters: {'id': book.bookId},
+                      ),
+                      onBookLongPress: (book) =>
+                          _showBookActions(context, vm, book),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -244,6 +268,7 @@ class BookshelfPage extends HookWidget {
     BookshelfViewModel vm,
     Book book,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final result = await showModalBottomSheet<String>(
       context: context,
@@ -252,7 +277,7 @@ class BookshelfPage extends HookWidget {
         children: [
           ListTile(
             leading: const Icon(PhosphorIconsRegular.folders),
-            title: const Text('编辑分类'),
+            title: Text(l10n.editCategory),
             onTap: () => Navigator.pop(c, 'category'),
           ),
           ListTile(
@@ -261,14 +286,14 @@ class BookshelfPage extends HookWidget {
               color: theme.colorScheme.primary,
             ),
             title: Text(
-              book.status == BookStatus.reading ? '标记为未开始' : '标记为阅读中',
+              book.status == BookStatus.reading ? l10n.markAsUnread : l10n.markAsReading,
             ),
             onTap: () => Navigator.pop(c, 'status'),
           ),
           if (book.coverPath == null)
             ListTile(
               leading: const Icon(PhosphorIconsRegular.image),
-              title: const Text('补提取封面'),
+              title: Text(l10n.reExtractCover),
               onTap: () => Navigator.pop(c, 'cover'),
             ),
           ListTile(
@@ -278,7 +303,7 @@ class BookshelfPage extends HookWidget {
                   : PhosphorIconsRegular.pushPin,
               color: book.isPinned ? theme.colorScheme.primary : null,
             ),
-            title: Text(book.isPinned ? '取消置顶' : '置顶'),
+            title: Text(book.isPinned ? l10n.unpin : l10n.pinTop),
             onTap: () => Navigator.pop(c, 'pin'),
           ),
         ],
@@ -293,7 +318,7 @@ class BookshelfPage extends HookWidget {
         context: context,
         builder: (c) => StatefulBuilder(
           builder: (c, setDialogState) => AlertDialog(
-            title: const Text('选择分类'),
+            title: Text(l10n.selectCategory),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: allCats
@@ -316,12 +341,12 @@ class BookshelfPage extends HookWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(c),
-                child: const Text('取消'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 onPressed: () =>
                     Navigator.pop(c, Set<String>.from(tempSelected)),
-                child: const Text('确定'),
+                child: Text(l10n.confirm),
               ),
             ],
           ),
@@ -359,19 +384,17 @@ class BookshelfPage extends HookWidget {
     BuildContext context,
     BookshelfViewModel vm,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final folder = await FilePicker.getDirectoryPath();
     if (folder == null || !context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('正在扫描文件夹...'),
-        duration: Duration(seconds: 1),
-      ),
-    );
+    showInfoSnack(context, l10n.scanningFolder);
     await vm.scanFolder(folder);
   }
 
   void _showSettingsSheet(BuildContext context, BookshelfViewModel vm) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    // ignore: inference_failure_on_function_invocation
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -402,7 +425,7 @@ class BookshelfPage extends HookWidget {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      '书架设置',
+                      l10n.bookshelfSettings,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -422,35 +445,40 @@ class BookshelfPage extends HookWidget {
                       width: 0.5,
                     ),
                   ),
+                  clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
-                      _buildSwitchSetting(
-                        context,
-                        cs,
-                        vm.showReadingProgress,
-                        '显示阅读进度',
-                        (v) {
-                          vm.setShowReadingProgress(v);
-                        },
+                      SettingsToggleTile(
+                        icon: PhosphorIconsRegular.gauge,
+                        iconColor: MenuItemSemantic.info.iconColor(
+                          Theme.of(context).brightness,
+                        ),
+                        iconBackground: MenuItemSemantic.info.iconBackground(
+                          Theme.of(context).brightness,
+                        ),
+                        title: l10n.showReadingProgress,
+                        value: vm.showReadingProgress.value,
+                        onChanged: (v) => vm.showReadingProgress.value = v,
                       ),
-                      Container(
+                      Divider(
                         height: 0.5,
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        color: cs.outlineVariant.withValues(alpha: 0.3),
+                        color: cs.outlineVariant.withValues(alpha: 0.15),
                       ),
-                      _buildSwitchSetting(
-                        context,
-                        cs,
-                        vm.showRecentReading,
-                        '显示最近阅读',
-                        (v) {
-                          vm.setShowRecentReading(v);
-                        },
+                      SettingsToggleTile(
+                        icon: PhosphorIconsRegular.clockClockwise,
+                        iconColor: MenuItemSemantic.reading.iconColor(
+                          Theme.of(context).brightness,
+                        ),
+                        iconBackground: MenuItemSemantic.reading.iconBackground(
+                          Theme.of(context).brightness,
+                        ),
+                        title: l10n.showRecentReading,
+                        value: vm.showRecentReading.value,
+                        onChanged: (v) => vm.showRecentReading.value = v,
                       ),
-                      Container(
+                      Divider(
                         height: 0.5,
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        color: cs.outlineVariant.withValues(alpha: 0.3),
+                        color: cs.outlineVariant.withValues(alpha: 0.15),
                       ),
                       _buildSortSetting(context, cs, vm, setState),
                     ],
@@ -464,77 +492,43 @@ class BookshelfPage extends HookWidget {
     );
   }
 
-  Widget _buildSwitchSetting(
-    BuildContext context,
-    ColorScheme cs,
-    Signal<bool> signal,
-    String label,
-    ValueChanged<bool> onChanged,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(fontSize: 14, color: cs.onSurface),
-            ),
-          ),
-          GestureDetector(
-            onTap: () => onChanged(!signal.value),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 44,
-              height: 24,
-              decoration: BoxDecoration(
-                color: signal.value
-                    ? DesignTokens.warmAccent
-                    : cs.onSurfaceVariant.withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: AnimatedAlign(
-                duration: const Duration(milliseconds: 200),
-                alignment: signal.value
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.all(3),
-                  child: Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 3,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSortSetting(
     BuildContext context,
     ColorScheme cs,
     BookshelfViewModel vm,
     void Function(void Function()) setState,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Row(
         children: [
-          Text('默认排序', style: TextStyle(fontSize: 14, color: cs.onSurface)),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: MenuItemSemantic.neutral
+                  .iconColor(Theme.of(context).brightness)
+                  .withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              PhosphorIconsRegular.arrowsDownUp,
+              size: 16,
+              color: MenuItemSemantic.neutral.iconColor(
+                Theme.of(context).brightness,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            l10n.defaultSort,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: cs.onSurface,
+            ),
+          ),
           const Spacer(),
           Material(
             color: DesignTokens.warmAccent.withValues(alpha: 0.08),
@@ -545,12 +539,12 @@ class BookshelfPage extends HookWidget {
                 final result = await showDialog<BookshelfSortType>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('选择排序方式'),
+                    title: Text(l10n.sortDialogTitle),
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: BookshelfSortType.values.map((type) {
                         return ListTile(
-                          title: Text(type.displayName),
+                          title: Text(type.l10nLabel(l10n)),
                           trailing: vm.defaultSortType.value == type
                               ? Icon(
                                   PhosphorIconsRegular.check,
@@ -564,7 +558,7 @@ class BookshelfPage extends HookWidget {
                   ),
                 );
                 if (result != null) {
-                  await vm.setDefaultSortType(result);
+                  vm.defaultSortType.value = result;
                 }
               },
               child: Padding(
@@ -582,7 +576,7 @@ class BookshelfPage extends HookWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      vm.defaultSortType.value.displayName,
+                      vm.defaultSortType.value.l10nLabel(l10n),
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: DesignTokens.warmAccent,
                       ),

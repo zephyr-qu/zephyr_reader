@@ -6,7 +6,7 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 
-use super::models::{LayoutCache, LayoutCacheKey, LAYOUT_CACHE_VERSION};
+use super::models::{LAYOUT_CACHE_VERSION, LayoutCache, LayoutCacheKey};
 
 const LAYOUT_TREE_NAME: &str = "layout_cache";
 
@@ -39,7 +39,8 @@ impl KvStore {
             value.is_valid(key.config_hash),
             "LayoutCache version/config_hash mismatch on save"
         );
-        let bytes = bincode::serialize(value).context("Failed to serialize value")?;
+        let bytes = bincode::encode_to_vec(value, bincode::config::standard())
+            .context("Failed to serialize value")?;
         self.layout_cache.insert(key.to_string(), bytes)?;
         Ok(())
     }
@@ -51,8 +52,11 @@ impl KvStore {
     pub fn get_layout_cache(&self, key: &LayoutCacheKey) -> Result<Option<LayoutCache>> {
         match self.layout_cache.get(key.to_string())? {
             Some(bytes) => {
-                match bincode::deserialize::<LayoutCache>(&bytes) {
-                    Ok(cache) if cache.is_valid(key.config_hash) => Ok(Some(cache)),
+                match bincode::decode_from_slice::<LayoutCache, _>(
+                    &bytes,
+                    bincode::config::standard(),
+                ) {
+                    Ok((cache, _)) if cache.is_valid(key.config_hash) => Ok(Some(cache)),
                     // 反序列化成功但校验失败 —— 静默丢弃脏数据
                     Ok(_) => {
                         // 不删除数据，留给 cleanup 或下次写入覆盖
@@ -60,10 +64,7 @@ impl KvStore {
                     }
                     // 反序列化失败 —— 数据损坏，视为 miss
                     Err(e) => {
-                        tracing::warn!(
-                            "LayoutCache deserialize failed (corrupted?): {}",
-                            e
-                        );
+                        tracing::warn!("LayoutCache deserialize failed (corrupted?): {}", e);
                         Ok(None)
                     }
                 }
@@ -100,11 +101,13 @@ impl KvStore {
 
     /// 清理过期缓存
     pub fn cleanup_expired_cache(&self, max_age_days: i64) -> Result<usize> {
-        let cutoff = chrono::Utc::now() - chrono::Duration::days(max_age_days);
+        let cutoff = (chrono::Utc::now() - chrono::Duration::days(max_age_days)).timestamp();
         let mut count = 0;
         for item in self.layout_cache.iter() {
             let (key, value) = item.context("Failed to read from sled")?;
-            if let Ok(cache) = bincode::deserialize::<LayoutCache>(&value) {
+            if let Ok((cache, _)) =
+                bincode::decode_from_slice::<LayoutCache, _>(&value, bincode::config::standard())
+            {
                 if cache.created_at < cutoff {
                     self.layout_cache.remove(key)?;
                     count += 1;
@@ -188,9 +191,7 @@ mod tests {
         let store = KvStore::new(dir.path()).unwrap();
 
         // 保存时 config_hash = 0xDEAD_BEEF
-        store
-            .save_layout_cache(&test_key(), &test_cache())
-            .unwrap();
+        store.save_layout_cache(&test_key(), &test_cache()).unwrap();
 
         // 用不同的 config_hash 查询 —— 应返回 None
         let wrong_key = LayoutCacheKey {
@@ -207,15 +208,16 @@ mod tests {
         let store = KvStore::new(dir.path()).unwrap();
         let key = test_key();
 
-        // 保存一个 version 错误的缓存（手动构造）
+        // 保存一个 version 错误的缓存（绕过 save_layout_cache 的 debug_assert）
         let bad_cache = LayoutCache {
             version: LAYOUT_CACHE_VERSION + 1, // 未来版本
             config_hash: key.config_hash,
             total_pages: 0,
-            created_at: chrono::Utc::now(),
+            created_at: chrono::Utc::now().timestamp(),
             pages: vec![], // 空 pages 向量
         };
-        store.save_layout_cache(&key, &bad_cache).unwrap();
+        let bytes = bincode::encode_to_vec(&bad_cache, bincode::config::standard()).unwrap();
+        store.layout_cache.insert(key.to_string(), bytes).unwrap();
 
         let loaded = store.get_layout_cache(&key).unwrap();
         assert!(loaded.is_none(), "wrong version must return None");
@@ -248,9 +250,7 @@ mod tests {
             .insert("v1:old_book:0:abc", b"dummy")
             .unwrap();
         // 插入一个 v2 格式的 key
-        store
-            .save_layout_cache(&test_key(), &test_cache())
-            .unwrap();
+        store.save_layout_cache(&test_key(), &test_cache()).unwrap();
 
         let deleted = store.delete_v1_cache().unwrap();
         assert_eq!(deleted, 1, "should delete exactly 1 v1 key");
@@ -267,8 +267,7 @@ mod tests {
 
         // 保存一条"过期"缓存（手动设置 created_at 为过去）
         let old_cache = LayoutCache {
-            created_at: chrono::Utc::now()
-                - chrono::Duration::days(100),
+            created_at: (chrono::Utc::now() - chrono::Duration::days(100)).timestamp(),
             ..test_cache()
         };
         store.save_layout_cache(&key, &old_cache).unwrap();
@@ -298,7 +297,9 @@ mod tests {
         let config_hash = config.config_hash();
 
         // 模拟真实章节文本
-        let chapter_text = "这是第一段内容。\n\n这是第二段内容，包含一些中英文混合文本 like this。\n\n第三段。".to_string();
+        let chapter_text =
+            "这是第一段内容。\n\n这是第二段内容，包含一些中英文混合文本 like this。\n\n第三段。"
+                .to_string();
         let chapter_index = 2;
 
         // Step 1: 首次调用（模拟 miss）—— 分页 + 缓存

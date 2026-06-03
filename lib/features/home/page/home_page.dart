@@ -1,17 +1,17 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:intl/intl.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:go_router/go_router.dart';
-import 'package:zephyr_reader/core/presentation/widgets/skeleton_widget.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/features/home/application/home_view_model.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/features/home/page/home_quotes.dart';
+import 'package:zephyr_reader/features/home/page/home_reading_trend.dart';
 
 // 首屏 Hero 区域的渐变背景
 final _heroGradient = LinearGradient(
@@ -23,129 +23,11 @@ final _heroGradient = LinearGradient(
   end: Alignment.bottomRight,
 );
 
-class _HomeLoadingSkeleton extends StatelessWidget {
-  const _HomeLoadingSkeleton();
 
-  @override
-  Widget build(BuildContext context) {
-    final padding = EdgeInsets.fromLTRB(
-      DesignTokens.spacing(Spacing.md),
-      DesignTokens.spacing(Spacing.lg),
-      DesignTokens.spacing(Spacing.md),
-      0,
-    );
-    return Scaffold(
-      body: SafeArea(
-        child: CustomScrollView(
-          physics: adaptiveScrollPhysics(context),
-          slivers: [
-            SliverPadding(
-              padding: padding,
-              sliver: const SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SkeletonWidget(height: 13, width: 60, borderRadius: 3),
-                    SizedBox(height: 18),
-                    SkeletonWidget(height: 26, width: 120, borderRadius: 4),
-                  ],
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: padding,
-              sliver: const SliverToBoxAdapter(
-                child: SkeletonCard(
-                  height: 52,
-                  lineCount: 1,
-                  lineHeight: 14,
-                  borderRadius: 8,
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: padding,
-              sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SkeletonWidget(
-                      height: 13,
-                      width: 80,
-                      borderRadius: 3,
-                    ),
-                    SizedBox(height: DesignTokens.spacing(Spacing.sm)),
-                    const SkeletonCard(
-                      height: 180,
-                      lineCount: 0,
-                      borderRadius: 8,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: padding,
-              sliver: const SliverToBoxAdapter(
-                child: SkeletonCard(height: 100, lineCount: 0, borderRadius: 8),
-              ),
-            ),
-            SliverPadding(
-              padding: EdgeInsets.only(top: DesignTokens.spacing(Spacing.xl)),
-            ),
-            SliverPadding(
-              padding: padding,
-              sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SkeletonWidget(
-                      height: 13,
-                      width: 80,
-                      borderRadius: 3,
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 140,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: 4,
-                        separatorBuilder: (_, _) => const SizedBox(width: 14),
-                        itemBuilder: (_, _) => const SkeletonCard(
-                          width: 100,
-                          height: 140,
-                          lineCount: 0,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
-const _quotes = [
-  (text: '读书破万卷，下笔如有神。', author: '杜甫'),
-  (text: '读万卷书，行万里路。', author: '董其昌'),
-  (text: '书山有路勤为径，学海无涯苦作舟。', author: '韩愈'),
-  (text: '问渠那得清如许？为有源头活水来。', author: '朱熹'),
-  (text: '立身以立学为先，立学以读书为本。', author: '欧阳修'),
-  (text: '书籍是人类进步的阶梯。', author: '高尔基'),
-  (text: '读一本好书，就是和许多高尚的人谈话。', author: '笛卡尔'),
-  (text: '学而不思则罔，思而不学则殆。', author: '孔子'),
-  (text: '温故而知新，可以为师矣。', author: '孔子'),
-];
-
-// 首页主页面，HookWidget 驱动状态
 class HomePage extends HookWidget {
-  final HomeViewModel vm;
-
-  const HomePage({super.key, required this.vm});
+  late final HomeViewModel vm = getIt<HomeViewModel>();
+  HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -172,7 +54,7 @@ class HomePage extends HookWidget {
         : l10n.greetingEvening;
 
     return recentBooks.map(
-      loading: () => const _HomeLoadingSkeleton(),
+      loading: () => const SizedBox.shrink(),
       error: (Object error, StackTrace? stack) => _buildErrorView(
         context: context,
         theme: theme,
@@ -183,7 +65,7 @@ class HomePage extends HookWidget {
       data: (books) {
         // 同时检查 dailyRecords 的状态
         return dailyRecords.map(
-          loading: () => const _HomeLoadingSkeleton(),
+          loading: () => const SizedBox.shrink(),
           error: (Object error, StackTrace? stack) => _buildErrorView(
             context: context,
             theme: theme,
@@ -262,49 +144,56 @@ class HomePage extends HookWidget {
   ) {
     return Scaffold(
       body: SafeArea(
-        child: CustomScrollView(
-          physics: adaptiveScrollPhysics(context),
-          slivers: [
-            _buildHeaderSliver(context, theme, greeting),
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                DesignTokens.spacing(Spacing.md),
-                DesignTokens.spacing(Spacing.lg),
-                DesignTokens.spacing(Spacing.md),
-                0,
-              ),
-              sliver: SliverToBoxAdapter(child: _buildDailyQuote(theme)),
+        child: RefreshIndicator(
+          onRefresh: () async => onRefresh(),
+          child: CustomScrollView(
+            physics: adaptiveScrollPhysics(context).applyTo(
+              const AlwaysScrollableScrollPhysics(),
             ),
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                DesignTokens.spacing(Spacing.md),
-                DesignTokens.spacing(Spacing.md),
-                DesignTokens.spacing(Spacing.md),
-                0,
+            slivers: [
+              _buildHeaderSliver(context, theme, greeting),
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  DesignTokens.spacing(Spacing.md),
+                  DesignTokens.spacing(Spacing.lg),
+                  DesignTokens.spacing(Spacing.md),
+                  0,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: buildDailyQuote(context, theme),
+                ),
               ),
-              sliver: SliverToBoxAdapter(
-                child: currentBook != null
-                    ? _buildHero(context, theme, currentBook)
-                    : _buildEmptyHero(context, theme),
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  DesignTokens.spacing(Spacing.md),
+                  DesignTokens.spacing(Spacing.md),
+                  DesignTokens.spacing(Spacing.md),
+                  0,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: currentBook != null
+                      ? _buildHero(context, theme, currentBook)
+                      : _buildEmptyHero(context, theme),
+                ),
               ),
-            ),
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                DesignTokens.spacing(Spacing.md),
-                DesignTokens.spacing(Spacing.lg),
-                DesignTokens.spacing(Spacing.md),
-                0,
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  DesignTokens.spacing(Spacing.md),
+                  DesignTokens.spacing(Spacing.lg),
+                  DesignTokens.spacing(Spacing.md),
+                  0,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: buildReadingTrend(context, theme, records),
+                ),
               ),
-              sliver: SliverToBoxAdapter(
-                child: _buildReadingTrend(context, theme, records),
+              SliverPadding(
+                padding: EdgeInsets.only(top: DesignTokens.spacing(Spacing.xl)),
               ),
-            ),
-            SliverPadding(
-              padding: EdgeInsets.only(top: DesignTokens.spacing(Spacing.xl)),
-            ),
-            _buildRecentSliver(context, theme, books),
-          ],
-        ),
+              _buildRecentSliver(context, theme, books),
+            ],
+          ),
+         ),
       ),
     );
   }
@@ -403,167 +292,6 @@ class HomePage extends HookWidget {
     );
   }
 
-  // 每日一句：从 _quotes 列表中按日期取模选取
-  Widget _buildDailyQuote(ThemeData theme) {
-    final day = DateTime.now().day;
-    final quote = _quotes[day % _quotes.length];
-    return Container(
-      padding: EdgeInsets.all(DesignTokens.spacing(Spacing.md)),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.md)),
-        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 3,
-            height: 36,
-            decoration: BoxDecoration(
-              color: DesignTokens.warmAccent,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          SizedBox(width: DesignTokens.spacing(Spacing.sm)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  quote.text,
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.5,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-                SizedBox(height: DesignTokens.spacing(Spacing.sm)),
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: Text(
-                    quote.author,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: DesignTokens.warmAccent,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 阅读趋势折线图（最近 7 天各日阅读分钟数）
-  Widget _buildReadingTrend(
-    BuildContext context,
-    ThemeData theme,
-    List<ReadingStats> dailyRecords,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    final locale = Localizations.localeOf(context).languageCode;
-    final df = DateFormat('E', locale);
-    final dateMap = <String, double>{};
-    for (final r in dailyRecords) {
-      dateMap[r.date] = r.readingTimeSeconds.toDouble() / 60.0;
-    }
-    final now = DateTime.now();
-    double maxVal = 0;
-    final spots = List.generate(7, (i) {
-      final d = now.subtract(Duration(days: 6 - i));
-      final key =
-          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-      final val = dateMap[key] ?? 0;
-      if (val > maxVal) maxVal = val;
-      return FlSpot(i.toDouble(), val);
-    });
-    final ceiling = maxVal > 0 ? (maxVal * 1.3).ceilToDouble() : 10.0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.readingTrend,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: theme.colorScheme.onSurface,
-          ),
-        ),
-        SizedBox(height: DesignTokens.spacing(Spacing.sm)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          child: SizedBox(
-            height: 180,
-            child: LineChart(
-              LineChartData(
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: spots,
-                    isCurved: true,
-                    color: theme.colorScheme.primary,
-                    barWidth: 2,
-                    isStrokeCapRound: true,
-                    preventCurveOverShooting: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                    ),
-                  ),
-                ],
-                lineTouchData: const LineTouchData(enabled: false),
-                titlesData: FlTitlesData(
-                  show: true,
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  leftTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 24,
-                      interval: 1,
-                      getTitlesWidget: (value, meta) {
-                        final idx = value.toInt();
-                        if (idx < 0 || idx > 6) {
-                          return const SizedBox.shrink();
-                        }
-                        final d = now.subtract(Duration(days: 6 - idx));
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            df.format(d),
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                gridData: const FlGridData(show: false),
-                borderData: FlBorderData(show: false),
-                minY: 0,
-                maxY: ceiling,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   // 有书时展示的继续阅读 Hero 卡片
   Widget _buildHero(BuildContext context, ThemeData theme, Book book) {

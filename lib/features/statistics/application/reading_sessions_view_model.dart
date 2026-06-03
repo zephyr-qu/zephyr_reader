@@ -1,7 +1,9 @@
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/src/rust/api/data/session.dart' as session_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+@injectable
 class ReadingSessionsViewModel {
   final sessions = signal<List<ReadingSession>>([]);
   final bookCache = signal<Map<String, Book>>({});
@@ -19,7 +21,7 @@ class ReadingSessionsViewModel {
         session_api.listSessionsByRecent(limit: BigInt.from(100)),
         session_api.listSessionsByBook(bookId: '', limit: BigInt.from(1)),
       ]);
-      sessions.value = results[0] as List<ReadingSession>;
+      sessions.value = results[0];
       bookCache.value = {for (final b in results[1] as List<Book>) b.bookId: b};
       loaded.value = true;
     } catch (_) {

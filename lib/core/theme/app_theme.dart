@@ -7,10 +7,9 @@ import 'package:zephyr_reader/core/theme/theme_extension.dart';
 class AppThemes {
   AppThemes._();
 
-  static ThemeData get lightTheme => _buildTheme(Brightness.light);
-  static ThemeData get darkTheme => _buildTheme(Brightness.dark);
-
-  static ThemeData _buildTheme(Brightness brightness) {
+  static ThemeData buildTheme(Brightness brightness, {Color? customPrimary}) {
+    final primary = customPrimary ?? DesignTokens.primary;
+    final onPrimary = _contrastingTextColor(primary);
     final isDark = brightness == Brightness.dark;
 
     final Color scaffoldBg = isDark
@@ -38,7 +37,35 @@ class AppThemes {
         },
       ),
       scaffoldBackgroundColor: scaffoldBg,
-      colorScheme: isDark ? _darkColorScheme : _lightColorScheme,
+      colorScheme: isDark
+          ? ColorScheme.dark(
+              primary: primary,
+              onPrimary: onPrimary,
+              primaryContainer: const Color(0xFFFFF3E0),
+              onPrimaryContainer: const Color(0xFF3E2723),
+              secondary: const Color(0xFFD4A373),
+              tertiary: const Color(0xFF8D6E63),
+              error: const Color(0xFFEF5350),
+              surface: DesignTokens.backgroundDark,
+              onSurface: DesignTokens.textPrimaryDark,
+              onSurfaceVariant: DesignTokens.textSecondaryDark,
+              outline: DesignTokens.dividerDark,
+              outlineVariant: DesignTokens.dividerDark,
+            )
+          : ColorScheme.light(
+              primary: primary,
+              onPrimary: onPrimary,
+              primaryContainer: DesignTokens.primaryContainer,
+              onPrimaryContainer: DesignTokens.onPrimaryContainer,
+              secondary: DesignTokens.secondary,
+              tertiary: DesignTokens.tertiary,
+              error: DesignTokens.error,
+              surface: DesignTokens.background,
+              onSurface: DesignTokens.textPrimary,
+              onSurfaceVariant: DesignTokens.textSecondary,
+              outline: DesignTokens.divider,
+              outlineVariant: DesignTokens.divider,
+            ),
       textTheme: _textTheme(onSurface: textPri, onSurfaceVariant: textSec),
 
       appBarTheme: AppBarTheme(
@@ -69,13 +96,12 @@ class AppThemes {
         color: Colors.transparent,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        shadowColor: Colors.transparent,
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ButtonStyle(
-          backgroundColor: WidgetStateProperty.all(DesignTokens.primary),
-          foregroundColor: WidgetStateProperty.all(DesignTokens.onPrimary),
+          backgroundColor: WidgetStateProperty.all(primary),
+          foregroundColor: WidgetStateProperty.all(onPrimary),
           padding: WidgetStateProperty.all(
             const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           ),
@@ -101,7 +127,7 @@ class AppThemes {
 
       textButtonTheme: TextButtonThemeData(
         style: ButtonStyle(
-          foregroundColor: WidgetStateProperty.all(DesignTokens.primary),
+          foregroundColor: WidgetStateProperty.all(primary),
         ),
       ),
 
@@ -122,7 +148,7 @@ class AppThemes {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: DesignTokens.primary, width: 1),
+          borderSide: BorderSide(color: primary, width: 1),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -138,7 +164,6 @@ class AppThemes {
         elevation: 0,
         color: surf,
         surfaceTintColor: Colors.transparent,
-        shadowColor: Colors.transparent,
       ),
 
       listTileTheme: ListTileThemeData(
@@ -168,7 +193,7 @@ class AppThemes {
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         elevation: 0,
         backgroundColor: surf,
-        selectedItemColor: DesignTokens.primary,
+        selectedItemColor: primary,
         unselectedItemColor: textSec,
         type: BottomNavigationBarType.fixed,
         selectedLabelStyle: const TextStyle(
@@ -186,17 +211,17 @@ class AppThemes {
         shadowColor: Colors.transparent,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const TextStyle(
+            return TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: DesignTokens.primary,
+              color: primary,
             );
           }
           return TextStyle(fontSize: 12, color: textSec);
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(size: 22, color: DesignTokens.primary);
+            return IconThemeData(size: 22, color: primary);
           }
           return IconThemeData(size: 22, color: textSec);
         }),
@@ -205,15 +230,15 @@ class AppThemes {
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: Colors.transparent,
         indicatorColor: Colors.transparent,
-        selectedIconTheme: const IconThemeData(
+        selectedIconTheme: IconThemeData(
           size: 22,
-          color: DesignTokens.primary,
+          color: primary,
         ),
         unselectedIconTheme: IconThemeData(size: 22, color: textSec),
-        selectedLabelTextStyle: const TextStyle(
+        selectedLabelTextStyle: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w500,
-          color: DesignTokens.primary,
+          color: primary,
         ),
         unselectedLabelTextStyle: TextStyle(fontSize: 12, color: textSec),
       ),
@@ -222,10 +247,10 @@ class AppThemes {
         trackHeight: 2,
         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
         overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-        activeTrackColor: DesignTokens.primary,
+        activeTrackColor: primary,
         inactiveTrackColor: div,
-        thumbColor: DesignTokens.primary,
-        overlayColor: const Color(0x1AF59E0B),
+        thumbColor: primary,
+        overlayColor: primary.withValues(alpha: 0.1),
       ),
 
       extensions: [
@@ -233,11 +258,10 @@ class AppThemes {
           primaryContainer: DesignTokens.primaryContainer,
           secondaryContainer: DesignTokens.secondary,
           surfaceVariant: surf,
-          shadow: const BoxShadow(
-            blurRadius: 0,
-            color: Colors.transparent,
-            offset: Offset(0, 0),
-          ),
+          shadow: DesignTokens.cardShadow,
+          dividerSubtle: DesignTokens.dividerSubtle,
+          overlayLight: textPri.withValues(alpha: 0.05),
+          overlayMedium: textPri.withValues(alpha: 0.08),
         ),
         if (isDark)
           ReaderThemeExtension.dark()
@@ -247,35 +271,11 @@ class AppThemes {
     );
   }
 
-  static const ColorScheme _lightColorScheme = ColorScheme.light(
-    primary: DesignTokens.primary,
-    onPrimary: DesignTokens.onPrimary,
-    primaryContainer: DesignTokens.primaryContainer,
-    onPrimaryContainer: DesignTokens.onPrimaryContainer,
-    secondary: DesignTokens.secondary,
-    tertiary: DesignTokens.tertiary,
-    error: DesignTokens.error,
-    surface: DesignTokens.background,
-    onSurface: DesignTokens.textPrimary,
-    onSurfaceVariant: DesignTokens.textSecondary,
-    outline: DesignTokens.divider,
-    outlineVariant: DesignTokens.divider,
-  );
-
-  static const ColorScheme _darkColorScheme = ColorScheme.dark(
-    primary: DesignTokens.primary,
-    onPrimary: Color(0xFF3E2723),
-    primaryContainer: Color(0xFFFFF3E0),
-    onPrimaryContainer: Color(0xFF3E2723),
-    secondary: Color(0xFFD4A373),
-    tertiary: Color(0xFF8D6E63),
-    error: Color(0xFFEF5350),
-    surface: DesignTokens.backgroundDark,
-    onSurface: DesignTokens.textPrimaryDark,
-    onSurfaceVariant: DesignTokens.textSecondaryDark,
-    outline: DesignTokens.dividerDark,
-    outlineVariant: DesignTokens.dividerDark,
-  );
+  static Color _contrastingTextColor(Color bg) {
+    // 计算亮度并返回白色或黑色作为前景
+    final luminance = 0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b;
+    return luminance > 0.5 ? const Color(0xFF1A1C1E) : Colors.white;
+  }
 
   static TextTheme _textTheme({
     required Color onSurface,
@@ -287,38 +287,54 @@ class AppThemes {
         fontWeight: FontWeight.w700,
         color: onSurface,
         letterSpacing: -0.5,
+        fontFamily: 'Noto Serif SC',
       ),
       displayMedium: TextStyle(
         fontSize: 28,
         fontWeight: FontWeight.w600,
         color: onSurface,
         letterSpacing: -0.3,
+        fontFamily: 'Noto Serif SC',
       ),
       headlineLarge: TextStyle(
         fontSize: 24,
         fontWeight: FontWeight.w700,
         color: onSurface,
         letterSpacing: -0.3,
+        fontFamily: 'Noto Serif SC',
       ),
       headlineMedium: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.w600,
         color: onSurface,
         letterSpacing: -0.2,
+        fontFamily: 'Noto Serif SC',
       ),
       titleLarge: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: onSurface,
         letterSpacing: -0.2,
+        fontFamily: 'Noto Serif SC',
       ),
       titleMedium: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w500,
         color: onSurface,
+        fontFamily: 'Noto Serif SC',
       ),
-      bodyLarge: TextStyle(fontSize: 15, color: onSurface, height: 1.6),
-      bodyMedium: TextStyle(fontSize: 13, color: onSurfaceVariant, height: 1.5),
+      bodyLarge: TextStyle(
+        fontSize: 15,
+        color: onSurface,
+        height: 1.6,
+        fontFamily: 'Noto Serif SC',
+      ),
+      bodyMedium: TextStyle(
+        fontSize: 13,
+        color: onSurfaceVariant,
+        height: 1.5,
+        fontFamily: 'Noto Serif SC',
+      ),
       labelLarge: TextStyle(
         fontSize: 12,
         color: onSurfaceVariant,

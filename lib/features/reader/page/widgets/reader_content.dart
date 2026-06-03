@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:get_it/get_it.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:zephyr_reader/core/reader/custom_font_service.dart';
+import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
+import 'package:zephyr_reader/features/reader/page/widgets/reader_page_bindings.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-import '../../application/reader_enums.dart';
 import '../../data/repositories/rust_reader_repository.dart';
 import 'bilingual_renderer.dart';
 import 'paginated_renderer.dart';
@@ -94,28 +96,44 @@ class ReaderContent extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final repo = useMemoized(() => GetIt.I.get<ReaderRepository>());
     final pageController = usePageController();
     final scrollController = useScrollController();
-    final repo = useMemoized(() => GetIt.I.get<ReaderRepository>());
-    final bilingualPairs = useState<List<BilingualHighlightPair>>([]);
-
     final textColor = _getTextColor(themeMode);
     final backgroundColor = _getBackgroundColor(themeMode);
-    final renderConfig = ReaderRenderConfig(
-      textColor: textColor,
-      backgroundColor: backgroundColor,
-      fontSize: fontSize,
-      lineHeight: lineHeight,
-      fontFamily: fontFamily,
-      letterSpacing: letterSpacing,
-      paragraphSpacing: paragraphSpacing,
-      pageMargin: pageMargin,
-      searchQuery: searchQuery,
-      searchMatchHighlight: searchMatchHighlight,
-      showVocabularyMark: showVocabularyMark,
-      vocabularyWords: vocabularyWords,
-    );
+    final bilingualPairs = useState<List<BilingualHighlightPair>>([]);
     final disableAnim = MediaQuery.of(context).disableAnimations;
+
+    final renderConfig = useMemoized(
+      () => ReaderRenderConfig(
+        textColor: textColor,
+        backgroundColor: backgroundColor,
+        fontSize: fontSize,
+        lineHeight: lineHeight,
+        fontFamily: fontFamily,
+        letterSpacing: letterSpacing,
+        paragraphSpacing: paragraphSpacing,
+        pageMargin: pageMargin,
+        searchQuery: searchQuery,
+        searchMatchHighlight: searchMatchHighlight,
+        showVocabularyMark: showVocabularyMark,
+        vocabularyWords: vocabularyWords,
+      ),
+      [
+        textColor,
+        backgroundColor,
+        fontSize,
+        lineHeight,
+        fontFamily,
+        letterSpacing,
+        paragraphSpacing,
+        pageMargin,
+        searchQuery,
+        searchMatchHighlight,
+        showVocabularyMark,
+        vocabularyWords,
+      ],
+    );
 
     useEffect(() {
       if (readingMode == ReadingMode.pagination &&
@@ -145,7 +163,7 @@ class ReaderContent extends HookWidget {
         bilingualPairs.value = pairs;
       }();
       return null;
-    }, [bookId, chapterId, readingMode, highlights.length]);
+    }, [bookId, chapterId, readingMode]);
 
     useEffect(() {
       if (autoScrollTick == null) return null;
@@ -262,12 +280,11 @@ class ReaderContent extends HookWidget {
         : error != null
         ? const ValueKey('error')
         : readingMode != ReadingMode.pagination
-        ? ValueKey('${readingMode}_${content.length}_$pageIndex')
-        : ValueKey('${readingMode}_${content.length}');
+        ? ValueKey('${readingMode}_${chapterId}_$pageIndex')
+        : ValueKey('${readingMode}_$chapterId');
 
     return Container(
       color: backgroundColor,
-      child: RepaintBoundary(
         child: AnimatedSwitcher(
           duration: Duration(
             milliseconds: disableAnim
@@ -312,7 +329,6 @@ class ReaderContent extends HookWidget {
           },
           child: KeyedSubtree(key: contentKey, child: contentWidget),
         ),
-      ),
     );
   }
 
@@ -361,7 +377,8 @@ class ReaderContent extends HookWidget {
     }
 
     if (readingMode == ReadingMode.scroll) {
-      return ScrollModeRenderer(
+      return RepaintBoundary(
+        child: ScrollModeRenderer(
         config: renderConfig,
         scrollController: scrollController,
         repo: repo,
@@ -374,9 +391,11 @@ class ReaderContent extends HookWidget {
         onSelectionGlobalPosition: onSelectionGlobalPosition,
         writingDirection: writingDirection,
         showSentenceSplit: showSentenceSplit,
+        ),
       );
     } else if (readingMode == ReadingMode.bilingual) {
-      return BilingualModeRenderer(
+      return RepaintBoundary(
+        child: BilingualModeRenderer(
         config: renderConfig,
         scrollController: scrollController,
         bilingualPairs: bilingualPairs,
@@ -388,9 +407,11 @@ class ReaderContent extends HookWidget {
         onHighlightTap: onHighlightTap,
         onSelectionChanged: onSelectionChanged,
         onSelectionGlobalPosition: onSelectionGlobalPosition,
+        ),
       );
     } else {
-      return PaginatedModeRenderer(
+      return RepaintBoundary(
+        child: PaginatedModeRenderer(
         config: renderConfig,
         pageController: pageController,
         repo: repo,
@@ -405,6 +426,7 @@ class ReaderContent extends HookWidget {
         onSelectionGlobalPosition: onSelectionGlobalPosition,
         onPageChanged: onPageChanged,
         onPositionChanged: onPositionChanged,
+        ),
       );
     }
   }
@@ -428,5 +450,83 @@ class ReaderContent extends HookWidget {
         final presets = ReaderBgColors.presets;
         return presets[bgIndex.clamp(0, presets.length - 1)];
     }
+  }
+}
+
+class ReaderContentView extends HookWidget {
+  final ReaderViewModel vm;
+  final VoidCallback? onRequestTranslation;
+  final ValueChanged<int>? onPositionChanged;
+  final VoidCallback? onJumpHandled;
+  final void Function(String text, int start, int end)? onSelectionChanged;
+  final ValueChanged<Offset?>? onSelectionGlobalPosition;
+  final void Function(Note)? onHighlightTap;
+  final Set<String> vocabularyWords;
+
+  const ReaderContentView({
+    super.key,
+    required this.vm,
+    this.onRequestTranslation,
+    this.onPositionChanged,
+    this.onJumpHandled,
+    this.onSelectionChanged,
+    this.onSelectionGlobalPosition,
+    this.onHighlightTap,
+    this.vocabularyWords = const {},
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final b = useReaderContentBindings(vm);
+    final fontFamily = useMemoized(
+      () => GetIt.I.get<FontRepository>(),
+    ).currentFontFamily;
+
+    return ReaderContent(
+      bookId: b.currentBookId,
+      chapterId: b.chapterIndex,
+      pageIndex: b.pageIndex,
+      totalPages: b.totalPages,
+      fontSize: b.fontSize,
+      lineHeight: b.lineHeight,
+      themeMode: b.themeMode,
+      readingMode: b.currentReadingMode,
+      content: b.content,
+      isLoading: b.isLoading,
+      error: b.error,
+      bilingualAlignment: b.bilingualAlign,
+      isBilingualLoading: b.isBilingualLoading,
+      bilingualError: b.bilingualError,
+      onRequestTranslation: onRequestTranslation ?? () {},
+      onPageChanged: vm.loadPage,
+      onRetry: () => vm.loadChapter(
+        b.chapterIndex,
+        initialCharOffset: vm.currentCharOffset.value,
+        restartSession: false,
+      ),
+      autoScrollTick: b.autoScrollTick,
+      highlights: b.highlights,
+      onSelectionChanged: onSelectionChanged,
+      onSelectionGlobalPosition: onSelectionGlobalPosition,
+      onHighlightTap: (note) {
+        if (onHighlightTap != null) {
+          onHighlightTap!(note);
+        }
+      },
+      fontFamily: fontFamily,
+      searchQuery: b.searchQuery,
+      searchMatchHighlight: b.searchMatchHighlight,
+      letterSpacing: b.letterSpacing,
+      paragraphSpacing: b.paragraphSpacing,
+      pageMargin: b.pageMargin,
+      writingDirection: b.writingDirection,
+      showVocabularyMark: true,
+      vocabularyWords: vocabularyWords,
+      showSentenceSplit: true,
+      bgIndex: 0,
+      jumpToCharOffset: b.pendingJumpCharOffset,
+      onPositionChanged: onPositionChanged ?? vm.updateCurrentCharOffset,
+      onJumpHandled: onJumpHandled ?? vm.consumePendingJumpOffset,
+    );
   }
 }

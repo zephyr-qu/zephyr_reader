@@ -1,10 +1,11 @@
 library;
 
 import 'dart:async';
+import 'package:injectable/injectable.dart';
 
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/features/learning_notes/application/models/note_with_book.dart';
+
 import 'package:zephyr_reader/shared/book_title_resolver.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as rust_book;
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as rust_note;
@@ -12,6 +13,7 @@ import 'package:zephyr_reader/src/rust/api/data/stats.dart' as rust_stats;
 import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as rust_vocab;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+@injectable
 class LearningNotesViewModel {
   final vocabList = signal<List<Vocab>>([]);
   final noteList = signal<List<NoteWithBook>>([]);
@@ -167,4 +169,10 @@ class LearningNotesViewModel {
   Future<void> _loadBookTitles() async {
     bookTitles.value = await loadBookTitles();
   }
+}
+
+class NoteWithBook {
+  final Note note;
+  final String bookTitle;
+  const NoteWithBook({required this.note, required this.bookTitle});
 }

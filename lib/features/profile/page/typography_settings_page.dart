@@ -1,5 +1,8 @@
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'dart:async';
 
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -11,20 +14,13 @@ import 'package:zephyr_reader/core/reader/custom_font_service.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 
 class TypographySettingsPage extends HookWidget {
-  final ReaderConfig config;
-  final FontRepository fontRepo;
+  late final ReaderConfig config = getIt<ReaderConfig>();
+  late final FontRepository fontRepo = getIt<FontRepository>();
 
-  const TypographySettingsPage({
+  TypographySettingsPage({
     super.key,
-    required this.config,
-    required this.fontRepo,
   });
 
-  static const _fontOptions = [
-    _FontOption('system', '系统默认', 'system-ui', '永'),
-    _FontOption('serif', '思源宋体', 'serif', '永'),
-    _FontOption('kaiti', '仓耳今楷', 'KaiTi', '永'),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +53,6 @@ class TypographySettingsPage extends HookWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(
           '排版与字体',
@@ -132,38 +127,27 @@ class TypographySettingsPage extends HookWidget {
     ValueNotifier<String> currentFontId,
     ValueNotifier<bool> loaded,
   ) {
-    fontSize.value = config.fontSize.value.size;
+    fontSize.value = config.fontSize.value;
     lineHeight.value = config.lineHeight.value;
     paragraphSpacing.value = config.paragraphSpacing.value;
     letterSpacing.value = config.letterSpacing.value;
     margin.value = config.padding.value;
     punctuationSqueeze.value = config.punctuationSqueeze.value;
-    baselineAlign.value = config.baselineAlign.value;
-
-    final currentFontName = fontRepo.currentFont.value?.name ?? '';
-    if (currentFontName.contains('宋') || currentFontName.contains('serif')) {
-      currentFontId.value = 'serif';
-    } else if (currentFontName.contains('楷') ||
-        currentFontName.contains('kai')) {
-      currentFontId.value = 'kaiti';
-    } else {
-      currentFontId.value = 'system';
-    }
+    currentFontId.value = fontRepo.currentFont.value?.id ?? 'system';
 
     loaded.value = true;
   }
 
-  String _fontFamily(String currentFontId) {
-    switch (currentFontId) {
-      case 'serif':
-        return 'serif';
-      case 'kaiti':
-        return 'KaiTi';
-      default:
-        return 'system-ui, sans-serif';
+  String _fontFamily(String fontId) {
+    try {
+      final font = fontRepo.availableFonts.value.firstWhere(
+        (f) => f.id == fontId,
+      );
+      return fontRepo.familyNameFor(font);
+    } catch (_) {
+      return 'system-ui, sans-serif';
     }
   }
-
   Future<void> _selectFont(
     String id,
     ValueNotifier<String> currentFontId,
@@ -283,6 +267,9 @@ class TypographySettingsPage extends HookWidget {
     String currentFontId,
     ValueNotifier<String> currentFontIdNotifier,
   ) {
+    final builtInFonts = fontRepo.availableFonts.value
+        .where((f) => f.isBuiltIn)
+        .toList();
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -299,13 +286,19 @@ class TypographySettingsPage extends HookWidget {
                   width: 0.5,
                 ),
               ),
-              padding: const EdgeInsets.all(12),
               child: Row(
-                children: _fontOptions.map((opt) {
-                  final active = currentFontId == opt.id;
+                children: builtInFonts.map((font) {
+                  final active = currentFontId == font.id;
+                  final sampleChar = switch (font.id) {
+                    'serif' => '宋',
+                    'sans' => '黑',
+                    'mono' => '等',
+                    'kai' => '楷',
+                    _ => '永',
+                  };
                   return Expanded(
                     child: GestureDetector(
-                      onTap: () => _selectFont(opt.id, currentFontIdNotifier),
+                      onTap: () => _selectFont(font.id, currentFontIdNotifier),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -323,9 +316,9 @@ class TypographySettingsPage extends HookWidget {
                         child: Column(
                           children: [
                             Text(
-                              opt.sample,
+                              sampleChar,
                               style: TextStyle(
-                                fontFamily: opt.family,
+                                fontFamily: fontRepo.familyNameFor(font),
                                 fontSize: 22,
                                 fontWeight: FontWeight.w600,
                                 color: active ? cs.primary : cs.onSurface,
@@ -333,7 +326,7 @@ class TypographySettingsPage extends HookWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              opt.label,
+                              font.name,
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: active
@@ -358,7 +351,6 @@ class TypographySettingsPage extends HookWidget {
         .fadeIn(duration: 300.ms, delay: 100.ms)
         .slideY(begin: 0.04, end: 0);
   }
-
   Widget _buildSliders(
     BuildContext context,
     ColorScheme cs,
@@ -482,21 +474,43 @@ class TypographySettingsPage extends HookWidget {
               ),
             ),
             SettingsCard(
+              showDividers: true,
               colorScheme: Theme.of(context).colorScheme,
               children: [
                 SettingsToggleTile(
+                  icon: PhosphorIconsRegular.sliders,
+                  iconColor: MenuItemSemantic.typography.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.typography.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: '标点挤压',
                   subtitle: '减少中文标点符号周围的空白',
                   value: punctuationSqueeze.value,
                   onChanged: (v) => punctuationSqueeze.value = v,
                 ),
                 SettingsToggleTile(
+                  icon: PhosphorIconsRegular.textAa,
+                  iconColor: MenuItemSemantic.typography.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.typography.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: '中西文基线对齐',
                   subtitle: '强制统一行高，避免混排时文字跳动',
                   value: baselineAlign.value,
                   onChanged: (v) => baselineAlign.value = v,
                 ),
                 SettingsToggleTile(
+                  icon: PhosphorIconsRegular.arrowDown,
+                  iconColor: MenuItemSemantic.typography.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.typography.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: '竖排模式',
                   subtitle: '从右向左阅读，适合古籍排版',
                   value: verticalMode.value,
@@ -545,13 +559,5 @@ class TypographySettingsPage extends HookWidget {
         ),
       ),
     );
-  }
 }
-
-class _FontOption {
-  final String id;
-  final String label;
-  final String family;
-  final String sample;
-  const _FontOption(this.id, this.label, this.family, this.sample);
 }

@@ -1,3 +1,4 @@
+import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -10,11 +11,11 @@ import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.d
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_slider_tile.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/core/reader/tts_service.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 
 class TtsSettingsPage extends HookWidget {
-  final TtsService tts;
-
-  const TtsSettingsPage({super.key, required this.tts});
+  late final TtsService tts = getIt<TtsService>();
+  TtsSettingsPage({super.key});
 
   static const _previewText =
       'The quick brown fox jumps over the lazy dog. 敏捷的棕色狐狸跳过了懒狗。';
@@ -32,6 +33,7 @@ class TtsSettingsPage extends HookWidget {
     final highlightFollow = useState(true);
     final dimOnLock = useState(false);
     final loaded = useState(false);
+    final tts = useMemoized(() => getIt<TtsService>(), []);
 
     useEffect(() {
       loadSettings(
@@ -53,7 +55,6 @@ class TtsSettingsPage extends HookWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(
           '朗读设置',
@@ -117,7 +118,7 @@ class TtsSettingsPage extends HookWidget {
     ValueNotifier<bool> dimOnLock,
     ValueNotifier<bool> loaded,
   ) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = getIt<SharedPreferences>();
     speed.value = prefs.getDouble('tts_speed') ?? 1.0;
     pitch.value = prefs.getDouble('tts_pitch') ?? 1.0;
     pauseBetween.value = prefs.getInt('tts_pause_between') ?? 300;
@@ -135,7 +136,7 @@ class TtsSettingsPage extends HookWidget {
   }
 
   Future<void> _save(String key, Object value) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = getIt<SharedPreferences>();
     if (value is double) {
       await prefs.setDouble(key, value);
     } else if (value is int) {
@@ -331,9 +332,17 @@ class TtsSettingsPage extends HookWidget {
               ),
             ),
             SettingsCard(
+              showDividers: true,
               colorScheme: Theme.of(context).colorScheme,
               children: [
                 SettingsToggleTile(
+                  icon: PhosphorIconsRegular.arrowsLeftRight,
+                  iconColor: MenuItemSemantic.reading.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.reading.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: '双语交替朗读',
                   subtitle: '先读英文原文，再读中文译文',
                   value: bilingualAlternate.value,
@@ -343,6 +352,13 @@ class TtsSettingsPage extends HookWidget {
                   },
                 ),
                 SettingsToggleTile(
+                  icon: PhosphorIconsRegular.textAa,
+                  iconColor: MenuItemSemantic.reading.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.reading.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: '仅朗读原文',
                   subtitle: '跳过译文段落，适合听力训练',
                   value: originalOnly.value,
@@ -389,9 +405,17 @@ class TtsSettingsPage extends HookWidget {
               colorScheme: Theme.of(context).colorScheme,
             ),
             SettingsCard(
+              showDividers: true,
               colorScheme: Theme.of(context).colorScheme,
               children: [
                 SettingsToggleTile(
+                  icon: PhosphorIconsRegular.playCircle,
+                  iconColor: MenuItemSemantic.info.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.info.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: '后台播放',
                   subtitle: '切出应用或锁屏后继续朗读',
                   value: backgroundPlay.value,
@@ -401,6 +425,13 @@ class TtsSettingsPage extends HookWidget {
                   },
                 ),
                 SettingsToggleTile(
+                  icon: PhosphorIconsRegular.arrowRight,
+                  iconColor: MenuItemSemantic.info.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.info.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: '自动翻页',
                   subtitle: '读完当前章节自动跳转下一章',
                   value: autoPage.value,
@@ -410,6 +441,13 @@ class TtsSettingsPage extends HookWidget {
                   },
                 ),
                 SettingsToggleTile(
+                  icon: PhosphorIconsRegular.highlighter,
+                  iconColor: MenuItemSemantic.info.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.info.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: '高亮跟随',
                   subtitle: '朗读时实时高亮当前句子',
                   value: highlightFollow.value,
@@ -419,6 +457,13 @@ class TtsSettingsPage extends HookWidget {
                   },
                 ),
                 SettingsToggleTile(
+                  icon: PhosphorIconsRegular.moon,
+                  iconColor: MenuItemSemantic.info.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.info.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: '息屏时降低音量',
                   subtitle: '节省电量，适合睡前听书',
                   value: dimOnLock.value,

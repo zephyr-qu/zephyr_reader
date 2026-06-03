@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -28,6 +29,7 @@ class SelectionToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final isDark = theme.brightness == Brightness.dark;
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
@@ -58,14 +60,14 @@ class SelectionToolbar extends StatelessWidget {
             children: [
               _ActionChip(
                 icon: PhosphorIconsRegular.highlighter,
-                label: '高亮',
+                label: l10n.selectionHighlight,
                 iconColor: const Color(0xFFFFEB3B),
                 onTap: onHighlight,
               ),
               const SizedBox(width: 4),
               _ActionChip(
                 icon: PhosphorIconsRegular.notePencil,
-                label: '笔记',
+                label: l10n.selectionNote,
                 iconColor: theme.colorScheme.primary,
                 onTap: onAnnotate,
               ),
@@ -73,7 +75,7 @@ class SelectionToolbar extends StatelessWidget {
                 const SizedBox(width: 4),
                 _ActionChip(
                   icon: PhosphorIconsRegular.bookOpenText,
-                  label: '查词',
+                label: l10n.lookupWord,
                   iconColor: const Color(0xFF4CAF50),
                   onTap: onLookup!,
                 ),
@@ -82,7 +84,7 @@ class SelectionToolbar extends StatelessWidget {
                 const SizedBox(width: 4),
                 _ActionChip(
                   icon: PhosphorIconsRegular.listPlus,
-                  label: '生词本',
+                label: l10n.selectionVocabulary,
                   iconColor: const Color(0xFF9C27B0),
                   onTap: onAddToVocabulary!,
                 ),
@@ -91,7 +93,7 @@ class SelectionToolbar extends StatelessWidget {
                 const SizedBox(width: 4),
                 _ActionChip(
                   icon: PhosphorIconsRegular.arrowsLeftRight,
-                  label: '标注两侧',
+                label: l10n.selectionBilingual,
                   iconColor: const Color(0xFFE91E63),
                   onTap: onBilingualHighlight!,
                 ),
@@ -99,8 +101,9 @@ class SelectionToolbar extends StatelessWidget {
               const SizedBox(width: 4),
               GestureDetector(
                 onTap: onDismiss,
+                behavior: HitTestBehavior.opaque,
                 child: Padding(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(14), // 16 icon + 28 = 44px
                   child: Icon(
                     PhosphorIconsRegular.x,
                     size: 16,
@@ -137,9 +140,10 @@ class _ActionChip extends StatelessWidget {
         hapticFeedback(HapticType.selection);
         onTap();
       },
+      behavior: HitTestBehavior.opaque,
       child: Container(
-        height: 32,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        constraints: const BoxConstraints(minHeight: 44),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
         child: Row(
           mainAxisSize: MainAxisSize.min,

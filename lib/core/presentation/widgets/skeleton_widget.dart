@@ -1,35 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
-class SkeletonWidget extends StatelessWidget {
+
+class SkeletonWidget extends HookWidget {
   final double width;
   final double height;
   final double borderRadius;
+  final Duration maxShimmerDuration;
 
   const SkeletonWidget({
     super.key,
     this.width = double.infinity,
     required this.height,
     this.borderRadius = 4,
+    this.maxShimmerDuration = const Duration(seconds: 3),
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(borderRadius),
-            color: theme.colorScheme.surfaceContainerHighest.withAlpha(80),
-          ),
-        )
-        .animate()
-        .then(delay: 0.ms, duration: 1500.ms)
-        .shimmer(
-          color: theme.colorScheme.surfaceContainerHighest.withAlpha(20),
-          size: 0.3,
-        );
+    final shimmerActive = useState(true);
+
+    useEffect(() {
+      final timer = Future<void>.delayed(maxShimmerDuration);
+      timer.then((_) => shimmerActive.value = false);
+      return null;
+    }, [maxShimmerDuration]);
+
+    final skeleton = Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius),
+        color: theme.colorScheme.surfaceContainerHighest.withAlpha(80),
+      ),
+    );
+
+    if (shimmerActive.value) {
+      return skeleton
+          .animate()
+          .then(delay: 0.ms, duration: 1500.ms)
+          .shimmer(
+            color: DesignTokens.warmAccent.withValues(alpha: 0.12),
+            size: 0.3,
+          );
+    }
+    return skeleton;
   }
 }
 
@@ -82,13 +100,13 @@ class SkeletonCard extends StatelessWidget {
               ),
             ],
           ),
-        )
-        .animate()
-        .then(delay: 0.ms, duration: 1500.ms)
-        .shimmer(
-          color: theme.colorScheme.surfaceContainerHighest.withAlpha(30),
-          size: 0.3,
-        );
+      )
+      .animate()
+      .then(delay: 0.ms, duration: 1500.ms)
+      .shimmer(
+        color: DesignTokens.warmAccent.withValues(alpha: 0.15),
+        size: 0.3,
+      );
   }
 }
 

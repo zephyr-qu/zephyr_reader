@@ -5,12 +5,14 @@ import 'dart:io';
 import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:shared_preferences/shared_preferences.dart';
-
-const _kPortKey = 'wifi_transfer_port';
-
-@LazySingleton()
+import 'package:zephyr_reader/core/settings/settings_keys.dart';
+const _kPortKey = SettingsKeys.wifiTransferPort;
+@singleton
 class WifiTransferService {
+  final SharedPreferences _prefs;
+  String _htmlContent = '';
   HttpServer? _server;
   bool _running = false;
   int _port = 0;
@@ -19,8 +21,9 @@ class WifiTransferService {
   final _statusController = StreamController<bool>.broadcast();
   final _supportedExtensions = {'txt', 'epub', 'pdf', 'md', 'markdown'};
 
-  bool get isRunning => _running;
+  WifiTransferService(this._prefs);
   int get port => _port;
+  bool get isRunning => _running;
   String get localIp => _localIp;
   String get url => _running ? 'http://$_localIp:$_port' : '';
   Stream<TransferLogEntry> get logStream => _logController.stream;
@@ -52,9 +55,9 @@ class WifiTransferService {
       _running = true;
       _statusController.add(true);
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_kPortKey, _port);
+      await _prefs.setInt(_kPortKey, _port);
 
+      _htmlContent = await rootBundle.loadString('assets/html/wifi_upload_page.html');
       _log('服务器已启动: http://$_localIp:$_port');
 
       await for (final request in _server!) {
@@ -144,7 +147,7 @@ class WifiTransferService {
 
   void _servePage(HttpRequest request) {
     request.response.headers.contentType = ContentType.html;
-    request.response.write(_uploadPageHtml);
+    request.response.write(_htmlContent);
     request.response.close();
   }
 
@@ -273,94 +276,3 @@ class TransferLogEntry {
         '${time.second.toString().padLeft(2, '0')}';
   }
 }
-
-const _uploadPageHtml = '''
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Zephyr Reader - WiFi 传书</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-  background:#1a1c1e;color:#e4e7e7;min-height:100vh;display:flex;flex-direction:column;align-items:center}
-.container{max-width:600px;width:100%;padding:40px 20px}
-h1{font-size:24px;font-weight:600;margin-bottom:8px;text-align:center}
-.sub{color:#9aa0a6;text-align:center;margin-bottom:32px;font-size:14px}
-.upload-zone{border:2px dashed #3c4043;border-radius:16px;padding:48px 24px;
-  text-align:center;cursor:pointer;transition:all .2s;background:#202124}
-.upload-zone:hover,.upload-zone.dragover{border-color:#8ab4f8;background:#282a2d}
-.upload-zone .icon{font-size:48px;margin-bottom:16px}
-.upload-zone .text{font-size:16px;margin-bottom:8px}
-.upload-zone .hint{font-size:13px;color:#9aa0a6}
-.upload-zone input{display:none}
-.file-list{margin-top:24px}
-.file-item{display:flex;align-items:center;justify-content:space-between;
-  padding:12px 16px;background:#202124;border-radius:10px;margin-bottom:8px}
-.file-item .name{font-size:14px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:12px}
-.file-item .size{font-size:12px;color:#9aa0a6;margin-right:12px}
-.status-ok{color:#81c995}
-.status-error{color:#f28b82}
-.status-uploading{color:#8ab4f8}
-.footer{text-align:center;margin-top:32px;font-size:12px;color:#9aa0a6}
-</style>
-</head>
-<body>
-<div class="container">
-<h1>📤 WiFi 传书</h1>
-<p class="sub">将文件拖拽到下方区域，或点击选择文件</p>
-<div class="upload-zone" id="dropZone">
-  <div class="icon">📂</div>
-  <div class="text">拖拽文件到此处</div>
-  <div class="hint">支持 TXT、EPUB、PDF、Markdown 格式</div>
-  <input type="file" id="fileInput" accept=".txt,.epub,.pdf,.md,.markdown" multiple>
-</div>
-<div class="file-list" id="fileList"></div>
-<div class="footer">Zephyr Reader &middot; 文件仅在本地网络中传输</div>
-</div>
-<script>
-const dropZone=document.getElementById('dropZone');
-const fileInput=document.getElementById('fileInput');
-const fileList=document.getElementById('fileList');
-
-dropZone.addEventListener('click',()=>fileInput.click());
-dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover')});
-dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('dragover');
-  if(e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files)});
-fileInput.addEventListener('change',()=>{if(fileInput.files.length) uploadFiles(fileInput.files)});
-
-async function uploadFiles(files){
-  for(const file of files){
-    addFileItem(file.name,formatSize(file.size),'uploading','上传中…');
-    try{
-      const form=new FormData();form.append('file',file);
-      const res=await fetch('/upload',{method:'POST',body:form});
-      const data=await res.json();
-      if(data.status==='ok'){
-        updateFileItem(file.name,'ok','✓ 已接收');
-      }else{
-        updateFileItem(file.name,'error','✗ '+(data.error||'上传失败'));
-      }
-    }catch(e){
-      updateFileItem(file.name,'error','✗ 上传失败');
-    }
-  }
-}
-
-function addFileItem(name,size,status,msg){
-  const div=document.createElement('div');div.className='file-item';div.id='file-'+name.replace(/[^a-z0-9]/gi,'_');
-  div.innerHTML='<span class="name">'+escapeHtml(name)+'</span><span class="size">'+size+'</span><span class="status-'+status+'">'+msg+'</span>';
-  fileList.prepend(div);
-}
-function updateFileItem(name,status,msg){
-  const el=document.getElementById('file-'+name.replace(/[^a-z0-9]/gi,'_'));
-  if(el){el.querySelector('span:last-child').className='status-'+status;el.querySelector('span:last-child').textContent=msg}
-}
-function formatSize(b){if(b<1024)return b+'B';if(b<1048576)return(b/1024).toFixed(1)+'KB';return(b/1048576).toFixed(1)+'MB'}
-function escapeHtml(s){const d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML}
-</script>
-</body>
-</html>
-''';

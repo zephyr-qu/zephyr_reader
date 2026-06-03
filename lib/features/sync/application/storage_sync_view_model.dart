@@ -1,6 +1,7 @@
 library;
 
 import 'dart:async';
+import 'package:injectable/injectable.dart';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -16,7 +17,8 @@ import 'package:zephyr_reader/features/sync/application/services/webdav_config_s
 import 'package:zephyr_reader/features/sync/application/services/webdav_sync_service.dart';
 import 'package:zephyr_reader/src/rust/api/data/stats.dart' as rust_stats;
 
-class StorageSyncViewModel {
+@injectable
+class StorageSyncViewModel implements WebDavConfigHost {
   final _configService = WebDavConfigService(prefs: getIt<SharedPreferences>());
 
   final isConfigured = signal(false);
@@ -32,8 +34,6 @@ class StorageSyncViewModel {
 
   final noteCount = signal<int>(0);
 
-  final autoSyncEnabled = signal(false);
-  final autoSyncInterval = signal(30);
 
   final loading = signal<bool>(true);
 
@@ -41,9 +41,6 @@ class StorageSyncViewModel {
     loading.value = true;
     try {
       isConfigured.value = _configService.isConfigured.value;
-      autoSyncEnabled.value = _configService.autoSyncEnabled.value;
-      autoSyncInterval.value = _configService.autoSyncInterval.value;
-
       final time = await _configService.getLastSyncTime();
       lastSyncTime.value = time;
 
@@ -117,7 +114,8 @@ class StorageSyncViewModel {
 
     isSyncing.value = true;
     try {
-      final service = WebDavSyncService(config: config);
+      final service = getIt<WebDavSyncService>();
+      service.setConfig(config);
       final result = await service.syncAll();
       await _configService.setLastSyncTime(DateTime.now());
       lastSyncTime.value = DateTime.now();
@@ -132,12 +130,23 @@ class StorageSyncViewModel {
     await _calcStorage();
   }
 
-  Future<void> setAutoSync(bool enabled, {int? interval}) async {
-    await _configService.setAutoSync(
-      enabled: enabled,
-      intervalMinutes: interval,
-    );
-    autoSyncEnabled.value = enabled;
-    if (interval != null) autoSyncInterval.value = interval;
+  @override
+  Future<WebDavConfig?> getConfig() => _configService.getConfig();
+  @override
+  Future<void> saveConfig(WebDavConfig config) async {
+    await _configService.saveConfig(config);
+    isConfigured.value = true;
+    serverUrl.value = config.baseUrl;
+  }
+
+  @override
+  Future<void> clearConfig() async {
+    await _configService.clearConfig();
+    isConfigured.value = false;
+    serverUrl.value = '';
+  }
+
+  Future<bool> testConnection() async {
+    return await _configService.testCurrentConfig();
   }
 }

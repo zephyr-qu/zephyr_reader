@@ -1,4 +1,5 @@
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/data/stats.dart' as rust_stats;
 import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as rust_vocab;
@@ -6,6 +7,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 enum StatisticsPeriod { today, week, month, year }
 
+@injectable
 class StatisticsViewModel {
   final selectedPeriod = signal<StatisticsPeriod>(StatisticsPeriod.month);
   final globalStats = signal<GlobalStats?>(null);

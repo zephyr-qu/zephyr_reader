@@ -1,3 +1,4 @@
+import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 import '../domain/services/highlight_painter.dart';
@@ -5,6 +6,7 @@ import '../domain/services/highlight_painter.dart';
 /// 页面内搜索控制器
 ///
 /// 管理搜索面板的打开/关闭、查询词、匹配导航，无外部依赖。
+@injectable
 class ReaderSearchController {
   final showSearch = signal<bool>(false);
   final searchQuery = signal<String>('');

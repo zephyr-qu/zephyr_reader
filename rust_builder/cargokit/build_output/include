@@ -222,6 +222,24 @@ typedef struct wire_cst_reading_session {
   int64_t duration_seconds;
 } wire_cst_reading_session;
 
+typedef struct wire_cst_backup_stats {
+  int64_t books;
+  int64_t chapters;
+  int64_t notes;
+  int64_t bookmarks;
+  int64_t reading_sessions;
+  int64_t reading_progress;
+  int64_t vocabulary_words;
+  int64_t categories;
+} wire_cst_backup_stats;
+
+typedef struct wire_cst_backup_manifest {
+  struct wire_cst_list_prim_u_8_strict *app_version;
+  int64_t exported_at;
+  int64_t db_size;
+  struct wire_cst_backup_stats stats;
+} wire_cst_backup_manifest;
+
 typedef struct wire_cst_category {
   struct wire_cst_list_prim_u_8_strict *id;
   struct wire_cst_list_prim_u_8_strict *name;
@@ -648,6 +666,11 @@ void frbgen_zephyr_reader_wire__crate__api__data__category__assign_category_to_b
                                                                                     struct wire_cst_list_prim_u_8_strict *book_id,
                                                                                     struct wire_cst_list_prim_u_8_strict *category_id);
 
+void frbgen_zephyr_reader_wire__crate__api__backup__backup_stats_default(int64_t port_);
+
+void frbgen_zephyr_reader_wire__crate__api__backup__cleanup_auto_snapshots(int64_t port_,
+                                                                           int64_t older_than_unix);
+
 void frbgen_zephyr_reader_wire__crate__api__search__clear_all(int64_t port_);
 
 void frbgen_zephyr_reader_wire__crate__api__data__bookmark__clear_bookmarks_by_book(int64_t port_,
@@ -797,6 +820,8 @@ void frbgen_zephyr_reader_wire__crate__api__core__extract_metadata(int64_t port_
 
 WireSyncRust2DartDco frbgen_zephyr_reader_wire__crate__api__vocab_marker__get_all_vocabulary_words(void);
 
+void frbgen_zephyr_reader_wire__crate__api__backup__get_backup_stats(int64_t port_);
+
 void frbgen_zephyr_reader_wire__crate__api__bilingual__get_bilingual_highlight_pairs(int64_t port_,
                                                                                      struct wire_cst_list_prim_u_8_strict *book_id,
                                                                                      int32_t chapter_index);
@@ -901,6 +926,9 @@ void frbgen_zephyr_reader_wire__crate__api__search__init_search_engine(int64_t p
 
 void frbgen_zephyr_reader_wire__crate__api__data__init__init_storage(int64_t port_,
                                                                      struct wire_cst_list_prim_u_8_strict *data_dir);
+
+void frbgen_zephyr_reader_wire__crate__api__backup__inspect_backup(int64_t port_,
+                                                                   struct wire_cst_list_prim_u_8_strict *backup_path);
 
 void frbgen_zephyr_reader_wire__crate__api__data__progress__list_all_progresses(int64_t port_);
 
@@ -1087,6 +1115,8 @@ void frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rus
 
 int64_t *frbgen_zephyr_reader_cst_new_box_autoadd_Chrono_Utc(int64_t value);
 
+struct wire_cst_backup_manifest *frbgen_zephyr_reader_cst_new_box_autoadd_backup_manifest(void);
+
 struct wire_cst_bilingual_highlight_params *frbgen_zephyr_reader_cst_new_box_autoadd_bilingual_highlight_params(void);
 
 struct wire_cst_book *frbgen_zephyr_reader_cst_new_box_autoadd_book(void);
@@ -1169,6 +1199,7 @@ struct wire_cst_list_vocab_match *frbgen_zephyr_reader_cst_new_list_vocab_match(
 static int64_t dummy_method_to_enforce_bundling(void) {
     int64_t dummy_var = 0;
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_Chrono_Utc);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_backup_manifest);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_bilingual_highlight_params);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_book);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_box_autoadd_bookmark);
@@ -1211,7 +1242,11 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_cst_new_list_vocab_match);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__backup__backup_stats_default);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__backup__cleanup_auto_snapshots);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__backup__export_database);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__backup__get_backup_stats);
+    dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__backup__inspect_backup);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__backup__restore_database);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__bilingual__align_bilingual_content);
     dummy_var ^= ((int64_t) (void*) frbgen_zephyr_reader_wire__crate__api__bilingual__create_bilingual_highlight_pair);

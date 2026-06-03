@@ -7,8 +7,10 @@ import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
+import 'package:zephyr_reader/src/rust/api/data/bookmark.dart' as bookmark_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import '../../../../di/service_locator.dart';
 
 enum BookmarkSortType { createdAt, chapterIndex, position }
@@ -31,7 +33,7 @@ class BookmarkManagePage extends HookWidget {
     useEffect(() {
       vm.loadBookmarks();
       () async {
-        final count = await vm.getBookmarkCount(bookId);
+        final count = (await bookmark_api.listBookmarksByBook(bookId: bookId)).length;
         bookmarkStats.value = count;
       }();
       return null;
@@ -350,11 +352,7 @@ class BookmarkManagePage extends HookWidget {
         if (await vm.deleteBookmark(id)) successCount++;
       }
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('已删除 $successCount/${bookmarkIds.length} 个书签'),
-          ),
-        );
+        showInfoSnack(context, '已删除 $successCount/${bookmarkIds.length} 个书签');
       }
     }
   }
@@ -387,9 +385,7 @@ class BookmarkManagePage extends HookWidget {
         if (await vm.deleteBookmark(b.id)) successCount++;
       }
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('已清空 $successCount 个书签')));
+        showInfoSnack(context, '已清空 $successCount 个书签');
       }
     }
   }

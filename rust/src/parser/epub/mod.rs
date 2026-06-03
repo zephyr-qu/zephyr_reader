@@ -7,16 +7,16 @@ pub mod toc;
 pub mod unzip;
 
 use std::path::Path;
-use std::sync::Arc;
 
-use async_trait::async_trait;
 use flutter_rust_bridge::frb;
 
-use crate::{domain::{AppError, ParseResult}, parser::book_parser::{BookMetadata, BookParser}};
+use crate::domain::{AppError, ParseResult};
+use crate::parser::book_parser::BookMetadata;
 
 pub use parse::parse_epub;
 
 /// EPUB 文件解析器
+#[derive(Clone, Copy)]
 #[frb(opaque)]
 pub struct EpubParser;
 
@@ -24,32 +24,23 @@ impl EpubParser {
     pub fn new() -> Self {
         Self
     }
-}
 
-impl Default for EpubParser {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[async_trait]
-impl BookParser for EpubParser {
-    fn name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         "EPUB Parser"
     }
 
-    fn supported_formats(&self) -> Vec<&str> {
+    pub fn supported_formats(&self) -> Vec<&str> {
         vec!["epub"]
     }
 
-    async fn parse(&self, file_path: &str) -> Result<ParseResult,AppError> {
+    pub async fn parse(&self, file_path: &str) -> Result<ParseResult, AppError> {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || parse_epub(fp))
             .await
             .map_err(|e| AppError::internal(format!("EPUB parse task failed: {}", e)))?
     }
 
-    async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata,AppError> {
+    pub async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata, AppError> {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || -> Result<BookMetadata, AppError> {
             if !Path::new(&fp).exists() {
@@ -76,11 +67,15 @@ impl BookParser for EpubParser {
                 total_characters: 0,
             })
         })
-            .await
-            .map_err(|e| AppError::internal(format!("EPUB metadata extraction failed: {}", e)))?
+        .await
+        .map_err(|e| AppError::internal(format!("EPUB metadata extraction failed: {}", e)))?
     }
 
-    async fn extract_chapter(&self, file_path: &str, chapter_index: i32) -> Result<String,AppError> {
+    pub async fn extract_chapter(
+        &self,
+        file_path: &str,
+        chapter_index: i32,
+    ) -> Result<String, AppError> {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || -> Result<String, AppError> {
             let mut epub_file = unzip::EpubFile::open(&fp)?;
@@ -90,23 +85,31 @@ impl BookParser for EpubParser {
                 .iter()
                 .find(|c| c.chapter_index == chapter_index)
                 .ok_or_else(|| {
-                    AppError::chapter_extract_error(chapter_index, format!("chapter {} not found", chapter_index))
+                    AppError::chapter_extract_error(
+                        chapter_index,
+                        format!("chapter {} not found", chapter_index),
+                    )
                 })?;
 
             let spine = epub_file.spine();
             let href = spine.get(chapter.start_index as usize).ok_or_else(|| {
-                AppError::chapter_extract_error(chapter.chapter_index, format!("chapter index out of range: {}", chapter.start_index))
+                AppError::chapter_extract_error(
+                    chapter.chapter_index,
+                    format!("chapter index out of range: {}", chapter.start_index),
+                )
             })?;
 
             epub_file.read_resource(href)
         })
-            .await
-            .map_err(|e| AppError::internal(format!("EPUB chapter extraction failed: {}", e)))?
+        .await
+        .map_err(|e| AppError::internal(format!("EPUB chapter extraction failed: {}", e)))?
     }
 }
 
-pub fn create_epub_parser() -> Arc<dyn BookParser> {
-    Arc::new(EpubParser::new())
+impl Default for EpubParser {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

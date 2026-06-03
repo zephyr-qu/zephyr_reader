@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 
 /// 测试辅助工具集
 ///
@@ -19,23 +20,23 @@ class TestHelper {
       AsyncState.error(error, stack ?? StackTrace.current);
 
   /// 验证 AsyncState 是否为加载中
-  static void expectLoading<T>(AsyncValue<T> state) {
+  static void expectLoading<T>(AsyncData<T> state) {
     expect(state, equals(AsyncState.loading()));
     expect(state.isLoading, isTrue);
-    expect(state.hasData, isFalse);
+    expect(state.hasValue, isFalse);
     expect(state.hasError, isFalse);
   }
 
   /// 验证 AsyncState 是否有数据
-  static void expectData<T>(AsyncValue<T> state, T expected) {
+  static void expectData<T>(AsyncData<T> state, T expected) {
     expect(state, equals(AsyncState.data(expected)));
-    expect(state.hasData, isTrue);
+    expect(state.hasValue, isTrue);
     expect(state.isLoading, isFalse);
     expect(state.hasError, isFalse);
   }
 
   /// 验证 AsyncState 是否出错
-  static void expectError<T>(AsyncValue<T> state, [String? errorContains]) {
+  static void expectError<T>(AsyncData<T> state, [String? errorContains]) {
     expect(state.hasError, isTrue);
     if (errorContains != null) {
       expect(state.errorMessage.contains(errorContains), isTrue);
@@ -58,16 +59,11 @@ class TestHelper {
   /// 等待并完成所有动画
   static Future<void> pumpAndSettleFast(
     WidgetTester tester, {
-    Duration step = Duration(milliseconds: 50),
+    Duration step = const Duration(milliseconds: 50),
     int maxSteps = 20,
   }) async {
     for (int i = 0; i < maxSteps; i++) {
       await tester.pump(step);
-      if (!tester.any(
-        (type) => type.runtimeType.toString() == 'AnimationController',
-      )) {
-        break;
-      }
     }
     await tester.pumpAndSettle();
   }
@@ -76,7 +72,7 @@ class TestHelper {
   static T findWidget<T>(WidgetTester tester) {
     final found = find.byType(T).evaluate();
     expect(found, isNotEmpty, reason: '找不到 $T 类型的 widget');
-    return tester.widget<T>(find.byType(T));
+    return tester.widget(find.byType(T));
   }
 
   // ===== 性能测试辅助 =====
@@ -90,11 +86,11 @@ class TestHelper {
     final result = await action();
     stopwatch.stop();
 
-    print('⏱️ $testName: ${stopwatch.elapsedMilliseconds}ms');
+    Logging.info('⏱️ $testName: ${stopwatch.elapsedMilliseconds}ms');
 
     // 性能警告: 超过1秒的操作
     if (stopwatch.elapsedMilliseconds > 1000) {
-      print('⚠️ 警告: $testName 超过1秒');
+      Logging.warning('⚠️ 警告: $testName 超过1秒');
     }
 
     return result;
@@ -113,8 +109,10 @@ class TestHelper {
     );
 
     stopwatch.stop();
-    print('📊 $testName ($iterations次): ${stopwatch.elapsedMilliseconds}ms');
-    print('   平均: ${stopwatch.elapsedMilliseconds / iterations}ms/次');
+    Logging.info(
+      '📊 $testName ($iterations次): ${stopwatch.elapsedMilliseconds}ms',
+    );
+    Logging.info('   平均: ${stopwatch.elapsedMilliseconds / iterations}ms/次');
 
     return results;
   }

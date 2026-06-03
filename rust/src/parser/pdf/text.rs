@@ -6,7 +6,7 @@
 use pdfium_render::prelude::{PdfPageIndex, Pdfium};
 use std::path::Path;
 
-use crate::domain::{ AppError};
+use crate::domain::AppError;
 use crate::text::constants::PDF_CHARS_PER_PAGE;
 
 /// 从 PDF 文件中提取指定页面范围的文本
@@ -21,15 +21,19 @@ use crate::text::constants::PDF_CHARS_PER_PAGE;
 ///
 /// * `Ok(String)` - 提取的文本内容
 /// * `Err(AppError)` - 提取失败
-pub fn get_chapter_text(file_path: &str, start_page: usize, end_page: usize) -> Result<String,AppError> {
+pub fn get_chapter_text(
+    file_path: &str,
+    start_page: usize,
+    end_page: usize,
+) -> Result<String, AppError> {
     if !Path::new(file_path).exists() {
         return Err(AppError::file_not_found(file_path));
     }
 
-    let pdfium = Pdfium;
+    let pdfium = Pdfium::default();
     let load_result = pdfium.load_pdf_from_file(file_path, None);
-    let pdf =
-        load_result.map_err(|e| AppError::pdf_parse_error(format!("failed to open PDF file: {}", e)))?;
+    let pdf = load_result
+        .map_err(|e| AppError::pdf_parse_error(format!("failed to open PDF file: {}", e)))?;
 
     let num_pages: usize = pdf.pages().len() as usize;
     if start_page >= num_pages {
@@ -88,7 +92,7 @@ pub fn get_chapter_text(file_path: &str, start_page: usize, end_page: usize) -> 
 ///
 /// 估算的总字符数
 pub fn estimate_total_chars(file_path: &str, _sample_pages: usize) -> i64 {
-    let pdfium = Pdfium;
+    let pdfium = Pdfium::default();
     let pdf = match pdfium.load_pdf_from_file(file_path, None) {
         Ok(p) => p,
         Err(_) => return 0,

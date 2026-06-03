@@ -3,13 +3,12 @@
 //! 提供统一的封面提取入口，支持 EPUB、PDF 等多种格式。
 //! 通过 CoverExtractorRegistry 自动根据文件类型选择对应的提取器。
 
-use crate::domain::{AppError};
+use crate::domain::AppError;
 use flutter_rust_bridge::frb;
-use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 /// 封面提取器 trait
 ///
 /// 所有文件格式的封面提取器必须实现此 trait。
@@ -31,7 +30,7 @@ pub trait CoverExtractor: Send + Sync {
     ///
     /// * `Ok(String)` - 封面保存路径
     /// * `Err(AppError)` - 提取失败
-    fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String,AppError>;
+    fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String, AppError>;
 
     /// 检查是否支持指定格式
     fn supports_format(&self, format: &str) -> bool {
@@ -66,7 +65,7 @@ impl CoverExtractor for EpubCoverExtractor {
         vec!["epub"]
     }
 
-    fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String,AppError> {
+    fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String, AppError> {
         let mut epub_file = crate::parser::epub::unzip::EpubFile::open(file_path)?;
         let cover_data = epub_file
             .read_cover()
@@ -143,7 +142,7 @@ impl CoverExtractor for PdfCoverExtractor {
         vec!["pdf"]
     }
 
-    fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String,AppError> {
+    fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String, AppError> {
         crate::parser::pdf::images::extract_pdf_cover(file_path, output_dir)
     }
 }
@@ -200,11 +199,13 @@ impl CoverExtractorRegistry {
     }
 
     /// 提取封面（自动选择提取器）
-    pub fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String,AppError> {
+    pub fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String, AppError> {
         let extension = Path::new(file_path)
             .extension()
             .and_then(|ext| ext.to_str())
-            .ok_or_else(||             AppError::unsupported_format("unable to identify file extension".to_string()))?;
+            .ok_or_else(|| {
+                AppError::unsupported_format("unable to identify file extension".to_string())
+            })?;
 
         let extractor = self.get_extractor(extension).ok_or_else(|| {
             AppError::unsupported_format(format!("unsupported file format: {}", extension))
@@ -246,11 +247,13 @@ impl ThreadSafeCoverRegistry {
     }
 
     /// 提取封面
-    pub fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String,AppError> {
+    pub fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String, AppError> {
         let extension = Path::new(file_path)
             .extension()
             .and_then(|ext| ext.to_str())
-            .ok_or_else(||             AppError::unsupported_format("unable to identify file extension".to_string()))?;
+            .ok_or_else(|| {
+                AppError::unsupported_format("unable to identify file extension".to_string())
+            })?;
         let extractor = self.inner.lock().get_extractor(extension).ok_or_else(|| {
             AppError::unsupported_format(format!("unsupported file format: {}", extension))
         })?;
@@ -270,7 +273,7 @@ impl Default for ThreadSafeCoverRegistry {
 }
 
 // 全局注册表
-static COVER_REGISTRY: OnceCell<ThreadSafeCoverRegistry> = OnceCell::new();
+static COVER_REGISTRY: OnceLock<ThreadSafeCoverRegistry> = OnceLock::new();
 
 /// 初始化封面提取器注册表
 fn init_cover_registry() -> ThreadSafeCoverRegistry {

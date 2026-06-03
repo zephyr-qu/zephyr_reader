@@ -5,17 +5,19 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 
 import 'package:zephyr_reader/core/presentation/widgets/empty_state_widget.dart';
 import 'package:zephyr_reader/core/presentation/widgets/selection_chip.dart';
 import 'package:zephyr_reader/features/vocabulary/application/vocabulary_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/storage/vocab_status_extension.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 class VocabularyPage extends HookWidget {
-  final VocabularyViewModel vm;
+  late final VocabularyViewModel vm = getIt<VocabularyViewModel>();
 
-  const VocabularyPage({super.key, required this.vm});
+  VocabularyPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +110,7 @@ class VocabularyPage extends HookWidget {
                   '未学',
                   notStartedCount.toString(),
                   filterStatus: VocabStatus.new_,
-                  selected: filterStatus.toString() == 'not_started',
+                  selected: filterStatus == VocabStatus.new_,
                   theme: theme,
                 ),
                 const SizedBox(width: 8),
@@ -116,7 +118,7 @@ class VocabularyPage extends HookWidget {
                   '学习中',
                   stats.learningCount.toString(),
                   filterStatus: VocabStatus.learning,
-                  selected: filterStatus.toString() == 'learning',
+                  selected: filterStatus == VocabStatus.learning,
                   theme: theme,
                 ),
                 const SizedBox(width: 8),
@@ -124,7 +126,7 @@ class VocabularyPage extends HookWidget {
                   '已忽略',
                   stats.knownCount.toString(),
                   filterStatus: VocabStatus.ignored,
-                  selected: filterStatus.toString() == 'ignored',
+                  selected: filterStatus == VocabStatus.ignored,
                   theme: theme,
                 ),
                 const SizedBox(width: 8),
@@ -132,7 +134,7 @@ class VocabularyPage extends HookWidget {
                   '已掌握',
                   stats.masteredCount.toString(),
                   filterStatus: VocabStatus.mastered,
-                  selected: filterStatus.toString() == 'mastered',
+                  selected: filterStatus == VocabStatus.mastered,
                   theme: theme,
                 ),
               ],
@@ -283,20 +285,22 @@ class VocabularyPage extends HookWidget {
               ),
               subtitle: _buildSubtitle(item, bookTitles),
               trailing: PopupMenuButton<String>(
-                initialValue: item.status.toString(),
+                initialValue: switch (item.status) {
+                  VocabStatus.new_ => 'new',
+                  VocabStatus.learning => 'learning',
+                  VocabStatus.mastered => 'mastered',
+                  VocabStatus.ignored => 'ignored',
+                },
                 onSelected: (s) => vm.updateStatus(item.id, s),
                 itemBuilder: (_) => [
-                  if (item.status.toString() != 'new')
-                    const PopupMenuItem(
-                      value: 'not_started',
-                      child: Text('未学'),
-                    ),
-                  if (item.status.toString() != 'learning')
+                  if (item.status != VocabStatus.new_)
+                    const PopupMenuItem(value: 'new', child: Text('未学')),
+                  if (item.status != VocabStatus.learning)
                     const PopupMenuItem(value: 'learning', child: Text('学习中')),
-                  if (item.status.toString() != 'known')
-                    const PopupMenuItem(value: 'known', child: Text('已认识')),
-                  if (item.status.toString() != 'mastered')
+                  if (item.status != VocabStatus.mastered)
                     const PopupMenuItem(value: 'mastered', child: Text('已掌握')),
+                  if (item.status != VocabStatus.ignored)
+                    const PopupMenuItem(value: 'ignored', child: Text('已忽略')),
                 ],
                 child: Container(
                   padding: EdgeInsets.symmetric(
@@ -304,16 +308,14 @@ class VocabularyPage extends HookWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: _statusColor(
-                      item.status.toString(),
-                    ).withValues(alpha: 0.15),
+                    color: _statusColor(item.status).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    _statusLabel(item.status.toString()),
+                    _statusLabel(item.status),
                     style: TextStyle(
                       fontSize: 12,
-                      color: _statusColor(item.status.toString()),
+                      color: _statusColor(item.status),
                     ),
                   ),
                 ),
@@ -345,29 +347,7 @@ class VocabularyPage extends HookWidget {
     );
   }
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'not_started':
-        return Colors.grey;
-      case 'known':
-        return Colors.green;
-      case 'mastered':
-        return Colors.blue;
-      default:
-        return Colors.orange;
-    }
-  }
+  Color _statusColor(VocabStatus status) => status.color;
 
-  String _statusLabel(String status) {
-    switch (status) {
-      case 'not_started':
-        return '未学';
-      case 'known':
-        return '已认识';
-      case 'mastered':
-        return '已掌握';
-      default:
-        return '学习中';
-    }
-  }
+  String _statusLabel(VocabStatus status) => status.displayName;
 }

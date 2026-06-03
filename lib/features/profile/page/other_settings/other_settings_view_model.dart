@@ -1,19 +1,27 @@
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/core/settings/persisted_signal.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
 import 'package:zephyr_reader/core/utils/cache_utils.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
 
+@injectable
 class OtherSettingsViewModel {
-  late final SharedPreferences _prefs;
+  final SharedPreferences _prefs;
 
-  final notificationsEnabled = signal<bool>(true);
-  final startupCheckEnabled = signal<bool>(true);
-  final markdownPreview = signal<bool>(false);
-  final customCss = signal<bool>(false);
-  final advancedSearch = signal<bool>(false);
+  late final notificationsEnabled = persistedBool(
+    _prefs, SettingsKeys.otherNotifications, true,
+  );
+  late final startupCheckEnabled = persistedBool(
+    _prefs, SettingsKeys.otherStartupCheck, true,
+  );
+  late final markdownPreview = persistedBool(
+    _prefs, SettingsKeys.otherMarkdownPreview, false,
+  );
 
   final localeCode = signal<String?>(null);
   final localeLabel = signal<String>('简体中文');
@@ -21,16 +29,11 @@ class OtherSettingsViewModel {
 
   bool _initialized = false;
 
+  OtherSettingsViewModel(this._prefs);
+
   Future<void> initialize() async {
     if (_initialized) return;
     _initialized = true;
-    _prefs = getIt<SharedPreferences>();
-
-    notificationsEnabled.value = _prefs.getBool(_keyNotifications) ?? true;
-    startupCheckEnabled.value = _prefs.getBool(_keyStartupCheck) ?? true;
-    markdownPreview.value = _prefs.getBool(_keyMarkdownPreview) ?? false;
-    customCss.value = _prefs.getBool(_keyCustomCss) ?? false;
-    advancedSearch.value = _prefs.getBool(_keyAdvancedSearch) ?? false;
 
     final tm = ThemeManager.instance;
     localeCode.value = tm.locale.value;
@@ -44,45 +47,11 @@ class OtherSettingsViewModel {
     }
   }
 
-  static const _keyNotifications = 'other.notifications';
-  static const _keyStartupCheck = 'other.startup_check';
-  static const _keyMarkdownPreview = 'feature.markdown_preview';
-  static const _keyCustomCss = 'feature.custom_css';
-  static const _keyAdvancedSearch = 'feature.advanced_search';
-
-  Future<void> setNotifications(bool value) async {
-    notificationsEnabled.value = value;
-    await _prefs.setBool(_keyNotifications, value);
-  }
-
-  Future<void> setStartupCheck(bool value) async {
-    startupCheckEnabled.value = value;
-    await _prefs.setBool(_keyStartupCheck, value);
-  }
-
-  Future<void> setMarkdownPreview(bool value) async {
-    markdownPreview.value = value;
-    await _prefs.setBool(_keyMarkdownPreview, value);
-  }
-
-  Future<void> setCustomCss(bool value) async {
-    customCss.value = value;
-    await _prefs.setBool(_keyCustomCss, value);
-  }
-
-  Future<void> setAdvancedSearch(bool value) async {
-    advancedSearch.value = value;
-    await _prefs.setBool(_keyAdvancedSearch, value);
-  }
-
   Future<void> resetAllSettings() async {
-    final config = getIt<ReaderConfig>();
-    await config.resetToDefault();
-    await setNotifications(true);
-    await setStartupCheck(true);
-    await setMarkdownPreview(false);
-    await setCustomCss(false);
-    await setAdvancedSearch(false);
+    await getIt<ReaderConfig>().resetToDefault();
+    notificationsEnabled.value = true;
+    startupCheckEnabled.value = true;
+    markdownPreview.value = false;
   }
 
   Future<void> clearAllLocalData() async {

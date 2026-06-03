@@ -3,9 +3,9 @@ library;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 class ReaderBottomToolbar extends StatelessWidget {
   final int currentPageIndex;
@@ -33,6 +33,7 @@ class ReaderBottomToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final readerTheme = Theme.of(context).extension<ReaderThemeExtension>()!;
+    final l10n = AppLocalizations.of(context)!;
     final textColor = readerTheme.textColor;
     final accentColor = readerTheme.accentColor;
 
@@ -51,13 +52,13 @@ class ReaderBottomToolbar extends StatelessWidget {
                     icon: PhosphorIconsLight.listBullets,
                     onTap: onShowCatalog,
                     color: textColor,
-                    tooltip: '目录',
+                    tooltip: l10n.chapterList,
                   ),
                   _BarButton(
                     icon: PhosphorIconsLight.notePencil,
                     onTap: onShowNotes,
                     color: textColor,
-                    tooltip: '笔记',
+                    tooltip: l10n.selectionNote,
                   ),
                   const Spacer(),
                   _ProgressBadge(
@@ -70,7 +71,7 @@ class ReaderBottomToolbar extends StatelessWidget {
                     icon: PhosphorIconsLight.gearSix,
                     onTap: onShowSettings,
                     color: accentColor,
-                    tooltip: '设置',
+                    tooltip: l10n.settings,
                   ),
                   _BarButton(
                     icon: isTtsPlaying
@@ -80,7 +81,7 @@ class ReaderBottomToolbar extends StatelessWidget {
                     color: isTtsPlaying
                         ? readerTheme.ttsActiveColor
                         : textColor,
-                    tooltip: '朗读',
+                    tooltip: l10n.readAloud,
                   ),
                 ],
               ),
@@ -109,16 +110,16 @@ class _BarButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: tooltip ?? '',
-      child: _PressScale(
+      child: GestureDetector(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           child: Icon(icon, size: 20, color: color),
         ),
       ),
     );
   }
-}
+  }
 
 class _ProgressBadge extends StatelessWidget {
   final int pageIndex;
@@ -156,39 +157,3 @@ class _ProgressBadge extends StatelessWidget {
   }
 }
 
-class _PressScale extends HookWidget {
-  final Widget child;
-  final VoidCallback? onTap;
-
-  const _PressScale({required this.child, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final ctrl = useAnimationController(
-      duration: const Duration(milliseconds: 200),
-    );
-    final anim = useMemoized(
-      () => Tween(
-        begin: 1.0,
-        end: 0.92,
-      ).animate(CurvedAnimation(parent: ctrl, curve: Curves.easeOutBack)),
-      [ctrl],
-    );
-
-    return AnimatedBuilder(
-      animation: anim,
-      builder: (context, _) => Transform.scale(
-        scale: anim.value,
-        child: GestureDetector(
-          onTapDown: (_) {
-            ctrl.forward();
-            onTap?.call();
-          },
-          onTapUp: (_) => ctrl.reverse(),
-          onTapCancel: () => ctrl.reverse(),
-          child: child,
-        ),
-      ),
-    );
-  }
-}

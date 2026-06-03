@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_navigation_tile.dart';
@@ -14,9 +15,9 @@ import 'package:zephyr_reader/features/profile/page/privacy_policy_page.dart';
 import 'package:zephyr_reader/features/profile/page/user_agreement_page.dart';
 
 class OtherSettingsPage extends HookWidget {
-  final OtherSettingsViewModel vm;
+  late final OtherSettingsViewModel vm = getIt<OtherSettingsViewModel>();
 
-  const OtherSettingsPage({super.key, required this.vm});
+  OtherSettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +32,6 @@ class OtherSettingsPage extends HookWidget {
     final String appVersion = useSignalValue(vm.appVersion);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text(
           '其他设置',
@@ -47,13 +47,13 @@ class OtherSettingsPage extends HookWidget {
         children: [
           _buildBehaviorSection(context, cs, localeLabel),
           const SizedBox(height: 24),
-          _buildExperimentalSection(cs),
+          _buildExperimentalSection(context, cs),
           const SizedBox(height: 24),
           _buildLegalSection(context, cs),
           const SizedBox(height: 24),
           _buildDangerSection(context, cs),
           const SizedBox(height: 24),
-          _buildVersionFooter(cs, appVersion),
+          _buildVersionFooter(context, cs, appVersion),
         ],
       ),
     );
@@ -74,8 +74,12 @@ class OtherSettingsPage extends HookWidget {
               children: [
                 SettingsNavigationTile(
                   icon: PhosphorIconsRegular.translate,
-                  iconColor: MenuItemSemantic.info.iconColor,
-                  iconBackground: MenuItemSemantic.info.iconBackground,
+                  iconColor: MenuItemSemantic.info.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.info.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: '界面语言',
                   subtitle: '简体中文 / English',
                   trailing: Row(
@@ -100,21 +104,29 @@ class OtherSettingsPage extends HookWidget {
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.bell,
-                  iconColor: MenuItemSemantic.warning.iconColor,
-                  iconBackground: MenuItemSemantic.warning.iconBackground,
+                  iconColor: MenuItemSemantic.warning.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.warning.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: '通知与提醒',
                   subtitle: '阅读目标提醒、同步完成通知',
                   value: vm.notificationsEnabled.value,
-                  onChanged: (v) => vm.setNotifications(v),
+                  onChanged: (v) => vm.notificationsEnabled.value = v,
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.arrowArcRight,
-                  iconColor: MenuItemSemantic.success.iconColor,
-                  iconBackground: MenuItemSemantic.success.iconBackground,
+                  iconColor: MenuItemSemantic.success.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.success.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: '启动时检查更新',
                   subtitle: '仅前台启动时检测新版本',
                   value: vm.startupCheckEnabled.value,
-                  onChanged: (v) => vm.setStartupCheck(v),
+                  onChanged: (v) => vm.startupCheckEnabled.value = v,
                 ),
               ],
             ),
@@ -125,7 +137,7 @@ class OtherSettingsPage extends HookWidget {
         .slideY(begin: 0.03, end: 0);
   }
 
-  Widget _buildExperimentalSection(ColorScheme cs) {
+  Widget _buildExperimentalSection(BuildContext context, ColorScheme cs) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -135,10 +147,9 @@ class OtherSettingsPage extends HookWidget {
                 children: [
                   Text(
                     '实验性功能',
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                      color: cs.outline,
                       letterSpacing: 0.4,
                     ),
                   ),
@@ -170,30 +181,16 @@ class OtherSettingsPage extends HookWidget {
               children: [
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.markdownLogo,
-                  iconColor: MenuItemSemantic.experimental.iconColor,
-                  iconBackground: MenuItemSemantic.experimental.iconBackground,
+                  iconColor: MenuItemSemantic.experimental.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.experimental.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: 'Markdown 笔记预览',
                   subtitle: '在笔记列表中渲染 Markdown 格式',
                   value: vm.markdownPreview.value,
-                  onChanged: (v) => vm.setMarkdownPreview(v),
-                ),
-                SettingsToggleTile(
-                  icon: PhosphorIconsRegular.paintBrush,
-                  iconColor: MenuItemSemantic.reading.iconColor,
-                  iconBackground: MenuItemSemantic.reading.iconBackground,
-                  title: '自定义 CSS 注入',
-                  subtitle: '为 EPUB 内容注入用户样式表',
-                  value: vm.customCss.value,
-                  onChanged: (v) => vm.setCustomCss(v),
-                ),
-                SettingsToggleTile(
-                  icon: PhosphorIconsRegular.magnifyingGlass,
-                  iconColor: MenuItemSemantic.neutral.iconColor,
-                  iconBackground: MenuItemSemantic.neutral.iconBackground,
-                  title: '高级搜索语法',
-                  subtitle: '支持 author: tag: regex: 等前缀',
-                  value: vm.advancedSearch.value,
-                  onChanged: (v) => vm.setAdvancedSearch(v),
+                  onChanged: (v) => vm.markdownPreview.value = v,
                 ),
               ],
             ),
@@ -215,8 +212,12 @@ class OtherSettingsPage extends HookWidget {
               children: [
                 SettingsNavigationTile(
                   icon: PhosphorIconsRegular.fileText,
-                  iconColor: MenuItemSemantic.legal.iconColor,
-                  iconBackground: MenuItemSemantic.legal.iconBackground,
+                  iconColor: MenuItemSemantic.legal.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.legal.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: '用户协议',
                   subtitle: '',
                   onTap: () => Navigator.push(
@@ -228,8 +229,12 @@ class OtherSettingsPage extends HookWidget {
                 ),
                 SettingsNavigationTile(
                   icon: PhosphorIconsRegular.shieldCheck,
-                  iconColor: MenuItemSemantic.legal.iconColor,
-                  iconBackground: MenuItemSemantic.legal.iconBackground,
+                  iconColor: MenuItemSemantic.legal.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.legal.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: '隐私政策',
                   subtitle: '',
                   onTap: () => Navigator.push(
@@ -241,8 +246,12 @@ class OtherSettingsPage extends HookWidget {
                 ),
                 SettingsNavigationTile(
                   icon: PhosphorIconsRegular.code,
-                  iconColor: MenuItemSemantic.legal.iconColor,
-                  iconBackground: MenuItemSemantic.legal.iconBackground,
+                  iconColor: MenuItemSemantic.legal.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.legal.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
                   title: '开源许可证',
                   subtitle: 'Flutter / Rust / 第三方库许可',
                   onTap: () => showLicensePage(
@@ -368,15 +377,18 @@ class OtherSettingsPage extends HookWidget {
     );
   }
 
-  Widget _buildVersionFooter(ColorScheme cs, String appVersion) {
+  Widget _buildVersionFooter(
+    BuildContext context,
+    ColorScheme cs,
+    String appVersion,
+  ) {
     return Column(
       children: [
         Text(
           'Zephyr Reader $appVersion',
-          style: TextStyle(
-            fontSize: 11,
-            color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: cs.outline),
         ),
         const SizedBox(height: 2),
         Text(
@@ -464,7 +476,7 @@ class OtherSettingsPage extends HookWidget {
     final tm = ThemeManager.instance;
     return InkWell(
       onTap: () {
-        tm.setLocale(code);
+        tm.locale.value = code;
         vm.localeCode.value = code;
         vm.localeLabel.value = code == 'en' ? 'English' : '简体中文';
         Navigator.pop(context);

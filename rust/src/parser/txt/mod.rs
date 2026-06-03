@@ -5,19 +5,17 @@ pub mod decode;
 pub mod parse;
 pub mod provider;
 
-use std::sync::Arc;
-
-use async_trait::async_trait;
 use flutter_rust_bridge::frb;
 
-use crate::domain::{ParseResult, AppError};
-use crate::parser::book_parser::{BookMetadata, BookParser};
+use crate::domain::{AppError, ParseResult};
+use crate::parser::book_parser::BookMetadata;
 use crate::text::chapter_detect::extract_chapters;
 
 pub use parse::parse_txt;
 pub use provider::TxtContentProvider;
 
 /// TXT 文件解析器
+#[derive(Clone, Copy)]
 #[frb(opaque)]
 pub struct TxtParser;
 
@@ -25,32 +23,23 @@ impl TxtParser {
     pub fn new() -> Self {
         Self
     }
-}
 
-impl Default for TxtParser {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[async_trait]
-impl BookParser for TxtParser {
-    fn name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         "TXT Parser"
     }
 
-    fn supported_formats(&self) -> Vec<&str> {
+    pub fn supported_formats(&self) -> Vec<&str> {
         vec!["txt", "text"]
     }
 
-    async fn parse(&self, file_path: &str) -> Result<ParseResult,AppError> {
+    pub async fn parse(&self, file_path: &str) -> Result<ParseResult, AppError> {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || parse_txt(fp))
             .await
             .map_err(|e| AppError::internal(format!("parse task failed: {}", e)))?
     }
 
-    async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata,AppError> {
+    pub async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata, AppError> {
         let fp = file_path.to_string();
         let result = tokio::task::spawn_blocking(move || parse_txt(fp))
             .await
@@ -70,7 +59,11 @@ impl BookParser for TxtParser {
         })
     }
 
-    async fn extract_chapter(&self, file_path: &str, chapter_index: i32) -> Result<String,AppError> {
+    pub async fn extract_chapter(
+        &self,
+        file_path: &str,
+        chapter_index: i32,
+    ) -> Result<String, AppError> {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || {
             let content = decode::decode_file(&fp)?;
@@ -80,7 +73,10 @@ impl BookParser for TxtParser {
                 .iter()
                 .find(|c| c.chapter_index == chapter_index)
                 .ok_or_else(|| {
-                    AppError::chapter_extract_error(chapter_index, format!("chapter {} not found", chapter_index))
+                    AppError::chapter_extract_error(
+                        chapter_index,
+                        format!("chapter {} not found", chapter_index),
+                    )
                 })?;
 
             let start = chapter.start_index as usize;
@@ -98,21 +94,23 @@ impl BookParser for TxtParser {
                     start,
                     safe_end
                 );
-                return Err(AppError::chapter_extract_error(0, format!(
-                    "invalid chapter boundary: {}-{}",
-                    start, safe_end
-                )));
+                return Err(AppError::chapter_extract_error(
+                    0,
+                    format!("invalid chapter boundary: {}-{}", start, safe_end),
+                ));
             }
 
             Ok(content[start..safe_end].to_string())
         })
-            .await
-            .map_err(|e| AppError::internal(format!("chapter extraction failed: {}", e)))?
+        .await
+        .map_err(|e| AppError::internal(format!("chapter extraction failed: {}", e)))?
     }
 }
 
-pub fn create_txt_parser() -> Arc<dyn BookParser> {
-    Arc::new(TxtParser::new())
+impl Default for TxtParser {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

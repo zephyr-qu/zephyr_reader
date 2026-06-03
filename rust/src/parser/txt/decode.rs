@@ -3,7 +3,7 @@
 
 use crate::domain::AppError;
 use chardetng::{EncodingDetector, Iso2022JpDetection, Utf8Detection};
-use encoding_rs::{Encoding, GB18030, UTF_16BE, UTF_16LE, UTF_8};
+use encoding_rs::{Encoding, GB18030, UTF_8, UTF_16BE, UTF_16LE};
 use memmap2::Mmap;
 use std::fs::File;
 
@@ -52,13 +52,15 @@ pub fn detect_encoding_from_bytes(buffer: &[u8]) -> Result<&'static Encoding, Ap
 
 /// 解码文件内容（使用内存映射优化，高性能）
 pub fn decode_file(file_path: &str) -> Result<String, AppError> {
-    let file = File::open(file_path)
-        .map_err(|e| AppError::file_read_error(file_path, e.to_string()))?;
+    let file =
+        File::open(file_path).map_err(|e| AppError::file_read_error(file_path, e.to_string()))?;
 
+    // SAFETY: 文件以只读方式打开（File::open），映射为只读 Mmap；
+    // 文件在映射生命周期内不会被写入或截断（调用方保证）。
+    // memmap2 在 Drop 时自动解除映射。
     let mmap = unsafe {
         Mmap::map(&file).map_err(|e| AppError::file_read_error(file_path, e.to_string()))?
     };
-
     if mmap.is_empty() {
         return Ok(String::new());
     }

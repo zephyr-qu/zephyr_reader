@@ -10,7 +10,7 @@
 //!
 //! 报告位于 `target/criterion/report/index.html`
 
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use rust_lib_zephyr_reader::api;
 use rust_lib_zephyr_reader::domain::{LanguageType, TypesetConfig};
 use rust_lib_zephyr_reader::text::paginate_all;
@@ -52,7 +52,8 @@ fn bench_txt_parsing(c: &mut Criterion) {
             |b, path| {
                 b.iter(|| {
                     rt.block_on(async {
-                        let _ = api::parse_book(black_box(path.to_string_lossy().to_string())).await;
+                        let _ =
+                            api::parse_book(black_box(path.to_string_lossy().to_string())).await;
                     })
                 })
             },
@@ -73,7 +74,8 @@ fn bench_txt_parsing(c: &mut Criterion) {
             |b, path| {
                 b.iter(|| {
                     rt.block_on(async {
-                        let _ = api::parse_book(black_box(path.to_string_lossy().to_string())).await;
+                        let _ =
+                            api::parse_book(black_box(path.to_string_lossy().to_string())).await;
                     })
                 })
             },
@@ -117,10 +119,8 @@ fn bench_typesetting(c: &mut Criterion) {
             |b, text| {
                 b.iter(|| {
                     rt.block_on(async {
-                        let _ = api::typeset_text(
-                            black_box(text.clone()),
-                            black_box(config.clone()),
-                        );
+                        let _ =
+                            api::typeset_text(black_box(text.clone()), black_box(config.clone()));
                     })
                 })
             },

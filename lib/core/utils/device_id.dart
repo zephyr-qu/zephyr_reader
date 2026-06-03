@@ -1,16 +1,13 @@
-library;
-
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-const _keyDeviceId = 'app.device.id';
+import 'package:zephyr_reader/core/settings/settings_keys.dart';
 
-Future<String> getOrCreateDeviceId() async {
-  final prefs = await SharedPreferences.getInstance();
-  var id = prefs.getString(_keyDeviceId);
+Future<String> getOrCreateDeviceId(SharedPreferences prefs) async {
+  var id = prefs.getString(SettingsKeys.deviceId);
   if (id == null || id.isEmpty) {
     id = const Uuid().v4();
-    await prefs.setString(_keyDeviceId, id);
+    await prefs.setString(SettingsKeys.deviceId, id);
   }
   return id;
 }

@@ -24,8 +24,8 @@ class BatteryStateService {
   Future<BatteryState> getBatteryState() async => guardAndroid(
     () async => await SystemState.battery.getBatteryState(),
     BatteryState.fromMap({
-      'batteryLevel': 0,
-      'temperature': 0.0,
+      'level': 0,
+      'temperature': 0,
       'isCharging': false,
     }),
   );

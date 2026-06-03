@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/core/reader/font_config.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
-import 'package:zephyr_reader/features/reader/application/reader_enums.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/domain/services/highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -130,18 +129,8 @@ class PaginatedModeRenderer extends StatelessWidget {
         final pageContent = pages[index];
         final pageStart = accOffset;
         accOffset += pageContent.length;
-        final textStyle = FontConfig.readerStyle(
-          fontSize: config.fontSize,
-          lineHeight: config.lineHeight,
-          color: config.textColor,
-          fontFamily: config.fontFamily,
-          letterSpacing: config.letterSpacing,
-        );
-        final strutStyle = FontConfig.readerStrut(
-          fontSize: config.fontSize,
-          lineHeight: config.lineHeight,
-          fontFamily: config.fontFamily,
-        );
+        final textStyle = config.buildTextStyle();
+        final strutStyle = config.buildStrutStyle();
         final painted = HighlightPainter.paintPlain(
           pageContent,
           textStyle,
@@ -176,18 +165,8 @@ class PaginatedModeRenderer extends StatelessWidget {
     if (cachedPages != null && cachedPages.isNotEmpty) {
       final index = pageIndex.clamp(0, cachedPages.length - 1);
       final page = cachedPages[index];
-      final textStyle = FontConfig.readerStyle(
-        fontSize: config.fontSize,
-        lineHeight: config.lineHeight,
-        color: config.textColor,
-        fontFamily: config.fontFamily,
-        letterSpacing: config.letterSpacing,
-      );
-      final strutStyle = FontConfig.readerStrut(
-        fontSize: config.fontSize,
-        lineHeight: config.lineHeight,
-        fontFamily: config.fontFamily,
-      );
+      final textStyle = config.buildTextStyle();
+      final strutStyle = config.buildStrutStyle();
       final paintedSpan = page.richContent != null
           ? HighlightPainter.paintRich(
               page.richContent!,
@@ -246,18 +225,8 @@ class PaginatedModeRenderer extends StatelessWidget {
         },
         itemBuilder: (context, index) {
           final page = cachedPages[index];
-          final textStyle = FontConfig.readerStyle(
-            fontSize: config.fontSize,
-            lineHeight: config.lineHeight,
-            color: config.textColor,
-            fontFamily: config.fontFamily,
-            letterSpacing: config.letterSpacing,
-          );
-          final strutStyle = FontConfig.readerStrut(
-            fontSize: config.fontSize,
-            lineHeight: config.lineHeight,
-            fontFamily: config.fontFamily,
-          );
+          final textStyle = config.buildTextStyle();
+          final strutStyle = config.buildStrutStyle();
           if (page.richContent != null) {
             final painted = HighlightPainter.paintRich(
               page.richContent!,

@@ -1,9 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:go_router/go_router.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
@@ -11,8 +9,9 @@ import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.d
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_navigation_tile.dart';
 import 'package:zephyr_reader/core/utils/date_formatters.dart';
-import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/features/sync/application/storage_sync_view_model.dart';
+import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
+import 'package:zephyr_reader/features/sync/page/widgets/webdav_config_dialog.dart';
 
 class StorageSyncPage extends HookWidget {
   const StorageSyncPage({super.key});
@@ -28,8 +27,8 @@ class StorageSyncPage extends HookWidget {
 
     final cs = Theme.of(context).colorScheme;
 
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text(
           '存储与同步',
@@ -55,13 +54,11 @@ class StorageSyncPage extends HookWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
             children: [
-              _buildStatusHeader(cs, vm, context),
+              _buildStatusHeader(cs, vm, context, l10n),
               const SizedBox(height: 20),
               _buildStorageCard(cs, vm),
               const SizedBox(height: 24),
               _buildSyncConfigSection(cs, vm, context),
-              const SizedBox(height: 24),
-              _buildDataManagementSection(cs, vm, context),
               const SizedBox(height: 24),
               _buildDangerZone(cs, vm, context),
             ],
@@ -77,6 +74,7 @@ class StorageSyncPage extends HookWidget {
     ColorScheme cs,
     StorageSyncViewModel vm,
     BuildContext context,
+    AppLocalizations l10n,
   ) {
     return SignalBuilder(
       builder: (context) {
@@ -142,7 +140,7 @@ class StorageSyncPage extends HookWidget {
                         ),
                         if (lastTime != null)
                           Text(
-                            '上次同步：${formatRelativeTime(lastTime)}',
+                            l10n.lastSyncTime(formatRelativeTime(lastTime, l10n)),
                             style: TextStyle(
                               fontSize: 11,
                               color: Colors.white.withValues(alpha: 0.7),
@@ -152,9 +150,13 @@ class StorageSyncPage extends HookWidget {
                     ),
                   ),
                   GestureDetector(
-                    onTap: configured
-                        ? () => _triggerSync(vm, context)
-                        : () => context.push(RoutePaths.sync),
+                    onTap: () {
+                      if (configured) {
+                        _triggerSync(vm, context);
+                      } else {
+                        showWebDavConfigDialog(context, vm);
+                      }
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -175,14 +177,6 @@ class StorageSyncPage extends HookWidget {
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '下次自动同步：明天 08:00（仅前台启动时）',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
               ),
             ],
           ),
@@ -339,40 +333,7 @@ class StorageSyncPage extends HookWidget {
                   subtitle: vm.serverUrl.value.isNotEmpty
                       ? vm.serverUrl.value
                       : '未配置',
-                  onTap: () => context.push(RoutePaths.sync),
-                ),
-                SettingsNavigationTile(
-                  iconWidget: const Icon(
-                    PhosphorIconsRegular.clockClockwise,
-                    size: 16,
-                    color: Color(0xFF00897B),
-                  ),
-                  iconBackground: const Color(0xFFE0F2F1),
-                  title: '自动同步策略',
-                  subtitle: '启动时 + 每日首次打开',
-                  onTap: () => _showAutoSyncSheet(cs, context),
-                ),
-                SettingsNavigationTile(
-                  iconWidget: const Icon(
-                    PhosphorIconsRegular.warningCircle,
-                    size: 16,
-                    color: Color(0xFFEF6C00),
-                  ),
-                  iconBackground: const Color(0xFFFFF3E0),
-                  title: '冲突解决偏好',
-                  subtitle: '始终询问',
-                  onTap: () => context.push(RoutePaths.syncHistory),
-                ),
-                SettingsNavigationTile(
-                  iconWidget: const Icon(
-                    PhosphorIconsRegular.listBullets,
-                    size: 16,
-                    color: Color(0xFF66BB6A),
-                  ),
-                  iconBackground: const Color(0xFFE8F5E9),
-                  title: '同步历史记录',
-                  subtitle: '查看最近同步详情',
-                  onTap: () => context.push(RoutePaths.syncHistory),
+                  onTap: () => showWebDavConfigDialog(context, vm),
                 ),
               ],
             ),
@@ -384,109 +345,6 @@ class StorageSyncPage extends HookWidget {
   }
 
   // ==================== Data Management Section ====================
-
-  Widget _buildDataManagementSection(
-    ColorScheme cs,
-    StorageSyncViewModel vm,
-    BuildContext context,
-  ) {
-    return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SectionLabel(label: '数据管理', colorScheme: cs),
-            SettingsCard(
-              colorScheme: cs,
-              showDividers: true,
-              children: [
-                SettingsNavigationTile(
-                  iconWidget: const Icon(
-                    PhosphorIconsRegular.upload,
-                    size: 16,
-                    color: Color(0xFF42A5F5),
-                  ),
-                  iconBackground: const Color(0xFFE3F2FD),
-                  title: '手动备份到 WebDAV',
-                  subtitle: '立即上传全部数据快照',
-                  onTap: () => context.push(RoutePaths.backupRestore),
-                ),
-                SettingsNavigationTile(
-                  iconWidget: const Icon(
-                    PhosphorIconsRegular.download,
-                    size: 16,
-                    color: Color(0xFFAB47BC),
-                  ),
-                  iconBackground: const Color(0xFFF3E5F5),
-                  title: '从 WebDAV 恢复',
-                  subtitle: '覆盖本地数据（需谨慎）',
-                  onTap: () => context.push(RoutePaths.backupRestore),
-                ),
-                _buildClearCacheItem(cs, vm),
-              ],
-            ),
-          ],
-        )
-        .animate()
-        .fadeIn(duration: 300.ms, delay: 200.ms)
-        .slideY(begin: 0.03, end: 0);
-  }
-
-  Widget _buildClearCacheItem(ColorScheme cs, StorageSyncViewModel vm) {
-    return SignalBuilder(
-      builder: (context) {
-        return InkWell(
-          onTap: () => _confirmClearCache(cs, vm, context),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFECEFF1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    PhosphorIconsRegular.trash,
-                    size: 16,
-                    color: Color(0xFF78909C),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '清理本地缓存',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: cs.onSurface,
-                        ),
-                      ),
-                      Text(
-                        '释放 ${vm.cacheSize.value > 0 ? vm.formatBytes(vm.cacheSize.value) : '0 B'} · 不影响书籍与笔记',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  PhosphorIconsRegular.caretRight,
-                  size: 14,
-                  color: cs.onSurface.withValues(alpha: 0.3),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   // ==================== Danger Zone ====================
 
@@ -583,37 +441,6 @@ class StorageSyncPage extends HookWidget {
 
   // ==================== Dialogs ====================
 
-  void _confirmClearCache(
-    ColorScheme cs,
-    StorageSyncViewModel vm,
-    BuildContext context,
-  ) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('清理缓存'),
-        content: Text(
-          '将释放 ${vm.formatBytes(vm.cacheSize.value)} 空间。'
-          '不会影响您的书籍、笔记和生词数据。',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('取消', style: TextStyle(color: cs.onSurfaceVariant)),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              vm.clearCache();
-            },
-            child: const Text('清理'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _confirmReset(
     ColorScheme cs,
     StorageSyncViewModel vm,
@@ -673,93 +500,6 @@ class StorageSyncPage extends HookWidget {
     );
   }
 
-  void _showAutoSyncSheet(ColorScheme cs, BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '自动同步策略',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 16),
-              _syncOption(cs, '启动时同步', ctx, '应用启动时自动执行一次完整同步'),
-              const SizedBox(height: 8),
-              _syncOption(cs, '每日首次打开', ctx, '每天首次打开应用时自动同步'),
-              const SizedBox(height: 8),
-              _syncOption(cs, '仅手动同步', ctx, '不自动同步，仅通过按钮触发'),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _syncOption(
-    ColorScheme cs,
-    String title,
-    BuildContext context,
-    String desc,
-  ) {
-    return InkWell(
-      onTap: () => Navigator.pop(context),
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: cs.primary, width: 2),
-              ),
-              child: Center(
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: cs.primary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    desc,
-                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   // ==================== Sync Action ====================
 
   Future<void> _triggerSync(
@@ -769,25 +509,12 @@ class StorageSyncPage extends HookWidget {
     final result = await vm.triggerSync();
     if (!context.mounted) return;
     if (result == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('同步配置无效，请检查 WebDAV 设置'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      showInfoSnack(context, '同步配置无效，请检查 WebDAV 设置');
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          result.success ? '同步成功' : '同步失败：${result.error ?? "未知错误"}',
-        ),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+    showInfoSnack(
+      context,
+      result.success ? '同步成功' : '同步失败：${result.error ?? "未知错误"}',
     );
   }
 }

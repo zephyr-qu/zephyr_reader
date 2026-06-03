@@ -24,6 +24,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tabProfile => 'Profile';
 
   @override
+  String get back => 'Back';
+
+  @override
   String get continueReading => 'Continue Reading';
 
   @override
@@ -565,4 +568,568 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get splashTagline => 'Light as wind, read without boundaries';
+
+  @override
+  String get bookshelfSearchHint => 'Search books...';
+
+  @override
+  String get bookshelfSettings => 'Bookshelf Settings';
+
+  @override
+  String get bookshelfEmpty => 'Your bookshelf is empty';
+
+  @override
+  String get closeSearch => 'Close search';
+
+  @override
+  String get scanFolder => 'Scan Folder';
+
+  @override
+  String get batchManage => 'Batch Manage';
+
+  @override
+  String get globalSearch => 'Global Search';
+
+  @override
+  String get editCategory => 'Edit Category';
+
+  @override
+  String get markAsUnread => 'Mark as Unread';
+
+  @override
+  String get markAsReading => 'Mark as Reading';
+
+  @override
+  String get reExtractCover => 'Re-extract Cover';
+
+  @override
+  String get unpin => 'Unpin';
+
+  @override
+  String get pinTop => 'Pin to Top';
+
+  @override
+  String get selectCategory => 'Select Category';
+
+  @override
+  String bookImported(String title) {
+    return 'Imported: $title';
+  }
+
+  @override
+  String importFailed(String error) {
+    return 'Import failed: $error';
+  }
+
+  @override
+  String get scanningFolder => 'Scanning folder...';
+
+  @override
+  String get noBookFilesFound => 'No book files found';
+
+  @override
+  String scanComplete(int count) {
+    return 'Scan complete, imported $count books';
+  }
+
+  @override
+  String get showReadingProgress => 'Show Reading Progress';
+
+  @override
+  String get showRecentReading => 'Show Recent Reading';
+
+  @override
+  String get defaultSort => 'Default Sort';
+
+  @override
+  String get selectSortMethod => 'Select Sort Method';
+
+  @override
+  String get moveCategory => 'Move to Category';
+
+  @override
+  String get changeStatus => 'Change Status';
+
+  @override
+  String get apply => 'Apply';
+
+  @override
+  String selectedBooksCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get bookInfo => 'Book Info';
+
+  @override
+  String get chapterCountLabel => 'Chapters';
+
+  @override
+  String get totalChars => 'Total Characters';
+
+  @override
+  String get addedTime => 'Added';
+
+  @override
+  String get chapterList => 'Chapters';
+
+  @override
+  String get collapse => 'Collapse';
+
+  @override
+  String viewAllChapters(int count) {
+    return 'View all $count chapters';
+  }
+
+  @override
+  String get category => 'Category';
+
+  @override
+  String get weeklyReadingTime => 'Weekly Reading';
+
+  @override
+  String get dangerZone => 'Danger Zone';
+
+  @override
+  String get deleteBook => 'Delete Book';
+
+  @override
+  String get confirmDeleteBookMessage =>
+      'Are you sure you want to delete this book? This action cannot be undone.';
+
+  @override
+  String deleteFailed(String error) {
+    return 'Delete failed: $error';
+  }
+
+  @override
+  String get loadFailed => 'Failed to load';
+
+  @override
+  String get appearanceSection => 'Appearance';
+
+  @override
+  String get readingModeSection => 'Reading Mode';
+
+  @override
+  String get layoutSection => 'Layout';
+
+  @override
+  String get typographySection => 'Typography';
+
+  @override
+  String get searchInChapterHint => 'Search in chapter...';
+
+  @override
+  String get previous => 'Previous';
+
+  @override
+  String get next => 'Next';
+
+  @override
+  String get currentlyReading => 'Currently Reading';
+
+  @override
+  String get setBilingualTranslation => 'Set Bilingual Translation';
+
+  @override
+  String get pasteTranslationHint =>
+      'Paste or enter the translation of this chapter:';
+
+  @override
+  String get addNote => 'Add Note';
+
+  @override
+  String get noteHintText => 'Enter your note…';
+
+  @override
+  String get editNote => 'Edit Note';
+
+  @override
+  String get deleteHighlight => 'Delete Highlight';
+
+  @override
+  String get profileDisplayName => 'Reader';
+
+  @override
+  String get profileTagline => 'Reading is a way of life';
+
+  @override
+  String get consecutiveDaysLabel => 'Streak';
+
+  @override
+  String get sectionStudyMgmt => 'Study & Manage';
+
+  @override
+  String get sectionReadingExp => 'Reading Experience';
+
+  @override
+  String get sectionSystem => 'System';
+
+  @override
+  String get learningNotes => 'Learning Notes';
+
+  @override
+  String get readingSessions => 'Reading Sessions';
+
+  @override
+  String get storageSync => 'Storage & Sync';
+
+  @override
+  String get ttsSettings => 'TTS Settings';
+
+  @override
+  String get typographySettings => 'Typography';
+
+  @override
+  String get themeBrightness => 'Theme & Brightness';
+
+  @override
+  String get otherSettings => 'Other Settings';
+
+  @override
+  String get synced => 'Synced';
+
+  @override
+  String appVersionDisplay(String version) {
+    return 'Zephyr Reader v$version';
+  }
+
+  @override
+  String get appIntroduction => 'Introduction';
+
+  @override
+  String get coreFeatures => 'Core Features';
+
+  @override
+  String get techStack => 'Tech Stack';
+
+  @override
+  String get moreInfo => 'More Info';
+
+  @override
+  String get checkUpdate => 'Check Update';
+
+  @override
+  String get openSourceLicense => 'Open Source License';
+
+  @override
+  String get feedback => 'Feedback';
+
+  @override
+  String get alreadyLatestVersion => 'Already up to date';
+
+  @override
+  String get cannotOpenLink => 'Cannot open link';
+
+  @override
+  String get aboutFeature1 => 'Offline-first, no network required';
+
+  @override
+  String get aboutFeature2 => 'Supports EPUB, TXT, PDF';
+
+  @override
+  String get aboutFeature3 => 'Smart typesetting engine';
+
+  @override
+  String get aboutFeature4 => 'Bilingual reading';
+
+  @override
+  String get aboutFeature5 => 'Vocabulary book & learning records';
+
+  @override
+  String get aboutFeature6 => 'WebDAV multi-device sync';
+
+  @override
+  String get copyrightFooter => '© 2026 Zephyr Reader';
+
+  @override
+  String get madeWithFooter => 'Made with Flutter · Rust · ❤';
+
+  @override
+  String get errorFileNotFound => 'File not found';
+
+  @override
+  String get errorFileReadError => 'Failed to read file';
+
+  @override
+  String get errorUnsupportedFormat => 'Unsupported format';
+
+  @override
+  String get errorEpubParse => 'EPUB parse error';
+
+  @override
+  String get errorDatabase => 'Database error';
+
+  @override
+  String get errorInternal => 'Internal error';
+
+  @override
+  String errorTaskPanic(String task) {
+    return 'Task failed: $task';
+  }
+
+  @override
+  String get selectDictionaryFile => 'Select Dictionary File';
+
+  @override
+  String get selectMdxDescription => 'Please select a .mdx dictionary file…';
+
+  @override
+  String get invalidMdxFile => 'Please select a valid .mdx file';
+
+  @override
+  String get dictionaryLoadFailed =>
+      'Dictionary load failed, please check the file';
+
+  @override
+  String get pronunciation => 'Pronunciation';
+
+  @override
+  String get noExactMatch => 'No exact match found. Did you mean:';
+
+  @override
+  String get wordSegmentation => 'Segmentation:';
+
+  @override
+  String get bilingualNoAlignment =>
+      'No alignment found for bilingual highlight';
+
+  @override
+  String get bilingualNoParagraph => 'No matching paragraph found';
+
+  @override
+  String get bilingualHighlightCreated => 'Bilingual highlight created';
+
+  @override
+  String get selectFile => 'Select File';
+
+  @override
+  String get categoryManagement => 'Category Management';
+
+  @override
+  String get aboutTitle => 'About';
+
+  @override
+  String get aboutTagline => 'A reading experience as light as a breeze';
+
+  @override
+  String get aboutSectionFeatures => 'Features';
+
+  @override
+  String get aboutSectionTechStack => 'Tech Stack';
+
+  @override
+  String get aboutSectionLinks => 'Resources';
+
+  @override
+  String get aboutDescription =>
+      'Zephyr Reader is an offline bilingual novel reader built with Flutter + Rust. 100% local, no backend, no ads, no data collection. Focused on Chinese-English bilingual reading.';
+
+  @override
+  String get aboutFeatureOffline => '100% Offline';
+
+  @override
+  String get aboutFeatureOfflineDesc =>
+      'Core features work offline with no backend or ads';
+
+  @override
+  String get aboutFeaturePerformance => 'High Performance';
+
+  @override
+  String get aboutFeaturePerformanceDesc =>
+      'Rust-powered engine parses large files instantly';
+
+  @override
+  String get aboutFeatureBilingual => 'Bilingual Layout';
+
+  @override
+  String get aboutFeatureBilingualDesc =>
+      'Equal priority for Chinese & English';
+
+  @override
+  String get aboutFeatureThemes => 'Multiple Themes';
+
+  @override
+  String get aboutFeatureThemesDesc => 'Light, Dark & Pure Black night mode';
+
+  @override
+  String get aboutFeatureAdaptive => 'Adaptive Layout';
+
+  @override
+  String get aboutFeatureAdaptiveDesc =>
+      'Adaptive layout for phones and tablets';
+
+  @override
+  String get aboutFeatureSync => 'WebDAV Sync';
+
+  @override
+  String get aboutFeatureSyncDesc => 'Cross-device sync & secure backup';
+
+  @override
+  String get aboutCheckUpdate => 'Check for Updates';
+
+  @override
+  String get aboutLatestVersion => 'Already up to date';
+
+  @override
+  String get aboutUserAgreement => 'User Agreement';
+
+  @override
+  String get aboutPrivacyPolicy => 'Privacy Policy';
+
+  @override
+  String get aboutOpenSourceLicense => 'Open Source Licenses';
+
+  @override
+  String get aboutFeedback => 'Feedback';
+
+  @override
+  String get aboutCannotOpenLink => 'Cannot open link';
+
+  @override
+  String get unknownVersion => 'Unknown';
+
+  @override
+  String get prev => 'Previous';
+
+  @override
+  String get readAloud => 'Read Aloud';
+
+  @override
+  String addedToVocabulary(String word) {
+    return 'Added to vocabulary: $word';
+  }
+
+  @override
+  String addToVocabFailed(String error) {
+    return 'Failed to add to vocabulary: $error';
+  }
+
+  @override
+  String get readerThemeLight => 'Day';
+
+  @override
+  String get readerThemeDark => 'Night';
+
+  @override
+  String get readerThemeSepia => 'Sepia';
+
+  @override
+  String get readerFontSizeSmall => 'Small';
+
+  @override
+  String get readerFontSizeMedium => 'Medium';
+
+  @override
+  String get readerFontSizeLarge => 'Large';
+
+  @override
+  String get readerFontSizeXLarge => 'Extra Large';
+
+  @override
+  String get sortLastRead => 'Last Read';
+
+  @override
+  String get sortCreatedAt => 'Date Added';
+
+  @override
+  String get sortTitle => 'Title';
+
+  @override
+  String get sortAuthor => 'Author';
+
+  @override
+  String get sortProgress => 'Progress';
+
+  @override
+  String get themeSystem => 'System';
+
+  @override
+  String get introLabel => 'Description';
+
+  @override
+  String get currentChapter => 'Current';
+
+  @override
+  String get bookTitle => 'Title';
+
+  @override
+  String get editMetadata => 'Edit Metadata';
+
+  @override
+  String get statReadingTime => 'Reading Time';
+
+  @override
+  String get statReadingCount => 'Read Count';
+
+  @override
+  String get statEstimatedRemaining => 'Estimated Remaining';
+
+  @override
+  String get expand => 'Expand';
+
+  @override
+  String tocTitle(int count) {
+    return 'Table of Contents ($count ch)';
+  }
+
+  @override
+  String totalChapters(int count) {
+    return '$count chapters';
+  }
+
+  @override
+  String get isbn => 'ISBN';
+
+  @override
+  String get bookIntro => 'About This Book';
+
+  @override
+  String get timePresetSunsetToSunrise => 'Sunset to Sunrise';
+
+  @override
+  String get timePresetEveningToMorning => 'Evening to Morning';
+
+  @override
+  String get timePresetCustom => 'Custom';
+
+  @override
+  String get appTheme => 'App Theme';
+
+  @override
+  String get bookFormat => 'Format';
+
+  @override
+  String get bookIntroLabel => 'About This Book';
+
+  @override
+  String get sortDialogTitle => 'Select Sort Order';
+
+  @override
+  String get tapLayoutRightHanded => 'Right-Handed';
+
+  @override
+  String get tapLayoutLeftHanded => 'Left-Handed';
+
+  @override
+  String get tapLayout => 'Tap Zones';
+
+  @override
+  String get timeJustNow => 'Just now';
+
+  @override
+  String timeMinutesAgo(int minutes) {
+    return '$minutes min ago';
+  }
+
+  @override
+  String timeHoursAgo(int hours) {
+    return '$hours hr ago';
+  }
+
+  @override
+  String lastSyncTime(String time) {
+    return 'Last sync: $time';
+  }
 }

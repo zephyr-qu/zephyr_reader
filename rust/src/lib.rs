@@ -1,10 +1,10 @@
 //! Zephyr Reader Rust 核心引擎
 //! 高性能双语文本解析引擎
 
-mod frb_generated;
 pub mod api;
 pub mod dictionary;
 pub mod domain;
+mod frb_generated;
 pub mod init;
 pub mod parser;
 pub mod search;

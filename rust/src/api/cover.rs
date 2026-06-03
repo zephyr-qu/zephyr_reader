@@ -31,11 +31,21 @@ pub async fn extract_and_save_cover(
     output_dir: String,
 ) -> Result<String, AppError> {
     let cover_path = extract_book_cover(file_path, output_dir).await?;
-    let storage = ensure_storage().map_err(|e| AppError::database_error(e.to_string()))?;
-    let pool = storage.pool().map_err(|e| AppError::database_error(e.to_string()))?;
-    BookRepository::update_cover_path(&pool, &book_id, &cover_path)
-        .await
+    let storage = ensure_storage().map_err(|_| AppError::storage_not_initialized())?;
+    let pool = storage
+        .pool()
         .map_err(|e| AppError::database_error(e.to_string()))?;
+    if let Err(e) = BookRepository::update_cover_path(&pool, &book_id, &cover_path).await {
+        // DB 更新失败，清理已写入的封面文件
+        if let Err(cleanup_err) = tokio::fs::remove_file(&cover_path).await {
+            tracing::warn!(
+                "cover file cleanup failed after DB error: {} (cleanup: {})",
+                e,
+                cleanup_err
+            );
+        }
+        return Err(AppError::database_error(e.to_string()));
+    }
     Ok(cover_path)
 }
 
