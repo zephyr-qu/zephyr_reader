@@ -1,18 +1,15 @@
 {
   "@@locale": "en",
   "@@info": "Zephyr Reader English translation",
-
   "appName": "Zephyr Reader",
-
   "tabHome": "Home",
   "tabBookshelf": "Bookshelf",
   "tabStatistics": "Stats",
   "tabProfile": "Profile",
-
+  "back": "Back",
   "continueReading": "Continue Reading",
   "recentReading": "Recent",
   "noReadingRecord": "No reading records",
-
   "bookshelf": "Bookshelf",
   "searchBooks": "Search books",
   "importBook": "Import",
@@ -23,7 +20,6 @@
   "gridView": "Grid",
   "listView": "List",
   "noBooks": "No books yet",
-
   "bookDetail": "Book Details",
   "author": "Author",
   "translator": "Translator",
@@ -47,7 +43,6 @@
   "delete": "Delete",
   "confirmDelete": "Confirm Delete",
   "cancel": "Cancel",
-
   "reader": "Reader",
   "scrollMode": "Scroll",
   "pageTurnMode": "Flip",
@@ -77,7 +72,6 @@
   "ttsPause": "Pause",
   "ttsStop": "Stop",
   "ttsSpeed": "Speed",
-
   "selectionCopy": "Copy",
   "selectionHighlight": "Highlight",
   "selectionNote": "Note",
@@ -89,12 +83,10 @@
   "highlightBlue": "Blue",
   "highlightPink": "Pink",
   "highlightPurple": "Purple",
-
   "dictionary": "Dictionary",
   "lookupWord": "Look Up",
   "addToVocabulary": "Add to Vocabulary",
   "noDefinition": "No definition found",
-
   "vocabulary": "Vocabulary",
   "vocabularyBook": "Vocabulary",
   "wordCount": "Words",
@@ -107,7 +99,6 @@
   "statusLearning": "Learning",
   "statusMastered": "Mastered",
   "fromBook": "From",
-
   "statistics": "Statistics",
   "annualReport": "Annual Report",
   "readingOverview": "Overview",
@@ -125,7 +116,6 @@
   "readingRhythm": "Reading Rhythm",
   "recentDays": "Last {days} Days",
   "sessions": "Sessions",
-
   "settings": "Settings",
   "appSettings": "App Settings",
   "readingSettings": "Reading Settings",
@@ -160,7 +150,6 @@
   "userAgreement": "Terms of Service",
   "privacyPolicy": "Privacy Policy",
   "resetToDefault": "Reset to Default",
-
   "sync": "Sync",
   "webdavConfig": "WebDAV Config",
   "serverUrl": "Server URL",
@@ -176,7 +165,6 @@
   "conflictResolution": "Conflict Resolution",
   "useLocal": "Use Local",
   "useRemote": "Use Remote",
-
   "loading": "Loading…",
   "error": "Something went wrong",
   "retry": "Retry",
@@ -189,7 +177,6 @@
   "empty": "Nothing here yet",
   "search": "Search",
   "unknownAuthor": "Unknown Author",
-
   "greetingMorning": "Good morning",
   "greetingNoon": "Good noon",
   "greetingAfternoon": "Good afternoon",
@@ -198,5 +185,478 @@
   "startReadingJourney": "Start your reading journey",
   "exploreNewWorld": "Open a book, explore a new world",
   "goToBookshelf": "Go to Bookshelf",
-  "splashTagline": "Light as wind, read without boundaries"
+  "splashTagline": "Light as wind, read without boundaries",
+  "bookshelfSearchHint": "Search books...",
+  "bookshelfSettings": "Bookshelf Settings",
+  "bookshelfEmpty": "Your bookshelf is empty",
+  "closeSearch": "Close search",
+  "scanFolder": "Scan Folder",
+  "batchManage": "Batch Manage",
+  "globalSearch": "Global Search",
+  "editCategory": "Edit Category",
+  "markAsUnread": "Mark as Unread",
+  "markAsReading": "Mark as Reading",
+  "reExtractCover": "Re-extract Cover",
+  "unpin": "Unpin",
+  "pinTop": "Pin to Top",
+  "selectCategory": "Select Category",
+  "bookImported": "Imported: {title}",
+  "importFailed": "Import failed: {error}",
+  "scanningFolder": "Scanning folder...",
+  "noBookFilesFound": "No book files found",
+  "scanComplete": "Scan complete, imported {count} books",
+  "showReadingProgress": "Show Reading Progress",
+  "showRecentReading": "Show Recent Reading",
+  "defaultSort": "Default Sort",
+  "selectSortMethod": "Select Sort Method",
+  "moveCategory": "Move to Category",
+  "changeStatus": "Change Status",
+  "apply": "Apply",
+  "selectedBooksCount": "{count} selected",
+  "bookInfo": "Book Info",
+  "chapterCountLabel": "Chapters",
+  "totalChars": "Total Characters",
+  "addedTime": "Added",
+  "chapterList": "Chapters",
+  "collapse": "Collapse",
+  "viewAllChapters": "View all {count} chapters",
+  "category": "Category",
+  "weeklyReadingTime": "Weekly Reading",
+  "dangerZone": "Danger Zone",
+  "deleteBook": "Delete Book",
+  "confirmDeleteBookMessage": "Are you sure you want to delete this book? This action cannot be undone.",
+  "deleteFailed": "Delete failed: {error}",
+  "loadFailed": "Failed to load",
+  "appearanceSection": "Appearance",
+  "readingModeSection": "Reading Mode",
+  "layoutSection": "Layout",
+  "typographySection": "Typography",
+  "searchInChapterHint": "Search in chapter...",
+  "previous": "Previous",
+  "next": "Next",
+  "currentlyReading": "Currently Reading",
+  "setBilingualTranslation": "Set Bilingual Translation",
+  "pasteTranslationHint": "Paste or enter the translation of this chapter:",
+  "addNote": "Add Note",
+  "noteHintText": "Enter your note…",
+  "editNote": "Edit Note",
+  "deleteHighlight": "Delete Highlight",
+  "profileDisplayName": "Reader",
+  "profileTagline": "Reading is a way of life",
+  "consecutiveDaysLabel": "Streak",
+  "sectionStudyMgmt": "Study & Manage",
+  "sectionReadingExp": "Reading Experience",
+  "sectionSystem": "System",
+  "learningNotes": "Learning Notes",
+  "readingSessions": "Reading Sessions",
+  "storageSync": "Storage & Sync",
+  "ttsSettings": "TTS Settings",
+  "typographySettings": "Typography",
+  "themeBrightness": "Theme & Brightness",
+  "otherSettings": "Other Settings",
+  "synced": "Synced",
+  "appVersionDisplay": "Zephyr Reader v{version}",
+  "appIntroduction": "Introduction",
+  "coreFeatures": "Core Features",
+  "techStack": "Tech Stack",
+  "moreInfo": "More Info",
+  "checkUpdate": "Check Update",
+  "openSourceLicense": "Open Source License",
+  "feedback": "Feedback",
+  "alreadyLatestVersion": "Already up to date",
+  "cannotOpenLink": "Cannot open link",
+  "aboutFeature1": "Offline-first, no network required",
+  "aboutFeature2": "Supports EPUB, TXT, PDF",
+  "aboutFeature3": "Smart typesetting engine",
+  "aboutFeature4": "Bilingual reading",
+  "aboutFeature5": "Vocabulary book & learning records",
+  "aboutFeature6": "WebDAV multi-device sync",
+  "copyrightFooter": "© 2026 Zephyr Reader",
+  "madeWithFooter": "Made with Flutter · Rust · ❤",
+  "errorFileNotFound": "File not found",
+  "errorFileReadError": "Failed to read file",
+  "errorUnsupportedFormat": "Unsupported format",
+  "errorEpubParse": "EPUB parse error",
+  "errorDatabase": "Database error",
+  "errorInternal": "Internal error",
+  "errorTaskPanic": "Task failed: {task}",
+  "selectDictionaryFile": "Select Dictionary File",
+  "selectMdxDescription": "Please select a .mdx dictionary file…",
+  "invalidMdxFile": "Please select a valid .mdx file",
+  "dictionaryLoadFailed": "Dictionary load failed, please check the file",
+  "pronunciation": "Pronunciation",
+  "noExactMatch": "No exact match found. Did you mean:",
+  "wordSegmentation": "Segmentation:",
+  "bilingualNoAlignment": "No alignment found for bilingual highlight",
+  "bilingualNoParagraph": "No matching paragraph found",
+  "bilingualHighlightCreated": "Bilingual highlight created",
+  "selectFile": "Select File",
+  "categoryManagement": "Category Management",
+  "@bookImported": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "@importFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@scanComplete": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@viewAllChapters": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@deleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@appVersionDisplay": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorTaskPanic": {
+    "placeholders": {
+      "task": {
+        "type": "String"
+      }
+    }
+  },
+  "@selectedBooksCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aboutTitle": "About",
+  "@aboutTitle": {
+    "description": "English Translation - 关于页面标题"
+  },
+  "aboutTagline": "A reading experience as light as a breeze",
+  "@aboutTagline": {
+    "description": "English Translation - 应用标语"
+  },
+  "aboutSectionFeatures": "Features",
+  "@aboutSectionFeatures": {
+    "description": "English Translation - 核心特性分区标题"
+  },
+  "aboutSectionTechStack": "Tech Stack",
+  "@aboutSectionTechStack": {
+    "description": "English Translation - 技术栈分区标题"
+  },
+  "aboutSectionLinks": "Resources",
+  "@aboutSectionLinks": {
+    "description": "English Translation - 链接分区标题"
+  },
+  "aboutDescription": "Zephyr Reader is an offline bilingual novel reader built with Flutter + Rust. 100% local, no backend, no ads, no data collection. Focused on Chinese-English bilingual reading.",
+  "@aboutDescription": {
+    "description": "English Translation - 应用描述"
+  },
+  "aboutFeatureOffline": "100% Offline",
+  "@aboutFeatureOffline": {
+    "description": "English Translation - 特性：离线"
+  },
+  "aboutFeatureOfflineDesc": "Core features work offline with no backend or ads",
+  "@aboutFeatureOfflineDesc": {
+    "description": "English Translation - 特性描述：离线"
+  },
+  "aboutFeaturePerformance": "High Performance",
+  "@aboutFeaturePerformance": {
+    "description": "English Translation - 特性：高性能"
+  },
+  "aboutFeaturePerformanceDesc": "Rust-powered engine parses large files instantly",
+  "@aboutFeaturePerformanceDesc": {
+    "description": "English Translation - 特性描述：高性能"
+  },
+  "aboutFeatureBilingual": "Bilingual Layout",
+  "@aboutFeatureBilingual": {
+    "description": "English Translation - 特性：双语"
+  },
+  "aboutFeatureBilingualDesc": "Equal priority for Chinese & English",
+  "@aboutFeatureBilingualDesc": {
+    "description": "English Translation - 特性描述：双语"
+  },
+  "aboutFeatureThemes": "Multiple Themes",
+  "@aboutFeatureThemes": {
+    "description": "English Translation - 特性：主题"
+  },
+  "aboutFeatureThemesDesc": "Light, Dark & Pure Black night mode",
+  "@aboutFeatureThemesDesc": {
+    "description": "English Translation - 特性描述：主题"
+  },
+  "aboutFeatureAdaptive": "Adaptive Layout",
+  "@aboutFeatureAdaptive": {
+    "description": "English Translation - 特性：适配"
+  },
+  "aboutFeatureAdaptiveDesc": "Adaptive layout for phones and tablets",
+  "@aboutFeatureAdaptiveDesc": {
+    "description": "English Translation - 特性描述：适配"
+  },
+  "aboutFeatureSync": "WebDAV Sync",
+  "@aboutFeatureSync": {
+    "description": "English Translation - 特性：同步"
+  },
+  "aboutFeatureSyncDesc": "Cross-device sync & secure backup",
+  "@aboutFeatureSyncDesc": {
+    "description": "English Translation - 特性描述：同步"
+  },
+  "aboutCheckUpdate": "Check for Updates",
+  "@aboutCheckUpdate": {
+    "description": "English Translation - 检查更新链接"
+  },
+  "aboutLatestVersion": "Already up to date",
+  "@aboutLatestVersion": {
+    "description": "English Translation - 已是最新提示"
+  },
+  "aboutUserAgreement": "User Agreement",
+  "@aboutUserAgreement": {
+    "description": "English Translation - 用户协议链接"
+  },
+  "aboutPrivacyPolicy": "Privacy Policy",
+  "@aboutPrivacyPolicy": {
+    "description": "English Translation - 隐私政策链接"
+  },
+  "aboutOpenSourceLicense": "Open Source Licenses",
+  "@aboutOpenSourceLicense": {
+    "description": "English Translation - 开源许可证链接"
+  },
+  "aboutFeedback": "Feedback",
+  "@aboutFeedback": {
+    "description": "English Translation - 问题反馈链接"
+  },
+  "aboutCannotOpenLink": "Cannot open link",
+  "@aboutCannotOpenLink": {
+    "description": "English Translation - 链接打开失败提示"
+  },
+  "unknownVersion": "Unknown",
+  "@unknownVersion": {
+    "description": "English - Unknown version"
+  },
+  "prev": "Previous",
+  "@prev": {
+    "description": "上一个搜索结果"
+  },
+  "readAloud": "Read Aloud",
+  "@readAloud": {
+    "description": "朗读功能"
+  },
+  "addedToVocabulary": "Added to vocabulary: {word}",
+  "@addedToVocabulary": {
+    "description": "加入生词本成功提示，{word}为单词",
+    "placeholders": {
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "addToVocabFailed": "Failed to add to vocabulary: {error}",
+  "@addToVocabFailed": {
+    "description": "加入生词本失败提示，{error}为错误信息",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "readerThemeLight": "Day",
+  "@readerThemeLight": {
+    "description": "读者主题-日间"
+  },
+  "readerThemeDark": "Night",
+  "@readerThemeDark": {
+    "description": "读者主题-夜间"
+  },
+  "readerThemeSepia": "Sepia",
+  "@readerThemeSepia": {
+    "description": "读者主题-护眼"
+  },
+  "readerFontSizeSmall": "Small",
+  "@readerFontSizeSmall": {
+    "description": "字号-小"
+  },
+  "readerFontSizeMedium": "Medium",
+  "@readerFontSizeMedium": {
+    "description": "字号-中"
+  },
+  "readerFontSizeLarge": "Large",
+  "@readerFontSizeLarge": {
+    "description": "字号-大"
+  },
+  "readerFontSizeXLarge": "Extra Large",
+  "@readerFontSizeXLarge": {
+    "description": "字号-特大"
+  },
+  "sortLastRead": "Last Read",
+  "@sortLastRead": {
+    "description": "排序-最近阅读"
+  },
+  "sortCreatedAt": "Date Added",
+  "@sortCreatedAt": {
+    "description": "排序-添加时间"
+  },
+  "sortTitle": "Title",
+  "@sortTitle": {
+    "description": "排序-书名"
+  },
+  "sortAuthor": "Author",
+  "@sortAuthor": {
+    "description": "排序-作者"
+  },
+  "sortProgress": "Progress",
+  "@sortProgress": {
+    "description": "排序-阅读进度"
+  },
+  "themeSystem": "System",
+  "@themeSystem": {
+    "description": "主题-跟随系统"
+  },
+  "introLabel": "Description",
+  "@introLabel": {
+    "description": "书籍简介标签"
+  },
+  "bookTitle": "Title",
+  "@bookTitle": {
+    "description": "书籍名称标签"
+  },
+  "currentChapter": "Current",
+  "@currentChapter": {
+    "description": "当前章节标签"
+  },
+  "editMetadata": "Edit Metadata",
+  "@editMetadata": {
+    "description": "编辑书籍元数据"
+  },
+  "statReadingTime": "Reading Time",
+  "@statReadingTime": {
+    "description": "读书统计-时长"
+  },
+  "statReadingCount": "Read Count",
+  "@statReadingCount": {
+    "description": "读书统计-次数"
+  },
+  "statEstimatedRemaining": "Estimated Remaining",
+  "@statEstimatedRemaining": {
+    "description": "读书统计-预计剩余"
+  },
+  "expand": "Expand",
+  "@expand": {
+    "description": "展开按钮"
+  },
+  "tocTitle": "Table of Contents ({count} ch)",
+  "@tocTitle": {
+    "description": "目录标题，{count}为章节数",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "totalChapters": "{count} chapters",
+  "@totalChapters": {
+    "description": "章节总数, {count}为数字",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "isbn": "ISBN",
+  "@isbn": {
+    "description": "ISBN标签"
+  },
+  "bookIntro": "About This Book",
+  "@bookIntro": {
+    "description": "书籍简介区域标题"
+  },
+  "timePresetSunsetToSunrise": "Sunset to Sunrise",
+  "@timePresetSunsetToSunrise": {
+    "description": "定时主题-日落到日出"
+  },
+  "timePresetEveningToMorning": "Evening to Morning",
+  "@timePresetEveningToMorning": {
+    "description": "定时主题-傍晚到早晨"
+  },
+  "timePresetCustom": "Custom",
+  "@timePresetCustom": {
+    "description": "定时主题-自定义"
+  },
+  "appTheme": "App Theme",
+  "@appTheme": {
+    "description": "应用主题区域标题"
+  },
+  "bookFormat": "Format",
+  "@bookFormat": {
+    "description": "书籍格式"
+  },
+  "bookIntroLabel": "About This Book",
+  "@bookIntroLabel": {
+    "description": "书籍简介区域"
+  },
+  "sortDialogTitle": "Select Sort Order",
+  "@sortDialogTitle": {
+    "description": "排序方式弹窗标题"
+  },
+  "tapLayoutRightHanded": "Right-Handed",
+  "@tapLayoutRightHanded": {
+    "description": "点击区域-右手模式"
+  },
+  "tapLayoutLeftHanded": "Left-Handed",
+  "@tapLayoutLeftHanded": {
+    "description": "点击区域-左手模式"
+  },
+  "tapLayout": "Tap Zones",
+  "@tapLayout": {
+    "description": "翻页点击区域"
+  },
+  "timeJustNow": "Just now",
+  "@timeJustNow": {
+    "description": "刚刚（相对时间）"
+  },
+  "timeMinutesAgo": "{minutes} min ago",
+  "@timeMinutesAgo": {
+    "description": "N 分钟前",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "timeHoursAgo": "{hours} hr ago",
+  "@timeHoursAgo": {
+    "description": "N 小时前",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "lastSyncTime": "Last sync: {time}",
+  "@lastSyncTime": {
+    "description": "上次同步时间",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  }
 }

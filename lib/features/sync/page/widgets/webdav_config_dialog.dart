@@ -3,13 +3,13 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import 'package:zephyr_reader/features/sync/application/services/sync_models.dart';
 import 'package:zephyr_reader/features/sync/application/services/webdav_config_service.dart';
-import 'package:zephyr_reader/features/sync/application/webdav_settings_view_model.dart';
+import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 
 Future<void> showWebDavConfigDialog(
   BuildContext context,
-  WebDavSettingsViewModel vm,
+  WebDavConfigHost host,
 ) async {
-  final config = await vm.getConfig();
+  final config = await host.getConfig();
 
   final serverController = TextEditingController(text: config?.baseUrl ?? '');
   final usernameController = TextEditingController(
@@ -130,16 +130,11 @@ Future<void> showWebDavConfigDialog(
           if (config != null)
             TextButton(
               onPressed: () async {
-                await vm.clearConfig();
+                await host.clearConfig();
                 if (!context.mounted) return;
                 Navigator.of(context).pop(true);
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('配置已清除'),
-                    backgroundColor: Colors.orange,
-                  ),
-                );
+                showInfoSnack(context, '配置已清除');
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: const Text('清除配置'),
@@ -166,17 +161,12 @@ Future<void> showWebDavConfigDialog(
 
     if (!serverValid || !usernameValid || !passwordValid || !remotePathValid) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('请填写完整的配置信息'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showErrorSnack(context, '请填写完整的配置信息');
       return;
     }
 
     try {
-      await vm.saveConfig(
+      await host.saveConfig(
         WebDavConfig(
           baseUrl: serverController.text,
           username: usernameController.text,
@@ -185,17 +175,10 @@ Future<void> showWebDavConfigDialog(
         ),
       );
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('WebDAV 配置已保存'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      showSuccessSnack(context, 'WebDAV 配置已保存');
     } catch (_) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('保存配置失败'), backgroundColor: Colors.red),
-      );
+      showErrorSnack(context, '保存配置失败');
     }
   }
 

@@ -2,7 +2,7 @@
 //! 使用 epub 库读取 EPUB 文件结构
 //! 注意：epub crate 2.x API 与 1.x 不兼容
 
-use crate::domain::{EpubMetadata, AppError};
+use crate::domain::{AppError, EpubMetadata};
 use epub::doc::{EpubDoc, ResourceItem, SpineItem};
 use lru::LruCache;
 use std::collections::HashMap;
@@ -13,9 +13,14 @@ use std::num::NonZeroUsize;
 /// EPUB 缓存最大条目数
 const EPUB_CACHE_SIZE: usize = 50;
 const COVER_CANDIDATES: &[&str] = &[
-    "cover.jpg", "cover.jpeg", "cover.png",
-    "Cover.jpg", "Cover.jpeg", "Cover.png",
-    "coverimage.jpg", "coverimage.png",
+    "cover.jpg",
+    "cover.jpeg",
+    "cover.png",
+    "Cover.jpg",
+    "Cover.jpeg",
+    "Cover.png",
+    "coverimage.jpg",
+    "coverimage.png",
 ];
 /// EPUB 文件句柄（带 LRU 缓存）
 pub struct EpubFile {
@@ -38,18 +43,20 @@ fn get_metadata_first(metadata: &[epub::doc::MetadataItem], name: &str) -> Optio
 fn get_translator(metadata: &[epub::doc::MetadataItem]) -> Option<String> {
     // 先找 role=trl 的 creator
     for item in metadata.iter().filter(|m| m.property == "creator") {
-        let has_trl_role = item.refined.iter().any(|r| {
-            r.property == "role" && (r.value == "trl" || r.value == "translator")
-        });
+        let has_trl_role = item
+            .refined
+            .iter()
+            .any(|r| r.property == "role" && (r.value == "trl" || r.value == "translator"));
         if has_trl_role {
             return Some(item.value.clone());
         }
     }
     // 再找 contributor
     for item in metadata.iter().filter(|m| m.property == "contributor") {
-        let has_trl_role = item.refined.iter().any(|r| {
-            r.property == "role" && (r.value == "trl" || r.value == "translator")
-        });
+        let has_trl_role = item
+            .refined
+            .iter()
+            .any(|r| r.property == "role" && (r.value == "trl" || r.value == "translator"));
         if has_trl_role {
             return Some(item.value.clone());
         }
@@ -93,8 +100,13 @@ impl EpubFile {
         let doc = EpubDoc::new(file_path).map_err(|e| {
             AppError::file_read_error(file_path, format!("EPUB parse failed: {}", e))
         })?;
-        tracing::info!("[EpubFile::open] success: metadata={}, resources={}, spine={}, toc={}",
-            doc.metadata.len(), doc.resources.len(), doc.spine.len(), doc.toc.len());
+        tracing::info!(
+            "[EpubFile::open] success: metadata={}, resources={}, spine={}, toc={}",
+            doc.metadata.len(),
+            doc.resources.len(),
+            doc.spine.len(),
+            doc.toc.len()
+        );
 
         Ok(Self {
             doc,
@@ -104,12 +116,14 @@ impl EpubFile {
 
     /// 获取书籍标题
     pub fn title(&self) -> String {
-        get_metadata_first(&self.doc.metadata, "title").unwrap_or_else(|| "Unknown Title".to_string())
+        get_metadata_first(&self.doc.metadata, "title")
+            .unwrap_or_else(|| "Unknown Title".to_string())
     }
 
     /// 获取作者
     pub fn author(&self) -> String {
-        get_metadata_first(&self.doc.metadata, "creator").unwrap_or_else(|| "Unknown Author".to_string())
+        get_metadata_first(&self.doc.metadata, "creator")
+            .unwrap_or_else(|| "Unknown Author".to_string())
     }
 
     /// 获取封面路径
@@ -143,12 +157,14 @@ impl EpubFile {
         }
 
         // 查找资源
-        let (resource_href, resource) =
-            find_resource_by_href_or_path(&self.doc.resources, href)
-                .ok_or_else(|| AppError::epub_parse_error(format!("resource not found: {}", href)))?;
+        let (resource_href, resource) = find_resource_by_href_or_path(&self.doc.resources, href)
+            .ok_or_else(|| AppError::epub_parse_error(format!("resource not found: {}", href)))?;
 
         let resource_href: String = resource_href.clone();
-        tracing::debug!("[read_resource] resource found: href={resource_href}, path={:?}", resource.path);
+        tracing::debug!(
+            "[read_resource] resource found: href={resource_href}, path={:?}",
+            resource.path
+        );
 
         // 设置当前章节到该资源
         let index = self
@@ -162,10 +178,16 @@ impl EpubFile {
 
             // 读取内容 - epub 2.x 返回 (Vec<u8>, String) 元组
             let (content, charset) = self.doc.get_current().ok_or_else(|| {
-                AppError::epub_parse_error("read resource failed: unable to get current content".to_string())
+                AppError::epub_parse_error(
+                    "read resource failed: unable to get current content".to_string(),
+                )
             })?;
 
-            tracing::debug!("[read_resource] read success: {} bytes, charset={:?}", content.len(), charset);
+            tracing::debug!(
+                "[read_resource] read success: {} bytes, charset={:?}",
+                content.len(),
+                charset
+            );
 
             // 缓存内容（只缓存字节）
             self.cache.put(href.to_string(), content.clone());
@@ -173,7 +195,10 @@ impl EpubFile {
             return self.decode_content(&content);
         }
 
-        tracing::warn!("[read_resource] resource not found in spine: {}", resource_href);
+        tracing::warn!(
+            "[read_resource] resource not found in spine: {}",
+            resource_href
+        );
         Err(AppError::epub_parse_error(format!(
             "unable to locate resource: {}",
             href
@@ -307,7 +332,6 @@ impl EpubFile {
             .iter()
             .position(|item| item.idref == resource_id)
     }
-
 }
 /// 递归展开 NavPoint 树为扁平列表 (label, href, level)
 fn flatten_toc(
@@ -335,7 +359,7 @@ fn flatten_toc(
 /// # 返回值
 /// * `Ok(EpubMetadata)` - 元数据
 /// * `Err(AppError)` - 解析失败
-pub fn get_epub_metadata(file_path: &str) -> Result<EpubMetadata,AppError> {
+pub fn get_epub_metadata(file_path: &str) -> Result<EpubMetadata, AppError> {
     let epub_file = EpubFile::open(file_path)?;
 
     let title = epub_file.title();

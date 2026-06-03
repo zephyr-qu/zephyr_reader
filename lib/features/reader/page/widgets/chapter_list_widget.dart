@@ -5,6 +5,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 const _cnNumerals = [
@@ -55,6 +56,7 @@ class ChapterListWidget extends HookWidget {
       return null;
     }, [chapters, currentChapterIndex]);
 
+    final l10n = AppLocalizations.of(context)!;
     final readerTheme = Theme.of(context).extension<ReaderThemeExtension>()!;
     final bgColor = readerTheme.backgroundColor;
     final surfaceColor = readerTheme.surfaceColor;
@@ -70,7 +72,7 @@ class ChapterListWidget extends HookWidget {
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(textColor, mutedColor, accentColor, dividerColor),
+              _buildHeader(textColor, mutedColor, accentColor, dividerColor, l10n),
               Expanded(
                 child: ListView.builder(
                   controller: scrollController,
@@ -124,12 +126,12 @@ class ChapterListWidget extends HookWidget {
       );
     }
   }
-
   Widget _buildHeader(
     Color textColor,
     Color mutedColor,
     Color accentColor,
     Color dividerColor,
+    AppLocalizations l10n,
   ) {
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -153,7 +155,7 @@ class ChapterListWidget extends HookWidget {
           ),
           SizedBox(width: DesignTokens.spacing(Spacing.sm)),
           Text(
-            '目录',
+            l10n.chapterList,
             style: TextStyle(
               color: textColor,
               fontSize: 17,
@@ -169,7 +171,7 @@ class ChapterListWidget extends HookWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              '${chapters.length} 章',
+              '${chapters.length} ${l10n.chapterCountLabel}',
               style: TextStyle(
                 color: accentColor,
                 fontSize: 11,
@@ -183,7 +185,7 @@ class ChapterListWidget extends HookWidget {
             icon: Icon(PhosphorIconsRegular.x, color: mutedColor, size: 22),
             onPressed: onClose,
             splashRadius: 20,
-            tooltip: '关闭',
+            tooltip: l10n.close,
           ),
         ],
       ),

@@ -15,7 +15,7 @@ void main() {
       test('应返回单例', () {
         final service1 = NetworkStateService();
         final service2 = NetworkStateService();
-        expect(service1, identical(service2, service1));
+      expect(identical(service1, service2), isTrue);
       });
     });
 

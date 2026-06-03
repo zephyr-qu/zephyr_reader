@@ -4,13 +4,13 @@
 use std::path::Path;
 
 use super::decode;
-use crate::domain::{ParseResult, AppError};
-use crate::storage::models::{Book, Chapter, BookFormat};
-use crate::text::constants::CHAPTER_PATTERN_ZH;
+use crate::domain::{AppError, ParseResult};
+use crate::storage::models::{Book, BookFormat, Chapter};
 use crate::text::chapter_detect;
+use crate::text::constants::CHAPTER_PATTERN_ZH;
 
 /// 解析 TXT 文件
-pub fn parse_txt(file_path: String) -> Result<ParseResult,AppError> {
+pub fn parse_txt(file_path: String) -> Result<ParseResult, AppError> {
     parse_txt_inner(file_path)
 }
 
@@ -20,7 +20,9 @@ pub fn parse_txt(file_path: String) -> Result<ParseResult,AppError> {
 /// - `书名[：:]xxx`
 /// - `作者[：:]xxx`
 /// - `简介[：:]xxx` / `内容简介[：:]xxx`
-fn extract_metadata_from_content(content: &str) -> (Option<String>, Option<String>, Option<String>) {
+fn extract_metadata_from_content(
+    content: &str,
+) -> (Option<String>, Option<String>, Option<String>) {
     let mut title = None;
     let mut author = None;
     let mut description = None;
@@ -46,7 +48,9 @@ fn extract_metadata_from_content(content: &str) -> (Option<String>, Option<Strin
         }
 
         if description.is_none() {
-            if let Some(val) = extract_kv(line, &["简介", "簡介", "内容简介", "內容簡介", "内容提要"]) {
+            if let Some(val) =
+                extract_kv(line, &["简介", "簡介", "内容简介", "內容簡介", "内容提要"])
+            {
                 description = Some(val);
             }
         }
@@ -79,12 +83,9 @@ fn extract_kv(line: &str, keys: &[&str]) -> Option<String> {
     None
 }
 
-fn parse_txt_inner(file_path: String) -> Result<ParseResult,AppError> {
+fn parse_txt_inner(file_path: String) -> Result<ParseResult, AppError> {
     let start_time = std::time::Instant::now();
-    tracing::info!(
-        "start parsing TXT file: {}",
-        file_path
-    );
+    tracing::info!("start parsing TXT file: {}", file_path);
 
     // 检查文件是否存在
     if !Path::new(&file_path).exists() {

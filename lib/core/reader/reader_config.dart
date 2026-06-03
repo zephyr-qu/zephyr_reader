@@ -1,24 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/settings/persisted_signal.dart';
+import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// 阅读器翻页点击区域布局
+enum TapLayout {
+  rightHanded,
+  leftHanded;
+}
+/// 书写方向
+enum WritingDirection {
+  /// 横排
+  horizontal,
+
+  /// 竖排 (top-to-bottom, right-to-left)
+  vertical,
+}
+
+/// 阅读模式
+enum ReadingMode {
+  /// 上下滚动
+  scroll,
+
+  /// 仿真翻页
+  pageTurn,
+
+  /// 左右分页
+  pagination,
+
+  /// 双语对照
+  bilingual,
+}
+
+
 /// 阅读器主题
 enum ReaderTheme {
-  light('light', '日间', Colors.white, Color(0xFF1A1C1E)),
-  dark('dark', '夜间', Color(0xFF0A0F10), Color(0xFFE4E7E7)),
-  sepia('sepia', '护眼', Color(0xFFF8F4EA), Color(0xFF4A3F35));
+  light('light', '日间'),
+  dark('dark', '夜间'),
+  sepia('sepia', '护眼');
 
   final String id;
   final String displayName;
-  final Color backgroundColor;
-  final Color textColor;
 
   const ReaderTheme(
     this.id,
     this.displayName,
-    this.backgroundColor,
-    this.textColor,
   );
 
   static ReaderTheme fromId(String id) {
@@ -61,145 +89,108 @@ class ReaderBgColors {
     Color(0xFFF0F0F0), // 灰色
   ];
 }
-
 @Singleton()
 class ReaderConfig {
   final SharedPreferences prefs;
 
-  /// 当前主题
-  final theme = signal<ReaderTheme>(ReaderTheme.light);
+  // ==================== 持久化信号 ====================
 
-  /// 字体大小
-  final fontSize = signal<ReaderFontSize>(ReaderFontSize.medium);
+  /// 当前主题
+  late final theme = persistedEnum<ReaderTheme>(
+    prefs, SettingsKeys.readerTheme, ReaderTheme.light, ReaderTheme.fromId,
+    debounce: Duration.zero,
+  );
+
+  /// 字体大小（存储为 double，通过 [fontSizeValue] 获取实际 [ReaderFontSize] 尺寸）
+  late final fontSize = persistedDouble(
+    prefs, SettingsKeys.readerFontSize, ReaderFontSize.medium.size,
+  );
 
   /// 行间距
-  final lineHeight = signal<double>(1.6);
+  late final lineHeight = persistedDouble(prefs, SettingsKeys.readerLineHeight, 1.6);
 
   /// 段落间距
-  final paragraphSpacing = signal<double>(16.0);
+  late final paragraphSpacing = persistedDouble(
+    prefs, SettingsKeys.readerParagraphSpacing, 16.0,
+  );
 
   /// 页边距
-  final padding = signal<double>(16.0);
+  late final padding = persistedDouble(prefs, SettingsKeys.readerPadding, 16.0);
 
   /// 阅读背景色预设索引
-  final readerBgColorIndex = signal<int>(0);
+  late final readerBgColorIndex = persistedInt(
+    prefs, SettingsKeys.readerBgColorIndex, 0,
+  );
 
   /// 是否自动翻页
-  final autoScroll = signal<bool>(false);
+  late final autoScroll = persistedBool(
+    prefs, SettingsKeys.readerAutoScroll, false,
+    debounce: Duration.zero,
+  );
 
   /// 自动翻页速度（秒）
-  final autoScrollSpeed = signal<int>(30);
+  late final autoScrollSpeed = persistedInt(
+    prefs, SettingsKeys.readerAutoScrollSpeed, 30,
+  );
 
   /// 字间距
-  final letterSpacing = signal<double>(0.0);
+  late final letterSpacing = persistedDouble(
+    prefs, SettingsKeys.readerLetterSpacing, 0.0,
+  );
 
   /// 标点挤压
-  final punctuationSqueeze = signal<bool>(true);
+  late final punctuationSqueeze = persistedBool(
+    prefs, SettingsKeys.readerPunctuationSqueeze, true,
+    debounce: Duration.zero,
+  );
 
   /// 中西文基线对齐
-  final baselineAlign = signal<bool>(true);
+  late final baselineAlign = persistedBool(
+    prefs, SettingsKeys.readerBaselineAlign, true,
+    debounce: Duration.zero,
+  );
 
-  ReaderConfig(this.prefs) {
-    _loadSettings();
-  }
+  /// 翻页点击区域布局
+  late final tapLayout = persistedEnum<TapLayout>(
+    prefs, SettingsKeys.readerTapLayout, TapLayout.rightHanded,
+    (name) => TapLayout.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => TapLayout.rightHanded,
+    ),
+    debounce: Duration.zero,
+  );
 
-  static const String _keyTheme = 'reader_theme';
-  static const String _keyFontSize = 'reader_font_size';
-  static const String _keyLineHeight = 'reader_line_height';
-  static const String _keyParagraphSpacing = 'reader_paragraph_spacing';
-  static const String _keyPadding = 'reader_padding';
-  static const String _keyReaderBgColorIndex = 'reader_bg_color_index';
-  static const String _keyAutoScroll = 'reader_auto_scroll';
-  static const String _keyAutoScrollSpeed = 'reader_auto_scroll_speed';
-  static const String _keyLetterSpacing = 'reader_letter_spacing';
-  static const String _keyPunctuationSqueeze = 'reader_punctuation_squeeze';
-  static const String _keyBaselineAlign = 'reader_baseline_align';
+  // ==================== 非持久化信号 ====================
 
-  Future<void> _loadSettings() async {
-    theme.value = ReaderTheme.fromId(
-      prefs.getString(_keyTheme) ?? ReaderTheme.light.id,
-    );
-    fontSize.value = ReaderFontSize.fromSize(
-      prefs.getDouble(_keyFontSize) ?? ReaderFontSize.medium.size,
-    );
-    lineHeight.value = prefs.getDouble(_keyLineHeight) ?? 1.6;
-    paragraphSpacing.value = prefs.getDouble(_keyParagraphSpacing) ?? 16.0;
-    padding.value = prefs.getDouble(_keyPadding) ?? 16.0;
-    readerBgColorIndex.value = prefs.getInt(_keyReaderBgColorIndex) ?? 0;
-    autoScroll.value = prefs.getBool(_keyAutoScroll) ?? false;
-    autoScrollSpeed.value = prefs.getInt(_keyAutoScrollSpeed) ?? 30;
-    letterSpacing.value = prefs.getDouble(_keyLetterSpacing) ?? 0.0;
-    punctuationSqueeze.value = prefs.getBool(_keyPunctuationSqueeze) ?? true;
-    baselineAlign.value = prefs.getBool(_keyBaselineAlign) ?? true;
-  }
+  /// 书写方向（横排/竖排，不持久化）
+  final writingDirection = signal<WritingDirection>(WritingDirection.horizontal);
 
-  Future<void> setTheme(ReaderTheme newTheme) async {
-    theme.value = newTheme;
-    await prefs.setString(_keyTheme, newTheme.id);
-  }
+  /// 亮度遮罩（0.0–1.0，瞬态不持久化）
+  final brightnessOverlay = signal<double>(0.0);
 
-  Future<void> setFontSize(ReaderFontSize newSize) async {
-    fontSize.value = newSize;
-    await prefs.setDouble(_keyFontSize, newSize.size);
-  }
+  // ==================== 计算属性 ====================
 
-  Future<void> setLineHeight(double value) async {
-    lineHeight.value = value;
-    await prefs.setDouble(_keyLineHeight, value);
-  }
+  /// 页边距兼容别名（→ padding）
+  double get pageMargin => padding.value;
 
-  Future<void> setParagraphSpacing(double value) async {
-    paragraphSpacing.value = value;
-    await prefs.setDouble(_keyParagraphSpacing, value);
-  }
+  /// 获取实际 [ReaderFontSize] 的尺寸（将存储的 double 四舍五入到最近的档位）
+  double get fontSizeValue => ReaderFontSize.fromSize(fontSize.value).size;
 
-  Future<void> setPadding(double value) async {
-    padding.value = value;
-    await prefs.setDouble(_keyPadding, value);
-  }
+  ReaderConfig(this.prefs);
 
-  Future<void> setReaderBgColorIndex(int index) async {
-    readerBgColorIndex.value = index;
-    await prefs.setInt(_keyReaderBgColorIndex, index);
-  }
-
-  Future<void> setAutoScroll(bool value) async {
-    autoScroll.value = value;
-    await prefs.setBool(_keyAutoScroll, value);
-  }
-
-  Future<void> setAutoScrollSpeed(int value) async {
-    autoScrollSpeed.value = value;
-    await prefs.setInt(_keyAutoScrollSpeed, value);
-  }
-
-  Future<void> setLetterSpacing(double value) async {
-    letterSpacing.value = value;
-    await prefs.setDouble(_keyLetterSpacing, value);
-  }
-
-  Future<void> setPunctuationSqueeze(bool value) async {
-    punctuationSqueeze.value = value;
-    await prefs.setBool(_keyPunctuationSqueeze, value);
-  }
-
-  Future<void> setBaselineAlign(bool value) async {
-    baselineAlign.value = value;
-    await prefs.setBool(_keyBaselineAlign, value);
-  }
-
-  /// 重置为默认设置
+  /// 重置所有设置为默认值
   Future<void> resetToDefault() async {
-    await setTheme(ReaderTheme.light);
-    await setFontSize(ReaderFontSize.medium);
-    await setLineHeight(1.6);
-    await setParagraphSpacing(16.0);
-    await setPadding(16.0);
-    await setReaderBgColorIndex(0);
-    await setAutoScroll(false);
-    await setAutoScrollSpeed(30);
-    await setLetterSpacing(0.0);
-    await setPunctuationSqueeze(true);
-    await setBaselineAlign(true);
+    theme.value = ReaderTheme.light;
+    fontSize.value = ReaderFontSize.medium.size;
+    lineHeight.value = 1.6;
+    paragraphSpacing.value = 16.0;
+    padding.value = 16.0;
+    readerBgColorIndex.value = 0;
+    autoScroll.value = false;
+    autoScrollSpeed.value = 30;
+    letterSpacing.value = 0.0;
+    punctuationSqueeze.value = true;
+    baselineAlign.value = true;
+    tapLayout.value = TapLayout.rightHanded;
   }
 }

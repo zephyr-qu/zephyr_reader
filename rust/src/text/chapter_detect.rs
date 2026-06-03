@@ -1,7 +1,5 @@
 //! 章节标题自动检测
 //! 识别中文和英文小说的章节标题
-//!
-//! 使用 `rayon` 并行库优化大文本的预处理和匹配后处理。
 
 use crate::storage::models::Chapter;
 use crate::text::constants::{CHAPTER_PATTERN_DIGIT, CHAPTER_PATTERN_EN, CHAPTER_PATTERN_ZH};

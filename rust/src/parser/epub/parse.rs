@@ -1,8 +1,5 @@
 //! EPUB 文件解析
 //! 整合 EPUB 解压、元数据提取、章节内容读取
-//!
-//! 支持并行章节解析（使用 rayon），提升大文件解析性能。
-
 use std::path::Path;
 
 use uuid::Uuid;
@@ -10,10 +7,9 @@ use uuid::Uuid;
 use super::toc::extract_chapters_from_epub;
 use super::unzip::EpubFile;
 use crate::domain::{
-    AppError, ParseConfig,
-    ParseResult, RichParagraph, RichChapterContent, TypesetConfig,
+    AppError, ParseResult, RichChapterContent, RichParagraph, TypesetConfig,
 };
-use crate::storage::models::{Book, Chapter, BookFormat};
+use crate::storage::models::{Book, BookFormat, Chapter};
 
 use crate::text::rich_text;
 /// EPUB 分页：每页最小行数
@@ -22,24 +18,16 @@ use crate::text::rich_text;
 /// 防止分页过小导致性能问题
 pub const EPUB_MIN_CHARS_PER_PAGE: usize = 500;
 /// 解析 EPUB 文件
-pub fn parse_epub(file_path: String) -> Result<ParseResult,AppError> {
-    parse_epub_with_config(file_path, ParseConfig::default())
-}
-
-/// 解析 EPUB 文件（带配置）
-///
-/// 支持并行解析配置，适用于大文件优化。
 ///
 /// # 参数
 ///
 /// * `file_path` - EPUB 文件的完整路径
-/// * `config` - 解析配置（并行、缓存等）
 ///
 /// # 返回值
 ///
 /// * `Ok(ParseResult)` - 解析成功，包含书籍信息和章节列表
 /// * `Err(AppError)` - 解析失败
-pub fn parse_epub_with_config(file_path: String, _config: ParseConfig) -> Result<ParseResult,AppError> {
+pub fn parse_epub(file_path: String) -> Result<ParseResult, AppError> {
     let start_time = std::time::Instant::now();
     tracing::info!("start parsing EPUB file: {}", file_path);
 
@@ -151,7 +139,7 @@ fn estimate_total_chars(epub_file: &mut EpubFile, chapters: &[Chapter]) -> i64 {
 ///
 /// EPUB 的正文常被切分为多个 HTML 文件（如 part0005_split_000.html ~ part0005_split_002.html），
 /// 但这些分片在 TOC 中可能只有一条记录。通过合并连续 spine 资源，确保完整内容被加载。
-fn read_chapter_content(epub_file: &mut EpubFile, chapter: &Chapter) -> Result<String,AppError> {
+fn read_chapter_content(epub_file: &mut EpubFile, chapter: &Chapter) -> Result<String, AppError> {
     let spine = epub_file.spine();
     let start = chapter.start_index as usize;
     let end = (chapter.end_index as usize).min(spine.len());
@@ -160,10 +148,7 @@ fn read_chapter_content(epub_file: &mut EpubFile, chapter: &Chapter) -> Result<S
     let mut contents = Vec::new();
     for i in start..end {
         let href = spine.get(i).ok_or_else(|| {
-            AppError::chapter_extract_error(
-                i as i32,
-                format!("spine index out of range: {}", i),
-            )
+            AppError::chapter_extract_error(i as i32, format!("spine index out of range: {}", i))
         })?;
         tracing::debug!("[read_chapter_content] reading spine[{}] href={}", i, href);
         match epub_file.read_resource(href) {
@@ -174,7 +159,8 @@ fn read_chapter_content(epub_file: &mut EpubFile, chapter: &Chapter) -> Result<S
 
     if contents.is_empty() {
         return Err(AppError::chapter_extract_error(
-            chapter.chapter_index, "chapter content is empty",
+            chapter.chapter_index,
+            "chapter content is empty",
         ));
     }
 
@@ -196,12 +182,23 @@ fn read_chapter_content(epub_file: &mut EpubFile, chapter: &Chapter) -> Result<S
 ///
 /// * `Ok(RichChapterContent)` - 富文本章节内容
 /// * `Err(AppError)` - 解析失败
-pub fn get_chapter_content_rich(file_path: &str, chapter_id: i32) -> Result<RichChapterContent,AppError> {
-    tracing::info!("[get_chapter_content_rich] start: file_path={}, chapter_id={}", file_path, chapter_id);
+pub fn get_chapter_content_rich(
+    file_path: &str,
+    chapter_id: i32,
+) -> Result<RichChapterContent, AppError> {
+    tracing::info!(
+        "[get_chapter_content_rich] start: file_path={}, chapter_id={}",
+        file_path,
+        chapter_id
+    );
 
     let mut epub_file = EpubFile::open(file_path)?;
     let chapters = extract_chapters_from_epub(&mut epub_file, "");
-    tracing::info!("[get_chapter_content_rich] total chapters: {}, looking for chapter_id={}", chapters.len(), chapter_id);
+    tracing::info!(
+        "[get_chapter_content_rich] total chapters: {}, looking for chapter_id={}",
+        chapters.len(),
+        chapter_id
+    );
 
     let chapter = chapters
         .iter()
@@ -209,17 +206,30 @@ pub fn get_chapter_content_rich(file_path: &str, chapter_id: i32) -> Result<Rich
         .ok_or_else(|| {
             AppError::chapter_extract_error(chapter_id, format!("chapter {} not found", chapter_id))
         })?;
-    tracing::info!("[get_chapter_content_rich] chapter found: id={}, title={}, start_index={}",
-        chapter.id, chapter.title, chapter.start_index);
+    tracing::info!(
+        "[get_chapter_content_rich] chapter found: id={}, title={}, start_index={}",
+        chapter.id,
+        chapter.title,
+        chapter.start_index
+    );
 
     // 读取章节 HTML 内容
     let html_content = read_chapter_content(&mut epub_file, chapter)?;
-    tracing::info!("[get_chapter_content_rich] HTML content length: {} bytes", html_content.len());
-    tracing::debug!("[get_chapter_content_rich] HTML first 200 chars: {:?}", &html_content.chars().take(200).collect::<String>());
+    tracing::info!(
+        "[get_chapter_content_rich] HTML content length: {} bytes",
+        html_content.len()
+    );
+    tracing::debug!(
+        "[get_chapter_content_rich] HTML first 200 chars: {:?}",
+        &html_content.chars().take(200).collect::<String>()
+    );
 
     // 使用 html5ever 解析 HTML 为富文本
     let mut paragraphs = rich_text::parse_html_to_rich_text(&html_content)?;
-    tracing::info!("[get_chapter_content_rich] parse result: {} paragraphs", paragraphs.len());
+    tracing::info!(
+        "[get_chapter_content_rich] parse result: {} paragraphs",
+        paragraphs.len()
+    );
 
     // 解析图片：遍历段落，加载图片数据
     for p in &mut paragraphs {
@@ -227,17 +237,28 @@ pub fn get_chapter_content_rich(file_path: &str, chapter_id: i32) -> Result<Rich
             if let Some(src) = &p.image_src {
                 if let Some(bytes) = epub_file.read_resource_bytes(src) {
                     p.image_data = bytes;
-                    tracing::info!("[get_chapter_content_rich] loading image: src={}, size={} bytes", src, p.image_data.len());
+                    tracing::info!(
+                        "[get_chapter_content_rich] loading image: src={}, size={} bytes",
+                        src,
+                        p.image_data.len()
+                    );
                 } else {
-                    tracing::warn!("[get_chapter_content_rich] unable to load image: src={}", src);
+                    tracing::warn!(
+                        "[get_chapter_content_rich] unable to load image: src={}",
+                        src
+                    );
                 }
             }
         }
     }
     if let Some(first) = paragraphs.first() {
-        tracing::info!("[get_chapter_content_rich] first paragraph: spans={}, indent={}, is_heading={}, text={:?}",
-            first.spans.len(), first.indent, first.is_heading,
-            &first.full_text().chars().take(80).collect::<String>());
+        tracing::info!(
+            "[get_chapter_content_rich] first paragraph: spans={}, indent={}, is_heading={}, text={:?}",
+            first.spans.len(),
+            first.indent,
+            first.is_heading,
+            &first.full_text().chars().take(80).collect::<String>()
+        );
     }
 
     // 计算总字符数
@@ -245,7 +266,10 @@ pub fn get_chapter_content_rich(file_path: &str, chapter_id: i32) -> Result<Rich
         .iter()
         .map(|p| p.full_text().chars().count() as i64)
         .sum();
-    tracing::info!("[get_chapter_content_rich] done: total_characters={}", total_characters);
+    tracing::info!(
+        "[get_chapter_content_rich] done: total_characters={}",
+        total_characters
+    );
 
     Ok(RichChapterContent {
         chapter_id: chapter.id.clone(),
@@ -272,7 +296,7 @@ pub fn get_chapter_content_rich_with_typeset(
     file_path: &str,
     chapter_id: i32,
     config: &TypesetConfig,
-) -> Result<Vec<RichParagraph>,AppError> {
+) -> Result<Vec<RichParagraph>, AppError> {
     let rich_content = get_chapter_content_rich(file_path, chapter_id)?;
 
     // 对富文本段落应用排版优化
@@ -320,5 +344,4 @@ mod tests {
         let result = parse_epub(epub_path.to_str().unwrap().to_string());
         assert!(result.is_err()); // 文件不存在或无效
     }
-
 }

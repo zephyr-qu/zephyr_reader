@@ -94,7 +94,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 979886004;
+  int get rustContentHash => 1411583843;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -115,6 +115,12 @@ abstract class RustLibApi extends BaseApi {
   Future<void> crateApiDataCategoryAssignCategoryToBook({
     required String bookId,
     required String categoryId,
+  });
+
+  Future<BackupStats> crateApiBackupBackupStatsDefault();
+
+  Future<PlatformInt64> crateApiBackupCleanupAutoSnapshots({
+    required PlatformInt64 olderThanUnix,
   });
 
   Future<void> crateApiSearchClearAll();
@@ -250,7 +256,9 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiDataVocabularyDeleteVocabulary({required String id});
 
-  Future<void> crateApiBackupExportDatabase({required String destPath});
+  Future<BackupManifest> crateApiBackupExportDatabase({
+    required String destPath,
+  });
 
   Future<String> crateApiCoverExtractAndSaveCover({
     required String bookId,
@@ -268,6 +276,8 @@ abstract class RustLibApi extends BaseApi {
   Future<BookMetadata> crateApiCoreExtractMetadata({required String filePath});
 
   List<String> crateApiVocabMarkerGetAllVocabularyWords();
+
+  Future<BackupStats> crateApiBackupGetBackupStats();
 
   Future<List<BilingualHighlightPair>>
   crateApiBilingualGetBilingualHighlightPairs({
@@ -385,6 +395,10 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiDataInitInitStorage({required String dataDir});
 
+  Future<BackupManifest?> crateApiBackupInspectBackup({
+    required String backupPath,
+  });
+
   Future<List<BookWithProgress>> crateApiDataProgressListAllProgresses();
 
   Future<List<Bookmark>> crateApiDataBookmarkListBookmarksByBook({
@@ -480,7 +494,9 @@ abstract class RustLibApi extends BaseApi {
     required String format,
   });
 
-  Future<void> crateApiBackupRestoreDatabase({required String backupPath});
+  Future<BackupManifest> crateApiBackupRestoreDatabase({
+    required String backupPath,
+  });
 
   List<VocabMatch> crateApiVocabMarkerScanForVocabulary({required String text});
 
@@ -675,6 +691,57 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(
         debugName: 'assign_category_to_book',
         argNames: ['bookId', 'categoryId'],
+      );
+
+  @override
+  Future<BackupStats> crateApiBackupBackupStatsDefault() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__backup__backup_stats_default(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_backup_stats,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiBackupBackupStatsDefaultConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBackupBackupStatsDefaultConstMeta =>
+      const TaskConstMeta(debugName: 'backup_stats_default', argNames: []);
+
+  @override
+  Future<PlatformInt64> crateApiBackupCleanupAutoSnapshots({
+    required PlatformInt64 olderThanUnix,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_i_64(olderThanUnix);
+          return wire.wire__crate__api__backup__cleanup_auto_snapshots(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_i_64,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiBackupCleanupAutoSnapshotsConstMeta,
+        argValues: [olderThanUnix],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBackupCleanupAutoSnapshotsConstMeta =>
+      const TaskConstMeta(
+        debugName: 'cleanup_auto_snapshots',
+        argNames: ['olderThanUnix'],
       );
 
   @override
@@ -1719,7 +1786,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: 'delete_vocabulary', argNames: ['id']);
 
   @override
-  Future<void> crateApiBackupExportDatabase({required String destPath}) {
+  Future<BackupManifest> crateApiBackupExportDatabase({
+    required String destPath,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -1727,7 +1796,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return wire.wire__crate__api__backup__export_database(port_, arg0);
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
+          decodeSuccessData: dco_decode_backup_manifest,
           decodeErrorData: dco_decode_app_error,
         ),
         constMeta: kCrateApiBackupExportDatabaseConstMeta,
@@ -1879,6 +1948,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiVocabMarkerGetAllVocabularyWordsConstMeta =>
       const TaskConstMeta(debugName: 'get_all_vocabulary_words', argNames: []);
+
+  @override
+  Future<BackupStats> crateApiBackupGetBackupStats() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__backup__get_backup_stats(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_backup_stats,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiBackupGetBackupStatsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBackupGetBackupStatsConstMeta =>
+      const TaskConstMeta(debugName: 'get_backup_stats', argNames: []);
 
   @override
   Future<List<BilingualHighlightPair>>
@@ -2770,6 +2860,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: 'init_storage', argNames: ['dataDir']);
 
   @override
+  Future<BackupManifest?> crateApiBackupInspectBackup({
+    required String backupPath,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(backupPath);
+          return wire.wire__crate__api__backup__inspect_backup(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_opt_box_autoadd_backup_manifest,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiBackupInspectBackupConstMeta,
+        argValues: [backupPath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBackupInspectBackupConstMeta =>
+      const TaskConstMeta(
+        debugName: 'inspect_backup',
+        argNames: ['backupPath'],
+      );
+
+  @override
   Future<List<BookWithProgress>> crateApiDataProgressListAllProgresses() {
     return handler.executeNormal(
       NormalTask(
@@ -3449,7 +3566,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<void> crateApiBackupRestoreDatabase({required String backupPath}) {
+  Future<BackupManifest> crateApiBackupRestoreDatabase({
+    required String backupPath,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -3457,7 +3576,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return wire.wire__crate__api__backup__restore_database(port_, arg0);
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
+          decodeSuccessData: dco_decode_backup_manifest,
           decodeErrorData: dco_decode_app_error,
         ),
         constMeta: kCrateApiBackupRestoreDatabaseConstMeta,
@@ -4363,26 +4482,60 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case 7:
         return AppError_DatabaseError(reason: dco_decode_String(raw[1]));
       case 8:
-        return AppError_SearchError(reason: dco_decode_String(raw[1]));
+        return const AppError_StorageNotInitialized();
       case 9:
+        return AppError_SearchError(reason: dco_decode_String(raw[1]));
+      case 10:
         return AppError_SecurityError(
           reason: dco_decode_String(raw[1]),
           path: dco_decode_String(raw[2]),
         );
-      case 10:
-        return AppError_InvalidInput(reason: dco_decode_String(raw[1]));
       case 11:
-        return AppError_InternalError(reason: dco_decode_String(raw[1]));
+        return AppError_InvalidInput(reason: dco_decode_String(raw[1]));
       case 12:
+        return AppError_InternalError(reason: dco_decode_String(raw[1]));
+      case 13:
         return AppError_TaskPanic(
           taskName: dco_decode_String(raw[1]),
           details: dco_decode_String(raw[2]),
         );
-      case 13:
+      case 14:
         return AppError_Other(dco_decode_String(raw[1]));
       default:
         throw Exception('unreachable');
     }
+  }
+
+  @protected
+  BackupManifest dco_decode_backup_manifest(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BackupManifest(
+      appVersion: dco_decode_String(arr[0]),
+      exportedAt: dco_decode_i_64(arr[1]),
+      dbSize: dco_decode_i_64(arr[2]),
+      stats: dco_decode_backup_stats(arr[3]),
+    );
+  }
+
+  @protected
+  BackupStats dco_decode_backup_stats(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return BackupStats(
+      books: dco_decode_i_64(arr[0]),
+      chapters: dco_decode_i_64(arr[1]),
+      notes: dco_decode_i_64(arr[2]),
+      bookmarks: dco_decode_i_64(arr[3]),
+      readingSessions: dco_decode_i_64(arr[4]),
+      readingProgress: dco_decode_i_64(arr[5]),
+      vocabularyWords: dco_decode_i_64(arr[6]),
+      categories: dco_decode_i_64(arr[7]),
+    );
   }
 
   @protected
@@ -4534,6 +4687,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   DateTime dco_decode_box_autoadd_Chrono_Utc(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_Chrono_Utc(raw);
+  }
+
+  @protected
+  BackupManifest dco_decode_box_autoadd_backup_manifest(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_backup_manifest(raw);
   }
 
   @protected
@@ -5011,6 +5170,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   DateTime? dco_decode_opt_box_autoadd_Chrono_Utc(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_Chrono_Utc(raw);
+  }
+
+  @protected
+  BackupManifest? dco_decode_opt_box_autoadd_backup_manifest(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_backup_manifest(raw);
   }
 
   @protected
@@ -5531,28 +5696,68 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         final var_reason = sse_decode_String(deserializer);
         return AppError_DatabaseError(reason: var_reason);
       case 8:
+        return const AppError_StorageNotInitialized();
+      case 9:
         final var_reason = sse_decode_String(deserializer);
         return AppError_SearchError(reason: var_reason);
-      case 9:
+      case 10:
         final var_reason = sse_decode_String(deserializer);
         final var_path = sse_decode_String(deserializer);
         return AppError_SecurityError(reason: var_reason, path: var_path);
-      case 10:
-        final var_reason = sse_decode_String(deserializer);
-        return AppError_InvalidInput(reason: var_reason);
       case 11:
         final var_reason = sse_decode_String(deserializer);
-        return AppError_InternalError(reason: var_reason);
+        return AppError_InvalidInput(reason: var_reason);
       case 12:
+        final var_reason = sse_decode_String(deserializer);
+        return AppError_InternalError(reason: var_reason);
+      case 13:
         final var_taskName = sse_decode_String(deserializer);
         final var_details = sse_decode_String(deserializer);
         return AppError_TaskPanic(taskName: var_taskName, details: var_details);
-      case 13:
+      case 14:
         final var_field0 = sse_decode_String(deserializer);
         return AppError_Other(var_field0);
       default:
         throw UnimplementedError('');
     }
+  }
+
+  @protected
+  BackupManifest sse_decode_backup_manifest(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_appVersion = sse_decode_String(deserializer);
+    final var_exportedAt = sse_decode_i_64(deserializer);
+    final var_dbSize = sse_decode_i_64(deserializer);
+    final var_stats = sse_decode_backup_stats(deserializer);
+    return BackupManifest(
+      appVersion: var_appVersion,
+      exportedAt: var_exportedAt,
+      dbSize: var_dbSize,
+      stats: var_stats,
+    );
+  }
+
+  @protected
+  BackupStats sse_decode_backup_stats(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_books = sse_decode_i_64(deserializer);
+    final var_chapters = sse_decode_i_64(deserializer);
+    final var_notes = sse_decode_i_64(deserializer);
+    final var_bookmarks = sse_decode_i_64(deserializer);
+    final var_readingSessions = sse_decode_i_64(deserializer);
+    final var_readingProgress = sse_decode_i_64(deserializer);
+    final var_vocabularyWords = sse_decode_i_64(deserializer);
+    final var_categories = sse_decode_i_64(deserializer);
+    return BackupStats(
+      books: var_books,
+      chapters: var_chapters,
+      notes: var_notes,
+      bookmarks: var_bookmarks,
+      readingSessions: var_readingSessions,
+      readingProgress: var_readingProgress,
+      vocabularyWords: var_vocabularyWords,
+      categories: var_categories,
+    );
   }
 
   @protected
@@ -5749,6 +5954,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   DateTime sse_decode_box_autoadd_Chrono_Utc(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_Chrono_Utc(deserializer));
+  }
+
+  @protected
+  BackupManifest sse_decode_box_autoadd_backup_manifest(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_backup_manifest(deserializer));
   }
 
   @protected
@@ -6418,6 +6631,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_Chrono_Utc(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BackupManifest? sse_decode_opt_box_autoadd_backup_manifest(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_backup_manifest(deserializer));
     } else {
       return null;
     }
@@ -7205,27 +7431,54 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case AppError_DatabaseError(reason: final reason):
         sse_encode_i_32(7, serializer);
         sse_encode_String(reason, serializer);
-      case AppError_SearchError(reason: final reason):
+      case AppError_StorageNotInitialized():
         sse_encode_i_32(8, serializer);
+      case AppError_SearchError(reason: final reason):
+        sse_encode_i_32(9, serializer);
         sse_encode_String(reason, serializer);
       case AppError_SecurityError(reason: final reason, path: final path):
-        sse_encode_i_32(9, serializer);
+        sse_encode_i_32(10, serializer);
         sse_encode_String(reason, serializer);
         sse_encode_String(path, serializer);
       case AppError_InvalidInput(reason: final reason):
-        sse_encode_i_32(10, serializer);
-        sse_encode_String(reason, serializer);
-      case AppError_InternalError(reason: final reason):
         sse_encode_i_32(11, serializer);
         sse_encode_String(reason, serializer);
-      case AppError_TaskPanic(taskName: final taskName, details: final details):
+      case AppError_InternalError(reason: final reason):
         sse_encode_i_32(12, serializer);
+        sse_encode_String(reason, serializer);
+      case AppError_TaskPanic(taskName: final taskName, details: final details):
+        sse_encode_i_32(13, serializer);
         sse_encode_String(taskName, serializer);
         sse_encode_String(details, serializer);
       case AppError_Other(field0: final field0):
-        sse_encode_i_32(13, serializer);
+        sse_encode_i_32(14, serializer);
         sse_encode_String(field0, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_backup_manifest(
+    BackupManifest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.appVersion, serializer);
+    sse_encode_i_64(self.exportedAt, serializer);
+    sse_encode_i_64(self.dbSize, serializer);
+    sse_encode_backup_stats(self.stats, serializer);
+  }
+
+  @protected
+  void sse_encode_backup_stats(BackupStats self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.books, serializer);
+    sse_encode_i_64(self.chapters, serializer);
+    sse_encode_i_64(self.notes, serializer);
+    sse_encode_i_64(self.bookmarks, serializer);
+    sse_encode_i_64(self.readingSessions, serializer);
+    sse_encode_i_64(self.readingProgress, serializer);
+    sse_encode_i_64(self.vocabularyWords, serializer);
+    sse_encode_i_64(self.categories, serializer);
   }
 
   @protected
@@ -7357,6 +7610,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_Chrono_Utc(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_backup_manifest(
+    BackupManifest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_backup_manifest(self, serializer);
   }
 
   @protected
@@ -7935,6 +8197,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_Chrono_Utc(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_backup_manifest(
+    BackupManifest? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_backup_manifest(self, serializer);
     }
   }
 

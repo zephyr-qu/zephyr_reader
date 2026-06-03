@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
+import 'package:zephyr_reader/core/utils/haptic.dart';
 
 /// 书签管理组件
 class BookmarkWidget extends StatelessWidget {
@@ -208,13 +210,9 @@ class BookmarkWidget extends StatelessWidget {
             onPressed: () {
               Navigator.pop(context);
               onAddBookmark?.call();
+              hapticFeedback(HapticType.medium);
               // 显示成功提示
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('书签已添加'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
+              showInfoSnack(context, '书签已添加');
             },
             child: const Text('添加'),
           ),
@@ -241,12 +239,7 @@ class BookmarkWidget extends StatelessWidget {
               Navigator.pop(context);
               onDeleteBookmark(bookmark.id);
               // 显示成功提示
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('书签已删除'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
+              showInfoSnack(context, '书签已删除');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

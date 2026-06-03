@@ -6,6 +6,8 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:zephyr_reader/core/presentation/widgets/connectivity_banner.dart';
+import 'package:zephyr_reader/core/utils/haptic.dart';
 
 /// 底部导航栏配置
 enum BottomNavItem {
@@ -100,10 +102,7 @@ class MainLayout extends HookWidget {
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
             ),
             Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                switchInCurve: Curves.easeInOut,
-                switchOutCurve: Curves.easeInOut,
+              child: ConnectivityBanner(
                 child: child,
               ),
             ),
@@ -112,13 +111,10 @@ class MainLayout extends HookWidget {
       );
     } else {
       return Scaffold(
-        body: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          switchInCurve: Curves.easeInOut,
-          switchOutCurve: Curves.easeInOut,
+        body: ConnectivityBanner(
           child: child,
         ),
-        extendBody: true,
+        extendBody: false,
         bottomNavigationBar: _buildBottomNavigationBar(
           context,
           currentIndex,
@@ -235,12 +231,29 @@ class MainLayout extends HookWidget {
               ),
               if (isExtended) ...[
                 const SizedBox(width: 14),
-                Text(
-                  navItem.label(context),
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isSelected ? activeColor : inactiveColor,
-                    fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        navItem.label(context),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isSelected ? activeColor : inactiveColor,
+                          fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+                        ),
+                      ),
+                      if (isSelected)
+                        Container(
+                          margin: const EdgeInsets.only(top: 2),
+                          height: 2,
+                          width: 18,
+                          decoration: BoxDecoration(
+                            color: activeColor,
+                            borderRadius: BorderRadius.circular(1),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -269,6 +282,7 @@ class MainLayout extends HookWidget {
         border: Border(top: BorderSide(color: theme.dividerColor, width: 0.5)),
       ),
       child: SafeArea(
+        top: false,
         child: NavigationBar(
           height: 56,
           selectedIndex: currentIndex,
@@ -277,6 +291,7 @@ class MainLayout extends HookWidget {
           backgroundColor: theme.colorScheme.surface,
           onDestinationSelected: (index) {
             context.go(BottomNavItem.values[index].route);
+            hapticFeedback(HapticType.light);
           },
           destinations: BottomNavItem.values.map((navItem) {
             return NavigationDestination(

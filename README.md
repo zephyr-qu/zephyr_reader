@@ -1,15 +1,8 @@
 # Zephyr Reader - 双语离线阅读器
 
-<div align="center">
-
 **纯本地、高性能、双语友好的离线小说阅读器**
 
-[![Flutter](https://img.shields.io/badge/Flutter-3.41.2+-blue.svg)](https://flutter.dev)
-[![Rust](https://img.shields.io/badge/Rust-1.80.0+-orange.svg)](https://www.rust-lang.org)
-[![Platform](https://img.shields.io/badge/Platform-Android%208.0+%20|%20iOS%2015+-green.svg)](https://www.android.com)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
-</div>
+Flutter 3.41.2+ · Rust 1.80.0+ · Android 8.0+ / iOS 15+
 
 ---
 
@@ -120,7 +113,7 @@ zephyr_reader/
 │   │   ├── bookshelf/       # 书架（导入、分类、详情）
 │   │   ├── home/            # 首页（最近阅读、统计概览）
 │   │   ├── profile/         # 个人设置
-│   │   ├── reader/          # 阅读器（页面、设置、搜索、词典）
+│   │   ├── reader/          # 阅读器（VM Facade + ChapterManager + 5 个独立 Controller）
 │   │   ├── search/          # 全书搜索
 │   │   ├── statistics/      # 阅读统计（图表、日周月报）
 │   │   ├── sync/            # WebDAV 同步 + 备份/还原
@@ -293,70 +286,31 @@ pub async fn parse_txt_file(file_path: String) -> Result<String, AppError> {
 ## 📋 项目状态
 
 ### 已完成
-
-| 阶段 | 工作内容 |
-|------|---------|
-| **基础框架** | Flutter 工程 + Rust 引擎 + FRB 桥接 + 主题/路由/设备适配 |
-| **解析引擎** | TXT/EPUB/PDF/MD 格式解析、编码检测、章节提取 |
-| **存储层** | SQLite (sqlx) + sled KV 排版缓存、Repository 模式 |
-| **阅读核心** | 双语排版、分页渲染、翻页、进度记忆、章节跳转 |
-| **排版引擎** | 文本断行、分块排版、标点优化、lazy/eager 双模式 |
-| **进阶功能** | 全书搜索 (FTS5)、离线词典 (MDict)、双语对齐、高亮批注 |
-| **WebDAV** | 数据同步、备份与还原 |
-| **阅读统计** | 日/周/月/总览统计、生词本 |
+  | 阶段 | 工作内容 |
+  |------|---------|
+  | **基础框架** | Flutter 工程 + Rust 引擎 + FRB 桥接 + 主题/路由/DI/设备适配 |
+  | **解析引擎** | TXT/EPUB/PDF/MD 格式解析、编码检测、章节提取、封面提取 |
+  | **存储层** | SQLite (sqlx) + sled KV 排版缓存、Repository 模式、数据库备份/还原 |
+  | **阅读核心** | 双语排版、分页渲染、翻页、进度记忆、章节跳转、高亮批注、双语对照高亮 |
+  | **排版引擎** | 文本断行、分块排版、标点优化、CSS 适配、lazy/eager 双模式 |
+  | **进阶功能** | 全书搜索 (FTS5)、离线词典 (MDict)、双语对齐、TTS 朗读 |
+  | **WebDAV** | 数据同步、冲突解决、备份与还原、自动同步、同步历史 |
+  | **阅读统计** | 日/周/月/总览统计、阅读会话记录、生词本 |
+  | **WiFi 传书** | HTTP 服务器上传 TXT/EPUB/PDF/MD，Web 管理页面 |
+  | **学习与笔记** | 笔记管理、高亮管理、生词复习、书签管理、分类过滤、导出 |
+  | **设置面板** | TTS 朗读设置、排版与字体设置、主题与亮度、其他设置、关于页面 |
+  | **国际化** | 中文/英文完整本地化（ARB）、跟随系统区域 |
+  | **文章管理** | 长文列表、详情阅读、API 集成 |
+  | **UI 组件库** | 自适应布局、空状态、骨架屏、Setting tiles、连接状态提示条 |
+  | **集成测试** | `test_driver/e2e_flow_test.dart` 5 组 15 个用例，Page Object 模式 |
+  | **FFI 测试修复** | `vocabulary_marker_service_test.dart` 动态 RustLib 初始化 + E2E 套件 |
+  | **虚假通过测试** | `vocabulary/home/profile` 重构为动态 RustLib 初始化 + 真实断言 |
+  | **零 HookBuilder 测试** | 新增 `bookmark_manage_page` + `book_search_page` 两个信号绑定测试 |
+  | **ReaderVM 重构** | VM 从 1000→487 行（-51%），提取 ChapterManager + ReadingSessionManager，删除 SettingsController 镜像层和 FFI 透传，5 个独立 Controller 可单独测试 |
 
 ### 待办
 
-| 工作 | 说明 |
-|------|------|
-| **测试覆盖** | 修复 repo 层和 bilingual 测试（当前全部注释） |
-| **性能优化** | 大文件 lazy 排版路径优化、PDF 渲染性能 |
-| **自定义字体** | 用户可选字体系列 |
 
----
-
-## 📄 需求文档
-
-本项目包含完整的开发文档：
-
-- [需求规格说明书](docs/需求规格说明书.md) - 功能需求、非功能需求、验收标准
-- [开发设计文档](docs/开发设计文档.md) - 技术架构、模块设计、开发规范
-
----
-
-## 🔒 隐私与安全
-
-- ✅ **纯本地存储** - 所有数据存储在 APP 私有目录，无数据上传
-- ✅ **最小权限** - 仅申请必要的存储权限，无冗余权限
-- ✅ **无广告无 SDK** - 纯净无干扰，无第三方 SDK 嵌入
-- ✅ **无数据收集** - 不收集任何用户行为数据
-- ✅ **WebDAV 加密** - 账号密码本地加密存储
-
----
-
-## 📝 许可证
-
-本项目采用 MIT 许可证开源。详见 [LICENSE](LICENSE) 文件。
-
----
-
-## 🤝 贡献
-
-本项目为个人自用项目，主要服务于个人阅读需求。如有建议或问题，欢迎提交 Issue。
-
----
-
-## 📧 联系方式
-
-- 项目仓库：[GitHub](https://github.com/your-username/zephyr_reader)
-- 问题反馈：[Issues](https://github.com/your-username/zephyr_reader/issues)
-
----
-
-<div align="center">
-
-**Zephyr Reader** - 如和风般轻盈的阅读体验
-
-Made with ❤️ by Flutter + Rust
-
-</div>
+  | 工作 | 说明 | 优先级 |
+  |------|------|--------|
+  | **性能优化** | 大文件 lazy 排版、PDF 渲染 | 🟠 中 |

@@ -6,12 +6,12 @@
 //! 两者通过 `paired_note_id` 字段关联。
 //!
 use crate::domain::AppError;
+use crate::storage::models::Note;
+use crate::storage::repos::NoteRepository;
+use crate::storage::storage_pool;
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::storage::storage_pool;
-use crate::storage::models::Note;
-use crate::storage::repos::NoteRepository;
 /// 对齐片段
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
@@ -61,13 +61,11 @@ pub async fn align_bilingual_content(
     min_similarity: f32,
 ) -> Result<BilingualAlignment, AppError> {
     if chinese_content.len() + english_content.len() > MAX_BILINGUAL_LEN {
-        return Err(AppError::invalid_input(
-            format!(
-                "bilingual alignment input too large: {} bytes (max {})",
-                chinese_content.len() + english_content.len(),
-                MAX_BILINGUAL_LEN,
-            ),
-        ));
+        return Err(AppError::invalid_input(format!(
+            "bilingual alignment input too large: {} bytes (max {})",
+            chinese_content.len() + english_content.len(),
+            MAX_BILINGUAL_LEN,
+        )));
     }
 
     let similarity = min_similarity.max(0.3).min(1.0);
@@ -80,7 +78,7 @@ pub async fn align_bilingual_content(
         )
     })
     .await
-    .map_err(|e| AppError::internal(format!("Bilingual alignment task failed: {}", e)))?
+    .map_err(|e| AppError::task_panic("bilingual alignment", e.to_string()))?
     .map_err(|e| AppError::internal(format!("bilingual alignment failed: {}", e)))
 }
 
@@ -107,13 +105,11 @@ pub async fn simple_bilingual_align(
     english_content: String,
 ) -> Result<BilingualAlignment, AppError> {
     if chinese_content.len() + english_content.len() > MAX_BILINGUAL_LEN {
-        return Err(AppError::invalid_input(
-            format!(
-                "bilingual alignment input too large: {} bytes (max {})",
-                chinese_content.len() + english_content.len(),
-                MAX_BILINGUAL_LEN,
-            ),
-        ));
+        return Err(AppError::invalid_input(format!(
+            "bilingual alignment input too large: {} bytes (max {})",
+            chinese_content.len() + english_content.len(),
+            MAX_BILINGUAL_LEN,
+        )));
     }
 
     tokio::task::spawn_blocking(move || {
@@ -123,7 +119,7 @@ pub async fn simple_bilingual_align(
         ))
     })
     .await
-    .map_err(|e| AppError::internal(format!("Bilingual alignment task failed: {}", e)))?
+    .map_err(|e| AppError::task_panic("simple bilingual align", e.to_string()))?
 }
 
 /// 双语高亮配对
@@ -133,7 +129,23 @@ pub struct BilingualHighlightPair {
     pub source_note: Note,
     pub target_note: Option<Note>,
 }
-
+#[derive(Debug, Clone)]
+#[frb(non_opaque)]
+pub struct BilingualHighlightParams {
+    pub source_book_id: String,
+    pub source_chapter_index: i32,
+    pub source_char_offset: i64,
+    pub source_length: i64,
+    pub source_selected_text: String,
+    pub source_language: String,
+    pub target_book_id: String,
+    pub target_chapter_index: i32,
+    pub target_char_offset: i64,
+    pub target_length: i64,
+    pub target_selected_text: String,
+    pub target_language: String,
+    pub highlight_color: i32,
+}
 /// 创建双语高亮配对
 ///
 /// 同时创建两个高亮 Note，通过 `paired_note_id` 互相链接。
@@ -141,45 +153,30 @@ pub struct BilingualHighlightPair {
 #[frb]
 #[warn(clippy::too_many_arguments)]
 pub async fn create_bilingual_highlight_pair(
-    // 源语言高亮参数
-    source_book_id: String,
-    source_chapter_index: i32,
-    source_char_offset: i64,
-    source_length: i64,
-    source_selected_text: String,
-    source_language: String,
-    // 目标语言高亮参数
-    target_book_id: String,
-    target_chapter_index: i32,
-    target_char_offset: i64,
-    target_length: i64,
-    target_selected_text: String,
-    target_language: String,
-    // 公共参数
-    highlight_color: i32,
+    params: BilingualHighlightParams,
 ) -> Result<BilingualHighlightPair, AppError> {
     let pool = storage_pool()?;
     let pair_id = Uuid::new_v4().to_string();
 
     let source_note = Note::highlight(
-        &source_book_id,
-        source_chapter_index,
-        source_char_offset,
-        source_length,
-        &source_selected_text,
-        highlight_color,
-        Some(&source_language),
+        &params.source_book_id,
+        params.source_chapter_index,
+        params.source_char_offset,
+        params.source_length,
+        &params.source_selected_text,
+        params.highlight_color,
+        Some(&params.source_language),
         Some(&pair_id),
     );
 
     let target_note = Note::highlight(
-        &target_book_id,
-        target_chapter_index,
-        target_char_offset,
-        target_length,
-        &target_selected_text,
-        highlight_color,
-        Some(&target_language),
+        &params.target_book_id,
+        params.target_chapter_index,
+        params.target_char_offset,
+        params.target_length,
+        &params.target_selected_text,
+        params.highlight_color,
+        Some(&params.target_language),
         Some(&pair_id),
     );
 
@@ -209,6 +206,16 @@ pub async fn get_bilingual_highlight_pairs(
         .await
         .map_err(|e| AppError::database_error(e.to_string()))?;
 
+    // Batch fetch all partner notes in a single query (replaces N+1)
+    let query_pairs: Vec<(String, String)> = paired_notes
+        .iter()
+        .filter_map(|n| n.paired_note_id.as_ref().map(|p| (p.clone(), n.id.clone())))
+        .collect();
+
+    let partners = NoteRepository::find_partner_notes_batch(&pool, &query_pairs)
+        .await
+        .map_err(|e| AppError::database_error(e.to_string()))?;
+
     let mut pairs: Vec<BilingualHighlightPair> = Vec::new();
     let mut processed: std::collections::HashSet<String> = std::collections::HashSet::new();
 
@@ -217,12 +224,10 @@ pub async fn get_bilingual_highlight_pairs(
             continue;
         }
 
-            if let Some(ref pair_id) = note.paired_note_id {
-                let partner = NoteRepository::find_partner_note(&pool, pair_id, &note.id)
-                    .await
-                    .map_err(|e| AppError::database_error(e.to_string()))?;
+        if let Some(ref pair_id) = note.paired_note_id {
+            let partner = partners.get(pair_id);
 
-            let (source, target) = match &partner {
+            let (source, target) = match partner {
                 Some(p) if p.id != note.id => {
                     processed.insert(p.id.clone());
                     (note.clone(), Some(p.clone()))
@@ -274,9 +279,6 @@ pub async fn delete_bilingual_highlight_pair(note_id: String) -> Result<(), AppE
 
     Ok(())
 }
-
-
-
 
 // #[cfg(test)]
 // mod tests {

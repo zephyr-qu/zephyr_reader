@@ -487,9 +487,11 @@ class ReaderRepository {
   }
 
   void _clearOldestCache() {
-    if (_cache.isEmpty) return;
+    if (_cache.isEmpty && _richContentCache.isEmpty) return;
     String? oldestKey;
     DateTime? oldestTime;
+
+    // Check main cache
     for (final entry in _cache.entries) {
       for (final chapterEntry in entry.value.entries) {
         if (oldestTime == null ||
@@ -499,7 +501,22 @@ class ReaderRepository {
         }
       }
     }
-    if (oldestKey != null) _cache.remove(oldestKey);
+    // Also check rich content cache (may have entries without main cache)
+    for (final entry in _richContentCache.entries) {
+      for (final _ in entry.value.entries) {
+        // Rich cache items don't have timestamps, so use current time
+        // to deprioritize them if main cache has no entries
+        if (oldestTime == null) {
+          oldestTime = DateTime.now();
+          oldestKey = entry.key;
+        }
+      }
+    }
+    if (oldestKey != null) {
+      _cache.remove(oldestKey);
+      _richContentCache.remove(oldestKey);
+      _richParagraphCache.remove(oldestKey);
+    }
   }
 
   /// 预加载章节内容到缓存（静默失败，不抛异常）
@@ -564,6 +581,7 @@ class ReaderRepository {
     void clean(Map<dynamic, dynamic> map) {
       final bookCache = map[key];
       if (bookCache == null) return;
+      // ignore: inference_failure_on_untyped_parameter
       bookCache.removeWhere((k, _) {
         final ci = k as int;
         return ci < minKeep || ci > maxKeep;

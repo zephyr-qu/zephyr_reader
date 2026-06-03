@@ -1,3 +1,10 @@
+// test_driver/e2e_flow_test.dart
+//
+// E2E 流程测试 — 使用 Page Object 模式
+//
+// 前提: Rust FFI 已初始化（见 setUpAll）
+// 运行: flutter test integration_test/
+
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -7,35 +14,216 @@ import 'package:zephyr_reader/app.dart';
 import 'package:zephyr_reader/core/app_config.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/main_layout.dart';
+import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
 import 'package:zephyr_reader/src/rust/api/data/init.dart';
 import 'package:zephyr_reader/src/rust/api/search.dart';
 import 'package:zephyr_reader/src/rust/frb_generated.dart';
+
+import 'pages/bookshelf_page.dart';
+import 'pages/reader_page.dart';
+import 'pages/search_page.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
-    // ✅ 统一初始化 Rust + 测试专用配置
     await RustLib.init();
     final tempDir = await getTemporaryDirectory();
     await initStorage(dataDir: '${tempDir.path}/test_data');
     await initSearchEngine();
     await AppConfig.instance.init();
-    await configureDependencies(); // 注入 mock 服务
+    await configureDependencies();
   });
 
   tearDownAll(() async {
-    // ✅ 清理测试数据
+    // 清理测试数据
+  });
+
+  group('单词标记服务', () {
+    late VocabularyMarkerService vocabService;
+
+    setUp(() {
+      vocabService = VocabularyMarkerService();
+    });
+
+    testWidgets('ensureLoaded 应加载词表', (tester) async {
+      await vocabService.ensureLoaded();
+      expect(vocabService.cet6.isNotEmpty, isTrue);
+      expect(vocabService.ielts.isNotEmpty, isTrue);
+      expect(vocabService.toefl.isNotEmpty, isTrue);
+      expect(vocabService.allWords.length, greaterThan(2000));
+    });
+
+    testWidgets('isVocabularyWord 应识别词汇', (tester) async {
+      await vocabService.ensureLoaded();
+      expect(vocabService.isVocabularyWord('abandon'), isTrue);
+      expect(vocabService.isVocabularyWord('abandoned'), isFalse);
+      expect(vocabService.isVocabularyWord('zzzzz'), isFalse);
+    });
+
+    testWidgets('isVocabularyWord 应大小写不敏感', (tester) async {
+      await vocabService.ensureLoaded();
+      expect(vocabService.isVocabularyWord('ABANDON'), isTrue);
+      expect(vocabService.isVocabularyWord('Abandon'), isTrue);
+    });
+
+    testWidgets('scanText 应返回文本中所有生词位置', (tester) async {
+      await vocabService.ensureLoaded();
+      final text = 'We should not abandon our academic pursuits.';
+      final result = vocabService.scanText(text);
+
+      expect(result.length, equals(2));
+      expect(result[0].$1, equals('abandon'));
+      expect(result[1].$1, equals('academic'));
+    });
+
+    testWidgets('scanText 应返回正确的偏移位置', (tester) async {
+      await vocabService.ensureLoaded();
+      final text = 'abandon academic';
+      final result = vocabService.scanText(text);
+
+      expect(result[0].$2, equals(0));
+      expect(result[0].$3, equals(7));
+      expect(result[1].$2, equals(8));
+      expect(result[1].$3, equals(16));
+    });
+
+    testWidgets('scanText 英文中应跳过中文', (tester) async {
+      await vocabService.ensureLoaded();
+      final text = '放弃abandon学术academic研究';
+      final result = vocabService.scanText(text);
+
+      expect(result.length, equals(2));
+      expect(result[0].$1, equals('abandon'));
+      expect(result[1].$1, equals('academic'));
+    });
+
+    testWidgets('scanText 空文本应返回空列表', (tester) async {
+      await vocabService.ensureLoaded();
+      expect(vocabService.scanText(''), isEmpty);
+      expect(vocabService.scanText('纯中文文本'), isEmpty);
+    });
   });
 
   group('E2E - 书架到阅读流程', () {
-    testWidgets('打开应用 -> 书架 -> 点击书籍 -> 阅读页面', (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1080, 1920)); // ✅ 每个用例设置
+    testWidgets('打开应用 → 显示主布局', (tester) async {
+      await tester.binding
+          .setSurfaceSize(const Size(1080, 1920));
       await tester.pumpWidget(const ZephyrReaderApp());
-      await tester.pump(const Duration(seconds: 2)); // ✅ 避免 pumpAndSettle 超时
+      await tester.pump(const Duration(seconds: 2));
 
+      // 主布局渲染
       expect(find.byType(MainLayout), findsOneWidget);
-      // TODO: 补充真实导航与断言
+    });
+
+    testWidgets('导航到书架 → 显示书架页面', (tester) async {
+      await tester.binding
+          .setSurfaceSize(const Size(1080, 1920));
+      await tester.pumpWidget(const ZephyrReaderApp());
+      await tester.pump(const Duration(seconds: 2));
+
+      final bookshelf = BookshelfPageObject(tester);
+      await bookshelf.navigateToBookshelf();
+      expect(bookshelf.isOnBookshelfPage, isTrue);
+    });
+
+    testWidgets('完整流程: 书架 → 书籍详情 → 阅读页', (tester) async {
+      await tester.binding
+          .setSurfaceSize(const Size(1080, 1920));
+      await tester.pumpWidget(const ZephyrReaderApp());
+      await tester.pump(const Duration(seconds: 2));
+
+      // Step 1: 导航到书架
+      final bookshelf = BookshelfPageObject(tester);
+      await bookshelf.navigateToBookshelf();
+      expect(bookshelf.isOnBookshelfPage, isTrue);
+
+      // Step 2: 点击书籍（如果存在）
+      // 注意: 测试环境可能无实际书籍，此处仅验证导航不崩溃
+      await bookshelf.tapFirstBook();
+      await tester.pump(const Duration(seconds: 1));
+
+      // Step 3: 验证阅读页面（如果已导航）
+      // 成功进入阅读页则不崩溃
+    });
+
+    testWidgets('阅读页面: 工具栏交互', (tester) async {
+      await tester.binding
+          .setSurfaceSize(const Size(1080, 1920));
+      await tester.pumpWidget(const ZephyrReaderApp());
+      await tester.pump(const Duration(seconds: 2));
+
+      final reader = ReaderPageObject(tester);
+
+      // 点击屏幕中央（阅读页内点击不应崩溃）
+      await reader.tapCenter();
+      await tester.pump();
+
+      // 点击返回（不应崩溃）
+      await reader.tapBack();
+      await tester.pump(const Duration(seconds: 1));
+    });
+  });
+
+  group('E2E - 页面导航', () {
+    testWidgets('导航到搜索页面', (tester) async {
+      await tester.binding
+          .setSurfaceSize(const Size(1080, 1920));
+      await tester.pumpWidget(const ZephyrReaderApp());
+      await tester.pump(const Duration(seconds: 2));
+
+      final search = SearchPageObject(tester);
+      await search.navigateToSearch();
+      expect(search.isOnSearchPage, isTrue);
+    });
+
+    testWidgets('导航到统计页面', (tester) async {
+      await tester.binding
+          .setSurfaceSize(const Size(1080, 1920));
+      await tester.pumpWidget(const ZephyrReaderApp());
+      await tester.pump(const Duration(seconds: 2));
+
+      await tester.tap(find.text('统计').last);
+      await tester.pumpAndSettle();
+      expect(find.text('统计'), findsOneWidget);
+    });
+
+    testWidgets('导航到个人中心页面', (tester) async {
+      await tester.binding
+          .setSurfaceSize(const Size(1080, 1920));
+      await tester.pumpWidget(const ZephyrReaderApp());
+      await tester.pump(const Duration(seconds: 2));
+
+      await tester.tap(find.text('我').last);
+      await tester.pumpAndSettle();
+      expect(find.text('我'), findsOneWidget);
+    });
+  });
+
+  group('E2E - 搜索功能', () {
+    testWidgets('搜索页面基本渲染', (tester) async {
+      await tester.binding
+          .setSurfaceSize(const Size(1080, 1920));
+      await tester.pumpWidget(const ZephyrReaderApp());
+      await tester.pump(const Duration(seconds: 2));
+
+      final search = SearchPageObject(tester);
+      await search.navigateToSearch();
+      expect(search.isOnSearchPage, isTrue);
+    });
+
+    testWidgets('输入搜索关键词不应崩溃', (tester) async {
+      await tester.binding
+          .setSurfaceSize(const Size(1080, 1920));
+      await tester.pumpWidget(const ZephyrReaderApp());
+      await tester.pump(const Duration(seconds: 2));
+
+      final search = SearchPageObject(tester);
+      await search.navigateToSearch();
+      // 输入中文关键词
+      await search.enterSearchQuery('算法');
+      await tester.pump(const Duration(seconds: 1));
+      // 不应崩溃即可
     });
   });
 }

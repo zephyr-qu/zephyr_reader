@@ -40,6 +40,17 @@ class ReaderThemeExtension extends ThemeExtension<ReaderThemeExtension> {
     ttsActiveColor: Color(0xFF66BB6A),
   );
 
+  /// 护眼色：暖米色底 + 棕褐文字，阅读器护眼色主题。
+  factory ReaderThemeExtension.sepia() => const ReaderThemeExtension(
+    textColor: Color(0xFF4A3F35),
+    mutedColor: Color(0xFF8B7E6E),
+    backgroundColor: Color(0xFFF8F4EA),
+    surfaceColor: Color(0xFFEFE9DA),
+    dividerColor: Color(0xFFD9D0BD),
+    accentColor: Color(0xFFA0522D),
+    ttsActiveColor: Color(0xFF2E7D32),
+  );
+
   @override
   ReaderThemeExtension copyWith({
     Color? textColor,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/theme/app_theme.dart';
 import 'package:zephyr_reader/core/theme/auto_theme_service.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
@@ -23,32 +24,27 @@ class ZephyrReaderApp extends HookWidget {
       return null;
     }, []);
 
-    // 使用 useFuture 处理异步的 SharedPreferences 初始化
-    final prefsFuture = useMemoized(() => SharedPreferences.getInstance(), []);
-    final prefs = useFuture(prefsFuture);
+    // 从 DI 获取 SharedPreferences 单例
+    final prefs = useMemoized(() => getIt<SharedPreferences>());
 
     // 使用 useSignalEffect 监听自动主题切换逻辑
-    if (prefs.hasData) {
-      final autoTheme = useMemoized(() => AutoThemeService(prefs.data!), [
-        prefs.data,
-      ]);
-
-      useSignalEffect(() {
-        if (autoTheme.autoThemeEnabled.value) {
-          themeManager.setThemeType(
-            autoTheme.isDarkModeTime ? AppThemeType.dark : AppThemeType.light,
-          );
-        }
-      });
-    }
+    final autoTheme = useMemoized(() => AutoThemeService(prefs));
+    useSignalEffect(() {
+      if (autoTheme.autoThemeEnabled.value) {
+        themeManager.themeType.value =
+          autoTheme.isDarkModeTime ? AppThemeType.dark : AppThemeType.light;
+      }
+    });
 
     return SignalBuilder(
       builder: (context) {
         return MaterialApp.router(
           routerConfig: router,
           debugShowCheckedModeBanner: false,
-          theme: AppThemes.lightTheme,
-          darkTheme: AppThemes.darkTheme,
+          theme: AppThemes.buildTheme(Brightness.light,
+            customPrimary: themeManager.customPrimaryColor.value),
+          darkTheme: AppThemes.buildTheme(Brightness.dark,
+            customPrimary: themeManager.customPrimaryColor.value),
           themeMode: themeManager.themeMode,
           localizationsDelegates: const [
             AppLocalizations.delegate,

@@ -4,11 +4,11 @@
 //! 所有带 `#[frb]` 的类型会自动暴露给 Dart 侧；
 //! 所有带 `#[derive(sqlx::FromRow)]` 的类型支持从 SQLite 自动映射。
 
+use crate::domain::PageContent;
 use chrono::{DateTime, Utc};
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::domain::PageContent;
 
 // ==================== 排版缓存 ====================
 
@@ -49,7 +49,7 @@ impl std::fmt::Display for LayoutCacheKey {
 /// 排版分页结果缓存（仅用于序列化存储，不以行形式入 DB）
 ///
 /// 此结构体未实现 `FromRow`，仅通过 serde 以 JSON/Blob 形式存取。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 pub struct LayoutCache {
     /// 缓存格式版本号，用于向后兼容校验
     pub version: u8,
@@ -60,7 +60,7 @@ pub struct LayoutCache {
     /// 总页数
     pub total_pages: i32,
     /// 缓存创建时间
-    pub created_at: DateTime<Utc>,
+    pub created_at: i64,
 }
 
 impl LayoutCache {
@@ -72,7 +72,7 @@ impl LayoutCache {
             config_hash,
             pages,
             total_pages,
-            created_at: Utc::now(),
+            created_at: Utc::now().timestamp(),
         }
     }
 
@@ -149,8 +149,13 @@ pub struct Bookmark {
 }
 
 impl Bookmark {
-
-    pub fn new(book_id: &str, chapter_index: i32, chapter_id: Option<String>,char_offset: i64, title: &str) -> Self {
+    pub fn new(
+        book_id: &str,
+        chapter_index: i32,
+        chapter_id: Option<String>,
+        char_offset: i64,
+        title: &str,
+    ) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
             book_id: book_id.to_string(),
@@ -168,38 +173,21 @@ impl Bookmark {
 //// 笔记类型
 ///
 /// 数据库中存储为小写文本（`highlight` / `annotation`）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, strum::AsRefStr, strum::EnumString,
+)]
+#[strum(serialize_all = "lowercase")]
 #[frb]
 pub enum NoteType {
     Highlight,
     Annotation,
 }
 
-impl NoteType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            NoteType::Highlight => "highlight",
-            NoteType::Annotation => "annotation",
-        }
-    }
-}
-
-impl std::str::FromStr for NoteType {
-    type Err = String;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "highlight" => Ok(NoteType::Highlight),
-            "annotation" => Ok(NoteType::Annotation),
-            _ => Err(format!("Unknown note type: {}", s)),
-        }
-    }
-}
-
 // 让 FromRow 能自动将 SQLite TEXT → NoteType
 impl TryFrom<String> for NoteType {
     type Error = String;
     fn try_from(s: String) -> Result<Self, Self::Error> {
-        s.parse()
+        s.parse().map_err(|e: strum::ParseError| e.to_string())
     }
 }
 
@@ -226,6 +214,7 @@ pub struct Note {
 
 impl Note {
     /// 创建高亮笔记
+    #[allow(clippy::too_many_arguments)]
     pub fn highlight(
         book_id: &str,
         chapter_index: i32,
@@ -285,7 +274,7 @@ impl Note {
     }
 }
 /// 笔记统计摘要（可直接从聚合查询映射）
-#[derive(Debug, Clone, Serialize, Deserialize,sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 #[frb(non_opaque, dart_metadata = ("freezed"))]
 pub struct NoteStats {
     pub total_count: i32,
@@ -346,7 +335,7 @@ pub struct ReadingStats {
     pub last_session_id: Option<String>,
 }
 // 单次聚合查询获取所有计数与求和指标
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize,sqlx::FromRow)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
 #[frb(non_opaque)]
 pub struct AggregatedStats {
     pub total_reading_time_seconds: i64,
@@ -360,7 +349,7 @@ pub struct AggregatedStats {
     pub today_characters_read: i64,
 }
 /// 全局阅读统计汇总（应用层计算，非直接 DB 映射）
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize,sqlx::FromRow)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
 #[frb(non_opaque, dart_metadata = ("freezed"))]
 pub struct GlobalStats {
     pub total_reading_time_seconds: i64,
@@ -381,49 +370,38 @@ pub struct GlobalStats {
 /// 书籍文件格式
 ///
 /// 数据库中存储为小写文本。`FromStr` 额外兼容 markdown 别名。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, strum::AsRefStr, strum::EnumString,
+)]
+#[strum(serialize_all = "lowercase")]
 #[frb]
 pub enum BookFormat {
+    #[strum(serialize = "txt", serialize = "text")]
     Txt,
     Epub,
     Pdf,
+    #[strum(
+        serialize = "md",
+        serialize = "markdown",
+        serialize = "mdown",
+        serialize = "mkdn"
+    )]
     Md,
-}
-
-impl BookFormat {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            BookFormat::Txt => "txt",
-            BookFormat::Epub => "epub",
-            BookFormat::Pdf => "pdf",
-            BookFormat::Md => "md",
-        }
-    }
-}
-
-impl std::str::FromStr for BookFormat {
-    type Err = String;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "txt" => Ok(BookFormat::Txt),
-            "epub" => Ok(BookFormat::Epub),
-            "pdf" => Ok(BookFormat::Pdf),
-            "md" | "markdown" | "mdown" | "mkdn" => Ok(BookFormat::Md),
-            _ => Err(format!("Unknown book format: {}", s)),
-        }
-    }
 }
 
 //
 impl TryFrom<String> for BookFormat {
     type Error = String;
     fn try_from(s: String) -> Result<Self, Self::Error> {
-        s.parse()
+        s.parse().map_err(|e: strum::ParseError| e.to_string())
     }
 }
 
 /// 书籍阅读状态
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, strum::AsRefStr, strum::EnumString,
+)]
+#[strum(serialize_all = "lowercase")]
 #[frb]
 pub enum BookStatus {
     Reading,
@@ -432,35 +410,11 @@ pub enum BookStatus {
     Planned,
 }
 
-impl BookStatus {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            BookStatus::Reading => "reading",
-            BookStatus::Completed => "completed",
-            BookStatus::Dropped => "dropped",
-            BookStatus::Planned => "planned",
-        }
-    }
-}
-
-impl std::str::FromStr for BookStatus {
-    type Err = String;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "reading" => Ok(BookStatus::Reading),
-            "completed" => Ok(BookStatus::Completed),
-            "dropped" => Ok(BookStatus::Dropped),
-            "planned" => Ok(BookStatus::Planned),
-            _ => Err(format!("Unknown book status: {}", s)),
-        }
-    }
-}
-
 //
 impl TryFrom<String> for BookStatus {
     type Error = String;
     fn try_from(s: String) -> Result<Self, Self::Error> {
-        s.parse()
+        s.parse().map_err(|e: strum::ParseError| e.to_string())
     }
 }
 
@@ -502,6 +456,7 @@ impl Book {
     /// - `last_opened_at` 初始为 `None`（尚未打开）
     /// - `status` 默认为 `Planned`（待读）
     /// - 可选元数据（author/description 等）由调用方按需传入
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         file_path: &str,
         file_size: i64,
@@ -541,7 +496,6 @@ impl Book {
         }
     }
 }
-
 
 /// 章节信息
 ///
@@ -631,9 +585,21 @@ impl Category {
 /// 生词学习状态
 ///
 /// 数据库中存储为小写文本（`new` / `learning` / `mastered` / `ignored`）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    sqlx::Type,
+    Default,
+    strum::AsRefStr,
+    strum::EnumString,
+)]
 #[sqlx(rename_all = "lowercase")]
-#[derive(Default)]
+#[strum(serialize_all = "lowercase")]
 #[frb]
 pub enum VocabStatus {
     /// 新词，尚未开始学习
@@ -647,40 +613,10 @@ pub enum VocabStatus {
     Ignored,
 }
 
-impl VocabStatus {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            VocabStatus::New => "new",
-            VocabStatus::Learning => "learning",
-            VocabStatus::Mastered => "mastered",
-            VocabStatus::Ignored => "ignored",
-        }
-    }
-}
-
-impl std::str::FromStr for VocabStatus {
-    type Err = String;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "new" => Ok(VocabStatus::New),
-            "learning" => Ok(VocabStatus::Learning),
-            "mastered" => Ok(VocabStatus::Mastered),
-            "ignored" => Ok(VocabStatus::Ignored),
-            _ => Err(format!("Unknown vocab status: {}", s)),
-        }
-    }
-}
-
 impl TryFrom<String> for VocabStatus {
     type Error = String;
     fn try_from(s: String) -> Result<Self, Self::Error> {
-        match s.as_str() {
-            "new" => Ok(VocabStatus::New),
-            "learning" => Ok(VocabStatus::Learning),
-            "mastered" => Ok(VocabStatus::Mastered),
-            "ignored" => Ok(VocabStatus::Ignored),
-            _ => Err(format!("Unknown vocab status: {}", s)),
-        }
+        s.parse().map_err(|e: strum::ParseError| e.to_string())
     }
 }
 /// 生词条目
@@ -716,6 +652,7 @@ impl Vocab {
     /// - `status` 默认为 `New`（新词）
     /// - `review_count` 初始为 0
     /// - 关联上下文（book_id/chapter_index 等）为可选参数
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         word: &str,
         pinyin: &str,

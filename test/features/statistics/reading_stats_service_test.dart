@@ -48,17 +48,33 @@ void main() {
       service.startReadingSession('book1', 0, 0);
       expect(service.isSessionActive.value, isTrue);
       expect(service.currentSessionId.value, isNotNull);
+      final discardedId = service.currentSessionId.value;
 
       // 立即结束，无阅读进度 → 会话应被丢弃（不保存）
+      // 注: session_api.createSession 是 FFI 调用，该 ViewModel 不支持注入 Mock，
+      // 此处验证可观测的契约：会话状态被清除，且后续可新建会话
       await service.endReadingSession(0);
 
       // 会话已清理
       expect(service.isSessionActive.value, isFalse);
       expect(service.currentSessionId.value, isNull);
 
-      // 丢弃后的行为应与 discardCurrentSession 一致：
-      //   - endReadingSession 应无操作
+      // 丢弃后结束会话应为空操作（内部状态已清空）
       await service.endReadingSession(50);
+      expect(service.isSessionActive.value, isFalse);
+      expect(service.currentSessionId.value, isNull);
+
+      // 丢弃后可正常开始新会话（证明内部上下文完全重置）
+
+      // 确保不同毫秒，避免 sessionId 碰撞
+      await Future.delayed(const Duration(milliseconds: 2));
+      service.startReadingSession('book2', 1, 100);
+      expect(service.isSessionActive.value, isTrue);
+      expect(service.currentSessionId.value, isNotNull);
+      expect(service.currentSessionId.value, isNot(equals(discardedId)));
+
+      // 新会话的 endReadingSession 也正常工作
+      await service.endReadingSession(150);
       expect(service.isSessionActive.value, isFalse);
       expect(service.currentSessionId.value, isNull);
     });

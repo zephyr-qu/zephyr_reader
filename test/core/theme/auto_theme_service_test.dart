@@ -11,7 +11,7 @@ void main() {
 
   group('AutoThemeService', () {
     late AutoThemeService service;
-    late MockSharedPreferences mockPrefs;
+    late _MockSharedPreferences mockPrefs;
 
     setUp(() async {
       mockPrefs = _MockSharedPreferences();
@@ -42,6 +42,7 @@ void main() {
         await service.enableAutoTheme();
 
         expect(service.autoThemeEnabled.value, isTrue);
+        await Future.delayed(const Duration(milliseconds: 200));
         verify(() => mockPrefs.setBool('auto_theme_enabled', true)).called(1);
       });
 
@@ -52,6 +53,7 @@ void main() {
 
         expect(service.autoThemeEnabled.value, isFalse);
         expect(service.themeMode.value, equals(ThemeMode.system));
+        await Future.delayed(const Duration(milliseconds: 200));
         verify(() => mockPrefs.setBool('auto_theme_enabled', false)).called(1);
       });
     });
@@ -63,6 +65,7 @@ void main() {
         expect(service.darkModeStartHour.value, equals(20));
         expect(service.darkModeEndHour.value, equals(7));
 
+        await Future.delayed(const Duration(milliseconds: 200));
         verify(() => mockPrefs.setInt('dark_mode_start_hour', 20)).called(1);
         verify(() => mockPrefs.setInt('dark_mode_end_hour', 7)).called(1);
       });

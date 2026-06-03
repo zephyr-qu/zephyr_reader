@@ -3,21 +3,25 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/theme/theme_extension.dart';
 import 'package:zephyr_reader/features/profile/application/profile_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 class ProfilePage extends HookWidget {
-  final ProfileViewModel vm;
-
-  const ProfilePage({super.key, required this.vm});
+  late final ProfileViewModel vm = getIt<ProfileViewModel>();
+  ProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final vm = useMemoized(() => getIt<ProfileViewModel>(), []);
 
     useEffect(() {
       vm.loadStats();
@@ -25,32 +29,53 @@ class ProfilePage extends HookWidget {
     }, []);
 
     final AsyncState<GlobalStats?> globalStats = useSignalValue(vm.globalStats);
-
     return Scaffold(
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+      body: Stack(
         children: [
-          const SizedBox(height: 52),
-          _buildHeader(context),
-          const SizedBox(height: 24),
-          _buildStatsRow(context, globalStats),
-          const SizedBox(height: 28),
-          _buildMenuSections(context),
-          const SizedBox(height: 40),
-          Center(
-            child: Text(
-              'Zephyr Reader v1.0.0',
-              style: theme.textTheme.labelLarge,
+          // Warm decorative wash
+          Positioned(
+            top: -60,
+            left: -40,
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    DesignTokens.warmAccent.withValues(alpha: 0.07),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 40),
+          ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            children: [
+              const SizedBox(height: 52),
+              _buildHeader(context),
+              const SizedBox(height: 24),
+              _buildStatsRow(context, globalStats),
+              const SizedBox(height: 28),
+              _buildMenuSections(context),
+              const SizedBox(height: 40),
+              Center(
+                child: Text(
+                  l10n.appVersionDisplay('1.0.0'),
+                  style: theme.textTheme.labelLarge,
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
         ],
-      ),
-    );
+      ));
   }
 
   Widget _buildHeader(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       children: [
         CircleAvatar(
@@ -68,13 +93,13 @@ class ProfilePage extends HookWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '书友',
+              l10n.profileDisplayName,
               style: theme.textTheme.headlineMedium?.copyWith(
                 letterSpacing: -0.3,
               ),
             ),
             const SizedBox(height: 2),
-            Text('阅读是一种生活态度', style: theme.textTheme.bodyMedium),
+            Text(l10n.profileTagline, style: theme.textTheme.bodyMedium),
           ],
         ),
       ],
@@ -86,6 +111,7 @@ class ProfilePage extends HookWidget {
     AsyncState<GlobalStats?> globalStats,
   ) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
           padding: const EdgeInsets.all(20),
@@ -115,14 +141,14 @@ class ProfilePage extends HookWidget {
               final streak = stats?.consecutiveReadingDays ?? 0;
               return Row(
                 children: [
-                  _statItem(context, '$streak', '连续天数', PhosphorIconsFill.fire),
+                  _statItem(context, '$streak', l10n.consecutiveDaysLabel, PhosphorIconsFill.fire),
                   _divider(),
-                  _statItem(context, '$books', '在读', PhosphorIconsRegular.book),
+                  _statItem(context, '$books', l10n.reading, PhosphorIconsRegular.book),
                   _divider(),
                   _statItem(
                     context,
                     '$hours',
-                    '阅读时长',
+                    l10n.readingTime,
                     PhosphorIconsRegular.clock,
                   ),
                 ],
@@ -178,64 +204,64 @@ class ProfilePage extends HookWidget {
   }
 
   Widget _buildMenuSections(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final sections = [
-      _MenuSectionData('学习与管理', [
+      _MenuSectionData(l10n.sectionStudyMgmt, [
         _MenuItemData(
           PhosphorIconsRegular.bookOpen,
-          '学习与笔记',
+          l10n.learningNotes,
           MenuItemSemantic.education,
           () => context.push(RoutePaths.learningNotes),
         ),
         _MenuItemData(
           PhosphorIconsRegular.clockCounterClockwise,
-          '阅读会话',
+          l10n.readingSessions,
           MenuItemSemantic.reading,
           () => context.push(RoutePaths.readingSessions),
         ),
-        _MenuItemData.withBadge(
-          PhosphorIconsRegular.arrowsClockwise,
-          '数据同步',
-          MenuItemSemantic.success,
-          '已同步',
-          () => context.push(RoutePaths.sync),
-        ),
         _MenuItemData(
           PhosphorIconsRegular.hardDrives,
-          '存储与同步',
+          l10n.storageSync,
           MenuItemSemantic.success,
           () => context.push(RoutePaths.storageSync),
         ),
       ]),
-      _MenuSectionData('阅读体验', [
+      _MenuSectionData(l10n.sectionReadingExp, [
         _MenuItemData(
           PhosphorIconsRegular.waveform,
-          '朗读设置',
+          l10n.ttsSettings,
           MenuItemSemantic.info,
           () => context.push(RoutePaths.ttsSettings),
         ),
         _MenuItemData(
           PhosphorIconsRegular.textB,
-          '排版与字体',
+          l10n.typographySettings,
           MenuItemSemantic.typography,
           () => context.push(RoutePaths.typographySettings),
         ),
         _MenuItemData(
           PhosphorIconsRegular.palette,
-          '主题与亮度',
+          l10n.themeBrightness,
           MenuItemSemantic.primary,
           () => context.push(RoutePaths.themeBrightness),
         ),
       ]),
-      _MenuSectionData('系统', [
+      _MenuSectionData(l10n.sectionSystem, [
+        _MenuItemData(
+          PhosphorIconsRegular.hardDrive,
+          l10n.backupRestore,
+          MenuItemSemantic.success,
+          () => context.push(RoutePaths.localBackup),
+        ),
         _MenuItemData(
           PhosphorIconsRegular.dotsThreeOutline,
-          '其他设置',
+          l10n.otherSettings,
           MenuItemSemantic.neutral,
           () => context.push(RoutePaths.otherSettings),
         ),
         _MenuItemData(
           PhosphorIconsRegular.info,
-          '关于',
+          l10n.about,
           MenuItemSemantic.about,
           () => context.push(RoutePaths.about),
         ),
@@ -265,7 +291,7 @@ class ProfilePage extends HookWidget {
     return Text(
       section.label,
       style: theme.textTheme.labelLarge?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+        color: theme.colorScheme.outline,
         letterSpacing: 0.4,
       ),
     );
@@ -298,6 +324,7 @@ class ProfilePage extends HookWidget {
 
   Widget _buildMenuItem(BuildContext context, _MenuItemData item, int index) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -307,7 +334,7 @@ class ProfilePage extends HookWidget {
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.15),
+                color: context.appTheme.dividerSubtle,
                 width: 0.5,
               ),
             ),
@@ -318,12 +345,6 @@ class ProfilePage extends HookWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: item.semantic.iconBackground,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  item.icon,
-                  size: 17,
                   color: item.semantic.iconBackground(theme.brightness),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -337,8 +358,7 @@ class ProfilePage extends HookWidget {
               Expanded(
                 child: Text(
                   item.title,
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: theme.textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w500,
                     color: theme.colorScheme.onSurface,
                   ),
@@ -352,17 +372,19 @@ class ProfilePage extends HookWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: item.badge == '已同步'
-                        ? MenuItemSemantic.success.iconColor(theme.brightness).withValues(
-                            alpha: 0.1,
-                          )
-                        : item.semantic.iconColor(theme.brightness).withValues(alpha: 0.1),
+                    color: item.badge == l10n.synced
+                        ? MenuItemSemantic.success
+                              .iconColor(theme.brightness)
+                              .withValues(alpha: 0.1)
+                        : item.semantic
+                              .iconColor(theme.brightness)
+                              .withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     item.badge!,
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: item.badge == '已同步'
+                      color: item.badge == l10n.synced
                           ? MenuItemSemantic.success.iconColor(theme.brightness)
                           : item.semantic.iconColor(theme.brightness),
                     ),
@@ -371,9 +393,7 @@ class ProfilePage extends HookWidget {
               Icon(
                 PhosphorIconsRegular.caretRight,
                 size: 16,
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.4,
-                ),
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ],
           ),
@@ -397,11 +417,4 @@ class _MenuItemData {
   final VoidCallback onTap;
   const _MenuItemData(this.icon, this.title, this.semantic, this.onTap)
     : badge = null;
-  const _MenuItemData.withBadge(
-    this.icon,
-    this.title,
-    this.semantic,
-    this.badge,
-    this.onTap,
-  );
 }

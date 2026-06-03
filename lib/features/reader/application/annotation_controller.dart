@@ -1,3 +1,4 @@
+import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -7,6 +8,7 @@ import '../domain/services/highlight_painter.dart';
 /// 划词批注控制器
 ///
 /// 管理选中文本、高亮和笔记的增删查，直接调用 Rust API。
+@injectable
 class AnnotationController {
   AnnotationController();
 
@@ -105,6 +107,11 @@ class AnnotationController {
   /// 删除高亮/笔记
   Future<void> deleteNote(String noteId) async {
     await note_api.deleteNote(noteId: noteId);
+  }
+
+  /// 更新笔记内容（upsert）
+  Future<void> updateNote(Note note) async {
+    await note_api.upsertNote(note: note);
   }
 
   void dispose() {

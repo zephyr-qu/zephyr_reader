@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -7,6 +9,7 @@ import '../data/repositories/rust_reader_repository.dart';
 /// 书签控制器
 ///
 /// 管理书签列表的增删查，不依赖其他 Controller。
+@injectable
 class BookmarkController {
   final ReaderRepository _repo;
 

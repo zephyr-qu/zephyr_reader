@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:signals_flutter/signals_flutter.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -31,12 +30,12 @@ void main() {
 
               // 渲染内容以触发 hooks
               return Column(
+                textDirection: TextDirection.ltr,
                 children: [
                   Text('isSearching: ${isSearching.value}'),
                   Text('batchMode: ${batchMode.value}'),
                   Text('selectedIds: ${selectedIds.value.length}'),
                 ],
-                textDirection: TextDirection.ltr,
               );
             },
           ),
@@ -64,11 +63,11 @@ void main() {
               isSearching = useSignal(false);
               batchMode = useSignal(false);
               return Column(
+                textDirection: TextDirection.ltr,
                 children: [
                   Text('isSearching: ${isSearching.value}'),
                   Text('batchMode: ${batchMode.value}'),
                 ],
-                textDirection: TextDirection.ltr,
               );
             },
           ),

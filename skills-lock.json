@@ -1,11 +1,29 @@
 {
   "version": 1,
   "skills": {
+    "grill-me": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/grill-me/SKILL.md",
+      "computedHash": "daf64ca15f4fa081a6747766db538e2dbd1131725ed4fcdd3d538dc62c7035ba"
+    },
     "mobile-design": {
       "source": "sickn33/antigravity-awesome-skills",
       "sourceType": "github",
       "skillPath": "skills/mobile-design/SKILL.md",
       "computedHash": "5b8b0be787a5ba9c3ecf51f652e784a59b449af211beb026ce7c668a9a14b88f"
+    },
+    "rust-engineer": {
+      "source": "jeffallan/claude-skills",
+      "sourceType": "github",
+      "skillPath": "skills/rust-engineer/SKILL.md",
+      "computedHash": "f0e5c7c88f0fddb98e0d54db368f3fb5c8d733001deda126ffc9cc1971ded9da"
+    },
+    "rust-ffi": {
+      "source": "mohitmishra786/low-level-dev-skills",
+      "sourceType": "github",
+      "skillPath": "skills/rust/rust-ffi/SKILL.md",
+      "computedHash": "84600f8dbf22c11e9236ec740294c85f12221424b8d5c6093182fd61e1a71ab7"
     },
     "signals-dart": {
       "source": "rodydavis/signals.dart",

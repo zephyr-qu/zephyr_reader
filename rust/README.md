@@ -60,7 +60,7 @@ Zephyr Reader 的高性能阅读引擎，基于 Rust 实现，提供书籍解析
 
 ### 🔍 全文搜索
 
-- 基于 Tantivy 搜索引擎
+- 基于 SQLite FTS5 + jieba-rs 分词
 - 章节内容索引
 - 书籍内搜索
 - 高性能查询
@@ -161,6 +161,7 @@ rust/
 │   │   ├── bilingual.rs              # 双语对齐
 │   │   ├── rich_text.rs              # 富文本解析
 │   │   ├── css.rs                    # CSS 样式处理
+│   │   ├── char_width.rs              # 字符宽度计算
 │   │   └── constants.rs              # 常量定义
 │   │
 │   ├── storage/                      # 数据库存储层
@@ -184,7 +185,7 @@ rust/
 │   │
 │   ├── search/                       # 搜索引擎
 │   │   ├── mod.rs                    # 模块声明
-│   │   └── engine.rs                 # Tantivy 搜索引擎
+│   │   └── engine.rs                 # SQLite FTS5 搜索引擎
 │   │
 │   ├── dictionary/                   # 词典引擎
 │   │   ├── mod.rs                    # 模块声明
@@ -217,223 +218,6 @@ rust/
 └── Cargo.lock                        # 依赖锁定文件
 ```
 
-
-## 环境要求
-
-### 必需工具
-
-1. **Rust 工具链** (Edition 2021+)
-   ```bash
-   # 安装 Rust
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-   # 验证安装
-   rustc --version
-   cargo --version
-   ```
-
-2. **Android 交叉编译支持** (仅 Android)
-   ```bash
-   rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
-   ```
-
-3. **C 编译器**
-   - **Windows**: Visual Studio Build Tools 2019+
-   - **Linux**: gcc, clang
-   - **macOS**: Xcode Command Line Tools
-
-## 构建命令
-
-### 检查编译
-
-```bash
-cd rust/
-cargo check
-```
-
-### 开发构建
-
-```bash
-cargo build
-```
-
-### 发布构建
-
-```bash
-cargo build --release
-```
-
-### 生成 FRB 绑定代码
-
-在项目根目录运行：
-
-```bash
-flutter_rust_bridge_codegen build
-```
-
-### 运行测试
-
-```bash
-cargo test
-```
-
-## API 接口
-
-> 完整 API 文档请查看 [`RUST_EXPOSED_APIS.md`](../RUST_EXPOSED_APIS.md)
-
-### 初始化
-
-```
-// Rust
-#[flutter_rust_bridge::frb(init)]
-pub fn init_app() {
-    flutter_rust_bridge::setup_default_user_utils();
-}
-```
-
-```dart
-// Dart
-await RustLib.init();
-rust_core.initApp();
-```
-
-### 解析书籍
-
-```
-// 自动识别格式
-final result = rust_api.parseBook(filePath: path);
-
-// 提取元数据
-final metadata = rust_api.extractMetadata(filePath: path);
-
-// Markdown 解析
-final mdContent = rust_md.parseMarkdownFile(filePath: path);
-```
-
-### 获取章节内容
-
-```
-// 获取 TXT 章节
-final pages = rust_core.getTxtChapterContent(
-  filePath: path,
-  chapterIndex: index,
-  config: typesetConfig,
-);
-
-// 获取 EPUB 章节
-final epubPages = rust_epub.getEpubChapterContent(
-  filePath: path,
-  chapterId: chapterId,
-  config: typesetConfig,
-);
-
-// 获取 EPUB 富文本内容
-final richContent = rust_epub.getEpubChapterRichContent(
-  filePath: path,
-  chapterId: chapterId,
-  config: typesetConfig,
-);
-```
-
-### 文本排版
-
-```
-// 基础排版
-final typeset = rust_core.typesetText(
-  content: text,
-  language: 'zh',
-  config: typesetConfig,
-);
-
-// 带连字的排版
-final typesetWithHyphen = rust_typeset.typesetContentWithHyphenation(
-  content: text,
-  language: 'en',
-  config: typesetConfig,
-  enableHyphenation: true,
-);
-```
-
-### 双语对齐
-
-```
-// 带相似度阈值的双语对齐
-final alignment = rust_bilingual.alignBilingualContent(
-  chineseContent: chineseText,
-  englishContent: englishText,
-  minSimilarity: 0.8,
-);
-
-// 简单双语对齐
-final simpleAlignment = rust_bilingual.simpleBilingualAlign(
-  chineseContent: chineseText,
-  englishContent: englishText,
-);
-```
-
-### 词典查询
-
-```
-// 查询词汇
-final definition = rust_dictionary.lookupWord(
-  word: 'example',
-  dictionaryPath: dictPath,
-);
-
-// 分词
-final tokens = rust_dictionary.tokenize(
-  text: '这是一个测试文本',
-  language: 'zh',
-);
-```
-
-### 全文搜索
-
-```
-// 初始化搜索引擎
-await rust_search.initSearchEngine(dbPath: dbPath);
-
-// 索引章节内容
-await rust_search.indexChapterContent(
-  bookId: bookId,
-  chapterId: chapterId,
-  chapterTitle: title,
-  content: content,
-);
-
-// 在书籍中搜索
-final results = await rust_search.searchInBook(
-  bookId: bookId,
-  query: '搜索词',
-  limit: 20,
-);
-```
-
-### 数据库存储
-
-```
-// 书籍管理
-final books = await rust_storage.getAllBooks();
-await rust_storage.saveBook(book: bookRecord);
-await rust_storage.deleteBook(bookId: bookId);
-final searchBooks = await rust_storage.searchBooks(keyword: '关键词');
-
-// 阅读进度
-final progress = await rust_storage.getReadingProgress(bookId: bookId);
-await rust_storage.saveReadingProgress(progress: progress);
-
-// 书签管理
-final bookmarks = await rust_storage.getBookmarks(bookId: bookId);
-await rust_storage.createBookmark(bookmark: bookmark);
-
-// 阅读统计
-final todayStats = await rust_storage.getTodayReadingStats();
-final rangeStats = await rust_storage.getReadingStatsRange(
-  startDate: '2024-01-01',
-  endDate: '2024-12-31',
-);
-```
-
 ## 数据结构
 
 ### 核心类型
@@ -462,10 +246,12 @@ pub struct BookMetadata {
 #### PageContent
 ```
 pub struct PageContent {
-    pub chapter_id: i32,
+    pub chapter_index: i32,
     pub page_index: i32,
     pub content: String,
     pub is_last_page: bool,
+    pub start_offset: i64,
+    pub end_offset: i64,
 }
 ```
 
@@ -546,53 +332,36 @@ pub struct DbBookmark {
 ```
 pub struct SearchResult {
     pub book_id: String,
-    pub chapter_id: i32,
+    pub chapter_id: String,
+    pub chapter_index: String,
     pub chapter_title: String,
     pub snippet: String,
+    pub position: i64,
     pub score: f32,
-    pub character_offset: i64,
+    pub char_offset: i64,
 }
 ```
 
 ### 双语对齐类型
 
+#### AlignedSegment
+```
+pub struct AlignedSegment {
+    pub chinese: String,
+    pub english: String,
+    pub similarity_score: f32,
+    pub chinese_position: usize,
+    pub english_position: usize,
+}
+
 #### BilingualAlignment
 ```
 pub struct BilingualAlignment {
-    pub pairs: Vec<(String, String)>,
-    pub confidence: f32,
+    pub segments: Vec<AlignedSegment>,
+    pub unmatched_chinese: Vec<String>,
+    pub unmatched_english: Vec<String>,
 }
 ```
-
-## 支持的格式
-
-| 格式 | 解析 | 元数据 | 封面 | 搜索 |
-|------|------|--------|------|------|
-| TXT  | ✅   | ✅     | ❌   | ✅   |
-| EPUB | ✅   | ✅     | ✅   | ✅   |
-| PDF  | ✅   | ✅     | ✅   | ✅   |
-| Markdown | ✅ | ✅     | ❌   | ✅   |
-
-## 错误处理
-
-所有 API 调用返回 `ApiResult<T>` 类型，建议使用 try-catch 处理：
-
-```
-try {
-  final result = rust_core.parseBook(filePath: path);
-  // 处理结果
-} catch (e) {
-  // 处理错误
-  print('解析失败：$e');
-}
-```
-
-常见错误类型：
-- `FileNotFound` - 文件不存在
-- `UnsupportedFormat` - 不支持的文件格式
-- `ParseError` - 解析错误
-- `DatabaseError` - 数据库操作错误
-- `SearchError` - 搜索引擎错误
 
 ## 性能优化
 
@@ -610,7 +379,7 @@ try {
 
 ### 搜索优化
 
-1. **倒排索引**: 基于 Tantivy 的倒排索引
+1. **倒排索引**: 基于 SQLite FTS5 的倒排索引
 2. **限制结果**: 使用 `limit` 参数限制搜索结果数量
 3. **增量索引**: 支持增量更新搜索索引
 
@@ -619,6 +388,16 @@ try {
 1. **分页加载**: 使用分页 API 按需加载内容
 2. **及时释放**: 不再使用的页面内容及时释放
 3. **缓存清理**: 定期清理过期缓存 (`cleanupExpiredLayoutCache`)
+
+### 引擎优化（2026-05）
+
+近期完成的 Rust 引擎内存与分配优化：
+
+- **双语对齐**: 句子分割改用字节索引追踪，消除逐字 String 分配；grapheme 预分后复用，对齐窗口扫描中不再重复 Unicode 分词
+- **分页引擎**: 页面内容预构建为 `page_contents: Vec<String>`，翻页时直接克隆而非逐行拼接；全文 `char_indices` 一次计算段落复用
+- **搜索引擎**: 索引分块改为直接 char_indices 边界切分，避免 `Vec<char>` 中间分配；批量 INSERT 使用 `QueryBuilder::push_values` 减少 SQLite round-trip
+
+优化详情见源码注释（`compute_line_breaks_from_indices`、`levenshtein_distance_graphemes`、`calculate_similarity_graphemes`）。
 
 ## 开发注意事项
 
@@ -636,56 +415,3 @@ try {
 8. **解析器注册表**: 使用 `registry.rs` 管理所有解析器实例，支持动态扩展
 9. **KV 存储**: `kv_store.rs` 提供键值存储功能，用于缓存和配置
 10. **布局缓存仓储**: `layout_cache_repo.rs` 专门管理排版缓存，加速重复访问
-
-## API 分类
-
-### 同步 API (`#[frb(sync)]`)
-
-直接在 Dart 调用，适合快速操作：
-- 书籍解析 (`book.rs`)
-- 文本排版 (`typeset.rs`)
-- 双语对齐 (`bilingual.rs`)
-- 封面提取 (`cover.rs`)
-- 文件格式检查
-
-### 异步 API (`#[frb]` 默认)
-
-在后台执行，不阻塞 UI：
-- 数据库操作 (`data/`)
-- 搜索操作 (`search.rs`)
-- 词典查询 (`dictionary.rs`)
-- 阅读统计 (`data/stats.rs`)
-- 生词本管理 (`data/vocabulary.rs`)
-
-### 特殊 API
-
-- `init_app()` - 初始化应用（位于 `init.rs`）
-- `init_storage()` - 初始化存储层
-- `init_search_engine()` - 初始化搜索引擎
-
-## 测试
-
-运行单元测试：
-
-```
-cargo test
-```
-
-测试覆盖：
-- 编码检测
-- 章节提取
-- 断行规则
-- 排版优化
-- 文件流读取
-- 数据库操作
-- 搜索引擎
-
-## 完整 API 列表
-
-查看完整的 API 文档：[`RUST_EXPOSED_APIS.md`](../RUST_EXPOSED_APIS.md)
-
-包含 **104 个公开函数**，分布在 **14 个模块**中。
-
-## 许可证
-
-本项目为个人自用项目，不对外分发。

@@ -128,6 +128,12 @@ abstract class AppLocalizations {
   /// **'我的'**
   String get tabProfile;
 
+  /// No description provided for @back.
+  ///
+  /// In zh, this message translates to:
+  /// **'返回'**
+  String get back;
+
   /// No description provided for @continueReading.
   ///
   /// In zh, this message translates to:
@@ -1201,6 +1207,1056 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'轻如风，阅无界'**
   String get splashTagline;
+
+  /// No description provided for @bookshelfSearchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索书籍...'**
+  String get bookshelfSearchHint;
+
+  /// No description provided for @bookshelfSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'书架设置'**
+  String get bookshelfSettings;
+
+  /// No description provided for @bookshelfEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'书架空空如也'**
+  String get bookshelfEmpty;
+
+  /// No description provided for @closeSearch.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭搜索'**
+  String get closeSearch;
+
+  /// No description provided for @scanFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'扫描文件夹'**
+  String get scanFolder;
+
+  /// No description provided for @batchManage.
+  ///
+  /// In zh, this message translates to:
+  /// **'批量管理'**
+  String get batchManage;
+
+  /// No description provided for @globalSearch.
+  ///
+  /// In zh, this message translates to:
+  /// **'全局搜索'**
+  String get globalSearch;
+
+  /// No description provided for @editCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑分类'**
+  String get editCategory;
+
+  /// No description provided for @markAsUnread.
+  ///
+  /// In zh, this message translates to:
+  /// **'标记为未开始'**
+  String get markAsUnread;
+
+  /// No description provided for @markAsReading.
+  ///
+  /// In zh, this message translates to:
+  /// **'标记为阅读中'**
+  String get markAsReading;
+
+  /// No description provided for @reExtractCover.
+  ///
+  /// In zh, this message translates to:
+  /// **'补提取封面'**
+  String get reExtractCover;
+
+  /// No description provided for @unpin.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消置顶'**
+  String get unpin;
+
+  /// No description provided for @pinTop.
+  ///
+  /// In zh, this message translates to:
+  /// **'置顶'**
+  String get pinTop;
+
+  /// No description provided for @selectCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择分类'**
+  String get selectCategory;
+
+  /// No description provided for @bookImported.
+  ///
+  /// In zh, this message translates to:
+  /// **'已导入：{title}'**
+  String bookImported(String title);
+
+  /// No description provided for @importFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入失败：{error}'**
+  String importFailed(String error);
+
+  /// No description provided for @scanningFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在扫描文件夹...'**
+  String get scanningFolder;
+
+  /// No description provided for @noBookFilesFound.
+  ///
+  /// In zh, this message translates to:
+  /// **'未找到书籍文件'**
+  String get noBookFilesFound;
+
+  /// No description provided for @scanComplete.
+  ///
+  /// In zh, this message translates to:
+  /// **'扫描完成，导入了 {count} 本书'**
+  String scanComplete(int count);
+
+  /// No description provided for @showReadingProgress.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示阅读进度'**
+  String get showReadingProgress;
+
+  /// No description provided for @showRecentReading.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示最近阅读'**
+  String get showRecentReading;
+
+  /// No description provided for @defaultSort.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认排序'**
+  String get defaultSort;
+
+  /// No description provided for @selectSortMethod.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择排序方式'**
+  String get selectSortMethod;
+
+  /// No description provided for @moveCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'移动分类'**
+  String get moveCategory;
+
+  /// No description provided for @changeStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'更改状态'**
+  String get changeStatus;
+
+  /// No description provided for @apply.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用'**
+  String get apply;
+
+  /// No description provided for @selectedBooksCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已选 {count} 本'**
+  String selectedBooksCount(int count);
+
+  /// No description provided for @bookInfo.
+  ///
+  /// In zh, this message translates to:
+  /// **'书籍信息'**
+  String get bookInfo;
+
+  /// No description provided for @chapterCountLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'章节数'**
+  String get chapterCountLabel;
+
+  /// No description provided for @totalChars.
+  ///
+  /// In zh, this message translates to:
+  /// **'总字符'**
+  String get totalChars;
+
+  /// No description provided for @addedTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加时间'**
+  String get addedTime;
+
+  /// No description provided for @chapterList.
+  ///
+  /// In zh, this message translates to:
+  /// **'章节列表'**
+  String get chapterList;
+
+  /// No description provided for @collapse.
+  ///
+  /// In zh, this message translates to:
+  /// **'收起'**
+  String get collapse;
+
+  /// No description provided for @viewAllChapters.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看全部 {count} 章'**
+  String viewAllChapters(int count);
+
+  /// No description provided for @category.
+  ///
+  /// In zh, this message translates to:
+  /// **'分类'**
+  String get category;
+
+  /// No description provided for @weeklyReadingTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'本周阅读时长'**
+  String get weeklyReadingTime;
+
+  /// No description provided for @dangerZone.
+  ///
+  /// In zh, this message translates to:
+  /// **'危险操作'**
+  String get dangerZone;
+
+  /// No description provided for @deleteBook.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除本书'**
+  String get deleteBook;
+
+  /// No description provided for @confirmDeleteBookMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要删除本书吗？此操作不可恢复。'**
+  String get confirmDeleteBookMessage;
+
+  /// No description provided for @deleteFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除失败：{error}'**
+  String deleteFailed(String error);
+
+  /// No description provided for @loadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'加载失败'**
+  String get loadFailed;
+
+  /// No description provided for @appearanceSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'外观主题'**
+  String get appearanceSection;
+
+  /// No description provided for @readingModeSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'阅读模式'**
+  String get readingModeSection;
+
+  /// No description provided for @layoutSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'版面布局'**
+  String get layoutSection;
+
+  /// No description provided for @typographySection.
+  ///
+  /// In zh, this message translates to:
+  /// **'文字排版'**
+  String get typographySection;
+
+  /// No description provided for @searchInChapterHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'在章节内搜索...'**
+  String get searchInChapterHint;
+
+  /// No description provided for @previous.
+  ///
+  /// In zh, this message translates to:
+  /// **'上一个'**
+  String get previous;
+
+  /// No description provided for @next.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一个'**
+  String get next;
+
+  /// No description provided for @currentlyReading.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在阅读'**
+  String get currentlyReading;
+
+  /// No description provided for @setBilingualTranslation.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置对照译文'**
+  String get setBilingualTranslation;
+
+  /// No description provided for @pasteTranslationHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'粘贴或输入当前章节的译文内容：'**
+  String get pasteTranslationHint;
+
+  /// No description provided for @addNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加笔记'**
+  String get addNote;
+
+  /// No description provided for @noteHintText.
+  ///
+  /// In zh, this message translates to:
+  /// **'输入你的笔记内容…'**
+  String get noteHintText;
+
+  /// No description provided for @editNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑笔记'**
+  String get editNote;
+
+  /// No description provided for @deleteHighlight.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除高亮'**
+  String get deleteHighlight;
+
+  /// No description provided for @profileDisplayName.
+  ///
+  /// In zh, this message translates to:
+  /// **'书友'**
+  String get profileDisplayName;
+
+  /// No description provided for @profileTagline.
+  ///
+  /// In zh, this message translates to:
+  /// **'阅读是一种生活态度'**
+  String get profileTagline;
+
+  /// No description provided for @consecutiveDaysLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'连续天数'**
+  String get consecutiveDaysLabel;
+
+  /// No description provided for @sectionStudyMgmt.
+  ///
+  /// In zh, this message translates to:
+  /// **'学习与管理'**
+  String get sectionStudyMgmt;
+
+  /// No description provided for @sectionReadingExp.
+  ///
+  /// In zh, this message translates to:
+  /// **'阅读体验'**
+  String get sectionReadingExp;
+
+  /// No description provided for @sectionSystem.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统'**
+  String get sectionSystem;
+
+  /// No description provided for @learningNotes.
+  ///
+  /// In zh, this message translates to:
+  /// **'学习与笔记'**
+  String get learningNotes;
+
+  /// No description provided for @readingSessions.
+  ///
+  /// In zh, this message translates to:
+  /// **'阅读会话'**
+  String get readingSessions;
+
+  /// No description provided for @storageSync.
+  ///
+  /// In zh, this message translates to:
+  /// **'存储与同步'**
+  String get storageSync;
+
+  /// No description provided for @ttsSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'朗读设置'**
+  String get ttsSettings;
+
+  /// No description provided for @typographySettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'排版与字体'**
+  String get typographySettings;
+
+  /// No description provided for @themeBrightness.
+  ///
+  /// In zh, this message translates to:
+  /// **'主题与亮度'**
+  String get themeBrightness;
+
+  /// No description provided for @otherSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'其他设置'**
+  String get otherSettings;
+
+  /// No description provided for @synced.
+  ///
+  /// In zh, this message translates to:
+  /// **'已同步'**
+  String get synced;
+
+  /// No description provided for @appVersionDisplay.
+  ///
+  /// In zh, this message translates to:
+  /// **'Zephyr Reader v{version}'**
+  String appVersionDisplay(String version);
+
+  /// No description provided for @appIntroduction.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用介绍'**
+  String get appIntroduction;
+
+  /// No description provided for @coreFeatures.
+  ///
+  /// In zh, this message translates to:
+  /// **'核心特性'**
+  String get coreFeatures;
+
+  /// No description provided for @techStack.
+  ///
+  /// In zh, this message translates to:
+  /// **'技术栈'**
+  String get techStack;
+
+  /// No description provided for @moreInfo.
+  ///
+  /// In zh, this message translates to:
+  /// **'更多信息'**
+  String get moreInfo;
+
+  /// No description provided for @checkUpdate.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查更新'**
+  String get checkUpdate;
+
+  /// No description provided for @openSourceLicense.
+  ///
+  /// In zh, this message translates to:
+  /// **'开源许可证'**
+  String get openSourceLicense;
+
+  /// No description provided for @feedback.
+  ///
+  /// In zh, this message translates to:
+  /// **'问题反馈'**
+  String get feedback;
+
+  /// No description provided for @alreadyLatestVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'已是最新版本'**
+  String get alreadyLatestVersion;
+
+  /// No description provided for @cannotOpenLink.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法打开链接'**
+  String get cannotOpenLink;
+
+  /// No description provided for @aboutFeature1.
+  ///
+  /// In zh, this message translates to:
+  /// **'纯离线使用，无需网络'**
+  String get aboutFeature1;
+
+  /// No description provided for @aboutFeature2.
+  ///
+  /// In zh, this message translates to:
+  /// **'支持 EPUB、TXT、PDF 格式'**
+  String get aboutFeature2;
+
+  /// No description provided for @aboutFeature3.
+  ///
+  /// In zh, this message translates to:
+  /// **'智能排版引擎'**
+  String get aboutFeature3;
+
+  /// No description provided for @aboutFeature4.
+  ///
+  /// In zh, this message translates to:
+  /// **'双语对照阅读'**
+  String get aboutFeature4;
+
+  /// No description provided for @aboutFeature5.
+  ///
+  /// In zh, this message translates to:
+  /// **'生词本与学习记录'**
+  String get aboutFeature5;
+
+  /// No description provided for @aboutFeature6.
+  ///
+  /// In zh, this message translates to:
+  /// **'WebDAV 多端同步'**
+  String get aboutFeature6;
+
+  /// No description provided for @copyrightFooter.
+  ///
+  /// In zh, this message translates to:
+  /// **'© 2026 Zephyr Reader'**
+  String get copyrightFooter;
+
+  /// No description provided for @madeWithFooter.
+  ///
+  /// In zh, this message translates to:
+  /// **'Made with Flutter · Rust · ❤'**
+  String get madeWithFooter;
+
+  /// No description provided for @errorFileNotFound.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件不存在'**
+  String get errorFileNotFound;
+
+  /// No description provided for @errorFileReadError.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件读取失败'**
+  String get errorFileReadError;
+
+  /// No description provided for @errorUnsupportedFormat.
+  ///
+  /// In zh, this message translates to:
+  /// **'不支持的格式'**
+  String get errorUnsupportedFormat;
+
+  /// No description provided for @errorEpubParse.
+  ///
+  /// In zh, this message translates to:
+  /// **'EPUB 解析错误'**
+  String get errorEpubParse;
+
+  /// No description provided for @errorDatabase.
+  ///
+  /// In zh, this message translates to:
+  /// **'数据库错误'**
+  String get errorDatabase;
+
+  /// No description provided for @errorInternal.
+  ///
+  /// In zh, this message translates to:
+  /// **'内部错误'**
+  String get errorInternal;
+
+  /// No description provided for @errorTaskPanic.
+  ///
+  /// In zh, this message translates to:
+  /// **'任务执行异常：{task}'**
+  String errorTaskPanic(String task);
+
+  /// No description provided for @selectDictionaryFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择词典文件'**
+  String get selectDictionaryFile;
+
+  /// No description provided for @selectMdxDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'请选择一个 .mdx 格式的词典文件…'**
+  String get selectMdxDescription;
+
+  /// No description provided for @invalidMdxFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'请选择有效的 .mdx 文件'**
+  String get invalidMdxFile;
+
+  /// No description provided for @dictionaryLoadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'词典加载失败，请检查文件是否有效'**
+  String get dictionaryLoadFailed;
+
+  /// No description provided for @pronunciation.
+  ///
+  /// In zh, this message translates to:
+  /// **'发音'**
+  String get pronunciation;
+
+  /// No description provided for @noExactMatch.
+  ///
+  /// In zh, this message translates to:
+  /// **'未找到精确匹配，您是否想查：'**
+  String get noExactMatch;
+
+  /// No description provided for @wordSegmentation.
+  ///
+  /// In zh, this message translates to:
+  /// **'分词：'**
+  String get wordSegmentation;
+
+  /// No description provided for @bilingualNoAlignment.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有对照译文，无法创建双语高亮'**
+  String get bilingualNoAlignment;
+
+  /// No description provided for @bilingualNoParagraph.
+  ///
+  /// In zh, this message translates to:
+  /// **'未找到对应的段落'**
+  String get bilingualNoParagraph;
+
+  /// No description provided for @bilingualHighlightCreated.
+  ///
+  /// In zh, this message translates to:
+  /// **'双语高亮已创建'**
+  String get bilingualHighlightCreated;
+
+  /// No description provided for @selectFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择文件'**
+  String get selectFile;
+
+  /// No description provided for @categoryManagement.
+  ///
+  /// In zh, this message translates to:
+  /// **'标签管理'**
+  String get categoryManagement;
+
+  /// 简体中文翻译 - 关于页面标题
+  ///
+  /// In zh, this message translates to:
+  /// **'关于'**
+  String get aboutTitle;
+
+  /// 简体中文翻译 - 应用标语
+  ///
+  /// In zh, this message translates to:
+  /// **'如和风般轻盈的阅读体验'**
+  String get aboutTagline;
+
+  /// 简体中文翻译 - 核心特性分区标题
+  ///
+  /// In zh, this message translates to:
+  /// **'核心特性'**
+  String get aboutSectionFeatures;
+
+  /// 简体中文翻译 - 技术栈分区标题
+  ///
+  /// In zh, this message translates to:
+  /// **'技术栈'**
+  String get aboutSectionTechStack;
+
+  /// 简体中文翻译 - 链接分区标题
+  ///
+  /// In zh, this message translates to:
+  /// **'更多信息'**
+  String get aboutSectionLinks;
+
+  /// 简体中文翻译 - 应用描述
+  ///
+  /// In zh, this message translates to:
+  /// **'Zephyr Reader 是一款基于 Flutter + Rust 架构的离线双语小说阅读器。纯本地设计，无后台、无广告、无数据收集，专注于中英双语阅读体验。'**
+  String get aboutDescription;
+
+  /// 简体中文翻译 - 特性：离线
+  ///
+  /// In zh, this message translates to:
+  /// **'纯离线使用'**
+  String get aboutFeatureOffline;
+
+  /// 简体中文翻译 - 特性描述：离线
+  ///
+  /// In zh, this message translates to:
+  /// **'核心功能 100% 离线可用，无后台无广告'**
+  String get aboutFeatureOfflineDesc;
+
+  /// 简体中文翻译 - 特性：高性能
+  ///
+  /// In zh, this message translates to:
+  /// **'高性能解析'**
+  String get aboutFeaturePerformance;
+
+  /// 简体中文翻译 - 特性描述：高性能
+  ///
+  /// In zh, this message translates to:
+  /// **'Rust 引擎驱动，大文件瞬间解析'**
+  String get aboutFeaturePerformanceDesc;
+
+  /// 简体中文翻译 - 特性：双语
+  ///
+  /// In zh, this message translates to:
+  /// **'双语排版'**
+  String get aboutFeatureBilingual;
+
+  /// 简体中文翻译 - 特性描述：双语
+  ///
+  /// In zh, this message translates to:
+  /// **'中英文同等优先，优雅对照阅读'**
+  String get aboutFeatureBilingualDesc;
+
+  /// 简体中文翻译 - 特性：主题
+  ///
+  /// In zh, this message translates to:
+  /// **'多主题支持'**
+  String get aboutFeatureThemes;
+
+  /// 简体中文翻译 - 特性描述：主题
+  ///
+  /// In zh, this message translates to:
+  /// **'亮色 / 深色 / 纯黑夜间模式'**
+  String get aboutFeatureThemesDesc;
+
+  /// 简体中文翻译 - 特性：适配
+  ///
+  /// In zh, this message translates to:
+  /// **'设备适配'**
+  String get aboutFeatureAdaptive;
+
+  /// 简体中文翻译 - 特性描述：适配
+  ///
+  /// In zh, this message translates to:
+  /// **'手机与平板双端自适应布局'**
+  String get aboutFeatureAdaptiveDesc;
+
+  /// 简体中文翻译 - 特性：同步
+  ///
+  /// In zh, this message translates to:
+  /// **'WebDAV 同步'**
+  String get aboutFeatureSync;
+
+  /// 简体中文翻译 - 特性描述：同步
+  ///
+  /// In zh, this message translates to:
+  /// **'跨设备数据同步与安全备份'**
+  String get aboutFeatureSyncDesc;
+
+  /// 简体中文翻译 - 检查更新链接
+  ///
+  /// In zh, this message translates to:
+  /// **'检查更新'**
+  String get aboutCheckUpdate;
+
+  /// 简体中文翻译 - 已是最新提示
+  ///
+  /// In zh, this message translates to:
+  /// **'已是最新版本'**
+  String get aboutLatestVersion;
+
+  /// 简体中文翻译 - 用户协议链接
+  ///
+  /// In zh, this message translates to:
+  /// **'用户协议'**
+  String get aboutUserAgreement;
+
+  /// 简体中文翻译 - 隐私政策链接
+  ///
+  /// In zh, this message translates to:
+  /// **'隐私政策'**
+  String get aboutPrivacyPolicy;
+
+  /// 简体中文翻译 - 开源许可证链接
+  ///
+  /// In zh, this message translates to:
+  /// **'开源许可证'**
+  String get aboutOpenSourceLicense;
+
+  /// 简体中文翻译 - 问题反馈链接
+  ///
+  /// In zh, this message translates to:
+  /// **'问题反馈'**
+  String get aboutFeedback;
+
+  /// 简体中文翻译 - 链接打开失败提示
+  ///
+  /// In zh, this message translates to:
+  /// **'无法打开链接'**
+  String get aboutCannotOpenLink;
+
+  /// 简体中文 - 未知版本号
+  ///
+  /// In zh, this message translates to:
+  /// **'未知'**
+  String get unknownVersion;
+
+  /// 上一个搜索结果
+  ///
+  /// In zh, this message translates to:
+  /// **'上一个'**
+  String get prev;
+
+  /// 朗读功能
+  ///
+  /// In zh, this message translates to:
+  /// **'朗读'**
+  String get readAloud;
+
+  /// 加入生词本成功提示，{word}为单词
+  ///
+  /// In zh, this message translates to:
+  /// **'已加入生词本：{word}'**
+  String addedToVocabulary(String word);
+
+  /// 加入生词本失败提示，{error}为错误信息
+  ///
+  /// In zh, this message translates to:
+  /// **'加入生词本失败：{error}'**
+  String addToVocabFailed(String error);
+
+  /// 读者主题-日间
+  ///
+  /// In zh, this message translates to:
+  /// **'日间'**
+  String get readerThemeLight;
+
+  /// 读者主题-夜间
+  ///
+  /// In zh, this message translates to:
+  /// **'夜间'**
+  String get readerThemeDark;
+
+  /// 读者主题-护眼
+  ///
+  /// In zh, this message translates to:
+  /// **'护眼'**
+  String get readerThemeSepia;
+
+  /// 字号-小
+  ///
+  /// In zh, this message translates to:
+  /// **'小'**
+  String get readerFontSizeSmall;
+
+  /// 字号-中
+  ///
+  /// In zh, this message translates to:
+  /// **'中'**
+  String get readerFontSizeMedium;
+
+  /// 字号-大
+  ///
+  /// In zh, this message translates to:
+  /// **'大'**
+  String get readerFontSizeLarge;
+
+  /// 字号-特大
+  ///
+  /// In zh, this message translates to:
+  /// **'特大'**
+  String get readerFontSizeXLarge;
+
+  /// 排序-最近阅读
+  ///
+  /// In zh, this message translates to:
+  /// **'最近阅读'**
+  String get sortLastRead;
+
+  /// 排序-添加时间
+  ///
+  /// In zh, this message translates to:
+  /// **'添加时间'**
+  String get sortCreatedAt;
+
+  /// 排序-书名
+  ///
+  /// In zh, this message translates to:
+  /// **'书名'**
+  String get sortTitle;
+
+  /// 排序-作者
+  ///
+  /// In zh, this message translates to:
+  /// **'作者'**
+  String get sortAuthor;
+
+  /// 排序-阅读进度
+  ///
+  /// In zh, this message translates to:
+  /// **'阅读进度'**
+  String get sortProgress;
+
+  /// 主题-跟随系统
+  ///
+  /// In zh, this message translates to:
+  /// **'系统'**
+  String get themeSystem;
+
+  /// 书籍简介标签
+  ///
+  /// In zh, this message translates to:
+  /// **'简介'**
+  String get introLabel;
+
+  /// 当前章节标签
+  ///
+  /// In zh, this message translates to:
+  /// **'当前'**
+  String get currentChapter;
+
+  /// 书籍名称标签
+  ///
+  /// In zh, this message translates to:
+  /// **'书名'**
+  String get bookTitle;
+
+  /// 编辑书籍元数据
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑元数据'**
+  String get editMetadata;
+
+  /// 读书统计-时长
+  ///
+  /// In zh, this message translates to:
+  /// **'累计时长'**
+  String get statReadingTime;
+
+  /// 读书统计-次数
+  ///
+  /// In zh, this message translates to:
+  /// **'阅读次数'**
+  String get statReadingCount;
+
+  /// 读书统计-预计剩余
+  ///
+  /// In zh, this message translates to:
+  /// **'预计剩余'**
+  String get statEstimatedRemaining;
+
+  /// 展开按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'展开'**
+  String get expand;
+
+  /// 目录标题，{count}为章节数
+  ///
+  /// In zh, this message translates to:
+  /// **'目录（{count} 章）'**
+  String tocTitle(int count);
+
+  /// 章节总数, {count}为数字
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 章'**
+  String totalChapters(int count);
+
+  /// ISBN标签
+  ///
+  /// In zh, this message translates to:
+  /// **'ISBN'**
+  String get isbn;
+
+  /// 书籍简介区域标题
+  ///
+  /// In zh, this message translates to:
+  /// **'简介'**
+  String get bookIntro;
+
+  /// 定时主题-日落到日出
+  ///
+  /// In zh, this message translates to:
+  /// **'日落到日出'**
+  String get timePresetSunsetToSunrise;
+
+  /// 定时主题-傍晚到早晨
+  ///
+  /// In zh, this message translates to:
+  /// **'傍晚到早晨'**
+  String get timePresetEveningToMorning;
+
+  /// 定时主题-自定义
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义'**
+  String get timePresetCustom;
+
+  /// 应用主题区域标题
+  ///
+  /// In zh, this message translates to:
+  /// **'应用主题'**
+  String get appTheme;
+
+  /// 书籍格式
+  ///
+  /// In zh, this message translates to:
+  /// **'格式'**
+  String get bookFormat;
+
+  /// 书籍简介区域
+  ///
+  /// In zh, this message translates to:
+  /// **'简介'**
+  String get bookIntroLabel;
+
+  /// 排序方式弹窗标题
+  ///
+  /// In zh, this message translates to:
+  /// **'选择排序方式'**
+  String get sortDialogTitle;
+
+  /// 点击区域-右手模式
+  ///
+  /// In zh, this message translates to:
+  /// **'右手模式'**
+  String get tapLayoutRightHanded;
+
+  /// 点击区域-左手模式
+  ///
+  /// In zh, this message translates to:
+  /// **'左手模式'**
+  String get tapLayoutLeftHanded;
+
+  /// 翻页点击区域
+  ///
+  /// In zh, this message translates to:
+  /// **'点击区域'**
+  String get tapLayout;
+
+  /// 刚刚（相对时间）
+  ///
+  /// In zh, this message translates to:
+  /// **'刚刚'**
+  String get timeJustNow;
+
+  /// N 分钟前
+  ///
+  /// In zh, this message translates to:
+  /// **'{minutes} 分钟前'**
+  String timeMinutesAgo(int minutes);
+
+  /// N 小时前
+  ///
+  /// In zh, this message translates to:
+  /// **'{hours} 小时前'**
+  String timeHoursAgo(int hours);
+
+  /// 上次同步时间
+  ///
+  /// In zh, this message translates to:
+  /// **'上次同步：{time}'**
+  String lastSyncTime(String time);
 }
 
 class _AppLocalizationsDelegate

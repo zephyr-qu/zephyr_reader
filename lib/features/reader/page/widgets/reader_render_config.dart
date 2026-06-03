@@ -32,4 +32,56 @@ class ReaderRenderConfig {
 
   Set<String> get effectiveVocabWords =>
       showVocabularyMark ? vocabularyWords : const {};
+
+  // ── 字体常量与回退栈（原 FontConfig） ──
+  static const String chineseFont = 'Noto Serif SC';
+  static const String latinFont = 'Roboto';
+
+  static const List<String> fallbackStack = [
+    'PingFang SC',
+    'Microsoft YaHei',
+    'Hiragino Sans GB',
+    'WenQuanYi Micro Hei',
+    'Noto Sans CJK SC',
+    'Source Han Sans SC',
+    'sans-serif',
+  ];
+
+  /// 构造阅读器正文字体样式。
+  /// 默认使用本 config 的 `textColor` / `fontFamily` / `letterSpacing`，
+  TextStyle buildTextStyle({
+    Color? color,
+    String? fontFamily,
+    bool useLatin = false,
+    double fontSizeMultiplier = 1.0,
+  }) {
+    return TextStyle(
+      fontSize: fontSize * fontSizeMultiplier,
+      height: lineHeight,
+      color: color ?? textColor,
+      fontFamily: fontFamily ?? _resolveFontFamily(useLatin),
+      fontFamilyFallback: fallbackStack,
+      letterSpacing: letterSpacing,
+    );
+  }
+
+  /// 构造阅读器正文字体的 StrutStyle。
+  StrutStyle buildStrutStyle({
+    String? fontFamily,
+    bool useLatin = false,
+    double fontSizeMultiplier = 1.0,
+  }) {
+    return StrutStyle(
+      fontFamily: fontFamily ?? _resolveFontFamily(useLatin),
+      fontFamilyFallback: fallbackStack,
+      fontSize: fontSize * fontSizeMultiplier * 0.95,
+      height: lineHeight,
+      forceStrutHeight: true,
+    );
+  }
+
+  String _resolveFontFamily(bool useLatin) {
+    if (fontFamily.isNotEmpty) return fontFamily;
+    return useLatin ? latinFont : chineseFont;
+  }
 }

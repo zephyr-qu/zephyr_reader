@@ -9,8 +9,8 @@ use super::metadata::extract_metadata_from_path;
 use super::text::estimate_total_chars;
 
 use super::DEFAULT_PAGES_PER_CHAPTER;
-use crate::storage::models::{Book, Chapter, BookFormat};
-use crate::domain::{ ParseResult, AppError};
+use crate::domain::{AppError, ParseResult, PdfMetadata};
+use crate::storage::models::{Book, BookFormat, Chapter};
 
 /// 解析 PDF 文件
 ///
@@ -25,7 +25,7 @@ use crate::domain::{ ParseResult, AppError};
 ///
 /// * `Ok(ParseResult)` - 解析成功，包含书籍信息和章节列表
 /// * `Err(AppError)` - 解析失败
-pub fn parse_pdf(file_path: String) -> Result<ParseResult,AppError> {
+pub fn parse_pdf(file_path: String) -> Result<ParseResult, AppError> {
     let start_time = std::time::Instant::now();
     tracing::info!("start parsing PDF file: {}", file_path);
 
@@ -36,7 +36,7 @@ pub fn parse_pdf(file_path: String) -> Result<ParseResult,AppError> {
     tracing::debug!("file existence check passed: {}", file_path);
 
     // 提取元数据
-    let metadata = extract_metadata_from_path(&file_path);
+    let metadata = extract_metadata_from_path(&file_path)?;
     tracing::debug!(
         "metadata extracted: title={:?}, author={:?}, pages={}",
         metadata.title,
@@ -48,7 +48,11 @@ pub fn parse_pdf(file_path: String) -> Result<ParseResult,AppError> {
     let book_id = Uuid::new_v4().to_string();
 
     // 生成章节（每 10 页为一章）
-    let chapters = generate_chapters(metadata.page_count as usize, DEFAULT_PAGES_PER_CHAPTER, &book_id);
+    let chapters = generate_chapters(
+        metadata.page_count as usize,
+        DEFAULT_PAGES_PER_CHAPTER,
+        &book_id,
+    );
     let chapter_count = chapters.len() as i32;
     tracing::debug!("chapters generated, count: {}", chapter_count);
 
@@ -131,8 +135,7 @@ fn generate_chapters(total_pages: usize, pages_per_chapter: usize, book_id: &str
     chapters
 }
 
-/// 获取 PDF 元数据
-pub fn get_pdf_metadata(file_path: String) -> crate::domain::PdfMetadata {
+pub fn get_pdf_metadata(file_path: String) -> Result<PdfMetadata, AppError> {
     extract_metadata_from_path(&file_path)
 }
 
@@ -218,7 +221,7 @@ mod tests {
         let file_path = temp_dir.path().join("empty.pdf");
         fs::write(&file_path, b"").unwrap();
 
-        let metadata = get_pdf_metadata(file_path.to_str().unwrap().to_string());
+        let metadata = get_pdf_metadata(file_path.to_str().unwrap().to_string()).unwrap();
         assert_eq!(metadata.page_count, 0);
         assert!(metadata.title.is_none());
         assert!(metadata.author.is_none());

@@ -18,8 +18,10 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/settings/persisted_signal.dart';
+import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/features/reader/domain/models/font_info.dart';
+import 'package:zephyr_reader/core/reader/models/font_info.dart';
 
 /// 字体仓库
 ///
@@ -30,6 +32,10 @@ class FontRepository {
     _initialize();
   }
   final SharedPreferences _prefs;
+
+  late final _currentFontId = persistedNullableString(
+    _prefs, SettingsKeys.currentFont,
+  );
 
   /// 当前字体
   final currentFont = signal<FontInfo?>(null);
@@ -42,8 +48,6 @@ class FontRepository {
 
   /// 已注册到 Flutter 的字体系列名
   final _registeredFamilies = <String>{};
-
-  static const String _keyCurrentFont = 'custom_font.current';
 
   /// 初始化字体服务
   Future<void> _initialize() async {
@@ -71,6 +75,10 @@ class FontRepository {
           return 'monospace';
         case 'kai':
           return 'KaiTi';
+        case 'noto_serif_sc':
+          return 'Noto Serif SC';
+        case 'lxgw_wenkai':
+          return 'LXGW WenKai';
         default:
           return 'Noto Sans SC';
       }
@@ -110,6 +118,8 @@ class FontRepository {
       FontInfo(id: 'sans', name: '黑体', isBuiltIn: true),
       FontInfo(id: 'mono', name: '等宽字体', isBuiltIn: true),
       FontInfo(id: 'kai', name: '楷体', isBuiltIn: true),
+      FontInfo(id: 'noto_serif_sc', name: '思源宋体', isBuiltIn: true),
+      FontInfo(id: 'lxgw_wenkai', name: '霞鹜文楷', isBuiltIn: true),
     ]);
 
     // 加载本地字体
@@ -119,7 +129,7 @@ class FontRepository {
     availableFonts.value = fonts;
 
     // 加载当前字体
-    final currentFontId = _prefs.getString(_keyCurrentFont);
+    final currentFontId = _currentFontId.value;
     if (currentFontId != null) {
       currentFont.value = fonts.firstWhere(
         (f) => f.id == currentFontId,
@@ -176,7 +186,7 @@ class FontRepository {
     );
 
     currentFont.value = font;
-    await _prefs.setString(_keyCurrentFont, fontId);
+    _currentFontId.value = fontId;
 
     Logging.info('设置字体：${font.name}');
   }

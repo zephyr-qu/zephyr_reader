@@ -4,14 +4,14 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/statistics/application/statistics_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class StatisticsPage extends HookWidget {
-  final StatisticsViewModel vm;
-
-  const StatisticsPage({super.key, required this.vm});
+  late final StatisticsViewModel vm = getIt<StatisticsViewModel>();
+  StatisticsPage({super.key});
 
   static const _weekdayLabels = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -29,7 +29,6 @@ class StatisticsPage extends HookWidget {
     final bool loaded = useSignalValue(vm.loaded);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text(
           '阅读统计',
@@ -108,11 +107,11 @@ class StatisticsPage extends HookWidget {
     return Row(
       children: [
         Expanded(
-          child: _TodayCard(cs: cs, tt: tt, minutes: todayMin, progress: pct),
+          child: _todayCard(cs: cs, tt: tt, minutes: todayMin, progress: pct),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _StreakCard(
+          child: _streakCard(
             cs: cs,
             tt: tt,
             days: gs?.consecutiveReadingDays ?? 0,
@@ -123,7 +122,7 @@ class StatisticsPage extends HookWidget {
     ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.04, end: 0);
   }
 
-  Widget _TodayCard({
+  Widget _todayCard({
     required ColorScheme cs,
     required TextTheme tt,
     required int minutes,
@@ -218,7 +217,7 @@ class StatisticsPage extends HookWidget {
     );
   }
 
-  Widget _StreakCard({
+  Widget _streakCard({
     required ColorScheme cs,
     required TextTheme tt,
     required int days,

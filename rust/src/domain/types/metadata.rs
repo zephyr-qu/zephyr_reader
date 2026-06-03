@@ -70,10 +70,3 @@ pub struct ParseResult {
     pub chapters: Vec<Chapter>,
 }
 
-/// 文件解析配置
-/// 控制解析器的行为
-#[derive(Debug, Clone, Default)]
-pub struct ParseConfig {
-    /// 是否并行解析章节（适用于大文件）
-    pub parallel: bool,
-}

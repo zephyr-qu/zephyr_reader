@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:zephyr_reader/core/reader/font_config.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/features/reader/domain/services/highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
@@ -128,31 +127,16 @@ class BilingualModeRenderer extends StatelessWidget {
       }
     }
 
-    final chineseStyle = FontConfig.readerStyle(
-      fontSize: config.fontSize,
-      lineHeight: config.lineHeight,
-      color: config.textColor,
-      fontFamily: config.fontFamily,
-      letterSpacing: config.letterSpacing,
-    );
-    final chineseStrut = FontConfig.readerStrut(
-      fontSize: config.fontSize,
-      lineHeight: config.lineHeight,
-      fontFamily: config.fontFamily,
-    );
-    final englishStyle = FontConfig.readerStyle(
-      fontSize: config.fontSize * 0.9,
-      lineHeight: config.lineHeight,
+    final chineseStyle = config.buildTextStyle();
+    final chineseStrut = config.buildStrutStyle();
+    final englishStyle = config.buildTextStyle(
       color: config.textColor.withAlpha(180),
-      fontFamily: config.fontFamily,
       useLatin: true,
-      letterSpacing: config.letterSpacing,
+      fontSizeMultiplier: 0.9,
     );
-    final englishStrut = FontConfig.readerStrut(
-      fontSize: config.fontSize * 0.9,
-      lineHeight: config.lineHeight,
-      fontFamily: config.fontFamily,
+    final englishStrut = config.buildStrutStyle(
       useLatin: true,
+      fontSizeMultiplier: 0.9,
     );
 
     final cnOffsets = <int>[];

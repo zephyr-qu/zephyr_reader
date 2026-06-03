@@ -9,6 +9,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import 'package:zephyr_reader/core/network/wifi_transfer_service.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 
 class WifiTransferPage extends HookWidget {
   const WifiTransferPage({super.key});
@@ -74,12 +75,7 @@ class WifiTransferPage extends HookWidget {
               if (service.url.isNotEmpty) {
                 Clipboard.setData(ClipboardData(text: service.url));
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('链接已复制到剪贴板'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
+                  showInfoSnack(context, '链接已复制到剪贴板');
                 }
               }
             },

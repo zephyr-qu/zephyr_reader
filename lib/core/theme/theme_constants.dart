@@ -6,8 +6,8 @@ class DesignTokens {
   static const Color onPrimary = Color(0xFFFFFFFF);
 
   // ===== 辅助语义色 =====
-  static const Color error = Color(0xFFD32F2F);
-  static const Color success = Color(0xFF2E7D32);
+  static const Color error = Color(0xFFD1453B);          // warmer red
+  static const Color success = Color(0xFF3B8B5E);        // muted green
   static const Color warning = Color(0xFFF57C00);
 
   // ===== 浅色模式 =====
@@ -18,8 +18,8 @@ class DesignTokens {
   static const Color divider = Color(0xFFE5E5EA);
 
   // ===== 深色模式 =====
-  static const Color backgroundDark = Color(0xFF0A0A0A);
-  static const Color surfaceDark = Color(0xFF111111);
+  static const Color backgroundDark = Color(0xFF000000);
+  static const Color surfaceDark = Color(0xFF080808);
   static const Color textPrimaryDark = Color(0xFFF2F2F2);
   static const Color textSecondaryDark = Color(0xFF6E6E73);
   static const Color dividerDark = Color(0xFF1C1C1E);
@@ -27,9 +27,18 @@ class DesignTokens {
   // ===== 温暖强调色（#D4A373 — 用于辅助装饰、品牌细节）=====
   static const Color warmAccent = Color(0xFFD4A373);
   static const Color warmAccentLight = Color(0xFFFEF3E2);
+  // ===== 暖色装饰阴影（卡片、弹出菜单）=====
+  static final BoxShadow cardShadow = BoxShadow(
+    color: warmAccent.withValues(alpha: 0.08),
+    blurRadius: 8,
+    offset: const Offset(0, 2),
+  );
+
+  // ===== 暖色分割线（替代中性灰）=====
+  static const Color dividerSubtle = Color(0x1FD4A373);  // #D4A373 @ 12%
 
   // ===== 兼容旧引用（映射到新色值）=====
-  static const Color primaryContainer = Color(0xFFFFF3E0);
+  static const Color primaryContainer = Color(0xFFFEF0D6); // warmer amber tint
   static const Color onPrimaryContainer = Color(0xFF3E2723);
   static const Color secondary = Color(0xFFD4A373);
   static const Color tertiary = Color(0xFF8D6E63);
@@ -56,12 +65,12 @@ class DesignTokens {
     Spacing.xxl => 48.0,
   };
 
-  // ===== 圆角系统（统一 8px）=====
+  // ===== 圆角系统 =====
   static double radius(RadiusSize size) => switch (size) {
     RadiusSize.sm => 6.0,
     RadiusSize.md => 8.0,
-    RadiusSize.lg => 8.0,
-    RadiusSize.xl => 8.0,
+    RadiusSize.lg => 12.0,
+    RadiusSize.xl => 16.0,
   };
 }
 

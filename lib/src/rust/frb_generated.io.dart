@@ -77,6 +77,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AppError dco_decode_app_error(dynamic raw);
 
   @protected
+  BackupManifest dco_decode_backup_manifest(dynamic raw);
+
+  @protected
+  BackupStats dco_decode_backup_stats(dynamic raw);
+
+  @protected
   BilingualAlignment dco_decode_bilingual_alignment(dynamic raw);
 
   @protected
@@ -108,6 +114,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   DateTime dco_decode_box_autoadd_Chrono_Utc(dynamic raw);
+
+  @protected
+  BackupManifest dco_decode_box_autoadd_backup_manifest(dynamic raw);
 
   @protected
   BilingualHighlightParams dco_decode_box_autoadd_bilingual_highlight_params(
@@ -293,6 +302,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DateTime? dco_decode_opt_box_autoadd_Chrono_Utc(dynamic raw);
 
   @protected
+  BackupManifest? dco_decode_opt_box_autoadd_backup_manifest(dynamic raw);
+
+  @protected
   Book? dco_decode_opt_box_autoadd_book(dynamic raw);
 
   @protected
@@ -430,6 +442,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AppError sse_decode_app_error(SseDeserializer deserializer);
 
   @protected
+  BackupManifest sse_decode_backup_manifest(SseDeserializer deserializer);
+
+  @protected
+  BackupStats sse_decode_backup_stats(SseDeserializer deserializer);
+
+  @protected
   BilingualAlignment sse_decode_bilingual_alignment(
     SseDeserializer deserializer,
   );
@@ -467,6 +485,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   DateTime sse_decode_box_autoadd_Chrono_Utc(SseDeserializer deserializer);
+
+  @protected
+  BackupManifest sse_decode_box_autoadd_backup_manifest(
+    SseDeserializer deserializer,
+  );
 
   @protected
   BilingualHighlightParams sse_decode_box_autoadd_bilingual_highlight_params(
@@ -678,6 +701,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DateTime? sse_decode_opt_box_autoadd_Chrono_Utc(SseDeserializer deserializer);
 
   @protected
+  BackupManifest? sse_decode_opt_box_autoadd_backup_manifest(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   Book? sse_decode_opt_box_autoadd_book(SseDeserializer deserializer);
 
   @protected
@@ -822,6 +850,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ffi.Pointer<ffi.Int64> cst_encode_box_autoadd_Chrono_Utc(DateTime raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return wire.cst_new_box_autoadd_Chrono_Utc(cst_encode_Chrono_Utc(raw));
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_backup_manifest> cst_encode_box_autoadd_backup_manifest(
+    BackupManifest raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_backup_manifest();
+    cst_api_fill_to_wire_backup_manifest(raw, ptr.ref);
+    return ptr;
   }
 
   @protected
@@ -1242,6 +1280,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  ffi.Pointer<wire_cst_backup_manifest>
+  cst_encode_opt_box_autoadd_backup_manifest(BackupManifest? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null
+        ? ffi.nullptr
+        : cst_encode_box_autoadd_backup_manifest(raw);
+  }
+
+  @protected
   ffi.Pointer<wire_cst_book> cst_encode_opt_box_autoadd_book(Book? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? ffi.nullptr : cst_encode_box_autoadd_book(raw);
@@ -1443,46 +1490,76 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       wireObj.kind.DatabaseError.reason = pre_reason;
       return;
     }
+    if (apiObj is AppError_StorageNotInitialized) {
+      wireObj.tag = 8;
+      return;
+    }
     if (apiObj is AppError_SearchError) {
       var pre_reason = cst_encode_String(apiObj.reason);
-      wireObj.tag = 8;
+      wireObj.tag = 9;
       wireObj.kind.SearchError.reason = pre_reason;
       return;
     }
     if (apiObj is AppError_SecurityError) {
       var pre_reason = cst_encode_String(apiObj.reason);
       var pre_path = cst_encode_String(apiObj.path);
-      wireObj.tag = 9;
+      wireObj.tag = 10;
       wireObj.kind.SecurityError.reason = pre_reason;
       wireObj.kind.SecurityError.path = pre_path;
       return;
     }
     if (apiObj is AppError_InvalidInput) {
       var pre_reason = cst_encode_String(apiObj.reason);
-      wireObj.tag = 10;
+      wireObj.tag = 11;
       wireObj.kind.InvalidInput.reason = pre_reason;
       return;
     }
     if (apiObj is AppError_InternalError) {
       var pre_reason = cst_encode_String(apiObj.reason);
-      wireObj.tag = 11;
+      wireObj.tag = 12;
       wireObj.kind.InternalError.reason = pre_reason;
       return;
     }
     if (apiObj is AppError_TaskPanic) {
       var pre_task_name = cst_encode_String(apiObj.taskName);
       var pre_details = cst_encode_String(apiObj.details);
-      wireObj.tag = 12;
+      wireObj.tag = 13;
       wireObj.kind.TaskPanic.task_name = pre_task_name;
       wireObj.kind.TaskPanic.details = pre_details;
       return;
     }
     if (apiObj is AppError_Other) {
       var pre_field0 = cst_encode_String(apiObj.field0);
-      wireObj.tag = 13;
+      wireObj.tag = 14;
       wireObj.kind.Other.field0 = pre_field0;
       return;
     }
+  }
+
+  @protected
+  void cst_api_fill_to_wire_backup_manifest(
+    BackupManifest apiObj,
+    wire_cst_backup_manifest wireObj,
+  ) {
+    wireObj.app_version = cst_encode_String(apiObj.appVersion);
+    wireObj.exported_at = cst_encode_i_64(apiObj.exportedAt);
+    wireObj.db_size = cst_encode_i_64(apiObj.dbSize);
+    cst_api_fill_to_wire_backup_stats(apiObj.stats, wireObj.stats);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_backup_stats(
+    BackupStats apiObj,
+    wire_cst_backup_stats wireObj,
+  ) {
+    wireObj.books = cst_encode_i_64(apiObj.books);
+    wireObj.chapters = cst_encode_i_64(apiObj.chapters);
+    wireObj.notes = cst_encode_i_64(apiObj.notes);
+    wireObj.bookmarks = cst_encode_i_64(apiObj.bookmarks);
+    wireObj.reading_sessions = cst_encode_i_64(apiObj.readingSessions);
+    wireObj.reading_progress = cst_encode_i_64(apiObj.readingProgress);
+    wireObj.vocabulary_words = cst_encode_i_64(apiObj.vocabularyWords);
+    wireObj.categories = cst_encode_i_64(apiObj.categories);
   }
 
   @protected
@@ -1590,6 +1667,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wireObj.char_offset = cst_encode_i_64(apiObj.charOffset);
     wireObj.title = cst_encode_String(apiObj.title);
     wireObj.created_at = cst_encode_Chrono_Utc(apiObj.createdAt);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_box_autoadd_backup_manifest(
+    BackupManifest apiObj,
+    ffi.Pointer<wire_cst_backup_manifest> wireObj,
+  ) {
+    cst_api_fill_to_wire_backup_manifest(apiObj, wireObj.ref);
   }
 
   @protected
@@ -2228,6 +2313,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_app_error(AppError self, SseSerializer serializer);
 
   @protected
+  void sse_encode_backup_manifest(
+    BackupManifest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_backup_stats(BackupStats self, SseSerializer serializer);
+
+  @protected
   void sse_encode_bilingual_alignment(
     BilingualAlignment self,
     SseSerializer serializer,
@@ -2272,6 +2366,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_Chrono_Utc(
     DateTime self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_backup_manifest(
+    BackupManifest self,
     SseSerializer serializer,
   );
 
@@ -2536,6 +2636,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_Chrono_Utc(
     DateTime? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_backup_manifest(
+    BackupManifest? self,
     SseSerializer serializer,
   );
 
@@ -2810,6 +2916,36 @@ class RustLibWire implements BaseWire {
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             )
           >();
+
+  void wire__crate__api__backup__backup_stats_default(int port_) {
+    return _wire__crate__api__backup__backup_stats_default(port_);
+  }
+
+  late final _wire__crate__api__backup__backup_stats_defaultPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__backup__backup_stats_default',
+      );
+  late final _wire__crate__api__backup__backup_stats_default =
+      _wire__crate__api__backup__backup_stats_defaultPtr
+          .asFunction<void Function(int)>();
+
+  void wire__crate__api__backup__cleanup_auto_snapshots(
+    int port_,
+    int older_than_unix,
+  ) {
+    return _wire__crate__api__backup__cleanup_auto_snapshots(
+      port_,
+      older_than_unix,
+    );
+  }
+
+  late final _wire__crate__api__backup__cleanup_auto_snapshotsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__backup__cleanup_auto_snapshots',
+      );
+  late final _wire__crate__api__backup__cleanup_auto_snapshots =
+      _wire__crate__api__backup__cleanup_auto_snapshotsPtr
+          .asFunction<void Function(int, int)>();
 
   void wire__crate__api__search__clear_all(int port_) {
     return _wire__crate__api__search__clear_all(port_);
@@ -3864,6 +4000,18 @@ class RustLibWire implements BaseWire {
       _wire__crate__api__vocab_marker__get_all_vocabulary_wordsPtr
           .asFunction<WireSyncRust2DartDco Function()>();
 
+  void wire__crate__api__backup__get_backup_stats(int port_) {
+    return _wire__crate__api__backup__get_backup_stats(port_);
+  }
+
+  late final _wire__crate__api__backup__get_backup_statsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__backup__get_backup_stats',
+      );
+  late final _wire__crate__api__backup__get_backup_stats =
+      _wire__crate__api__backup__get_backup_statsPtr
+          .asFunction<void Function(int)>();
+
   void wire__crate__api__bilingual__get_bilingual_highlight_pairs(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
@@ -4591,6 +4739,28 @@ class RustLibWire implements BaseWire {
       >('frbgen_zephyr_reader_wire__crate__api__data__init__init_storage');
   late final _wire__crate__api__data__init__init_storage =
       _wire__crate__api__data__init__init_storagePtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__backup__inspect_backup(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> backup_path,
+  ) {
+    return _wire__crate__api__backup__inspect_backup(port_, backup_path);
+  }
+
+  late final _wire__crate__api__backup__inspect_backupPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__backup__inspect_backup');
+  late final _wire__crate__api__backup__inspect_backup =
+      _wire__crate__api__backup__inspect_backupPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
@@ -5968,6 +6138,18 @@ class RustLibWire implements BaseWire {
       _cst_new_box_autoadd_Chrono_UtcPtr
           .asFunction<ffi.Pointer<ffi.Int64> Function(int)>();
 
+  ffi.Pointer<wire_cst_backup_manifest> cst_new_box_autoadd_backup_manifest() {
+    return _cst_new_box_autoadd_backup_manifest();
+  }
+
+  late final _cst_new_box_autoadd_backup_manifestPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Pointer<wire_cst_backup_manifest> Function()>
+      >('frbgen_zephyr_reader_cst_new_box_autoadd_backup_manifest');
+  late final _cst_new_box_autoadd_backup_manifest =
+      _cst_new_box_autoadd_backup_manifestPtr
+          .asFunction<ffi.Pointer<wire_cst_backup_manifest> Function()>();
+
   ffi.Pointer<wire_cst_bilingual_highlight_params>
   cst_new_box_autoadd_bilingual_highlight_params() {
     return _cst_new_box_autoadd_bilingual_highlight_params();
@@ -6862,6 +7044,44 @@ final class wire_cst_reading_session extends ffi.Struct {
 
   @ffi.Int64()
   external int duration_seconds;
+}
+
+final class wire_cst_backup_stats extends ffi.Struct {
+  @ffi.Int64()
+  external int books;
+
+  @ffi.Int64()
+  external int chapters;
+
+  @ffi.Int64()
+  external int notes;
+
+  @ffi.Int64()
+  external int bookmarks;
+
+  @ffi.Int64()
+  external int reading_sessions;
+
+  @ffi.Int64()
+  external int reading_progress;
+
+  @ffi.Int64()
+  external int vocabulary_words;
+
+  @ffi.Int64()
+  external int categories;
+}
+
+final class wire_cst_backup_manifest extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> app_version;
+
+  @ffi.Int64()
+  external int exported_at;
+
+  @ffi.Int64()
+  external int db_size;
+
+  external wire_cst_backup_stats stats;
 }
 
 final class wire_cst_category extends ffi.Struct {

@@ -79,6 +79,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AppError dco_decode_app_error(dynamic raw);
 
   @protected
+  BackupManifest dco_decode_backup_manifest(dynamic raw);
+
+  @protected
+  BackupStats dco_decode_backup_stats(dynamic raw);
+
+  @protected
   BilingualAlignment dco_decode_bilingual_alignment(dynamic raw);
 
   @protected
@@ -110,6 +116,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   DateTime dco_decode_box_autoadd_Chrono_Utc(dynamic raw);
+
+  @protected
+  BackupManifest dco_decode_box_autoadd_backup_manifest(dynamic raw);
 
   @protected
   BilingualHighlightParams dco_decode_box_autoadd_bilingual_highlight_params(
@@ -295,6 +304,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DateTime? dco_decode_opt_box_autoadd_Chrono_Utc(dynamic raw);
 
   @protected
+  BackupManifest? dco_decode_opt_box_autoadd_backup_manifest(dynamic raw);
+
+  @protected
   Book? dco_decode_opt_box_autoadd_book(dynamic raw);
 
   @protected
@@ -432,6 +444,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AppError sse_decode_app_error(SseDeserializer deserializer);
 
   @protected
+  BackupManifest sse_decode_backup_manifest(SseDeserializer deserializer);
+
+  @protected
+  BackupStats sse_decode_backup_stats(SseDeserializer deserializer);
+
+  @protected
   BilingualAlignment sse_decode_bilingual_alignment(
     SseDeserializer deserializer,
   );
@@ -469,6 +487,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   DateTime sse_decode_box_autoadd_Chrono_Utc(SseDeserializer deserializer);
+
+  @protected
+  BackupManifest sse_decode_box_autoadd_backup_manifest(
+    SseDeserializer deserializer,
+  );
 
   @protected
   BilingualHighlightParams sse_decode_box_autoadd_bilingual_highlight_params(
@@ -680,6 +703,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DateTime? sse_decode_opt_box_autoadd_Chrono_Utc(SseDeserializer deserializer);
 
   @protected
+  BackupManifest? sse_decode_opt_box_autoadd_backup_manifest(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   Book? sse_decode_opt_box_autoadd_book(SseDeserializer deserializer);
 
   @protected
@@ -867,34 +895,63 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     if (raw is AppError_DatabaseError) {
       return [7, cst_encode_String(raw.reason)].jsify()!;
     }
+    if (raw is AppError_StorageNotInitialized) {
+      return [8].jsify()!;
+    }
     if (raw is AppError_SearchError) {
-      return [8, cst_encode_String(raw.reason)].jsify()!;
+      return [9, cst_encode_String(raw.reason)].jsify()!;
     }
     if (raw is AppError_SecurityError) {
       return [
-        9,
+        10,
         cst_encode_String(raw.reason),
         cst_encode_String(raw.path),
       ].jsify()!;
     }
     if (raw is AppError_InvalidInput) {
-      return [10, cst_encode_String(raw.reason)].jsify()!;
+      return [11, cst_encode_String(raw.reason)].jsify()!;
     }
     if (raw is AppError_InternalError) {
-      return [11, cst_encode_String(raw.reason)].jsify()!;
+      return [12, cst_encode_String(raw.reason)].jsify()!;
     }
     if (raw is AppError_TaskPanic) {
       return [
-        12,
+        13,
         cst_encode_String(raw.taskName),
         cst_encode_String(raw.details),
       ].jsify()!;
     }
     if (raw is AppError_Other) {
-      return [13, cst_encode_String(raw.field0)].jsify()!;
+      return [14, cst_encode_String(raw.field0)].jsify()!;
     }
 
     throw Exception('unreachable');
+  }
+
+  @protected
+  JSAny cst_encode_backup_manifest(BackupManifest raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_String(raw.appVersion),
+      cst_encode_i_64(raw.exportedAt),
+      cst_encode_i_64(raw.dbSize),
+      cst_encode_backup_stats(raw.stats),
+    ].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_backup_stats(BackupStats raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_i_64(raw.books),
+      cst_encode_i_64(raw.chapters),
+      cst_encode_i_64(raw.notes),
+      cst_encode_i_64(raw.bookmarks),
+      cst_encode_i_64(raw.readingSessions),
+      cst_encode_i_64(raw.readingProgress),
+      cst_encode_i_64(raw.vocabularyWords),
+      cst_encode_i_64(raw.categories),
+    ].jsify()!;
   }
 
   @protected
@@ -1007,6 +1064,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   JSAny cst_encode_box_autoadd_Chrono_Utc(DateTime raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return cst_encode_Chrono_Utc(raw);
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_backup_manifest(BackupManifest raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_backup_manifest(raw);
   }
 
   @protected
@@ -1420,6 +1483,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   JSAny? cst_encode_opt_box_autoadd_Chrono_Utc(DateTime? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? null : cst_encode_box_autoadd_Chrono_Utc(raw);
+  }
+
+  @protected
+  JSAny? cst_encode_opt_box_autoadd_backup_manifest(BackupManifest? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_box_autoadd_backup_manifest(raw);
   }
 
   @protected
@@ -1874,6 +1943,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_app_error(AppError self, SseSerializer serializer);
 
   @protected
+  void sse_encode_backup_manifest(
+    BackupManifest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_backup_stats(BackupStats self, SseSerializer serializer);
+
+  @protected
   void sse_encode_bilingual_alignment(
     BilingualAlignment self,
     SseSerializer serializer,
@@ -1918,6 +1996,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_Chrono_Utc(
     DateTime self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_backup_manifest(
+    BackupManifest self,
     SseSerializer serializer,
   );
 
@@ -2186,6 +2270,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_backup_manifest(
+    BackupManifest? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_book(Book? self, SseSerializer serializer);
 
   @protected
@@ -2373,6 +2463,17 @@ class RustLibWire implements BaseWire {
     port_,
     book_id,
     category_id,
+  );
+
+  void wire__crate__api__backup__backup_stats_default(NativePortType port_) =>
+      wasmModule.wire__crate__api__backup__backup_stats_default(port_);
+
+  void wire__crate__api__backup__cleanup_auto_snapshots(
+    NativePortType port_,
+    JSAny older_than_unix,
+  ) => wasmModule.wire__crate__api__backup__cleanup_auto_snapshots(
+    port_,
+    older_than_unix,
   );
 
   void wire__crate__api__search__clear_all(NativePortType port_) =>
@@ -2712,6 +2813,9 @@ class RustLibWire implements BaseWire {
   wire__crate__api__vocab_marker__get_all_vocabulary_words() =>
       wasmModule.wire__crate__api__vocab_marker__get_all_vocabulary_words();
 
+  void wire__crate__api__backup__get_backup_stats(NativePortType port_) =>
+      wasmModule.wire__crate__api__backup__get_backup_stats(port_);
+
   void wire__crate__api__bilingual__get_bilingual_highlight_pairs(
     NativePortType port_,
     String book_id,
@@ -2949,6 +3053,11 @@ class RustLibWire implements BaseWire {
     NativePortType port_,
     String data_dir,
   ) => wasmModule.wire__crate__api__data__init__init_storage(port_, data_dir);
+
+  void wire__crate__api__backup__inspect_backup(
+    NativePortType port_,
+    String backup_path,
+  ) => wasmModule.wire__crate__api__backup__inspect_backup(port_, backup_path);
 
   void wire__crate__api__data__progress__list_all_progresses(
     NativePortType port_,
@@ -3399,6 +3508,15 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     String category_id,
   );
 
+  external void wire__crate__api__backup__backup_stats_default(
+    NativePortType port_,
+  );
+
+  external void wire__crate__api__backup__cleanup_auto_snapshots(
+    NativePortType port_,
+    JSAny older_than_unix,
+  );
+
   external void wire__crate__api__search__clear_all(NativePortType port_);
 
   external void wire__crate__api__data__bookmark__clear_bookmarks_by_book(
@@ -3612,6 +3730,10 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
   external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
   wire__crate__api__vocab_marker__get_all_vocabulary_words();
 
+  external void wire__crate__api__backup__get_backup_stats(
+    NativePortType port_,
+  );
+
   external void wire__crate__api__bilingual__get_bilingual_highlight_pairs(
     NativePortType port_,
     String book_id,
@@ -3778,6 +3900,11 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
   external void wire__crate__api__data__init__init_storage(
     NativePortType port_,
     String data_dir,
+  );
+
+  external void wire__crate__api__backup__inspect_backup(
+    NativePortType port_,
+    String backup_path,
   );
 
   external void wire__crate__api__data__progress__list_all_progresses(

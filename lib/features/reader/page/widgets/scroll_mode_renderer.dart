@@ -1,17 +1,17 @@
-import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:zephyr_reader/core/reader/font_config.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-import '../../application/reader_enums.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
 import '../../data/repositories/rust_reader_repository.dart';
 import '../../domain/services/highlight_painter.dart';
 import 'reader_render_config.dart';
 
-class ScrollModeRenderer extends StatelessWidget {
+class ScrollModeRenderer extends HookWidget {
   final ReaderRenderConfig config;
   final ScrollController scrollController;
   final ReaderRepository repo;
@@ -43,42 +43,63 @@ class ScrollModeRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = config.textColor;
+    final textStyle = useMemoized(
+      () => config.buildTextStyle(),
+      [
+        config.fontSize,
+        config.lineHeight,
+        config.textColor,
+        config.fontFamily,
+        config.letterSpacing,
+      ],
+    );
+    final strutStyle = useMemoized(
+      () => config.buildStrutStyle(),
+      [config.fontSize, config.lineHeight, config.fontFamily],
+    );
+    final richSpan = repo.getCachedRichTextSpan(bookId, chapterId);
+    final paragraphList = useMemoized(
+      () => content
+          .split('\n\n')
+          .where((p) => p.trim().isNotEmpty)
+          .map((p) => _splitLongSentence(p))
+          .toList(),
+      [content],
+    );
+    final richParagraphs = useMemoized(
+      () => richSpan != null
+          ? repo.getCachedRichParagraphs(bookId, chapterId)
+          : null,
+      [richSpan, bookId, chapterId],
+    );
+    final richTextParagraphs = useMemoized(
+      () => richSpan != null ? _extractParagraphSpans(richSpan) : null,
+      [richSpan],
+    );
 
     if (writingDirection == WritingDirection.vertical) {
-      return _buildVerticalScrollMode(context);
+      return _buildVerticalScrollMode(
+        context,
+        textStyle,
+        strutStyle,
+        paragraphList,
+        richTextParagraphs,
+      );
     }
 
-    final richSpan = repo.getCachedRichTextSpan(bookId, chapterId);
-    final textStyle = FontConfig.readerStyle(
-      fontSize: config.fontSize,
-      lineHeight: config.lineHeight,
-      color: textColor,
-      fontFamily: config.fontFamily,
-      letterSpacing: config.letterSpacing,
-    );
-    final strutStyle = FontConfig.readerStrut(
-      fontSize: config.fontSize,
-      lineHeight: config.lineHeight,
-      fontFamily: config.fontFamily,
-    );
+    if (richParagraphs != null && richParagraphs.any((p) => p.isImage)) {
+      return _buildRichScrollWithImages(
+        richParagraphs,
+        richSpan!,
+        textStyle,
+        strutStyle,
+        scrollController,
+        context,
+      );
+    }
 
-    if (richSpan != null) {
-      final richParagraphs = repo.getCachedRichParagraphs(bookId, chapterId);
-      if (richParagraphs != null && richParagraphs.any((p) => p.isImage)) {
-        return _buildRichScrollWithImages(
-          richParagraphs,
-          richSpan,
-          textStyle,
-          strutStyle,
-          scrollController,
-          context,
-        );
-      }
-      final paragraphs = _extractParagraphSpans(richSpan);
-      if (paragraphs.isEmpty) {
-        return const Center(child: Text('内容为空'));
-      }
+    if (richTextParagraphs != null && richTextParagraphs.isNotEmpty) {
+      final paragraphs = richTextParagraphs;
       var accOffset = 0;
       final paraOffsets = paragraphs.map((p) {
         final o = accOffset;
@@ -129,11 +150,7 @@ class ScrollModeRenderer extends StatelessWidget {
       );
     }
 
-    final paragraphList = content
-        .split('\n\n')
-        .where((p) => p.trim().isNotEmpty)
-        .map((p) => _splitLongSentence(p))
-        .toList();
+    // Fallback: plain text content
     if (paragraphList.isEmpty) {
       return const Center(child: Text('内容为空'));
     }
@@ -186,27 +203,16 @@ class ScrollModeRenderer extends StatelessWidget {
     );
   }
 
-  Widget _buildVerticalScrollMode(BuildContext context) {
-    final richSpan = repo.getCachedRichTextSpan(bookId, chapterId);
-    final textStyle = FontConfig.readerStyle(
-      fontSize: config.fontSize,
-      lineHeight: config.lineHeight,
-      color: config.textColor,
-      fontFamily: config.fontFamily,
-      letterSpacing: config.letterSpacing,
-    );
-    final strutStyle = FontConfig.readerStrut(
-      fontSize: config.fontSize,
-      lineHeight: config.lineHeight,
-      fontFamily: config.fontFamily,
-    );
+  Widget _buildVerticalScrollMode(
+    BuildContext context,
+    TextStyle textStyle,
+    StrutStyle strutStyle,
+    List<String> paragraphList,
+    List<TextSpan>? richTextParagraphs,
+  ) {
     final charWidth = config.fontSize * 1.2;
 
-    if (richSpan != null) {
-      final textParagraphs = _extractParagraphSpans(richSpan);
-      if (textParagraphs.isEmpty) {
-        return const Center(child: Text('内容为空'));
-      }
+    if (richTextParagraphs != null && richTextParagraphs.isNotEmpty) {
       return Directionality(
         textDirection: TextDirection.rtl,
         child: ListView.builder(
@@ -216,9 +222,9 @@ class ScrollModeRenderer extends StatelessWidget {
             horizontal: config.pageMargin,
             vertical: 20,
           ),
-          itemCount: textParagraphs.length,
+          itemCount: richTextParagraphs.length,
           itemBuilder: (context, index) {
-            final span = textParagraphs[index];
+            final span = richTextParagraphs[index];
             final painted = HighlightPainter.paintRich(
               span,
               0,
@@ -228,7 +234,7 @@ class ScrollModeRenderer extends StatelessWidget {
             );
             return Padding(
               padding: EdgeInsets.only(
-                left: index < textParagraphs.length - 1
+                left: index < richTextParagraphs.length - 1
                     ? config.paragraphSpacing
                     : 0,
               ),
@@ -250,10 +256,7 @@ class ScrollModeRenderer extends StatelessWidget {
       );
     }
 
-    final paragraphList = content
-        .split('\n\n')
-        .where((p) => p.trim().isNotEmpty)
-        .toList();
+    // Fallback: plain text vertical mode
     if (paragraphList.isEmpty) {
       return const Center(child: Text('内容为空'));
     }

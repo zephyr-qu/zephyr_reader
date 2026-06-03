@@ -5,11 +5,13 @@
 /// - 连接测试
 /// - 数据同步
 /// - 冲突检测
+library;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:zephyr_reader/features/sync/application/services/webdav_sync_service.dart';
+import 'package:zephyr_reader/features/sync/application/services/sync_models.dart';
+import 'package:zephyr_reader/features/sync/application/services/webdav_config_service.dart';
 
 void main() {
   group('WebDAV 同步服务测试', () {
@@ -224,7 +226,7 @@ void main() {
 
     group('WebDAV 同步状态测试', () {
       test('SyncStatus 枚举值', () {
-        expect(SyncStatus.values.length, equals(5));
+        expect(SyncStatus.values.length, equals(4));
         expect(SyncStatus.values[0], equals(SyncStatus.idle));
         expect(SyncStatus.values[1], equals(SyncStatus.syncing));
         expect(SyncStatus.values[2], equals(SyncStatus.success));
@@ -239,11 +241,10 @@ void main() {
       });
 
       test('SyncDataType 枚举值', () {
-        expect(SyncDataType.values.length, equals(4));
+        expect(SyncDataType.values.length, equals(3));
         expect(SyncDataType.values[0], equals(SyncDataType.readingProgress));
         expect(SyncDataType.values[1], equals(SyncDataType.bookmarks));
         expect(SyncDataType.values[2], equals(SyncDataType.bookshelf));
-        expect(SyncDataType.values[3], equals(SyncDataType.settings));
       });
     });
 
@@ -255,7 +256,6 @@ void main() {
         expect(result.error, isNull);
         expect(result.uploadedCount, equals(0));
         expect(result.downloadedCount, equals(0));
-        expect(result.conflictCount, equals(0));
       });
 
       test('SyncResult 带参数初始化', () {
@@ -263,13 +263,11 @@ void main() {
           success: true,
           uploadedCount: 5,
           downloadedCount: 3,
-          conflictCount: 2,
         );
 
         expect(result.success, isTrue);
         expect(result.uploadedCount, equals(5));
         expect(result.downloadedCount, equals(3));
-        expect(result.conflictCount, equals(2));
       });
 
       test('SyncResult 摘要信息 - 失败', () {
@@ -296,21 +294,6 @@ void main() {
         final result = SyncResult(success: true);
 
         expect(result.summary, contains('同步完成'));
-      });
-
-      test('SyncResult copyWith', () {
-        final original = SyncResult(
-          success: true,
-          uploadedCount: 5,
-          downloadedCount: 3,
-        );
-
-        final copied = original.copyWith(uploadedCount: 10, conflictCount: 2);
-
-        expect(original.uploadedCount, equals(5));
-        expect(copied.uploadedCount, equals(10));
-        expect(copied.conflictCount, equals(2));
-        expect(copied.success, isTrue);
       });
     });
 

@@ -19,18 +19,9 @@ class AnimatedToolbarPanel extends StatelessWidget {
     return RepaintBoundary(
       child: AnimatedSlide(
         offset: visible ? Offset.zero : Offset(0, slideBeginY),
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOutBack,
-        child: AnimatedOpacity(
-          opacity: visible ? opacity : 0.0,
-          duration: const Duration(milliseconds: 400),
-          child: AnimatedScale(
-            scale: visible ? 1.0 : 0.92,
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeOutBack,
-            child: child,
-          ),
-        ),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+        child: child,
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/presentation/widgets/selection_chip.dart';
 import 'package:zephyr_reader/features/learning_notes/application/learning_notes_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/storage/vocab_status_extension.dart';
 
 class LearningNotesVocabTab extends StatelessWidget {
   final ColorScheme colorScheme;
@@ -349,28 +350,10 @@ class LearningNotesVocabTab extends StatelessWidget {
   }
 
   Color _vocabStatusColor(VocabStatus status, ColorScheme cs) {
-    switch (status) {
-      case VocabStatus.mastered:
-        return const Color(0xFF66BB6A);
-      case VocabStatus.learning:
-        return const Color(0xFFFFA726);
-      case VocabStatus.ignored:
-        return cs.onSurfaceVariant;
-      default:
-        return cs.onSurface;
-    }
+    // Use shared extension for mastered/learning/ignored, fallback to theme for new_
+    if (status == VocabStatus.new_) return cs.onSurface;
+    return status.color;
   }
 
-  String _vocabStatusLabel(VocabStatus status) {
-    switch (status) {
-      case VocabStatus.mastered:
-        return '已掌握';
-      case VocabStatus.learning:
-        return '学习中';
-      case VocabStatus.ignored:
-        return '已忽略';
-      default:
-        return '未学';
-    }
-  }
+  String _vocabStatusLabel(VocabStatus status) => status.displayName;
 }

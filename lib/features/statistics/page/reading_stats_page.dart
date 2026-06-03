@@ -5,15 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/features/statistics/application/reading_stats_service.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class ReadingStatsPage extends HookWidget {
-  final ReadingStatsViewModel vm;
+  late final ReadingStatsViewModel vm = getIt<ReadingStatsViewModel>();
 
-  const ReadingStatsPage({super.key, required this.vm});
+  ReadingStatsPage({super.key});
 
   @override
   Widget build(BuildContext context) {

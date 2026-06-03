@@ -174,6 +174,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
     content,
     book_id UNINDEXED,
     chapter_id UNINDEXED,
+    chapter_index UNINDEXED,
     chapter_title UNINDEXED,
     position UNINDEXED
 );

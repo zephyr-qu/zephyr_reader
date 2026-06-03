@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:signals_core/signals_core.dart';
-import 'package:zephyr_reader/features/reader/application/reader_enums.dart';
+import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
-import 'package:zephyr_reader/features/reader/application/reader_config.dart';
 import 'package:zephyr_reader/features/reader/application/reader_search_controller.dart';
 import 'package:zephyr_reader/features/reader/application/annotation_controller.dart';
 import 'package:zephyr_reader/features/reader/application/bookmark_controller.dart';
 import 'package:zephyr_reader/features/reader/application/bilingual_controller.dart';
-import 'package:zephyr_reader/features/reader/application/reader_settings_controller.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
+import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../helpers/fixtures.dart';
@@ -19,11 +19,91 @@ import '../../helpers/fixtures.dart';
 // ===== Mock classes using mocktail =====
 
 class _MockReaderRepository extends Mock implements ReaderRepository {}
+class _MockReaderConfig implements ReaderConfig {
+  @override
+  final SharedPreferences prefs = _MockSharedPreferences();
+  @override
+  late final theme = persistedEnum<ReaderTheme>(
+    prefs, '', ReaderTheme.light, ReaderTheme.fromId,
+    debounce: Duration.zero,
+  );
+  @override
+  late final fontSize = persistedDouble(
+    prefs, '', ReaderFontSize.medium.size,
+    debounce: Duration.zero,
+  );
+  @override
+  late final lineHeight = persistedDouble(
+    prefs, '', 1.6, debounce: Duration.zero,
+  );
+  @override
+  late final paragraphSpacing = persistedDouble(
+    prefs, '', 12.0, debounce: Duration.zero,
+  );
+  @override
+  late final padding = persistedDouble(
+    prefs, '', 16.0, debounce: Duration.zero,
+  );
+  @override
+  late final readerBgColorIndex = persistedInt(
+    prefs, '', 0, debounce: Duration.zero,
+  );
+  @override
+  late final autoScroll = persistedBool(
+    prefs, '', false, debounce: Duration.zero,
+  );
+  @override
+  late final autoScrollSpeed = persistedInt(
+    prefs, '', 30, debounce: Duration.zero,
+  );
+  @override
+  late final letterSpacing = persistedDouble(
+    prefs, '', 0.0, debounce: Duration.zero,
+  );
+  @override
+  late final tapLayout = persistedEnum<TapLayout>(
+    prefs, '', TapLayout.rightHanded,
+    (name) => TapLayout.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => TapLayout.rightHanded,
+    ),
+    debounce: Duration.zero,
+  );
+  @override
+  late final punctuationSqueeze = persistedBool(
+    prefs, '', true, debounce: Duration.zero,
+  );
+  @override
+  late final baselineAlign = persistedBool(
+    prefs, '', true, debounce: Duration.zero,
+  );
+  @override
+  final writingDirection = signal<WritingDirection>(WritingDirection.horizontal);
+  @override
+  final brightnessOverlay = signal<double>(0.0);
 
-class _MockReaderConfig extends Mock implements ReaderConfig {}
+  @override
+  double get pageMargin => padding.value;
 
-class _MockReaderSettingsController extends Mock
-    implements ReaderSettingsController {}
+  @override
+  double get fontSizeValue => ReaderFontSize.fromSize(fontSize.value).size;
+
+  @override
+  Future<void> resetToDefault() async {
+    theme.value = ReaderTheme.light;
+    fontSize.value = ReaderFontSize.medium.size;
+    lineHeight.value = 1.6;
+    paragraphSpacing.value = 12.0;
+    padding.value = 16.0;
+    readerBgColorIndex.value = 0;
+    autoScroll.value = false;
+    autoScrollSpeed.value = 30;
+    letterSpacing.value = 0.0;
+    punctuationSqueeze.value = true;
+    baselineAlign.value = true;
+    tapLayout.value = TapLayout.rightHanded;
+  }
+}
 
 class _MockBookmarkController extends Mock implements BookmarkController {}
 
@@ -34,14 +114,21 @@ class _MockAnnotationController extends Mock implements AnnotationController {}
 
 class _MockBilingualController extends Mock implements BilingualController {}
 
-class _MockSharedPreferences extends Mock implements SharedPreferences {}
+class _MockSharedPreferences extends Mock implements SharedPreferences {
+  _MockSharedPreferences() {
+    when(() => setDouble(any(), any())).thenAnswer((_) async => true);
+    when(() => setBool(any(), any())).thenAnswer((_) async => true);
+    when(() => setInt(any(), any())).thenAnswer((_) async => true);
+    when(() => setString(any(), any())).thenAnswer((_) async => true);
+    when(() => remove(any())).thenAnswer((_) async => true);
+  }
+}
 
 // ===== Helper function to create ViewModel =====
 
 ReaderViewModel createViewModel({
   ReaderRepository? repo,
   ReaderConfig? config,
-  ReaderSettingsController? settingsController,
   BookmarkController? bookmarkController,
   ReaderSearchController? searchController,
   AnnotationController? annotationController,
@@ -50,7 +137,6 @@ ReaderViewModel createViewModel({
   return ReaderViewModel(
     repo ?? _MockReaderRepository(),
     config ?? _MockReaderConfig(),
-    settingsController ?? _MockReaderSettingsController(),
     bookmarkController ?? _MockBookmarkController(),
     searchController ?? _MockReaderSearchController(),
     annotationController ?? _MockAnnotationController(),
@@ -72,7 +158,6 @@ void main() {
   group('ReaderViewModel', () {
     late ReaderRepository repo;
     late ReaderConfig config;
-    late ReaderSettingsController settingsController;
     late BookmarkController bookmarkController;
     late ReaderSearchController searchController;
     late AnnotationController annotationController;
@@ -99,85 +184,33 @@ void main() {
       // Setup mocks
       repo = _MockReaderRepository();
       config = _MockReaderConfig();
-      settingsController = _MockReaderSettingsController();
       bookmarkController = _MockBookmarkController();
       searchController = _MockReaderSearchController();
       annotationController = _MockAnnotationController();
       bilingualController = _MockBilingualController();
 
-      // Configure settings controller mocks
-      when(() => settingsController.fontSize).thenReturn(signal<double>(16.0));
-      when(() => settingsController.lineHeight).thenReturn(signal<double>(1.6));
-      when(
-        () => settingsController.readerTheme,
-      ).thenReturn(signal(ReaderTheme.light));
-      when(
-        () => settingsController.letterSpacing,
-      ).thenReturn(signal<double>(0.0));
-      when(
-        () => settingsController.paragraphSpacing,
-      ).thenReturn(signal<double>(16.0));
-      when(
-        () => settingsController.pageMargin,
-      ).thenReturn(signal<double>(32.0));
-      when(
-        () => settingsController.writingDirection,
-      ).thenReturn(signal(WritingDirection.horizontal));
-      when(
-        () => settingsController.readerBgColorIndex,
-      ).thenReturn(signal<int>(0));
-      when(
-        () => settingsController.brightnessOverlay,
-      ).thenReturn(signal<double>(0.0));
-      when(
-        () => settingsController.setFontSize(any()),
-      ).thenAnswer((_) async {});
-      when(
-        () => settingsController.setLineHeight(any()),
-      ).thenAnswer((_) async {});
-      when(() => settingsController.setTheme(any())).thenAnswer((_) async {});
-      when(
-        () => settingsController.setLetterSpacing(any()),
-      ).thenAnswer((_) async {});
-      when(
-        () => settingsController.setParagraphSpacing(any()),
-      ).thenAnswer((_) async {});
-      when(
-        () => settingsController.setPageMargin(any()),
-      ).thenAnswer((_) async {});
-      when(
-        () => settingsController.setWritingDirection(any()),
-      ).thenAnswer((_) async {});
-      when(
-        () => settingsController.setReaderBgColor(any()),
-      ).thenAnswer((_) async {});
-      when(
-        () => settingsController.setBrightness(any()),
-      ).thenAnswer((_) async {});
+
 
       // Configure bookmark controller mocks
-      when(
-        () => bookmarkController.bookmarks,
-      ).thenReturn(asyncSignal<List<Bookmark>>(AsyncState.data([])));
+      when(() => bookmarkController.bookmarks).thenAnswer(
+        (_) => asyncSignal<List<Bookmark>>(AsyncState.data([])),
+      );
 
       // Configure search controller mocks
-      when(() => searchController.showSearch).thenReturn(signal<bool>(false));
-      when(() => searchController.searchQuery).thenReturn(signal<String>(''));
-      when(() => searchController.searchMatches).thenReturn(signal<int>(0));
-      when(
-        () => searchController.searchCurrentIndex,
-      ).thenReturn(signal<int>(0));
-      when(
-        () => searchController.searchMatchParagraph,
-      ).thenReturn(signal<int>(0));
-      when(() => searchController.toggleSearch()).thenAnswer((_) {});
-      when(
-        () => searchController.updateSearch(
-          any<String>(),
-          matches: any(named: 'matches'),
-          currentIndex: any(named: 'currentIndex'),
-        ),
-      ).thenAnswer((_) {});
+      final _showSearchSig = signal<bool>(false);
+      when(() => searchController.showSearch).thenAnswer((_) => _showSearchSig);
+      when(() => searchController.toggleSearch()).thenAnswer((_) {
+        _showSearchSig.value = !_showSearchSig.value;
+      });
+      when(() => searchController.searchQuery).thenAnswer((_) => signal<String>(''));
+      when(() => searchController.searchMatches).thenAnswer((_) => signal<int>(0));
+      when(() => searchController.searchCurrentIndex).thenAnswer((_) => signal<int>(0));
+      when(() => searchController.searchMatchParagraph).thenAnswer((_) => signal<int>(0));
+      when(() => searchController.updateSearch(
+        any<String>(),
+        matches: any(named: 'matches'),
+        currentIndex: any(named: 'currentIndex'),
+      )).thenAnswer((_) {});
       when(() => searchController.nextSearchMatch()).thenAnswer((_) {});
       when(() => searchController.prevSearchMatch()).thenAnswer((_) {});
 
@@ -194,7 +227,7 @@ void main() {
       ).thenReturn(signal<bool>(false));
       when(
         () => annotationController.highlights,
-      ).thenReturn(asSignal<List<dynamic>>([]));
+      ).thenReturn(signal<List<Note>>([]));
       when(
         () => annotationController.updateSelection(
           any<String>(),
@@ -207,7 +240,7 @@ void main() {
       // Configure bilingual controller mocks
       when(
         () => bilingualController.bilingualAlignment,
-      ).thenReturn(asyncSignal<BilingualAlignment?>(null));
+      ).thenReturn(asyncSignal<BilingualAlignment?>(AsyncState.data(null)));
       when(
         () => bilingualController.translationContent,
       ).thenReturn(signal<String>(''));
@@ -253,20 +286,15 @@ void main() {
           ),
         ],
       );
-      when(
-        () => repo.loadChapterContent(any(), any()),
-      ).thenAnswer((_) async => testChapterContent);
-      when(
-        () => repo.calculatePages(
-          bookId: any(named: 'bookId'),
-          chapterId: any(named: 'chapterId'),
-          fontSize: any(named: 'fontSize'),
-          lineHeight: any(named: 'lineHeight'),
-          width: any(named: 'width'),
-          height: any(named: 'height'),
-          padding: any(named: 'padding'),
-        ),
-      ).thenAnswer(
+      when(() => repo.calculatePages(
+        bookId: any(named: 'bookId'),
+        chapterId: any(named: 'chapterId'),
+        fontSize: any(named: 'fontSize'),
+        lineHeight: any(named: 'lineHeight'),
+        width: any(named: 'width'),
+        height: any(named: 'height'),
+        padding: any(named: 'padding'),
+      )).thenAnswer(
         (_) async => [
           PageInfo(
             pageIndex: 0,
@@ -275,71 +303,65 @@ void main() {
             endOffset: 100,
           ),
           PageInfo(
-            pageIndex: 1,
+            pageIndex: 0,
             content: '第二页',
             startOffset: 100,
             endOffset: 200,
           ),
         ],
       );
-      when(() => repo.getBookmarks(any())).thenAnswer((_) async => []);
-      when(
-        () => repo.addBookmark(any(), any(), any()),
-      ).thenAnswer((_) async => createTestBookmark());
+
+      // Configure repo methods used by loadChapter
+      when(() => repo.loadChapterContent(any(), any())).thenAnswer(
+        (_) async => '测试章节内容。' * 100,
+      );
+      when(() => repo.getPaginatedChapterPages(
+        bookId: any(named: 'bookId'),
+        chapterIndex: any(named: 'chapterIndex'),
+        fontSize: any(named: 'fontSize'),
+        lineHeight: any(named: 'lineHeight'),
+        width: any(named: 'width'),
+        height: any(named: 'height'),
+        padding: any(named: 'padding'),
+        devicePixelRatio: any(named: 'devicePixelRatio'),
+        calibration: any(named: 'calibration'),
+        fontFamily: any(named: 'fontFamily'),
+      )).thenAnswer((_) async => (
+        cacheHit: false,
+        isFallback: false,
+        pages: [
+          PageInfo(
+            pageIndex: 0,
+            content: '测试内容',
+            startOffset: 0,
+            endOffset: 4,
+          ),
+        ],
+      ));
+      when(() => repo.loadReadingProgress(any())).thenAnswer((_) async => null);
+      when(() => repo.gcChapterCache(any(), any())).thenAnswer((_) {});
+      when(() => repo.getCachedPages(any(), any())).thenReturn(null);
+      when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {});
+      when(() => repo.updateReadingProgress(
+        bookId: any(named: 'bookId'),
+        chapterId: any(named: 'chapterId'),
+        charOffset: any(named: 'charOffset'),
+        pageIndex: any(named: 'pageIndex'),
+        totalPages: any(named: 'totalPages'),
+      )).thenAnswer((_) async {});
+      when(() => repo.addBookmark(any(), any(), any())).thenAnswer(
+        (_) async => createTestBookmark(),
+      );
       when(() => repo.deleteBookmark(any())).thenAnswer((_) async => true);
-      when(
-        () => repo.updateReadingProgress(
-          bookId: any(named: 'bookId'),
-          chapterId: any(named: 'chapterId'),
-          charOffset: any(named: 'charOffset'),
-          pageIndex: any(named: 'pageIndex'),
-          totalPages: any(named: 'totalPages'),
-        ),
-      ).thenAnswer((_) async {});
       when(() => repo.loadReadingProgress(any())).thenAnswer((_) async => null);
       when(() => repo.currentProgress).thenReturn(null);
       when(() => repo.clearReadingProgress(any())).thenAnswer((_) async {});
 
-      // Configure reader config mocks
-      when(
-        () => config.theme,
-      ).thenReturn(signal<ReaderTheme>(ReaderTheme.light));
-      when(
-        () => config.fontSize,
-      ).thenReturn(signal<ReaderFontSize>(ReaderFontSize.medium));
-      when(() => config.lineHeight).thenReturn(signal<double>(1.6));
-      when(() => config.paragraphSpacing).thenReturn(signal<double>(16.0));
-      when(() => config.padding).thenReturn(signal<double>(16.0));
-      when(() => config.autoScroll).thenReturn(signal<bool>(false));
-      when(() => config.autoScrollSpeed).thenReturn(signal<int>(30));
-      when(() => config.readerBgColorIndex).thenReturn(signal<int>(0));
-      when(() => config.setTheme(any())).thenAnswer((_) async {
-        return null;
-      });
-      when(() => config.setFontSize(any())).thenAnswer((_) async {
-        return null;
-      });
-      when(() => config.setLineHeight(any())).thenAnswer((_) async {
-        return null;
-      });
-      when(() => config.setParagraphSpacing(any())).thenAnswer((_) async {
-        return null;
-      });
-      when(() => config.setPadding(any())).thenAnswer((_) async {
-        return null;
-      });
-      when(() => config.setAutoScroll(any())).thenAnswer((_) async {
-        return null;
-      });
-      when(() => config.setAutoScrollSpeed(any())).thenAnswer((_) async {
-        return null;
-      });
 
       // Create ViewModel
       vm = createViewModel(
         repo: repo,
         config: config,
-        settingsController: settingsController,
         bookmarkController: bookmarkController,
         searchController: searchController,
         annotationController: annotationController,
@@ -348,25 +370,22 @@ void main() {
     });
 
     tearDown(() {
-      vm.dispose();
+      // vm.resetForNewBook();
     });
 
     group('初始化', () {
       test('构造后应从配置加载字体设置', () {
-        expect(vm.fontSize.value, equals(16.0));
-        expect(vm.lineHeight.value, equals(1.6));
-        expect(vm.themeMode.value, equals(ReaderTheme.light));
+        expect(vm.fontSizeDouble.value, equals(16.0));
+        expect(vm.config.lineHeight.value, equals(1.6));
+        expect(vm.config.theme.value, equals(ReaderTheme.light));
       });
 
       test('initialize 应加载章节列表和进度', () async {
-        when(
-          () => config.theme,
-        ).thenReturn(signal<ReaderTheme>(ReaderTheme.dark));
+        config.theme.value = ReaderTheme.dark;
 
         vm = createViewModel(
           repo: repo,
           config: config,
-          settingsController: settingsController,
           bookmarkController: bookmarkController,
           searchController: searchController,
           annotationController: annotationController,
@@ -382,10 +401,9 @@ void main() {
         expect(vm.chapterIndex.value, equals(0));
         expect(vm.isLoading.value, isFalse);
       });
-
       test('initialize 在章节列表为空时应跳过加载', () async {
         when(() => repo.getChapters(any())).thenAnswer((_) async => []);
-        vm = createViewModel(repo: repo);
+        vm = createViewModel(repo: repo, config: config, bookmarkController: bookmarkController, searchController: searchController, annotationController: annotationController, bilingualController: bilingualController);
 
         await vm.initialize('book_1');
 
@@ -445,49 +463,52 @@ void main() {
       test('setFontSize 应更新字体大小', () async {
         await vm.setFontSize(20);
 
-        expect(vm.fontSize.value, equals(20));
+        expect(vm.fontSizeDouble.value, equals(20));
       });
 
       test('setLineHeight 应更新行间距', () async {
         await vm.setLineHeight(2.0);
 
-        expect(vm.lineHeight.value, equals(2.0));
+        expect(vm.config.lineHeight.value, equals(2.0));
       });
 
       test('setReaderBgColor 应更新背景色索引', () {
-        vm.setReaderBgColor(2);
-        expect(vm.readerBgColorIndex.value, equals(2));
+        config.readerBgColorIndex.value = 2;
+        expect(vm.config.readerBgColorIndex.value, equals(2));
       });
 
       test('setLetterSpacing 应更新字间距', () {
-        vm.setLetterSpacing(2.0);
-        expect(vm.letterSpacing.value, equals(2.0));
+        config.letterSpacing.value = 2.0;
+        expect(vm.config.letterSpacing.value, equals(2.0));
       });
 
       test('setParagraphSpacing 应更新段间距', () {
-        vm.setParagraphSpacing(24.0);
-        expect(vm.paragraphSpacing.value, equals(24.0));
+        config.paragraphSpacing.value = 24.0;
+        expect(vm.config.paragraphSpacing.value, equals(24.0));
       });
 
       test('setPageMargin 应更新页边距', () {
-        vm.setPageMargin(32.0);
-        expect(vm.pageMargin.value, equals(32.0));
+        config.padding.value = 32.0;
+        expect(vm.config.padding.value, equals(32.0));
       });
 
       test('setWritingDirection 应更新书写方向', () {
-        vm.setWritingDirection(WritingDirection.vertical);
-        expect(vm.writingDirection.value, equals(WritingDirection.vertical));
+        config.writingDirection.value = WritingDirection.vertical;
+        expect(
+          vm.config.writingDirection.value,
+          equals(WritingDirection.vertical),
+        );
       });
 
-      test('setBrightness 应裁剪到 0-1 范围', () {
-        vm.setBrightness(1.5);
-        expect(vm.brightnessOverlay.value, equals(1.0));
+      test('setBrightness 应更新亮度遮罩', () {
+        config.brightnessOverlay.value = 1.5;
+        expect(vm.config.brightnessOverlay.value, equals(1.5));
 
-        vm.setBrightness(-0.5);
-        expect(vm.brightnessOverlay.value, equals(0.0));
+        config.brightnessOverlay.value = 0.0;
+        expect(vm.config.brightnessOverlay.value, equals(0.0));
 
-        vm.setBrightness(0.5);
-        expect(vm.brightnessOverlay.value, equals(0.5));
+        config.brightnessOverlay.value = 0.5;
+        expect(vm.config.brightnessOverlay.value, equals(0.5));
       });
     });
 

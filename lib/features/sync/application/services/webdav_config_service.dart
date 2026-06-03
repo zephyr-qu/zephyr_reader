@@ -2,9 +2,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:flutter/foundation.dart';
+import 'package:webdav_client/webdav_client.dart' as webdav;
 
 import 'sync_models.dart';
-import 'webdav_connection_manager.dart';
 
 class WebDavConfigService {
   final SharedPreferences _prefs;
@@ -98,8 +99,22 @@ class WebDavConfigService {
     final config = await getConfig();
     if (config == null) return false;
 
-    final connectionManager = WebdavConnectionManager(configService: this);
-    return await connectionManager.testConnection(config);
+    try {
+      final baseUrl = config.baseUrl.endsWith('/')
+          ? config.baseUrl
+          : '${config.baseUrl}/';
+      final client = webdav.newClient(
+        baseUrl,
+        user: config.username,
+        password: config.password,
+        debug: kDebugMode,
+      );
+      await client.ping();
+      return true;
+    } catch (e) {
+      Logging.error('WebDAV 连接测试异常：$e');
+      return false;
+    }
   }
 
   Future<DateTime?> getLastSyncTime() async {
@@ -146,4 +161,18 @@ class WebDavConfigService {
       ),
     ];
   }
+}
+
+class WebDavPreset {
+  final String name;
+  final String baseUrl;
+  final String remotePath;
+  final String helpUrl;
+
+  WebDavPreset({
+    required this.name,
+    required this.baseUrl,
+    required this.remotePath,
+    required this.helpUrl,
+  });
 }

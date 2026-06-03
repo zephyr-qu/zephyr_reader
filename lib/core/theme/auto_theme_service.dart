@@ -3,71 +3,60 @@
 /// 根据日落日出时间自动切换亮色/深色主题
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
+import '../settings/persisted_signal.dart';
+import '../settings/settings_keys.dart';
 import '../utils/logging.dart';
-
-/// 自动主题切换服务
 class AutoThemeService {
   final SharedPreferences _prefs;
+  Timer? _autoSwitchTimer;
 
   /// 是否启用自动主题切换
-  final autoThemeEnabled = signal(false);
+  late final autoThemeEnabled = persistedBool(
+    _prefs, SettingsKeys.autoThemeEnabled, false,
+  );
 
-  /// 深色模式开始时间（小时
-  final darkModeStartHour = signal(18);
+  /// 深色模式开始时间（小时）
+  late final darkModeStartHour = persistedInt(
+    _prefs, SettingsKeys.darkModeStartHour, 18,
+  );
 
   /// 深色模式结束时间（小时）
-  final darkModeEndHour = signal(6);
+  late final darkModeEndHour = persistedInt(
+    _prefs, SettingsKeys.darkModeEndHour, 6,
+  );
 
   /// 当前主题模式
   final themeMode = signal<ThemeMode>(ThemeMode.system);
 
   AutoThemeService(this._prefs) {
-    _loadSettings();
-    _startAutoSwitch();
-  }
-
-  static const String _keyAutoTheme = 'auto_theme_enabled';
-  static const String _keyDarkModeStart = 'dark_mode_start_hour';
-  static const String _keyDarkModeEnd = 'dark_mode_end_hour';
-
-  /// 加载设置
-  Future<void> _loadSettings() async {
-    autoThemeEnabled.value = _prefs.getBool(_keyAutoTheme) ?? false;
-    darkModeStartHour.value = _prefs.getInt(_keyDarkModeStart) ?? 18;
-    darkModeEndHour.value = _prefs.getInt(_keyDarkModeEnd) ?? 6;
+    // 初始化时根据已持久化的值更新主题模式
     _updateThemeMode();
-  }
-
-  /// 保存设置
-  Future<void> _saveSettings() async {
-    await _prefs.setBool(_keyAutoTheme, autoThemeEnabled.value);
-    await _prefs.setInt(_keyDarkModeStart, darkModeStartHour.value);
-    await _prefs.setInt(_keyDarkModeEnd, darkModeEndHour.value);
+    _startAutoSwitch();
   }
 
   /// 启用自动主题切换
   Future<void> enableAutoTheme() async {
     autoThemeEnabled.value = true;
-    await _saveSettings();
     _updateThemeMode();
   }
 
-  /// 禁用自动主题切换
   Future<void> disableAutoTheme() async {
     autoThemeEnabled.value = false;
-    await _saveSettings();
     themeMode.value = ThemeMode.system;
+    _autoSwitchTimer?.cancel();
+    _autoSwitchTimer = null;
   }
 
   /// 设置深色模式时间
   Future<void> setDarkModeTime(int startHour, int endHour) async {
     darkModeStartHour.value = startHour;
     darkModeEndHour.value = endHour;
-    await _saveSettings();
     _updateThemeMode();
   }
 
@@ -95,12 +84,12 @@ class AutoThemeService {
     Logging.debug('自动主题切换{isDarkMode ? "深色" : "浅色"} 模式');
   }
 
-  /// 开始自动切
+  /// 开始自动切换
   void _startAutoSwitch() {
-    // 每小时检查一
-    Future.delayed(const Duration(hours: 1), () {
+    // 每小时检查一次，使用 Timer.periodic 避免递归漂移
+    _autoSwitchTimer?.cancel();
+    _autoSwitchTimer = Timer.periodic(const Duration(hours: 1), (_) {
       _updateThemeMode();
-      _startAutoSwitch();
     });
   }
 

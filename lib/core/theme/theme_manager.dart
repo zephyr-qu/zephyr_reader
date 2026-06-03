@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/settings/settings_keys.dart';
 
 /// 主题类型枚举
 enum AppThemeType {
@@ -10,12 +11,6 @@ enum AppThemeType {
 
   /// 深色主题
   dark(label: '深色'),
-
-  /// 纯黑主题 (AMOLED)
-  pureDark(label: '纯黑'),
-
-  /// 护眼主题 (米黄
-  eyeProtection(label: '护眼'),
 
   /// 跟随系统
   system(label: '系统');
@@ -29,7 +24,6 @@ class ThemeManager {
   static final ThemeManager _instance = ThemeManager._internal();
   static ThemeManager get instance => _instance;
 
-  factory ThemeManager() => _instance;
 
   ThemeManager._internal();
 
@@ -45,30 +39,26 @@ class ThemeManager {
   /// 自定义主题色信号（允许用户自定义主色
   final customPrimaryColor = signal<Color?>(null);
 
-  /// 主题模式（兼Flutter ThemeMode
+  /// 当前激活的主题预设 ID（null = 自定义颜色或默认）
+  final currentPresetId = signal<String?>(null);
+
   ThemeMode get themeMode {
     switch (themeType.value) {
       case AppThemeType.light:
         return ThemeMode.light;
       case AppThemeType.dark:
         return ThemeMode.dark;
-      case AppThemeType.pureDark:
-        return ThemeMode.dark;
-      case AppThemeType.eyeProtection:
-        return ThemeMode.light;
       case AppThemeType.system:
         return ThemeMode.system;
     }
   }
 
-  /// 是否为深色模
+  /// 是否为深色模式
   bool get isDarkMode {
     switch (themeType.value) {
       case AppThemeType.dark:
-      case AppThemeType.pureDark:
         return true;
       case AppThemeType.light:
-      case AppThemeType.eyeProtection:
         return false;
       case AppThemeType.system:
         final brightness =
@@ -76,10 +66,6 @@ class ThemeManager {
         return brightness == Brightness.dark;
     }
   }
-
-  static const String _keyThemeType = 'app.theme.type';
-  static const String _keyCustomPrimaryColor = 'app.theme.custom_color';
-  static const String _keyLocale = 'app.locale';
 
   /// 初始化主题管理器
   Future<void> init() async {
@@ -89,7 +75,7 @@ class ThemeManager {
 
     // 加载主题类型
     final int themeIndex =
-        _prefs!.getInt(_keyThemeType) ?? AppThemeType.system.index;
+        _prefs!.getInt(SettingsKeys.themeType) ?? AppThemeType.system.index;
     final int resolvedIndex =
         themeIndex >= 0 && themeIndex < AppThemeType.values.length
         ? themeIndex
@@ -97,28 +83,50 @@ class ThemeManager {
     themeType.value = AppThemeType.values[resolvedIndex];
 
     // 加载自定义主
-    final colorValue = _prefs!.getInt(_keyCustomPrimaryColor);
+    final colorValue = _prefs!.getInt(SettingsKeys.customPrimaryColor);
     if (colorValue != null) {
       customPrimaryColor.value = Color(colorValue);
     }
 
+    // 加载主题预设
+    currentPresetId.value = _prefs!.getString(SettingsKeys.currentPresetId);
+
     // 加载语言设置
-    final savedLocale = _prefs!.getString(_keyLocale);
+    final savedLocale = _prefs!.getString(SettingsKeys.locale);
     if (savedLocale != null && ['zh', 'en'].contains(savedLocale)) {
       locale.value = savedLocale;
     }
 
-    _initialized = true;
-  }
+    // 设置自动持久化 watcher
+    effect(() {
+      _prefs!.setInt(SettingsKeys.themeType, themeType.value.index);
+    });
+    effect(() {
+      final v = customPrimaryColor.value;
+      if (v != null) {
+        _prefs!.setInt(SettingsKeys.customPrimaryColor, v.toARGB32());
+      } else {
+        _prefs!.remove(SettingsKeys.customPrimaryColor);
+      }
+    });
+    effect(() {
+      final v = currentPresetId.value;
+      if (v != null) {
+        _prefs!.setString(SettingsKeys.currentPresetId, v);
+      } else {
+        _prefs!.remove(SettingsKeys.currentPresetId);
+      }
+    });
+    effect(() {
+      final v = locale.value;
+      if (v != null) {
+        _prefs!.setString(SettingsKeys.locale, v);
+      } else {
+        _prefs!.remove(SettingsKeys.locale);
+      }
+    });
 
-  /// 设置语言
-  Future<void> setLocale(String? localeCode) async {
-    locale.value = localeCode;
-    if (localeCode != null) {
-      await _prefs?.setString(_keyLocale, localeCode);
-    } else {
-      await _prefs?.remove(_keyLocale);
-    }
+    _initialized = true;
   }
 
   /// 获取应用当前 Locale（null 表示跟随系统）
@@ -128,21 +136,10 @@ class ThemeManager {
     return Locale(code);
   }
 
-  /// 设置主题类型
-  Future<void> setThemeType(AppThemeType type) async {
-    themeType.value = type;
-    await _prefs?.setInt(_keyThemeType, type.index);
-  }
-
-  /// 设置自定义主
-  Future<void> setCustomPrimaryColor(Color? color) async {
+  /// 设置自定义主色（同时更新主题预设 ID）
+  Future<void> setCustomPrimaryColor(Color? color, {String? presetId}) async {
     customPrimaryColor.value = color;
-    if (color != null) {
-      // 使用 toARGB32() 替代已弃用的 value
-      await _prefs?.setInt(_keyCustomPrimaryColor, color.toARGB32());
-    } else {
-      await _prefs?.remove(_keyCustomPrimaryColor);
-    }
+    currentPresetId.value = presetId;
   }
 
   /// 重置为主题默认色
@@ -180,24 +177,18 @@ class ThemeManager {
     ];
   }
 
-  /// 应用主题预设
   Future<void> applyPreset(String presetId) async {
     final presets = getAvailablePresets();
     final preset = presets.firstWhere(
       (p) => p.id == presetId,
       orElse: () => presets.first,
     );
-    await setCustomPrimaryColor(preset.primaryColor);
+    await setCustomPrimaryColor(preset.primaryColor, presetId: preset.id);
   }
 
   /// 获取当前主题的名
   String get currentThemeName => themeType.value.label;
 
-  /// 是否为护眼模
-  bool get isEyeProtectionMode => themeType.value == AppThemeType.eyeProtection;
-
-  /// 是否为纯黑模
-  bool get isPureDarkMode => themeType.value == AppThemeType.pureDark;
 }
 
 /// 主题预设

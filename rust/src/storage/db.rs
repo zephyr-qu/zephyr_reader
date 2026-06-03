@@ -44,9 +44,9 @@ impl StorageManager {
         })
     }
 
-    async fn create_pool(db_path: &Path) -> Result<SqlitePool> {
+    pub(crate) async fn create_pool(db_path: &Path) -> Result<SqlitePool> {
         SqlitePoolOptions::new()
-            .max_connections(4)
+            .max_connections(1)
             .acquire_timeout(std::time::Duration::from_secs(5))
             .connect_with(
                 SqliteConnectOptions::new()
@@ -135,6 +135,29 @@ impl StorageManager {
             Some(restored_pool);
 
         tracing::info!("Database restored from {:?}", backup_path);
+        Ok(())
+    }
+
+    /// 原子地热替换运行中的 db 连接池
+    ///
+    /// 调用者需自行保证 db_path 已被替换为目标文件（含 migration 跑过）。
+    pub async fn hot_swap_db(&self) -> Result<()> {
+        self.kv.flush()?;
+        let old_pool = self
+            .pool
+            .lock()
+            .map_err(|e| anyhow::anyhow!("Storage pool lock poisoned: {}", e))?
+            .take();
+        if let Some(old) = old_pool {
+            old.close().await;
+        }
+        let db_path = self.data_dir.join("reader.db");
+        let new_pool = Self::create_pool(&db_path).await?;
+        *self
+            .pool
+            .lock()
+            .map_err(|e| anyhow::anyhow!("Storage pool lock poisoned: {}", e))? = Some(new_pool);
+        tracing::info!("Storage pool hot-swapped");
         Ok(())
     }
 

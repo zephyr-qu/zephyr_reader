@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:zephyr_reader/features/learning_notes/application/learning_notes_view_model.dart';
 
@@ -38,10 +37,7 @@ class LearningNotesTabSwitcher extends StatelessWidget {
               ],
             ),
           ),
-        )
-        .animate()
-        .fadeIn(duration: 300.ms, delay: 100.ms)
-        .slideY(begin: -0.03, end: 0);
+        );
   }
 
   Widget _tabItem(int index, String label, int count) {
