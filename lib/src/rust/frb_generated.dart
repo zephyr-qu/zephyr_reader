@@ -94,7 +94,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 1411583843;
+  int get rustContentHash => -1622434856;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -290,6 +290,8 @@ abstract class RustLibApi extends BaseApi {
   Future<Book?> crateApiDataBookGetBookByFilePath({
     required String validatedPath,
   });
+
+  Future<BookDetail> crateApiDataBookGetBookDetail({required String bookId});
 
   Future<Bookmark?> crateApiDataBookmarkGetBookmark({
     required String bookmarkId,
@@ -2056,6 +2058,31 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         debugName: 'get_book_by_file_path',
         argNames: ['validatedPath'],
       );
+
+  @override
+  Future<BookDetail> crateApiDataBookGetBookDetail({required String bookId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final arg0 = cst_encode_String(bookId);
+          return wire.wire__crate__api__data__book__get_book_detail(
+            port_,
+            arg0,
+          );
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_book_detail,
+          decodeErrorData: dco_decode_app_error,
+        ),
+        constMeta: kCrateApiDataBookGetBookDetailConstMeta,
+        argValues: [bookId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDataBookGetBookDetailConstMeta =>
+      const TaskConstMeta(debugName: 'get_book_detail', argNames: ['bookId']);
 
   @override
   Future<Bookmark?> crateApiDataBookmarkGetBookmark({
@@ -4616,6 +4643,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BookDetail dco_decode_book_detail(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return BookDetail(
+      book: dco_decode_opt_box_autoadd_book(arr[0]),
+      progress: dco_decode_opt_box_autoadd_reading_progress(arr[1]),
+      noteStats: dco_decode_note_stats(arr[2]),
+      chapters: dco_decode_list_chapter(arr[3]),
+      categories: dco_decode_list_category(arr[4]),
+      sessions: dco_decode_list_reading_session(arr[5]),
+      vocabList: dco_decode_list_vocab(arr[6]),
+    );
+  }
+
+  @protected
   BookFormat dco_decode_book_format(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return BookFormat.values[raw as int];
@@ -5867,6 +5911,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       publisher: var_publisher,
       translator: var_translator,
       isbn: var_isbn,
+    );
+  }
+
+  @protected
+  BookDetail sse_decode_book_detail(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_book = sse_decode_opt_box_autoadd_book(deserializer);
+    final var_progress = sse_decode_opt_box_autoadd_reading_progress(
+      deserializer,
+    );
+    final var_noteStats = sse_decode_note_stats(deserializer);
+    final var_chapters = sse_decode_list_chapter(deserializer);
+    final var_categories = sse_decode_list_category(deserializer);
+    final var_sessions = sse_decode_list_reading_session(deserializer);
+    final var_vocabList = sse_decode_list_vocab(deserializer);
+    return BookDetail(
+      book: var_book,
+      progress: var_progress,
+      noteStats: var_noteStats,
+      chapters: var_chapters,
+      categories: var_categories,
+      sessions: var_sessions,
+      vocabList: var_vocabList,
     );
   }
 
@@ -7545,6 +7612,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.publisher, serializer);
     sse_encode_opt_String(self.translator, serializer);
     sse_encode_opt_String(self.isbn, serializer);
+  }
+
+  @protected
+  void sse_encode_book_detail(BookDetail self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_box_autoadd_book(self.book, serializer);
+    sse_encode_opt_box_autoadd_reading_progress(self.progress, serializer);
+    sse_encode_note_stats(self.noteStats, serializer);
+    sse_encode_list_chapter(self.chapters, serializer);
+    sse_encode_list_category(self.categories, serializer);
+    sse_encode_list_reading_session(self.sessions, serializer);
+    sse_encode_list_vocab(self.vocabList, serializer);
   }
 
   @protected

@@ -1,5 +1,3 @@
-library;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -72,7 +70,13 @@ class ChapterListWidget extends HookWidget {
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(textColor, mutedColor, accentColor, dividerColor, l10n),
+              _buildHeader(
+                textColor,
+                mutedColor,
+                accentColor,
+                dividerColor,
+                l10n,
+              ),
               Expanded(
                 child: ListView.builder(
                   controller: scrollController,
@@ -126,6 +130,7 @@ class ChapterListWidget extends HookWidget {
       );
     }
   }
+
   Widget _buildHeader(
     Color textColor,
     Color mutedColor,

@@ -1,4 +1,4 @@
-library;
+
 
 import 'dart:async';
 
@@ -6,10 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-
 import 'package:zephyr_reader/core/network/wifi_transfer_service.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 
 class WifiTransferPage extends HookWidget {
   const WifiTransferPage({super.key});

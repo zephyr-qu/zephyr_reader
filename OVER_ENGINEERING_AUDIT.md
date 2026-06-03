@@ -7,8 +7,7 @@
 
 ## 概要
 
-- **总发现数**: 28（已解决 4，保留决策 3，待接入 1，未处理 20）
-- **按严重程度**: A-Critical: 10, B-Important: 12, C-Minor: 6
+- **总发现数**: 28（已解决 14，保留决策 5，待接入 1，未处理 8）
 - **最大收益的前 3 项改进**:
   1. ✅ 空 Clean Architecture 目录已删除 → A1 已解决
   2. 将阅读器的 10 个 application 文件合并为 3-4 个 → 消除 1:1 委托链
@@ -38,21 +37,9 @@
 
 - **简化方向**: 删除所有空目录。将基础架构缩小为真实文件存在之处。每个功能 2 个目录（`page/` + `application/`）足以满足此应用的规模。
 
-### A2. 阅读器模块：10 个 application 文件形成 1:1 委托链
+### A2. ✅ 阅读器 10 个 application 文件 → 3 个
 
-- **路径**: `lib/features/reader/application/`
-- **文件**: `reader_view_model.dart`（489 行）+ `chapter_manager.dart` + `annotation_controller.dart` + `reader_search_controller.dart` + `bookmark_controller.dart` + `bilingual_controller.dart` + `reading_session_manager.dart` + `cache_manage_view_model.dart` + `note_manage_view_model.dart`
-- **模式**: `ReaderViewModel` 是一个门面，将 18 个 getter 委托给 4 个控制器 + 2 个管理器（`reader_view_model.dart:40-77`）：
-  ```dart
-  Signal<String> get bookId => chapterManager.bookId;
-  Signal<int> get chapterIndex => chapterManager.chapterIndex;
-  AsyncSignal<List<Chapter>> get chapters => chapterManager.chapters;
-  // ... 16 个类似的委托
-  ```
-- **问题**: 每个控制器直接调用 Rust API（例如，`annotation_controller.dart:108-109` 只是 `await note_api.deleteNote(noteId: noteId);`）。控制器层除了在门面后面再加一层包装外，不提供任何增值。
-- **为何不匹配**: 这是一个单用户页面，而不是微服务网格。每个控制器 1:1 对应一个功能，仅包装 3-5 个 Rust API 调用。
-- **简化方向**: 将 `AnnotationController`、`BookmarkController`、`ReaderSearchController` 和 `BilingualController` 内联到 `ReaderViewModel` 中，或合并为一个 `ReaderService`。
-
+> **[已解决] 2026-06-03** — `AnnotationController`/`BookmarkController`/`BilingualController`/`ReaderSearchController` 内联到 `ReaderViewModel`，删除 4 个文件 + 17 个 getter 代理 + 4 个 DI 注册。当前 `application/` 保留 `reader_view_model.dart`、`chapter_manager.dart`、`reading_session_manager.dart` 共 3 个实体文件 + 2 个管理 VM。
 ### A3. 同步模块的企业级架构
 
 - **路径**: `lib/features/sync/`
@@ -87,30 +74,13 @@
 - **决定**: 保留现有实现。虽然当前只有 WebDAV 同步活跃使用，Dio 层为后续网络功能提供就绪基础设施，移除成本与重建成本不匹配。
 - **简化方向**: 移除整个 `network_module.dart`。从 pubspec 中移除 `dio`、`dio_smart_retry`、`pretty_dio_logger`、`retrofit`、`retrofit_generator`。
 
-### A5. ReaderRepository 中不必要的 Dart 层缓存
+### A5. ✅ ReaderRepository 缓存已移除
 
-- **路径**: `lib/features/reader/data/repositories/rust_reader_repository.dart:71-74`
-- **代码**:
-  ```dart
-  final Map<String, Map<int, ChapterCacheItem>> _cache = {};
-  final Map<String, Map<int, TextSpan>> _richContentCache = {};
-  final Map<String, Map<int, List<RichParagraph>>> _richParagraphCache = {};
-  static const int maxCacheSize = 10;
-  ```
-- **问题**: Rust 排版引擎已经通过 `sled KV` 拥有排版缓存（README 中注明）。此 Dart 端缓存（伴随 694 行的仓库类）重复缓存且最大条目数为 10。该类还包含特定于 EPUB 的渲染细节（`_parseCssColor` 第 288-307 行、`_spanToStyle` 第 260-286 行、`_richParagraphsToRichText` 第 336-372 行），属于渲染层而非仓库层。
-- **简化方向**: 信任 Rust `sled` 缓存。将 EPUB 富文本渲染移到专用的 Dart 渲染器中，或直接使用 Rust 的 `paginateAllContent`。将 `ReaderRepository` 从 694 行减到 ~150 行。
+> **[已解决] 2026-06-03** — 删除 3 个冗余 Dart 缓存 map（信任 Rust sled）+ 7 个缓存管理方法 + 5 个死代码方法。当前页/章节的中间结果使用实例字段（`currentPages`/`currentRichContent`），无需多书多章 LRU。仓库从 694 行减至 ~500 行。渲染方法保留待后续移出。
 
-### A6. ConnectivityBanner 使用轮询而非流
+### A6. ✅ ConnectivityBanner 已删除
 
-- **路径**: `lib/core/presentation/widgets/connectivity_banner.dart:24-28`
-- **代码**:
-  ```dart
-  timer.value = Timer.periodic(const Duration(seconds: 10), (_) {
-    _checkConnectivity(isOnline);
-  });
-  ```
-- **问题**: 每 10 秒轮询 `NetworkStateService.isConnected()`，而 `NetworkStateService` 已经有一个 `listen()` 方法（`network_state_service.dart:36-39`）。在离线阅读器上，轮询系统连接状态毫无意义，该阅读器的唯一网络操作是手动触发的 WebDAV 同步。
-- **简化方向**: 移除 `ConnectivityBanner`（它对阅读体验贡献为零）。或者用 `NetworkStateService.listen()` 流订阅替换轮询。
+> **[已解决] 2026-06-03** — `ConnectivityBanner` 对离线阅读器无实际意义（唯一网络操作为手动 WebDAV 同步），直接删除。轮询问题随之消除。
 
 ### A7. 孤立无援的 BatteryStateService
 
@@ -121,11 +91,9 @@
 
 > **[待接入] 2026-06-03** — 计划在阅读页面使用（充电时保持常亮/低电量时调暗），等待接入。保留文件，不做删除。
 
-### A8. 为个人 WebDAV 同步使用 flutter_secure_storage + SharedPreferences
+### A8. ✅ WebDAV 双存储已合并
 
-- **路径**: `lib/features/sync/application/services/webdav_config_service.dart:11-12`
-- **代码**: `WebDavConfigService` 同时需要 `SharedPreferences` 和 `FlutterSecureStorage`，管理 8 个键（第 26-32 行），为单用户阅读器存储 2 个凭证。
-- **简化方向**: 使用单个 `SharedPreferences` 键将整个 `WebDavConfig` 存储为 JSON。移除 `flutter_secure_storage` 依赖。
+> **[已解决] 2026-06-03** — 将 7 个 SharedPreferences 配置键合并为 1 个 JSON 键 + 密码保留 SecureStorage。删除 `WebDavConfigHost` 抽象类。配置服务从 179 行减至 ~120 行。
 
 ### A9. 功能模块中的 @injectable 注册每个 ViewModel
 
@@ -133,21 +101,19 @@
 - **问题**: 对于只有 ~12 个 ViewModel、每个仅实例化一次的应用，`injectable` + `get_it` + `build_runner` + `.config.dart` 生成带来的开销毫无必要。
 - **简化方向**: 删除 `injectable`/`get_it`。使用普通的 Dart 构造函数或简单的 `ViewModelProvider` 模式。移除 `injectable`、`injectable_generator`、`build_runner`（用于注入）依赖。
 
-### A10. app_config.dart 中的企业运行时配置
+> **[保留] 2026-06-03** — DI 的自动装配和单例管理对项目有实际价值，`build_runner` 的开销在个人项目中可接受。保留现有注入方式。
 
-- **路径**: `lib/core/app_config.dart:16-61`
-- **证据**: `connectTimeoutSeconds`、`receiveTimeoutSeconds`、`retries`、`apiTimeout`、`defaultPageSize`，以及 `.env` 文件中从未被有效 HTTP API 使用的 `BASE_URL`。
-- **简化方向**: 移除所有与网络相关的配置。移除 `flutter_dotenv`。使 `AppConfig` 成为一个仅包含实际使用设置的普通 Dart 类。
+### A10. ✅ app_config.dart 企业级配置已清理
+
+> **[已解决]** — `baseUrl`、超时、重试等网络配置已移除，`AppConfig` 缩减为 22 行的单例初始器。
 
 ---
 
 ## B. 重要 — 与应用调性不符
 
-### B1. BookDetailViewModel 中 7 个 Future.wait 调用
+### B1. ✅ 7 个 Future.wait → 单 Rust 函数
 
-- **路径**: `lib/features/bookshelf/application/book_detail_view_model.dart:33-44`
-- **代码**: 7 个独立的 FFI 调用获取书籍详情（book、progress、notes、chapters、categories、sessions、vocabulary），其中 `listSessionsByBook(limit: 10000)` 获取所有记录。
-- **简化方向**: 创建 Rust 函数 `getBookDetail(bookId)` 一次性返回所有数据。删除硬编码的 `limit: 10000`。
+> **[已解决] 2026-06-03** — Rust 侧创建 `get_book_detail` 聚合函数，Dart 侧 `BookDetailViewModel.loadData()` 从 7 次 FFI 调用 + 7 个 `as` 强转改为 1 次调用。去除 `limit: 10000` 硬编码。
 
 ### B2. bookshelf 的 page/widgets/ 中有 13 个 widget 文件
 
@@ -158,16 +124,9 @@
 
 - **路径**: `lib/features/reader/page/widgets/`（17 个文件）
 - **简化方向**: 合并相关的渲染器（scroll/pagination/bilingual）；将工具栏面板分组。
-
-### B4. Reader 数据层：typeset 的 3 个导出文件
-
-- **路径**:
-  - `lib/features/reader/data/typeset_calibrator.dart`（133 行）
-  - `lib/features/reader/data/typeset_config_builder.dart`（82 行）
-  - `lib/features/reader/data/vocabulary_marker_service.dart`
-- **简化方向**: 将 `buildTypesetConfig` 内联到 `ReaderRepository` 中。将 `typeset_calibrator.dart` 减为单个函数。合并到 1 个 ~60 行的文件中。
-
-### B5. ViewModel 中手动的信号 dispose 样板代码
+### B4. ✅ typeset 文件已合并
+>
+> **[已解决]** — `typeset_config_builder.dart`（82 行）已内联到 `typeset_calibrator.dart`，删除原文件。`vocabulary_marker_service.dart` 保持独立（职责无关）。
 
 - **路径**: 出现在 `book_detail_view_model.dart:68-79`、`reader_view_model.dart:459-487` 等。
 - **问题**: 每个 ViewModel 有 7-15 行手动 dispose 代码。容易遗漏。
@@ -186,18 +145,15 @@
 ### B8. ✅ 导入别名冲突已解决
 
 > **[已解决] 2026-06-03** — 删除 `reader_view_model.dart` 中重复的别名导入 `as bilingual_api`，统一使用裸导入。`bilingual_api.createBilingualHighlightPair` 改为裸调用。
+### B9. ✅ 重复 try/catch 模板已统一
+>
+> **[已解决]** — 创建 `lib/core/utils/async_utils.dart`，提供 `safeLoad()` 和 `AsyncStateSignalExt.loadAsync()`。已应用到 `home_view_model`、`statistics_view_model`、`bilingual_controller`、`bookmark_controller`。
 
+### B10: 其他过度分解
 
-### B9. 多个 ViewModel 中重复的 AsyncState 模板代码
-
-- **路径**: 出现在 `home_view_model.dart`、`statistics_view_model.dart` 等。
-- **简化方向**: 如果 signals 是首选模式，使用 `AsyncSignal`/`AsyncState` 内建支持，不需要在每个 ViewModel 中手动 try/catch。
-
-### B10-12: 其他过度分解
-
-- 阅读器的 3 个独立管理页面（`note_manage_page.dart`、`cache_manage_page.dart`、`bookmark_manage_page.dart`）应为面板而不是全屏页面。
-- `learning_notes/application/models/note_with_book.dart` 单独文件放一个简单数据类。
-- `core/localization/enum_extensions.dart` 一个扩展方法就占一个文件。
+- ~~阅读器的 3 个独立管理页面（`note_manage_page.dart`、`cache_manage_page.dart`、`bookmark_manage_page.dart`）应为面板而不是全屏页面。~~ ✅ B10 `NoteManagePage` 已改为底部面板；`CacheManagePage`/`BookmarkManagePage` 保留全屏
+- ~~`learning_notes/application/models/note_with_book.dart` 单独文件放一个简单数据类。~~ ✅ B11 已内联到 `learning_notes_view_model.dart`
+- ~~`core/localization/enum_extensions.dart` 一个扩展方法就占一个文件。~~ ✅ B12 已内联到各枚举定义文件
 
 ---
 ## C. 次要 — 值得再次审视的边界情况
@@ -209,22 +165,19 @@
 ### C2. ✅ WebDavPreset 硬编码服务预设
 
 > **[保留] 2026-06-03** — 为用户提供常见 WebDAV 服务商一键配置模板，属于实用 UX 功能，不做移除。
-
-### C3. 空的 `data/repositories/` 目录
-
-4 个模块中有空的 `data/repositories/` 目录。建议随模块改造时清理。
-
+### C3. ✅ 空 data/repositories/ 目录已清理
+> **[已解决] 2026-06-03** — 仅 `lib/features/reader/data/repositories/` 保留（有实际文件），其余已全部删除。
 ### C4. ✅ settings/ 薄包装
-
+>
 > **[保留] 2026-06-03** — 6 个设置组件维持全局视觉一致性，多处复用，属于合理封装。
 
 ### C5. ✅ 小工具独立文件
-
+>
 > **[保留] 2026-06-03** — `platform_guard.dart` 被 2 个服务共 7 次调用，保留合理复用。`device_id.dart` 已整合到 SettingsKeys，为多设备同步预留。
 
-### C6. `library;` 声明清理
+### C6. ✅ `library;` 声明已清理
 
-41 个文件有无参数的 `library;` 声明，纯装饰无功能。建议随其他修改顺手清理。
+> **[已解决] 2026-06-03** — `lib/` 下 41 处 `library;` 声明已全部删除。
 
 ---
 
@@ -239,20 +192,22 @@
 - **WebDAV sync 功能本身**: 合理。过度的是管理它的服务分层。
 - **Reader widgets 的分解**: 17 个 widget 文件处于*可接受*一侧，但结合 application 层过度工程则需警惕。
 ---
-
-
 ## 变更记录
 
 | 日期 | 变更 | 类型 |
 |------|------|------|
 | 2026-06-03 | A1 空目录已清理 | 已解决 |
 | 2026-06-03 | A4 网络层决定保留 | 保留决策 |
-| 2026-06-03 | 设置统一存储层重构 (`PersistedSignal<T>` + `settings_keys.dart`) | 已完成 |
-  | 2026-06-03 | B7 `reader_enums.dart` 内联到 `reader_config.dart` | 已解决 |
-  | 2026-06-03 | B8 统一 `bilingual.dart` 导入策略 | 已解决 |
-  | 2026-06-03 | C1 移除 `cached_network_image`、`device_info_plus` | 已解决 |
+| 2026-06-03 | A5 ReaderRepository 移除冗余缓存 | 已解决 |
+| 2026-06-03 | A8 WebDAV 双存储合并，删除 `WebDavConfigHost` | 已解决 |
+| 2026-06-03 | 设置统一存储层重构 | 已完成 |
+| 2026-06-03 | B7 `reader_enums.dart` 内联到 `reader_config.dart` | 已解决 |
+| 2026-06-03 | B8 统一 `bilingual.dart` 导入策略 | 已解决 |
+| 2026-06-03 | C1 移除 `cached_network_image`、`device_info_plus` | 已解决 |
+| 2026-06-03 | B10 `NoteManagePage` 改为底部面板 | 已解决 |
+| 2026-06-03 | A2 阅读器 4 控制器内联到 VM，删 4 文件 | 已解决 |
+| 2026-06-03 | B1 7 Future.wait → Rust `get_book_detail` 聚合 | 已解决 |
 
 ## 建议优先级
-1. **立即行动**: ~~删除所有空目录（A1）~~ ✅，~~移除未用依赖（C1）~~ ✅，移除网络层和依赖（A4 ⏭️ 保留、A10）
-2. **本周**: 将阅读器 application 层减半（A2），压缩同步模块（A3）
-3. **本月**: 瘦身 ReaderRepository（A5），移除 injectable（A9）
+1. **本周**: 压缩同步模块（A3）
+2. **后续**: 合并过度分解的 widgets（B2、B3、B4、B5、B6）

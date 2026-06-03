@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 主题类型枚举
 enum AppThemeType {
@@ -17,6 +18,15 @@ enum AppThemeType {
 
   final String label;
   const AppThemeType({required this.label});
+}
+
+
+extension AppThemeTypeX on AppThemeType {
+  String l10nLabel(AppLocalizations l10n) => switch (this) {
+    AppThemeType.light => l10n.themeLight,
+    AppThemeType.dark => l10n.themeDark,
+    AppThemeType.system => l10n.themeSystem,
+  };
 }
 
 /// 主题管理器单

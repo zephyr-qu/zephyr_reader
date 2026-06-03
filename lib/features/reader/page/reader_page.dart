@@ -1,5 +1,3 @@
-library;
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -7,27 +5,27 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-
 import 'package:zephyr_reader/core/reader/custom_font_service.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/reader/tts_service.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page_actions.dart';
-import 'package:zephyr_reader/core/utils/haptic.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-import 'widgets/animated_toolbar_panel.dart';
 import 'reader_dictionary_panel.dart';
+import 'widgets/animated_toolbar_panel.dart';
 import 'widgets/bookmark_widget.dart';
-import 'widgets/reader_page_bindings.dart';
-import 'widgets/reader_catalog_drawer.dart';
 import 'widgets/reader_bottom_toolbar.dart';
+import 'widgets/reader_catalog_drawer.dart';
 import 'widgets/reader_content.dart';
+import 'package:zephyr_reader/features/reader/page/widgets/battery_indicator.dart';
 import 'widgets/reader_note_sidebar.dart';
+import 'widgets/reader_page_bindings.dart';
 import 'widgets/reader_search_bar.dart';
 import 'widgets/reader_settings_panel.dart';
 import 'widgets/reader_toolbar.dart';
@@ -38,7 +36,6 @@ class ReaderPage extends HookWidget {
   final String bookId;
   final int initialChapterId;
   final int initialPageIndex;
-
 
   ReaderPage({
     super.key,
@@ -52,7 +49,9 @@ class ReaderPage extends HookWidget {
     final fontRepo = useMemoized(() => getIt<FontRepository>());
     final ttsService = useMemoized(() => getIt<TtsService>());
     final config = useMemoized(() => getIt<ReaderConfig>());
-    final tapLayout = useSignalValue<TapLayout, Signal<TapLayout>>(config.tapLayout.signal);
+    final tapLayout = useSignalValue<TapLayout, Signal<TapLayout>>(
+      config.tapLayout.signal,
+    );
     final scaffoldKey = useMemoized(() => GlobalKey<ScaffoldState>());
     final searchController = useTextEditingController();
     final vocabWords = useSignal<Set<String>>({});
@@ -91,7 +90,11 @@ class ReaderPage extends HookWidget {
         vm.pageHeight.value = mq.size.height - mq.padding.vertical;
         vm.devicePixelRatio.value = mq.devicePixelRatio;
         vm.updateFont(fontRepo.currentFontFamily);
-        vm.initialize(bookId, initialChapterId: initialChapterId, initialPageIndex: initialPageIndex);
+        vm.initialize(
+          bookId,
+          initialChapterId: initialChapterId,
+          initialPageIndex: initialPageIndex,
+        );
       });
       return vm.resetForNewBook;
     }, []);
@@ -229,6 +232,11 @@ class ReaderPage extends HookWidget {
                         ),
                       ),
                     ),
+                  const Positioned(
+                    bottom: 12,
+                    right: 0,
+                    child: BatteryIndicator(),
+                  ),
                   if (b.showSearch)
                     Positioned(
                       top: 0,
@@ -352,7 +360,7 @@ class ReaderPage extends HookWidget {
                   AnimatedSlide(
                     offset: b.showSettings ? Offset.zero : const Offset(0, 1),
                     duration: const Duration(milliseconds: 350),
-                    curve: Curves.easeOutCubic,
+                    curve: Curves.easeOutBack,
                     child: Align(
                       alignment: Alignment.bottomCenter,
                       child: ReaderSettingsPanel(
@@ -367,22 +375,30 @@ class ReaderPage extends HookWidget {
                         onReadingModeChanged: vm.setReadingMode,
                         onFontSizeChanged: vm.setFontSize,
                         onLineHeightChanged: vm.setLineHeight,
-                        onThemeChanged: (tm) => config.theme.value =
-                          tm == ThemeMode.dark
-                              ? ReaderTheme.dark
-                              : ReaderTheme.light,
-                        onLetterSpacingChanged: (v) => config.letterSpacing.value = v,
-                        onParagraphSpacingChanged: (v) => config.paragraphSpacing.value = v,
+                        onThemeChanged: (tm) =>
+                            config.theme.value = tm == ThemeMode.dark
+                            ? ReaderTheme.dark
+                            : ReaderTheme.light,
+                        onLetterSpacingChanged: (v) =>
+                            config.letterSpacing.value = v,
+                        onParagraphSpacingChanged: (v) =>
+                            config.paragraphSpacing.value = v,
                         onPageMarginChanged: (m) => config.padding.value = m,
-                        onWritingDirectionChanged:
-                            (d) => vm.config.writingDirection.value = d,
+                        onWritingDirectionChanged: (d) =>
+                            vm.config.writingDirection.value = d,
                         onClose: vm.toggleSettings,
                         readerBgColorIndex: vm.config.readerBgColorIndex.value,
-                        onReaderBgColorChanged: (v) => config.readerBgColorIndex.value = v,
+                        onReaderBgColorChanged: (v) =>
+                            config.readerBgColorIndex.value = v,
                         brightnessValue: vm.config.brightnessOverlay.value,
-                        onBrightnessChanged: (v) => vm.config.brightnessOverlay.value = v.clamp(0.0, 1.0),
+                        onBrightnessChanged: (v) =>
+                            vm.config.brightnessOverlay.value = v.clamp(
+                              0.0,
+                              1.0,
+                            ),
                         tapLayout: config.tapLayout.value,
-                        onTapLayoutChanged: (layout) => config.tapLayout.value = layout,
+                        onTapLayoutChanged: (layout) =>
+                            config.tapLayout.value = layout,
                       ),
                     ),
                   ),
@@ -438,7 +454,8 @@ class ReaderPage extends HookWidget {
                           final w = context.size?.width ?? 1;
                           final third = w / 3;
                           final isLeftZone = details.localPosition.dx < third;
-                          final isRightZone = details.localPosition.dx >= third * 2;
+                          final isRightZone =
+                              details.localPosition.dx >= third * 2;
                           late final bool goBack, goForward;
                           switch (tapLayout) {
                             case TapLayout.rightHanded:

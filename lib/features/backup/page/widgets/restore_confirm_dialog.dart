@@ -1,5 +1,3 @@
-library;
-
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
@@ -42,10 +40,13 @@ Future<bool?> showRestoreConfirmDialog(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _statRow(ctx, '备份版本', manifest.appVersion),
-                _statRow(ctx, '导出时间',
-                    DateTime.fromMillisecondsSinceEpoch(manifest.exportedAt * 1000)
-                        .toString()
-                        .substring(0, 19)),
+                _statRow(
+                  ctx,
+                  '导出时间',
+                  DateTime.fromMillisecondsSinceEpoch(
+                    manifest.exportedAt * 1000,
+                  ).toString().substring(0, 19),
+                ),
                 _statRow(ctx, '书籍', '${manifest.stats.books} 本'),
                 _statRow(ctx, '笔记', '${manifest.stats.notes} 条'),
                 _statRow(ctx, '书签', '${manifest.stats.bookmarks} 个'),
@@ -78,7 +79,14 @@ Widget _statRow(BuildContext context, String label, String value) {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
-        Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: cs.onSurface)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: cs.onSurface,
+          ),
+        ),
       ],
     ),
   );

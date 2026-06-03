@@ -1,5 +1,3 @@
-library;
-
 class SearchHistoryService {
   final List<String> _history = [];
   static const int maxHistory = 20;

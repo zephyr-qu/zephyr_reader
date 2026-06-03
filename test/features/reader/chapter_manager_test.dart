@@ -164,8 +164,7 @@ void main() {
       fontFamily: any(named: 'fontFamily'),
     )).thenAnswer((_) => _twoPages());
     when(() => repo.loadReadingProgress(any())).thenAnswer((_) async => null);
-    when(() => repo.gcChapterCache(any(), any())).thenAnswer((_) {});
-    when(() => repo.getCachedPages(any(), any())).thenReturn(null);
+    when(() => repo.currentPages).thenReturn(null);
     when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {});
     when(() => repo.calculatePages(
       bookId: any(named: 'bookId'),
@@ -399,7 +398,7 @@ void main() {
       });
 
       test('loadPage 按页码加载并更新偏移', () {
-        when(() => repo.getCachedPages(any(), any())).thenReturn([
+        when(() => repo.currentPages).thenReturn([
           PageInfo(pageIndex: 0, content: 'A' * 50, startOffset: 0, endOffset: 50),
           PageInfo(pageIndex: 1, content: 'A' * 50, startOffset: 50, endOffset: 100),
         ]);

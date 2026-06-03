@@ -36,14 +36,6 @@ import 'package:zephyr_reader/features/profile/page/other_settings/other_setting
     as _i640;
 import 'package:zephyr_reader/features/profile/page/theme_brightness/theme_brightness_view_model.dart'
     as _i489;
-import 'package:zephyr_reader/features/reader/application/annotation_controller.dart'
-    as _i693;
-import 'package:zephyr_reader/features/reader/application/bilingual_controller.dart'
-    as _i346;
-import 'package:zephyr_reader/features/reader/application/bookmark_controller.dart'
-    as _i891;
-import 'package:zephyr_reader/features/reader/application/reader_search_controller.dart'
-    as _i291;
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart'
     as _i335;
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart'
@@ -54,10 +46,8 @@ import 'package:zephyr_reader/features/search/application/search_view_model.dart
     as _i1;
 import 'package:zephyr_reader/features/statistics/application/reading_sessions_view_model.dart'
     as _i799;
-import 'package:zephyr_reader/features/statistics/application/reading_stats_service.dart'
-    as _i1072;
-import 'package:zephyr_reader/features/statistics/application/statistics_view_model.dart'
-    as _i540;
+import 'package:zephyr_reader/features/statistics/application/reading_stats_view_model.dart'
+    as _i934;
 import 'package:zephyr_reader/features/sync/application/storage_sync_view_model.dart'
     as _i657;
 import 'package:zephyr_reader/features/vocabulary/application/vocabulary_view_model.dart'
@@ -80,17 +70,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i676.LearningNotesViewModel>(
       () => _i676.LearningNotesViewModel(),
     );
-    gh.factory<_i693.AnnotationController>(() => _i693.AnnotationController());
-    gh.factory<_i346.BilingualController>(() => _i346.BilingualController());
-    gh.factory<_i291.ReaderSearchController>(
-      () => _i291.ReaderSearchController(),
-    );
     gh.factory<_i1054.ReaderRepository>(() => _i1054.ReaderRepository());
     gh.factory<_i1.SearchViewModel>(() => _i1.SearchViewModel());
     gh.factory<_i799.ReadingSessionsViewModel>(
       () => _i799.ReadingSessionsViewModel(),
     );
-    gh.factory<_i540.StatisticsViewModel>(() => _i540.StatisticsViewModel());
     gh.factory<_i657.StorageSyncViewModel>(() => _i657.StorageSyncViewModel());
     gh.factory<_i104.VocabularyViewModel>(() => _i104.VocabularyViewModel());
     gh.singleton<_i849.ReaderBgColors>(() => _i849.ReaderBgColors());
@@ -104,11 +88,8 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i880.VocabularyMarkerService>(
       () => _i880.VocabularyMarkerService(),
     );
-    gh.lazySingleton<_i1072.ReadingStatsViewModel>(
-      () => _i1072.ReadingStatsViewModel(),
-    );
-    gh.factory<_i891.BookmarkController>(
-      () => _i891.BookmarkController(gh<_i1054.ReaderRepository>()),
+    gh.lazySingleton<_i934.ReadingStatsViewModel>(
+      () => _i934.ReadingStatsViewModel(),
     );
     gh.factory<_i596.BookDetailViewModel>(
       () => _i596.BookDetailViewModel(bookId: gh<String>()),
@@ -138,10 +119,6 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i335.ReaderViewModel(
         gh<_i1054.ReaderRepository>(),
         gh<_i849.ReaderConfig>(),
-        gh<_i891.BookmarkController>(),
-        gh<_i291.ReaderSearchController>(),
-        gh<_i693.AnnotationController>(),
-        gh<_i346.BilingualController>(),
       ),
     );
     return this;

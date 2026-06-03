@@ -18,7 +18,6 @@ import 'package:zephyr_reader/features/profile/page/typography_settings_page.dar
 import 'package:zephyr_reader/features/profile/page/theme_brightness/theme_brightness_page.dart';
 import 'package:zephyr_reader/features/profile/page/other_settings/other_settings_page.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page.dart';
-import 'package:zephyr_reader/features/reader/page/note_manage_page.dart';
 import 'package:zephyr_reader/features/reader/page/bookmark_manage_page.dart';
 import 'package:zephyr_reader/features/search/page/search_page.dart';
 import 'package:zephyr_reader/features/search/page/book_search_page.dart';
@@ -159,14 +158,21 @@ final router = GoRouter(
             initialPageIndex: pageIndex,
           ),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 0.04),
-                end: Offset.zero,
-              ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(animation),
-              child: FadeTransition(
-                opacity: Tween<double>(begin: 0.3, end: 1).animate(animation),
-                child: child,
+            // 前进: 上滑 + 淡入 + 微微放大（翻书）
+            // 返回: 下滑 + 淡出 + 缩小到 96%（合书）
+            return ScaleTransition(
+              scale: Tween<double>(begin: 1, end: 0.96)
+                .chain(CurveTween(curve: Curves.easeInCubic))
+                .animate(secondaryAnimation),
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.04),
+                  end: Offset.zero,
+                ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(animation),
+                child: FadeTransition(
+                  opacity: Tween<double>(begin: 0.3, end: 1).animate(animation),
+                  child: child,
+                ),
               ),
             );
           },
@@ -206,15 +212,6 @@ final router = GoRouter(
     ),
 
     // 笔记管理
-    GoRoute(
-      name: RouteNames.noteManage,
-      path: RoutePaths.noteManage,
-      builder: (_, state) {
-        final bookId = state.pathParameters['bookId'] ?? '';
-        final bookTitle = state.uri.queryParameters['title'] ?? '';
-        return NoteManagePage(bookId: bookId, bookTitle: bookTitle);
-      },
-    ),
 
     // 书签管理
     GoRoute(

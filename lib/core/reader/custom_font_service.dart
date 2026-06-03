@@ -8,7 +8,6 @@
 /// - 自定义字体管理 (删除/清除)
 /// - 字体下载服务 (支持从 URL 下载)
 /// - 响应式字体状态 (使用 signals_flutter)
-library;
 
 import 'dart:io';
 
@@ -18,10 +17,10 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/reader/models/font_info.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/core/reader/models/font_info.dart';
 
 /// 字体仓库
 ///
@@ -34,7 +33,8 @@ class FontRepository {
   final SharedPreferences _prefs;
 
   late final _currentFontId = persistedNullableString(
-    _prefs, SettingsKeys.currentFont,
+    _prefs,
+    SettingsKeys.currentFont,
   );
 
   /// 当前字体

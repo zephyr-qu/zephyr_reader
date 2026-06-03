@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/presentation/widgets/skeleton_widget.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -331,7 +332,9 @@ class BookshelfBookContent extends StatelessWidget {
                         ),
                       ),
                   ],
-                ),
+                ).animate(delay: (index * 80).ms)
+                  .fadeIn(duration: 400.ms, curve: Curves.easeOutCubic)
+                  .slideY(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutCubic),
               ),
             );
           },

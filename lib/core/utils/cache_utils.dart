@@ -1,11 +1,11 @@
 /// 缓存管理器
 ///
 /// 提供缓存清理、缓存大小计算等功能
-library;
 
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import './logging.dart';
 

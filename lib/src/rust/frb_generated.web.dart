@@ -97,6 +97,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Book dco_decode_book(dynamic raw);
 
   @protected
+  BookDetail dco_decode_book_detail(dynamic raw);
+
+  @protected
   BookFormat dco_decode_book_format(dynamic raw);
 
   @protected
@@ -466,6 +469,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Book sse_decode_book(SseDeserializer deserializer);
+
+  @protected
+  BookDetail sse_decode_book_detail(SseDeserializer deserializer);
 
   @protected
   BookFormat sse_decode_book_format(SseDeserializer deserializer);
@@ -1016,6 +1022,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_opt_String(raw.publisher),
       cst_encode_opt_String(raw.translator),
       cst_encode_opt_String(raw.isbn),
+    ].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_book_detail(BookDetail raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_opt_box_autoadd_book(raw.book),
+      cst_encode_opt_box_autoadd_reading_progress(raw.progress),
+      cst_encode_note_stats(raw.noteStats),
+      cst_encode_list_chapter(raw.chapters),
+      cst_encode_list_category(raw.categories),
+      cst_encode_list_reading_session(raw.sessions),
+      cst_encode_list_vocab(raw.vocabList),
     ].jsify()!;
   }
 
@@ -1973,6 +1993,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_book(Book self, SseSerializer serializer);
 
   @protected
+  void sse_encode_book_detail(BookDetail self, SseSerializer serializer);
+
+  @protected
   void sse_encode_book_format(BookFormat self, SseSerializer serializer);
 
   @protected
@@ -2838,6 +2861,11 @@ class RustLibWire implements BaseWire {
     port_,
     validated_path,
   );
+
+  void wire__crate__api__data__book__get_book_detail(
+    NativePortType port_,
+    String book_id,
+  ) => wasmModule.wire__crate__api__data__book__get_book_detail(port_, book_id);
 
   void wire__crate__api__data__bookmark__get_bookmark(
     NativePortType port_,
@@ -3748,6 +3776,11 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
   external void wire__crate__api__data__book__get_book_by_file_path(
     NativePortType port_,
     String validated_path,
+  );
+
+  external void wire__crate__api__data__book__get_book_detail(
+    NativePortType port_,
+    String book_id,
   );
 
   external void wire__crate__api__data__bookmark__get_bookmark(

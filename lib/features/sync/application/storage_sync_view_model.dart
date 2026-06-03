@@ -1,16 +1,15 @@
-library;
+
 
 import 'dart:async';
-import 'package:injectable/injectable.dart';
 import 'dart:io';
 
+import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
-import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/cache_utils.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/sync/application/services/sync_models.dart';
 import 'package:zephyr_reader/features/sync/application/services/webdav_config_service.dart';
@@ -18,8 +17,8 @@ import 'package:zephyr_reader/features/sync/application/services/webdav_sync_ser
 import 'package:zephyr_reader/src/rust/api/data/stats.dart' as rust_stats;
 
 @injectable
-class StorageSyncViewModel implements WebDavConfigHost {
-  final _configService = WebDavConfigService(prefs: getIt<SharedPreferences>());
+class StorageSyncViewModel {
+  final configService = WebDavConfigService(prefs: getIt<SharedPreferences>());
 
   final isConfigured = signal(false);
   final lastSyncTime = signal<DateTime?>(null);
@@ -40,11 +39,11 @@ class StorageSyncViewModel implements WebDavConfigHost {
   Future<void> initialize() async {
     loading.value = true;
     try {
-      isConfigured.value = _configService.isConfigured.value;
-      final time = await _configService.getLastSyncTime();
+      isConfigured.value = configService.isConfigured.value;
+      final time = await configService.getLastSyncTime();
       lastSyncTime.value = time;
 
-      final config = await _configService.getConfig();
+      final config = await configService.getConfig();
       if (config != null) {
         serverUrl.value = config.baseUrl;
       }
@@ -109,7 +108,7 @@ class StorageSyncViewModel implements WebDavConfigHost {
   }
 
   Future<SyncResult?> triggerSync() async {
-    final config = await _configService.getConfig();
+    final config = await configService.getConfig();
     if (config == null) return null;
 
     isSyncing.value = true;
@@ -117,7 +116,7 @@ class StorageSyncViewModel implements WebDavConfigHost {
       final service = getIt<WebDavSyncService>();
       service.setConfig(config);
       final result = await service.syncAll();
-      await _configService.setLastSyncTime(DateTime.now());
+      await configService.setLastSyncTime(DateTime.now());
       lastSyncTime.value = DateTime.now();
       return result;
     } finally {
@@ -130,23 +129,20 @@ class StorageSyncViewModel implements WebDavConfigHost {
     await _calcStorage();
   }
 
-  @override
-  Future<WebDavConfig?> getConfig() => _configService.getConfig();
-  @override
-  Future<void> saveConfig(WebDavConfig config) async {
-    await _configService.saveConfig(config);
+  /// Delegated to configService; exposed for dialog use.
+  Future<WebDavConfig?> getConfig() => configService.getConfig();
+  Future<void> saveConfig(WebDavConfig config) {
     isConfigured.value = true;
     serverUrl.value = config.baseUrl;
+    return configService.saveConfig(config);
   }
-
-  @override
-  Future<void> clearConfig() async {
-    await _configService.clearConfig();
+  Future<void> clearConfig() {
     isConfigured.value = false;
     serverUrl.value = '';
+    return configService.clearConfig();
   }
 
   Future<bool> testConnection() async {
-    return await _configService.testCurrentConfig();
+    return await configService.testCurrentConfig();
   }
 }

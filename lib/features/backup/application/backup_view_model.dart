@@ -1,5 +1,3 @@
-library;
-
 import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
@@ -10,7 +8,14 @@ import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/backup.dart';
 
-enum BackupStatus { idle, exporting, exportingDone, restoring, restoringDone, error }
+enum BackupStatus {
+  idle,
+  exporting,
+  exportingDone,
+  restoring,
+  restoringDone,
+  error,
+}
 
 @injectable
 /// 本地备份 ViewModel
@@ -58,7 +63,6 @@ class BackupViewModel {
       // 静默失败，stats 为 null 时 UI 降级显示
     }
   }
-
 
   // ============ 操作 ============
 

@@ -95,6 +95,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Book dco_decode_book(dynamic raw);
 
   @protected
+  BookDetail dco_decode_book_detail(dynamic raw);
+
+  @protected
   BookFormat dco_decode_book_format(dynamic raw);
 
   @protected
@@ -464,6 +467,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Book sse_decode_book(SseDeserializer deserializer);
+
+  @protected
+  BookDetail sse_decode_book_detail(SseDeserializer deserializer);
 
   @protected
   BookFormat sse_decode_book_format(SseDeserializer deserializer);
@@ -1627,6 +1633,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_book_detail(
+    BookDetail apiObj,
+    wire_cst_book_detail wireObj,
+  ) {
+    wireObj.book = cst_encode_opt_box_autoadd_book(apiObj.book);
+    wireObj.progress = cst_encode_opt_box_autoadd_reading_progress(
+      apiObj.progress,
+    );
+    cst_api_fill_to_wire_note_stats(apiObj.noteStats, wireObj.note_stats);
+    wireObj.chapters = cst_encode_list_chapter(apiObj.chapters);
+    wireObj.categories = cst_encode_list_category(apiObj.categories);
+    wireObj.sessions = cst_encode_list_reading_session(apiObj.sessions);
+    wireObj.vocab_list = cst_encode_list_vocab(apiObj.vocabList);
+  }
+
+  @protected
   void cst_api_fill_to_wire_book_metadata(
     BookMetadata apiObj,
     wire_cst_book_metadata wireObj,
@@ -2341,6 +2363,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_book(Book self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_book_detail(BookDetail self, SseSerializer serializer);
 
   @protected
   void sse_encode_book_format(BookFormat self, SseSerializer serializer);
@@ -4087,6 +4112,28 @@ class RustLibWire implements BaseWire {
       );
   late final _wire__crate__api__data__book__get_book_by_file_path =
       _wire__crate__api__data__book__get_book_by_file_pathPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__data__book__get_book_detail(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__data__book__get_book_detail(port_, book_id);
+  }
+
+  late final _wire__crate__api__data__book__get_book_detailPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__data__book__get_book_detail');
+  late final _wire__crate__api__data__book__get_book_detail =
+      _wire__crate__api__data__book__get_book_detailPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
@@ -7582,6 +7629,33 @@ final class wire_cst_bilingual_alignment extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_String> unmatched_english;
 }
 
+final class wire_cst_note_stats extends ffi.Struct {
+  @ffi.Int32()
+  external int total_count;
+
+  @ffi.Int32()
+  external int highlight_count;
+
+  @ffi.Int32()
+  external int annotation_count;
+}
+
+final class wire_cst_book_detail extends ffi.Struct {
+  external ffi.Pointer<wire_cst_book> book;
+
+  external ffi.Pointer<wire_cst_reading_progress> progress;
+
+  external wire_cst_note_stats note_stats;
+
+  external ffi.Pointer<wire_cst_list_chapter> chapters;
+
+  external ffi.Pointer<wire_cst_list_category> categories;
+
+  external ffi.Pointer<wire_cst_list_reading_session> sessions;
+
+  external ffi.Pointer<wire_cst_list_vocab> vocab_list;
+}
+
 final class wire_cst_book_metadata extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> title;
 
@@ -7674,17 +7748,6 @@ final class wire_cst_global_stats extends ffi.Struct {
 
   @ffi.Int32()
   external int total_bookmarks_count;
-}
-
-final class wire_cst_note_stats extends ffi.Struct {
-  @ffi.Int32()
-  external int total_count;
-
-  @ffi.Int32()
-  external int highlight_count;
-
-  @ffi.Int32()
-  external int annotation_count;
 }
 
 final class wire_cst_page_data extends ffi.Struct {

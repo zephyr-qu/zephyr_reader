@@ -1,5 +1,4 @@
 /// 用户协议页面
-library;
 
 import 'package:flutter/material.dart';
 

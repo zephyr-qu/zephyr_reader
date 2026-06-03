@@ -6,11 +6,11 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/features/statistics/application/statistics_view_model.dart';
+import 'package:zephyr_reader/features/statistics/application/reading_stats_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class StatisticsPage extends HookWidget {
-  late final StatisticsViewModel vm = getIt<StatisticsViewModel>();
+  late final ReadingStatsViewModel vm = getIt<ReadingStatsViewModel>();
   StatisticsPage({super.key});
 
   static const _weekdayLabels = ['一', '二', '三', '四', '五', '六', '日'];

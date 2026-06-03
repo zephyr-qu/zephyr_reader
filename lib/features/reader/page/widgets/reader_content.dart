@@ -222,7 +222,7 @@ class ReaderContent extends HookWidget {
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (readingMode == ReadingMode.pagination) {
-          final pages = repo.getCachedPages(bookId, chapterId);
+          final pages = repo.currentPages;
           if (pages != null && pages.isNotEmpty) {
             final targetIndex = (() {
               for (int i = 0; i < pages.length; i++) {

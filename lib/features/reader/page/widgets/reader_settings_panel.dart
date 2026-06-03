@@ -1,12 +1,9 @@
-library;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:zephyr_reader/l10n/app_localizations.dart';
-
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 class ReaderSettingsPanel extends HookWidget {
   final ThemeMode themeMode;
@@ -225,13 +222,24 @@ class ReaderSettingsPanel extends HookWidget {
     );
   }
 
-  Widget _buildModeSelector(ReaderThemeExtension readerTheme, AppLocalizations l10n) {
+  Widget _buildModeSelector(
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+  ) {
     final accentColor = readerTheme.accentColor;
     final modes = [
       (ReadingMode.scroll, l10n.scrollMode, PhosphorIconsRegular.arrowsDownUp),
       (ReadingMode.pageTurn, l10n.pageTurnMode, PhosphorIconsRegular.book),
-      (ReadingMode.pagination, l10n.paginationMode, PhosphorIconsFill.bookOpenText),
-      (ReadingMode.bilingual, l10n.bilingualMode, PhosphorIconsRegular.translate),
+      (
+        ReadingMode.pagination,
+        l10n.paginationMode,
+        PhosphorIconsFill.bookOpenText,
+      ),
+      (
+        ReadingMode.bilingual,
+        l10n.bilingualMode,
+        PhosphorIconsRegular.translate,
+      ),
     ];
 
     return Padding(
@@ -286,10 +294,17 @@ class ReaderSettingsPanel extends HookWidget {
     );
   }
 
-  Widget _buildWritingDirectionSelector(ReaderThemeExtension readerTheme, AppLocalizations l10n) {
+  Widget _buildWritingDirectionSelector(
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+  ) {
     final accentColor = readerTheme.accentColor;
     final directions = [
-      (WritingDirection.horizontal, l10n.horizontal, PhosphorIconsRegular.textT),
+      (
+        WritingDirection.horizontal,
+        l10n.horizontal,
+        PhosphorIconsRegular.textT,
+      ),
       (WritingDirection.vertical, l10n.vertical, PhosphorIconsRegular.textAa),
     ];
 
@@ -352,7 +367,10 @@ class ReaderSettingsPanel extends HookWidget {
     );
   }
 
-  Widget _buildThemeSelector(ReaderThemeExtension readerTheme, AppLocalizations l10n) {
+  Widget _buildThemeSelector(
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Row(
@@ -429,7 +447,10 @@ class ReaderSettingsPanel extends HookWidget {
     );
   }
 
-  Widget _buildBgColorPicker(ReaderThemeExtension readerTheme, AppLocalizations l10n) {
+  Widget _buildBgColorPicker(
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+  ) {
     final accentColor = readerTheme.accentColor;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -500,12 +521,12 @@ class ReaderSettingsPanel extends HookWidget {
       (
         TapLayout.rightHanded,
         l10n.tapLayoutRightHanded,
-        PhosphorIconsRegular.handPointing
+        PhosphorIconsRegular.handPointing,
       ),
       (
         TapLayout.leftHanded,
         l10n.tapLayoutLeftHanded,
-        PhosphorIconsRegular.handFist
+        PhosphorIconsRegular.handFist,
       ),
     ];
 
@@ -564,8 +585,9 @@ class ReaderSettingsPanel extends HookWidget {
                                   ? accentColor
                                   : readerTheme.textColor,
                               fontSize: 12,
-                              fontWeight:
-                                  isSelected ? FontWeight.w600 : FontWeight.w400,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
                             ),
                           ),
                         ],

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-
 import 'package:zephyr_reader/features/sync/application/services/sync_models.dart';
 import 'package:zephyr_reader/features/sync/application/services/webdav_config_service.dart';
+import 'package:zephyr_reader/features/sync/application/storage_sync_view_model.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 
 Future<void> showWebDavConfigDialog(
   BuildContext context,
-  WebDavConfigHost host,
+  StorageSyncViewModel viewModel,
 ) async {
-  final config = await host.getConfig();
+  final config = await viewModel.getConfig();
 
   final serverController = TextEditingController(text: config?.baseUrl ?? '');
   final usernameController = TextEditingController(
@@ -130,7 +130,7 @@ Future<void> showWebDavConfigDialog(
           if (config != null)
             TextButton(
               onPressed: () async {
-                await host.clearConfig();
+                await viewModel.clearConfig();
                 if (!context.mounted) return;
                 Navigator.of(context).pop(true);
                 if (!context.mounted) return;
@@ -166,7 +166,7 @@ Future<void> showWebDavConfigDialog(
     }
 
     try {
-      await host.saveConfig(
+      await viewModel.saveConfig(
         WebDavConfig(
           baseUrl: serverController.text,
           username: usernameController.text,
