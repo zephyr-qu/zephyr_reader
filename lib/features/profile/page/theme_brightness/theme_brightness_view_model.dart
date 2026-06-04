@@ -18,7 +18,9 @@ class ThemeBrightnessViewModel {
   final readerBgColorIndex = signal<int>(0);
   late final brightness = persistedInt(_prefs, SettingsKeys.brightness, 80);
   late final useSystemBrightness = persistedBool(
-    _prefs, SettingsKeys.useSystemBrightness, true,
+    _prefs,
+    SettingsKeys.useSystemBrightness,
+    true,
   );
   final currentPresetId = signal<String?>(null);
 

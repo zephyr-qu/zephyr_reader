@@ -12,6 +12,9 @@ const LAYOUT_TREE_NAME: &str = "layout_cache";
 
 /// KV 存储封装
 pub struct KvStore {
+    /// sled 数据库句柄 — 不会被直接读取，仅用于保活。
+    /// `layout_cache` Tree 是从此 `Db` 打开的，sled 要求 Db 的存活期 >= Tree；
+    /// 一旦 db 被 drop，layout_cache 会成为悬空指针。
     #[allow(dead_code)]
     db: sled::Db,
     layout_cache: sled::Tree,

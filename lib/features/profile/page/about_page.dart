@@ -83,12 +83,36 @@ class AboutPage extends HookWidget {
   const AboutPage({super.key});
 
   List<(IconData, String, String)> _buildFeatures(AppLocalizations l10n) => [
-    (PhosphorIconsRegular.cloudSlash, l10n.aboutFeatureOffline, l10n.aboutFeatureOfflineDesc),
-    (PhosphorIconsRegular.gauge, l10n.aboutFeaturePerformance, l10n.aboutFeaturePerformanceDesc),
-    (PhosphorIconsRegular.translate, l10n.aboutFeatureBilingual, l10n.aboutFeatureBilingualDesc),
-    (PhosphorIconsRegular.palette, l10n.aboutFeatureThemes, l10n.aboutFeatureThemesDesc),
-    (PhosphorIconsRegular.deviceMobile, l10n.aboutFeatureAdaptive, l10n.aboutFeatureAdaptiveDesc),
-    (PhosphorIconsRegular.arrowsClockwise, l10n.aboutFeatureSync, l10n.aboutFeatureSyncDesc),
+    (
+      PhosphorIconsRegular.cloudSlash,
+      l10n.aboutFeatureOffline,
+      l10n.aboutFeatureOfflineDesc,
+    ),
+    (
+      PhosphorIconsRegular.gauge,
+      l10n.aboutFeaturePerformance,
+      l10n.aboutFeaturePerformanceDesc,
+    ),
+    (
+      PhosphorIconsRegular.translate,
+      l10n.aboutFeatureBilingual,
+      l10n.aboutFeatureBilingualDesc,
+    ),
+    (
+      PhosphorIconsRegular.palette,
+      l10n.aboutFeatureThemes,
+      l10n.aboutFeatureThemesDesc,
+    ),
+    (
+      PhosphorIconsRegular.deviceMobile,
+      l10n.aboutFeatureAdaptive,
+      l10n.aboutFeatureAdaptiveDesc,
+    ),
+    (
+      PhosphorIconsRegular.arrowsClockwise,
+      l10n.aboutFeatureSync,
+      l10n.aboutFeatureSyncDesc,
+    ),
   ];
 
   static const _techStack = [
@@ -100,7 +124,9 @@ class AboutPage extends HookWidget {
     ('SQLite', Color(0xFF003B57)),
   ];
 
-  List<(IconData, String, String?, bool)> _buildLinks(AppLocalizations l10n) => [
+  List<(IconData, String, String?, bool)> _buildLinks(
+    AppLocalizations l10n,
+  ) => [
     (PhosphorIconsRegular.downloadSimple, l10n.aboutCheckUpdate, null, false),
     (PhosphorIconsRegular.fileText, l10n.aboutUserAgreement, null, false),
     (PhosphorIconsRegular.shieldCheck, l10n.aboutPrivacyPolicy, null, false),
@@ -166,9 +192,9 @@ class AboutPage extends HookWidget {
               ),
             ),
           ),
-          ..._buildFeatures(l10n).map(
-            (e) => _FeatureCard(icon: e.$1, title: e.$2, subtitle: e.$3),
-          ),
+          ..._buildFeatures(
+            l10n,
+          ).map((e) => _FeatureCard(icon: e.$1, title: e.$2, subtitle: e.$3)),
 
           const SizedBox(height: 24),
 
@@ -350,18 +376,27 @@ class _LinksSection extends StatelessWidget {
   final String version;
   final AppLocalizations l10n;
 
-  const _LinksSection({required this.links, required this.version, required this.l10n});
+  const _LinksSection({
+    required this.links,
+    required this.version,
+    required this.l10n,
+  });
 
   void _handleTap(BuildContext context, String title) {
     if (title == l10n.aboutCheckUpdate) {
-      ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(l10n.aboutLatestVersion)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.aboutLatestVersion)));
     } else if (title == l10n.aboutUserAgreement) {
-      Navigator.push(context,
-        MaterialPageRoute<void>(builder: (_) => const UserAgreementPage()));
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(builder: (_) => const UserAgreementPage()),
+      );
     } else if (title == l10n.aboutPrivacyPolicy) {
-      Navigator.push(context,
-        MaterialPageRoute<void>(builder: (_) => const PrivacyPolicyPage()));
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(builder: (_) => const PrivacyPolicyPage()),
+      );
     } else if (title == l10n.aboutOpenSourceLicense) {
       showLicensePage(
         context: context,
@@ -370,7 +405,10 @@ class _LinksSection extends StatelessWidget {
         applicationLegalese: 'MIT License',
       );
     } else if (title == l10n.aboutFeedback) {
-      _launchUrl(context, 'https://github.com/zephyr-reader/zephyr_reader/issues');
+      _launchUrl(
+        context,
+        'https://github.com/zephyr-reader/zephyr_reader/issues',
+      );
     }
   }
 
@@ -379,8 +417,9 @@ class _LinksSection extends StatelessWidget {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else if (context.mounted) {
-      ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(l10n.aboutCannotOpenLink)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.aboutCannotOpenLink)));
     }
   }
 

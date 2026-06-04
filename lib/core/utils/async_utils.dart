@@ -5,10 +5,7 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 ///
 /// 消除 ViewModel 中重复的 try/catch/Logging 模板代码。
 /// 返回 null 表示加载失败（调用方按需处理）。
-Future<T?> safeLoad<T>(
-  Future<T> Function() loader, {
-  String? label,
-}) async {
+Future<T?> safeLoad<T>(Future<T> Function() loader, {String? label}) async {
   try {
     return await loader();
   } catch (e, stack) {

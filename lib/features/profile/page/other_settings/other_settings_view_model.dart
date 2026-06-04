@@ -14,13 +14,19 @@ class OtherSettingsViewModel {
   final SharedPreferences _prefs;
 
   late final notificationsEnabled = persistedBool(
-    _prefs, SettingsKeys.otherNotifications, true,
+    _prefs,
+    SettingsKeys.otherNotifications,
+    true,
   );
   late final startupCheckEnabled = persistedBool(
-    _prefs, SettingsKeys.otherStartupCheck, true,
+    _prefs,
+    SettingsKeys.otherStartupCheck,
+    true,
   );
   late final markdownPreview = persistedBool(
-    _prefs, SettingsKeys.otherMarkdownPreview, false,
+    _prefs,
+    SettingsKeys.otherMarkdownPreview,
+    false,
   );
 
   final localeCode = signal<String?>(null);

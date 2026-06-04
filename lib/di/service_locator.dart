@@ -10,7 +10,5 @@ final getIt = GetIt.instance;
 @InjectableInit()
 Future<void> configureDependencies() async {
   await getIt.init();
-  getIt.registerLazySingleton<WebDavSyncService>(
-    () => WebDavSyncService(),
-  );
+  getIt.registerLazySingleton<WebDavSyncService>(() => WebDavSyncService());
 }

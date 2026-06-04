@@ -40,6 +40,5 @@ class BookshelfPageObject {
   // ── 断言 ──
 
   /// 当前是否在书架页面
-  bool get isOnBookshelfPage =>
-      find.text('书架').evaluate().isNotEmpty;
+  bool get isOnBookshelfPage => find.text('书架').evaluate().isNotEmpty;
 }

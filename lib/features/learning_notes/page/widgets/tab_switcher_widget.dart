@@ -22,22 +22,22 @@ class LearningNotesTabSwitcher extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = colorScheme;
     return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-          child: Container(
-            decoration: BoxDecoration(
-              color: cs.surfaceContainerHighest.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            padding: const EdgeInsets.all(3),
-            child: Row(
-              children: [
-                _tabItem(0, '生词本', vocabCount),
-                const SizedBox(width: 3),
-                _tabItem(1, '笔记本', noteCount),
-              ],
-            ),
-          ),
-        );
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.all(3),
+        child: Row(
+          children: [
+            _tabItem(0, '生词本', vocabCount),
+            const SizedBox(width: 3),
+            _tabItem(1, '笔记本', noteCount),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _tabItem(int index, String label, int count) {

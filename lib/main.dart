@@ -26,8 +26,9 @@ Future<void> main() async {
       } catch (e) {
         Logging.error('搜索索引初始化失败', exception: e);
       }
-
-      await AppConfig.instance.init();
+      await AppConfig.instance.init(
+        coverDir: '${appDir.path}/zephyr_reader/covers',
+      );
       await configureDependencies();
 
       FlutterError.onError = (details) {

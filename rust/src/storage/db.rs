@@ -1,8 +1,8 @@
 //! 数据库存储管理 — SQLite 连接池 + 迁移 + 导出
 
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
-
+use std::sync::{Arc};
+use parking_lot::Mutex;
 use anyhow::{Context, Result};
 use sqlx::SqlitePool;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
@@ -67,7 +67,6 @@ impl StorageManager {
     pub fn pool(&self) -> Result<SqlitePool> {
         self.pool
             .lock()
-            .map_err(|e| anyhow::anyhow!("Storage pool lock poisoned: {}", e))?
             .clone()
             .ok_or_else(|| anyhow::anyhow!("Storage pool has been closed"))
     }
@@ -86,7 +85,6 @@ impl StorageManager {
         let pool = self
             .pool
             .lock()
-            .map_err(|e| anyhow::anyhow!("Storage pool lock poisoned: {}", e))?
             .take();
         if let Some(pool) = pool {
             pool.close().await;
@@ -104,7 +102,6 @@ impl StorageManager {
         let old_pool = self
             .pool
             .lock()
-            .map_err(|e| anyhow::anyhow!("Storage pool lock poisoned: {}", e))?
             .take();
         if let Some(old) = old_pool {
             old.close().await;
@@ -130,9 +127,7 @@ impl StorageManager {
 
         *self
             .pool
-            .lock()
-            .map_err(|e| anyhow::anyhow!("Storage pool lock poisoned: {}", e))? =
-            Some(restored_pool);
+            .lock()=Some(restored_pool);
 
         tracing::info!("Database restored from {:?}", backup_path);
         Ok(())
@@ -146,7 +141,6 @@ impl StorageManager {
         let old_pool = self
             .pool
             .lock()
-            .map_err(|e| anyhow::anyhow!("Storage pool lock poisoned: {}", e))?
             .take();
         if let Some(old) = old_pool {
             old.close().await;
@@ -155,8 +149,7 @@ impl StorageManager {
         let new_pool = Self::create_pool(&db_path).await?;
         *self
             .pool
-            .lock()
-            .map_err(|e| anyhow::anyhow!("Storage pool lock poisoned: {}", e))? = Some(new_pool);
+            .lock() = Some(new_pool);
         tracing::info!("Storage pool hot-swapped");
         Ok(())
     }

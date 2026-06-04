@@ -130,7 +130,9 @@ void showDictionaryPanel(
                       Wrap(
                         spacing: 6,
                         runSpacing: 4,
-                        children: result!.suggestions.cast<String>().map(
+                        children: result!.suggestions
+                            .cast<String>()
+                            .map(
                               (s) => ActionChip(
                                 label: Text(
                                   s,
@@ -337,7 +339,10 @@ Future<bool> _ensureMdictConfigured(
 
   dict_api.closeDictionary();
   try {
-    await dict_api.initDictionary(mdxPath: pick, mddPath: mddExists ? mddPath : null);
+    await dict_api.initDictionary(
+      mdxPath: pick,
+      mddPath: mddExists ? mddPath : null,
+    );
   } catch (e) {
     Logging.error('词典加载失败', exception: e);
     if (context.mounted) {

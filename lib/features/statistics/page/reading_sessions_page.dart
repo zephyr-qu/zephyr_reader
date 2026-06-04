@@ -1,11 +1,11 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:intl/intl.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/features/statistics/application/reading_sessions_view_model.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:zephyr_reader/shared/format_utils.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class ReadingSessionsPage extends HookWidget {
@@ -13,7 +13,12 @@ class ReadingSessionsPage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final vm = useMemoized(() => ReadingSessionsViewModel());
+    useEffect(() {
+      vm.load();
+      return null;
+    }, []);
     final sessions =
         useSignalValue<List<ReadingSession>, Signal<List<ReadingSession>>>(
           vm.sessions,
@@ -29,16 +34,16 @@ class ReadingSessionsPage extends HookWidget {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          title: const Text('删除会话记录'),
-          content: const Text('确定要删除本书的所有阅读会话记录吗？'),
+          title: Text(l10n.deleteSessionTitle),
+          content: Text(l10n.deleteSessionConfirm),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(c, false),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(c, true),
-              child: const Text('删除'),
+              child: Text(l10n.delete),
             ),
           ],
         ),
@@ -57,17 +62,18 @@ class ReadingSessionsPage extends HookWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('阅读会话'),
+        title: Text(l10n.readingSessions),
         actions: [
           if (sessions.isNotEmpty)
             IconButton(
               icon: const Icon(PhosphorIconsRegular.arrowsClockwise),
               onPressed: vm.load,
-              tooltip: '刷新',
+              tooltip: l10n.refresh,
             ),
         ],
       ),
       body: _buildBody(
+        l10n,
         context,
         theme,
         grouped,
@@ -81,6 +87,7 @@ class ReadingSessionsPage extends HookWidget {
   }
 
   Widget _buildBody(
+    AppLocalizations l10n,
     BuildContext context,
     ThemeData theme,
     Map<String, List<ReadingSession>> grouped,
@@ -106,7 +113,7 @@ class ReadingSessionsPage extends HookWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              '暂无阅读会话',
+              l10n.noSessions,
               style: TextStyle(
                 fontSize: 16,
                 color: theme.colorScheme.onSurfaceVariant,
@@ -114,7 +121,7 @@ class ReadingSessionsPage extends HookWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '开始阅读后会自动记录',
+              l10n.autoRecordHint,
               style: TextStyle(
                 fontSize: 14,
                 color: theme.colorScheme.onSurfaceVariant.withValues(
@@ -136,10 +143,10 @@ class ReadingSessionsPage extends HookWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
-        _buildOverview(theme, totalSessions, totalDuration),
+        _buildOverview(l10n, theme, totalSessions, totalDuration),
         const SizedBox(height: 20),
         Text(
-          '会话详情',
+          l10n.sessionDetails,
           style: TextStyle(
             fontSize: 12,
             color: theme.colorScheme.onSurfaceVariant,
@@ -149,6 +156,7 @@ class ReadingSessionsPage extends HookWidget {
         const Divider(height: 12),
         ...grouped.entries.map(
           (entry) => _buildBookSessionGroup(
+            l10n,
             theme,
             entry.key,
             entry.value,
@@ -160,7 +168,12 @@ class ReadingSessionsPage extends HookWidget {
     );
   }
 
-  Widget _buildOverview(ThemeData theme, int totalSessions, int totalDuration) {
+  Widget _buildOverview(
+    AppLocalizations l10n,
+    ThemeData theme,
+    int totalSessions,
+    int totalDuration,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -179,7 +192,7 @@ class ReadingSessionsPage extends HookWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _formatDuration(totalDuration),
+                  formatDuration(totalDuration),
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
@@ -187,7 +200,7 @@ class ReadingSessionsPage extends HookWidget {
                   ),
                 ),
                 Text(
-                  '总阅读时长',
+                  l10n.totalReadingTime,
                   style: TextStyle(
                     fontSize: 12,
                     color: theme.colorScheme.onPrimaryContainer.withValues(
@@ -210,7 +223,7 @@ class ReadingSessionsPage extends HookWidget {
                 ),
               ),
               Text(
-                '次会话',
+                l10n.sessionsCount,
                 style: TextStyle(
                   fontSize: 12,
                   color: theme.colorScheme.onPrimaryContainer.withValues(
@@ -226,6 +239,7 @@ class ReadingSessionsPage extends HookWidget {
   }
 
   Widget _buildBookSessionGroup(
+    AppLocalizations l10n,
     ThemeData theme,
     String bookId,
     List<ReadingSession> sessions,
@@ -233,7 +247,7 @@ class ReadingSessionsPage extends HookWidget {
     VoidCallback onDelete,
   ) {
     final book = bookCache[bookId];
-    final bookTitle = book?.title ?? '未知书籍';
+    final bookTitle = book?.title ?? l10n.unknownBook;
     final totalTime = sessions.fold<int>(
       0,
       (sum, s) => sum + s.durationSeconds,
@@ -262,12 +276,16 @@ class ReadingSessionsPage extends HookWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              GestureDetector(
+              InkWell(
+                borderRadius: BorderRadius.circular(18),
                 onTap: onDelete,
-                child: Icon(
-                  PhosphorIconsRegular.trash,
-                  size: 18,
-                  color: theme.colorScheme.onSurfaceVariant,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    PhosphorIconsRegular.trash,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],
@@ -276,25 +294,32 @@ class ReadingSessionsPage extends HookWidget {
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(
-            '共 ${sessions.length} 次 · ${_formatDuration(totalTime)} · 阅读 ${_formatChars(totalChars)}',
+            l10n.sessionSummary(
+              sessions.length,
+              formatDuration(totalTime),
+              formatChars(totalChars),
+            ),
             style: TextStyle(
               fontSize: 12,
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ),
-        ...sessions.map((s) => _buildSessionTile(theme, s, book)),
+        ...sessions.map(
+          (s) => _buildSessionTile(l10n, theme, s, book),
+        ),
       ],
     );
   }
 
   Widget _buildSessionTile(
+    AppLocalizations l10n,
     ThemeData theme,
     ReadingSession session,
     Book? book,
   ) {
     final dateStr = DateFormat('MM/dd HH:mm').format(session.startedAt);
-    final duration = _formatDuration(session.durationSeconds);
+    final duration = formatDuration(session.durationSeconds);
     final chars = session.endCharOffset - session.startCharOffset;
 
     return Container(
@@ -303,7 +328,10 @@ class ReadingSessionsPage extends HookWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant,
+          width: 0.5,
+        ),
       ),
       child: Row(
         children: [
@@ -325,7 +353,7 @@ class ReadingSessionsPage extends HookWidget {
                   ),
                 ),
                 Text(
-                  '第 ${session.chapterIndex} 章 · ${_formatChars(chars)}',
+                  l10n.chapterInfo(session.chapterIndex, formatChars(chars)),
                   style: TextStyle(
                     fontSize: 12,
                     color: theme.colorScheme.onSurfaceVariant,
@@ -345,18 +373,5 @@ class ReadingSessionsPage extends HookWidget {
         ],
       ),
     );
-  }
-
-  String _formatDuration(int seconds) {
-    if (seconds < 60) return '$seconds秒';
-    if (seconds < 3600) return '${seconds ~/ 60}分钟';
-    final h = seconds ~/ 3600;
-    final m = (seconds % 3600) ~/ 60;
-    return '$h小时$m分钟';
-  }
-
-  String _formatChars(int chars) {
-    if (chars < 1000) return '$chars字';
-    return '${(chars / 1000).toStringAsFixed(1)}千字';
   }
 }

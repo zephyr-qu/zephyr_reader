@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -34,9 +32,7 @@ class BackupActionTile extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: cs.outlineVariant.withValues(alpha: 0.2),
-            ),
+            border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.2)),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(

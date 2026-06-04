@@ -32,43 +32,98 @@ class _MockConfig implements ReaderConfig {
 
   @override
   late final theme = persistedEnum<ReaderTheme>(
-    prefs, '', ReaderTheme.light, ReaderTheme.fromId,
+    prefs,
+    '',
+    ReaderTheme.light,
+    ReaderTheme.fromId,
     debounce: Duration.zero,
   );
 
   @override
-  late final fontSize = persistedDouble(prefs, '', ReaderFontSize.medium.size, debounce: Duration.zero);
+  late final fontSize = persistedDouble(
+    prefs,
+    '',
+    ReaderFontSize.medium.size,
+    debounce: Duration.zero,
+  );
 
   @override
-  late final lineHeight = persistedDouble(prefs, '', 1.6, debounce: Duration.zero);
+  late final lineHeight = persistedDouble(
+    prefs,
+    '',
+    1.6,
+    debounce: Duration.zero,
+  );
 
   @override
-  late final paragraphSpacing = persistedDouble(prefs, '', 16.0, debounce: Duration.zero);
+  late final paragraphSpacing = persistedDouble(
+    prefs,
+    '',
+    16.0,
+    debounce: Duration.zero,
+  );
 
   @override
-  late final padding = persistedDouble(prefs, '', 16.0, debounce: Duration.zero);
+  late final padding = persistedDouble(
+    prefs,
+    '',
+    16.0,
+    debounce: Duration.zero,
+  );
 
   @override
-  late final readerBgColorIndex = persistedInt(prefs, '', 0, debounce: Duration.zero);
+  late final readerBgColorIndex = persistedInt(
+    prefs,
+    '',
+    0,
+    debounce: Duration.zero,
+  );
 
   @override
-  late final autoScroll = persistedBool(prefs, '', false, debounce: Duration.zero);
+  late final autoScroll = persistedBool(
+    prefs,
+    '',
+    false,
+    debounce: Duration.zero,
+  );
 
   @override
-  late final autoScrollSpeed = persistedInt(prefs, '', 30, debounce: Duration.zero);
+  late final autoScrollSpeed = persistedInt(
+    prefs,
+    '',
+    30,
+    debounce: Duration.zero,
+  );
 
   @override
-  late final letterSpacing = persistedDouble(prefs, '', 0.0, debounce: Duration.zero);
+  late final letterSpacing = persistedDouble(
+    prefs,
+    '',
+    0.0,
+    debounce: Duration.zero,
+  );
 
   @override
-  late final punctuationSqueeze = persistedBool(prefs, '', true, debounce: Duration.zero);
+  late final punctuationSqueeze = persistedBool(
+    prefs,
+    '',
+    true,
+    debounce: Duration.zero,
+  );
 
   @override
-  late final baselineAlign = persistedBool(prefs, '', true, debounce: Duration.zero);
+  late final baselineAlign = persistedBool(
+    prefs,
+    '',
+    true,
+    debounce: Duration.zero,
+  );
 
   @override
   late final tapLayout = persistedEnum<TapLayout>(
-    prefs, '', TapLayout.rightHanded,
+    prefs,
+    '',
+    TapLayout.rightHanded,
     (name) => TapLayout.values.firstWhere(
       (e) => e.name == name,
       orElse: () => TapLayout.rightHanded,
@@ -77,7 +132,9 @@ class _MockConfig implements ReaderConfig {
   );
 
   @override
-  final writingDirection = signal<WritingDirection>(WritingDirection.horizontal);
+  final writingDirection = signal<WritingDirection>(
+    WritingDirection.horizontal,
+  );
 
   @override
   final brightnessOverlay = signal<double>(0.0);
@@ -107,19 +164,22 @@ class _MockConfig implements ReaderConfig {
 
 // ===== Helpers =====
 
-ChapterManager createManager({
-  ReaderRepository? repo,
-  ReaderConfig? config,
-}) {
+ChapterManager createManager({ReaderRepository? repo, ReaderConfig? config}) {
   return ChapterManager(repo ?? _MockRepo(), config ?? _MockConfig());
 }
 
-Future<({List<PageInfo> pages, bool cacheHit, bool isFallback})>
-    _twoPages({bool isFallback = false}) async {
+Future<({List<PageInfo> pages, bool cacheHit, bool isFallback})> _twoPages({
+  bool isFallback = false,
+}) async {
   return (
     pages: [
       PageInfo(pageIndex: 0, content: 'A' * 50, startOffset: 0, endOffset: 50),
-      PageInfo(pageIndex: 1, content: 'A' * 50, startOffset: 50, endOffset: 100),
+      PageInfo(
+        pageIndex: 1,
+        content: 'A' * 50,
+        startOffset: 50,
+        endOffset: 100,
+      ),
     ],
     cacheHit: false,
     isFallback: isFallback,
@@ -145,45 +205,58 @@ void main() {
     config = _MockConfig();
 
     // ReaderRepository default mocks
-    when(() => repo.getChapters(any())).thenAnswer(
-      (_) async => createTestChapters(count: 3),
-    );
-    when(() => repo.loadChapterContent(any(), any())).thenAnswer(
-      (_) async => 'A' * 100,
-    );
-    when(() => repo.getPaginatedChapterPages(
-      bookId: any(named: 'bookId'),
-      chapterIndex: any(named: 'chapterIndex'),
-      fontSize: any(named: 'fontSize'),
-      lineHeight: any(named: 'lineHeight'),
-      width: any(named: 'width'),
-      height: any(named: 'height'),
-      padding: any(named: 'padding'),
-      devicePixelRatio: any(named: 'devicePixelRatio'),
-      calibration: any(named: 'calibration'),
-      fontFamily: any(named: 'fontFamily'),
-    )).thenAnswer((_) => _twoPages());
+    when(
+      () => repo.getChapters(any()),
+    ).thenAnswer((_) async => createTestChapters(count: 3));
+    when(
+      () => repo.loadChapterContent(any(), any()),
+    ).thenAnswer((_) async => 'A' * 100);
+    when(
+      () => repo.getPaginatedChapterPages(
+        bookId: any(named: 'bookId'),
+        chapterIndex: any(named: 'chapterIndex'),
+        fontSize: any(named: 'fontSize'),
+        lineHeight: any(named: 'lineHeight'),
+        width: any(named: 'width'),
+        height: any(named: 'height'),
+        padding: any(named: 'padding'),
+        devicePixelRatio: any(named: 'devicePixelRatio'),
+        calibration: any(named: 'calibration'),
+        fontFamily: any(named: 'fontFamily'),
+      ),
+    ).thenAnswer((_) => _twoPages());
     when(() => repo.loadReadingProgress(any())).thenAnswer((_) async => null);
     when(() => repo.currentPages).thenReturn(null);
     when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {});
-    when(() => repo.calculatePages(
-      bookId: any(named: 'bookId'),
-      chapterId: any(named: 'chapterId'),
-      fontSize: any(named: 'fontSize'),
-      lineHeight: any(named: 'lineHeight'),
-      width: any(named: 'width'),
-      height: any(named: 'height'),
-      padding: any(named: 'padding'),
-    )).thenAnswer((_) async => [
-      PageInfo(pageIndex: 0, content: 'fallback', startOffset: 0, endOffset: 10),
-    ]);
-    when(() => repo.updateReadingProgress(
-      bookId: any(named: 'bookId'),
-      chapterId: any(named: 'chapterId'),
-      charOffset: any(named: 'charOffset'),
-      pageIndex: any(named: 'pageIndex'),
-      totalPages: any(named: 'totalPages'),
-    )).thenAnswer((_) async {});
+    when(
+      () => repo.calculatePages(
+        bookId: any(named: 'bookId'),
+        chapterId: any(named: 'chapterId'),
+        fontSize: any(named: 'fontSize'),
+        lineHeight: any(named: 'lineHeight'),
+        width: any(named: 'width'),
+        height: any(named: 'height'),
+        padding: any(named: 'padding'),
+      ),
+    ).thenAnswer(
+      (_) async => [
+        PageInfo(
+          pageIndex: 0,
+          content: 'fallback',
+          startOffset: 0,
+          endOffset: 10,
+        ),
+      ],
+    );
+    when(
+      () => repo.updateReadingProgress(
+        bookId: any(named: 'bookId'),
+        chapterId: any(named: 'chapterId'),
+        charOffset: any(named: 'charOffset'),
+        pageIndex: any(named: 'pageIndex'),
+        totalPages: any(named: 'totalPages'),
+      ),
+    ).thenAnswer((_) async {});
 
     manager = createManager(repo: repo, config: config);
   });
@@ -272,8 +345,9 @@ void main() {
       });
 
       test('加载失败设置 error 信号', () async {
-        when(() => repo.loadChapterContent(any(), any()))
-            .thenThrow(Exception('network error'));
+        when(
+          () => repo.loadChapterContent(any(), any()),
+        ).thenThrow(Exception('network error'));
 
         await manager.loadChapter(0);
 
@@ -282,41 +356,46 @@ void main() {
       });
 
       test('isFallback 时退化到 calculatePages', () async {
-        when(() => repo.getPaginatedChapterPages(
-          bookId: any(named: 'bookId'),
-          chapterIndex: any(named: 'chapterIndex'),
-          fontSize: any(named: 'fontSize'),
-          lineHeight: any(named: 'lineHeight'),
-          width: any(named: 'width'),
-          height: any(named: 'height'),
-          padding: any(named: 'padding'),
-          devicePixelRatio: any(named: 'devicePixelRatio'),
-          calibration: any(named: 'calibration'),
-          fontFamily: any(named: 'fontFamily'),
-        )).thenAnswer((_) async => (
-          pages: <PageInfo>[],
-          cacheHit: false,
-          isFallback: true,
-        ));
+        when(
+          () => repo.getPaginatedChapterPages(
+            bookId: any(named: 'bookId'),
+            chapterIndex: any(named: 'chapterIndex'),
+            fontSize: any(named: 'fontSize'),
+            lineHeight: any(named: 'lineHeight'),
+            width: any(named: 'width'),
+            height: any(named: 'height'),
+            padding: any(named: 'padding'),
+            devicePixelRatio: any(named: 'devicePixelRatio'),
+            calibration: any(named: 'calibration'),
+            fontFamily: any(named: 'fontFamily'),
+          ),
+        ).thenAnswer(
+          (_) async => (pages: <PageInfo>[], cacheHit: false, isFallback: true),
+        );
 
         await manager.loadChapter(0);
 
-        verify(() => repo.calculatePages(
-          bookId: any(named: 'bookId'),
-          chapterId: any(named: 'chapterId'),
-          fontSize: any(named: 'fontSize'),
-          lineHeight: any(named: 'lineHeight'),
-          width: any(named: 'width'),
-          height: any(named: 'height'),
-          padding: any(named: 'padding'),
-        )).called(1);
+        verify(
+          () => repo.calculatePages(
+            bookId: any(named: 'bookId'),
+            chapterId: any(named: 'chapterId'),
+            fontSize: any(named: 'fontSize'),
+            lineHeight: any(named: 'lineHeight'),
+            width: any(named: 'width'),
+            height: any(named: 'height'),
+            padding: any(named: 'padding'),
+          ),
+        ).called(1);
       });
 
       test('onChapterLoaded 回调在分页完成后触发', () async {
         var called = false;
-        await manager.loadChapter(0, onChapterLoaded: () async {
-          called = true;
-        });
+        await manager.loadChapter(
+          0,
+          onChapterLoaded: () async {
+            called = true;
+          },
+        );
         expect(called, isTrue);
       });
     });
@@ -325,8 +404,9 @@ void main() {
 
     group('章节导航', () {
       setUp(() async {
-        when(() => repo.getChapters(any()))
-            .thenAnswer((_) async => createTestChapters(count: 5));
+        when(
+          () => repo.getChapters(any()),
+        ).thenAnswer((_) async => createTestChapters(count: 5));
         await manager.loadChapters();
       });
 
@@ -399,8 +479,18 @@ void main() {
 
       test('loadPage 按页码加载并更新偏移', () {
         when(() => repo.currentPages).thenReturn([
-          PageInfo(pageIndex: 0, content: 'A' * 50, startOffset: 0, endOffset: 50),
-          PageInfo(pageIndex: 1, content: 'A' * 50, startOffset: 50, endOffset: 100),
+          PageInfo(
+            pageIndex: 0,
+            content: 'A' * 50,
+            startOffset: 0,
+            endOffset: 50,
+          ),
+          PageInfo(
+            pageIndex: 1,
+            content: 'A' * 50,
+            startOffset: 50,
+            endOffset: 100,
+          ),
         ]);
 
         manager.loadPage(1);
@@ -424,23 +514,48 @@ void main() {
 
       test('offset 落在第0页范围内', () {
         final pages = [
-          PageInfo(pageIndex: 0, content: 'A' * 50, startOffset: 0, endOffset: 50),
+          PageInfo(
+            pageIndex: 0,
+            content: 'A' * 50,
+            startOffset: 0,
+            endOffset: 50,
+          ),
         ];
         expect(manager.resolvePageIndexForOffset(pages, 25), 0);
       });
 
       test('offset 落在第1页范围内', () {
         final pages = [
-          PageInfo(pageIndex: 0, content: 'A' * 50, startOffset: 0, endOffset: 50),
-          PageInfo(pageIndex: 1, content: 'A' * 50, startOffset: 50, endOffset: 100),
+          PageInfo(
+            pageIndex: 0,
+            content: 'A' * 50,
+            startOffset: 0,
+            endOffset: 50,
+          ),
+          PageInfo(
+            pageIndex: 1,
+            content: 'A' * 50,
+            startOffset: 50,
+            endOffset: 100,
+          ),
         ];
         expect(manager.resolvePageIndexForOffset(pages, 75), 1);
       });
 
       test('offset 超范围时返回最后一页', () {
         final pages = [
-          PageInfo(pageIndex: 0, content: 'A' * 50, startOffset: 0, endOffset: 50),
-          PageInfo(pageIndex: 1, content: 'A' * 50, startOffset: 50, endOffset: 100),
+          PageInfo(
+            pageIndex: 0,
+            content: 'A' * 50,
+            startOffset: 0,
+            endOffset: 50,
+          ),
+          PageInfo(
+            pageIndex: 1,
+            content: 'A' * 50,
+            startOffset: 50,
+            endOffset: 100,
+          ),
         ];
         expect(manager.resolvePageIndexForOffset(pages, 999), 1);
       });
@@ -450,8 +565,9 @@ void main() {
 
     group('计算信号', () {
       test('progressText 显示章节百分比', () async {
-        when(() => repo.getChapters(any()))
-            .thenAnswer((_) async => createTestChapters(count: 5));
+        when(
+          () => repo.getChapters(any()),
+        ).thenAnswer((_) async => createTestChapters(count: 5));
         await manager.loadChapters();
 
         manager.chapterIndex.value = 1; // 2/5 = 40.0%
@@ -463,8 +579,9 @@ void main() {
       });
 
       test('currentChapterTitle 返回当前章节标题', () async {
-        when(() => repo.getChapters(any()))
-            .thenAnswer((_) async => createTestChapters(count: 3));
+        when(
+          () => repo.getChapters(any()),
+        ).thenAnswer((_) async => createTestChapters(count: 3));
         await manager.loadChapters();
 
         manager.chapterIndex.value = 1;

@@ -292,371 +292,104 @@
   "bilingualHighlightCreated": "Bilingual highlight created",
   "selectFile": "Select File",
   "categoryManagement": "Category Management",
-  "@bookImported": {
-    "placeholders": {
-      "title": {
-        "type": "String"
-      }
-    }
-  },
-  "@importFailed": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "@scanComplete": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "@viewAllChapters": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "@deleteFailed": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "@appVersionDisplay": {
-    "placeholders": {
-      "version": {
-        "type": "String"
-      }
-    }
-  },
-  "@errorTaskPanic": {
-    "placeholders": {
-      "task": {
-        "type": "String"
-      }
-    }
-  },
-  "@selectedBooksCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "aboutTitle": "About",
-  "@aboutTitle": {
-    "description": "English Translation - 关于页面标题"
-  },
   "aboutTagline": "A reading experience as light as a breeze",
-  "@aboutTagline": {
-    "description": "English Translation - 应用标语"
-  },
   "aboutSectionFeatures": "Features",
-  "@aboutSectionFeatures": {
-    "description": "English Translation - 核心特性分区标题"
-  },
   "aboutSectionTechStack": "Tech Stack",
-  "@aboutSectionTechStack": {
-    "description": "English Translation - 技术栈分区标题"
-  },
   "aboutSectionLinks": "Resources",
-  "@aboutSectionLinks": {
-    "description": "English Translation - 链接分区标题"
-  },
-  "aboutDescription": "Zephyr Reader is an offline bilingual novel reader built with Flutter + Rust. 100% local, no backend, no ads, no data collection. Focused on Chinese-English bilingual reading.",
-  "@aboutDescription": {
-    "description": "English Translation - 应用描述"
-  },
+  "aboutDescription": "Zephyr Reader is an offline bilingual novel reader built with Flutter + Rust.",
   "aboutFeatureOffline": "100% Offline",
-  "@aboutFeatureOffline": {
-    "description": "English Translation - 特性：离线"
-  },
   "aboutFeatureOfflineDesc": "Core features work offline with no backend or ads",
-  "@aboutFeatureOfflineDesc": {
-    "description": "English Translation - 特性描述：离线"
-  },
   "aboutFeaturePerformance": "High Performance",
-  "@aboutFeaturePerformance": {
-    "description": "English Translation - 特性：高性能"
-  },
   "aboutFeaturePerformanceDesc": "Rust-powered engine parses large files instantly",
-  "@aboutFeaturePerformanceDesc": {
-    "description": "English Translation - 特性描述：高性能"
-  },
   "aboutFeatureBilingual": "Bilingual Layout",
-  "@aboutFeatureBilingual": {
-    "description": "English Translation - 特性：双语"
-  },
   "aboutFeatureBilingualDesc": "Equal priority for Chinese & English",
-  "@aboutFeatureBilingualDesc": {
-    "description": "English Translation - 特性描述：双语"
-  },
   "aboutFeatureThemes": "Multiple Themes",
-  "@aboutFeatureThemes": {
-    "description": "English Translation - 特性：主题"
-  },
   "aboutFeatureThemesDesc": "Light, Dark & Pure Black night mode",
-  "@aboutFeatureThemesDesc": {
-    "description": "English Translation - 特性描述：主题"
-  },
   "aboutFeatureAdaptive": "Adaptive Layout",
-  "@aboutFeatureAdaptive": {
-    "description": "English Translation - 特性：适配"
-  },
   "aboutFeatureAdaptiveDesc": "Adaptive layout for phones and tablets",
-  "@aboutFeatureAdaptiveDesc": {
-    "description": "English Translation - 特性描述：适配"
-  },
   "aboutFeatureSync": "WebDAV Sync",
-  "@aboutFeatureSync": {
-    "description": "English Translation - 特性：同步"
-  },
   "aboutFeatureSyncDesc": "Cross-device sync & secure backup",
-  "@aboutFeatureSyncDesc": {
-    "description": "English Translation - 特性描述：同步"
-  },
   "aboutCheckUpdate": "Check for Updates",
-  "@aboutCheckUpdate": {
-    "description": "English Translation - 检查更新链接"
-  },
   "aboutLatestVersion": "Already up to date",
-  "@aboutLatestVersion": {
-    "description": "English Translation - 已是最新提示"
-  },
   "aboutUserAgreement": "User Agreement",
-  "@aboutUserAgreement": {
-    "description": "English Translation - 用户协议链接"
-  },
   "aboutPrivacyPolicy": "Privacy Policy",
-  "@aboutPrivacyPolicy": {
-    "description": "English Translation - 隐私政策链接"
-  },
   "aboutOpenSourceLicense": "Open Source Licenses",
-  "@aboutOpenSourceLicense": {
-    "description": "English Translation - 开源许可证链接"
-  },
   "aboutFeedback": "Feedback",
-  "@aboutFeedback": {
-    "description": "English Translation - 问题反馈链接"
-  },
   "aboutCannotOpenLink": "Cannot open link",
-  "@aboutCannotOpenLink": {
-    "description": "English Translation - 链接打开失败提示"
-  },
   "unknownVersion": "Unknown",
-  "@unknownVersion": {
-    "description": "English - Unknown version"
-  },
   "prev": "Previous",
-  "@prev": {
-    "description": "上一个搜索结果"
-  },
   "readAloud": "Read Aloud",
-  "@readAloud": {
-    "description": "朗读功能"
-  },
   "addedToVocabulary": "Added to vocabulary: {word}",
-  "@addedToVocabulary": {
-    "description": "加入生词本成功提示，{word}为单词",
-    "placeholders": {
-      "word": {
-        "type": "String"
-      }
-    }
-  },
   "addToVocabFailed": "Failed to add to vocabulary: {error}",
-  "@addToVocabFailed": {
-    "description": "加入生词本失败提示，{error}为错误信息",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
   "readerThemeLight": "Day",
-  "@readerThemeLight": {
-    "description": "读者主题-日间"
-  },
   "readerThemeDark": "Night",
-  "@readerThemeDark": {
-    "description": "读者主题-夜间"
-  },
   "readerThemeSepia": "Sepia",
-  "@readerThemeSepia": {
-    "description": "读者主题-护眼"
-  },
   "readerFontSizeSmall": "Small",
-  "@readerFontSizeSmall": {
-    "description": "字号-小"
-  },
   "readerFontSizeMedium": "Medium",
-  "@readerFontSizeMedium": {
-    "description": "字号-中"
-  },
   "readerFontSizeLarge": "Large",
-  "@readerFontSizeLarge": {
-    "description": "字号-大"
-  },
   "readerFontSizeXLarge": "Extra Large",
-  "@readerFontSizeXLarge": {
-    "description": "字号-特大"
-  },
   "sortLastRead": "Last Read",
-  "@sortLastRead": {
-    "description": "排序-最近阅读"
-  },
   "sortCreatedAt": "Date Added",
-  "@sortCreatedAt": {
-    "description": "排序-添加时间"
-  },
   "sortTitle": "Title",
-  "@sortTitle": {
-    "description": "排序-书名"
-  },
   "sortAuthor": "Author",
-  "@sortAuthor": {
-    "description": "排序-作者"
-  },
   "sortProgress": "Progress",
-  "@sortProgress": {
-    "description": "排序-阅读进度"
-  },
   "themeSystem": "System",
-  "@themeSystem": {
-    "description": "主题-跟随系统"
-  },
   "introLabel": "Description",
-  "@introLabel": {
-    "description": "书籍简介标签"
-  },
   "bookTitle": "Title",
-  "@bookTitle": {
-    "description": "书籍名称标签"
-  },
   "currentChapter": "Current",
-  "@currentChapter": {
-    "description": "当前章节标签"
-  },
   "editMetadata": "Edit Metadata",
-  "@editMetadata": {
-    "description": "编辑书籍元数据"
-  },
   "statReadingTime": "Reading Time",
-  "@statReadingTime": {
-    "description": "读书统计-时长"
-  },
   "statReadingCount": "Read Count",
-  "@statReadingCount": {
-    "description": "读书统计-次数"
-  },
   "statEstimatedRemaining": "Estimated Remaining",
-  "@statEstimatedRemaining": {
-    "description": "读书统计-预计剩余"
-  },
   "expand": "Expand",
-  "@expand": {
-    "description": "展开按钮"
-  },
   "tocTitle": "Table of Contents ({count} ch)",
-  "@tocTitle": {
-    "description": "目录标题，{count}为章节数",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "totalChapters": "{count} chapters",
-  "@totalChapters": {
-    "description": "章节总数, {count}为数字",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "isbn": "ISBN",
-  "@isbn": {
-    "description": "ISBN标签"
-  },
   "bookIntro": "About This Book",
-  "@bookIntro": {
-    "description": "书籍简介区域标题"
-  },
   "timePresetSunsetToSunrise": "Sunset to Sunrise",
-  "@timePresetSunsetToSunrise": {
-    "description": "定时主题-日落到日出"
-  },
   "timePresetEveningToMorning": "Evening to Morning",
-  "@timePresetEveningToMorning": {
-    "description": "定时主题-傍晚到早晨"
-  },
   "timePresetCustom": "Custom",
-  "@timePresetCustom": {
-    "description": "定时主题-自定义"
-  },
   "appTheme": "App Theme",
-  "@appTheme": {
-    "description": "应用主题区域标题"
-  },
   "bookFormat": "Format",
-  "@bookFormat": {
-    "description": "书籍格式"
-  },
   "bookIntroLabel": "About This Book",
-  "@bookIntroLabel": {
-    "description": "书籍简介区域"
-  },
   "sortDialogTitle": "Select Sort Order",
-  "@sortDialogTitle": {
-    "description": "排序方式弹窗标题"
-  },
   "tapLayoutRightHanded": "Right-Handed",
-  "@tapLayoutRightHanded": {
-    "description": "点击区域-右手模式"
-  },
   "tapLayoutLeftHanded": "Left-Handed",
-  "@tapLayoutLeftHanded": {
-    "description": "点击区域-左手模式"
-  },
   "tapLayout": "Tap Zones",
-  "@tapLayout": {
-    "description": "翻页点击区域"
-  },
   "timeJustNow": "Just now",
-  "@timeJustNow": {
-    "description": "刚刚（相对时间）"
-  },
   "timeMinutesAgo": "{minutes} min ago",
-  "@timeMinutesAgo": {
-    "description": "N 分钟前",
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      }
-    }
-  },
   "timeHoursAgo": "{hours} hr ago",
-  "@timeHoursAgo": {
-    "description": "N 小时前",
-    "placeholders": {
-      "hours": {
-        "type": "int"
-      }
-    }
-  },
   "lastSyncTime": "Last sync: {time}",
-  "@lastSyncTime": {
-    "description": "上次同步时间",
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  }
+  "todayReading": "Today",
+  "minutes": "min",
+  "goalTemplate": "{minutes} min goal",
+  "streakLabel": "Reading Streak",
+  "daysUnit": "days",
+  "booksRead": "{count} books read",
+  "insufficientData": "Insufficient data",
+  "readingHeatmap": "Reading Heatmap",
+  "weekdayMon": "Mon",
+  "weekdayTue": "Tue",
+  "weekdayWed": "Wed",
+  "weekdayThu": "Thu",
+  "weekdayFri": "Fri",
+  "weekdaySat": "Sat",
+  "weekdaySun": "Sun",
+  "vocabStats": "Vocabulary",
+  "statusIgnored": "Ignored",
+  "noSessions": "No reading sessions",
+  "autoRecordHint": "Automatically recorded while reading",
+  "sessionDetails": "Session Details",
+  "unknownBook": "Unknown book",
+  "sessionSummary": "{count} sessions · {duration} · {chars} read",
+  "chapterInfo": "Ch. {index} · {chars}",
+  "deleteSessionTitle": "Delete Sessions",
+  "deleteSessionConfirm": "Delete all sessions for this book?",
+  "periodToday": "Today",
+  "periodWeek": "Week",
+  "periodMonth": "Month",
+  "periodYear": "Year",
+  "totalReadingTime": "Total reading time",
+  "sessionsCount": "sessions"
 }

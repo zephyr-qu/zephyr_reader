@@ -123,7 +123,7 @@ async fn test_book_delete() {
     data::book::upsert_book(book).await.expect("创建失败");
 
     // 删除书籍
-    let result = data::book::delete_book(book_id.clone()).await;
+    let result = data::book::delete_book(book_id.clone(), String::new()).await;
     assert!(result.is_ok(), "删除书籍应该成功");
 
     // 验证删除
@@ -615,7 +615,7 @@ async fn test_book_and_bookmark_relation() {
         .expect("创建书签失败");
 
     // 删除书籍（应该级联删除书签）
-    data::book::delete_book(book_id.clone())
+    data::book::delete_book(book_id.clone(), String::new())
         .await
         .expect("删除书籍失败");
 
@@ -652,7 +652,7 @@ async fn test_book_and_note_relation() {
     .expect("创建笔记失败");
 
     // 删除书籍
-    data::book::delete_book(book_id.clone())
+    data::book::delete_book(book_id.clone(), String::new())
         .await
         .expect("删除书籍失败");
 

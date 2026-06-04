@@ -43,20 +43,18 @@ class ScrollModeRenderer extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textStyle = useMemoized(
-      () => config.buildTextStyle(),
-      [
-        config.fontSize,
-        config.lineHeight,
-        config.textColor,
-        config.fontFamily,
-        config.letterSpacing,
-      ],
-    );
-    final strutStyle = useMemoized(
-      () => config.buildStrutStyle(),
-      [config.fontSize, config.lineHeight, config.fontFamily],
-    );
+    final textStyle = useMemoized(() => config.buildTextStyle(), [
+      config.fontSize,
+      config.lineHeight,
+      config.textColor,
+      config.fontFamily,
+      config.letterSpacing,
+    ]);
+    final strutStyle = useMemoized(() => config.buildStrutStyle(), [
+      config.fontSize,
+      config.lineHeight,
+      config.fontFamily,
+    ]);
     final richSpan = repo.currentRichContent;
     final paragraphList = useMemoized(
       () => content

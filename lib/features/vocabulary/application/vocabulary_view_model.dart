@@ -1,30 +1,28 @@
 import 'dart:async';
 
-import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/shared/book_title_resolver.dart';
 import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-@injectable
+
 class VocabularyViewModel {
   final words = asyncSignal<List<Vocab>>(AsyncState.data([]));
   final stats = signal<VocabStats?>(null);
-  final filterStatus = signal<VocabStatus?>(VocabStatus.new_);
+  final filterStatus = signal<VocabStatus?>(VocabStatus.unstarted);
   final filterWordList = signal<String?>(null);
   final searchQuery = signal<String>('');
 
   /// bookId -> bookTitle lookup map
   final bookTitles = signal<Map<String, String>>({});
 
-  VocabularyViewModel();
-
-  Future<void> loadWords({String? bookId}) async {
-    words.value = AsyncState.loading();
+  Future<void> loadWords({bool showLoading = true}) async {
+    if (showLoading) {
+      words.value = AsyncState.loading();
+    }
     try {
       final results = await Future.wait([
         vocab_api.listVocabularyByStatus(
-          bookId: bookId,
           status: filterStatus.value,
           wordList: filterWordList.value,
         ),
@@ -51,22 +49,15 @@ class VocabularyViewModel {
 
   Future<void> setFilter(VocabStatus? status) async {
     filterStatus.value = status;
-    await loadWords();
+    await loadWords(showLoading: false);
   }
 
   Future<void> setWordListFilter(String? wordList) async {
     filterWordList.value = wordList;
-    await loadWords();
+    await loadWords(showLoading: false);
   }
 
-  Future<void> updateStatus(String id, String s) async {
-    final status = switch (s) {
-      'new' || '' => VocabStatus.new_,
-      'learning' => VocabStatus.learning,
-      'mastered' => VocabStatus.mastered,
-      'ignored' => VocabStatus.ignored,
-      _ => VocabStatus.new_,
-    };
+  Future<void> updateStatus(String id, VocabStatus status) async {
     await vocab_api.updateVocabularyStatus(id: id, status: status);
     await loadWords();
   }
@@ -74,5 +65,14 @@ class VocabularyViewModel {
   Future<void> deleteWord(String id) async {
     await vocab_api.deleteVocabulary(id: id);
     await loadWords();
+  }
+ 
+  void dispose() {
+    words.dispose();
+    stats.dispose();
+    filterStatus.dispose();
+    filterWordList.dispose();
+    searchQuery.dispose();
+    bookTitles.dispose();
   }
 }

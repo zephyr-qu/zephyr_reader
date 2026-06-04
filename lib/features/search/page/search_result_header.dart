@@ -62,7 +62,10 @@ class ResultGroupHeader extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 1,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(10),

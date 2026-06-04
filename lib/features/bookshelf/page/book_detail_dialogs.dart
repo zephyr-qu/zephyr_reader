@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/core/app_config.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
@@ -32,7 +33,7 @@ Future<bool> showDeleteBookDialog(BuildContext context, Book book) async {
 
   if (confirmed == true) {
     try {
-      await book_api.deleteBook(bookId: book.bookId);
+      await book_api.deleteBook(bookId: book.bookId, coversDir: AppConfig.instance.coverDir);
     } catch (e) {
       Logging.error('删除书籍失败', exception: e);
       if (context.mounted) {
@@ -55,7 +56,9 @@ Future<Map<String, String>?> showEditMetadataDialog(
   final nameController = TextEditingController(text: book.title);
   final authorController = TextEditingController(text: book.author ?? '');
   final publisherController = TextEditingController(text: book.publisher ?? '');
-  final translatorController = TextEditingController(text: book.translator ?? '');
+  final translatorController = TextEditingController(
+    text: book.translator ?? '',
+  );
   final isbnController = TextEditingController(text: book.isbn ?? '');
   final descController = TextEditingController(text: book.description ?? '');
 
@@ -101,10 +104,7 @@ Future<Map<String, String>?> showEditMetadataDialog(
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(c),
-          child: Text(l10n.cancel),
-        ),
+        TextButton(onPressed: () => Navigator.pop(c), child: Text(l10n.cancel)),
         FilledButton(
           onPressed: () {
             Navigator.pop(c, {

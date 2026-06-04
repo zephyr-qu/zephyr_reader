@@ -31,11 +31,7 @@ abstract class NetworkModule {
 
     // 调试日志（Dio 内置，代替 pretty_dio_logger）
     dio.interceptors.add(
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        error: true,
-      ),
+      LogInterceptor(requestBody: true, responseBody: true, error: true),
     );
 
     // 统一错误日志

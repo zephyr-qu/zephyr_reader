@@ -3,7 +3,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
-
 class SkeletonWidget extends HookWidget {
   final double width;
   final double height;
@@ -100,13 +99,13 @@ class SkeletonCard extends StatelessWidget {
               ),
             ],
           ),
-      )
-      .animate()
-      .then(delay: 0.ms, duration: 1500.ms)
-      .shimmer(
-        color: DesignTokens.warmAccent.withValues(alpha: 0.15),
-        size: 0.3,
-      );
+        )
+        .animate()
+        .then(delay: 0.ms, duration: 1500.ms)
+        .shimmer(
+          color: DesignTokens.warmAccent.withValues(alpha: 0.15),
+          size: 0.3,
+        );
   }
 }
 

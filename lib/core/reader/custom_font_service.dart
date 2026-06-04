@@ -8,6 +8,7 @@
 /// - 自定义字体管理 (删除/清除)
 /// - 字体下载服务 (支持从 URL 下载)
 /// - 响应式字体状态 (使用 signals_flutter)
+library;
 
 import 'dart:io';
 
@@ -59,7 +60,7 @@ class FontRepository {
   /// 获取当前字体的系列名（用于 TextStyle.fontFamily）
   String get currentFontFamily {
     final font = currentFont.value;
-    if (font == null) return 'Noto Sans SC';
+    if (font == null) return '';
     return familyNameFor(font);
   }
 
@@ -71,16 +72,8 @@ class FontRepository {
           return 'serif';
         case 'sans':
           return 'sans-serif';
-        case 'mono':
-          return 'monospace';
-        case 'kai':
-          return 'KaiTi';
-        case 'noto_serif_sc':
-          return 'Noto Serif SC';
-        case 'lxgw_wenkai':
-          return 'LXGW WenKai';
         default:
-          return 'Noto Sans SC';
+          return '';
       }
     }
     final name = p.basenameWithoutExtension(font.path ?? font.name);
@@ -116,10 +109,6 @@ class FontRepository {
       FontInfo(id: 'system', name: '系统默认', isBuiltIn: true),
       FontInfo(id: 'serif', name: '宋体', isBuiltIn: true),
       FontInfo(id: 'sans', name: '黑体', isBuiltIn: true),
-      FontInfo(id: 'mono', name: '等宽字体', isBuiltIn: true),
-      FontInfo(id: 'kai', name: '楷体', isBuiltIn: true),
-      FontInfo(id: 'noto_serif_sc', name: '思源宋体', isBuiltIn: true),
-      FontInfo(id: 'lxgw_wenkai', name: '霞鹜文楷', isBuiltIn: true),
     ]);
 
     // 加载本地字体

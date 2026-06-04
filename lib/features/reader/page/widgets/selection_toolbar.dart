@@ -75,7 +75,7 @@ class SelectionToolbar extends StatelessWidget {
                 const SizedBox(width: 4),
                 _ActionChip(
                   icon: PhosphorIconsRegular.bookOpenText,
-                label: l10n.lookupWord,
+                  label: l10n.lookupWord,
                   iconColor: const Color(0xFF4CAF50),
                   onTap: onLookup!,
                 ),
@@ -84,7 +84,7 @@ class SelectionToolbar extends StatelessWidget {
                 const SizedBox(width: 4),
                 _ActionChip(
                   icon: PhosphorIconsRegular.listPlus,
-                label: l10n.selectionVocabulary,
+                  label: l10n.selectionVocabulary,
                   iconColor: const Color(0xFF9C27B0),
                   onTap: onAddToVocabulary!,
                 ),
@@ -93,7 +93,7 @@ class SelectionToolbar extends StatelessWidget {
                 const SizedBox(width: 4),
                 _ActionChip(
                   icon: PhosphorIconsRegular.arrowsLeftRight,
-                label: l10n.selectionBilingual,
+                  label: l10n.selectionBilingual,
                   iconColor: const Color(0xFFE91E63),
                   onTap: onBilingualHighlight!,
                 ),

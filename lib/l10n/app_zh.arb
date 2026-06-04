@@ -2,9 +2,6 @@
   "@@locale": "zh",
   "@@info": "Zephyr Reader 简体中文翻译",
   "appName": "Zephyr Reader",
-  "@appName": {
-    "description": "应用名称"
-  },
   "tabHome": "首页",
   "tabBookshelf": "书架",
   "tabStatistics": "统计",
@@ -65,24 +62,7 @@
   "font": "字体",
   "defaultFont": "系统默认",
   "chapterN": "第 {n} 章",
-  "@chapterN": {
-    "placeholders": {
-      "n": {
-        "type": "int"
-      }
-    }
-  },
   "pageInfo": "{current}/{total}",
-  "@pageInfo": {
-    "placeholders": {
-      "current": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
   "bookmarks": "书签",
   "addBookmark": "添加书签",
   "noBookmarks": "暂无书签",
@@ -135,13 +115,6 @@
   "readingTrend": "本周阅读趋势",
   "readingRhythm": "阅读节奏",
   "recentDays": "近 {days} 天",
-  "@recentDays": {
-    "placeholders": {
-      "days": {
-        "type": "int"
-      }
-    }
-  },
   "sessions": "阅读会话",
   "settings": "设置",
   "appSettings": "应用设置",
@@ -299,391 +272,124 @@
   "aboutFeature5": "生词本与学习记录",
   "aboutFeature6": "WebDAV 多端同步",
   "copyrightFooter": "© 2026 Zephyr Reader",
-  "madeWithFooter": "Made with Flutter · Rust · ❤",
-  "errorFileNotFound": "文件不存在",
+  "madeWithFooter": "用 Flutter · Rust · ❤ 构建",
+  "errorFileNotFound": "文件未找到",
   "errorFileReadError": "文件读取失败",
   "errorUnsupportedFormat": "不支持的格式",
   "errorEpubParse": "EPUB 解析错误",
   "errorDatabase": "数据库错误",
   "errorInternal": "内部错误",
-  "errorTaskPanic": "任务执行异常：{task}",
+  "errorTaskPanic": "任务失败：{task}",
   "selectDictionaryFile": "选择词典文件",
-  "selectMdxDescription": "请选择一个 .mdx 格式的词典文件…",
+  "selectMdxDescription": "请选择一个 .mdx 词典文件…",
   "invalidMdxFile": "请选择有效的 .mdx 文件",
-  "dictionaryLoadFailed": "词典加载失败，请检查文件是否有效",
+  "dictionaryLoadFailed": "词典加载失败，请检查文件",
   "pronunciation": "发音",
-  "noExactMatch": "未找到精确匹配，您是否想查：",
+  "noExactMatch": "未找到精确匹配。您是不是要找：",
   "wordSegmentation": "分词：",
-  "bilingualNoAlignment": "没有对照译文，无法创建双语高亮",
-  "bilingualNoParagraph": "未找到对应的段落",
+  "bilingualNoAlignment": "未找到双语对齐位置",
+  "bilingualNoParagraph": "未找到对应段落",
   "bilingualHighlightCreated": "双语高亮已创建",
   "selectFile": "选择文件",
-  "categoryManagement": "标签管理",
-  "@bookImported": {
-    "placeholders": {
-      "title": {
-        "type": "String"
-      }
-    }
-  },
-  "@importFailed": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "@scanComplete": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "@viewAllChapters": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "@deleteFailed": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "@appVersionDisplay": {
-    "placeholders": {
-      "version": {
-        "type": "String"
-      }
-    }
-  },
-  "@errorTaskPanic": {
-    "placeholders": {
-      "task": {
-        "type": "String"
-      }
-    }
-  },
-  "@selectedBooksCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
+  "categoryManagement": "分类管理",
   "aboutTitle": "关于",
-  "@aboutTitle": {
-    "description": "简体中文翻译 - 关于页面标题"
-  },
-  "aboutTagline": "如和风般轻盈的阅读体验",
-  "@aboutTagline": {
-    "description": "简体中文翻译 - 应用标语"
-  },
+  "aboutTagline": "轻如风，阅无界",
   "aboutSectionFeatures": "核心特性",
-  "@aboutSectionFeatures": {
-    "description": "简体中文翻译 - 核心特性分区标题"
-  },
   "aboutSectionTechStack": "技术栈",
-  "@aboutSectionTechStack": {
-    "description": "简体中文翻译 - 技术栈分区标题"
-  },
-  "aboutSectionLinks": "更多信息",
-  "@aboutSectionLinks": {
-    "description": "简体中文翻译 - 链接分区标题"
-  },
-  "aboutDescription": "Zephyr Reader 是一款基于 Flutter + Rust 架构的离线双语小说阅读器。纯本地设计，无后台、无广告、无数据收集，专注于中英双语阅读体验。",
-  "@aboutDescription": {
-    "description": "简体中文翻译 - 应用描述"
-  },
-  "aboutFeatureOffline": "纯离线使用",
-  "@aboutFeatureOffline": {
-    "description": "简体中文翻译 - 特性：离线"
-  },
-  "aboutFeatureOfflineDesc": "核心功能 100% 离线可用，无后台无广告",
-  "@aboutFeatureOfflineDesc": {
-    "description": "简体中文翻译 - 特性描述：离线"
-  },
-  "aboutFeaturePerformance": "高性能解析",
-  "@aboutFeaturePerformance": {
-    "description": "简体中文翻译 - 特性：高性能"
-  },
-  "aboutFeaturePerformanceDesc": "Rust 引擎驱动，大文件瞬间解析",
-  "@aboutFeaturePerformanceDesc": {
-    "description": "简体中文翻译 - 特性描述：高性能"
-  },
-  "aboutFeatureBilingual": "双语排版",
-  "@aboutFeatureBilingual": {
-    "description": "简体中文翻译 - 特性：双语"
-  },
-  "aboutFeatureBilingualDesc": "中英文同等优先，优雅对照阅读",
-  "@aboutFeatureBilingualDesc": {
-    "description": "简体中文翻译 - 特性描述：双语"
-  },
-  "aboutFeatureThemes": "多主题支持",
-  "@aboutFeatureThemes": {
-    "description": "简体中文翻译 - 特性：主题"
-  },
-  "aboutFeatureThemesDesc": "亮色 / 深色 / 纯黑夜间模式",
-  "@aboutFeatureThemesDesc": {
-    "description": "简体中文翻译 - 特性描述：主题"
-  },
-  "aboutFeatureAdaptive": "设备适配",
-  "@aboutFeatureAdaptive": {
-    "description": "简体中文翻译 - 特性：适配"
-  },
-  "aboutFeatureAdaptiveDesc": "手机与平板双端自适应布局",
-  "@aboutFeatureAdaptiveDesc": {
-    "description": "简体中文翻译 - 特性描述：适配"
-  },
+  "aboutSectionLinks": "链接",
+  "aboutDescription": "Zephyr Reader 是一款纯离线的双语小说阅读器，Flutter + Rust 构建，100% 本地，无后端，无广告，无数据收集，专注于中英文双语阅读体验。",
+  "aboutFeatureOffline": "完全离线",
+  "aboutFeatureOfflineDesc": "核心功能无需网络，无后端无广告",
+  "aboutFeaturePerformance": "高性能",
+  "aboutFeaturePerformanceDesc": "Rust 引擎即时解析大文件",
+  "aboutFeatureBilingual": "双语对照",
+  "aboutFeatureBilingualDesc": "中英同权对齐",
+  "aboutFeatureThemes": "多主题",
+  "aboutFeatureThemesDesc": "浅色/深色/纯黑夜间模式",
+  "aboutFeatureAdaptive": "自适应布局",
+  "aboutFeatureAdaptiveDesc": "手机和平板自动适配",
   "aboutFeatureSync": "WebDAV 同步",
-  "@aboutFeatureSync": {
-    "description": "简体中文翻译 - 特性：同步"
-  },
-  "aboutFeatureSyncDesc": "跨设备数据同步与安全备份",
-  "@aboutFeatureSyncDesc": {
-    "description": "简体中文翻译 - 特性描述：同步"
-  },
+  "aboutFeatureSyncDesc": "多端同步与安全备份",
   "aboutCheckUpdate": "检查更新",
-  "@aboutCheckUpdate": {
-    "description": "简体中文翻译 - 检查更新链接"
-  },
   "aboutLatestVersion": "已是最新版本",
-  "@aboutLatestVersion": {
-    "description": "简体中文翻译 - 已是最新提示"
-  },
   "aboutUserAgreement": "用户协议",
-  "@aboutUserAgreement": {
-    "description": "简体中文翻译 - 用户协议链接"
-  },
   "aboutPrivacyPolicy": "隐私政策",
-  "@aboutPrivacyPolicy": {
-    "description": "简体中文翻译 - 隐私政策链接"
-  },
   "aboutOpenSourceLicense": "开源许可证",
-  "@aboutOpenSourceLicense": {
-    "description": "简体中文翻译 - 开源许可证链接"
-  },
   "aboutFeedback": "问题反馈",
-  "@aboutFeedback": {
-    "description": "简体中文翻译 - 问题反馈链接"
-  },
   "aboutCannotOpenLink": "无法打开链接",
-  "@aboutCannotOpenLink": {
-    "description": "简体中文翻译 - 链接打开失败提示"
-  },
   "unknownVersion": "未知",
-  "@unknownVersion": {
-    "description": "简体中文 - 未知版本号"
-  },
   "prev": "上一个",
-  "@prev": {
-    "description": "上一个搜索结果"
-  },
   "readAloud": "朗读",
-  "@readAloud": {
-    "description": "朗读功能"
-  },
   "addedToVocabulary": "已加入生词本：{word}",
-  "@addedToVocabulary": {
-    "description": "加入生词本成功提示，{word}为单词",
-    "placeholders": {
-      "word": {
-        "type": "String"
-      }
-    }
-  },
   "addToVocabFailed": "加入生词本失败：{error}",
-  "@addToVocabFailed": {
-    "description": "加入生词本失败提示，{error}为错误信息",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "readerThemeLight": "日间",
-  "@readerThemeLight": {
-    "description": "读者主题-日间"
-  },
+  "readerThemeLight": "白天",
   "readerThemeDark": "夜间",
-  "@readerThemeDark": {
-    "description": "读者主题-夜间"
-  },
   "readerThemeSepia": "护眼",
-  "@readerThemeSepia": {
-    "description": "读者主题-护眼"
-  },
   "readerFontSizeSmall": "小",
-  "@readerFontSizeSmall": {
-    "description": "字号-小"
-  },
   "readerFontSizeMedium": "中",
-  "@readerFontSizeMedium": {
-    "description": "字号-中"
-  },
   "readerFontSizeLarge": "大",
-  "@readerFontSizeLarge": {
-    "description": "字号-大"
-  },
   "readerFontSizeXLarge": "特大",
-  "@readerFontSizeXLarge": {
-    "description": "字号-特大"
-  },
   "sortLastRead": "最近阅读",
-  "@sortLastRead": {
-    "description": "排序-最近阅读"
-  },
   "sortCreatedAt": "添加时间",
-  "@sortCreatedAt": {
-    "description": "排序-添加时间"
-  },
   "sortTitle": "书名",
-  "@sortTitle": {
-    "description": "排序-书名"
-  },
   "sortAuthor": "作者",
-  "@sortAuthor": {
-    "description": "排序-作者"
-  },
   "sortProgress": "阅读进度",
-  "@sortProgress": {
-    "description": "排序-阅读进度"
-  },
-  "themeSystem": "系统",
-  "@themeSystem": {
-    "description": "主题-跟随系统"
-  },
+  "themeSystem": "跟随系统",
   "introLabel": "简介",
-  "@introLabel": {
-    "description": "书籍简介标签"
-  },
-  "currentChapter": "当前",
   "bookTitle": "书名",
-  "@bookTitle": {
-    "description": "书籍名称标签"
-  },
-  "@currentChapter": {
-    "description": "当前章节标签"
-  },
+  "currentChapter": "当前",
   "editMetadata": "编辑元数据",
-  "@editMetadata": {
-    "description": "编辑书籍元数据"
-  },
-  "statReadingTime": "累计时长",
-  "@statReadingTime": {
-    "description": "读书统计-时长"
-  },
+  "statReadingTime": "阅读时长",
   "statReadingCount": "阅读次数",
-  "@statReadingCount": {
-    "description": "读书统计-次数"
-  },
   "statEstimatedRemaining": "预计剩余",
-  "@statEstimatedRemaining": {
-    "description": "读书统计-预计剩余"
-  },
   "expand": "展开",
-  "@expand": {
-    "description": "展开按钮"
-  },
   "tocTitle": "目录（{count} 章）",
-  "@tocTitle": {
-    "description": "目录标题，{count}为章节数",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "totalChapters": "{count} 章",
-  "@totalChapters": {
-    "description": "章节总数, {count}为数字",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
+  "totalChapters": "共 {count} 章",
   "isbn": "ISBN",
-  "@isbn": {
-    "description": "ISBN标签"
-  },
-  "bookIntro": "简介",
-  "@bookIntro": {
-    "description": "书籍简介区域标题"
-  },
+  "bookIntro": "内容简介",
   "timePresetSunsetToSunrise": "日落到日出",
-  "@timePresetSunsetToSunrise": {
-    "description": "定时主题-日落到日出"
-  },
   "timePresetEveningToMorning": "傍晚到早晨",
-  "@timePresetEveningToMorning": {
-    "description": "定时主题-傍晚到早晨"
-  },
   "timePresetCustom": "自定义",
-  "@timePresetCustom": {
-    "description": "定时主题-自定义"
-  },
   "appTheme": "应用主题",
-  "@appTheme": {
-    "description": "应用主题区域标题"
-  },
   "bookFormat": "格式",
-  "@bookFormat": {
-    "description": "书籍格式"
-  },
-  "bookIntroLabel": "简介",
-  "@bookIntroLabel": {
-    "description": "书籍简介区域"
-  },
+  "bookIntroLabel": "内容简介",
   "sortDialogTitle": "选择排序方式",
-  "@sortDialogTitle": {
-    "description": "排序方式弹窗标题"
-  },
   "tapLayoutRightHanded": "右手模式",
-  "@tapLayoutRightHanded": {
-    "description": "点击区域-右手模式"
-  },
   "tapLayoutLeftHanded": "左手模式",
-  "@tapLayoutLeftHanded": {
-    "description": "点击区域-左手模式"
-  },
-  "tapLayout": "点击区域",
-  "@tapLayout": {
-    "description": "翻页点击区域"
-  },
+  "tapLayout": "翻页点击区域",
   "timeJustNow": "刚刚",
-  "@timeJustNow": {
-    "description": "刚刚（相对时间）"
-  },
   "timeMinutesAgo": "{minutes} 分钟前",
-  "@timeMinutesAgo": {
-    "description": "N 分钟前",
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      }
-    }
-  },
   "timeHoursAgo": "{hours} 小时前",
-  "@timeHoursAgo": {
-    "description": "N 小时前",
-    "placeholders": {
-      "hours": {
-        "type": "int"
-      }
-    }
-  },
   "lastSyncTime": "上次同步：{time}",
-  "@lastSyncTime": {
-    "description": "上次同步时间",
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  }
+  "todayReading": "今日阅读",
+  "minutes": "分钟",
+  "goalTemplate": "目标 {minutes} 分钟",
+  "streakLabel": "连续阅读",
+  "daysUnit": "天",
+  "booksRead": "读过 {count} 本书",
+  "insufficientData": "数据不足",
+  "readingHeatmap": "阅读热力图",
+  "weekdayMon": "一",
+  "weekdayTue": "二",
+  "weekdayWed": "三",
+  "weekdayThu": "四",
+  "weekdayFri": "五",
+  "weekdaySat": "六",
+  "weekdaySun": "日",
+  "vocabStats": "生词统计",
+  "statusIgnored": "已忽略",
+  "noSessions": "暂无阅读会话",
+  "autoRecordHint": "开始阅读后会自动记录",
+  "sessionDetails": "会话详情",
+  "unknownBook": "未知书籍",
+  "sessionSummary": "共 {count} 次 · {duration} · 阅读 {chars}",
+  "chapterInfo": "第 {index} 章 · {chars}",
+  "deleteSessionTitle": "删除会话记录",
+  "deleteSessionConfirm": "确定要删除本书的所有阅读会话记录吗？",
+  "periodToday": "本日",
+  "periodWeek": "本周",
+  "periodMonth": "本月",
+  "periodYear": "全年",
+  "totalReadingTime": "总阅读时长",
+  "sessionsCount": "次会话"
 }

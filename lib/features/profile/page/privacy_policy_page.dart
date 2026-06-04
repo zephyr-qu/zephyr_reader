@@ -1,4 +1,5 @@
 /// 隐私政策页面
+library;
 
 import 'package:flutter/material.dart';
 

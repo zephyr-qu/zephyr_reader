@@ -46,7 +46,9 @@ class WebDavConfigService {
       if (config.baseUrl.isEmpty ||
           config.username.isEmpty ||
           password.isEmpty ||
-          config.remotePath.isEmpty) return null;
+          config.remotePath.isEmpty) {
+        return null;
+      }
       return WebDavConfig(
         baseUrl: config.baseUrl,
         username: config.username,

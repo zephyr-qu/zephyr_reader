@@ -31,8 +31,8 @@ class BatteryIndicator extends HookWidget {
     final color = isCharging.value
         ? const Color(0xFF4CAF50)
         : level.value > 20
-            ? Colors.white.withValues(alpha: 0.7)
-            : const Color(0xFFE53935);
+        ? Colors.white.withValues(alpha: 0.7)
+        : const Color(0xFFE53935);
 
     return Padding(
       padding: const EdgeInsets.only(right: 12),

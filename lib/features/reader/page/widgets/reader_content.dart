@@ -285,50 +285,50 @@ class ReaderContent extends HookWidget {
 
     return Container(
       color: backgroundColor,
-        child: AnimatedSwitcher(
-          duration: Duration(
-            milliseconds: disableAnim
-                ? 0
-                : readingMode == ReadingMode.pagination
-                ? 200
-                : 250,
-          ),
-          switchInCurve: readingMode == ReadingMode.scroll
-              ? Curves.easeOut
-              : Curves.easeOutCubic,
-          switchOutCurve: readingMode == ReadingMode.scroll
-              ? Curves.easeIn
-              : Curves.easeInCubic,
-          transitionBuilder: (child, animation) {
-            switch (readingMode) {
-              case ReadingMode.pagination:
-                final offset = isForward
-                    ? const Offset(0.15, 0)
-                    : const Offset(-0.15, 0);
-                return SlideTransition(
-                  position: Tween<Offset>(begin: offset, end: Offset.zero)
-                      .animate(
-                        CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOutCubic,
-                        ),
-                      ),
-                  child: child,
-                );
-              case ReadingMode.scroll:
-                return FadeTransition(opacity: animation, child: child);
-              case ReadingMode.bilingual:
-                return FadeTransition(opacity: animation, child: child);
-              case ReadingMode.pageTurn:
-                return PageTurnTransitionBuilder(
-                  animation: animation,
-                  isForward: isForward,
-                  child: child,
-                );
-            }
-          },
-          child: KeyedSubtree(key: contentKey, child: contentWidget),
+      child: AnimatedSwitcher(
+        duration: Duration(
+          milliseconds: disableAnim
+              ? 0
+              : readingMode == ReadingMode.pagination
+              ? 200
+              : 250,
         ),
+        switchInCurve: readingMode == ReadingMode.scroll
+            ? Curves.easeOut
+            : Curves.easeOutCubic,
+        switchOutCurve: readingMode == ReadingMode.scroll
+            ? Curves.easeIn
+            : Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          switch (readingMode) {
+            case ReadingMode.pagination:
+              final offset = isForward
+                  ? const Offset(0.15, 0)
+                  : const Offset(-0.15, 0);
+              return SlideTransition(
+                position: Tween<Offset>(begin: offset, end: Offset.zero)
+                    .animate(
+                      CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutCubic,
+                      ),
+                    ),
+                child: child,
+              );
+            case ReadingMode.scroll:
+              return FadeTransition(opacity: animation, child: child);
+            case ReadingMode.bilingual:
+              return FadeTransition(opacity: animation, child: child);
+            case ReadingMode.pageTurn:
+              return PageTurnTransitionBuilder(
+                animation: animation,
+                isForward: isForward,
+                child: child,
+              );
+          }
+        },
+        child: KeyedSubtree(key: contentKey, child: contentWidget),
+      ),
     );
   }
 
@@ -379,53 +379,53 @@ class ReaderContent extends HookWidget {
     if (readingMode == ReadingMode.scroll) {
       return RepaintBoundary(
         child: ScrollModeRenderer(
-        config: renderConfig,
-        scrollController: scrollController,
-        repo: repo,
-        bookId: bookId,
-        chapterId: chapterId,
-        content: content,
-        highlights: highlights,
-        onHighlightTap: onHighlightTap,
-        onSelectionChanged: onSelectionChanged,
-        onSelectionGlobalPosition: onSelectionGlobalPosition,
-        writingDirection: writingDirection,
-        showSentenceSplit: showSentenceSplit,
+          config: renderConfig,
+          scrollController: scrollController,
+          repo: repo,
+          bookId: bookId,
+          chapterId: chapterId,
+          content: content,
+          highlights: highlights,
+          onHighlightTap: onHighlightTap,
+          onSelectionChanged: onSelectionChanged,
+          onSelectionGlobalPosition: onSelectionGlobalPosition,
+          writingDirection: writingDirection,
+          showSentenceSplit: showSentenceSplit,
         ),
       );
     } else if (readingMode == ReadingMode.bilingual) {
       return RepaintBoundary(
         child: BilingualModeRenderer(
-        config: renderConfig,
-        scrollController: scrollController,
-        bilingualPairs: bilingualPairs,
-        isBilingualLoading: isBilingualLoading,
-        bilingualError: bilingualError,
-        bilingualAlignment: bilingualAlignment,
-        highlights: highlights,
-        onRequestTranslation: onRequestTranslation,
-        onHighlightTap: onHighlightTap,
-        onSelectionChanged: onSelectionChanged,
-        onSelectionGlobalPosition: onSelectionGlobalPosition,
+          config: renderConfig,
+          scrollController: scrollController,
+          bilingualPairs: bilingualPairs,
+          isBilingualLoading: isBilingualLoading,
+          bilingualError: bilingualError,
+          bilingualAlignment: bilingualAlignment,
+          highlights: highlights,
+          onRequestTranslation: onRequestTranslation,
+          onHighlightTap: onHighlightTap,
+          onSelectionChanged: onSelectionChanged,
+          onSelectionGlobalPosition: onSelectionGlobalPosition,
         ),
       );
     } else {
       return RepaintBoundary(
         child: PaginatedModeRenderer(
-        config: renderConfig,
-        pageController: pageController,
-        repo: repo,
-        bookId: bookId,
-        chapterId: chapterId,
-        pageIndex: pageIndex,
-        content: content,
-        highlights: highlights,
-        readingMode: readingMode,
-        onHighlightTap: onHighlightTap,
-        onSelectionChanged: onSelectionChanged,
-        onSelectionGlobalPosition: onSelectionGlobalPosition,
-        onPageChanged: onPageChanged,
-        onPositionChanged: onPositionChanged,
+          config: renderConfig,
+          pageController: pageController,
+          repo: repo,
+          bookId: bookId,
+          chapterId: chapterId,
+          pageIndex: pageIndex,
+          content: content,
+          highlights: highlights,
+          readingMode: readingMode,
+          onHighlightTap: onHighlightTap,
+          onSelectionChanged: onSelectionChanged,
+          onSelectionGlobalPosition: onSelectionGlobalPosition,
+          onPageChanged: onPageChanged,
+          onPositionChanged: onPositionChanged,
         ),
       );
     }

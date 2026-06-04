@@ -22,7 +22,9 @@ class SplashPage extends HookWidget {
     controller.forward();
 
     useEffect(() {
-      final timer = Timer(const Duration(seconds: 2), () {
+      // 最小展示时长：保证动画（800ms）完整播完 + 留一点余量
+      const minDisplay = Duration(milliseconds: 1200);
+      final timer = Timer(minDisplay, () {
         if (context.mounted) context.go(RoutePaths.home);
       });
       return timer.cancel;

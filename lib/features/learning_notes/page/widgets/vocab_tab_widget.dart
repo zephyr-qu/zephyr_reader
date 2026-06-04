@@ -55,9 +55,9 @@ class LearningNotesVocabTab extends StatelessWidget {
               const SizedBox(width: 8),
               _vocabFilterChip(
                 '未学',
-                VocabStatus.new_,
-                selected: filterStatus == VocabStatus.new_,
-                onTap: () => vm.setVocabFilterStatus(VocabStatus.new_),
+                VocabStatus.unstarted,
+                selected: filterStatus == VocabStatus.unstarted,
+                onTap: () => vm.setVocabFilterStatus(VocabStatus.unstarted),
               ),
               const SizedBox(width: 8),
               _vocabFilterChip(
@@ -308,9 +308,9 @@ class LearningNotesVocabTab extends StatelessWidget {
               initialValue: item.status,
               onSelected: (s) => vm.updateVocabStatus(item.id, s),
               itemBuilder: (_) => [
-                if (item.status != VocabStatus.new_)
+                if (item.status != VocabStatus.unstarted)
                   const PopupMenuItem(
-                    value: VocabStatus.new_,
+                    value: VocabStatus.unstarted,
                     child: Text('未学'),
                   ),
                 if (item.status != VocabStatus.learning)
@@ -351,7 +351,7 @@ class LearningNotesVocabTab extends StatelessWidget {
 
   Color _vocabStatusColor(VocabStatus status, ColorScheme cs) {
     // Use shared extension for mastered/learning/ignored, fallback to theme for new_
-    if (status == VocabStatus.new_) return cs.onSurface;
+    if (status == VocabStatus.unstarted) return cs.onSurface;
     return status.color;
   }
 

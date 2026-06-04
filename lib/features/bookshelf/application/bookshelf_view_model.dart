@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:injectable/injectable.dart';
+import 'package:zephyr_reader/core/app_config.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -60,24 +61,32 @@ class BookshelfViewModel {
 
   /// 显示阅读进度
   late final showReadingProgress = persistedBool(
-    _prefs, SettingsKeys.bookshelfShowProgress, true,
+    _prefs,
+    SettingsKeys.bookshelfShowProgress,
+    true,
   );
 
   /// 显示最近阅读
   late final showRecentReading = persistedBool(
-    _prefs, SettingsKeys.bookshelfShowRecent, true,
+    _prefs,
+    SettingsKeys.bookshelfShowRecent,
+    true,
   );
 
   /// 默认排序方式
   late final defaultSortType = persistedEnumCustom(
-    _prefs, SettingsKeys.bookshelfDefaultSort,
-    BookshelfSortType.lastRead, BookshelfSortType.fromKey,
+    _prefs,
+    SettingsKeys.bookshelfDefaultSort,
+    BookshelfSortType.lastRead,
+    BookshelfSortType.fromKey,
     (v) => v.key,
   );
 
   /// 是否使用列表视图（false=网格视图）
   late final isListView = persistedBool(
-    _prefs, SettingsKeys.bookshelfIsListView, false,
+    _prefs,
+    SettingsKeys.bookshelfIsListView,
+    false,
   );
 
   /// 阅读进度映射 (bookId -> progress 0.0~1.0)
@@ -217,7 +226,7 @@ class BookshelfViewModel {
   }
 
   Future<bool> deleteBook(String id) => _safeAction('deleteBook', () async {
-    await book_api.deleteBook(bookId: id);
+    await book_api.deleteBook(bookId: id, coversDir: AppConfig.instance.coverDir);
     return true;
   }, onSuccess: loadBooks);
 

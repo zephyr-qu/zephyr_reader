@@ -1,5 +1,3 @@
-
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -14,7 +12,6 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/backup.dart';
 
 class BackupPage extends HookWidget {
-
   const BackupPage({super.key});
 
   @override
@@ -86,7 +83,10 @@ class BackupPage extends HookWidget {
       );
     } else if (vm.status.value == BackupStatus.error) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('备份失败：${vm.errorMessage.value}'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('备份失败：${vm.errorMessage.value}'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
     await vm.dismissResult();
@@ -100,9 +100,9 @@ class BackupPage extends HookWidget {
     final manifest = await inspectBackup(backupPath: filePath);
     if (!context.mounted) return;
     if (manifest == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('所选文件不是有效的备份文件')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('所选文件不是有效的备份文件')));
       return;
     }
 
@@ -131,7 +131,10 @@ class BackupPage extends HookWidget {
       );
     } else if (vm.status.value == BackupStatus.error) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('恢复失败：${vm.errorMessage.value}'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('恢复失败：${vm.errorMessage.value}'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
     await vm.dismissResult();
@@ -148,7 +151,11 @@ class BackupPage extends HookWidget {
     return result.files.single.path;
   }
 
-  Widget _buildStatsSection(BuildContext context, ColorScheme cs, BackupViewModel vm) {
+  Widget _buildStatsSection(
+    BuildContext context,
+    ColorScheme cs,
+    BackupViewModel vm,
+  ) {
     final stats = vm.currentStats.value;
     if (stats == null) return const SizedBox.shrink();
 
@@ -157,7 +164,11 @@ class BackupPage extends HookWidget {
       children: [
         Text(
           '当前数据统计',
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurface),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: cs.onSurface,
+          ),
         ),
         const SizedBox(height: 8),
         Container(
@@ -192,9 +203,22 @@ class BackupPage extends HookWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: cs.onSecondaryContainer)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: cs.onSecondaryContainer,
+            ),
+          ),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 11, color: cs.onSecondaryContainer.withValues(alpha: 0.7))),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: cs.onSecondaryContainer.withValues(alpha: 0.7),
+            ),
+          ),
         ],
       ),
     );

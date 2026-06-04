@@ -1,6 +1,7 @@
 /// 自动主题切换服务
 ///
 /// 根据日落日出时间自动切换亮色/深色主题
+library;
 
 import 'dart:async';
 
@@ -155,7 +156,6 @@ enum ThemeTimePreset {
     return ThemeTimePreset.custom;
   }
 }
-
 
 extension ThemeTimePresetX on ThemeTimePreset {
   String l10nLabel(AppLocalizations l10n) => switch (this) {

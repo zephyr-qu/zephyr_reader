@@ -30,10 +30,7 @@ void main() {
 
   group('ReaderRenderConfig.buildTextStyle', () {
     test('应返回正确的字体大小和行高', () {
-      final style = _config(
-        fontSize: 18,
-        lineHeight: 1.8,
-      ).buildTextStyle();
+      final style = _config(fontSize: 18, lineHeight: 1.8).buildTextStyle();
 
       expect(style.fontSize, equals(18));
       expect(style.height, equals(1.8));
@@ -80,25 +77,25 @@ void main() {
     });
 
     test('useLatin true 且 fontFamily 自定义时应使用自定义', () {
-      final style = _config(fontFamily: 'MyFont').buildTextStyle(
-        useLatin: true,
-      );
+      final style = _config(
+        fontFamily: 'MyFont',
+      ).buildTextStyle(useLatin: true);
 
       expect(style.fontFamily, equals('MyFont'));
     });
 
     test('fontSizeMultiplier 应缩放字号', () {
-      final style = _config(fontSize: 20).buildTextStyle(
-        fontSizeMultiplier: 0.9,
-      );
+      final style = _config(
+        fontSize: 20,
+      ).buildTextStyle(fontSizeMultiplier: 0.9);
 
       expect(style.fontSize, closeTo(18, 0.01));
     });
 
     test('color 参数应覆盖 config.textColor', () {
-      final style = _config(textColor: Colors.black).buildTextStyle(
-        color: Colors.red,
-      );
+      final style = _config(
+        textColor: Colors.black,
+      ).buildTextStyle(color: Colors.red);
 
       expect(style.color, equals(Colors.red));
     });
@@ -140,9 +137,9 @@ void main() {
     });
 
     test('fontSizeMultiplier 应缩放字号', () {
-      final strut = _config(fontSize: 20).buildStrutStyle(
-        fontSizeMultiplier: 0.9,
-      );
+      final strut = _config(
+        fontSize: 20,
+      ).buildStrutStyle(fontSizeMultiplier: 0.9);
 
       expect(strut.fontSize, closeTo(20 * 0.9 * 0.95, 0.01));
     });

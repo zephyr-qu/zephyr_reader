@@ -1,4 +1,5 @@
 /// 阅读器仓库
+library;
 
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
@@ -28,7 +29,6 @@ class PageInfo {
     required this.endOffset,
   });
 }
-
 
 /// 阅读进度数据
 class ReadingProgressData {
@@ -128,7 +128,6 @@ class ReaderRepository {
     }
   }
 
-
   Future<Chapter?> getChapter(String bookId, int chapterIndex) async {
     try {
       return await chapter_api.getChapterByIndex(
@@ -173,7 +172,6 @@ class ReaderRepository {
   // ===== From ChapterContentService =====
 
   Future<String> loadChapterContent(String bookId, int chapterId) async {
-
     try {
       final book = await book_api.getBook(bookId: bookId);
       if (book == null || book.filePath.isEmpty) {
@@ -356,7 +354,6 @@ class ReaderRepository {
     required double height,
     required double padding,
   }) async {
-
     // 统一走字符估算分页：毫秒级完成，SelectableText 渲染时自行精确换行
     final content = await loadChapterContent(bookId, chapterId);
     final pages = _paginateApproximate(
@@ -439,6 +436,7 @@ class ReaderRepository {
     }
     return pages;
   }
+
   /// 预加载章节内容（静默失败）
   Future<void> preloadChapter(String bookId, int chapterId) async {
     try {
@@ -511,7 +509,6 @@ class ReaderRepository {
     await progress_api.clearProgress(bookId: bookId);
     if (_currentProgress?.bookId == bookId) _currentProgress = null;
   }
-
 
   void clearProgressCache() => _currentProgress = null;
 }

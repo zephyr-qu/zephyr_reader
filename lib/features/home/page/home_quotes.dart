@@ -53,7 +53,6 @@ Widget buildDailyQuote(BuildContext context, ThemeData theme) {
                 style: const TextStyle(
                   fontSize: 14,
                   height: 1.5,
-                  fontFamily: 'LXGW WenKai',
                   color: DesignTokens.textPrimary,
                 ),
               ),
@@ -64,7 +63,6 @@ Widget buildDailyQuote(BuildContext context, ThemeData theme) {
                   quote.author,
                   style: const TextStyle(
                     fontSize: 12,
-                    fontFamily: 'LXGW WenKai',
                     color: DesignTokens.warmAccent,
                     fontStyle: FontStyle.italic,
                   ),

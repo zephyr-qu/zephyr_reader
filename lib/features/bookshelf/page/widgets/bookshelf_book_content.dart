@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/presentation/widgets/skeleton_widget.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:zephyr_reader/core/utils/cover_utils.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -67,7 +68,7 @@ class _BookCover extends StatelessWidget {
                           DesignTokens.radius(RadiusSize.sm),
                         ),
                         child: Image.file(
-                          File(book.coverPath!),
+                          File(resolveCoverPath(book.coverPath!)!),
                           fit: BoxFit.cover,
                           width: double.infinity,
                           height: double.infinity,
@@ -310,31 +311,38 @@ class BookshelfBookContent extends StatelessWidget {
                     onBookLongPress(book);
                   }
                 },
-                child: Stack(
-                  children: [
-                    _BookCover(
-                      book: book,
-                      statusLabel: _statusLabel(book.status.name),
-                      progress: readingProgress[book.bookId],
-                    ),
-                    if (batchMode)
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: Icon(
-                          selected
-                              ? PhosphorIconsFill.checkCircle
-                              : PhosphorIconsRegular.circle,
-                          color: selected
-                              ? theme.colorScheme.primary
-                              : Colors.white.withValues(alpha: 0.6),
-                          size: 22,
+                child:
+                    Stack(
+                          children: [
+                            _BookCover(
+                              book: book,
+                              statusLabel: _statusLabel(book.status.name),
+                              progress: readingProgress[book.bookId],
+                            ),
+                            if (batchMode)
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: Icon(
+                                  selected
+                                      ? PhosphorIconsFill.checkCircle
+                                      : PhosphorIconsRegular.circle,
+                                  color: selected
+                                      ? theme.colorScheme.primary
+                                      : Colors.white.withValues(alpha: 0.6),
+                                  size: 22,
+                                ),
+                              ),
+                          ],
+                        )
+                        .animate(delay: (index * 80).ms)
+                        .fadeIn(duration: 400.ms, curve: Curves.easeOutCubic)
+                        .slideY(
+                          begin: 0.1,
+                          end: 0,
+                          duration: 400.ms,
+                          curve: Curves.easeOutCubic,
                         ),
-                      ),
-                  ],
-                ).animate(delay: (index * 80).ms)
-                  .fadeIn(duration: 400.ms, curve: Curves.easeOutCubic)
-                  .slideY(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutCubic),
               ),
             );
           },

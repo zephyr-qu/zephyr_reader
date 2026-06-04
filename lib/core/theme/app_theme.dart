@@ -126,9 +126,7 @@ class AppThemes {
       ),
 
       textButtonTheme: TextButtonThemeData(
-        style: ButtonStyle(
-          foregroundColor: WidgetStateProperty.all(primary),
-        ),
+        style: ButtonStyle(foregroundColor: WidgetStateProperty.all(primary)),
       ),
 
       inputDecorationTheme: InputDecorationTheme(
@@ -230,10 +228,7 @@ class AppThemes {
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: Colors.transparent,
         indicatorColor: Colors.transparent,
-        selectedIconTheme: IconThemeData(
-          size: 22,
-          color: primary,
-        ),
+        selectedIconTheme: IconThemeData(size: 22, color: primary),
         unselectedIconTheme: IconThemeData(size: 22, color: textSec),
         selectedLabelTextStyle: TextStyle(
           fontSize: 12,
@@ -287,53 +282,45 @@ class AppThemes {
         fontWeight: FontWeight.w700,
         color: onSurface,
         letterSpacing: -0.5,
-        fontFamily: 'Noto Serif SC',
       ),
       displayMedium: TextStyle(
         fontSize: 28,
         fontWeight: FontWeight.w600,
         color: onSurface,
         letterSpacing: -0.3,
-        fontFamily: 'Noto Serif SC',
       ),
       headlineLarge: TextStyle(
         fontSize: 24,
         fontWeight: FontWeight.w700,
         color: onSurface,
         letterSpacing: -0.3,
-        fontFamily: 'Noto Serif SC',
       ),
       headlineMedium: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.w600,
         color: onSurface,
         letterSpacing: -0.2,
-        fontFamily: 'Noto Serif SC',
       ),
       titleLarge: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: onSurface,
         letterSpacing: -0.2,
-        fontFamily: 'Noto Serif SC',
       ),
       titleMedium: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w500,
         color: onSurface,
-        fontFamily: 'Noto Serif SC',
       ),
       bodyLarge: TextStyle(
         fontSize: 15,
         color: onSurface,
         height: 1.6,
-        fontFamily: 'Noto Serif SC',
       ),
       bodyMedium: TextStyle(
         fontSize: 13,
         color: onSurfaceVariant,
         height: 1.5,
-        fontFamily: 'Noto Serif SC',
       ),
       labelLarge: TextStyle(
         fontSize: 12,

@@ -31,8 +31,9 @@ class ZephyrReaderApp extends HookWidget {
     final autoTheme = useMemoized(() => AutoThemeService(prefs));
     useSignalEffect(() {
       if (autoTheme.autoThemeEnabled.value) {
-        themeManager.themeType.value =
-          autoTheme.isDarkModeTime ? AppThemeType.dark : AppThemeType.light;
+        themeManager.themeType.value = autoTheme.isDarkModeTime
+            ? AppThemeType.dark
+            : AppThemeType.light;
       }
     });
 
@@ -41,10 +42,14 @@ class ZephyrReaderApp extends HookWidget {
         return MaterialApp.router(
           routerConfig: router,
           debugShowCheckedModeBanner: false,
-          theme: AppThemes.buildTheme(Brightness.light,
-            customPrimary: themeManager.customPrimaryColor.value),
-          darkTheme: AppThemes.buildTheme(Brightness.dark,
-            customPrimary: themeManager.customPrimaryColor.value),
+          theme: AppThemes.buildTheme(
+            Brightness.light,
+            customPrimary: themeManager.customPrimaryColor.value,
+          ),
+          darkTheme: AppThemes.buildTheme(
+            Brightness.dark,
+            customPrimary: themeManager.customPrimaryColor.value,
+          ),
           themeMode: themeManager.themeMode,
           localizationsDelegates: const [
             AppLocalizations.delegate,

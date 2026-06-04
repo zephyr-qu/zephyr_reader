@@ -110,9 +110,7 @@ void main() {
               return Column(
                 children: [
                   Text('results: ${searchResults.value.length}'),
-                  ...searchResults.value.map(
-                    (r) => Text(r.title),
-                  ),
+                  ...searchResults.value.map((r) => Text(r.title)),
                 ],
               );
             },
@@ -173,9 +171,7 @@ void main() {
               error = useSignal<String?>(null);
               return GestureDetector(
                 onTap: () {
-                  error.value = error.value == null
-                      ? '网络错误'
-                      : null;
+                  error.value = error.value == null ? '网络错误' : null;
                 },
                 child: Column(
                   children: [

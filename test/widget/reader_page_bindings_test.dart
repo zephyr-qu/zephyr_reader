@@ -18,7 +18,6 @@ import 'package:zephyr_reader/features/reader/page/widgets/reader_page_bindings.
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-
 // ===== Mock Config =====
 
 class _MockSharedPreferences extends Mock implements SharedPreferences {
@@ -31,50 +30,79 @@ class _MockSharedPreferences extends Mock implements SharedPreferences {
     when(() => remove(any())).thenAnswer((_) async => true);
   }
 }
+
 class _MockReaderConfig implements ReaderConfig {
   @override
   final SharedPreferences prefs = _MockSharedPreferences();
   @override
   late final theme = persistedEnum<ReaderTheme>(
-    prefs, '', ReaderTheme.light, ReaderTheme.fromId,
+    prefs,
+    '',
+    ReaderTheme.light,
+    ReaderTheme.fromId,
     debounce: Duration.zero,
   );
   @override
   late final fontSize = persistedDouble(
-    prefs, '', ReaderFontSize.medium.size,
+    prefs,
+    '',
+    ReaderFontSize.medium.size,
     debounce: Duration.zero,
   );
   @override
   late final lineHeight = persistedDouble(
-    prefs, '', 1.6, debounce: Duration.zero,
+    prefs,
+    '',
+    1.6,
+    debounce: Duration.zero,
   );
   @override
   late final paragraphSpacing = persistedDouble(
-    prefs, '', 12.0, debounce: Duration.zero,
+    prefs,
+    '',
+    12.0,
+    debounce: Duration.zero,
   );
   @override
   late final padding = persistedDouble(
-    prefs, '', 16.0, debounce: Duration.zero,
+    prefs,
+    '',
+    16.0,
+    debounce: Duration.zero,
   );
   @override
   late final readerBgColorIndex = persistedInt(
-    prefs, '', 0, debounce: Duration.zero,
+    prefs,
+    '',
+    0,
+    debounce: Duration.zero,
   );
   @override
   late final autoScroll = persistedBool(
-    prefs, '', false, debounce: Duration.zero,
+    prefs,
+    '',
+    false,
+    debounce: Duration.zero,
   );
   @override
   late final autoScrollSpeed = persistedInt(
-    prefs, '', 30, debounce: Duration.zero,
+    prefs,
+    '',
+    30,
+    debounce: Duration.zero,
   );
   @override
   late final letterSpacing = persistedDouble(
-    prefs, '', 0.0, debounce: Duration.zero,
+    prefs,
+    '',
+    0.0,
+    debounce: Duration.zero,
   );
   @override
   late final tapLayout = persistedEnum<TapLayout>(
-    prefs, '', TapLayout.rightHanded,
+    prefs,
+    '',
+    TapLayout.rightHanded,
     (name) => TapLayout.values.firstWhere(
       (e) => e.name == name,
       orElse: () => TapLayout.rightHanded,
@@ -83,14 +111,22 @@ class _MockReaderConfig implements ReaderConfig {
   );
   @override
   late final punctuationSqueeze = persistedBool(
-    prefs, '', true, debounce: Duration.zero,
+    prefs,
+    '',
+    true,
+    debounce: Duration.zero,
   );
   @override
   late final baselineAlign = persistedBool(
-    prefs, '', true, debounce: Duration.zero,
+    prefs,
+    '',
+    true,
+    debounce: Duration.zero,
   );
   @override
-  final writingDirection = signal<WritingDirection>(WritingDirection.horizontal);
+  final writingDirection = signal<WritingDirection>(
+    WritingDirection.horizontal,
+  );
   @override
   final brightnessOverlay = signal<double>(0.0);
 
@@ -170,13 +206,14 @@ class MockReaderViewModel extends Mock implements ReaderViewModel {
   @override
   late final ReadonlySignal<String> progressText = computed(() => '0%');
   @override
-  late final ReadonlySignal<String> currentChapterTitle = computed(() => 'Chapter');
+  late final ReadonlySignal<String> currentChapterTitle = computed(
+    () => 'Chapter',
+  );
   @override
   late final ReadonlySignal<double> fontSizeDouble = computed(
     () => config.fontSize.value,
   );
 }
-
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

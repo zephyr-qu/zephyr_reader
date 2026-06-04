@@ -8,7 +8,9 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
+
 const _kPortKey = SettingsKeys.wifiTransferPort;
+
 @singleton
 class WifiTransferService {
   final SharedPreferences _prefs;
@@ -57,7 +59,9 @@ class WifiTransferService {
 
       await _prefs.setInt(_kPortKey, _port);
 
-      _htmlContent = await rootBundle.loadString('assets/html/wifi_upload_page.html');
+      _htmlContent = await rootBundle.loadString(
+        'assets/html/wifi_upload_page.html',
+      );
       _log('服务器已启动: http://$_localIp:$_port');
 
       await for (final request in _server!) {

@@ -17,10 +17,7 @@ class TypographySettingsPage extends HookWidget {
   late final ReaderConfig config = getIt<ReaderConfig>();
   late final FontRepository fontRepo = getIt<FontRepository>();
 
-  TypographySettingsPage({
-    super.key,
-  });
-
+  TypographySettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -148,6 +145,7 @@ class TypographySettingsPage extends HookWidget {
       return 'system-ui, sans-serif';
     }
   }
+
   Future<void> _selectFont(
     String id,
     ValueNotifier<String> currentFontId,
@@ -292,8 +290,6 @@ class TypographySettingsPage extends HookWidget {
                   final sampleChar = switch (font.id) {
                     'serif' => '宋',
                     'sans' => '黑',
-                    'mono' => '等',
-                    'kai' => '楷',
                     _ => '永',
                   };
                   return Expanded(
@@ -351,6 +347,7 @@ class TypographySettingsPage extends HookWidget {
         .fadeIn(duration: 300.ms, delay: 100.ms)
         .slideY(begin: 0.04, end: 0);
   }
+
   Widget _buildSliders(
     BuildContext context,
     ColorScheme cs,
@@ -559,5 +556,5 @@ class TypographySettingsPage extends HookWidget {
         ),
       ),
     );
-}
+  }
 }

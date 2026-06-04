@@ -65,7 +65,10 @@ class BookDetailActions extends StatelessWidget {
                 onPressed: onReadFromBeginning,
                 child: Text(
                   l10n.readFromBeginning,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),

@@ -37,7 +37,8 @@ class ReaderViewModel {
   Signal<int> get totalPages => chapterManager.totalPages;
   Signal<int> get pageIndex => chapterManager.pageIndex;
   Signal<int> get currentCharOffset => chapterManager.currentCharOffset;
-  Signal<int?> get pendingJumpCharOffset => chapterManager.pendingJumpCharOffset;
+  Signal<int?> get pendingJumpCharOffset =>
+      chapterManager.pendingJumpCharOffset;
   Signal<bool> get isLoading => chapterManager.isLoading;
   Signal<String?> get error => chapterManager.error;
   Signal<double> get pageWidth => chapterManager.pageWidth;
@@ -46,11 +47,13 @@ class ReaderViewModel {
   Signal<ReadingMode> get readingMode => chapterManager.readingMode;
   Signal<int> get autoScrollTick => chapterManager.autoScrollTick;
   ReadonlySignal<String> get progressText => chapterManager.progressText;
-  ReadonlySignal<String> get currentChapterTitle => chapterManager.currentChapterTitle;
+  ReadonlySignal<String> get currentChapterTitle =>
+      chapterManager.currentChapterTitle;
 
   /// 字体大小（double，供 bindings 消费）
-  late final ReadonlySignal<double> fontSizeDouble =
-      computed(() => _config.fontSize.value);
+  late final ReadonlySignal<double> fontSizeDouble = computed(
+    () => _config.fontSize.value,
+  );
 
   // ==================== 搜索 信号 ====================
 
@@ -74,7 +77,9 @@ class ReaderViewModel {
 
   // ==================== 双语 信号 ====================
 
-  final bilingualAlignment = asyncSignal<BilingualAlignment?>(AsyncState.data(null));
+  final bilingualAlignment = asyncSignal<BilingualAlignment?>(
+    AsyncState.data(null),
+  );
   final translationContent = signal<String>('');
 
   // ==================== UI 面板状态 ====================
@@ -132,12 +137,13 @@ class ReaderViewModel {
       if (chaptersList != null && chaptersList.isNotEmpty) {
         final restoredChapterIndex = chapterManager.chapterIndex.value;
         final restoredCharOffset = chapterManager.currentCharOffset.value;
-        final targetChapterIndex =
-            initialChapterId > 0 ? initialChapterId : restoredChapterIndex;
+        final targetChapterIndex = initialChapterId > 0
+            ? initialChapterId
+            : restoredChapterIndex;
         final targetCharOffset =
             initialChapterId > 0 && initialChapterId != restoredChapterIndex
-                ? 0
-                : restoredCharOffset;
+            ? 0
+            : restoredCharOffset;
         await chapterManager.loadChapter(
           targetChapterIndex,
           initialCharOffset: targetCharOffset,
@@ -229,33 +235,51 @@ class ReaderViewModel {
     }
   }
 
-  void updateSearch(String query, {int matches = 0, int currentIndex = 0, int paragraphIndex = -1}) {
+  void updateSearch(
+    String query, {
+    int matches = 0,
+    int currentIndex = 0,
+    int paragraphIndex = -1,
+  }) {
     searchQuery.value = query;
     HighlightPainter.invalidateCache();
     searchMatches.value = matches;
-    searchCurrentIndex.value = currentIndex.clamp(0, (matches - 1).clamp(0, 999999));
+    searchCurrentIndex.value = currentIndex.clamp(
+      0,
+      (matches - 1).clamp(0, 999999),
+    );
     searchMatchParagraph.value = paragraphIndex;
   }
 
   void nextSearchMatch() {
     if (searchMatches.value <= 0) return;
-    searchCurrentIndex.value = (searchCurrentIndex.value + 1) % searchMatches.value;
+    searchCurrentIndex.value =
+        (searchCurrentIndex.value + 1) % searchMatches.value;
   }
 
   void prevSearchMatch() {
     if (searchMatches.value <= 0) return;
-    searchCurrentIndex.value = (searchCurrentIndex.value - 1 + searchMatches.value) % searchMatches.value;
+    searchCurrentIndex.value =
+        (searchCurrentIndex.value - 1 + searchMatches.value) %
+        searchMatches.value;
   }
 
   // ==================== 书签 ====================
 
   Future<void> loadBookmarks() async {
-    await bookmarks.loadAsync(() => _repo.getBookmarks(bookId.value), label: 'loadBookmarks');
+    await bookmarks.loadAsync(
+      () => _repo.getBookmarks(bookId.value),
+      label: 'loadBookmarks',
+    );
   }
 
   Future<bool> addBookmark() async {
     try {
-      await _repo.addBookmark(bookId.value, chapterIndex.value, currentCharOffset.value);
+      await _repo.addBookmark(
+        bookId.value,
+        chapterIndex.value,
+        currentCharOffset.value,
+      );
       await loadBookmarks();
       return true;
     } catch (e) {
@@ -274,6 +298,7 @@ class ReaderViewModel {
       return false;
     }
   }
+
   Future<void> jumpToBookmark(Bookmark bookmark) async {
     await jumpToPosition(bookmark.chapterIndex, bookmark.charOffset.toInt());
     showBookmarks.value = false;
@@ -478,7 +503,11 @@ class ReaderViewModel {
         ),
       );
     } catch (e, stack) {
-      Logging.error('ReaderViewModel.createBilingualHighlight', exception: e, stackTrace: stack);
+      Logging.error(
+        'ReaderViewModel.createBilingualHighlight',
+        exception: e,
+        stackTrace: stack,
+      );
       toastMessage.value = '双语高亮创建失败';
     }
   }

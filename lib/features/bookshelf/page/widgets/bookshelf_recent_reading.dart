@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/utils/cover_utils.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class _RecentBookCard extends StatelessWidget {
@@ -45,7 +46,7 @@ class _RecentBookCard extends StatelessWidget {
                               DesignTokens.radius(RadiusSize.sm),
                             ),
                             child: Image.file(
-                              File(book.coverPath!),
+                              File(resolveCoverPath(book.coverPath!)!),
                               fit: BoxFit.cover,
                               width: double.infinity,
                               height: double.infinity,

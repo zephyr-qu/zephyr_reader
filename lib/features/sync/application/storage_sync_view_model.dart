@@ -1,5 +1,3 @@
-
-
 import 'dart:async';
 import 'dart:io';
 
@@ -32,7 +30,6 @@ class StorageSyncViewModel {
   final totalAvailable = signal<int>(0);
 
   final noteCount = signal<int>(0);
-
 
   final loading = signal<bool>(true);
 
@@ -67,7 +64,7 @@ class StorageSyncViewModel {
     totalUsed.value = totalBytes;
 
     final dbFile = File(p.join(appDir.path, 'reader.db'));
-    dbSize.value = await dbFile.length();
+    dbSize.value = dbFile.existsSync() ? await dbFile.length() : 0;
 
     booksSize.value = (totalBytes - cacheBytes - dbSize.value).clamp(
       0,
@@ -136,6 +133,7 @@ class StorageSyncViewModel {
     serverUrl.value = config.baseUrl;
     return configService.saveConfig(config);
   }
+
   Future<void> clearConfig() {
     isConfigured.value = false;
     serverUrl.value = '';

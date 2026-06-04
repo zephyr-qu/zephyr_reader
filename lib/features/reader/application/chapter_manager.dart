@@ -233,7 +233,6 @@ class ChapterManager {
         await onChapterLoaded();
       }
 
-
       // 预加载前后章节（不阻塞 UI）
       _prefetchChapters(chapterIndex);
     } catch (e) {
