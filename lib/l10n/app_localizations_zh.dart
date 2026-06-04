@@ -189,12 +189,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get defaultFont => '系统默认';
 
   @override
-  String chapterN(int n) {
+  String chapterN(Object n) {
     return '第 $n 章';
   }
 
   @override
-  String pageInfo(int current, int total) {
+  String pageInfo(Object current, Object total) {
     return '$current/$total';
   }
 
@@ -352,7 +352,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get readingRhythm => '阅读节奏';
 
   @override
-  String recentDays(int days) {
+  String recentDays(Object days) {
     return '近 $days 天';
   }
 
@@ -612,12 +612,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectCategory => '选择分类';
 
   @override
-  String bookImported(String title) {
+  String bookImported(Object title) {
     return '已导入：$title';
   }
 
   @override
-  String importFailed(String error) {
+  String importFailed(Object error) {
     return '导入失败：$error';
   }
 
@@ -628,7 +628,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noBookFilesFound => '未找到书籍文件';
 
   @override
-  String scanComplete(int count) {
+  String scanComplete(Object count) {
     return '扫描完成，导入了 $count 本书';
   }
 
@@ -654,7 +654,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get apply => '应用';
 
   @override
-  String selectedBooksCount(int count) {
+  String selectedBooksCount(Object count) {
     return '已选 $count 本';
   }
 
@@ -677,7 +677,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get collapse => '收起';
 
   @override
-  String viewAllChapters(int count) {
+  String viewAllChapters(Object count) {
     return '查看全部 $count 章';
   }
 
@@ -697,7 +697,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get confirmDeleteBookMessage => '确定要删除本书吗？此操作不可恢复。';
 
   @override
-  String deleteFailed(String error) {
+  String deleteFailed(Object error) {
     return '删除失败：$error';
   }
 
@@ -789,7 +789,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get synced => '已同步';
 
   @override
-  String appVersionDisplay(String version) {
+  String appVersionDisplay(Object version) {
     return 'Zephyr Reader v$version';
   }
 
@@ -842,10 +842,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get copyrightFooter => '© 2026 Zephyr Reader';
 
   @override
-  String get madeWithFooter => 'Made with Flutter · Rust · ❤';
+  String get madeWithFooter => '用 Flutter · Rust · ❤ 构建';
 
   @override
-  String get errorFileNotFound => '文件不存在';
+  String get errorFileNotFound => '文件未找到';
 
   @override
   String get errorFileReadError => '文件读取失败';
@@ -863,36 +863,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get errorInternal => '内部错误';
 
   @override
-  String errorTaskPanic(String task) {
-    return '任务执行异常：$task';
+  String errorTaskPanic(Object task) {
+    return '任务失败：$task';
   }
 
   @override
   String get selectDictionaryFile => '选择词典文件';
 
   @override
-  String get selectMdxDescription => '请选择一个 .mdx 格式的词典文件…';
+  String get selectMdxDescription => '请选择一个 .mdx 词典文件…';
 
   @override
   String get invalidMdxFile => '请选择有效的 .mdx 文件';
 
   @override
-  String get dictionaryLoadFailed => '词典加载失败，请检查文件是否有效';
+  String get dictionaryLoadFailed => '词典加载失败，请检查文件';
 
   @override
   String get pronunciation => '发音';
 
   @override
-  String get noExactMatch => '未找到精确匹配，您是否想查：';
+  String get noExactMatch => '未找到精确匹配。您是不是要找：';
 
   @override
   String get wordSegmentation => '分词：';
 
   @override
-  String get bilingualNoAlignment => '没有对照译文，无法创建双语高亮';
+  String get bilingualNoAlignment => '未找到双语对齐位置';
 
   @override
-  String get bilingualNoParagraph => '未找到对应的段落';
+  String get bilingualNoParagraph => '未找到对应段落';
 
   @override
   String get bilingualHighlightCreated => '双语高亮已创建';
@@ -901,13 +901,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectFile => '选择文件';
 
   @override
-  String get categoryManagement => '标签管理';
+  String get categoryManagement => '分类管理';
 
   @override
   String get aboutTitle => '关于';
 
   @override
-  String get aboutTagline => '如和风般轻盈的阅读体验';
+  String get aboutTagline => '轻如风，阅无界';
 
   @override
   String get aboutSectionFeatures => '核心特性';
@@ -916,47 +916,47 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aboutSectionTechStack => '技术栈';
 
   @override
-  String get aboutSectionLinks => '更多信息';
+  String get aboutSectionLinks => '链接';
 
   @override
   String get aboutDescription =>
-      'Zephyr Reader 是一款基于 Flutter + Rust 架构的离线双语小说阅读器。纯本地设计，无后台、无广告、无数据收集，专注于中英双语阅读体验。';
+      'Zephyr Reader 是一款纯离线的双语小说阅读器，Flutter + Rust 构建，100% 本地，无后端，无广告，无数据收集，专注于中英文双语阅读体验。';
 
   @override
-  String get aboutFeatureOffline => '纯离线使用';
+  String get aboutFeatureOffline => '完全离线';
 
   @override
-  String get aboutFeatureOfflineDesc => '核心功能 100% 离线可用，无后台无广告';
+  String get aboutFeatureOfflineDesc => '核心功能无需网络，无后端无广告';
 
   @override
-  String get aboutFeaturePerformance => '高性能解析';
+  String get aboutFeaturePerformance => '高性能';
 
   @override
-  String get aboutFeaturePerformanceDesc => 'Rust 引擎驱动，大文件瞬间解析';
+  String get aboutFeaturePerformanceDesc => 'Rust 引擎即时解析大文件';
 
   @override
-  String get aboutFeatureBilingual => '双语排版';
+  String get aboutFeatureBilingual => '双语对照';
 
   @override
-  String get aboutFeatureBilingualDesc => '中英文同等优先，优雅对照阅读';
+  String get aboutFeatureBilingualDesc => '中英同权对齐';
 
   @override
-  String get aboutFeatureThemes => '多主题支持';
+  String get aboutFeatureThemes => '多主题';
 
   @override
-  String get aboutFeatureThemesDesc => '亮色 / 深色 / 纯黑夜间模式';
+  String get aboutFeatureThemesDesc => '浅色/深色/纯黑夜间模式';
 
   @override
-  String get aboutFeatureAdaptive => '设备适配';
+  String get aboutFeatureAdaptive => '自适应布局';
 
   @override
-  String get aboutFeatureAdaptiveDesc => '手机与平板双端自适应布局';
+  String get aboutFeatureAdaptiveDesc => '手机和平板自动适配';
 
   @override
   String get aboutFeatureSync => 'WebDAV 同步';
 
   @override
-  String get aboutFeatureSyncDesc => '跨设备数据同步与安全备份';
+  String get aboutFeatureSyncDesc => '多端同步与安全备份';
 
   @override
   String get aboutCheckUpdate => '检查更新';
@@ -989,17 +989,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get readAloud => '朗读';
 
   @override
-  String addedToVocabulary(String word) {
+  String addedToVocabulary(Object word) {
     return '已加入生词本：$word';
   }
 
   @override
-  String addToVocabFailed(String error) {
+  String addToVocabFailed(Object error) {
     return '加入生词本失败：$error';
   }
 
   @override
-  String get readerThemeLight => '日间';
+  String get readerThemeLight => '白天';
 
   @override
   String get readerThemeDark => '夜间';
@@ -1035,22 +1035,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sortProgress => '阅读进度';
 
   @override
-  String get themeSystem => '系统';
+  String get themeSystem => '跟随系统';
 
   @override
   String get introLabel => '简介';
 
   @override
-  String get currentChapter => '当前';
+  String get bookTitle => '书名';
 
   @override
-  String get bookTitle => '书名';
+  String get currentChapter => '当前';
 
   @override
   String get editMetadata => '编辑元数据';
 
   @override
-  String get statReadingTime => '累计时长';
+  String get statReadingTime => '阅读时长';
 
   @override
   String get statReadingCount => '阅读次数';
@@ -1062,20 +1062,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get expand => '展开';
 
   @override
-  String tocTitle(int count) {
+  String tocTitle(Object count) {
     return '目录（$count 章）';
   }
 
   @override
-  String totalChapters(int count) {
-    return '$count 章';
+  String totalChapters(Object count) {
+    return '共 $count 章';
   }
 
   @override
   String get isbn => 'ISBN';
 
   @override
-  String get bookIntro => '简介';
+  String get bookIntro => '内容简介';
 
   @override
   String get timePresetSunsetToSunrise => '日落到日出';
@@ -1093,7 +1093,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bookFormat => '格式';
 
   @override
-  String get bookIntroLabel => '简介';
+  String get bookIntroLabel => '内容简介';
 
   @override
   String get sortDialogTitle => '选择排序方式';
@@ -1105,23 +1105,124 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tapLayoutLeftHanded => '左手模式';
 
   @override
-  String get tapLayout => '点击区域';
+  String get tapLayout => '翻页点击区域';
 
   @override
   String get timeJustNow => '刚刚';
 
   @override
-  String timeMinutesAgo(int minutes) {
+  String timeMinutesAgo(Object minutes) {
     return '$minutes 分钟前';
   }
 
   @override
-  String timeHoursAgo(int hours) {
+  String timeHoursAgo(Object hours) {
     return '$hours 小时前';
   }
 
   @override
-  String lastSyncTime(String time) {
+  String lastSyncTime(Object time) {
     return '上次同步：$time';
   }
+
+  @override
+  String get todayReading => '今日阅读';
+
+  @override
+  String get minutes => '分钟';
+
+  @override
+  String goalTemplate(Object minutes) {
+    return '目标 $minutes 分钟';
+  }
+
+  @override
+  String get streakLabel => '连续阅读';
+
+  @override
+  String get daysUnit => '天';
+
+  @override
+  String booksRead(Object count) {
+    return '读过 $count 本书';
+  }
+
+  @override
+  String get insufficientData => '数据不足';
+
+  @override
+  String get readingHeatmap => '阅读热力图';
+
+  @override
+  String get weekdayMon => '一';
+
+  @override
+  String get weekdayTue => '二';
+
+  @override
+  String get weekdayWed => '三';
+
+  @override
+  String get weekdayThu => '四';
+
+  @override
+  String get weekdayFri => '五';
+
+  @override
+  String get weekdaySat => '六';
+
+  @override
+  String get weekdaySun => '日';
+
+  @override
+  String get vocabStats => '生词统计';
+
+  @override
+  String get statusIgnored => '已忽略';
+
+  @override
+  String get noSessions => '暂无阅读会话';
+
+  @override
+  String get autoRecordHint => '开始阅读后会自动记录';
+
+  @override
+  String get sessionDetails => '会话详情';
+
+  @override
+  String get unknownBook => '未知书籍';
+
+  @override
+  String sessionSummary(Object chars, Object count, Object duration) {
+    return '共 $count 次 · $duration · 阅读 $chars';
+  }
+
+  @override
+  String chapterInfo(Object chars, Object index) {
+    return '第 $index 章 · $chars';
+  }
+
+  @override
+  String get deleteSessionTitle => '删除会话记录';
+
+  @override
+  String get deleteSessionConfirm => '确定要删除本书的所有阅读会话记录吗？';
+
+  @override
+  String get periodToday => '本日';
+
+  @override
+  String get periodWeek => '本周';
+
+  @override
+  String get periodMonth => '本月';
+
+  @override
+  String get periodYear => '全年';
+
+  @override
+  String get totalReadingTime => '总阅读时长';
+
+  @override
+  String get sessionsCount => '次会话';
 }

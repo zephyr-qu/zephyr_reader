@@ -125,7 +125,7 @@ void main() {
     group('生词统计', () {
       test('_loadVocabStats 应正确更新统计', skip: 'requires Rust bridge', () async {
         when(
-          () => rust_vocab.listVocabularyByStatus(status: VocabStatus.new_),
+          () => rust_vocab.listVocabularyByStatus(status: VocabStatus.unstarted),
         ).thenAnswer((_) async => []);
         when(
           () => rust_vocab.listVocabularyByStatus(status: VocabStatus.learning),
@@ -143,18 +143,22 @@ void main() {
     });
 
     group('筛选功能', () {
-      test('setVocabFilterStatus 应更新筛选条件', skip: 'requires Rust bridge', () async {
-        when(
-          () => rust_vocab.listVocabularyByStatus(
-            status: any(named: 'status'),
-            wordList: any(named: 'wordList'),
-          ),
-        ).thenAnswer((_) async => []);
+      test(
+        'setVocabFilterStatus 应更新筛选条件',
+        skip: 'requires Rust bridge',
+        () async {
+          when(
+            () => rust_vocab.listVocabularyByStatus(
+              status: any(named: 'status'),
+              wordList: any(named: 'wordList'),
+            ),
+          ).thenAnswer((_) async => []);
 
-        await vm.setVocabFilterStatus(VocabStatus.new_);
+          await vm.setVocabFilterStatus(VocabStatus.unstarted);
 
-        expect(vm.vocabFilterStatus.value, equals(VocabStatus.new_));
-      });
+          expect(vm.vocabFilterStatus.value, equals(VocabStatus.unstarted));
+        },
+      );
 
       test('setNoteFilterBook 应过滤笔记', skip: 'requires Rust bridge', () async {
         final notes = [
@@ -192,20 +196,24 @@ void main() {
     });
 
     group('生词操作', () {
-      test('updateVocabStatus 应更新状态并刷新列表', skip: 'requires Rust bridge', () async {
-        when(
-          () => rust_vocab.updateVocabularyStatus(id: any(), status: any()),
-        ).thenAnswer((_) async {});
-        when(
-          // ignore: inference_failure_on_function_invocation
-          () => rust_vocab.listVocabularyByStatus(),
-        ).thenAnswer((_) async => []);
+      test(
+        'updateVocabStatus 应更新状态并刷新列表',
+        skip: 'requires Rust bridge',
+        () async {
+          when(
+            () => rust_vocab.updateVocabularyStatus(id: any(), status: any()),
+          ).thenAnswer((_) async {});
+          when(
+            // ignore: inference_failure_on_function_invocation
+            () => rust_vocab.listVocabularyByStatus(),
+          ).thenAnswer((_) async => []);
 
-        expect(
-          () => vm.updateVocabStatus('vocab_1', VocabStatus.mastered),
-          returnsNormally,
-        );
-      });
+          expect(
+            () => vm.updateVocabStatus('vocab_1', VocabStatus.mastered),
+            returnsNormally,
+          );
+        },
+      );
 
       test('deleteVocab 应删除并刷新', skip: 'requires Rust bridge', () async {
         when(

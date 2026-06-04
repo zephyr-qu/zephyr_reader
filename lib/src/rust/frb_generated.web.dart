@@ -1879,9 +1879,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
       cst_encode_i_64(raw.totalWords),
+      cst_encode_i_64(raw.unstartedCount),
       cst_encode_i_64(raw.learningCount),
-      cst_encode_i_64(raw.knownCount),
       cst_encode_i_64(raw.masteredCount),
+      cst_encode_i_64(raw.ignoredCount),
     ].jsify()!;
   }
 
@@ -2754,7 +2755,12 @@ class RustLibWire implements BaseWire {
   void wire__crate__api__data__book__delete_book(
     NativePortType port_,
     String book_id,
-  ) => wasmModule.wire__crate__api__data__book__delete_book(port_, book_id);
+    String covers_dir,
+  ) => wasmModule.wire__crate__api__data__book__delete_book(
+    port_,
+    book_id,
+    covers_dir,
+  );
 
   void wire__crate__api__data__bookmark__delete_bookmark(
     NativePortType port_,
@@ -3695,6 +3701,7 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
   external void wire__crate__api__data__book__delete_book(
     NativePortType port_,
     String book_id,
+    String covers_dir,
   );
 
   external void wire__crate__api__data__bookmark__delete_bookmark(

@@ -112,7 +112,9 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
     vm.readingMode,
   );
 
-  final fontSize = useSignalValue<double, ReadonlySignal<double>>(vm.fontSizeDouble);
+  final fontSize = useSignalValue<double, ReadonlySignal<double>>(
+    vm.fontSizeDouble,
+  );
   final lineHeight = useSignalValue<double, Signal<double>>(
     vm.config.lineHeight.signal,
   );
@@ -217,7 +219,9 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
   final currentReadingMode = useSignalValue<ReadingMode, Signal<ReadingMode>>(
     vm.readingMode,
   );
-  final fontSize = useSignalValue<double, ReadonlySignal<double>>(vm.fontSizeDouble);
+  final fontSize = useSignalValue<double, ReadonlySignal<double>>(
+    vm.fontSizeDouble,
+  );
   final lineHeight = useSignalValue<double, Signal<double>>(
     vm.config.lineHeight.signal,
   );

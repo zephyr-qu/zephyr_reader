@@ -199,7 +199,8 @@ class BookshelfPage extends HookWidget {
                   return BookshelfCategoryChips(
                     categories: vm.categories.value,
                     selectedCategoryId: vm.selectedCategory.value?.id,
-                    onCategoryChanged: (category) => vm.selectCategory(category),
+                    onCategoryChanged: (category) =>
+                        vm.selectCategory(category),
                   );
                 },
               ),
@@ -286,7 +287,9 @@ class BookshelfPage extends HookWidget {
               color: theme.colorScheme.primary,
             ),
             title: Text(
-              book.status == BookStatus.reading ? l10n.markAsUnread : l10n.markAsReading,
+              book.status == BookStatus.reading
+                  ? l10n.markAsUnread
+                  : l10n.markAsReading,
             ),
             onTap: () => Navigator.pop(c, 'status'),
           ),

@@ -41,10 +41,7 @@ void main() {
           vm.globalStats.value,
           equals(AsyncState<GlobalStats?>.loading()),
         );
-        expect(
-          vm.vocabStats.value,
-          equals(AsyncState<VocabStats?>.loading()),
-        );
+        expect(vm.vocabStats.value, equals(AsyncState<VocabStats?>.loading()));
       });
     });
 

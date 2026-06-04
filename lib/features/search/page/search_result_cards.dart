@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:zephyr_reader/core/utils/cover_utils.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import 'search_result_header.dart';
@@ -57,19 +58,23 @@ class BookSearchCard extends StatelessWidget {
                   color: theme.colorScheme.primaryContainer,
                   child: book.coverPath != null
                       ? Image.file(
-                          File(book.coverPath!),
+                          File(resolveCoverPath(book.coverPath!)!),
                           fit: BoxFit.cover,
                           cacheWidth: 80,
                           errorBuilder: (_, _, _) => Icon(
                             PhosphorIconsRegular.book,
                             size: 20,
-                            color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.4,
+                            ),
                           ),
                         )
                       : Icon(
                           PhosphorIconsRegular.book,
                           size: 20,
-                          color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.4,
+                          ),
                         ),
                 ),
               ),

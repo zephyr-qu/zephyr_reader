@@ -20,7 +20,6 @@ enum AppThemeType {
   const AppThemeType({required this.label});
 }
 
-
 extension AppThemeTypeX on AppThemeType {
   String l10nLabel(AppLocalizations l10n) => switch (this) {
     AppThemeType.light => l10n.themeLight,
@@ -33,7 +32,6 @@ extension AppThemeTypeX on AppThemeType {
 class ThemeManager {
   static final ThemeManager _instance = ThemeManager._internal();
   static ThemeManager get instance => _instance;
-
 
   ThemeManager._internal();
 
@@ -198,7 +196,6 @@ class ThemeManager {
 
   /// 获取当前主题的名
   String get currentThemeName => themeType.value.label;
-
 }
 
 /// 主题预设

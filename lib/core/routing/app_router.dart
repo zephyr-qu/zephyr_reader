@@ -22,7 +22,6 @@ import 'package:zephyr_reader/features/reader/page/bookmark_manage_page.dart';
 import 'package:zephyr_reader/features/search/page/search_page.dart';
 import 'package:zephyr_reader/features/search/page/book_search_page.dart';
 import 'package:zephyr_reader/features/statistics/page/statistics_page.dart';
-import 'package:zephyr_reader/features/statistics/page/reading_stats_page.dart';
 import 'package:zephyr_reader/shared/widget/not_found_page.dart';
 import 'package:zephyr_reader/features/sync/page/storage_sync_page.dart';
 import 'package:zephyr_reader/features/vocabulary/page/vocabulary_page.dart';
@@ -84,8 +83,7 @@ final router = GoRouter(
         GoRoute(
           name: RouteNames.categoryManagement,
           path: RoutePaths.categoryManagement,
-          builder: (_, _) =>
-              CategoryManagementPage(),
+          builder: (_, _) => CategoryManagementPage(),
         ),
         GoRoute(
           name: RouteNames.bookDetail,
@@ -122,21 +120,18 @@ final router = GoRouter(
         GoRoute(
           name: RouteNames.themeBrightness,
           path: RoutePaths.themeBrightness,
-          builder: (_, _) =>
-              ThemeBrightnessPage(),
+          builder: (_, _) => ThemeBrightnessPage(),
         ),
         GoRoute(
           name: RouteNames.otherSettings,
           path: RoutePaths.otherSettings,
-          builder: (_, _) =>
-              OtherSettingsPage(),
+          builder: (_, _) => OtherSettingsPage(),
         ),
         GoRoute(
           name: RouteNames.about,
           path: RoutePaths.about,
           builder: (_, _) => const AboutPage(),
         ),
-
       ],
     ),
 
@@ -162,13 +157,16 @@ final router = GoRouter(
             // 返回: 下滑 + 淡出 + 缩小到 96%（合书）
             return ScaleTransition(
               scale: Tween<double>(begin: 1, end: 0.96)
-                .chain(CurveTween(curve: Curves.easeInCubic))
-                .animate(secondaryAnimation),
+                  .chain(CurveTween(curve: Curves.easeInCubic))
+                  .animate(secondaryAnimation),
               child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 0.04),
-                  end: Offset.zero,
-                ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(animation),
+                position:
+                    Tween<Offset>(
+                          begin: const Offset(0, 0.04),
+                          end: Offset.zero,
+                        )
+                        .chain(CurveTween(curve: Curves.easeOutCubic))
+                        .animate(animation),
                 child: FadeTransition(
                   opacity: Tween<double>(begin: 0.3, end: 1).animate(animation),
                   child: child,
@@ -204,13 +202,6 @@ final router = GoRouter(
       },
     ),
 
-    // 阅读统计详情
-    GoRoute(
-      name: RouteNames.readingStats,
-      path: RoutePaths.readingStats,
-      builder: (_, _) => ReadingStatsPage(),
-    ),
-
     // 笔记管理
 
     // 书签管理
@@ -234,8 +225,7 @@ final router = GoRouter(
     GoRoute(
       name: RouteNames.learningNotes,
       path: RoutePaths.learningNotes,
-      builder: (_, _) =>
-          LearningNotesPage(),
+      builder: (_, _) => LearningNotesPage(),
     ),
 
     // 阅读会话历史

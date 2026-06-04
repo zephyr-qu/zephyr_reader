@@ -37,7 +37,10 @@ class BookDetailBottomActions extends StatelessWidget {
               icon: const Icon(PhosphorIconsRegular.pencilLine, size: 16),
               label: Text(
                 l10n.editMetadata,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),
@@ -56,7 +59,10 @@ class BookDetailBottomActions extends StatelessWidget {
               icon: const Icon(PhosphorIconsRegular.fileArrowUp, size: 16),
               label: Text(
                 l10n.exportNotes,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),
@@ -75,7 +81,10 @@ class BookDetailBottomActions extends StatelessWidget {
               icon: const Icon(PhosphorIconsRegular.trash, size: 16),
               label: Text(
                 l10n.deleteBook,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),

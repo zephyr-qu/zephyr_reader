@@ -29,7 +29,9 @@ class ThemeBrightnessPage extends HookWidget {
     final int bgIndex = useSignalValue(vm.readerBgColorIndex);
     final AppThemeType themeType = useSignalValue(vm.themeType);
     final int brightness = useSignalValue(vm.brightness.signal);
-    final bool useSystemBrightness = useSignalValue(vm.useSystemBrightness.signal);
+    final bool useSystemBrightness = useSignalValue(
+      vm.useSystemBrightness.signal,
+    );
     final String? currentPresetId = useSignalValue(vm.currentPresetId);
 
     return Scaffold(
@@ -52,12 +54,7 @@ class ThemeBrightnessPage extends HookWidget {
           const SizedBox(height: 24),
           _buildPresetSection(cs, currentPresetId),
           const SizedBox(height: 24),
-          _buildBrightnessSection(
-            context,
-            cs,
-            brightness,
-            useSystemBrightness,
-          ),
+          _buildBrightnessSection(context, cs, brightness, useSystemBrightness),
           const SizedBox(height: 24),
           // 高级选项部分（reduceWhitePoint 已移除）
         ],
@@ -194,6 +191,7 @@ class ThemeBrightnessPage extends HookWidget {
         .fadeIn(duration: 300.ms, delay: 100.ms)
         .slideY(begin: 0.03, end: 0);
   }
+
   Widget _modeOption(
     ColorScheme cs,
     String label,
@@ -385,8 +383,8 @@ class ThemeBrightnessPage extends HookWidget {
                                 child: Icon(
                                   PhosphorIconsRegular.check,
                                   size: 20,
-                                  color: preset.primaryColor
-                                              .computeLuminance() >
+                                  color:
+                                      preset.primaryColor.computeLuminance() >
                                           0.3
                                       ? Colors.black54
                                       : Colors.white70,
@@ -522,5 +520,6 @@ class ThemeBrightnessPage extends HookWidget {
       ),
     );
   }
+
   // _buildAdvancedSection 已移除（reduceWhitePoint 设置无消费者）
 }

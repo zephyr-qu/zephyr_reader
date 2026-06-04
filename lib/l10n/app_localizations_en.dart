@@ -189,12 +189,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get defaultFont => 'System Default';
 
   @override
-  String chapterN(int n) {
+  String chapterN(Object n) {
     return 'Chapter $n';
   }
 
   @override
-  String pageInfo(int current, int total) {
+  String pageInfo(Object current, Object total) {
     return '$current/$total';
   }
 
@@ -352,7 +352,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readingRhythm => 'Reading Rhythm';
 
   @override
-  String recentDays(int days) {
+  String recentDays(Object days) {
     return 'Last $days Days';
   }
 
@@ -612,12 +612,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectCategory => 'Select Category';
 
   @override
-  String bookImported(String title) {
+  String bookImported(Object title) {
     return 'Imported: $title';
   }
 
   @override
-  String importFailed(String error) {
+  String importFailed(Object error) {
     return 'Import failed: $error';
   }
 
@@ -628,7 +628,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noBookFilesFound => 'No book files found';
 
   @override
-  String scanComplete(int count) {
+  String scanComplete(Object count) {
     return 'Scan complete, imported $count books';
   }
 
@@ -654,7 +654,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get apply => 'Apply';
 
   @override
-  String selectedBooksCount(int count) {
+  String selectedBooksCount(Object count) {
     return '$count selected';
   }
 
@@ -677,7 +677,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collapse => 'Collapse';
 
   @override
-  String viewAllChapters(int count) {
+  String viewAllChapters(Object count) {
     return 'View all $count chapters';
   }
 
@@ -698,7 +698,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Are you sure you want to delete this book? This action cannot be undone.';
 
   @override
-  String deleteFailed(String error) {
+  String deleteFailed(Object error) {
     return 'Delete failed: $error';
   }
 
@@ -791,7 +791,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get synced => 'Synced';
 
   @override
-  String appVersionDisplay(String version) {
+  String appVersionDisplay(Object version) {
     return 'Zephyr Reader v$version';
   }
 
@@ -865,7 +865,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorInternal => 'Internal error';
 
   @override
-  String errorTaskPanic(String task) {
+  String errorTaskPanic(Object task) {
     return 'Task failed: $task';
   }
 
@@ -924,7 +924,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutDescription =>
-      'Zephyr Reader is an offline bilingual novel reader built with Flutter + Rust. 100% local, no backend, no ads, no data collection. Focused on Chinese-English bilingual reading.';
+      'Zephyr Reader is an offline bilingual novel reader built with Flutter + Rust.';
 
   @override
   String get aboutFeatureOffline => '100% Offline';
@@ -997,12 +997,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readAloud => 'Read Aloud';
 
   @override
-  String addedToVocabulary(String word) {
+  String addedToVocabulary(Object word) {
     return 'Added to vocabulary: $word';
   }
 
   @override
-  String addToVocabFailed(String error) {
+  String addToVocabFailed(Object error) {
     return 'Failed to add to vocabulary: $error';
   }
 
@@ -1049,10 +1049,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get introLabel => 'Description';
 
   @override
-  String get currentChapter => 'Current';
+  String get bookTitle => 'Title';
 
   @override
-  String get bookTitle => 'Title';
+  String get currentChapter => 'Current';
 
   @override
   String get editMetadata => 'Edit Metadata';
@@ -1070,12 +1070,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get expand => 'Expand';
 
   @override
-  String tocTitle(int count) {
+  String tocTitle(Object count) {
     return 'Table of Contents ($count ch)';
   }
 
   @override
-  String totalChapters(int count) {
+  String totalChapters(Object count) {
     return '$count chapters';
   }
 
@@ -1119,17 +1119,118 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timeJustNow => 'Just now';
 
   @override
-  String timeMinutesAgo(int minutes) {
+  String timeMinutesAgo(Object minutes) {
     return '$minutes min ago';
   }
 
   @override
-  String timeHoursAgo(int hours) {
+  String timeHoursAgo(Object hours) {
     return '$hours hr ago';
   }
 
   @override
-  String lastSyncTime(String time) {
+  String lastSyncTime(Object time) {
     return 'Last sync: $time';
   }
+
+  @override
+  String get todayReading => 'Today';
+
+  @override
+  String get minutes => 'min';
+
+  @override
+  String goalTemplate(Object minutes) {
+    return '$minutes min goal';
+  }
+
+  @override
+  String get streakLabel => 'Reading Streak';
+
+  @override
+  String get daysUnit => 'days';
+
+  @override
+  String booksRead(Object count) {
+    return '$count books read';
+  }
+
+  @override
+  String get insufficientData => 'Insufficient data';
+
+  @override
+  String get readingHeatmap => 'Reading Heatmap';
+
+  @override
+  String get weekdayMon => 'Mon';
+
+  @override
+  String get weekdayTue => 'Tue';
+
+  @override
+  String get weekdayWed => 'Wed';
+
+  @override
+  String get weekdayThu => 'Thu';
+
+  @override
+  String get weekdayFri => 'Fri';
+
+  @override
+  String get weekdaySat => 'Sat';
+
+  @override
+  String get weekdaySun => 'Sun';
+
+  @override
+  String get vocabStats => 'Vocabulary';
+
+  @override
+  String get statusIgnored => 'Ignored';
+
+  @override
+  String get noSessions => 'No reading sessions';
+
+  @override
+  String get autoRecordHint => 'Automatically recorded while reading';
+
+  @override
+  String get sessionDetails => 'Session Details';
+
+  @override
+  String get unknownBook => 'Unknown book';
+
+  @override
+  String sessionSummary(Object chars, Object count, Object duration) {
+    return '$count sessions · $duration · $chars read';
+  }
+
+  @override
+  String chapterInfo(Object chars, Object index) {
+    return 'Ch. $index · $chars';
+  }
+
+  @override
+  String get deleteSessionTitle => 'Delete Sessions';
+
+  @override
+  String get deleteSessionConfirm => 'Delete all sessions for this book?';
+
+  @override
+  String get periodToday => 'Today';
+
+  @override
+  String get periodWeek => 'Week';
+
+  @override
+  String get periodMonth => 'Month';
+
+  @override
+  String get periodYear => 'Year';
+
+  @override
+  String get totalReadingTime => 'Total reading time';
+
+  @override
+  String get sessionsCount => 'sessions';
 }

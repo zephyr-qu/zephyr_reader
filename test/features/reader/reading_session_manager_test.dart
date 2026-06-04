@@ -1,4 +1,3 @@
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -18,7 +17,10 @@ ReadingSessionManager createSession({
   ReaderRepository? repo,
   ChapterManager? chapterManager,
 }) {
-  return ReadingSessionManager(repo ?? _MockRepo(), chapterManager ?? _MockChapterManager());
+  return ReadingSessionManager(
+    repo ?? _MockRepo(),
+    chapterManager ?? _MockChapterManager(),
+  );
 }
 
 void main() {
@@ -38,14 +40,16 @@ void main() {
     when(() => chapterManager.totalPages).thenReturn(signal<int>(50));
 
     // ReaderRepository default mocks
-    when(() => repo.updateReadingProgress(
-      bookId: any(named: 'bookId'),
-      chapterId: any(named: 'chapterId'),
-      charOffset: any(named: 'charOffset'),
-      pageIndex: any(named: 'pageIndex'),
-      totalPages: any(named: 'totalPages'),
-      readingTimeSeconds: any(named: 'readingTimeSeconds'),
-    )).thenAnswer((_) async {});
+    when(
+      () => repo.updateReadingProgress(
+        bookId: any(named: 'bookId'),
+        chapterId: any(named: 'chapterId'),
+        charOffset: any(named: 'charOffset'),
+        pageIndex: any(named: 'pageIndex'),
+        totalPages: any(named: 'totalPages'),
+        readingTimeSeconds: any(named: 'readingTimeSeconds'),
+      ),
+    ).thenAnswer((_) async {});
   });
 
   group('ReadingSessionManager', () {
@@ -79,7 +83,10 @@ void main() {
 
         // 短暂等待后验证 duration 只增加了一次
         expect(session.isReading.value, isTrue);
-        expect(session.readingDuration.value - durationBefore, lessThanOrEqualTo(1));
+        expect(
+          session.readingDuration.value - durationBefore,
+          lessThanOrEqualTo(1),
+        );
       });
     });
 
@@ -92,25 +99,29 @@ void main() {
         expect(session.isReading.value, isTrue);
 
         // 使用真实 repo mock，让 saveProgress 通过防抖
-        when(() => repo.updateReadingProgress(
-          bookId: any(named: 'bookId'),
-          chapterId: any(named: 'chapterId'),
-          charOffset: any(named: 'charOffset'),
-          pageIndex: any(named: 'pageIndex'),
-          totalPages: any(named: 'totalPages'),
-          readingTimeSeconds: any(named: 'readingTimeSeconds'),
-        )).thenAnswer((_) async {});
+        when(
+          () => repo.updateReadingProgress(
+            bookId: any(named: 'bookId'),
+            chapterId: any(named: 'chapterId'),
+            charOffset: any(named: 'charOffset'),
+            pageIndex: any(named: 'pageIndex'),
+            totalPages: any(named: 'totalPages'),
+            readingTimeSeconds: any(named: 'readingTimeSeconds'),
+          ),
+        ).thenAnswer((_) async {});
 
         await session.stopReading();
 
         expect(session.isReading.value, isFalse);
-        verify(() => repo.updateReadingProgress(
-          bookId: any(named: 'bookId'),
-          chapterId: any(named: 'chapterId'),
-          charOffset: any(named: 'charOffset'),
-          pageIndex: any(named: 'pageIndex'),
-          totalPages: any(named: 'totalPages'),
-        )).called(1);
+        verify(
+          () => repo.updateReadingProgress(
+            bookId: any(named: 'bookId'),
+            chapterId: any(named: 'chapterId'),
+            charOffset: any(named: 'charOffset'),
+            pageIndex: any(named: 'pageIndex'),
+            totalPages: any(named: 'totalPages'),
+          ),
+        ).called(1);
       });
 
       test('不在阅读中时停止应无操作', () async {
@@ -118,13 +129,15 @@ void main() {
         await session.stopReading();
 
         expect(session.isReading.value, isFalse);
-        verifyNever(() => repo.updateReadingProgress(
-          bookId: any(named: 'bookId'),
-          chapterId: any(named: 'chapterId'),
-          charOffset: any(named: 'charOffset'),
-          pageIndex: any(named: 'pageIndex'),
-          totalPages: any(named: 'totalPages'),
-        ));
+        verifyNever(
+          () => repo.updateReadingProgress(
+            bookId: any(named: 'bookId'),
+            chapterId: any(named: 'chapterId'),
+            charOffset: any(named: 'charOffset'),
+            pageIndex: any(named: 'pageIndex'),
+            totalPages: any(named: 'totalPages'),
+          ),
+        );
       });
     });
 
@@ -137,13 +150,15 @@ void main() {
         // 强制置入足够旧的时间绕过防抖
         await session.saveProgress();
 
-        verify(() => repo.updateReadingProgress(
-          bookId: any(named: 'bookId'),
-          chapterId: any(named: 'chapterId'),
-          charOffset: any(named: 'charOffset'),
-          pageIndex: any(named: 'pageIndex'),
-          totalPages: any(named: 'totalPages'),
-        )).called(1);
+        verify(
+          () => repo.updateReadingProgress(
+            bookId: any(named: 'bookId'),
+            chapterId: any(named: 'chapterId'),
+            charOffset: any(named: 'charOffset'),
+            pageIndex: any(named: 'pageIndex'),
+            totalPages: any(named: 'totalPages'),
+          ),
+        ).called(1);
       });
       test('保存后设置 progressSaved 为 true', () async {
         session = createSession(repo: repo, chapterManager: chapterManager);
@@ -163,24 +178,28 @@ void main() {
         await session.saveProgress();
 
         // verify 按总调用次数检查，应只有 1 次
-        verify(() => repo.updateReadingProgress(
-          bookId: any(named: 'bookId'),
-          chapterId: any(named: 'chapterId'),
-          charOffset: any(named: 'charOffset'),
-          pageIndex: any(named: 'pageIndex'),
-          totalPages: any(named: 'totalPages'),
-          readingTimeSeconds: any(named: 'readingTimeSeconds'),
-        )).called(1);
+        verify(
+          () => repo.updateReadingProgress(
+            bookId: any(named: 'bookId'),
+            chapterId: any(named: 'chapterId'),
+            charOffset: any(named: 'charOffset'),
+            pageIndex: any(named: 'pageIndex'),
+            totalPages: any(named: 'totalPages'),
+            readingTimeSeconds: any(named: 'readingTimeSeconds'),
+          ),
+        ).called(1);
       });
 
       test('保存失败不应抛异常（静默日志）', () async {
-        when(() => repo.updateReadingProgress(
-          bookId: any(named: 'bookId'),
-          chapterId: any(named: 'chapterId'),
-          charOffset: any(named: 'charOffset'),
-          pageIndex: any(named: 'pageIndex'),
-          totalPages: any(named: 'totalPages'),
-        )).thenThrow(Exception('db error'));
+        when(
+          () => repo.updateReadingProgress(
+            bookId: any(named: 'bookId'),
+            chapterId: any(named: 'chapterId'),
+            charOffset: any(named: 'charOffset'),
+            pageIndex: any(named: 'pageIndex'),
+            totalPages: any(named: 'totalPages'),
+          ),
+        ).thenThrow(Exception('db error'));
 
         session = createSession(repo: repo, chapterManager: chapterManager);
 
@@ -195,14 +214,16 @@ void main() {
 
         await session.saveProgress();
 
-        verify(() => repo.updateReadingProgress(
-          bookId: any(named: 'bookId'),
-          chapterId: any(named: 'chapterId'),
-          charOffset: any(named: 'charOffset'),
-          pageIndex: any(named: 'pageIndex'),
-          totalPages: any(named: 'totalPages'),
-          readingTimeSeconds: 42,
-        )).called(1);
+        verify(
+          () => repo.updateReadingProgress(
+            bookId: any(named: 'bookId'),
+            chapterId: any(named: 'chapterId'),
+            charOffset: any(named: 'charOffset'),
+            pageIndex: any(named: 'pageIndex'),
+            totalPages: any(named: 'totalPages'),
+            readingTimeSeconds: 42,
+          ),
+        ).called(1);
       });
     });
 

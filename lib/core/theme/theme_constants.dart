@@ -6,8 +6,8 @@ class DesignTokens {
   static const Color onPrimary = Color(0xFFFFFFFF);
 
   // ===== 辅助语义色 =====
-  static const Color error = Color(0xFFD1453B);          // warmer red
-  static const Color success = Color(0xFF3B8B5E);        // muted green
+  static const Color error = Color(0xFFD1453B); // warmer red
+  static const Color success = Color(0xFF3B8B5E); // muted green
   static const Color warning = Color(0xFFF57C00);
 
   // ===== 浅色模式 =====
@@ -35,7 +35,7 @@ class DesignTokens {
   );
 
   // ===== 暖色分割线（替代中性灰）=====
-  static const Color dividerSubtle = Color(0x1FD4A373);  // #D4A373 @ 12%
+  static const Color dividerSubtle = Color(0x1FD4A373); // #D4A373 @ 12%
 
   // ===== 兼容旧引用（映射到新色值）=====
   static const Color primaryContainer = Color(0xFFFEF0D6); // warmer amber tint

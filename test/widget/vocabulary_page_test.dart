@@ -26,7 +26,7 @@ void main() {
         MaterialApp(
           home: HookBuilder(
             builder: (context) {
-              filterStatus = useSignal<VocabStatus?>(VocabStatus.new_);
+              filterStatus = useSignal<VocabStatus?>(VocabStatus.unstarted);
               return Text(
                 'filter: ${filterStatus.value?.name}',
                 textDirection: TextDirection.ltr,
@@ -36,8 +36,8 @@ void main() {
         ),
       );
 
-      expect(filterStatus.value, equals(VocabStatus.new_));
-      expect(find.text('filter: new_'), findsOneWidget);
+      expect(filterStatus.value, equals(VocabStatus.unstarted));
+      expect(find.text('filter: unstarted'), findsOneWidget);
     });
 
     testWidgets('useSignal nullable 信号更新后 UI 刷新', (tester) async {
@@ -47,7 +47,7 @@ void main() {
         MaterialApp(
           home: HookBuilder(
             builder: (context) {
-              filterStatus = useSignal<VocabStatus?>(VocabStatus.new_);
+              filterStatus = useSignal<VocabStatus?>(VocabStatus.unstarted);
               return Text(
                 'filter: ${filterStatus.value?.name}',
                 textDirection: TextDirection.ltr,
@@ -57,7 +57,7 @@ void main() {
         ),
       );
 
-      expect(find.text('filter: new_'), findsOneWidget);
+      expect(find.text('filter: unstarted'), findsOneWidget);
 
       filterStatus.value = VocabStatus.learning;
       await tester.pump();
@@ -75,7 +75,7 @@ void main() {
         MaterialApp(
           home: HookBuilder(
             builder: (context) {
-              filterStatus = useSignal<VocabStatus?>(VocabStatus.new_);
+              filterStatus = useSignal<VocabStatus?>(VocabStatus.unstarted);
               return Text(
                 'filter: ${filterStatus.value?.name ?? "all"}',
                 textDirection: TextDirection.ltr,
@@ -85,7 +85,7 @@ void main() {
         ),
       );
 
-      expect(find.text('filter: new_'), findsOneWidget);
+      expect(find.text('filter: unstarted'), findsOneWidget);
 
       filterStatus.value = null;
       await tester.pump();
@@ -100,7 +100,7 @@ void main() {
         MaterialApp(
           home: HookBuilder(
             builder: (context) {
-              filterStatus = useSignal<VocabStatus?>(VocabStatus.new_);
+              filterStatus = useSignal<VocabStatus?>(VocabStatus.unstarted);
               filterWordList = useSignal<String?>('CET-4');
               return Column(
                 children: [
@@ -119,7 +119,7 @@ void main() {
         ),
       );
 
-      expect(find.text('status: new_'), findsOneWidget);
+      expect(find.text('status: unstarted'), findsOneWidget);
       expect(find.text('wordList: CET-4'), findsOneWidget);
 
       filterStatus.value = VocabStatus.mastered;
@@ -138,7 +138,7 @@ void main() {
         MaterialApp(
           home: HookBuilder(
             builder: (context) {
-              trigger = useSignal<VocabStatus?>(VocabStatus.new_);
+              trigger = useSignal<VocabStatus?>(VocabStatus.unstarted);
               useSignalEffect(() {
                 trigger.value; // subscribe
                 effectCount++;
@@ -164,19 +164,19 @@ void main() {
 
 // ===== Test-only model types (no FFI dependency) =====
 
-enum VocabStatus { new_, learning, mastered, known }
+enum VocabStatus { unstarted, learning, mastered, ignored }
 
 extension VocabStatusName on VocabStatus {
   String get name {
     switch (this) {
-      case VocabStatus.new_:
-        return 'new_';
+      case VocabStatus.unstarted:
+        return 'unstarted';
       case VocabStatus.learning:
         return 'learning';
       case VocabStatus.mastered:
         return 'mastered';
-      case VocabStatus.known:
-        return 'known';
+      case VocabStatus.ignored:
+        return 'ignored';
     }
   }
 }

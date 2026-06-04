@@ -242,7 +242,10 @@ abstract class RustLibApi extends BaseApi {
     required String noteId,
   });
 
-  Future<void> crateApiDataBookDeleteBook({required String bookId});
+  Future<void> crateApiDataBookDeleteBook({
+    required String bookId,
+    required String coversDir,
+  });
 
   Future<void> crateApiDataBookmarkDeleteBookmark({required String bookmarkId});
 
@@ -1612,26 +1615,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<void> crateApiDataBookDeleteBook({required String bookId}) {
+  Future<void> crateApiDataBookDeleteBook({
+    required String bookId,
+    required String coversDir,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final arg0 = cst_encode_String(bookId);
-          return wire.wire__crate__api__data__book__delete_book(port_, arg0);
+          final arg1 = cst_encode_String(coversDir);
+          return wire.wire__crate__api__data__book__delete_book(
+            port_,
+            arg0,
+            arg1,
+          );
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_app_error,
         ),
         constMeta: kCrateApiDataBookDeleteBookConstMeta,
-        argValues: [bookId],
+        argValues: [bookId, coversDir],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiDataBookDeleteBookConstMeta =>
-      const TaskConstMeta(debugName: 'delete_book', argNames: ['bookId']);
+  TaskConstMeta get kCrateApiDataBookDeleteBookConstMeta => const TaskConstMeta(
+    debugName: 'delete_book',
+    argNames: ['bookId', 'coversDir'],
+  );
 
   @override
   Future<void> crateApiDataBookmarkDeleteBookmark({
@@ -5633,13 +5646,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   VocabStats dco_decode_vocab_stats(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return VocabStats(
       totalWords: dco_decode_i_64(arr[0]),
-      learningCount: dco_decode_i_64(arr[1]),
-      knownCount: dco_decode_i_64(arr[2]),
+      unstartedCount: dco_decode_i_64(arr[1]),
+      learningCount: dco_decode_i_64(arr[2]),
       masteredCount: dco_decode_i_64(arr[3]),
+      ignoredCount: dco_decode_i_64(arr[4]),
     );
   }
 
@@ -7301,14 +7315,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   VocabStats sse_decode_vocab_stats(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     final var_totalWords = sse_decode_i_64(deserializer);
+    final var_unstartedCount = sse_decode_i_64(deserializer);
     final var_learningCount = sse_decode_i_64(deserializer);
-    final var_knownCount = sse_decode_i_64(deserializer);
     final var_masteredCount = sse_decode_i_64(deserializer);
+    final var_ignoredCount = sse_decode_i_64(deserializer);
     return VocabStats(
       totalWords: var_totalWords,
+      unstartedCount: var_unstartedCount,
       learningCount: var_learningCount,
-      knownCount: var_knownCount,
       masteredCount: var_masteredCount,
+      ignoredCount: var_ignoredCount,
     );
   }
 
@@ -8782,9 +8798,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_vocab_stats(VocabStats self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_64(self.totalWords, serializer);
+    sse_encode_i_64(self.unstartedCount, serializer);
     sse_encode_i_64(self.learningCount, serializer);
-    sse_encode_i_64(self.knownCount, serializer);
     sse_encode_i_64(self.masteredCount, serializer);
+    sse_encode_i_64(self.ignoredCount, serializer);
   }
 
   @protected

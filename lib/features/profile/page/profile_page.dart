@@ -70,7 +70,8 @@ class ProfilePage extends HookWidget {
             ],
           ),
         ],
-      ));
+      ),
+    );
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -141,9 +142,19 @@ class ProfilePage extends HookWidget {
               final streak = stats?.consecutiveReadingDays ?? 0;
               return Row(
                 children: [
-                  _statItem(context, '$streak', l10n.consecutiveDaysLabel, PhosphorIconsFill.fire),
+                  _statItem(
+                    context,
+                    '$streak',
+                    l10n.consecutiveDaysLabel,
+                    PhosphorIconsFill.fire,
+                  ),
                   _divider(),
-                  _statItem(context, '$books', l10n.reading, PhosphorIconsRegular.book),
+                  _statItem(
+                    context,
+                    '$books',
+                    l10n.reading,
+                    PhosphorIconsRegular.book,
+                  ),
                   _divider(),
                   _statItem(
                     context,

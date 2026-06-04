@@ -107,8 +107,7 @@ void main() {
 
   group('E2E - 书架到阅读流程', () {
     testWidgets('打开应用 → 显示主布局', (tester) async {
-      await tester.binding
-          .setSurfaceSize(const Size(1080, 1920));
+      await tester.binding.setSurfaceSize(const Size(1080, 1920));
       await tester.pumpWidget(const ZephyrReaderApp());
       await tester.pump(const Duration(seconds: 2));
 
@@ -117,8 +116,7 @@ void main() {
     });
 
     testWidgets('导航到书架 → 显示书架页面', (tester) async {
-      await tester.binding
-          .setSurfaceSize(const Size(1080, 1920));
+      await tester.binding.setSurfaceSize(const Size(1080, 1920));
       await tester.pumpWidget(const ZephyrReaderApp());
       await tester.pump(const Duration(seconds: 2));
 
@@ -128,8 +126,7 @@ void main() {
     });
 
     testWidgets('完整流程: 书架 → 书籍详情 → 阅读页', (tester) async {
-      await tester.binding
-          .setSurfaceSize(const Size(1080, 1920));
+      await tester.binding.setSurfaceSize(const Size(1080, 1920));
       await tester.pumpWidget(const ZephyrReaderApp());
       await tester.pump(const Duration(seconds: 2));
 
@@ -148,8 +145,7 @@ void main() {
     });
 
     testWidgets('阅读页面: 工具栏交互', (tester) async {
-      await tester.binding
-          .setSurfaceSize(const Size(1080, 1920));
+      await tester.binding.setSurfaceSize(const Size(1080, 1920));
       await tester.pumpWidget(const ZephyrReaderApp());
       await tester.pump(const Duration(seconds: 2));
 
@@ -167,8 +163,7 @@ void main() {
 
   group('E2E - 页面导航', () {
     testWidgets('导航到搜索页面', (tester) async {
-      await tester.binding
-          .setSurfaceSize(const Size(1080, 1920));
+      await tester.binding.setSurfaceSize(const Size(1080, 1920));
       await tester.pumpWidget(const ZephyrReaderApp());
       await tester.pump(const Duration(seconds: 2));
 
@@ -178,8 +173,7 @@ void main() {
     });
 
     testWidgets('导航到统计页面', (tester) async {
-      await tester.binding
-          .setSurfaceSize(const Size(1080, 1920));
+      await tester.binding.setSurfaceSize(const Size(1080, 1920));
       await tester.pumpWidget(const ZephyrReaderApp());
       await tester.pump(const Duration(seconds: 2));
 
@@ -189,8 +183,7 @@ void main() {
     });
 
     testWidgets('导航到个人中心页面', (tester) async {
-      await tester.binding
-          .setSurfaceSize(const Size(1080, 1920));
+      await tester.binding.setSurfaceSize(const Size(1080, 1920));
       await tester.pumpWidget(const ZephyrReaderApp());
       await tester.pump(const Duration(seconds: 2));
 
@@ -202,8 +195,7 @@ void main() {
 
   group('E2E - 搜索功能', () {
     testWidgets('搜索页面基本渲染', (tester) async {
-      await tester.binding
-          .setSurfaceSize(const Size(1080, 1920));
+      await tester.binding.setSurfaceSize(const Size(1080, 1920));
       await tester.pumpWidget(const ZephyrReaderApp());
       await tester.pump(const Duration(seconds: 2));
 
@@ -213,8 +205,7 @@ void main() {
     });
 
     testWidgets('输入搜索关键词不应崩溃', (tester) async {
-      await tester.binding
-          .setSurfaceSize(const Size(1080, 1920));
+      await tester.binding.setSurfaceSize(const Size(1080, 1920));
       await tester.pumpWidget(const ZephyrReaderApp());
       await tester.pump(const Duration(seconds: 2));
 

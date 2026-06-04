@@ -25,9 +25,7 @@ class ReaderPageObject {
   /// 点击屏幕中央切换工具栏
   Future<void> tapCenter() async {
     final screenSize = tester.view.physicalSize;
-    await tester.tapAt(
-      Offset(screenSize.width / 2, screenSize.height / 2),
-    );
+    await tester.tapAt(Offset(screenSize.width / 2, screenSize.height / 2));
     await tester.pump();
   }
 
@@ -46,10 +44,8 @@ class ReaderPageObject {
   // ── 断言 ──
 
   /// 当前是否在阅读页面
-  bool get isOnReaderPage =>
-      find.byType(Scaffold).evaluate().isNotEmpty;
+  bool get isOnReaderPage => find.byType(Scaffold).evaluate().isNotEmpty;
 
   /// 阅读内容是否存在
-  bool get hasContent =>
-      find.text('').evaluate().isNotEmpty; // placeholder
+  bool get hasContent => find.text('').evaluate().isNotEmpty; // placeholder
 }

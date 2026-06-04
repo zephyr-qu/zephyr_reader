@@ -78,7 +78,10 @@ class SearchHistoryView extends StatelessWidget {
             runSpacing: 8,
             children: historyList.map((h) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(20),

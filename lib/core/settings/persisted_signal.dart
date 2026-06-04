@@ -33,10 +33,10 @@ class PersistedSignal<T> {
     required SharedPreferences prefs,
     required Future<void> Function(SharedPreferences, String, T) write,
     Duration debounce = const Duration(milliseconds: 150),
-  })  : _signal = Signal<T>(initialValue),
-        _prefs = prefs,
-        _write = write,
-        _debounce = debounce;
+  }) : _signal = Signal<T>(initialValue),
+       _prefs = prefs,
+       _write = write,
+       _debounce = debounce;
 
   void _scheduleSave() {
     _saveTimer?.cancel();
@@ -52,6 +52,7 @@ class PersistedSignal<T> {
   Future<void> _save() async {
     await _write(_prefs, key, _signal.value);
   }
+
   /// 立即写入，跳过 debounce
   Future<void> saveImmediately() async {
     _saveTimer?.cancel();

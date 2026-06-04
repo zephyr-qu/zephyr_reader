@@ -87,11 +87,12 @@ pub async fn upsert_book(book: Book) -> Result<(), AppError> {
 ///
 /// # 参数
 /// * `book_id` - 书籍 ID
+/// * `covers_dir` - 封面文件存储目录路径，用于拼接完整路径后删除封面文件
 ///
 /// # 返回
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
-pub async fn delete_book(book_id: String) -> Result<(), AppError> {
+pub async fn delete_book(book_id: String, covers_dir: String) -> Result<(), AppError> {
     let storage = ensure_storage().map_err(|_| AppError::storage_not_initialized())?;
     let pool = storage
         .pool()
@@ -99,9 +100,9 @@ pub async fn delete_book(book_id: String) -> Result<(), AppError> {
 
     // 删除封面文件
     if let Ok(Some(cover_path)) = BookRepository::find_cover_path(&pool, &book_id).await {
-        let path = std::path::Path::new(&cover_path);
-        if path.exists() {
-            if let Err(e) = tokio::fs::remove_file(path).await {
+        let full_path = std::path::Path::new(&covers_dir).join(&cover_path);
+        if full_path.exists() {
+            if let Err(e) = tokio::fs::remove_file(&full_path).await {
                 tracing::warn!("failed to delete cover file: {}", e);
             }
         }

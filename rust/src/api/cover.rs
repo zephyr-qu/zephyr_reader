@@ -30,14 +30,26 @@ pub async fn extract_and_save_cover(
     file_path: String,
     output_dir: String,
 ) -> Result<String, AppError> {
-    let cover_path = extract_book_cover(file_path, output_dir).await?;
+    let full_path = extract_book_cover(file_path, output_dir).await?;
     let storage = ensure_storage().map_err(|_| AppError::storage_not_initialized())?;
     let pool = storage
         .pool()
         .map_err(|e| AppError::database_error(e.to_string()))?;
-    if let Err(e) = BookRepository::update_cover_path(&pool, &book_id, &cover_path).await {
+
+    // 只存文件名（相对路径），不存绝对路径，保证数据库可移植
+    let relative_path = Path::new(&full_path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("")
+        .to_string();
+
+    if relative_path.is_empty() {
+        return Err(AppError::other("failed to extract cover filename"));
+    }
+
+    if let Err(e) = BookRepository::update_cover_path(&pool, &book_id, &relative_path).await {
         // DB 更新失败，清理已写入的封面文件
-        if let Err(cleanup_err) = tokio::fs::remove_file(&cover_path).await {
+        if let Err(cleanup_err) = tokio::fs::remove_file(&full_path).await {
             tracing::warn!(
                 "cover file cleanup failed after DB error: {} (cleanup: {})",
                 e,
@@ -46,7 +58,7 @@ pub async fn extract_and_save_cover(
         }
         return Err(AppError::database_error(e.to_string()));
     }
-    Ok(cover_path)
+    Ok(relative_path)
 }
 
 /// 检查是否支持封面提取

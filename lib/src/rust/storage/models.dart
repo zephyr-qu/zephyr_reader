@@ -246,9 +246,10 @@ sealed class Vocab with _$Vocab {
 sealed class VocabStats with _$VocabStats {
   const factory VocabStats({
     required PlatformInt64 totalWords,
+    required PlatformInt64 unstartedCount,
     required PlatformInt64 learningCount,
-    required PlatformInt64 knownCount,
     required PlatformInt64 masteredCount,
+    required PlatformInt64 ignoredCount,
   }) = _VocabStats;
 }
 
@@ -257,7 +258,7 @@ sealed class VocabStats with _$VocabStats {
 /// 数据库中存储为小写文本（`new` / `learning` / `mastered` / `ignored`）。
 enum VocabStatus {
   /// 新词，尚未开始学习
-  new_,
+  unstarted,
 
   /// 学习中，正在复习周期内
   learning,

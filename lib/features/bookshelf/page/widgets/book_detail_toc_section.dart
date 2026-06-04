@@ -26,8 +26,7 @@ class BookDetailTocSection extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     if (chapters.isEmpty) return const SizedBox.shrink();
 
-    final displayChapters =
-        showAll ? chapters : chapters.take(5).toList();
+    final displayChapters = showAll ? chapters : chapters.take(5).toList();
     final hasMore = chapters.length > 5;
 
     return Container(
@@ -99,8 +98,9 @@ class BookDetailTocSection extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: isCurrent
-                      ? theme.colorScheme.primaryContainer
-                          .withValues(alpha: 0.4)
+                      ? theme.colorScheme.primaryContainer.withValues(
+                          alpha: 0.4,
+                        )
                       : null,
                   border: idx < displayChapters.length - 1
                       ? Border(
@@ -118,8 +118,9 @@ class BookDetailTocSection extends StatelessWidget {
                         chapter.title,
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight:
-                              isCurrent ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight: isCurrent
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                           color: isCurrent
                               ? theme.colorScheme.primary
                               : theme.colorScheme.onSurface,

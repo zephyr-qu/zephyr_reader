@@ -1,5 +1,6 @@
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:injectable/injectable.dart';
+import 'package:zephyr_reader/core/app_config.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -42,7 +43,7 @@ class BookDetailViewModel {
   }
 
   Future<void> deleteBook() async {
-    await book_api.deleteBook(bookId: bookId);
+    await book_api.deleteBook(bookId: bookId, coversDir: AppConfig.instance.coverDir);
   }
 
   void toggleShowAllChapters() {

@@ -1,5 +1,3 @@
-
-
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -168,9 +166,7 @@ class WebDavSyncService {
             remotePath: remotePath,
             localFile: localFile,
           );
-          return ok
-              ? (true, null)
-              : (false, '下载 ${type.displayName} 失败');
+          return ok ? (true, null) : (false, '下载 ${type.displayName} 失败');
         }
         return (true, null);
       }
@@ -280,7 +276,6 @@ class WebDavSyncService {
       return false;
     }
   }
-
 
   // ================================================================
   //  取消 / 释放

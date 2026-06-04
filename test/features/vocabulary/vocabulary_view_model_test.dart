@@ -7,6 +7,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/vocabulary/application/vocabulary_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/frb_generated.dart';
 
 /// 尝试检查 Rust 是否可用
@@ -34,7 +35,7 @@ void main() {
     });
 
     test('initial state is correct', () {
-      expect(vm.filterStatus.value, equals(VocabStatus.new_));
+      expect(vm.filterStatus.value, equals(VocabStatus.unstarted));
       expect(vm.filterWordList.value, isNull);
       expect(vm.searchQuery.value, isEmpty);
     });
@@ -45,8 +46,8 @@ void main() {
         vm.filterStatus.value = VocabStatus.learning;
         expect(vm.filterStatus.value, equals(VocabStatus.learning));
 
-        await vm.setFilter(VocabStatus.new_);
-        expect(vm.filterStatus.value, equals(VocabStatus.new_));
+        await vm.setFilter(VocabStatus.unstarted);
+        expect(vm.filterStatus.value, equals(VocabStatus.unstarted));
       });
 
       test('setWordListFilter updates word list filter', () async {
@@ -60,11 +61,11 @@ void main() {
 
       test('updateStatus handles status string conversion', () async {
         if (!rustAvailable) return;
-        expect(vm.filterStatus.value, equals(VocabStatus.new_));
+        expect(vm.filterStatus.value, equals(VocabStatus.unstarted));
 
-        await vm.updateStatus('test_id', 'learning');
+        await vm.updateStatus('test_id', VocabStatus.learning);
         // updateStatus 内部调用 FFI；如果成功，filterStatus 不变
-        expect(vm.filterStatus.value, equals(VocabStatus.new_));
+        expect(vm.filterStatus.value, equals(VocabStatus.unstarted));
       });
 
       test('deleteWord handles delete gracefully', () async {
@@ -80,6 +81,27 @@ void main() {
 
         await vm.refresh();
 
+        expect(vm.words.value.isLoading, isFalse);
+      });
+    });
+ 
+    group('错误路径测试', () {
+      test('error state 信号过渡正确', () {
+        vm.words.value = AsyncState.loading();
+        expect(vm.words.value.isLoading, isTrue);
+ 
+        vm.words.value = AsyncState.error(Exception('test'), StackTrace.current);
+        expect(vm.words.value.hasError, isTrue);
+        expect(vm.words.value.isLoading, isFalse);
+        expect(vm.words.value.value, isNull);
+      });
+ 
+      test('loadWords 捕获 FFI 异常后设为 error 状态', () async {
+        if (rustAvailable) return;
+ 
+        await vm.loadWords();
+ 
+        expect(vm.words.value.hasError, isTrue);
         expect(vm.words.value.isLoading, isFalse);
       });
     });

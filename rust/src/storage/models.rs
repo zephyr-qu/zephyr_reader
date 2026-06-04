@@ -604,7 +604,7 @@ impl Category {
 pub enum VocabStatus {
     /// 新词，尚未开始学习
     #[default]
-    New,
+    Unstarted,
     /// 学习中，正在复习周期内
     Learning,
     /// 已掌握，通过所有复习阶段
@@ -649,7 +649,7 @@ impl Vocab {
     /// 添加生词条目
     ///
     /// - `id` / `created_at` 自动生成
-    /// - `status` 默认为 `New`（新词）
+    /// - `status` 默认为 `Unstarted`（新词）
     /// - `review_count` 初始为 0
     /// - 关联上下文（book_id/chapter_index 等）为可选参数
     #[allow(clippy::too_many_arguments)]
@@ -675,7 +675,7 @@ impl Vocab {
             created_at: Utc::now(),
             review_count: 0,
             last_reviewed_at: None,
-            status: VocabStatus::New,
+            status: VocabStatus::Unstarted,
             word_list: word_list.map(String::from),
             dict_source: None,
             dict_entry_hash: None,
@@ -683,13 +683,14 @@ impl Vocab {
     }
 }
 /// 生词本统计摘要（应用层计算，非直接 DB 映射）
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize,sqlx::FromRow)]
 #[frb(dart_metadata = ("freezed"))]
 pub struct VocabStats {
     pub total_words: i64,
+    pub unstarted_count: i64,
     pub learning_count: i64,
-    pub known_count: i64,
     pub mastered_count: i64,
+    pub ignored_count: i64,
 }
 
 /// 词典

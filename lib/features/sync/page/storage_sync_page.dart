@@ -56,8 +56,6 @@ class StorageSyncPage extends HookWidget {
             children: [
               _buildStatusHeader(cs, vm, context, l10n),
               const SizedBox(height: 20),
-              _buildStorageCard(cs, vm),
-              const SizedBox(height: 24),
               _buildSyncConfigSection(cs, vm, context),
               const SizedBox(height: 24),
               _buildDangerZone(cs, vm, context),
@@ -140,7 +138,9 @@ class StorageSyncPage extends HookWidget {
                         ),
                         if (lastTime != null)
                           Text(
-                            l10n.lastSyncTime(formatRelativeTime(lastTime, l10n)),
+                            l10n.lastSyncTime(
+                              formatRelativeTime(lastTime, l10n),
+                            ),
                             style: TextStyle(
                               fontSize: 11,
                               color: Colors.white.withValues(alpha: 0.7),
@@ -185,127 +185,6 @@ class StorageSyncPage extends HookWidget {
     ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.04, end: 0);
   }
 
-  // ==================== Storage Card ====================
-
-  Widget _buildStorageCard(ColorScheme cs, StorageSyncViewModel vm) {
-    return SignalBuilder(
-      builder: (context) {
-        final total = vm.totalUsed.value;
-        final cache = vm.cacheSize.value;
-        final books = vm.booksSize.value;
-        final db = vm.dbSize.value;
-        final available = vm.totalAvailable.value;
-
-        final booksPct = total > 0 ? books / total : 0.0;
-        final cachePct = total > 0 ? cache / total : 0.0;
-        final dbPct = total > 0 ? db / total : 0.0;
-
-        return Container(
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: cs.outlineVariant.withValues(alpha: 0.2),
-              width: 0.5,
-            ),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '本地存储',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: cs.onSurface,
-                    ),
-                  ),
-                  Text(
-                    '${vm.formatBytes(total)} / ${available > 0 ? vm.formatBytes(available) : '—'}',
-                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: SizedBox(
-                  height: 8,
-                  child: Row(
-                    children: [
-                      if (booksPct > 0.01)
-                        Expanded(
-                          flex: (booksPct * 100).round().clamp(1, 100),
-                          child: Container(color: const Color(0xFF42A5F5)),
-                        ),
-                      if (dbPct > 0.01)
-                        Expanded(
-                          flex: (dbPct * 100).round().clamp(1, 100),
-                          child: Container(color: const Color(0xFFFFA726)),
-                        ),
-                      if (cachePct > 0.01)
-                        Expanded(
-                          flex: (cachePct * 100).round().clamp(1, 100),
-                          child: Container(color: const Color(0xFFBDBDBD)),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _legendDot(
-                    const Color(0xFF42A5F5),
-                    '书籍',
-                    vm.formatBytes(books),
-                  ),
-                  const SizedBox(width: 16),
-                  _legendDot(
-                    const Color(0xFFFFA726),
-                    '数据库',
-                    vm.formatBytes(db),
-                  ),
-                  const SizedBox(width: 16),
-                  _legendDot(
-                    const Color(0xFFBDBDBD),
-                    '缓存',
-                    vm.formatBytes(cache),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    ).animate().fadeIn(duration: 300.ms, delay: 100.ms).slideY(begin: 0.03, end: 0);
-  }
-
-  Widget _legendDot(Color color, String label, String size) {
-    return Expanded(
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              '$label $size',
-              style: const TextStyle(fontSize: 10),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ==================== Sync Config Section ====================
 

@@ -134,7 +134,7 @@ Vocab createTestVocab({
   String word = 'test',
   String? contextSentence,
   String? bookId,
-  VocabStatus status = VocabStatus.new_,
+  VocabStatus status = VocabStatus.unstarted,
   DateTime? createdAt,
 }) {
   return Vocab(
@@ -163,7 +163,7 @@ List<Vocab> createTestVocabs({int count = 20}) {
     count,
     (i) => createTestVocab(
       word: words[i % words.length],
-      status: i < 5 ? VocabStatus.learning : VocabStatus.new_,
+      status: i < 5 ? VocabStatus.learning : VocabStatus.unstarted,
     ),
   );
 }

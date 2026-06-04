@@ -2252,9 +2252,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wire_cst_vocab_stats wireObj,
   ) {
     wireObj.total_words = cst_encode_i_64(apiObj.totalWords);
+    wireObj.unstarted_count = cst_encode_i_64(apiObj.unstartedCount);
     wireObj.learning_count = cst_encode_i_64(apiObj.learningCount);
-    wireObj.known_count = cst_encode_i_64(apiObj.knownCount);
     wireObj.mastered_count = cst_encode_i_64(apiObj.masteredCount);
+    wireObj.ignored_count = cst_encode_i_64(apiObj.ignoredCount);
   }
 
   @protected
@@ -3715,8 +3716,13 @@ class RustLibWire implements BaseWire {
   void wire__crate__api__data__book__delete_book(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> covers_dir,
   ) {
-    return _wire__crate__api__data__book__delete_book(port_, book_id);
+    return _wire__crate__api__data__book__delete_book(
+      port_,
+      book_id,
+      covers_dir,
+    );
   }
 
   late final _wire__crate__api__data__book__delete_bookPtr =
@@ -3725,13 +3731,18 @@ class RustLibWire implements BaseWire {
           ffi.Void Function(
             ffi.Int64,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
       >('frbgen_zephyr_reader_wire__crate__api__data__book__delete_book');
   late final _wire__crate__api__data__book__delete_book =
       _wire__crate__api__data__book__delete_bookPtr
           .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
           >();
 
   void wire__crate__api__data__bookmark__delete_bookmark(
@@ -7768,13 +7779,16 @@ final class wire_cst_vocab_stats extends ffi.Struct {
   external int total_words;
 
   @ffi.Int64()
+  external int unstarted_count;
+
+  @ffi.Int64()
   external int learning_count;
 
   @ffi.Int64()
-  external int known_count;
+  external int mastered_count;
 
   @ffi.Int64()
-  external int mastered_count;
+  external int ignored_count;
 }
 
 const int EPUB_MIN_CHARS_PER_PAGE = 500;

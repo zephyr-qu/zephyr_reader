@@ -5,30 +5,32 @@ import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-// 阅读趋势折线图（最近 7 天各日阅读分钟数）
-Widget buildReadingTrend(
-  BuildContext context,
-  ThemeData theme,
-  List<ReadingStats> dailyRecords,
-) {
-  final l10n = AppLocalizations.of(context)!;
-  final locale = Localizations.localeOf(context).languageCode;
-  final df = DateFormat('E', locale);
-  final dateMap = <String, double>{};
-  for (final r in dailyRecords) {
-    dateMap[r.date] = r.readingTimeSeconds.toDouble() / 60.0;
-  }
-  final now = DateTime.now();
-  double maxVal = 0;
-  final spots = List.generate(7, (i) {
-    final d = now.subtract(Duration(days: 6 - i));
-    final key =
-        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-    final val = dateMap[key] ?? 0;
-    if (val > maxVal) maxVal = val;
-    return FlSpot(i.toDouble(), val);
-  });
-  final ceiling = maxVal > 0 ? (maxVal * 1.3).ceilToDouble() : 10.0;
+
+class ReadingTrend extends StatelessWidget {
+  const ReadingTrend({super.key, required this.dailyRecords});
+
+  final List<ReadingStats> dailyRecords;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).languageCode;
+    final df = DateFormat('E', locale);
+    final dateMap = <String, double>{};
+    for (final r in dailyRecords) {
+      dateMap[r.date] = r.readingTimeSeconds.toDouble() / 60.0;
+    }
+    final now = DateTime.now();
+    double maxVal = 0;
+    final spots = List.generate(7, (i) {
+      final d = now.subtract(Duration(days: 6 - i));
+      final key = DateFormat('yyyy-MM-dd').format(d);
+      final val = dateMap[key] ?? 0;
+      if (val > maxVal) maxVal = val;
+      return FlSpot(i.toDouble(), val);
+    });
+    final ceiling = maxVal > 0 ? (maxVal * 1.3).ceilToDouble() : 10.0;
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,4 +112,5 @@ Widget buildReadingTrend(
       ),
     ],
   );
+}
 }

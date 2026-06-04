@@ -65,7 +65,8 @@ class SearchPage extends HookWidget {
       }
 
       final noteItems = vm.noteHits.value.map((note) {
-        final book = bookMap[note.bookId] ??
+        final book =
+            bookMap[note.bookId] ??
             allBooksList.firstWhere((b) => b.bookId == note.bookId);
         return NoteSearchItem(note: note, book: book);
       }).toList();
@@ -196,7 +197,9 @@ class SearchPage extends HookWidget {
                 decoration: InputDecoration(
                   hintText: '搜索书籍、笔记、生词...',
                   hintStyle: TextStyle(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.5,
+                    ),
                   ),
                   prefixIcon: Padding(
                     padding: const EdgeInsets.only(left: 16, right: 8),
@@ -308,7 +311,9 @@ class SearchPage extends HookWidget {
             Text(
               '试试其他关键词',
               style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.6,
+                ),
               ),
             ),
           ],
@@ -320,10 +325,6 @@ class SearchPage extends HookWidget {
       return SearchResultsView(results: results, query: controller.text.trim());
     }
 
-    return SearchHistoryView(
-      history: history,
-      controller: controller,
-      vm: vm,
-    );
+    return SearchHistoryView(history: history, controller: controller, vm: vm);
   }
 }

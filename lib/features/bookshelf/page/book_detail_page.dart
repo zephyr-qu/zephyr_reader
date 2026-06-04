@@ -28,7 +28,11 @@ class BookDetailPage extends HookWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final vm = useMemoized(() => getIt<BookDetailViewModel>(param1: bookId));
-    useEffect(() => () => vm.dispose(), []);
+    useEffect(
+      () =>
+          () => vm.dispose(),
+      [],
+    );
 
     final bool loading = useSignalValue(vm.loading);
     final String? error = useSignalValue(vm.error);
@@ -49,8 +53,10 @@ class BookDetailPage extends HookWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(l10n.loadFailed,
-                style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+            Text(
+              l10n.loadFailed,
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            ),
             const SizedBox(height: 12),
             TextButton(onPressed: () => vm.loadData(), child: Text(l10n.retry)),
           ],
@@ -59,7 +65,8 @@ class BookDetailPage extends HookWidget {
     } else {
       final currentChapterIndex = progress?.chapterIndex ?? -1;
       final hasProgress = progress != null && (progress.progress) > 0;
-      final chapterTitle = hasProgress &&
+      final chapterTitle =
+          hasProgress &&
               currentChapterIndex >= 0 &&
               currentChapterIndex < chapters.length
           ? chapters[currentChapterIndex].title
@@ -88,7 +95,9 @@ class BookDetailPage extends HookWidget {
             ),
             if (progress != null)
               BookDetailProgressCard(
-                  progress: progress, sessionCount: sessions.length),
+                progress: progress,
+                sessionCount: sessions.length,
+              ),
             BookDetailNoteStats(
               highlightCount: noteStats?.highlightCount ?? 0,
               annotationCount: noteStats?.annotationCount ?? 0,
@@ -140,8 +149,7 @@ class BookDetailPage extends HookWidget {
     if (result != null && context.mounted) {
       vm.book.value = book.copyWith(
         title: result['title'] ?? book.title,
-        author:
-            result['author']?.isNotEmpty == true ? result['author'] : null,
+        author: result['author']?.isNotEmpty == true ? result['author'] : null,
         description: result['description']?.isNotEmpty == true
             ? result['description']
             : null,

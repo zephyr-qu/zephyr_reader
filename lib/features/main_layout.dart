@@ -100,9 +100,7 @@ class MainLayout extends HookWidget {
               thickness: 1,
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
             ),
-            Expanded(
-              child: child,
-            ),
+            Expanded(child: child),
           ],
         ),
       );
@@ -235,7 +233,9 @@ class MainLayout extends HookWidget {
                         style: TextStyle(
                           fontSize: 14,
                           color: isSelected ? activeColor : inactiveColor,
-                          fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+                          fontWeight: isSelected
+                              ? FontWeight.w500
+                              : FontWeight.w400,
                         ),
                       ),
                       if (isSelected)
@@ -314,7 +314,9 @@ class MainLayout extends HookWidget {
                           style: TextStyle(
                             fontSize: 11,
                             color: isSelected ? activeColor : inactiveColor,
-                            fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+                            fontWeight: isSelected
+                                ? FontWeight.w500
+                                : FontWeight.w400,
                           ),
                         ),
                         const SizedBox(height: 4),

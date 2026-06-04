@@ -1,5 +1,3 @@
-
-
 import 'dart:async';
 
 import 'package:injectable/injectable.dart';
@@ -102,16 +100,10 @@ class LearningNotesViewModel {
 
   Future<void> _loadVocabStats() async {
     try {
-      final results = await Future.wait([
-        rust_vocab.listVocabularyByStatus(status: VocabStatus.new_),
-        rust_vocab.listVocabularyByStatus(status: VocabStatus.learning),
-        rust_vocab.listVocabularyByStatus(status: VocabStatus.mastered),
-        rust_vocab.listVocabularyByStatus(),
-      ]);
-      vocabLearningCount.value = results[1].length;
-      vocabMasteredCount.value = results[2].length;
-      final all = results[3];
-      vocabTotalCount.value = all.length;
+      final vs = await rust_vocab.getVocabularyStats();
+      vocabTotalCount.value = vs.totalWords.toInt();
+      vocabLearningCount.value = vs.learningCount.toInt();
+      vocabMasteredCount.value = vs.masteredCount.toInt();
     } catch (e) {
       Logging.error('加载学习统计数据失败', exception: e);
     }

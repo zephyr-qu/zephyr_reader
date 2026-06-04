@@ -7,10 +7,8 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 阅读器翻页点击区域布局
-enum TapLayout {
-  rightHanded,
-  leftHanded;
-}
+enum TapLayout { rightHanded, leftHanded }
+
 /// 书写方向
 enum WritingDirection {
   /// 横排
@@ -35,7 +33,6 @@ enum ReadingMode {
   bilingual,
 }
 
-
 /// 阅读器主题
 enum ReaderTheme {
   light('light', '日间'),
@@ -45,10 +42,7 @@ enum ReaderTheme {
   final String id;
   final String displayName;
 
-  const ReaderTheme(
-    this.id,
-    this.displayName,
-  );
+  const ReaderTheme(this.id, this.displayName);
 
   static ReaderTheme fromId(String id) {
     return ReaderTheme.values.firstWhere(
@@ -77,7 +71,6 @@ enum ReaderFontSize {
     );
   }
 }
-
 
 extension ReaderThemeX on ReaderTheme {
   String l10nLabel(AppLocalizations l10n) => switch (this) {
@@ -115,6 +108,7 @@ class ReaderBgColors {
     Color(0xFFF0F0F0), // 灰色
   ];
 }
+
 @Singleton()
 class ReaderConfig {
   final SharedPreferences prefs;
@@ -123,21 +117,32 @@ class ReaderConfig {
 
   /// 当前主题
   late final theme = persistedEnum<ReaderTheme>(
-    prefs, SettingsKeys.readerTheme, ReaderTheme.light, ReaderTheme.fromId,
+    prefs,
+    SettingsKeys.readerTheme,
+    ReaderTheme.light,
+    ReaderTheme.fromId,
     debounce: Duration.zero,
   );
 
   /// 字体大小（存储为 double，通过 [fontSizeValue] 获取实际 [ReaderFontSize] 尺寸）
   late final fontSize = persistedDouble(
-    prefs, SettingsKeys.readerFontSize, ReaderFontSize.medium.size,
+    prefs,
+    SettingsKeys.readerFontSize,
+    ReaderFontSize.medium.size,
   );
 
   /// 行间距
-  late final lineHeight = persistedDouble(prefs, SettingsKeys.readerLineHeight, 1.6);
+  late final lineHeight = persistedDouble(
+    prefs,
+    SettingsKeys.readerLineHeight,
+    1.6,
+  );
 
   /// 段落间距
   late final paragraphSpacing = persistedDouble(
-    prefs, SettingsKeys.readerParagraphSpacing, 16.0,
+    prefs,
+    SettingsKeys.readerParagraphSpacing,
+    16.0,
   );
 
   /// 页边距
@@ -145,40 +150,54 @@ class ReaderConfig {
 
   /// 阅读背景色预设索引
   late final readerBgColorIndex = persistedInt(
-    prefs, SettingsKeys.readerBgColorIndex, 0,
+    prefs,
+    SettingsKeys.readerBgColorIndex,
+    0,
   );
 
   /// 是否自动翻页
   late final autoScroll = persistedBool(
-    prefs, SettingsKeys.readerAutoScroll, false,
+    prefs,
+    SettingsKeys.readerAutoScroll,
+    false,
     debounce: Duration.zero,
   );
 
   /// 自动翻页速度（秒）
   late final autoScrollSpeed = persistedInt(
-    prefs, SettingsKeys.readerAutoScrollSpeed, 30,
+    prefs,
+    SettingsKeys.readerAutoScrollSpeed,
+    30,
   );
 
   /// 字间距
   late final letterSpacing = persistedDouble(
-    prefs, SettingsKeys.readerLetterSpacing, 0.0,
+    prefs,
+    SettingsKeys.readerLetterSpacing,
+    0.0,
   );
 
   /// 标点挤压
   late final punctuationSqueeze = persistedBool(
-    prefs, SettingsKeys.readerPunctuationSqueeze, true,
+    prefs,
+    SettingsKeys.readerPunctuationSqueeze,
+    true,
     debounce: Duration.zero,
   );
 
   /// 中西文基线对齐
   late final baselineAlign = persistedBool(
-    prefs, SettingsKeys.readerBaselineAlign, true,
+    prefs,
+    SettingsKeys.readerBaselineAlign,
+    true,
     debounce: Duration.zero,
   );
 
   /// 翻页点击区域布局
   late final tapLayout = persistedEnum<TapLayout>(
-    prefs, SettingsKeys.readerTapLayout, TapLayout.rightHanded,
+    prefs,
+    SettingsKeys.readerTapLayout,
+    TapLayout.rightHanded,
     (name) => TapLayout.values.firstWhere(
       (e) => e.name == name,
       orElse: () => TapLayout.rightHanded,
@@ -189,7 +208,9 @@ class ReaderConfig {
   // ==================== 非持久化信号 ====================
 
   /// 书写方向（横排/竖排，不持久化）
-  final writingDirection = signal<WritingDirection>(WritingDirection.horizontal);
+  final writingDirection = signal<WritingDirection>(
+    WritingDirection.horizontal,
+  );
 
   /// 亮度遮罩（0.0–1.0，瞬态不持久化）
   final brightnessOverlay = signal<double>(0.0);

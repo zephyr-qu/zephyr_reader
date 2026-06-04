@@ -1,4 +1,3 @@
-
 class WebDavConfig {
   final String baseUrl;
   final String username;

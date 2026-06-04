@@ -31,9 +31,13 @@ void main() {
 
   group('BookDetailDescSection', () {
     testWidgets('renders description text', (tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(
-        const BookDetailDescSection(description: 'A great book about Flutter.'),
-      ));
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          const BookDetailDescSection(
+            description: 'A great book about Flutter.',
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('A great book about Flutter.'), findsOneWidget);
@@ -52,9 +56,11 @@ void main() {
         createTestCategory(name: 'Sci-Fi'),
       ];
 
-      await tester.pumpWidget(_wrapWithMaterial(
-        BookDetailInfoSection(book: book, categories: categories),
-      ));
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          BookDetailInfoSection(book: book, categories: categories),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('TXT'), findsOneWidget);
@@ -68,13 +74,15 @@ void main() {
 
   group('BookDetailActions', () {
     testWidgets('renders start reading when no progress', (tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(
-        BookDetailActions(
-          hasProgress: false,
-          onContinueReading: () {},
-          onReadFromBeginning: () {},
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          BookDetailActions(
+            hasProgress: false,
+            onContinueReading: () {},
+            onReadFromBeginning: () {},
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Start Reading'), findsOneWidget);
@@ -88,13 +96,15 @@ void main() {
       int exportCalls = 0;
       int deleteCalls = 0;
 
-      await tester.pumpWidget(_wrapWithMaterial(
-        BookDetailBottomActions(
-          onEditMetadata: () => editCalls++,
-          onExportNotes: () => exportCalls++,
-          onDeleteBook: () => deleteCalls++,
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          BookDetailBottomActions(
+            onEditMetadata: () => editCalls++,
+            onExportNotes: () => exportCalls++,
+            onDeleteBook: () => deleteCalls++,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Edit Metadata'));
@@ -109,8 +119,7 @@ void main() {
   });
 
   group('BookDetailHero', () {
-    testWidgets('renders title, author, categories, file size',
-        (tester) async {
+    testWidgets('renders title, author, categories, file size', (tester) async {
       final book = createTestBook(
         title: 'Test Book Title',
         author: 'Test Author',
@@ -119,9 +128,9 @@ void main() {
       );
       final categories = [createTestCategory(name: 'Fiction')];
 
-      await tester.pumpWidget(_wrapWithMaterial(
-        BookDetailHero(book: book, categories: categories),
-      ));
+      await tester.pumpWidget(
+        _wrapWithMaterial(BookDetailHero(book: book, categories: categories)),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Test Book Title'), findsOneWidget);
@@ -133,8 +142,9 @@ void main() {
   });
 
   group('BookDetailProgressCard', () {
-    testWidgets('renders progress, reading time, session count',
-        (tester) async {
+    testWidgets('renders progress, reading time, session count', (
+      tester,
+    ) async {
       final progress = ReadingProgress(
         bookId: 'test',
         chapterIndex: 0,
@@ -148,9 +158,11 @@ void main() {
         isCompleted: false,
       );
 
-      await tester.pumpWidget(_wrapWithMaterial(
-        BookDetailProgressCard(progress: progress, sessionCount: 5),
-      ));
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          BookDetailProgressCard(progress: progress, sessionCount: 5),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('35%'), findsOneWidget);
@@ -158,8 +170,9 @@ void main() {
       expect(find.text('5'), findsOneWidget);
     });
 
-    testWidgets('shows estimated remaining for substantial progress',
-        (tester) async {
+    testWidgets('shows estimated remaining for substantial progress', (
+      tester,
+    ) async {
       final progress = ReadingProgress(
         bookId: 'test',
         chapterIndex: 0,
@@ -173,9 +186,11 @@ void main() {
         isCompleted: false,
       );
 
-      await tester.pumpWidget(_wrapWithMaterial(
-        BookDetailProgressCard(progress: progress, sessionCount: 1),
-      ));
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          BookDetailProgressCard(progress: progress, sessionCount: 1),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('50%'), findsOneWidget);
@@ -184,13 +199,15 @@ void main() {
 
   group('BookDetailNoteStats', () {
     testWidgets('renders stat cards with counts', (tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(
-        BookDetailNoteStats(
-          highlightCount: 3,
-          annotationCount: 5,
-          vocabCount: 12,
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          const BookDetailNoteStats(
+            highlightCount: 3,
+            annotationCount: 5,
+            vocabCount: 12,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('3'), findsOneWidget);
@@ -199,13 +216,15 @@ void main() {
     });
 
     testWidgets('hides when all counts are zero', (tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(
-        BookDetailNoteStats(
-          highlightCount: 0,
-          annotationCount: 0,
-          vocabCount: 0,
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          const BookDetailNoteStats(
+            highlightCount: 0,
+            annotationCount: 0,
+            vocabCount: 0,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(SizedBox), findsOneWidget);
@@ -216,16 +235,18 @@ void main() {
       int annotationCalls = 0;
       int vocabCalls = 0;
 
-      await tester.pumpWidget(_wrapWithMaterial(
-        BookDetailNoteStats(
-          highlightCount: 1,
-          annotationCount: 2,
-          vocabCount: 3,
-          onHighlightsTap: () => highlightCalls++,
-          onAnnotationsTap: () => annotationCalls++,
-          onVocabularyTap: () => vocabCalls++,
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          BookDetailNoteStats(
+            highlightCount: 1,
+            annotationCount: 2,
+            vocabCount: 3,
+            onHighlightsTap: () => highlightCalls++,
+            onAnnotationsTap: () => annotationCalls++,
+            onVocabularyTap: () => vocabCalls++,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('1'));
@@ -246,14 +267,16 @@ void main() {
         createTestChapter(chapterIndex: 1, title: 'Chapter 2'),
       ];
 
-      await tester.pumpWidget(_wrapWithMaterial(
-        BookDetailTocSection(
-          chapters: chapters,
-          showAll: false,
-          currentChapterIndex: 0,
-          onChapterTap: (_) {},
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          BookDetailTocSection(
+            chapters: chapters,
+            showAll: false,
+            currentChapterIndex: 0,
+            onChapterTap: (_) {},
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Chapter 1'), findsOneWidget);
@@ -268,15 +291,17 @@ void main() {
 
       int toggleCalls = 0;
 
-      await tester.pumpWidget(_wrapWithMaterial(
-        BookDetailTocSection(
-          chapters: chapters,
-          showAll: false,
-          currentChapterIndex: -1,
-          onToggleExpand: () => toggleCalls++,
-          onChapterTap: (_) {},
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          BookDetailTocSection(
+            chapters: chapters,
+            showAll: false,
+            currentChapterIndex: -1,
+            onToggleExpand: () => toggleCalls++,
+            onChapterTap: (_) {},
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Ch 0'), findsOneWidget);
@@ -293,14 +318,16 @@ void main() {
         (i) => createTestChapter(chapterIndex: i, title: 'Ch $i'),
       );
 
-      await tester.pumpWidget(_wrapWithMaterial(
-        BookDetailTocSection(
-          chapters: chapters,
-          showAll: true,
-          currentChapterIndex: -1,
-          onChapterTap: (_) {},
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          BookDetailTocSection(
+            chapters: chapters,
+            showAll: true,
+            currentChapterIndex: -1,
+            onChapterTap: (_) {},
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Ch 6'), findsOneWidget);
@@ -314,14 +341,16 @@ void main() {
         createTestChapter(chapterIndex: 2, title: 'Chapter 3'),
       ];
 
-      await tester.pumpWidget(_wrapWithMaterial(
-        BookDetailTocSection(
-          chapters: chapters,
-          showAll: false,
-          currentChapterIndex: 1,
-          onChapterTap: (_) {},
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          BookDetailTocSection(
+            chapters: chapters,
+            showAll: false,
+            currentChapterIndex: 1,
+            onChapterTap: (_) {},
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Current'), findsOneWidget);
@@ -334,14 +363,16 @@ void main() {
       ];
       int tappedIndex = -1;
 
-      await tester.pumpWidget(_wrapWithMaterial(
-        BookDetailTocSection(
-          chapters: chapters,
-          showAll: false,
-          currentChapterIndex: -1,
-          onChapterTap: (i) => tappedIndex = i,
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          BookDetailTocSection(
+            chapters: chapters,
+            showAll: false,
+            currentChapterIndex: -1,
+            onChapterTap: (i) => tappedIndex = i,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Chapter 5'));

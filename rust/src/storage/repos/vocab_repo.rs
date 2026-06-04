@@ -123,29 +123,18 @@ impl VocabRepository {
 
     /// 获取生词本统计
     pub async fn count(pool: &SqlitePool) -> Result<VocabStats> {
-        #[derive(sqlx::FromRow)]
-        struct StatsRow {
-            total_words: i64,
-            learning_count: i64,
-            mastered_count: i64,
-        }
+    let stats: VocabStats = sqlx::query_as(
+        "SELECT \
+            COUNT(*) AS total_words, \
+            COALESCE(SUM(CASE WHEN status = 'unstarted' THEN 1 ELSE 0 END), 0) AS unstarted_count, \
+            COALESCE(SUM(CASE WHEN status = 'learning' THEN 1 ELSE 0 END), 0) AS learning_count, \
+            COALESCE(SUM(CASE WHEN status = 'mastered' THEN 1 ELSE 0 END), 0) AS mastered_count, \
+            COALESCE(SUM(CASE WHEN status = 'ignored' THEN 1 ELSE 0 END), 0) AS ignored_count \
+         FROM vocabulary_words",
+    )
+    .fetch_one(pool)
+    .await?;
 
-        //COALESCE 防止空表时 SUM 返回 NULL 导致解码失败
-        let row: StatsRow = sqlx::query_as(
-            "SELECT \
-                COUNT(*) AS total_words, \
-                COALESCE(SUM(CASE WHEN status = 'learning' THEN 1 ELSE 0 END), 0) AS learning_count, \
-                COALESCE(SUM(CASE WHEN status = 'mastered' THEN 1 ELSE 0 END), 0) AS mastered_count \
-             FROM vocabulary_words",
-        )
-        .fetch_one(pool)
-        .await?;
-
-        Ok(VocabStats {
-            total_words: row.total_words,
-            learning_count: row.learning_count,
-            known_count: 0,
-            mastered_count: row.mastered_count,
-        })
-    }
+    Ok(stats)
+}
 }

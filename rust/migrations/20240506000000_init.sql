@@ -208,7 +208,7 @@ CREATE TABLE IF NOT EXISTS vocabulary_words (
     review_count    INTEGER DEFAULT 0,
     last_reviewed_at INTEGER,
     word_list       TEXT,
-    status          TEXT DEFAULT 'learning',
+    status          TEXT DEFAULT 'unstarted',
     dict_source     TEXT REFERENCES dictionaries(id) ON DELETE SET NULL,
     dict_entry_hash TEXT
 );

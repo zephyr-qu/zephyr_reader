@@ -662,9 +662,10 @@ typedef struct wire_cst_parse_result {
 
 typedef struct wire_cst_vocab_stats {
   int64_t total_words;
+  int64_t unstarted_count;
   int64_t learning_count;
-  int64_t known_count;
   int64_t mastered_count;
+  int64_t ignored_count;
 } wire_cst_vocab_stats;
 
 void frbgen_zephyr_reader_wire__crate__api__bilingual__align_bilingual_content(int64_t port_,
@@ -790,7 +791,8 @@ void frbgen_zephyr_reader_wire__crate__api__bilingual__delete_bilingual_highligh
                                                                                        struct wire_cst_list_prim_u_8_strict *note_id);
 
 void frbgen_zephyr_reader_wire__crate__api__data__book__delete_book(int64_t port_,
-                                                                    struct wire_cst_list_prim_u_8_strict *book_id);
+                                                                    struct wire_cst_list_prim_u_8_strict *book_id,
+                                                                    struct wire_cst_list_prim_u_8_strict *covers_dir);
 
 void frbgen_zephyr_reader_wire__crate__api__data__bookmark__delete_bookmark(int64_t port_,
                                                                             struct wire_cst_list_prim_u_8_strict *bookmark_id);

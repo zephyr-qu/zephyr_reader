@@ -202,10 +202,10 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::bilingual::delete_bilingual_highlight_pair(api_note_id).await?;   Ok(output_ok)
                     })().await)
                 } })
-            }fn wire__crate__api__data__book__delete_book_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>)  {
-                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "delete_book", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_book_id = book_id.cst_decode(); move |context| async move {
+            }fn wire__crate__api__data__book__delete_book_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>,covers_dir: impl CstDecode<String>)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "delete_book", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_book_id = book_id.cst_decode();let api_covers_dir = covers_dir.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
-                         let output_ok = crate::api::data::book::delete_book(api_book_id).await?;   Ok(output_ok)
+                         let output_ok = crate::api::data::book::delete_book(api_book_id, api_covers_dir).await?;   Ok(output_ok)
                     })().await)
                 } })
             }fn wire__crate__api__data__bookmark__delete_bookmark_impl(port_: flutter_rust_bridge::for_generated::MessagePort,bookmark_id: impl CstDecode<String>)  {
@@ -893,7 +893,7 @@ impl CstDecode<chrono::DateTime::<chrono::Utc>> for i64 {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> crate::storage::models::VocabStatus {
                 match self {
-            0 => crate::storage::models::VocabStatus::New,
+            0 => crate::storage::models::VocabStatus::Unstarted,
 1 => crate::storage::models::VocabStatus::Learning,
 2 => crate::storage::models::VocabStatus::Mastered,
 3 => crate::storage::models::VocabStatus::Ignored,
@@ -1875,17 +1875,18 @@ return crate::api::vocab_marker::VocabMatch{word: var_word, start: var_start, en
                 impl SseDecode for crate::storage::models::VocabStats {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_totalWords = <i64>::sse_decode(deserializer);
+let mut var_unstartedCount = <i64>::sse_decode(deserializer);
 let mut var_learningCount = <i64>::sse_decode(deserializer);
-let mut var_knownCount = <i64>::sse_decode(deserializer);
 let mut var_masteredCount = <i64>::sse_decode(deserializer);
-return crate::storage::models::VocabStats{total_words: var_totalWords, learning_count: var_learningCount, known_count: var_knownCount, mastered_count: var_masteredCount};}
+let mut var_ignoredCount = <i64>::sse_decode(deserializer);
+return crate::storage::models::VocabStats{total_words: var_totalWords, unstarted_count: var_unstartedCount, learning_count: var_learningCount, mastered_count: var_masteredCount, ignored_count: var_ignoredCount};}
                 }
                 
                 impl SseDecode for crate::storage::models::VocabStatus {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::storage::models::VocabStatus::New,
+            0 => crate::storage::models::VocabStatus::Unstarted,
 1 => crate::storage::models::VocabStatus::Learning,
 2 => crate::storage::models::VocabStatus::Mastered,
 3 => crate::storage::models::VocabStatus::Ignored,
@@ -2806,9 +2807,10 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::vocab_marker::VocabMatch> for
                 fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
                     [
                     self.total_words.into_into_dart().into_dart(),
+self.unstarted_count.into_into_dart().into_dart(),
 self.learning_count.into_into_dart().into_dart(),
-self.known_count.into_into_dart().into_dart(),
-self.mastered_count.into_into_dart().into_dart()
+self.mastered_count.into_into_dart().into_dart(),
+self.ignored_count.into_into_dart().into_dart()
                 ].into_dart()
                 }
             }
@@ -2822,7 +2824,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::storage::models::VocabStats> for c
             impl flutter_rust_bridge::IntoDart for crate::storage::models::VocabStatus {
                 fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
                     match self {
-                    Self::New => 0.into_dart(),
+                    Self::Unstarted => 0.into_dart(),
 Self::Learning => 1.into_dart(),
 Self::Mastered => 2.into_dart(),
 Self::Ignored => 3.into_dart(),
@@ -3695,14 +3697,15 @@ crate::domain::types::rich_text::RichTextSpan::Link{text,url,font_size,color} =>
                 impl SseEncode for crate::storage::models::VocabStats {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i64>::sse_encode(self.total_words, serializer);
+<i64>::sse_encode(self.unstarted_count, serializer);
 <i64>::sse_encode(self.learning_count, serializer);
-<i64>::sse_encode(self.known_count, serializer);
-<i64>::sse_encode(self.mastered_count, serializer);}
+<i64>::sse_encode(self.mastered_count, serializer);
+<i64>::sse_encode(self.ignored_count, serializer);}
                 }
                 
                 impl SseEncode for crate::storage::models::VocabStatus {
                     // Codec=Sse (Serialization based), see doc to use other codecs
-                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(match self {crate::storage::models::VocabStatus::New => { 0 }
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(match self {crate::storage::models::VocabStatus::Unstarted => { 0 }
 crate::storage::models::VocabStatus::Learning => { 1 }
 crate::storage::models::VocabStatus::Mastered => { 2 }
 crate::storage::models::VocabStatus::Ignored => { 3 }
@@ -4349,7 +4352,7 @@ impl CstDecode<PageStreamer> for usize {
         }impl CstDecode<crate::storage::models::VocabStats> for wire_cst_vocab_stats {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> crate::storage::models::VocabStats {
-                crate::storage::models::VocabStats{total_words:  self.total_words.cst_decode(),learning_count:  self.learning_count.cst_decode(),known_count:  self.known_count.cst_decode(),mastered_count:  self.mastered_count.cst_decode()}
+                crate::storage::models::VocabStats{total_words:  self.total_words.cst_decode(),unstarted_count:  self.unstarted_count.cst_decode(),learning_count:  self.learning_count.cst_decode(),mastered_count:  self.mastered_count.cst_decode(),ignored_count:  self.ignored_count.cst_decode()}
             }
         }impl NewWithNullPtr for wire_cst_aligned_segment {
             fn new_with_null_ptr() -> Self {
@@ -4893,9 +4896,10 @@ end: Default::default(), }
         }impl NewWithNullPtr for wire_cst_vocab_stats {
             fn new_with_null_ptr() -> Self {
                 Self { total_words: Default::default(),
+unstarted_count: Default::default(),
 learning_count: Default::default(),
-known_count: Default::default(),
-mastered_count: Default::default(), }
+mastered_count: Default::default(),
+ignored_count: Default::default(), }
             }
         }
         impl Default for wire_cst_vocab_stats {
@@ -5061,8 +5065,8 @@ mastered_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
-                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__book__delete_book(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict)  {
-                    wire__crate__api__data__book__delete_book_impl(port_, book_id)
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__book__delete_book(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict, covers_dir: *mut wire_cst_list_prim_u_8_strict)  {
+                    wire__crate__api__data__book__delete_book_impl(port_, book_id, covers_dir)
                 }
             
 
@@ -6296,9 +6300,10 @@ dict_entry_hash: *mut wire_cst_list_prim_u_8_strict }
 start: i64,
 end: i64 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_vocab_stats { total_words: i64,
+unstarted_count: i64,
 learning_count: i64,
-known_count: i64,
-mastered_count: i64 }
+mastered_count: i64,
+ignored_count: i64 }
         }
         #[cfg(not(target_family = "wasm"))]
         pub use io::*;
@@ -6735,8 +6740,8 @@ impl CstDecode<String> for String {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> crate::storage::models::VocabStats {
                 let self_ = self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap();
-                assert_eq!(self_.length(), 4, "Expected 4 elements, got {}", self_.length());
-                crate::storage::models::VocabStats{total_words:  self_.get(0).cst_decode(),learning_count:  self_.get(1).cst_decode(),known_count:  self_.get(2).cst_decode(),mastered_count:  self_.get(3).cst_decode()}
+                assert_eq!(self_.length(), 5, "Expected 5 elements, got {}", self_.length());
+                crate::storage::models::VocabStats{total_words:  self_.get(0).cst_decode(),unstarted_count:  self_.get(1).cst_decode(),learning_count:  self_.get(2).cst_decode(),mastered_count:  self_.get(3).cst_decode(),ignored_count:  self_.get(4).cst_decode()}
             }
         }impl CstDecode<PageStreamer> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
             // Codec=Cst (C-struct based), see doc to use other codecs
@@ -6989,8 +6994,8 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
-                pub  fn wire__crate__api__data__book__delete_book(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String)  {
-                    wire__crate__api__data__book__delete_book_impl(port_, book_id)
+                pub  fn wire__crate__api__data__book__delete_book(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String, covers_dir: String)  {
+                    wire__crate__api__data__book__delete_book_impl(port_, book_id, covers_dir)
                 }
             
 

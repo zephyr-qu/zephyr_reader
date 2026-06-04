@@ -29,11 +29,13 @@ class SearchResultsView extends StatelessWidget {
             title: '书籍',
             count: results.books.length,
             children: results.books
-                .map((item) => BookSearchCard(
-                      book: item.book,
-                      snippet: item.snippet,
-                      query: query,
-                    ))
+                .map(
+                  (item) => BookSearchCard(
+                    book: item.book,
+                    snippet: item.snippet,
+                    query: query,
+                  ),
+                )
                 .toList(),
           ),
         if (results.notes.isNotEmpty)
@@ -42,11 +44,13 @@ class SearchResultsView extends StatelessWidget {
             title: '笔记',
             count: results.notes.length,
             children: results.notes
-                .map((item) => NoteSearchCard(
-                      note: item.note,
-                      bookTitle: item.book.title,
-                      query: query,
-                    ))
+                .map(
+                  (item) => NoteSearchCard(
+                    note: item.note,
+                    bookTitle: item.book.title,
+                    query: query,
+                  ),
+                )
                 .toList(),
           ),
         if (results.vocab.isNotEmpty)
@@ -55,12 +59,14 @@ class SearchResultsView extends StatelessWidget {
             title: '生词',
             count: results.vocab.length,
             children: results.vocab
-                .map((item) => VocabSearchCard(
-                      vocab: item.vocab,
-                      translation: item.vocab.translation,
-                      bookTitle: item.bookTitle,
-                      query: query,
-                    ))
+                .map(
+                  (item) => VocabSearchCard(
+                    vocab: item.vocab,
+                    translation: item.vocab.translation,
+                    bookTitle: item.bookTitle,
+                    query: query,
+                  ),
+                )
                 .toList(),
           ),
         if (results.totalCount == 0)
@@ -72,7 +78,9 @@ class SearchResultsView extends StatelessWidget {
                   Icon(
                     PhosphorIconsRegular.magnifyingGlass,
                     size: 40,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.3,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Text(
