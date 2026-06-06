@@ -3,7 +3,6 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class TodayReadingCard extends StatelessWidget {
-
   final int minutes;
   final double progress;
   final int goalMinutes;

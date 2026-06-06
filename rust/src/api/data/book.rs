@@ -3,6 +3,7 @@
 //! 提供书籍的 CRUD 操作、搜索、分页、状态管理等功能。
 
 use flutter_rust_bridge::frb;
+use std::collections::HashMap;
 
 use super::async_storage;
 use crate::api::search;
@@ -14,8 +15,8 @@ use crate::storage::repos::{
 };
 
 pub use crate::storage::models::{
-    Book, BookFormat, BookStatus, Category, Chapter, NoteStats, ReadingProgress,
-    ReadingSession, Vocab,
+    Book, BookFormat, BookStatus, BookTitle, Category, Chapter, NoteStats,
+    ReadingProgress, ReadingSession, Vocab,
 };
 
 /// 书籍详情聚合（1 次 FFI 替代 7 次调用）
@@ -26,8 +27,8 @@ pub struct BookDetail {
     pub note_stats: NoteStats,
     pub chapters: Vec<Chapter>,
     pub categories: Vec<Category>,
-    pub sessions: Vec<ReadingSession>,
-    pub vocab_list: Vec<Vocab>,
+    pub session_count: i32,
+    pub vocab_count: i32,
 }
 
 /// 获取书籍详情（聚合查询，一次调用返回所有详情页数据）
@@ -46,9 +47,9 @@ pub async fn get_book_detail(book_id: String) -> Result<BookDetail, AppError> {
         .map_err(|e| AppError::database_error(e.to_string()))?;
     let categories = CategoryRepository::list_by_book(&pool, &book_id).await
         .map_err(|e| AppError::database_error(e.to_string()))?;
-    let sessions = SessionRepository::find_by_book(&pool, &book_id, 100).await
+    let session_count = SessionRepository::count_by_book(&pool, &book_id).await
         .map_err(|e| AppError::database_error(e.to_string()))?;
-    let vocab_list = VocabRepository::find_by_status(&pool, Some(&book_id), None, None).await
+    let vocab_count = VocabRepository::count_by_book(&pool, &book_id).await
         .map_err(|e| AppError::database_error(e.to_string()))?;
 
     Ok(BookDetail {
@@ -57,8 +58,8 @@ pub async fn get_book_detail(book_id: String) -> Result<BookDetail, AppError> {
         note_stats,
         chapters,
         categories,
-        sessions,
-        vocab_list,
+        session_count,
+        vocab_count,
     })
 }
 
@@ -69,6 +70,16 @@ pub async fn get_book_detail(book_id: String) -> Result<BookDetail, AppError> {
 #[frb]
 pub async fn list_books() -> Result<Vec<Book>, AppError> {
     async_storage!(BookRepository::list)
+}
+
+/// 获取所有书籍的标题映射（book_id → title）。
+///
+/// 轻量查询，直接返回 Map 供 Dart 侧 O(1) 查找，无需二次转换。
+#[frb]
+pub async fn map_book_titles() -> Result<HashMap<String, String>, AppError> {
+    let pool = crate::storage::storage_pool()?;
+    let titles = BookRepository::list_titles(&pool).await?;
+    Ok(titles.into_iter().map(|t| (t.book_id, t.title)).collect())
 }
 
 /// 新增或更新书籍(upsert)
@@ -187,8 +198,8 @@ pub async fn list_pinned_books() -> Result<Vec<Book>, AppError> {
 /// # 返回
 /// 按最近打开时间排序的书籍列表
 #[frb]
-pub async fn list_recently_opened_books(limit: usize) -> Result<Vec<Book>, AppError> {
-    async_storage!(|pool| BookRepository::list_recent(pool, limit))
+pub async fn list_recently_opened_books(limit: i32) -> Result<Vec<Book>, AppError> {
+    async_storage!(|pool| BookRepository::list_recent(pool, limit as i64))
 }
 
 /// 分页获取书籍列表
@@ -324,7 +335,7 @@ pub async fn create_web_book(
         0,
         &title,
         BookFormat::Txt,
-        chapter_count,
+        chapter_count as i64,
         total_characters,
         None,
         None,
@@ -343,4 +354,36 @@ pub async fn create_web_book(
     })?;
 
     Ok(book)
+}
+
+
+/// 批量更新书籍阅读状态（单次 FFI 调用）
+#[frb]
+pub async fn batch_update_book_status(
+    book_ids: Vec<String>,
+    status: BookStatus,
+) -> Result<(), AppError> {
+    let pool = crate::storage::ensure_storage()?
+        .pool()
+        .map_err(|e| AppError::database_error(e.to_string()))?;
+    for book_id in &book_ids {
+        BookRepository::update_status(&pool, book_id, status.clone()).await?;
+    }
+    Ok(())
+}
+
+/// 批量设置书籍分类（单次 FFI 调用）
+#[frb]
+pub async fn batch_set_categories_for_books(
+    book_ids: Vec<String>,
+    category_ids: Vec<String>,
+) -> Result<(), AppError> {
+    let pool = crate::storage::ensure_storage()?
+        .pool()
+        .map_err(|e| AppError::database_error(e.to_string()))?;
+    use crate::storage::repos::category_repo::CategoryRepository;
+    for book_id in &book_ids {
+        CategoryRepository::set_by_book(&pool, book_id, &category_ids).await?;
+    }
+    Ok(())
 }

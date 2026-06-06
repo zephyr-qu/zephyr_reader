@@ -53,7 +53,7 @@ pub async fn create_category(
     sort_order: i32,
     description: Option<String>,
 ) -> Result<Category, AppError> {
-    let category = Category::new(&name, &color, sort_order, description.as_deref(), false);
+    let category = Category::new(&name, &color, sort_order as i64, description.as_deref(), false);
     async_storage!(|pool| CategoryRepository::save(pool, &category))
 }
 
@@ -78,7 +78,7 @@ pub async fn upsert_category(
     sort_order: i32,
     description: Option<String>,
 ) -> Result<Category, AppError> {
-    let category = Category::new(&name, &color, sort_order, description.as_deref(), false);
+    let category = Category::new(&name, &color, sort_order as i64, description.as_deref(), false);
     async_storage!(|pool| CategoryRepository::save(pool, &category))
 }
 /// 删除分类

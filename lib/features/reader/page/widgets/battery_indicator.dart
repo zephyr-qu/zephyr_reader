@@ -66,7 +66,7 @@ class BatteryIndicator extends HookWidget {
     ValueNotifier<bool> supported,
   ) async {
     try {
-      final state = await BatteryStateService().getBatteryState();
+      final state = await BatteryStateService.instance.getBatteryState();
       level.value = state.batteryLevel;
       isCharging.value = state.isCharging;
     } catch (_) {

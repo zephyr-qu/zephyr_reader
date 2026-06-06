@@ -35,14 +35,13 @@ enum ReadingMode {
 
 /// 阅读器主题
 enum ReaderTheme {
-  light('light', '日间'),
-  dark('dark', '夜间'),
-  sepia('sepia', '护眼');
+  light('light'),
+  dark('dark'),
+  sepia('sepia');
 
   final String id;
-  final String displayName;
 
-  const ReaderTheme(this.id, this.displayName);
+  const ReaderTheme(this.id);
 
   static ReaderTheme fromId(String id) {
     return ReaderTheme.values.firstWhere(
@@ -54,15 +53,14 @@ enum ReaderTheme {
 
 /// 阅读器字体大小
 enum ReaderFontSize {
-  small(14, '小'),
-  medium(16, '中'),
-  large(18, '大'),
-  xLarge(20, '特大');
+  small(14),
+  medium(16),
+  large(18),
+  xLarge(20);
 
   final double size;
-  final String displayName;
 
-  const ReaderFontSize(this.size, this.displayName);
+  const ReaderFontSize(this.size);
 
   static ReaderFontSize fromSize(double size) {
     return ReaderFontSize.values.firstWhere(
@@ -205,6 +203,14 @@ class ReaderConfig {
     debounce: Duration.zero,
   );
 
+  /// 是否跟随系统字体缩放（而非仅阅读器自有字号）
+  late final followSystemFontScale = persistedBool(
+    prefs,
+    SettingsKeys.readerFollowSystemFontScale,
+    false,
+    debounce: Duration.zero,
+  );
+
   // ==================== 非持久化信号 ====================
 
   /// 书写方向（横排/竖排，不持久化）
@@ -239,5 +245,24 @@ class ReaderConfig {
     punctuationSqueeze.value = true;
     baselineAlign.value = true;
     tapLayout.value = TapLayout.rightHanded;
+  }
+
+  /// 释放所有 signal 资源。
+  void dispose() {
+    theme.dispose();
+    fontSize.dispose();
+    lineHeight.dispose();
+    paragraphSpacing.dispose();
+    padding.dispose();
+    readerBgColorIndex.dispose();
+    autoScroll.dispose();
+    autoScrollSpeed.dispose();
+    letterSpacing.dispose();
+    punctuationSqueeze.dispose();
+    baselineAlign.dispose();
+    tapLayout.dispose();
+    followSystemFontScale.dispose();
+    writingDirection.dispose();
+    brightnessOverlay.dispose();
   }
 }

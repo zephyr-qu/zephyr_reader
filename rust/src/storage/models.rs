@@ -58,7 +58,7 @@ pub struct LayoutCache {
     /// 缓存的分页结果
     pub pages: Vec<PageContent>,
     /// 总页数
-    pub total_pages: i32,
+    pub total_pages: i64,
     /// 缓存创建时间
     pub created_at: i64,
 }
@@ -66,7 +66,7 @@ pub struct LayoutCache {
 impl LayoutCache {
     /// 创建新缓存（自动填充当前版本号）
     pub fn new(config_hash: u64, pages: Vec<PageContent>) -> Self {
-        let total_pages = pages.len() as i32;
+        let total_pages = pages.len() as i64;
         Self {
             version: LAYOUT_CACHE_VERSION,
             config_hash,
@@ -92,12 +92,12 @@ impl LayoutCache {
 #[frb(dart_metadata = ("freezed"))]
 pub struct ReadingProgress {
     pub book_id: String,
-    pub chapter_index: i32,
-    pub chunk_index: i32,
+    pub chapter_index: i64,
+    pub chunk_index: i64,
     pub chapter_id: Option<String>,
     pub char_offset: i64,
-    pub page_index: i32,
-    pub total_pages: i32,
+    pub page_index: i64,
+    pub total_pages: i64,
     pub progress: f32,
     pub reading_time_seconds: i64,
     pub last_read_at: DateTime<Utc>,
@@ -108,13 +108,13 @@ impl ReadingProgress {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         book_id: &str,
-        chapter_index: i32,
-        chunk_index: i32,
+        chapter_index: i64,
+        chunk_index: i64,
         char_offset: i64,
         progress: f32,
         reading_time_seconds: i64,
-        page_index: i32,
-        total_pages: i32,
+        page_index: i64,
+        total_pages: i64,
         is_completed: bool,
     ) -> Self {
         Self {
@@ -141,7 +141,7 @@ impl ReadingProgress {
 pub struct Bookmark {
     pub id: String,
     pub book_id: String,
-    pub chapter_index: i32,
+    pub chapter_index: i64,
     pub chapter_id: Option<String>,
     pub char_offset: i64,
     pub title: String,
@@ -151,7 +151,7 @@ pub struct Bookmark {
 impl Bookmark {
     pub fn new(
         book_id: &str,
-        chapter_index: i32,
+        chapter_index: i64,
         chapter_id: Option<String>,
         char_offset: i64,
         title: &str,
@@ -197,7 +197,7 @@ impl TryFrom<String> for NoteType {
 pub struct Note {
     pub id: String,
     pub book_id: String,
-    pub chapter_index: i32,
+    pub chapter_index: i64,
     pub chapter_id: Option<String>,
     pub char_offset: i64,
     pub length: i64,
@@ -205,7 +205,7 @@ pub struct Note {
     pub note_type: NoteType,
     pub content: String,
     pub selected_text: Option<String>,
-    pub highlight_color: Option<i32>,
+    pub highlight_color: Option<i64>,
     pub paired_note_id: Option<String>,
     pub language: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -217,11 +217,11 @@ impl Note {
     #[allow(clippy::too_many_arguments)]
     pub fn highlight(
         book_id: &str,
-        chapter_index: i32,
+        chapter_index: i64,
         char_offset: i64,
         length: i64,
         selected_text: &str,
-        color: i32,
+        color: i64,
         language: Option<&str>,
         paired_note_id: Option<&str>,
     ) -> Self {
@@ -247,7 +247,7 @@ impl Note {
     /// 创建批注笔记
     pub fn annotation(
         book_id: &str,
-        chapter_index: i32,
+        chapter_index: i64,
         char_offset: i64,
         content: &str,
         selected_text: Option<&str>,
@@ -277,10 +277,19 @@ impl Note {
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 #[frb(non_opaque, dart_metadata = ("freezed"))]
 pub struct NoteStats {
-    pub total_count: i32,
-    pub highlight_count: i32,
-    pub annotation_count: i32,
+    pub total_count: i64,
+    pub highlight_count: i64,
+    pub annotation_count: i64,
 }
+
+/// 笔记与书名组合（查询笔记列表时一并带回书名）
+#[derive(Debug, Clone)]
+#[frb(dart_metadata = ("freezed"))]
+pub struct NoteWithBook {
+    pub note: Note,
+    pub book_title: String,
+}
+
 // ==================== 阅读会话 & 统计 ====================
 
 /// 单次连续阅读会话记录
@@ -289,7 +298,7 @@ pub struct NoteStats {
 pub struct ReadingSession {
     pub id: String,
     pub book_id: String,
-    pub chapter_index: i32,
+    pub chapter_index: i64,
     pub start_char_offset: i64,
     pub end_char_offset: i64,
     pub started_at: DateTime<Utc>,
@@ -302,7 +311,7 @@ impl ReadingSession {
     /// - `id` / `started_at` / `ended_at` / `duration_seconds` 由构造函数自动计算
     pub fn new(
         book_id: &str,
-        chapter_index: i32,
+        chapter_index: i64,
         start_char_offset: i64,
         end_char_offset: i64,
         started_at: DateTime<Utc>,
@@ -330,7 +339,7 @@ pub struct ReadingStats {
     pub date: String,
     pub reading_time_seconds: i64,
     pub characters_read: i64,
-    pub session_count: i32,
+    pub session_count: i64,
     #[sqlx(default)]
     pub last_session_id: Option<String>,
 }
@@ -340,11 +349,11 @@ pub struct ReadingStats {
 pub struct AggregatedStats {
     pub total_reading_time_seconds: i64,
     pub total_characters_read: i64,
-    pub books_read_count: i32,
-    pub books_completed_count: i32,
-    pub total_books_count: i32,
-    pub total_notes_count: i32,
-    pub total_bookmarks_count: i32,
+    pub books_read_count: i64,
+    pub books_completed_count: i64,
+    pub total_books_count: i64,
+    pub total_notes_count: i64,
+    pub total_bookmarks_count: i64,
     pub today_reading_time_seconds: i64,
     pub today_characters_read: i64,
 }
@@ -354,15 +363,15 @@ pub struct AggregatedStats {
 pub struct GlobalStats {
     pub total_reading_time_seconds: i64,
     pub total_characters_read: i64,
-    pub books_read_count: i32,
-    pub books_completed_count: i32,
-    pub consecutive_reading_days: i32,
+    pub books_read_count: i64,
+    pub books_completed_count: i64,
+    pub consecutive_reading_days: i64,
     pub today_reading_time_seconds: i64,
     pub today_characters_read: i64,
     pub average_reading_speed: f32,
-    pub total_books_count: i32,
-    pub total_notes_count: i32,
-    pub total_bookmarks_count: i32,
+    pub total_books_count: i64,
+    pub total_notes_count: i64,
+    pub total_bookmarks_count: i64,
 }
 
 // ==================== 书籍 & 章节 ====================
@@ -431,7 +440,7 @@ pub struct Book {
     pub title: String,
     pub author: Option<String>,
     pub cover_path: Option<String>,
-    pub chapter_count: i32,
+    pub chapter_count: i64,
     pub total_characters: i64,
     #[sqlx(try_from = "String")]
     pub format: BookFormat,
@@ -449,6 +458,15 @@ pub struct Book {
     #[sqlx(default)]
     pub isbn: Option<String>,
 }
+
+/// 书籍标题摘要（轻量查询用）
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[frb(dart_metadata = ("freezed"))]
+pub struct BookTitle {
+    #[sqlx(rename = "id")]
+    pub book_id: String,
+    pub title: String,
+}
 impl Book {
     /// 添加新书籍（导入时调用）
     ///
@@ -462,7 +480,7 @@ impl Book {
         file_size: i64,
         title: &str,
         format: BookFormat,
-        chapter_count: i32,
+        chapter_count: i64,
         total_characters: i64,
         file_hash: Option<&str>,
         file_mtime: Option<i64>,
@@ -498,50 +516,40 @@ impl Book {
 }
 
 /// 章节信息
-///
-/// - `start_index` / `end_index` / `content_length` 标记了 `#[sqlx(default)]`，
-///   仅在数据库迁移新增这些列的过渡期内使用，迁移完成后应移除。
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 #[frb(dart_metadata = ("freezed"))]
 pub struct Chapter {
     pub id: String,
     pub book_id: String,
     pub title: String,
-    pub chapter_index: i32,
-    pub word_count: i64,
+    pub chapter_index: i64,
     pub cached_at: DateTime<Utc>,
-    pub level: i32,
-    #[sqlx(default)]
+    pub level: i64,
     pub start_index: i64,
-    #[sqlx(default)]
     pub end_index: i64,
-    #[sqlx(default)]
-    pub content_length: i64,
 }
 impl Chapter {
     /// 创建章节信息（解析完成时调用）
     ///
     /// - `id` / `cached_at` 自动生成
-    /// - `start_index` / `end_index` / `content_length` 初始为 0，
-    ///   由后续排版/索引任务回填（对应 DB 过渡期 `#[sqlx(default)]`）
     pub fn new(
         book_id: &str,
         title: &str,
-        chapter_index: i32,
-        word_count: i64,
-        level: i32,
+        chapter_index: i64,
+        level: i64,
+        start_index:i64,
+        end_index:i64
     ) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
             book_id: book_id.to_string(),
             title: title.to_string(),
             chapter_index,
-            word_count,
             cached_at: Utc::now(),
             level,
-            start_index: 0,
-            end_index: 0,
-            content_length: 0,
+            start_index,
+            end_index,
+            // content_length: 0,
         }
     }
 }
@@ -555,7 +563,7 @@ pub struct Category {
     pub name: String,
     pub description: Option<String>,
     pub color: String,
-    pub sort_order: i32,
+    pub sort_order: i64,
     pub is_system: bool,
 }
 impl Category {
@@ -566,7 +574,7 @@ impl Category {
     pub fn new(
         name: &str,
         color: &str,
-        sort_order: i32,
+        sort_order: i64,
         description: Option<&str>,
         is_system: bool,
     ) -> Self {
@@ -635,7 +643,7 @@ pub struct Vocab {
     pub chapter_index: Option<i64>,
     pub char_offset: Option<i64>,
     pub created_at: DateTime<Utc>,
-    pub review_count: i32,
+    pub review_count: i64,
     pub last_reviewed_at: Option<DateTime<Utc>>,
     #[sqlx(try_from = "String")]
     pub status: VocabStatus,
@@ -686,10 +694,15 @@ impl Vocab {
 #[derive(Debug, Clone, Serialize, Deserialize,sqlx::FromRow)]
 #[frb(dart_metadata = ("freezed"))]
 pub struct VocabStats {
+    #[sqlx(try_from = "i64")]
     pub total_words: i64,
+    #[sqlx(try_from = "i64")]
     pub unstarted_count: i64,
+    #[sqlx(try_from = "i64")]
     pub learning_count: i64,
+    #[sqlx(try_from = "i64")]
     pub mastered_count: i64,
+    #[sqlx(try_from = "i64")]
     pub ignored_count: i64,
 }
 

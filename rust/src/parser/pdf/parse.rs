@@ -81,7 +81,7 @@ pub fn parse_pdf(file_path: String) -> Result<ParseResult, AppError> {
         publisher: None,
         translator: None,
         isbn: None,
-        chapter_count,
+        chapter_count:chapter_count as i64,
         total_characters: total_chars,
         format: BookFormat::Pdf,
         added_at: chrono::Utc::now(),
@@ -118,18 +118,23 @@ fn generate_chapters(total_pages: usize, pages_per_chapter: usize, book_id: &str
     for (chapter_index, start_page) in (0..total_pages).step_by(pages_per_chapter).enumerate() {
         let end_page = (start_page + pages_per_chapter).min(total_pages);
 
-        chapters.push(Chapter {
-            id: Uuid::new_v4().to_string(),
-            book_id: book_id.to_string(),
-            title: format!("Chapter {}", chapter_index + 1),
-            chapter_index: chapter_index as i32,
-            word_count: 0,
-            cached_at: chrono::Utc::now(),
-            level: 0,
-            start_index: start_page as i64,
-            end_index: end_page as i64,
-            content_length: (end_page - start_page) as i64,
-        });
+        chapters.push(
+          Chapter::new(book_id, &format!("Chapter {}", chapter_index + 1), chapter_index as i64, 0,  start_page as i64, end_page as i64)
+
+        //   {
+        //     id: Uuid::new_v4().to_string(),
+        //     book_id: book_id.to_string(),
+        //     title: format!("Chapter {}", chapter_index + 1),
+        //     chapter_index: chapter_index as i64,
+        //     word_count: 0,
+        //     cached_at: chrono::Utc::now(),
+        //     level: 0,
+        //     start_index: start_page as i64,
+        //     end_index: end_page as i64,
+        //     // content_length: (end_page - start_page) as i64,
+        // }
+
+      );
     }
 
     chapters

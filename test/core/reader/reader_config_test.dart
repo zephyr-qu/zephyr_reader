@@ -12,17 +12,14 @@ void main() {
 
     test('light 主题属性', () {
       expect(ReaderTheme.light.id, equals('light'));
-      expect(ReaderTheme.light.displayName, equals('日间'));
     });
 
     test('dark 主题属性', () {
       expect(ReaderTheme.dark.id, equals('dark'));
-      expect(ReaderTheme.dark.displayName, equals('夜间'));
     });
 
     test('sepia 主题属性', () {
       expect(ReaderTheme.sepia.id, equals('sepia'));
-      expect(ReaderTheme.sepia.displayName, equals('护眼'));
     });
 
     test('fromId 有效 ID 返回对应主题', () {

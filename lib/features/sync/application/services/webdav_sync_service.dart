@@ -21,7 +21,6 @@ class WebDavSyncService {
   final syncStatus = signal<SyncStatus>(SyncStatus.idle);
   final syncProgress = signal<double>(0.0);
   final syncMessage = signal<String>('');
-  final lastSyncTime = signal<DateTime?>(null);
 
   // ── 常量 ──
 
@@ -116,14 +115,13 @@ class WebDavSyncService {
 
       syncProgress.value = 100.0;
       syncStatus.value = SyncStatus.success;
-      lastSyncTime.value = DateTime.now();
       syncMessage.value = '同步完成';
       result.success = result.error == null;
       return result;
     } catch (e) {
       syncStatus.value = SyncStatus.failed;
       syncMessage.value = '同步失败';
-      return SyncResult(success: false, error: e.toString());
+      return SyncResult(success: false, error: '同步异常，请检查网络或服务器配置');
     }
   }
 
@@ -187,7 +185,7 @@ class WebDavSyncService {
 
       return (true, null);
     } catch (e) {
-      return (false, '同步 ${type.displayName} 异常：$e');
+      return (false, '${type.displayName} 同步异常');
     }
   }
 
@@ -202,13 +200,17 @@ class WebDavSyncService {
     final baseUrl = config.baseUrl.endsWith('/')
         ? config.baseUrl
         : '${config.baseUrl}/';
+    // Copy password into erasable buffer to minimize heap lifetime
+    final passwordBytes = Uint8List.fromList(config.password.codeUnits);
     _client = webdav.newClient(
       baseUrl,
       user: config.username,
-      password: config.password,
+      password: String.fromCharCodes(passwordBytes),
       debug: kDebugMode,
     );
-    await _client!.ping();
+    // Clear sensitive data from native memory
+    passwordBytes.fillRange(0, passwordBytes.length, 0);
+    config.clearPassword();
     return _client!;
   }
 
@@ -263,15 +265,12 @@ class WebDavSyncService {
     }
   }
 
+  /// Check if remote file exists using PROPFIND on single path (not readDir).
   Future<bool> _fileExists(String remotePath) async {
     try {
       if (_client == null) return false;
-
-      final parentDir = p.dirname(remotePath);
-      final fileName = p.basename(remotePath);
-
-      final entries = await _client!.readDir(parentDir);
-      return entries.any((entry) => entry.name == fileName);
+      await _client!.readProps(remotePath);
+      return true;
     } catch (e) {
       return false;
     }

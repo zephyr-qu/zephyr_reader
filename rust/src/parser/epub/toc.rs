@@ -67,18 +67,20 @@ fn extract_toc_items(
             .find_spine_index_by_toc_href(pure_href)
             .unwrap_or(*chapter_id as usize);
 
-        chapters.push(Chapter {
-            id: uuid::Uuid::new_v4().to_string(),
-            book_id: book_id.to_string(),
-            title: title.to_string(),
-            start_index: index as i64,
-            end_index: 0,
-            content_length: 0,
-            chapter_index: *chapter_id,
-            level: *level,
-            word_count: 0,
-            cached_at: chrono::Utc::now(),
-        });
+        chapters.push(Chapter::new(book_id, title, *chapter_id  as i64, *level  as i64, index as i64, 0)
+        //   {
+        //     id: uuid::Uuid::new_v4().to_string(),
+        //     book_id: book_id.to_string(),
+        //     title: title.to_string(),
+        //     start_index: index as i64,
+        //     end_index: 0,
+        //     // content_length: 0,
+        //     chapter_index: *chapter_id  as i64,
+        //     level: *level  as i64,
+        //     word_count: 0,
+        //     cached_at: chrono::Utc::now(),
+        // }
+      );
 
         *chapter_id += 1;
     }
@@ -109,18 +111,26 @@ fn generate_chapters_from_spine(spine: &[String], book_id: &str) -> Vec<Chapter>
             // 从 href 提取章节标题
             let title = extract_title_from_href(href);
 
-            Chapter {
-                id: uuid::Uuid::new_v4().to_string(),
-                book_id: book_id.to_string(),
-                title,
-                start_index: i as i64,
-                end_index: (i + 1) as i64,
-                content_length: 0,
-                chapter_index: i as i32,
-                level: 0,
-                word_count: 0,
-                cached_at: chrono::Utc::now(),
-            }
+            Chapter::new(
+              book_id,
+              &title,
+              i as i64,
+              0,
+              i as i64,
+              (i + 1) as i64
+            )
+            //  {
+            //     id: uuid::Uuid::new_v4().to_string(),
+            //     book_id: book_id.to_string(),
+            //     title,
+            //     start_index: i as i64,
+            //     end_index: (i + 1) as i64,
+            //     // content_length: 0,
+            //     chapter_index: i as i64,
+            //     level: 0,
+            //     word_count: 0,
+            //     cached_at: chrono::Utc::now(),
+            // }
         })
         .collect()
 }

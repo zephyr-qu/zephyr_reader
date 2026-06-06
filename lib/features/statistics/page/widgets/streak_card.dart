@@ -6,11 +6,7 @@ class StreakCard extends StatelessWidget {
   final int days;
   final int totalBooks;
 
-  const StreakCard({
-    super.key,
-    required this.days,
-    required this.totalBooks,
-  });
+  const StreakCard({super.key, required this.days, required this.totalBooks});
 
   @override
   Widget build(BuildContext context) {
@@ -30,11 +26,7 @@ class StreakCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                PhosphorIconsRegular.fire,
-                size: 14,
-                color: cs.primary,
-              ),
+              Icon(PhosphorIconsRegular.fire, size: 14, color: cs.primary),
               const SizedBox(width: 4),
               Text(
                 l10n.streakLabel,

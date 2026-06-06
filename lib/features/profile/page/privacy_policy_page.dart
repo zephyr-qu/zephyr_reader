@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/features/profile/page/widgets/legal_section_card.dart';
 
 /// 隐私政策页面
 class PrivacyPolicyPage extends StatelessWidget {
@@ -16,8 +17,7 @@ class PrivacyPolicyPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '1. 信息收集',
             content: [
               '本应用采用最小化信息收集原则。',
@@ -30,8 +30,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '2. 信息使用',
             content: [
               '本应用收集的信息仅用于以下目的：',
@@ -42,19 +41,17 @@ class PrivacyPolicyPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '3. 信息存储',
             content: [
               '本应用所有数据均存储在您的设备本地。',
-              '存储位置：/storage/emulated/0/Documents/ZephyrReader/',
-              '您可以随时通过文件管理器访问和删除这些数据。',
+              '数据存储在应用私有目录中，其他应用默认无法访问。',
+              '您可以在应用的「数据管理」页面查看和清除本地数据。',
               '卸载应用时，所有本地数据将被清除。',
             ],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '4. 信息共享',
             content: [
               '本应用不会向任何第三方共享您的个人信息。',
@@ -65,19 +62,18 @@ class PrivacyPolicyPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '5. 权限使用',
             content: [
               '本应用仅申请以下必要权限：',
-              '  • 存储权限：用于读取和保存小说文件',
-              '  • 网络权限：仅用于 WebDAV 同步功能（可选）',
+              '  • 网络权限：用于 WebDAV 数据同步功能（可选）',
+              '本应用无需存储权限即可正常使用。文件选择通过系统文件选择器（SAF）完成，',
+              '本应用无法访问您未主动选择的文件。',
               '本应用不会申请与阅读功能无关的权限。',
             ],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '6. 数据安全',
             content: [
               '本应用采用合理的技术措施保护您的数据安全。',
@@ -87,14 +83,12 @@ class PrivacyPolicyPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '7. 儿童隐私',
             content: ['本应用面向所有年龄段用户。', '本应用不专门针对儿童设计。', '儿童使用本应用时，建议由监护人指导。'],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '8. 政策更新',
             content: [
               '本隐私政策可能不时更新。',
@@ -103,8 +97,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '9. 联系我们',
             content: [
               '如您对隐私政策有任何疑问或建议，请通过 GitHub Issues 联系我们。',
@@ -121,37 +114,6 @@ class PrivacyPolicyPage extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSection(
-    ThemeData theme, {
-    required String title,
-    required List<String> content,
-  }) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...content.map(
-              (text) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(text, style: theme.textTheme.bodyMedium),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

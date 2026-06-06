@@ -42,16 +42,28 @@ class AutoThemeService {
   /// 当前主题模式
   final themeMode = signal<ThemeMode>(ThemeMode.system);
 
+  /// 当前小时是否在深色模式时间窗口内（支持跨天区间）
+  static bool _isDarkHour(int currentHour, int startHour, int endHour) {
+    if (startHour > endHour) {
+      // 跨天情况（如 18–6: 当前 ≥18 或 <6）
+      return currentHour >= startHour || currentHour < endHour;
+    } else {
+      // 不跨天情况（如 20–4: 当前 ≥20 且 <4）—— 实际不会出现，因为 endHour ≤ startHour 才进入此分支
+      return currentHour >= startHour && currentHour < endHour;
+    }
+  }
+
   AutoThemeService(this._prefs) {
     // 初始化时根据已持久化的值更新主题模式
     _updateThemeMode();
-    _startAutoSwitch();
+    _scheduleNextCheck();
   }
 
   /// 启用自动主题切换
   Future<void> enableAutoTheme() async {
     autoThemeEnabled.value = true;
     _updateThemeMode();
+    _scheduleNextCheck();
   }
 
   Future<void> disableAutoTheme() async {
@@ -61,11 +73,11 @@ class AutoThemeService {
     _autoSwitchTimer = null;
   }
 
-  /// 设置深色模式时间
   Future<void> setDarkModeTime(int startHour, int endHour) async {
     darkModeStartHour.value = startHour;
     darkModeEndHour.value = endHour;
     _updateThemeMode();
+    _scheduleNextCheck();
   }
 
   /// 更新主题模式
@@ -75,29 +87,61 @@ class AutoThemeService {
     }
 
     final now = DateTime.now();
-    final currentHour = now.hour;
-    final startHour = darkModeStartHour.value;
-    final endHour = darkModeEndHour.value;
-
-    bool isDarkMode;
-    if (startHour > endHour) {
-      // 跨天情况（如 18 - 6 点）
-      isDarkMode = currentHour >= startHour || currentHour < endHour;
-    } else {
-      // 不跨天情况（20 - 4 点）
-      isDarkMode = currentHour >= startHour && currentHour < endHour;
-    }
-
-    themeMode.value = isDarkMode ? ThemeMode.dark : ThemeMode.light;
-    Logging.debug('自动主题切换{isDarkMode ? "深色" : "浅色"} 模式');
+    final isDark = _isDarkHour(
+      now.hour,
+      darkModeStartHour.value,
+      darkModeEndHour.value,
+    );
+    themeMode.value = isDark ? ThemeMode.dark : ThemeMode.light;
+    Logging.debug('自动主题切换${isDark ? "深色" : "浅色"} 模式');
   }
 
-  /// 开始自动切换
-  void _startAutoSwitch() {
-    // 每小时检查一次，使用 Timer.periodic 避免递归漂移
+  /// 距离下一次主题切换的时长（精确到分钟）
+  Duration _timeUntilNextTransition() {
+    const dayMinutes = 24 * 60;
+    final now = DateTime.now();
+    final currentMinutes = now.hour * 60 + now.minute;
+    final startMinutes = darkModeStartHour.value * 60;
+    final endMinutes = darkModeEndHour.value * 60;
+
+    if (startMinutes > endMinutes) {
+      // 深色模式跨天（如 18:00→06:00）
+      if (currentMinutes >= startMinutes || currentMinutes < endMinutes) {
+        // 当前处于深色 → 下次切换在 endMinutes（日出）
+        if (currentMinutes < endMinutes) {
+          return Duration(minutes: endMinutes - currentMinutes);
+        } else {
+          return Duration(minutes: dayMinutes - currentMinutes + endMinutes);
+        }
+      } else {
+        // 当前处于浅色 → 下次切换在 startMinutes（日落），同天
+        return Duration(minutes: startMinutes - currentMinutes);
+      }
+    } else {
+      // 深色模式当天（如 08:00→18:00）
+      if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+        // 当前处于深色 → 下次切换在 endMinutes，同天
+        return Duration(minutes: endMinutes - currentMinutes);
+      } else {
+        // 当前处于浅色 → 下次切换在 startMinutes
+        if (currentMinutes < startMinutes) {
+          return Duration(minutes: startMinutes - currentMinutes);
+        } else {
+          return Duration(minutes: dayMinutes - currentMinutes + startMinutes);
+        }
+      }
+    }
+  }
+
+  /// 安排下一次精确切换（取代旧的 Timer.periodic 小时轮询）
+  void _scheduleNextCheck() {
+    if (!autoThemeEnabled.value) return;
     _autoSwitchTimer?.cancel();
-    _autoSwitchTimer = Timer.periodic(const Duration(hours: 1), (_) {
+    final duration = _timeUntilNextTransition();
+    Logging.debug('距离下次主题切换还有 ${duration.inMinutes} 分钟');
+    _autoSwitchTimer = Timer(duration, () {
       _updateThemeMode();
+      _scheduleNextCheck();
     });
   }
 
@@ -111,41 +155,42 @@ class AutoThemeService {
     return Duration(hours: darkModeStartHour.value);
   }
 
-  /// 是否为深色模式时
   bool get isDarkModeTime {
     if (!autoThemeEnabled.value) {
       return false;
     }
+    return _isDarkHour(
+      DateTime.now().hour,
+      darkModeStartHour.value,
+      darkModeEndHour.value,
+    );
+  }
 
-    final now = DateTime.now();
-    final currentHour = now.hour;
-    final startHour = darkModeStartHour.value;
-    final endHour = darkModeEndHour.value;
-
-    if (startHour > endHour) {
-      return currentHour >= startHour || currentHour < endHour;
-    } else {
-      return currentHour >= startHour && currentHour < endHour;
-    }
+  /// 释放所有 signal 和 timer 资源。
+  void dispose() {
+    autoThemeEnabled.dispose();
+    darkModeStartHour.dispose();
+    darkModeEndHour.dispose();
+    themeMode.dispose();
+    _autoSwitchTimer?.cancel();
   }
 }
 
 /// 主题时间预设
 enum ThemeTimePreset {
-  /// 日落到日
-  sunsetToSunrise('日落到日出', 18, 6),
+  /// 日落到日出（18:00–06:00）
+  sunsetToSunrise(18, 6),
 
-  /// 傍晚到早
-  eveningToMorning('傍晚到早晨', 20, 7),
+  /// 傍晚到早晨（20:00–07:00）
+  eveningToMorning(20, 7),
 
-  /// 自定
-  custom('自定义', 0, 0);
+  /// 自定义
+  custom(0, 0);
 
-  final String displayName;
   final int startHour;
   final int endHour;
 
-  const ThemeTimePreset(this.displayName, this.startHour, this.endHour);
+  const ThemeTimePreset(this.startHour, this.endHour);
 
   static ThemeTimePreset fromHours(int start, int end) {
     for (final preset in values) {

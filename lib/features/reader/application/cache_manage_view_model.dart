@@ -8,43 +8,52 @@ class CacheManageViewModel {
   final ReaderRepository repo;
   final String? bookId;
 
-  final books = signal<List<Book>>([]);
-  final progressList = signal<List<BookWithProgress>>([]);
-  final loaded = signal(false);
+  final books = asyncSignal<List<Book>>(AsyncState.loading());
+  final progressList = asyncSignal<List<BookWithProgress>>(
+    AsyncState.loading(),
+  );
 
-  CacheManageViewModel({required this.repo, this.bookId}) {
-    load();
-  }
+  CacheManageViewModel({required this.repo, this.bookId});
 
+  /// 加载书籍列表和阅读进度列表。
   Future<void> load() async {
+    batch(() {
+      books.value = AsyncState.loading();
+      progressList.value = AsyncState.loading();
+    });
     try {
       final results = await Future.wait([
         book_api.listBooks(),
         progress_api.listAllProgresses(),
       ]);
-      books.value = results[0] as List<Book>;
-      progressList.value = results[1] as List<BookWithProgress>;
-      loaded.value = true;
-    } catch (_) {
-      loaded.value = true;
+      batch(() {
+        books.value = AsyncState.data(results[0] as List<Book>);
+        progressList.value = AsyncState.data(
+          results[1] as List<BookWithProgress>,
+        );
+      });
+    } catch (e) {
+      batch(() {
+        books.value = AsyncState.error(e);
+        progressList.value = AsyncState.error(e);
+      });
     }
   }
 
+  /// 清除指定书籍的阅读进度。
   Future<void> clearProgress(String bookId) async {
     await progress_api.clearProgress(bookId: bookId);
     await load();
   }
 
-  /// 缓存已由 Rust sled 管理，Dart 端无需清理
-  void clearAllCache() {}
-
+  /// 清除 Rust 仓库层的阅读进度缓存。
   void clearProgressCache() {
     repo.clearProgressCache();
   }
 
+  /// 释放所有 signal 资源。
   void dispose() {
     books.dispose();
     progressList.dispose();
-    loaded.dispose();
   }
 }

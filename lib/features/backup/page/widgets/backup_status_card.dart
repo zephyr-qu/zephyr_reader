@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:zephyr_reader/src/rust/api/backup.dart' as backup_api;
+import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/features/backup/application/backup_view_model.dart';
 
 class BackupStatusCard extends HookWidget {
@@ -12,9 +14,14 @@ class BackupStatusCard extends HookWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final lastAt = vm.lastBackupAt.value;
-    final status = vm.status.value;
-
+    final DateTime? lastAt = useSignalValue(vm.lastBackupAt);
+    final BackupStatus status = useSignalValue(vm.status);
+    final String? errorMsg = useSignalValue<String?, Signal<String?>>(
+      vm.errorMessage,
+    );
+    final AsyncState<backup_api.BackupStats?> currentStats = useSignalValue(
+      vm.currentStats,
+    );
     final (icon, color, statusText) = switch (status) {
       BackupStatus.exporting => (
         PhosphorIconsRegular.arrowsClockwise,
@@ -29,7 +36,7 @@ class BackupStatusCard extends HookWidget {
       BackupStatus.error => (
         PhosphorIconsRegular.warningCircle,
         Colors.red,
-        '操作失败：${vm.errorMessage.value ?? "未知错误"}',
+        '操作失败：${errorMsg ?? "未知错误"}',
       ),
       _ => (
         lastAt != null
@@ -78,8 +85,8 @@ class BackupStatusCard extends HookWidget {
                   const SizedBox(height: 2),
                 if (status == BackupStatus.idle && lastAt != null)
                   Text(
-                    '数据量：${vm.currentStats.value?.books ?? "?"} 本书 · '
-                    '${vm.currentStats.value?.notes ?? "?"} 条笔记',
+                    '数据量：${currentStats.value?.books ?? "?"} 本书 · '
+                    '${currentStats.value?.notes ?? "?"} 条笔记',
                     style: TextStyle(
                       fontSize: 11,
                       color: Colors.white.withValues(alpha: 0.7),

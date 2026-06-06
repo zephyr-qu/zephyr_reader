@@ -10,7 +10,7 @@ import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/features/profile/page/theme_brightness/theme_brightness_view_model.dart';
+import 'package:zephyr_reader/features/profile/application/theme_brightness_view_model.dart';
 
 class ThemeBrightnessPage extends HookWidget {
   late final ThemeBrightnessViewModel vm = getIt<ThemeBrightnessViewModel>();
@@ -32,7 +32,6 @@ class ThemeBrightnessPage extends HookWidget {
     final bool useSystemBrightness = useSignalValue(
       vm.useSystemBrightness.signal,
     );
-    final String? currentPresetId = useSignalValue(vm.currentPresetId);
 
     return Scaffold(
       appBar: AppBar(
@@ -51,8 +50,6 @@ class ThemeBrightnessPage extends HookWidget {
           _buildAppThemeSection(cs, themeType, l10n),
           const SizedBox(height: 24),
           _buildBgColorSection(cs, bgIndex),
-          const SizedBox(height: 24),
-          _buildPresetSection(cs, currentPresetId),
           const SizedBox(height: 24),
           _buildBrightnessSection(context, cs, brightness, useSystemBrightness),
           const SizedBox(height: 24),
@@ -146,7 +143,7 @@ class ThemeBrightnessPage extends HookWidget {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SectionLabel(label: l10n.appTheme, colorScheme: cs),
+            SectionLabel(label: l10n.appTheme),
             Container(
               decoration: BoxDecoration(
                 color: cs.surface,
@@ -248,7 +245,7 @@ class ThemeBrightnessPage extends HookWidget {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SectionLabel(label: '阅读背景色', colorScheme: cs),
+            const SectionLabel(label: '阅读背景色'),
             Container(
               decoration: BoxDecoration(
                 color: cs.surface,
@@ -326,91 +323,6 @@ class ThemeBrightnessPage extends HookWidget {
     );
   }
 
-  Widget _buildPresetSection(ColorScheme cs, String? currentPresetId) {
-    final presets = vm.presets;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionLabel(label: '主题色', colorScheme: cs),
-        Container(
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: cs.outlineVariant.withValues(alpha: 0.2),
-              width: 0.5,
-            ),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: SizedBox(
-            height: 60,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: presets.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (_, i) {
-                final preset = presets[i];
-                final active = preset.id == currentPresetId;
-                return GestureDetector(
-                  onTap: () => vm.applyPreset(preset.id),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        width: active ? 52 : 48,
-                        height: active ? 52 : 48,
-                        decoration: BoxDecoration(
-                          color: preset.primaryColor,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: active ? cs.primary : Colors.transparent,
-                            width: 3,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: cs.onSurface.withValues(alpha: 0.08),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                        transform: active
-                            ? Matrix4.diagonal3Values(1.1, 1.1, 1)
-                            : Matrix4.identity(),
-                        child: active
-                            ? Center(
-                                child: Icon(
-                                  PhosphorIconsRegular.check,
-                                  size: 20,
-                                  color:
-                                      preset.primaryColor.computeLuminance() >
-                                          0.3
-                                      ? Colors.black54
-                                      : Colors.white70,
-                                ),
-                              )
-                            : null,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        preset.name,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: cs.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ],
-    ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.03, end: 0);
-  }
-
   Widget _buildBrightnessSection(
     BuildContext context,
     ColorScheme cs,
@@ -420,7 +332,7 @@ class ThemeBrightnessPage extends HookWidget {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SectionLabel(label: '亮度调节', colorScheme: cs),
+            const SectionLabel(label: '亮度调节'),
             Container(
               decoration: BoxDecoration(
                 color: cs.surface,

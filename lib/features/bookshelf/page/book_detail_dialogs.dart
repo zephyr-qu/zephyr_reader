@@ -1,11 +1,62 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/core/app_config.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
+/// 显示分类选择弹窗（多选 CheckboxListTile）。
+///
+/// 返回选中分类的 ID 集合，取消返回 `null`。
+Future<Set<String>?> showCategorySelectionDialog(
+  BuildContext context, {
+  required List<Category> categories,
+  Set<String> initialSelection = const {},
+  required String title,
+  required String cancelText,
+  required String confirmText,
+}) async {
+  final tempSelected = Set<String>.from(initialSelection);
+  return showDialog<Set<String>>(
+    context: context,
+    builder: (c) => StatefulBuilder(
+      builder: (c, setDialogState) => AlertDialog(
+        title: Text(title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: categories
+              .map(
+                (cat) => CheckboxListTile(
+                  title: Text(cat.name),
+                  value: tempSelected.contains(cat.id),
+                  onChanged: (v) {
+                    if (v == true) {
+                      tempSelected.add(cat.id);
+                    } else {
+                      tempSelected.remove(cat.id);
+                    }
+                    setDialogState(() {});
+                  },
+                ),
+              )
+              .toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: Text(cancelText),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, Set<String>.from(tempSelected)),
+            child: Text(confirmText),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
 /// 显示删除书籍确认对话框
 Future<bool> showDeleteBookDialog(BuildContext context, Book book) async {
@@ -33,7 +84,10 @@ Future<bool> showDeleteBookDialog(BuildContext context, Book book) async {
 
   if (confirmed == true) {
     try {
-      await book_api.deleteBook(bookId: book.bookId, coversDir: AppConfig.instance.coverDir);
+      await book_api.deleteBook(
+        bookId: book.bookId,
+        coversDir: AppConfig.instance.coverDir,
+      );
     } catch (e) {
       Logging.error('删除书籍失败', exception: e);
       if (context.mounted) {
@@ -41,7 +95,6 @@ Future<bool> showDeleteBookDialog(BuildContext context, Book book) async {
       }
       return false;
     }
-    if (context.mounted) Navigator.pop(context);
     return true;
   }
   return false;

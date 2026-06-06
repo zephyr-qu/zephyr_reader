@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-
+import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/presentation/widgets/selection_chip.dart';
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// Filter chips row for vocabulary status and word list selection.
@@ -10,8 +10,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 /// 1. Status chips (全部/未学/学习中/已忽略/已掌握) with counts.
 /// 2. Word-list chips passed via [wordLists].
 class VocabStatsRow extends StatelessWidget {
-  final ThemeData theme;
-  final VocabStats? stats;
+  final AsyncState<VocabStats?> stats;
   final VocabStatus? filterStatus;
   final String? filterWordList;
   final List<String> wordLists;
@@ -20,7 +19,6 @@ class VocabStatsRow extends StatelessWidget {
 
   const VocabStatsRow({
     super.key,
-    required this.theme,
     required this.stats,
     required this.filterStatus,
     required this.filterWordList,
@@ -29,107 +27,111 @@ class VocabStatsRow extends StatelessWidget {
     required this.onWordListFilterChanged,
   });
 
+  static int _countForStatus(VocabStatus status, VocabStats stats) =>
+      switch (status) {
+        VocabStatus.unstarted => stats.unstartedCount.toInt(),
+        VocabStatus.learning => stats.learningCount.toInt(),
+        VocabStatus.mastered => stats.masteredCount.toInt(),
+        VocabStatus.ignored => stats.ignoredCount.toInt(),
+      };
+
+  static String _labelForStatus(
+    VocabStatus status,
+    AppLocalizations l10n,
+    int count,
+  ) => switch (status) {
+    VocabStatus.unstarted => l10n.vocabStatsUnstarted(count.toString()),
+    VocabStatus.learning => l10n.vocabStatsLearning(count.toString()),
+    VocabStatus.mastered => l10n.vocabStatsMastered(count.toString()),
+    VocabStatus.ignored => l10n.vocabStatsIgnored(count.toString()),
+  };
   @override
   Widget build(BuildContext context) {
-    if (stats == null) {
-      return SizedBox(height: DesignTokens.spacing(Spacing.sm));
-    }
-
+    final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final notStartedCount = stats!.unstartedCount.toInt();
+    final l10n = AppLocalizations.of(context);
     const chipPadding = EdgeInsets.symmetric(horizontal: 14, vertical: 6);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                SelectionChip(
-                  label: '全部 ${stats!.totalWords}',
-                  selected: filterStatus == null,
-                  colorScheme: cs,
-                  onTap: () => onFilterChanged(null),
-                  padding: chipPadding,
-                  inactiveBgColor: cs.surfaceContainerHighest,
-                ),
-                const SizedBox(width: 8),
-                SelectionChip(
-                  label: '未学 $notStartedCount',
-                  selected: filterStatus == VocabStatus.unstarted,
-                  colorScheme: cs,
-                  onTap: () => onFilterChanged(VocabStatus.unstarted),
-                  padding: chipPadding,
-                  inactiveBgColor: cs.surfaceContainerHighest,
-                ),
-                const SizedBox(width: 8),
-                SelectionChip(
-                  label: '学习中 ${stats!.learningCount}',
-                  selected: filterStatus == VocabStatus.learning,
-                  colorScheme: cs,
-                  onTap: () => onFilterChanged(VocabStatus.learning),
-                  padding: chipPadding,
-                  inactiveBgColor: cs.surfaceContainerHighest,
-                ),
-                const SizedBox(width: 8),
-                SelectionChip(
-                  label: '已忽略 ${stats!.ignoredCount}',
-                  selected: filterStatus == VocabStatus.ignored,
-                  colorScheme: cs,
-                  onTap: () => onFilterChanged(VocabStatus.ignored),
-                  padding: chipPadding,
-                  inactiveBgColor: cs.surfaceContainerHighest,
-                ),
-                const SizedBox(width: 8),
-                SelectionChip(
-                  label: '已掌握 ${stats!.masteredCount}',
-                  selected: filterStatus == VocabStatus.mastered,
-                  colorScheme: cs,
-                  onTap: () => onFilterChanged(VocabStatus.mastered),
-                  padding: chipPadding,
-                  inactiveBgColor: cs.surfaceContainerHighest,
-                ),
-              ],
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                SelectionChip(
-                  label: '全部词库',
-                  selected: filterWordList == null,
-                  colorScheme: cs,
-                  onTap: () => onWordListFilterChanged(null),
-                  activeColor: cs.secondary,
-                  padding: chipPadding,
-                  inactiveBgColor: cs.surfaceContainerHighest,
-                ),
-                const SizedBox(width: 8),
-                for (final wl in wordLists)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: SelectionChip(
-                      label: wl,
-                      selected: filterWordList == wl,
-                      colorScheme: cs,
-                      onTap: () => onWordListFilterChanged(wl),
-                      activeColor: cs.secondary,
-                      padding: chipPadding,
-                      inactiveBgColor: cs.surfaceContainerHighest,
-                    ),
+    return stats.map(
+      data: (VocabStats? s) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  SelectionChip(
+                    label: l10n!.vocabStatsAll(s!.totalWords.toString()),
+                    selected: filterStatus == null,
+                    onTap: () => onFilterChanged(null),
+                    padding: chipPadding,
+                    inactiveBgColor: cs.surfaceContainerHighest,
                   ),
-              ],
+                  const SizedBox(width: 8),
+                  for (final status in VocabStatus.values)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: SelectionChip(
+                        label: _labelForStatus(
+                          status,
+                          l10n,
+                          _countForStatus(status, s),
+                        ),
+                        selected: filterStatus == status,
+                        onTap: () => onFilterChanged(status),
+                        padding: chipPadding,
+                        inactiveBgColor: cs.surfaceContainerHighest,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  SelectionChip(
+                    label: l10n.allWordLists,
+                    selected: filterWordList == null,
+                    onTap: () => onWordListFilterChanged(null),
+                    activeColor: cs.secondary,
+                    padding: chipPadding,
+                    inactiveBgColor: cs.surfaceContainerHighest,
+                  ),
+                  const SizedBox(width: 8),
+                  for (final wl in wordLists)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: SelectionChip(
+                        label: wl,
+                        selected: filterWordList == wl,
+                        onTap: () => onWordListFilterChanged(wl),
+                        activeColor: cs.secondary,
+                        padding: chipPadding,
+                        inactiveBgColor: cs.surfaceContainerHighest,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      error: () => const SizedBox.shrink(),
+      loading: () => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          height: 80,
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(8),
+          ),
         ),
-      ],
+      ),
     );
   }
 }

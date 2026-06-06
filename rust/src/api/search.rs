@@ -38,7 +38,7 @@ pub(crate) fn get_search_engine() -> Result<&'static SearchEngine, AppError> {
 pub async fn index_chapter(
     book_id: String,
     chapter_id: String,
-    chapter_index: String,
+    chapter_index: i32,
     chapter_title: String,
     content: String,
 ) -> Result<(), AppError> {
@@ -47,7 +47,7 @@ pub async fn index_chapter(
         .index_chapter(
             &book_id,
             &chapter_id,
-            &chapter_index,
+            chapter_index,
             &chapter_title,
             &content,
         )

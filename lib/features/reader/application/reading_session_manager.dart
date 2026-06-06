@@ -33,7 +33,7 @@ class ReadingSessionManager {
   Timer? _saveTimer;
 
   /// 进度保存防抖（5 秒内不重复保存）
-  DateTime _lastSaveTime = DateTime(2000);
+  DateTime _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(0);
 
   // ==================== 方法 ====================
 

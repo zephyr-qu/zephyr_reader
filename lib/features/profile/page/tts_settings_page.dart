@@ -1,162 +1,170 @@
-import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
+import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_slider_tile.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/core/reader/tts_service.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 class TtsSettingsPage extends HookWidget {
-  late final TtsService tts = getIt<TtsService>();
-  TtsSettingsPage({super.key});
+  const TtsSettingsPage({super.key});
 
   static const _previewText =
       'The quick brown fox jumps over the lazy dog. 敏捷的棕色狐狸跳过了懒狗。';
 
   @override
   Widget build(BuildContext context) {
-    final speed = useState(1.0);
-    final pitch = useState(1.0);
-    final pauseBetween = useState(300);
-    final bilingualAlternate = useState(true);
-    final originalOnly = useState(false);
-    final switchInterval = useState(500);
-    final backgroundPlay = useState(true);
-    final autoPage = useState(true);
-    final highlightFollow = useState(true);
-    final dimOnLock = useState(false);
-    final loaded = useState(false);
+    final vm = useMemoized(() => getIt<TtsSettingsViewModel>(), []);
     final tts = useMemoized(() => getIt<TtsService>(), []);
 
+    // 页面首次构建时将持久化设置应用到 TTS 引擎
     useEffect(() {
-      loadSettings(
-        speed,
-        pitch,
-        pauseBetween,
-        bilingualAlternate,
-        originalOnly,
-        switchInterval,
-        backgroundPlay,
-        autoPage,
-        highlightFollow,
-        dimOnLock,
-        loaded,
-      );
+      unawaited(tts.setSpeed(vm.speed.value));
+      unawaited(tts.setPitch(vm.pitch.value));
+      tts.setPauseBetween(vm.pauseBetween.value);
       return null;
     }, []);
 
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '朗读设置',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-            color: cs.onSurface,
-            letterSpacing: -0.5,
-          ),
-        ),
+      appBar: SettingsAppBar(title: l10n.ttsSettings),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+        children: [
+          _buildPreviewCard(cs, tts, l10n),
+          const SizedBox(height: 24),
+          _buildVoiceSection(context, cs, tts, l10n),
+          const SizedBox(height: 24),
+          _buildPlaybackSection(cs, vm, tts, l10n),
+          const SizedBox(height: 24),
+          _buildBilingualSection(context, cs, vm, l10n),
+          const SizedBox(height: 24),
+          _buildBehaviorSection(context, cs, vm, l10n),
+        ],
       ),
-      body: loaded.value
-          ? ListView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-              children: [
-                _buildPreviewCard(cs, tts),
-                const SizedBox(height: 24),
-                _buildVoiceSection(context, cs),
-                const SizedBox(height: 24),
-                _buildPlaybackSection(
-                  context,
-                  cs,
-                  speed,
-                  pitch,
-                  pauseBetween,
-                  tts,
-                ),
-                const SizedBox(height: 24),
-                _buildBilingualSection(
-                  context,
-                  cs,
-                  bilingualAlternate,
-                  originalOnly,
-                  switchInterval,
-                ),
-                const SizedBox(height: 24),
-                _buildBehaviorSection(
-                  context,
-                  cs,
-                  backgroundPlay,
-                  autoPage,
-                  highlightFollow,
-                  dimOnLock,
-                ),
-              ],
-            )
-          : Center(child: CircularProgressIndicator(color: cs.primary)),
     );
-  }
-
-  Future<void> loadSettings(
-    ValueNotifier<double> speed,
-    ValueNotifier<double> pitch,
-    ValueNotifier<int> pauseBetween,
-    ValueNotifier<bool> bilingualAlternate,
-    ValueNotifier<bool> originalOnly,
-    ValueNotifier<int> switchInterval,
-    ValueNotifier<bool> backgroundPlay,
-    ValueNotifier<bool> autoPage,
-    ValueNotifier<bool> highlightFollow,
-    ValueNotifier<bool> dimOnLock,
-    ValueNotifier<bool> loaded,
-  ) async {
-    final prefs = getIt<SharedPreferences>();
-    speed.value = prefs.getDouble('tts_speed') ?? 1.0;
-    pitch.value = prefs.getDouble('tts_pitch') ?? 1.0;
-    pauseBetween.value = prefs.getInt('tts_pause_between') ?? 300;
-    bilingualAlternate.value = prefs.getBool('tts_bilingual_alternate') ?? true;
-    originalOnly.value = prefs.getBool('tts_original_only') ?? false;
-    switchInterval.value = prefs.getInt('tts_switch_interval') ?? 500;
-    backgroundPlay.value = prefs.getBool('tts_background_play') ?? true;
-    autoPage.value = prefs.getBool('tts_auto_page') ?? true;
-    highlightFollow.value = prefs.getBool('tts_highlight_follow') ?? true;
-    dimOnLock.value = prefs.getBool('tts_dim_on_lock') ?? false;
-    loaded.value = true;
-    unawaited(tts.setSpeed(speed.value));
-    unawaited(tts.setPitch(pitch.value));
-    tts.setPauseBetween(pauseBetween.value);
-  }
-
-  Future<void> _save(String key, Object value) async {
-    final prefs = getIt<SharedPreferences>();
-    if (value is double) {
-      await prefs.setDouble(key, value);
-    } else if (value is int) {
-      await prefs.setInt(key, value);
-    } else if (value is bool) {
-      await prefs.setBool(key, value);
-    }
   }
 
   Future<void> _preview(TtsService tts) async {
     await tts.speak(_previewText);
   }
 
-  Widget _buildPreviewCard(ColorScheme cs, TtsService tts) {
+  Future<void> _showLangPicker(
+    BuildContext context,
+    AppLocalizations l10n,
+    TtsService tts,
+  ) async {
+    final langs = await tts.getLanguages();
+    if (!context.mounted) return;
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              l10n.ttsEngine,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          const Divider(height: 1),
+          ...langs.map(
+            (lang) => ListTile(
+              title: Text(lang),
+              selected: lang == tts.currentLanguage.value,
+              trailing: lang == tts.currentLanguage.value
+                  ? const Icon(Icons.check, size: 18)
+                  : null,
+              onTap: () => Navigator.pop(ctx, lang),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (selected != null && selected != tts.currentLanguage.value) {
+      await tts.setLanguage(selected);
+    }
+  }
+
+  Future<void> _showVoicePicker(
+    BuildContext context,
+    AppLocalizations l10n,
+    TtsService tts,
+    String localePrefix,
+  ) async {
+    final allVoices = await tts.getVoices();
+    final voices = allVoices
+        .map((v) => Map<String, String>.from(v as Map))
+        .where((v) => v['locale']?.startsWith(localePrefix) ?? false)
+        .toList();
+    if (!context.mounted) return;
+    final selected = await showModalBottomSheet<Map<String, String>>(
+      context: context,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              localePrefix == 'zh'
+                  ? l10n.ttsChineseVoice
+                  : l10n.ttsEnglishVoice,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          const Divider(height: 1),
+          if (voices.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                l10n.settings,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            )
+          else
+            ...voices.map(
+              (v) => ListTile(
+                title: Text(v['name'] ?? v['locale'] ?? ''),
+                onTap: () => Navigator.pop(ctx, v),
+              ),
+            ),
+        ],
+      ),
+    );
+    if (selected != null) {
+      await tts.setVoice(selected);
+    }
+  }
+
+  Widget _buildPreviewCard(
+    ColorScheme cs,
+    TtsService tts,
+    AppLocalizations l10n,
+  ) {
     final isPlaying = tts.isPlaying.value;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+        gradient: LinearGradient(
+          colors: [
+            cs.primary.withValues(alpha: 0.85),
+            cs.primary.withValues(alpha: 0.5),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -165,9 +173,9 @@ class TtsSettingsPage extends HookWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             _previewText,
-            style: TextStyle(fontSize: 14, height: 1.6, color: Colors.white),
+            style: TextStyle(fontSize: 14, height: 1.6, color: cs.onPrimary),
           ),
           const SizedBox(height: 16),
           Row(
@@ -178,31 +186,31 @@ class TtsSettingsPage extends HookWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: cs.onPrimary.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     isPlaying ? PhosphorIconsFill.stop : PhosphorIconsFill.play,
                     size: 18,
-                    color: Colors.white,
+                    color: cs.onPrimary,
                   ),
                 ),
               ),
               const SizedBox(width: 12),
               Text(
-                isPlaying ? '停止试听' : '试听当前配置',
-                style: const TextStyle(
+                isPlaying ? l10n.ttsPreviewStop : l10n.ttsPreviewPlay,
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white,
+                  color: cs.onPrimary,
                 ),
               ),
               const Spacer(),
               Text(
-                '修改后自动刷新',
+                l10n.ttsAutoRefresh,
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: cs.onPrimary.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -212,20 +220,27 @@ class TtsSettingsPage extends HookWidget {
     ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.05, end: 0);
   }
 
-  Widget _buildVoiceSection(BuildContext context, ColorScheme cs) {
+  Widget _buildVoiceSection(
+    BuildContext context,
+    ColorScheme cs,
+    TtsService tts,
+    AppLocalizations l10n,
+  ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SectionLabel(
-              label: '语音引擎',
-              colorScheme: Theme.of(context).colorScheme,
-            ),
+            SectionLabel(label: l10n.ttsVoiceEngine),
             SettingsCard(
-              colorScheme: Theme.of(context).colorScheme,
               children: [
-                _selectItem(cs, 'TTS 引擎', '系统默认', () {}),
-                _selectItem(cs, '英文语音', 'Google US English', () {}),
-                _selectItem(cs, '中文语音', '讯飞小燕', () {}),
+                _selectItem(cs, l10n.ttsEngine, tts.currentLanguage.value, () {
+                  _showLangPicker(context, l10n, tts);
+                }),
+                _selectItem(cs, l10n.ttsEnglishVoice, 'Google US English', () {
+                  _showVoicePicker(context, l10n, tts, 'en');
+                }),
+                _selectItem(cs, l10n.ttsChineseVoice, '讯飞小燕', () {
+                  _showVoicePicker(context, l10n, tts, 'zh');
+                }),
               ],
             ),
           ],
@@ -236,62 +251,55 @@ class TtsSettingsPage extends HookWidget {
   }
 
   Widget _buildPlaybackSection(
-    BuildContext context,
     ColorScheme cs,
-    ValueNotifier<double> speed,
-    ValueNotifier<double> pitch,
-    ValueNotifier<int> pauseBetween,
+    TtsSettingsViewModel vm,
     TtsService tts,
+    AppLocalizations l10n,
   ) {
+    final speed = useSignalValue<double, Signal<double>>(vm.speed.signal);
+    final pitch = useSignalValue<double, Signal<double>>(vm.pitch.signal);
+    final pauseBetween = useSignalValue<int, Signal<int>>(
+      vm.pauseBetween.signal,
+    );
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SectionLabel(
-              label: '播放参数',
-              colorScheme: Theme.of(context).colorScheme,
-            ),
+            SectionLabel(label: l10n.ttsPlaybackParams),
             SettingsCard(
-              colorScheme: Theme.of(context).colorScheme,
               children: [
                 SettingsSliderTile(
-                  label: '语速',
-                  value: '${speed.value.toStringAsFixed(1)}x',
-                  current: speed.value,
+                  label: l10n.ttsSpeed,
+                  value: '${speed.toStringAsFixed(1)}x',
+                  current: speed,
                   min: 0.5,
                   max: 2.0,
                   onChanged: (v) {
-                    speed.value = v;
-                    tts.setSpeed(v);
-                    _save('tts_speed', v);
+                    vm.speed.value = v;
+                    unawaited(tts.setSpeed(v));
                   },
-                  colorScheme: cs,
                 ),
                 SettingsSliderTile(
-                  label: '音调',
-                  value: pitch.value.toStringAsFixed(1),
-                  current: pitch.value,
+                  label: l10n.ttsPitch,
+                  value: pitch.toStringAsFixed(1),
+                  current: pitch,
                   min: 0.5,
                   max: 2.0,
                   onChanged: (v) {
-                    pitch.value = v;
-                    tts.setPitch(v);
-                    _save('tts_pitch', v);
+                    vm.pitch.value = v;
+                    unawaited(tts.setPitch(v));
                   },
-                  colorScheme: cs,
                 ),
                 SettingsSliderTile(
-                  label: '句间停顿',
-                  value: '${pauseBetween.value}ms',
-                  current: pauseBetween.value.toDouble(),
+                  label: l10n.ttsPauseBetween,
+                  value: '${pauseBetween}ms',
+                  current: pauseBetween.toDouble(),
                   min: 0,
                   max: 1000,
                   onChanged: (v) {
-                    pauseBetween.value = v.toInt();
+                    vm.pauseBetween.value = v.toInt();
                     tts.setPauseBetween(v.toInt());
-                    _save('tts_pause_between', v.toInt());
                   },
                   step: 50,
-                  colorScheme: cs,
                 ),
               ],
             ),
@@ -305,108 +313,95 @@ class TtsSettingsPage extends HookWidget {
   Widget _buildBilingualSection(
     BuildContext context,
     ColorScheme cs,
-    ValueNotifier<bool> bilingualAlternate,
-    ValueNotifier<bool> originalOnly,
-    ValueNotifier<int> switchInterval,
+    TtsSettingsViewModel vm,
+    AppLocalizations l10n,
   ) {
     return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SectionLabel(
-              label: '双语朗读',
-              colorScheme: Theme.of(context).colorScheme,
-              tag: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  'Zephyr 专属',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFFEF6C00),
-                  ),
-                ),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionLabel(
+          label: l10n.ttsBilingualReading,
+          tag: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: cs.brightness == Brightness.dark
+                  ? const Color(0xFF4E2D0D)
+                  : const Color(0xFFFFF3E0),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              l10n.zephyrExclusive,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                color: cs.brightness == Brightness.dark
+                    ? const Color(0xFFFFCC80)
+                    : const Color(0xFFEF6C00),
               ),
             ),
-            SettingsCard(
-              showDividers: true,
-              colorScheme: Theme.of(context).colorScheme,
-              children: [
-                SettingsToggleTile(
-                  icon: PhosphorIconsRegular.arrowsLeftRight,
-                  iconColor: MenuItemSemantic.reading.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.reading.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
-                  title: '双语交替朗读',
-                  subtitle: '先读英文原文，再读中文译文',
-                  value: bilingualAlternate.value,
-                  onChanged: (v) {
-                    bilingualAlternate.value = v;
-                    _save('tts_bilingual_alternate', v);
-                  },
-                ),
-                SettingsToggleTile(
-                  icon: PhosphorIconsRegular.textAa,
-                  iconColor: MenuItemSemantic.reading.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.reading.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
-                  title: '仅朗读原文',
-                  subtitle: '跳过译文段落，适合听力训练',
-                  value: originalOnly.value,
-                  onChanged: (v) {
-                    originalOnly.value = v;
-                    _save('tts_original_only', v);
-                  },
-                ),
-                SettingsSliderTile(
-                  label: '中英切换间隔',
-                  value: '${switchInterval.value}ms',
-                  current: switchInterval.value.toDouble(),
-                  min: 200,
-                  max: 1500,
-                  onChanged: (v) {
-                    switchInterval.value = v.toInt();
-                    _save('tts_switch_interval', v.toInt());
-                  },
-                  step: 100,
-                  colorScheme: cs,
-                ),
-              ],
+          ),
+        ),
+        SettingsCard(
+          showDividers: true,
+          children: [
+            SettingsToggleTile(
+              icon: PhosphorIconsRegular.arrowsLeftRight,
+              iconColor: MenuItemSemantic.reading.iconColor(
+                Theme.of(context).brightness,
+              ),
+              iconBackground: MenuItemSemantic.reading.iconBackground(
+                Theme.of(context).brightness,
+              ),
+              title: l10n.ttsBilingualAlternate,
+              subtitle: l10n.ttsBilingualAlternateDesc,
+              value: useSignalValue<bool, Signal<bool>>(
+                vm.bilingualAlternate.signal,
+              ),
+              onChanged: (v) => vm.bilingualAlternate.value = v,
+            ),
+            SettingsToggleTile(
+              icon: PhosphorIconsRegular.textAa,
+              iconColor: MenuItemSemantic.reading.iconColor(
+                Theme.of(context).brightness,
+              ),
+              iconBackground: MenuItemSemantic.reading.iconBackground(
+                Theme.of(context).brightness,
+              ),
+              title: l10n.ttsOriginalOnly,
+              subtitle: l10n.ttsOriginalOnlyDesc,
+              value: useSignalValue<bool, Signal<bool>>(vm.originalOnly.signal),
+              onChanged: (v) => vm.originalOnly.value = v,
+            ),
+            SettingsSliderTile(
+              label: l10n.ttsSwitchInterval,
+              value:
+                  '${useSignalValue<int, Signal<int>>(vm.switchInterval.signal)}ms',
+              current: useSignalValue<int, Signal<int>>(
+                vm.switchInterval.signal,
+              ).toDouble(),
+              min: 200,
+              max: 1500,
+              onChanged: (v) => vm.switchInterval.value = v.toInt(),
+              step: 100,
             ),
           ],
-        )
-        .animate()
-        .fadeIn(duration: 300.ms, delay: 200.ms)
-        .slideY(begin: 0.04, end: 0);
+        ),
+      ],
+    ).animate().fadeIn(duration: 300.ms, delay: 200.ms).slideY(begin: 0.04, end: 0);
   }
 
   Widget _buildBehaviorSection(
     BuildContext context,
     ColorScheme cs,
-    ValueNotifier<bool> backgroundPlay,
-    ValueNotifier<bool> autoPage,
-    ValueNotifier<bool> highlightFollow,
-    ValueNotifier<bool> dimOnLock,
+    TtsSettingsViewModel vm,
+    AppLocalizations l10n,
   ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SectionLabel(
-              label: '行为偏好',
-              colorScheme: Theme.of(context).colorScheme,
-            ),
+            SectionLabel(label: l10n.ttsBehavior),
             SettingsCard(
               showDividers: true,
-              colorScheme: Theme.of(context).colorScheme,
               children: [
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.playCircle,
@@ -416,13 +411,12 @@ class TtsSettingsPage extends HookWidget {
                   iconBackground: MenuItemSemantic.info.iconBackground(
                     Theme.of(context).brightness,
                   ),
-                  title: '后台播放',
-                  subtitle: '切出应用或锁屏后继续朗读',
-                  value: backgroundPlay.value,
-                  onChanged: (v) {
-                    backgroundPlay.value = v;
-                    _save('tts_background_play', v);
-                  },
+                  title: l10n.ttsBackgroundPlay,
+                  subtitle: l10n.ttsBackgroundPlayDesc,
+                  value: useSignalValue<bool, Signal<bool>>(
+                    vm.backgroundPlay.signal,
+                  ),
+                  onChanged: (v) => vm.backgroundPlay.value = v,
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.arrowRight,
@@ -432,13 +426,10 @@ class TtsSettingsPage extends HookWidget {
                   iconBackground: MenuItemSemantic.info.iconBackground(
                     Theme.of(context).brightness,
                   ),
-                  title: '自动翻页',
-                  subtitle: '读完当前章节自动跳转下一章',
-                  value: autoPage.value,
-                  onChanged: (v) {
-                    autoPage.value = v;
-                    _save('tts_auto_page', v);
-                  },
+                  title: l10n.ttsAutoPage,
+                  subtitle: l10n.ttsAutoPageDesc,
+                  value: useSignalValue<bool, Signal<bool>>(vm.autoPage.signal),
+                  onChanged: (v) => vm.autoPage.value = v,
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.highlighter,
@@ -448,13 +439,12 @@ class TtsSettingsPage extends HookWidget {
                   iconBackground: MenuItemSemantic.info.iconBackground(
                     Theme.of(context).brightness,
                   ),
-                  title: '高亮跟随',
-                  subtitle: '朗读时实时高亮当前句子',
-                  value: highlightFollow.value,
-                  onChanged: (v) {
-                    highlightFollow.value = v;
-                    _save('tts_highlight_follow', v);
-                  },
+                  title: l10n.ttsHighlightFollow,
+                  subtitle: l10n.ttsHighlightFollowDesc,
+                  value: useSignalValue<bool, Signal<bool>>(
+                    vm.highlightFollow.signal,
+                  ),
+                  onChanged: (v) => vm.highlightFollow.value = v,
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.moon,
@@ -464,13 +454,12 @@ class TtsSettingsPage extends HookWidget {
                   iconBackground: MenuItemSemantic.info.iconBackground(
                     Theme.of(context).brightness,
                   ),
-                  title: '息屏时降低音量',
-                  subtitle: '节省电量，适合睡前听书',
-                  value: dimOnLock.value,
-                  onChanged: (v) {
-                    dimOnLock.value = v;
-                    _save('tts_dim_on_lock', v);
-                  },
+                  title: l10n.ttsDimOnLock,
+                  subtitle: l10n.ttsDimOnLockDesc,
+                  value: useSignalValue<bool, Signal<bool>>(
+                    vm.dimOnLock.signal,
+                  ),
+                  onChanged: (v) => vm.dimOnLock.value = v,
                 ),
               ],
             ),

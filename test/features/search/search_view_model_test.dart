@@ -34,10 +34,7 @@ void main() {
 
       expect(vm.keyword.value, isEmpty);
       expect(vm.currentPage.value, equals(1));
-      expect(vm.titleHits.value, isEmpty);
-      expect(vm.contentHits.value, isEmpty);
-      expect(vm.vocabHits.value, isEmpty);
-      expect(vm.noteHits.value, isEmpty);
+      expect(vm.searchResults.value, isNull);
       expect(vm.hasSearched.value, isFalse);
     });
 

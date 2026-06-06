@@ -1,7 +1,7 @@
 class WebDavConfig {
   final String baseUrl;
   final String username;
-  final String password;
+  String password;
   final String remotePath;
 
   WebDavConfig({
@@ -53,6 +53,12 @@ class WebDavConfig {
       return baseUrl;
     }
   }
+
+  /// Minimize password lifetime in heap.
+  /// Note: Dart [String] is immutable — previous value remains until GC.
+  void clearPassword() {
+    password = '';
+  }
 }
 
 enum SyncStatus { idle, syncing, success, failed }
@@ -81,14 +87,4 @@ class SyncResult {
     this.downloadedCount = 0,
     this.error,
   });
-
-  String get summary {
-    if (!success) {
-      return '同步失败：$error';
-    }
-    final parts = <String>[];
-    if (uploadedCount > 0) parts.add('上传 $uploadedCount 项');
-    if (downloadedCount > 0) parts.add('下载 $downloadedCount 项');
-    return parts.isEmpty ? '同步完成，无需更新' : parts.join(', ');
-  }
 }

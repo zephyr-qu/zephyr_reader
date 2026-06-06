@@ -14,11 +14,11 @@ Future<bool?> showRestoreConfirmDialog(
   return showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Row(
+      title: Row(
         children: [
-          Icon(PhosphorIconsRegular.warning, color: Colors.orange, size: 22),
-          SizedBox(width: 8),
-          Text('确认还原'),
+          Icon(PhosphorIconsRegular.warning, color: cs.error, size: 22),
+          const SizedBox(width: 8),
+          Text(l10n.restoreConfirmTitle),
         ],
       ),
       content: Column(
@@ -26,7 +26,7 @@ Future<bool?> showRestoreConfirmDialog(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '此操作将覆盖当前所有数据。请确认该备份文件来源可信。',
+            l10n.restoreConfirmWarning,
             style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
@@ -39,18 +39,26 @@ Future<bool?> showRestoreConfirmDialog(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _statRow(ctx, '备份版本', manifest.appVersion),
+                _statRow(ctx, l10n.restoreStatVersion, manifest.appVersion),
                 _statRow(
                   ctx,
-                  '导出时间',
+                  l10n.restoreStatExportedAt,
                   DateTime.fromMillisecondsSinceEpoch(
                     manifest.exportedAt * 1000,
                   ).toString().substring(0, 19),
                 ),
-                _statRow(ctx, '书籍', '${manifest.stats.books} 本'),
-                _statRow(ctx, '笔记', '${manifest.stats.notes} 条'),
-                _statRow(ctx, '书签', '${manifest.stats.bookmarks} 个'),
-                _statRow(ctx, '生词', '${manifest.stats.vocabularyWords} 个'),
+                _statRow(ctx, l10n.restoreStatBooks, '${manifest.stats.books}'),
+                _statRow(ctx, l10n.restoreStatNotes, '${manifest.stats.notes}'),
+                _statRow(
+                  ctx,
+                  l10n.restoreStatBookmarks,
+                  '${manifest.stats.bookmarks}',
+                ),
+                _statRow(
+                  ctx,
+                  l10n.restoreStatVocabulary,
+                  '${manifest.stats.vocabularyWords}',
+                ),
               ],
             ),
           ),
@@ -62,9 +70,9 @@ Future<bool?> showRestoreConfirmDialog(
           child: Text(l10n.cancel),
         ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+          style: FilledButton.styleFrom(backgroundColor: cs.error),
           onPressed: () => Navigator.of(ctx).pop(true),
-          child: const Text('确认还原'),
+          child: Text(l10n.restoreConfirmAction),
         ),
       ],
     ),

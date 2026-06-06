@@ -27,7 +27,7 @@ pub async fn create_vocabulary_word(
     translation: String,
     context_sentence: Option<String>,
     book_id: Option<String>,
-    chapter_index: Option<i64>,
+    chapter_index: Option<i32>,
     char_offset: Option<i64>,
     word_list: Option<String>,
 ) -> Result<Vocab, AppError> {
@@ -37,7 +37,7 @@ pub async fn create_vocabulary_word(
         &translation,
         context_sentence.as_deref(),
         book_id.as_deref(),
-        chapter_index,
+        chapter_index.map(|v| v as i64),
         char_offset,
         word_list.as_deref(),
     );
@@ -113,6 +113,20 @@ pub async fn delete_vocabulary(id: String) -> Result<(), AppError> {
 #[frb]
 pub async fn get_vocabulary_stats() -> Result<VocabStats, AppError> {
     async_storage!(|pool| VocabRepository::count(pool))
+}
+
+/// 获取所有内置词库名称列表。
+///
+/// # 返回
+/// 词库名称的字符串向量，例如 `["CET-4", "CET-6", "IELTS", "TOEFL"]`。
+#[frb]
+pub fn list_word_lists() -> Vec<String> {
+    vec![
+        "CET-4".to_string(),
+        "CET-6".to_string(),
+        "IELTS".to_string(),
+        "TOEFL".to_string(),
+    ]
 }
 
 // #[cfg(test)]

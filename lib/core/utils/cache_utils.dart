@@ -65,19 +65,6 @@ class CacheUtils {
     return totalBytes;
   }
 
-  /// 格式化缓存大小
-  static String formatCacheSize(int bytes) {
-    if (bytes < 1024) {
-      return '$bytes B';
-    } else if (bytes < 1024 * 1024) {
-      return '${(bytes / 1024).toStringAsFixed(2)} KB';
-    } else if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
-    } else {
-      return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
-    }
-  }
-
   /// 删除目录内容
   static Future<int> _deleteDirectoryContents(Directory dir) async {
     int totalBytes = 0;

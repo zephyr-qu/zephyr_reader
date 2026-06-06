@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
@@ -84,7 +85,9 @@ class ReadingTrendChart extends StatelessWidget {
                 if (idx < 0 || idx >= records.length) {
                   return const SizedBox();
                 }
-                if (records.length > 14 && idx % 7 != 0) {
+                // 均匀抽稀：目标 ~6 个标签，计算步长
+                final step = max(1, records.length ~/ 6);
+                if (idx % step != 0) {
                   return const SizedBox();
                 }
                 final day = DateTime.parse(records[idx].date);

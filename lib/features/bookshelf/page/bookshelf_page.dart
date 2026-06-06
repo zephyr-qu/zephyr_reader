@@ -1,30 +1,30 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
+import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
-import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
+import 'package:zephyr_reader/core/theme/menu_colors.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_sort_type_ext.dart';
-import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_category_chips.dart';
+import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
+import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_batch_toolbar.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_book_content.dart';
+import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_category_chips.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_status_tabs.dart';
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import 'package:zephyr_reader/core/theme/menu_colors.dart';
-import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 
 class BookshelfPage extends HookWidget {
-  late final BookshelfViewModel vm = getIt<BookshelfViewModel>();
-
-  BookshelfPage({super.key});
-
+  const BookshelfPage({super.key});
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -35,10 +35,12 @@ class BookshelfPage extends HookWidget {
         : deviceType == DeviceType.tablet
         ? 4
         : 3;
+    final vm = useMemoized(() => getIt<BookshelfViewModel>());
     final isSearching = useSignal(false);
     final searchController = useTextEditingController();
     final batchMode = useSignal(false);
     final selectedIds = useSignal<Set<String>>({});
+    final debounceTimer = useRef<Timer?>(null);
 
     useSignalEffect(() {
       final msg = vm.feedback.value;
@@ -47,6 +49,12 @@ class BookshelfPage extends HookWidget {
         vm.feedback.value = null;
       }
     });
+
+    useEffect(() {
+      vm.loadCategories();
+      vm.loadBooks();
+      return null;
+    }, []);
 
     return Scaffold(
       appBar: AppBar(
@@ -62,10 +70,25 @@ class BookshelfPage extends HookWidget {
                   ),
                 ),
                 style: TextStyle(color: theme.colorScheme.onSurface),
-                onChanged: (v) {
-                  vm.updateSearchKeyword(v);
+                textInputAction: TextInputAction.search,
+                onSubmitted: (v) {
                   if (v.isEmpty && vm.isSearching.value) vm.stopSearch();
                   if (v.isNotEmpty && !vm.isSearching.value) vm.startSearch();
+                  FocusScope.of(context).unfocus();
+                },
+                onChanged: (v) {
+                  debounceTimer.value?.cancel();
+                  debounceTimer.value = Timer(
+                    const Duration(milliseconds: 300),
+                    () {
+                      if (v.isEmpty && vm.isSearching.value) {
+                        vm.stopSearch();
+                      } else if (v.isNotEmpty) {
+                        vm.updateSearchKeyword(v);
+                        if (!vm.isSearching.value) vm.startSearch();
+                      }
+                    },
+                  );
                 },
               )
             : Text(l10n.tabBookshelf),
@@ -197,7 +220,7 @@ class BookshelfPage extends HookWidget {
               SignalBuilder(
                 builder: (_) {
                   return BookshelfCategoryChips(
-                    categories: vm.categories.value,
+                    categories: vm.categories.value.value ?? [],
                     selectedCategoryId: vm.selectedCategory.value?.id,
                     onCategoryChanged: (category) =>
                         vm.selectCategory(category),
@@ -216,7 +239,7 @@ class BookshelfPage extends HookWidget {
                       crossAxisCount: crossAxisCount,
                       batchMode: batchMode.value,
                       selectedIds: selectedIds.value,
-                      readingProgress: vm.readingProgress.value,
+                      readingProgress: vm.readingProgress.value.value ?? {},
                       onRetry: vm.loadBooks,
                       onImportTap: () => _showImportDialog(context, vm),
                       onRefresh: vm.loadBooks,
@@ -240,7 +263,7 @@ class BookshelfPage extends HookWidget {
       bottomNavigationBar: batchMode.value
           ? BookshelfBatchToolbar(
               selectedCount: selectedIds.value.length,
-              categories: vm.categories.value,
+              categories: vm.categories.value.value ?? [],
               onCancel: () {
                 selectedIds.value = {};
                 batchMode.value = false;
@@ -249,9 +272,8 @@ class BookshelfPage extends HookWidget {
                 for (final id in selectedIds.value) {
                   await vm.deleteBook(id);
                 }
-                selectedIds.value = {};
                 batchMode.value = false;
-                await vm.loadBooks();
+                await vm.reloadBooks();
               },
               onBatchStatusChange: (status) async {
                 await vm.batchUpdateStatus(selectedIds.value, status);
@@ -293,12 +315,11 @@ class BookshelfPage extends HookWidget {
             ),
             onTap: () => Navigator.pop(c, 'status'),
           ),
-          if (book.coverPath == null)
-            ListTile(
-              leading: const Icon(PhosphorIconsRegular.image),
-              title: Text(l10n.reExtractCover),
-              onTap: () => Navigator.pop(c, 'cover'),
-            ),
+          ListTile(
+            leading: const Icon(PhosphorIconsRegular.image),
+            title: Text(l10n.reExtractCover),
+            onTap: () => Navigator.pop(c, 'cover'),
+          ),
           ListTile(
             leading: Icon(
               book.isPinned
@@ -313,47 +334,16 @@ class BookshelfPage extends HookWidget {
       ),
     );
     if (result == 'category') {
-      final allCats = vm.categories.value;
+      final allCats = vm.categories.value.value ?? [];
       final currentIds = await vm.getCategoryIds(book.bookId);
       if (!context.mounted) return;
-      final tempSelected = Set<String>.from(currentIds);
-      final selected = await showDialog<Set<String>>(
-        context: context,
-        builder: (c) => StatefulBuilder(
-          builder: (c, setDialogState) => AlertDialog(
-            title: Text(l10n.selectCategory),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: allCats
-                  .map(
-                    (cat) => CheckboxListTile(
-                      title: Text(cat.name),
-                      value: tempSelected.contains(cat.id),
-                      onChanged: (v) {
-                        if (v == true) {
-                          tempSelected.add(cat.id);
-                        } else {
-                          tempSelected.remove(cat.id);
-                        }
-                        setDialogState(() {});
-                      },
-                    ),
-                  )
-                  .toList(),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(c),
-                child: Text(l10n.cancel),
-              ),
-              FilledButton(
-                onPressed: () =>
-                    Navigator.pop(c, Set<String>.from(tempSelected)),
-                child: Text(l10n.confirm),
-              ),
-            ],
-          ),
-        ),
+      final selected = await showCategorySelectionDialog(
+        context,
+        categories: allCats,
+        initialSelection: currentIds,
+        title: l10n.selectCategory,
+        cancelText: l10n.cancel,
+        confirmText: l10n.confirm,
       );
       if (selected != null) {
         await vm.updateBookCategories(book.bookId, selected.toList());
@@ -372,6 +362,7 @@ class BookshelfPage extends HookWidget {
     BuildContext context,
     BookshelfViewModel vm,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['txt', 'epub', 'pdf'],
@@ -379,8 +370,15 @@ class BookshelfPage extends HookWidget {
     );
     if (result == null || result.files.isEmpty || !context.mounted) return;
     final filePath = result.files.single.path;
-    if (filePath == null) return;
-    await vm.importBook(filePath);
+    if (filePath == null || !context.mounted) return;
+    final ok = await vm.importBook(filePath);
+    if (!context.mounted) return;
+    final fileName = result.files.single.name;
+    if (ok) {
+      showInfoSnack(context, l10n.bookImported(fileName));
+    } else {
+      showInfoSnack(context, l10n.importFailed(fileName));
+    }
   }
 
   Future<void> _showScanDialog(
@@ -391,7 +389,20 @@ class BookshelfPage extends HookWidget {
     final folder = await FilePicker.getDirectoryPath();
     if (folder == null || !context.mounted) return;
     showInfoSnack(context, l10n.scanningFolder);
-    await vm.scanFolder(folder);
+    final (success, fail) = await vm.scanFolder(
+      folder,
+      onProgress: (done, total) {
+        showInfoSnack(context, l10n.scanProgress(done, total));
+      },
+    );
+    if (!context.mounted) return;
+    if (success == 0 && fail == 0) {
+      showInfoSnack(context, l10n.noBookFilesFound);
+    } else if (fail > 0) {
+      showInfoSnack(context, l10n.scanCompleteWithFailures(success, fail));
+    } else {
+      showInfoSnack(context, l10n.scanComplete(success));
+    }
   }
 
   void _showSettingsSheet(BuildContext context, BookshelfViewModel vm) {
@@ -403,94 +414,74 @@ class BookshelfPage extends HookWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (c) => StatefulBuilder(
-        builder: (context, setState) {
-          return Padding(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              20,
-              20,
-              DesignTokens.spacing(Spacing.xl),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (c) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          DesignTokens.spacing(Spacing.xl),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 3,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        color: DesignTokens.warmAccent,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      l10n.bookshelfSettings,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: cs.onSurface,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
                 Container(
+                  width: 3,
+                  height: 18,
                   decoration: BoxDecoration(
-                    color: cs.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: cs.outlineVariant.withValues(alpha: 0.4),
-                      width: 0.5,
-                    ),
+                    color: DesignTokens.warmAccent,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    children: [
-                      SettingsToggleTile(
-                        icon: PhosphorIconsRegular.gauge,
-                        iconColor: MenuItemSemantic.info.iconColor(
-                          Theme.of(context).brightness,
-                        ),
-                        iconBackground: MenuItemSemantic.info.iconBackground(
-                          Theme.of(context).brightness,
-                        ),
-                        title: l10n.showReadingProgress,
-                        value: vm.showReadingProgress.value,
-                        onChanged: (v) => vm.showReadingProgress.value = v,
-                      ),
-                      Divider(
-                        height: 0.5,
-                        color: cs.outlineVariant.withValues(alpha: 0.15),
-                      ),
-                      SettingsToggleTile(
-                        icon: PhosphorIconsRegular.clockClockwise,
-                        iconColor: MenuItemSemantic.reading.iconColor(
-                          Theme.of(context).brightness,
-                        ),
-                        iconBackground: MenuItemSemantic.reading.iconBackground(
-                          Theme.of(context).brightness,
-                        ),
-                        title: l10n.showRecentReading,
-                        value: vm.showRecentReading.value,
-                        onChanged: (v) => vm.showRecentReading.value = v,
-                      ),
-                      Divider(
-                        height: 0.5,
-                        color: cs.outlineVariant.withValues(alpha: 0.15),
-                      ),
-                      _buildSortSetting(context, cs, vm, setState),
-                    ],
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  l10n.bookshelfSettings,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface,
+                    letterSpacing: 0.3,
                   ),
                 ),
               ],
             ),
-          );
-        },
+            const SizedBox(height: 20),
+            Container(
+              decoration: BoxDecoration(
+                color: cs.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: cs.outlineVariant.withValues(alpha: 0.4),
+                  width: 0.5,
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  SettingsToggleTile(
+                    icon: PhosphorIconsRegular.gauge,
+                    iconColor: MenuItemSemantic.info.iconColor(
+                      Theme.of(context).brightness,
+                    ),
+                    iconBackground: MenuItemSemantic.info.iconBackground(
+                      Theme.of(context).brightness,
+                    ),
+                    title: l10n.showReadingProgress,
+                    value: vm.showReadingProgress.value,
+                    onChanged: (v) => vm.showReadingProgress.value = v,
+                  ),
+                  Divider(
+                    height: 0.5,
+                    color: cs.outlineVariant.withValues(alpha: 0.15),
+                  ),
+                  _buildSortSetting(context, cs, vm),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -499,7 +490,6 @@ class BookshelfPage extends HookWidget {
     BuildContext context,
     ColorScheme cs,
     BookshelfViewModel vm,
-    void Function(void Function()) setState,
   ) {
     final l10n = AppLocalizations.of(context)!;
     return Padding(

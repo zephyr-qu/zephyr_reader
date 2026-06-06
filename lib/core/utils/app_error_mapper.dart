@@ -7,6 +7,11 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 class AppErrorMapper {
   AppErrorMapper._();
 
+  /// 将异常对象映射为用户可读的错误消息。
+  ///
+  /// 按异常类型（而非字符串匹配）分发到对应消息模板，
+  /// 覆盖 FRB/Panic、网络请求、文件 IO、数据格式等场景。
+  /// 无法识别的异常返回通用消息，不会向外传播异常。
   static String humanReadable(Object error) {
     // ===== FRB/Rust 引擎错误 =====
     if (error is PanicException) {

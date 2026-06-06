@@ -133,18 +133,18 @@ pub struct BilingualHighlightPair {
 #[frb(non_opaque)]
 pub struct BilingualHighlightParams {
     pub source_book_id: String,
-    pub source_chapter_index: i32,
-    pub source_char_offset: i64,
-    pub source_length: i64,
+    pub source_chapter_index: i64,
+    pub source_char_offset: i32,
+    pub source_length: i32,
     pub source_selected_text: String,
     pub source_language: String,
     pub target_book_id: String,
-    pub target_chapter_index: i32,
-    pub target_char_offset: i64,
-    pub target_length: i64,
+    pub target_chapter_index: i64,
+    pub target_char_offset: i32,
+    pub target_length: i32,
     pub target_selected_text: String,
     pub target_language: String,
-    pub highlight_color: i32,
+    pub highlight_color: i64,
 }
 /// 创建双语高亮配对
 ///
@@ -161,8 +161,8 @@ pub async fn create_bilingual_highlight_pair(
     let source_note = Note::highlight(
         &params.source_book_id,
         params.source_chapter_index,
-        params.source_char_offset,
-        params.source_length,
+        params.source_char_offset as i64,
+        params.source_length as i64,
         &params.source_selected_text,
         params.highlight_color,
         Some(&params.source_language),
@@ -171,9 +171,9 @@ pub async fn create_bilingual_highlight_pair(
 
     let target_note = Note::highlight(
         &params.target_book_id,
-        params.target_chapter_index,
-        params.target_char_offset,
-        params.target_length,
+        params.target_chapter_index ,
+        params.target_char_offset as i64,
+        params.target_length as i64,
         &params.target_selected_text,
         params.highlight_color,
         Some(&params.target_language),
@@ -202,7 +202,7 @@ pub async fn get_bilingual_highlight_pairs(
 ) -> Result<Vec<BilingualHighlightPair>, AppError> {
     let pool = storage_pool()?;
 
-    let paired_notes = NoteRepository::find_paired_notes_in_chapter(&pool, &book_id, chapter_index)
+    let paired_notes = NoteRepository::find_paired_notes_in_chapter(&pool, &book_id, chapter_index as i64)
         .await
         .map_err(|e| AppError::database_error(e.to_string()))?;
 

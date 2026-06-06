@@ -13,8 +13,6 @@ class WebDavConfigService {
   final FlutterSecureStorage _secureStorage;
 
   final isConfigured = signal(false);
-  final autoSyncEnabled = signal(false);
-  final autoSyncInterval = signal(30);
 
   WebDavConfigService({
     required SharedPreferences prefs,
@@ -25,14 +23,10 @@ class WebDavConfigService {
   }
   static const String _keyConfig = 'webdav.config';
   static const String _keyPassword = 'webdav.password';
-  static const String _keyAutoSync = 'webdav.auto_sync';
-  static const String _keySyncInterval = 'webdav.sync_interval';
   static const String _keyLastSyncTime = 'webdav.last_sync_time';
 
   void _loadConfigStatus() {
     isConfigured.value = _prefs.containsKey(_keyConfig);
-    autoSyncEnabled.value = _prefs.getBool(_keyAutoSync) ?? false;
-    autoSyncInterval.value = _prefs.getInt(_keySyncInterval) ?? 30;
   }
 
   Future<WebDavConfig?> getConfig() async {
@@ -70,18 +64,6 @@ class WebDavConfigService {
     await _prefs.remove(_keyConfig);
     await _secureStorage.delete(key: _keyPassword);
     isConfigured.value = false;
-  }
-
-  Future<void> setAutoSync({
-    required bool enabled,
-    int? intervalMinutes,
-  }) async {
-    await _prefs.setBool(_keyAutoSync, enabled);
-    if (intervalMinutes != null) {
-      await _prefs.setInt(_keySyncInterval, intervalMinutes);
-      autoSyncInterval.value = intervalMinutes;
-    }
-    autoSyncEnabled.value = enabled;
   }
 
   Future<bool> testCurrentConfig() async {

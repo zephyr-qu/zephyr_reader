@@ -11,6 +11,7 @@
 library;
 
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:injectable/injectable.dart';
@@ -28,10 +29,12 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 /// 管理阅读器自定义字体的加载、切换和持久化
 @injectable
 class FontRepository {
+  final SharedPreferences _prefs;
+  final Completer<void> _ready = Completer<void>();
+
   FontRepository(this._prefs) {
     _initialize();
   }
-  final SharedPreferences _prefs;
 
   late final _currentFontId = persistedNullableString(
     _prefs,
@@ -52,9 +55,13 @@ class FontRepository {
 
   /// 初始化字体服务
   Future<void> _initialize() async {
-    await loadFonts();
-    await _registerFonts();
-    isLoaded.value = true;
+    try {
+      await loadFonts();
+      await _registerFonts();
+      isLoaded.value = true;
+    } finally {
+      _ready.complete();
+    }
   }
 
   /// 获取当前字体的系列名（用于 TextStyle.fontFamily）
@@ -100,7 +107,6 @@ class FontRepository {
     }
   }
 
-  /// 加载字体
   Future<void> loadFonts() async {
     final fonts = <FontInfo>[];
 
@@ -167,8 +173,8 @@ class FontRepository {
     return fonts;
   }
 
-  /// 设置当前字体
   Future<void> setCurrentFont(String fontId) async {
+    await _ready.future;
     final font = availableFonts.value.firstWhere(
       (f) => f.id == fontId,
       orElse: () => availableFonts.value.first,
@@ -182,6 +188,7 @@ class FontRepository {
 
   /// 导入本地字体
   Future<FontInfo?> importFont(File fontFile) async {
+    await _ready.future;
     if (!await fontFile.exists()) return null;
 
     final extension = p.extension(fontFile.path).toLowerCase();
@@ -192,7 +199,11 @@ class FontRepository {
     if (!await fontDir.exists()) await fontDir.create(recursive: true);
 
     final baseName = p.basenameWithoutExtension(fontFile.path);
-    final destPath = _getUniqueFilePath(fontDir.path, baseName, extension);
+    final destPath = await _getUniqueFilePath(
+      fontDir.path,
+      baseName,
+      extension,
+    );
 
     await fontFile.copy(destPath);
     await loadFonts();
@@ -209,11 +220,15 @@ class FontRepository {
   }
 
   /// 生成唯一文件路径
-  String _getUniqueFilePath(String dirPath, String baseName, String extension) {
+  Future<String> _getUniqueFilePath(
+    String dirPath,
+    String baseName,
+    String extension,
+  ) async {
     var destPath = p.join(dirPath, '$baseName$extension');
     var counter = 1;
 
-    while (File(destPath).existsSync()) {
+    while (await File(destPath).exists()) {
       destPath = p.join(dirPath, '${baseName}_$counter$extension');
       counter++;
     }
@@ -223,6 +238,7 @@ class FontRepository {
 
   /// 删除自定义字体
   Future<bool> deleteCustomFont(String fontId) async {
+    await _ready.future;
     if (!fontId.startsWith('custom_')) return false;
 
     final filePath = fontId.substring('custom_'.length);
@@ -255,6 +271,7 @@ class FontRepository {
   ///
   /// 删除 fonts 目录下的所有字体文件，并切换回系统默认
   Future<void> clearAllCustomFonts() async {
+    await _ready.future;
     try {
       final dir = await getApplicationDocumentsDirectory();
       final fontDir = Directory('${dir.path}/fonts');

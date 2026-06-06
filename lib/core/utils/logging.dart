@@ -1,16 +1,27 @@
+/// 集中式日志工具，内部基于 [Logger] 实现。
+///
+/// Release 模式下仅输出错误级别，不格式化；Debug 模式下使用 [PrettyPrinter]。
+/// 项目中应统一使用此类，而非直接调用 `Logger`、`print` 或 `stderr`。
+///
+/// 方法：[info], [debug], [warning], [error]（支持传 exception + stackTrace）。
+library;
+
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:logger/logger.dart';
 import 'dart:io';
 
 class Logging {
   static final _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 0, // number of method calls to be displayed
-      errorMethodCount: 8, // number of method calls if stacktrace is provided
-      lineLength: 120, // width of the output
-      colors: true, // Colorful log messages
-      printEmojis: true, // Print an emoji for each log message
-      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
-    ),
+    printer: kReleaseMode
+        ? null
+        : PrettyPrinter(
+            methodCount: 0,
+            errorMethodCount: 8,
+            lineLength: 120,
+            colors: true,
+            printEmojis: true,
+            dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+          ),
   );
 
   static void info(String message) {
@@ -31,8 +42,7 @@ class Logging {
         _logger.e(message);
       }
     } catch (e) {
-      // Logger 自身异常时 fallback 到 stderr，不静默丢失
-      stderr.writeln('[Logging.error]  (logger threw: )');
+      stderr.writeln('[Logging.error]  (logger threw: $e)');
     }
   }
 

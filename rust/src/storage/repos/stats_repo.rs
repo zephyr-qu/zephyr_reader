@@ -19,7 +19,7 @@ session_count = excluded.session_count, \
 last_session_id = excluded.last_session_id";
 
 /// 计算连续阅读天数（从今日起向前回溯）
-async fn calculate_consecutive_reading_days(pool: &SqlitePool) -> Result<i32> {
+async fn calculate_consecutive_reading_days(pool: &SqlitePool) -> Result<i64> {
     let rows: Vec<String> = sqlx::query_scalar(
         "SELECT DISTINCT date FROM reading_stats \
          WHERE reading_time_seconds > 0 \

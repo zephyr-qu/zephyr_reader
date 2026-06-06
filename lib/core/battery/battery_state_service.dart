@@ -4,10 +4,10 @@ import 'package:system_state/system_state.dart';
 import 'package:zephyr_reader/core/utils/platform_guard.dart';
 
 class BatteryStateService {
-  BatteryStateService._internal();
-
-  factory BatteryStateService() => _instance;
   static final BatteryStateService _instance = BatteryStateService._internal();
+  static BatteryStateService get instance => _instance;
+
+  BatteryStateService._internal();
 
   Future<bool> isCharging() async => guardAndroid(
     () async => (await SystemState.battery.getBatteryState()).isCharging,

@@ -83,6 +83,12 @@ impl BookRepository {
             .await?)
     }
 
+    pub async fn list_titles(pool: &SqlitePool) -> Result<Vec<BookTitle>> {
+        Ok(sqlx::query_as::<_, BookTitle>("SELECT id, title FROM books")
+            .fetch_all(pool)
+            .await?)
+    }
+
     pub async fn find_by_id(pool: &SqlitePool, id: &str) -> Result<Option<Book>> {
         Ok(sqlx::query_as::<_, Book>(
             "SELECT b.*, m.description, m.publisher, m.translator, m.isbn \
@@ -187,14 +193,14 @@ impl BookRepository {
     }
 
     /// 获取最近阅读的书籍（关联 reading_progress 表）
-    pub async fn list_recent(pool: &SqlitePool, limit: usize) -> Result<Vec<Book>> {
+    pub async fn list_recent(pool: &SqlitePool, limit: i64) -> Result<Vec<Book>> {
         Ok(sqlx::query_as::<_, Book>(
             "SELECT b.* FROM books b \
              JOIN reading_progress p ON b.id = p.book_id \
              WHERE p.last_read_at IS NOT NULL \
              ORDER BY p.last_read_at DESC LIMIT ?",
         )
-        .bind(limit as i64)
+        .bind(limit)
         .fetch_all(pool)
         .await?)
     }

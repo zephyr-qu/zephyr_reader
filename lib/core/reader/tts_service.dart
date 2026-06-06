@@ -1,10 +1,12 @@
 import 'package:flutter_tts/flutter_tts.dart';
+import 'dart:async';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 @lazySingleton
 class TtsService {
   final FlutterTts _tts = FlutterTts();
+  final Completer<void> _ready = Completer<void>();
   final isPlaying = signal<bool>(false);
   final isPaused = signal<bool>(false);
   final currentSpeed = signal<double>(1.0);
@@ -17,20 +19,25 @@ class TtsService {
   }
 
   Future<void> _init() async {
-    await _tts.setVolume(1.0);
-    await _applyRate();
-    await _applyPitch();
-    _tts.setCompletionHandler(() {
-      isPlaying.value = false;
-      isPaused.value = false;
-    });
-    _tts.setErrorHandler((msg) {
-      isPlaying.value = false;
-      isPaused.value = false;
-    });
+    try {
+      await _tts.setVolume(1.0);
+      await _applyRate();
+      await _applyPitch();
+      _tts.setCompletionHandler(() {
+        isPlaying.value = false;
+        isPaused.value = false;
+      });
+      _tts.setErrorHandler((msg) {
+        isPlaying.value = false;
+        isPaused.value = false;
+      });
+    } finally {
+      _ready.complete();
+    }
   }
 
   Future<void> speak(String text) async {
+    await _ready.future;
     await stop();
     isPlaying.value = true;
     isPaused.value = false;
@@ -38,6 +45,7 @@ class TtsService {
   }
 
   Future<void> pause() async {
+    await _ready.future;
     if (isPlaying.value && !isPaused.value) {
       await _tts.pause();
       isPaused.value = true;
@@ -45,6 +53,7 @@ class TtsService {
   }
 
   Future<void> resume() async {
+    await _ready.future;
     if (isPlaying.value && isPaused.value) {
       await _tts.speak('');
       isPaused.value = false;
@@ -52,12 +61,14 @@ class TtsService {
   }
 
   Future<void> stop() async {
+    await _ready.future;
     await _tts.stop();
     isPlaying.value = false;
     isPaused.value = false;
   }
 
   Future<void> setSpeed(double rate) async {
+    await _ready.future;
     currentSpeed.value = rate.clamp(0.5, 2.0);
     await _applyRate();
   }
@@ -69,6 +80,7 @@ class TtsService {
   }
 
   Future<void> setPitch(double pitch) async {
+    await _ready.future;
     currentPitch.value = pitch.clamp(0.5, 2.0);
     await _applyPitch();
   }
@@ -78,18 +90,29 @@ class TtsService {
   }
 
   Future<void> setLanguage(String lang) async {
+    await _ready.future;
     currentLanguage.value = lang;
     await _tts.setLanguage(lang);
+  }
+
+  /// 设置语音（通过 `flutter_tts` 的 `setVoice`）。
+  /// [voice] 是 [getVoices] 返回的条目，至少需包含 `"name"` 键。
+  Future<void> setVoice(Map<String, String> voice) async {
+    await _ready.future;
+    await _tts.setVoice(voice);
   }
 
   void setPauseBetween(int ms) {
     currentPauseBetween.value = ms.clamp(0, 1500);
   }
 
-  Future<List<dynamic>> getVoices() async =>
-      (await _tts.getVoices) as List<dynamic>? ?? [];
+  Future<List<dynamic>> getVoices() async {
+    await _ready.future;
+    return (await _tts.getVoices) as List<dynamic>? ?? [];
+  }
 
   Future<Set<String>> getLanguages() async {
+    await _ready.future;
     final langs = await _tts.getLanguages as List<dynamic>?;
     return {...?langs?.cast<String>()};
   }

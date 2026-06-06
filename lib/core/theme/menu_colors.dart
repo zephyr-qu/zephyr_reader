@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 /// 语义化菜单项颜色枚举
 ///
@@ -23,14 +24,8 @@ enum MenuItemSemantic {
       brightness == Brightness.dark
           ? const Color(0xFF64B5F6)
           : const Color(0xFF2196F3),
-    MenuItemSemantic.warning =>
-      brightness == Brightness.dark
-          ? const Color(0xFFFFB74D)
-          : const Color(0xFFFF9800),
-    MenuItemSemantic.success =>
-      brightness == Brightness.dark
-          ? const Color(0xFF81C784)
-          : const Color(0xFF4CAF50),
+    MenuItemSemantic.warning => DesignTokens.warning,
+    MenuItemSemantic.success => DesignTokens.success,
     MenuItemSemantic.experimental =>
       brightness == Brightness.dark
           ? const Color(0xFF9575CD)
@@ -55,10 +50,7 @@ enum MenuItemSemantic {
       brightness == Brightness.dark
           ? const Color(0xFF90A4AE)
           : const Color(0xFF607D8B),
-    MenuItemSemantic.error =>
-      brightness == Brightness.dark
-          ? const Color(0xFFE57373)
-          : const Color(0xFFF44336),
+    MenuItemSemantic.error => DesignTokens.error,
     MenuItemSemantic.primary =>
       brightness == Brightness.dark
           ? const Color(0xFF82B1FF)

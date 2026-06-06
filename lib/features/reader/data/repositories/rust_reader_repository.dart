@@ -247,10 +247,8 @@ class ReaderRepository {
       strikethrough: (text, fontSize, color) =>
           const TextStyle(decoration: TextDecoration.lineThrough),
       code: (text, fontSize, color) => const TextStyle(fontFamily: 'monospace'),
-      link: (text, url, fontSize, color) => const TextStyle(
-        color: Colors.blue,
-        decoration: TextDecoration.underline,
-      ),
+      link: (text, url, fontSize, color) =>
+          const TextStyle(decoration: TextDecoration.underline),
     );
     if (span.fontSize == null && span.color == null) return base;
     return base.copyWith(

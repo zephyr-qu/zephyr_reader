@@ -1,8 +1,6 @@
 //! 章节管理 API
 //!
 //! 提供章节的保存、查询和删除功能。
-//!
-//! @dart_call - 被 Dart 侧 ChapterService 调用
 
 use flutter_rust_bridge::frb;
 

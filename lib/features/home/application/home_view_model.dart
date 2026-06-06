@@ -5,21 +5,11 @@ import 'package:zephyr_reader/src/rust/api/data/stats.dart' as stats_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 首页最近阅读列表最大条目数
-final _recentBookLimit = BigInt.from(4);
+final _recentBookLimit = 4;
 
 class HomeViewModel {
-  final recentBooks = signal<AsyncState<List<Book>>>(AsyncState.loading());
-  final dailyRecords = signal<AsyncState<List<ReadingStats>>>(
-    AsyncState.loading(),
-  );
-
-  late final isLoading = computed(
-    () => recentBooks.value.isLoading || dailyRecords.value.isLoading,
-  );
-
-  late final hasError = computed(
-    () => recentBooks.value.hasError || dailyRecords.value.hasError,
-  );
+  final recentBooks = asyncSignal<List<Book>>(AsyncState.loading());
+  final dailyRecords = asyncSignal<List<ReadingStats>>(AsyncState.loading());
 
   /// 分别加载两个数据源，避免一个 API 失败连带另一个。
   Future<void> loadData() async {
@@ -33,10 +23,5 @@ class HomeViewModel {
         label: '阅读趋势',
       ),
     ]);
-  }
-
-  void dispose() {
-    isLoading.dispose();
-    hasError.dispose();
   }
 }

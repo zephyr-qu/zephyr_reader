@@ -3,26 +3,35 @@ import 'package:flutter/services.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/theme/theme_extension.dart';
+import 'package:zephyr_reader/core/utils/color_utils.dart';
 
 class AppThemes {
   AppThemes._();
 
+  // ===== Light mode base colors =====
+  static const Color _bgLight = Color(0xFFFAFAFA);
+  static const Color _surfaceLight = Color(0xFFFFFFFF);
+  static const Color _textPriLight = Color(0xFF1A1A1A);
+  static const Color _textSecLight = Color(0xFF8A8A8E);
+  static const Color _dividerLight = Color(0xFFE5E5EA);
+
+  // ===== Dark mode base colors =====
+  static const Color _bgDark = Color(0xFF000000);
+  static const Color _surfaceDark = Color(0xFF080808);
+  static const Color _textPriDark = Color(0xFFF2F2F2);
+  static const Color _textSecDark = Color(0xFF6E6E73);
+  static const Color _dividerDark = Color(0xFF1C1C1E);
+
   static ThemeData buildTheme(Brightness brightness, {Color? customPrimary}) {
     final primary = customPrimary ?? DesignTokens.primary;
-    final onPrimary = _contrastingTextColor(primary);
+    final onPrimary = contrastingTextColor(primary);
     final isDark = brightness == Brightness.dark;
 
-    final Color scaffoldBg = isDark
-        ? DesignTokens.backgroundDark
-        : DesignTokens.background;
-    final Color textPri = isDark
-        ? DesignTokens.textPrimaryDark
-        : DesignTokens.textPrimary;
-    final Color textSec = isDark
-        ? DesignTokens.textSecondaryDark
-        : DesignTokens.textSecondary;
-    final Color surf = isDark ? DesignTokens.surfaceDark : DesignTokens.surface;
-    final Color div = isDark ? DesignTokens.dividerDark : DesignTokens.divider;
+    final Color scaffoldBg = isDark ? _bgDark : _bgLight;
+    final Color textPri = isDark ? _textPriDark : _textPriLight;
+    final Color textSec = isDark ? _textSecDark : _textSecLight;
+    final Color surf = isDark ? _surfaceDark : _surfaceLight;
+    final Color div = isDark ? _dividerDark : _dividerLight;
 
     return ThemeData(
       useMaterial3: true,
@@ -37,35 +46,20 @@ class AppThemes {
         },
       ),
       scaffoldBackgroundColor: scaffoldBg,
-      colorScheme: isDark
-          ? ColorScheme.dark(
-              primary: primary,
-              onPrimary: onPrimary,
-              primaryContainer: const Color(0xFFFFF3E0),
-              onPrimaryContainer: const Color(0xFF3E2723),
-              secondary: const Color(0xFFD4A373),
-              tertiary: const Color(0xFF8D6E63),
-              error: const Color(0xFFEF5350),
-              surface: DesignTokens.backgroundDark,
-              onSurface: DesignTokens.textPrimaryDark,
-              onSurfaceVariant: DesignTokens.textSecondaryDark,
-              outline: DesignTokens.dividerDark,
-              outlineVariant: DesignTokens.dividerDark,
-            )
-          : ColorScheme.light(
-              primary: primary,
-              onPrimary: onPrimary,
-              primaryContainer: DesignTokens.primaryContainer,
-              onPrimaryContainer: DesignTokens.onPrimaryContainer,
-              secondary: DesignTokens.secondary,
-              tertiary: DesignTokens.tertiary,
-              error: DesignTokens.error,
-              surface: DesignTokens.background,
-              onSurface: DesignTokens.textPrimary,
-              onSurfaceVariant: DesignTokens.textSecondary,
-              outline: DesignTokens.divider,
-              outlineVariant: DesignTokens.divider,
-            ),
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primary,
+        brightness: brightness,
+        primary: primary,
+        onPrimary: onPrimary,
+        secondary: DesignTokens.secondary,
+        tertiary: DesignTokens.tertiary,
+        error: DesignTokens.error,
+        surface: isDark ? _bgDark : _bgLight,
+        onSurface: isDark ? _textPriDark : _textPriLight,
+        onSurfaceVariant: isDark ? _textSecDark : _textSecLight,
+        outline: isDark ? _dividerDark : _dividerLight,
+        outlineVariant: isDark ? _dividerDark : _dividerLight,
+      ),
       textTheme: _textTheme(onSurface: textPri, onSurfaceVariant: textSec),
 
       appBarTheme: AppBarTheme(
@@ -131,7 +125,7 @@ class AppThemes {
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? DesignTokens.surfaceDark : DesignTokens.background,
+        fillColor: isDark ? _surfaceDark : _bgLight,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 12,
@@ -187,19 +181,6 @@ class AppThemes {
       ),
 
       dividerTheme: DividerThemeData(thickness: 0.5, color: div, space: 0),
-
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        elevation: 0,
-        backgroundColor: surf,
-        selectedItemColor: primary,
-        unselectedItemColor: textSec,
-        type: BottomNavigationBarType.fixed,
-        selectedLabelStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-        unselectedLabelStyle: const TextStyle(fontSize: 12),
-      ),
 
       navigationBarTheme: NavigationBarThemeData(
         elevation: 0,
@@ -266,12 +247,6 @@ class AppThemes {
     );
   }
 
-  static Color _contrastingTextColor(Color bg) {
-    // 计算亮度并返回白色或黑色作为前景
-    final luminance = 0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b;
-    return luminance > 0.5 ? const Color(0xFF1A1C1E) : Colors.white;
-  }
-
   static TextTheme _textTheme({
     required Color onSurface,
     required Color onSurfaceVariant,
@@ -312,16 +287,8 @@ class AppThemes {
         fontWeight: FontWeight.w500,
         color: onSurface,
       ),
-      bodyLarge: TextStyle(
-        fontSize: 15,
-        color: onSurface,
-        height: 1.6,
-      ),
-      bodyMedium: TextStyle(
-        fontSize: 13,
-        color: onSurfaceVariant,
-        height: 1.5,
-      ),
+      bodyLarge: TextStyle(fontSize: 15, color: onSurface, height: 1.6),
+      bodyMedium: TextStyle(fontSize: 13, color: onSurfaceVariant, height: 1.5),
       labelLarge: TextStyle(
         fontSize: 12,
         color: onSurfaceVariant,

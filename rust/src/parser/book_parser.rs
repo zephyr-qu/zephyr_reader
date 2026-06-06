@@ -13,6 +13,6 @@ pub struct BookMetadata {
     pub isbn: Option<String>,
     pub publish_year: Option<i32>,
     pub language: Option<String>,
-    pub chapter_count: i32,
+    pub chapter_count: i64,
     pub total_characters: i64,
 }

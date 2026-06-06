@@ -1,0 +1,66 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+
+import 'package:zephyr_reader/core/routing/route_constants.dart';
+
+/// An empty state guiding the user to start reading.
+///
+/// Shows a centered column with a large faded icon, title, optional
+/// subtitle, and a [FilledButton.tonalIcon] labelled with [buttonLabel]
+/// that navigates to [RoutePaths.bookshelf].
+///
+/// Used by both [vocabulary_page] and [note_tab_widget] for their
+/// respective empty states.
+class GoReadingEmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final String buttonLabel;
+
+  const GoReadingEmptyState({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    required this.buttonLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 48,
+            color: cs.onSurfaceVariant.withValues(alpha: 0.3),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              subtitle!,
+              style: TextStyle(
+                fontSize: 11,
+                color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          FilledButton.tonalIcon(
+            onPressed: () => context.push(RoutePaths.bookshelf),
+            icon: const Icon(PhosphorIconsRegular.books, size: 16),
+            label: Text(buttonLabel),
+          ),
+        ],
+      ),
+    );
+  }
+}

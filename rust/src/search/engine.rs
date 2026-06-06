@@ -44,7 +44,7 @@ impl SearchEngine {
         &self,
         book_id: &str,
         chapter_id: &str,
-        chapter_index: &str,
+        chapter_index: i32,
         chapter_title: &str,
         content: &str,
     ) -> Result<(), sqlx::Error> {
@@ -88,7 +88,7 @@ impl SearchEngine {
         let mut tx = self.pool.begin().await?;
 
         // 幂等：先清除该章节的旧索引
-        sqlx::query("DELETE FROM search_index WHERE book_id = ? AND chapter_index = ?")
+        sqlx::query("DELETE FROM search_index WHERE book_id = ? AND CAST(chapter_index AS INTEGER) = ?")
             .bind(book_id)
             .bind(chapter_index)
             .execute(&mut *tx)
@@ -101,11 +101,11 @@ impl SearchEngine {
             );
             query_builder.push_values(chunks.iter(), |mut b, (position, chunk_str)| {
                 b.push_bind(book_id)
-                    .push_bind(chapter_id)
-                    .push_bind(chapter_index)
-                    .push_bind(&tokenized_title)
-                    .push_bind(chunk_str)
-                    .push_bind(position);
+                 .push_bind(chapter_id)
+                 .push_bind(chapter_index.to_string())
+                 .push_bind(&tokenized_title)
+                 .push_bind(chunk_str)
+                 .push_bind(position);
             });
             query_builder.build().execute(&mut *tx).await?;
         }
@@ -135,7 +135,7 @@ impl SearchEngine {
         }
 
         sqlx::query_as::<_, SearchResult>(
-            "SELECT book_id, chapter_id, chapter_index, chapter_title, \
+            "SELECT book_id, chapter_id, CAST(chapter_index AS INTEGER) AS chapter_index, chapter_title, \
                     snippet(search_index, 0, '<mark>', '</mark>', '...', 48) AS snippet, \
                     position, \
                     position AS char_offset, \
@@ -164,7 +164,7 @@ impl SearchEngine {
         }
 
         sqlx::query_as::<_, SearchResult>(
-            "SELECT book_id, chapter_id, chapter_index, chapter_title, \
+            "SELECT book_id, chapter_id, CAST(chapter_index AS INTEGER) AS chapter_index, chapter_title, \
                 snippet(search_index, 0, '<mark>', '</mark>', '...', 48) AS snippet, \
                 position, \
                 position AS char_offset, \
@@ -172,7 +172,7 @@ impl SearchEngine {
          FROM search_index \
          WHERE search_index MATCH ? \
          ORDER BY \
-            CASE WHEN chapter_index = '-1' THEN 0 ELSE 1 END, \
+            CASE WHEN CAST(chapter_index AS INTEGER) = -1 THEN 0 ELSE 1 END, \
             score \
          LIMIT ? OFFSET ?",
         )
@@ -247,14 +247,14 @@ fn escape_fts5_query(query: &str) -> String {
     }
 }
 
-#[cfg(test)]
-fn truncate_snippet(text: &str, max_len: usize) -> String {
-    let char_count = text.chars().count();
-    if char_count <= max_len {
-        return text.to_string();
-    }
-    text.chars().take(max_len).collect::<String>() + "..."
-}
+// #[cfg(test)]
+// fn truncate_snippet(text: &str, max_len: usize) -> String {
+//     let char_count = text.chars().count();
+//     if char_count <= max_len {
+//         return text.to_string();
+//     }
+//     text.chars().take(max_len).collect::<String>() + "..."
+// }
 
 #[cfg(test)]
 mod tests {

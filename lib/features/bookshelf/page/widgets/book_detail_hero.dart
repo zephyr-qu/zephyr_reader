@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:zephyr_reader/features/bookshelf/page/widgets/book_cover.dart';
 import 'package:zephyr_reader/core/utils/format_utils.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -132,12 +132,6 @@ class BookDetailHero extends StatelessWidget {
   }
 
   Widget _coverPlaceholder(ThemeData theme) {
-    return Center(
-      child: Icon(
-        PhosphorIconsRegular.book,
-        size: 48,
-        color: theme.colorScheme.primary.withValues(alpha: 0.4),
-      ),
-    );
+    return BookCover.placeholder(theme.colorScheme, size: 48);
   }
 }

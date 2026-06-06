@@ -13,6 +13,7 @@
 //! - `restore_database(backup_path) -> BackupManifest` 还原 + 热替换连接池
 //! - `cleanup_auto_snapshots(older_than_unix) -> i64` 清理旧快照
 
+use std::fs::File;
 use std::path::PathBuf;
 
 use flutter_rust_bridge::frb;
@@ -25,7 +26,8 @@ use crate::utils::security::validate_file_path_async;
 // ==================== 公开 DTO ====================
 
 /// 备份清单 — 嵌入 `_backup_meta` 表中
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 #[frb(non_opaque)]
 pub struct BackupManifest {
     /// 当前应用版本（来自 Cargo.toml `version` 字段）
@@ -40,6 +42,7 @@ pub struct BackupManifest {
 
 /// 当前数据库行数统计
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 #[frb(non_opaque)]
 pub struct BackupStats {
     pub books: i64,
@@ -241,6 +244,10 @@ pub async fn export_database(dest_path: String) -> Result<BackupManifest, AppErr
     let dest = PathBuf::from(&validated);
     std::fs::copy(&db_path, &dest)
         .map_err(|e| AppError::file_write_error(&validated, format!("copy db: {e}")))?;
+    // 刷盘保证文件完整写入磁盘，防极端掉电损坏
+    File::open(&dest)
+        .and_then(|f| f.sync_all())
+        .map_err(|e| AppError::file_write_error(&validated, format!("sync dest: {e}")))?;
 
     let db_size = std::fs::metadata(&dest)
         .map_err(|e| AppError::file_read_error(&validated, format!("stat dest: {e}")))?
@@ -309,6 +316,12 @@ pub async fn restore_database(backup_path: String) -> Result<BackupManifest, App
         );
     } else {
         tracing::info!("Pre-restore snapshot saved to {:?}", snapshot_path);
+        // 刷盘保证快照完整，失败不阻塞还原
+        if let Err(e) = File::open(&snapshot_path)
+            .and_then(|f| f.sync_all())
+        {
+            tracing::warn!("Failed to sync snapshot file {:?}: {}", snapshot_path, e);
+        }
     }
 
     storage

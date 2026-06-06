@@ -28,7 +28,6 @@ impl ChapterRepository {
                     book_id = excluded.book_id, \
                     title = excluded.title, \
                     chapter_index = excluded.chapter_index, \
-                    word_count = excluded.word_count, \
                     cached_at = excluded.cached_at, \
                     level = excluded.level",
             )
@@ -36,7 +35,6 @@ impl ChapterRepository {
             .bind(&chapter.book_id)
             .bind(&chapter.title)
             .bind(chapter.chapter_index)
-            .bind(chapter.word_count)
             .bind(chapter.cached_at.timestamp()) // ✅ chrono: 直接传秒级时间戳
             .bind(chapter.level)
             .execute(&mut *tx)

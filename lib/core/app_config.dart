@@ -1,9 +1,6 @@
-
 class AppConfig {
   static final AppConfig _instance = AppConfig._internal();
   static AppConfig get instance => _instance;
-
-  factory AppConfig() => _instance;
 
   AppConfig._internal();
 

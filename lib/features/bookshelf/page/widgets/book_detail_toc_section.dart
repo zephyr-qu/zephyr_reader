@@ -137,7 +137,9 @@ class BookDetailTocSection extends StatelessWidget {
                           vertical: 1,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFA726),
+                          color: theme.brightness == Brightness.dark
+                              ? const Color(0xFFFFB74D)
+                              : const Color(0xFFFFA726),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(

@@ -15,7 +15,6 @@ abstract class RoutePaths {
   // 全书搜索
   static const String bookSearch = '/search/book';
 
-
   // 书签管理
   static const String bookmarkManage = '/reader/:bookId/bookmarks';
 
@@ -70,7 +69,6 @@ abstract class RouteNames {
 
   // 全书搜索
   static const String bookSearch = 'bookSearch';
-
 
   // 书签管理
   static const String bookmarkManage = 'bookmarkManage';

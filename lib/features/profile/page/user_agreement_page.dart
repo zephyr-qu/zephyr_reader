@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/features/profile/page/widgets/legal_section_card.dart';
 
 /// 用户协议页面
 class UserAgreementPage extends StatelessWidget {
@@ -16,8 +17,7 @@ class UserAgreementPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '1. 接受条款',
             content: [
               '欢迎使用 Zephyr Reader（以下简称"本应用"）。',
@@ -26,8 +26,12 @@ class UserAgreementPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
+            title: '2. 服务说明',
+            content: ['本应用是一款纯本地、高性能、双语友好的安卓离线小说阅读器。'],
+          ),
+          const SizedBox(height: 16),
+          const LegalSectionCard(
             title: '2. 服务说明',
             content: [
               '本应用是一款纯本地、高性能、双语友好的安卓离线小说阅读器。',
@@ -36,8 +40,7 @@ class UserAgreementPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '3. 用户权利',
             content: [
               '您有权免费使用本应用的所有功能。',
@@ -46,8 +49,7 @@ class UserAgreementPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '4. 用户义务',
             content: [
               '您应确保使用本应用的行为符合当地法律法规。',
@@ -57,8 +59,7 @@ class UserAgreementPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '5. 知识产权',
             content: [
               '本应用及其所有组成部分（包括但不限于代码、界面设计、图标、商标等）的知识产权归开发者所有。',
@@ -67,8 +68,7 @@ class UserAgreementPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '6. 隐私保护',
             content: [
               '本应用尊重并保护用户隐私。',
@@ -78,8 +78,7 @@ class UserAgreementPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '7. 免责声明',
             content: [
               '本应用按"原样"提供，不提供任何形式的明示或暗示保证。',
@@ -89,8 +88,7 @@ class UserAgreementPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '8. 协议变更',
             content: [
               '开发者保留随时修改本用户协议的权利。',
@@ -99,15 +97,13 @@ class UserAgreementPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildSection(
-            theme,
+          const LegalSectionCard(
             title: '9. 联系方式',
             content: [
               '如您对本协议有任何疑问，请通过 GitHub Issues 联系我们。',
               '开发者将在合理时间内回复您的问题。',
             ],
           ),
-          const SizedBox(height: 32),
           Center(
             child: Text(
               '最后更新：2026 年 3 月 31 日',
@@ -117,37 +113,6 @@ class UserAgreementPage extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSection(
-    ThemeData theme, {
-    required String title,
-    required List<String> content,
-  }) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...content.map(
-              (text) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(text, style: theme.textTheme.bodyMedium),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

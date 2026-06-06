@@ -5,19 +5,19 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('ReadingStatsViewModel — 初始状态', () {
-    test('globalStats 初始为 null', () {
+    test('globalStats 初始为 loading', () {
       final vm = ReadingStatsViewModel();
-      expect(vm.globalStats.value, isNull);
+      expect(vm.globalStats.value.isLoading, isTrue);
     });
 
-    test('dailyRecords 初始为空列表', () {
+    test('dailyRecords 初始为 loading', () {
       final vm = ReadingStatsViewModel();
-      expect(vm.dailyRecords.value, isEmpty);
+      expect(vm.dailyRecords.value.isLoading, isTrue);
     });
 
-    test('selectedPeriod 初始为 month', () {
+    test('selectedPeriod 初始为 today', () {
       final vm = ReadingStatsViewModel();
-      expect(vm.selectedPeriod.value, equals(StatisticsPeriod.month));
+      expect(vm.selectedPeriod.value, equals(StatisticsPeriod.today));
     });
 
     test('goalMinutes 默认 60', () {
@@ -31,11 +31,6 @@ void main() {
       expect(vm.vocabLearning.value, equals(0));
       expect(vm.vocabMastered.value, equals(0));
       expect(vm.vocabIgnored.value, equals(0));
-    });
-
-    test('loaded 初始为 false', () {
-      final vm = ReadingStatsViewModel();
-      expect(vm.loaded.value, isFalse);
     });
   });
 

@@ -45,7 +45,6 @@ CREATE TABLE IF NOT EXISTS chapters (
     book_id         TEXT NOT NULL,
     title           TEXT NOT NULL,
     chapter_index   INTEGER NOT NULL,
-    word_count      INTEGER DEFAULT 0,
     cached_at       INTEGER NOT NULL,
     level           INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE

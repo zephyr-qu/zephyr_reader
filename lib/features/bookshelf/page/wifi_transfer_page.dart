@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/network/wifi_transfer_service.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 class WifiTransferPage extends HookWidget {
   const WifiTransferPage({super.key});
@@ -14,9 +16,9 @@ class WifiTransferPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final service = useMemoized(() => getIt<WifiTransferService>());
-    final isRunning = useState(false);
-    final logs = useState<List<TransferLogEntry>>([]);
-    final logsRef = useRef<ScrollController>(ScrollController());
+    final isRunning = useSignal(service.isRunning);
+    final logs = useSignal<List<TransferLogEntry>>([]);
+    final scrollCtrl = useMemoized(() => ScrollController());
 
     useEffect(() {
       final subs = <StreamSubscription<dynamic>>[
@@ -24,23 +26,26 @@ class WifiTransferPage extends HookWidget {
           isRunning.value = running;
         }),
         service.logStream.listen((entry) {
-          logs.value = [entry, ...logs.value];
+          final updated = [entry, ...logs.value];
+          if (updated.length > 200) updated.length = 200;
+          logs.value = updated;
         }),
       ];
       return () {
         for (final s in subs) {
           s.cancel();
         }
-        logsRef.value.dispose();
+        scrollCtrl.dispose();
       };
     }, []);
 
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('WiFi 传书'),
+        title: Text(l10n.wifiPageTitle),
         actions: [
           IconButton(
             icon: Icon(
@@ -56,7 +61,9 @@ class WifiTransferPage extends HookWidget {
                 await service.start();
               }
             },
-            tooltip: isRunning.value ? '停止服务器' : '启动服务器',
+            tooltip: isRunning.value
+                ? l10n.wifiStopServer
+                : l10n.wifiStartServer,
           ),
         ],
       ),
@@ -72,14 +79,14 @@ class WifiTransferPage extends HookWidget {
               if (service.url.isNotEmpty) {
                 Clipboard.setData(ClipboardData(text: service.url));
                 if (context.mounted) {
-                  showInfoSnack(context, '链接已复制到剪贴板');
+                  showInfoSnack(context, l10n.wifiLinkCopied);
                 }
               }
             },
           ),
           const SizedBox(height: 24),
           Text(
-            '传输记录',
+            l10n.wifiTransferLog,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -100,7 +107,9 @@ class WifiTransferPage extends HookWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      isRunning.value ? '等待文件上传…' : '启动服务器开始传输',
+                      isRunning.value
+                          ? l10n.wifiWaitUpload
+                          : l10n.wifiStartServerPrompt,
                       style: TextStyle(color: colorScheme.onSurfaceVariant),
                     ),
                   ],
@@ -134,6 +143,7 @@ class _ServerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       decoration: BoxDecoration(
@@ -141,7 +151,10 @@ class _ServerCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isRunning
-              ? Colors.green.withValues(alpha: 0.3)
+              ? (theme.brightness == Brightness.dark
+                        ? Colors.green[300]!
+                        : Colors.green)
+                    .withValues(alpha: 0.3)
               : colorScheme.outlineVariant,
         ),
       ),
@@ -155,12 +168,16 @@ class _ServerCard extends StatelessWidget {
                 height: 12,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isRunning ? Colors.green : Colors.grey[600],
+                  color: isRunning
+                      ? (theme.brightness == Brightness.dark
+                            ? Colors.green[300]!
+                            : Colors.green)
+                      : Colors.grey[600],
                 ),
               ),
               const SizedBox(width: 10),
               Text(
-                isRunning ? '服务器运行中' : '服务器已停止',
+                isRunning ? l10n.wifiServerRunning : l10n.wifiServerStopped,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -177,10 +194,12 @@ class _ServerCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     PhosphorIconsRegular.link,
                     size: 20,
-                    color: Colors.green,
+                    color: theme.brightness == Brightness.dark
+                        ? Colors.green[300]!
+                        : Colors.green,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -196,7 +215,7 @@ class _ServerCard extends StatelessWidget {
                   IconButton(
                     icon: const Icon(PhosphorIconsRegular.copySimple, size: 20),
                     onPressed: onCopyUrl,
-                    tooltip: '复制链接',
+                    tooltip: l10n.wifiCopyLink,
                   ),
                 ],
               ),
@@ -207,10 +226,18 @@ class _ServerCard extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onStop,
                 icon: const Icon(PhosphorIconsRegular.stopCircle),
-                label: const Text('停止服务器'),
+                label: Text(l10n.wifiStopServer),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red[300],
-                  side: BorderSide(color: Colors.red.withValues(alpha: 0.3)),
+                  foregroundColor: theme.brightness == Brightness.dark
+                      ? Colors.red[200]
+                      : Colors.red[300],
+                  side: BorderSide(
+                    color:
+                        (theme.brightness == Brightness.dark
+                                ? Colors.red[200]
+                                : Colors.red[300])!
+                            .withValues(alpha: 0.3),
+                  ),
                 ),
               ),
             ),
@@ -220,13 +247,13 @@ class _ServerCard extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onStart,
                 icon: const Icon(PhosphorIconsRegular.playCircle),
-                label: const Text('启动服务器'),
+                label: Text(l10n.wifiStartServer),
               ),
             ),
           ],
           const SizedBox(height: 12),
           Text(
-            '连接与电脑相同的 Wi-Fi 网络，在浏览器中打开上方地址即可传输文件。',
+            l10n.wifiInstruction,
             style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),

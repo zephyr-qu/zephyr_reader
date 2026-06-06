@@ -1,34 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_status_chip.dart';
-import 'package:zephyr_reader/src/rust/storage/vocab_status_extension.dart';
+import 'package:zephyr_reader/core/utils/format_utils.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// A single vocabulary list item with swipe-to-delete and status popup menu.
 ///
-/// Composes a [Dismissible] wrapping a [ListTile] with word info,
-/// a subtitle built from pinyin/book context, and a trailing
+/// Composes a [Dismissible] wrapping a card-like row with word info,
+/// translation, book/source context, a status dot indicator, and a trailing
 /// [PopupMenuButton] that uses [VocabStatusChip] as the trigger.
 class VocabListItemTile extends StatelessWidget {
   final Vocab item;
   final Map<String, String> bookTitles;
-  final ThemeData theme;
   final VoidCallback onDismissed;
   final ValueChanged<VocabStatus> onUpdateStatus;
+  final int index;
 
   const VocabListItemTile({
     super.key,
     required this.item,
     required this.bookTitles,
-    required this.theme,
     required this.onDismissed,
     required this.onUpdateStatus,
+    this.index = 0,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final statusColor = vocabStatusColor(item.status, theme);
+    final bookTitle = bookTitles[item.bookId];
+    final l10n = AppLocalizations.of(context)!;
     return RepaintBoundary(
       child: Dismissible(
         key: ValueKey(item.id),
@@ -36,26 +42,23 @@ class VocabListItemTile extends StatelessWidget {
         background: Container(
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.only(right: 20),
-          color: theme.colorScheme.error,
-          child: const Icon(
-            PhosphorIconsRegular.trash,
-            color: Colors.white,
-          ),
+          color: cs.error,
+          child: const Icon(PhosphorIconsRegular.trash, color: Colors.white),
         ),
         confirmDismiss: (_) async {
           final confirmed = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
-              title: const Text('确认删除'),
-              content: Text('确定要删除「${item.word}」吗？'),
+              title: Text(l10n.confirmDelete),
+              content: Text(l10n.confirmDeleteWord(item.word)),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(ctx).pop(false),
-                  child: const Text('取消'),
+                  child: Text(l10n.cancel),
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(ctx).pop(true),
-                  child: const Text('删除'),
+                  child: Text(l10n.delete),
                 ),
               ],
             ),
@@ -63,70 +66,164 @@ class VocabListItemTile extends StatelessWidget {
           return confirmed ?? false;
         },
         onDismissed: (_) => onDismissed(),
-        child: ListTile(
-          contentPadding: EdgeInsets.symmetric(
-            vertical: DesignTokens.spacing(Spacing.xs),
-          ),
-          title: Text(
-            item.word,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          subtitle: _buildSubtitle(),
-          trailing: PopupMenuButton<VocabStatus>(
-            initialValue: item.status,
-            onSelected: onUpdateStatus,
-            itemBuilder: (_) => [
-              if (item.status != VocabStatus.unstarted)
-                PopupMenuItem(
-                  value: VocabStatus.unstarted,
-                  child: Text(VocabStatus.unstarted.displayName),
-                ),
-              if (item.status != VocabStatus.learning)
-                PopupMenuItem(
-                  value: VocabStatus.learning,
-                  child: Text(VocabStatus.learning.displayName),
-                ),
-              if (item.status != VocabStatus.mastered)
-                PopupMenuItem(
-                  value: VocabStatus.mastered,
-                  child: Text(VocabStatus.mastered.displayName),
-                ),
-              if (item.status != VocabStatus.ignored)
-                PopupMenuItem(
-                  value: VocabStatus.ignored,
-                  child: Text(VocabStatus.ignored.displayName),
-                ),
-            ],
-            child: VocabStatusChip(status: item.status, theme: theme),
-          ),
-        ),
+        child: _buildItemCard(cs, statusColor, bookTitle, l10n),
       ),
     );
   }
 
-  Widget? _buildSubtitle() {
-    final parts = <String>[];
-    if (item.pinyin.isNotEmpty) {
-      parts.add(item.pinyin);
-    }
-    if (item.bookId != null && item.bookId!.isNotEmpty) {
-      final title = bookTitles[item.bookId];
-      if (title != null && title.isNotEmpty) {
-        parts.add('来自《$title》');
-      }
-    }
-    if (parts.isEmpty) return null;
-    return Text(
-      parts.join(' · '),
-      style: TextStyle(
-        fontSize: 12,
-        color: theme.colorScheme.onSurfaceVariant,
+  Widget _buildItemCard(
+    ColorScheme cs,
+    Color statusColor,
+    String? bookTitle,
+    AppLocalizations l10n,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: cs.outlineVariant.withValues(alpha: 0.2),
+          width: 0.5,
+        ),
       ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 12, 12, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Status dot indicator
+            Container(
+              width: 8,
+              height: 8,
+              margin: const EdgeInsets.only(top: 6, left: 4, right: 12),
+              decoration: BoxDecoration(
+                color: statusColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+            // Main content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Word + pinyin row
+                  Row(
+                    children: [
+                      Text(
+                        item.word,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                      if (item.pinyin.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          '/${item.pinyin}/',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  // Translation
+                  if (item.translation.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      item.translation,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: cs.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                  // Book title + wordList badge
+                  if (bookTitle != null || item.wordList != null) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        if (bookTitle != null)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  PhosphorIconsRegular.book,
+                                  size: 10,
+                                  color: cs.primary.withValues(alpha: 0.8),
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  bookTitle,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                    color: cs.primary.withValues(alpha: 0.8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (item.wordList != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: cs.secondary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              item.wordList!,
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                color: cs.secondary,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            // Status popup button
+            PopupMenuButton<VocabStatus>(
+              initialValue: item.status,
+              onSelected: onUpdateStatus,
+              itemBuilder: (_) => [
+                if (item.status != VocabStatus.unstarted)
+                  PopupMenuItem(
+                    value: VocabStatus.unstarted,
+                    child: Text(l10n.statusUnlearned),
+                  ),
+                if (item.status != VocabStatus.learning)
+                  PopupMenuItem(
+                    value: VocabStatus.learning,
+                    child: Text(l10n.statusLearning),
+                  ),
+                if (item.status != VocabStatus.mastered)
+                  PopupMenuItem(
+                    value: VocabStatus.mastered,
+                    child: Text(l10n.statusMastered),
+                  ),
+                if (item.status != VocabStatus.ignored)
+                  PopupMenuItem(
+                    value: VocabStatus.ignored,
+                    child: Text(l10n.statusIgnored),
+                  ),
+              ],
+              child: VocabStatusChip(status: item.status),
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(duration: 300.ms, delay: staggerDelay(index));
   }
 }

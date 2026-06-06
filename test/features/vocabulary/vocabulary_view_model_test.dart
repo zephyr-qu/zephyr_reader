@@ -37,7 +37,6 @@ void main() {
     test('initial state is correct', () {
       expect(vm.filterStatus.value, equals(VocabStatus.unstarted));
       expect(vm.filterWordList.value, isNull);
-      expect(vm.searchQuery.value, isEmpty);
     });
 
     group('FFI 依赖用例', () {
@@ -84,23 +83,26 @@ void main() {
         expect(vm.words.value.isLoading, isFalse);
       });
     });
- 
+
     group('错误路径测试', () {
       test('error state 信号过渡正确', () {
         vm.words.value = AsyncState.loading();
         expect(vm.words.value.isLoading, isTrue);
- 
-        vm.words.value = AsyncState.error(Exception('test'), StackTrace.current);
+
+        vm.words.value = AsyncState.error(
+          Exception('test'),
+          StackTrace.current,
+        );
         expect(vm.words.value.hasError, isTrue);
         expect(vm.words.value.isLoading, isFalse);
         expect(vm.words.value.value, isNull);
       });
- 
+
       test('loadWords 捕获 FFI 异常后设为 error 状态', () async {
         if (rustAvailable) return;
- 
+
         await vm.loadWords();
- 
+
         expect(vm.words.value.hasError, isTrue);
         expect(vm.words.value.isLoading, isFalse);
       });

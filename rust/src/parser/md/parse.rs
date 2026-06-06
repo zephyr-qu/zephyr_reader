@@ -76,7 +76,7 @@ impl MdParser {
                 publisher: None,
                 translator: None,
                 isbn: None,
-                chapter_count: chapters.len() as i32,
+                chapter_count: chapters.len() as i64,
                 total_characters: content.len() as i64,
                 format: BookFormat::Md,
                 added_at: chrono::Utc::now(),
@@ -114,7 +114,7 @@ impl MdParser {
             isbn: None,
             publish_year: None,
             language: None,
-            chapter_count: chapters.len() as i32,
+            chapter_count: chapters.len() as i64,
             total_characters: content.len() as i64,
         })
     }
@@ -148,18 +148,21 @@ fn extract_chapters(content: &str, book_id: &str) -> Vec<Chapter> {
     let raw = extract_chapters_raw(content);
     raw.iter()
         .enumerate()
-        .map(|(i, (title, text))| Chapter {
-            id: uuid::Uuid::new_v4().to_string(),
-            book_id: book_id.to_string(),
-            title: title.clone(),
-            chapter_index: i as i32,
-            word_count: text.len() as i64,
-            cached_at: chrono::Utc::now(),
-            level: 0,
-            start_index: 0,
-            end_index: 0,
-            content_length: text.len() as i64,
-        })
+        .map(|(i, (title, text))| Chapter::new(book_id, title,  i as i64, 0, 0, text.len() as i64)
+
+        // {
+        //     id: uuid::Uuid::new_v4().to_string(),
+        //     book_id: book_id.to_string(),
+        //     title: title.clone(),
+        //     chapter_index: i as i64,
+        //     word_count: text.len() as i64,
+        //     cached_at: chrono::Utc::now(),
+        //     level: 0,
+        //     start_index: 0,
+        //     end_index: 0,
+        //     // content_length: text.len() as i64,
+        // }
+      )
         .collect()
 }
 

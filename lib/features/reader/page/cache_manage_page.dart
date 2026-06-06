@@ -9,67 +9,36 @@ import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repo
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class CacheManagePage extends HookWidget {
-  late final ReaderRepository repo = getIt<ReaderRepository>();
   final String? bookId;
 
-  CacheManagePage({super.key, this.bookId});
+  const CacheManagePage({super.key, this.bookId});
 
   @override
   Widget build(BuildContext context) {
+    final repo = useMemoized(() => getIt<ReaderRepository>());
     final vm = useMemoized(
       () => CacheManageViewModel(repo: repo, bookId: bookId),
     );
-    final books = useSignalValue<List<Book>, Signal<List<Book>>>(vm.books);
-    final progressList =
-        useSignalValue<List<BookWithProgress>, Signal<List<BookWithProgress>>>(
-          vm.progressList,
+    useEffect(() {
+      vm.load();
+      return null;
+    }, []);
+    final AsyncState<List<Book>> books =
+        useSignalValue<AsyncState<List<Book>>, AsyncSignal<List<Book>>>(
+          vm.books,
         );
-    final loaded = useSignalValue<bool, Signal<bool>>(vm.loaded);
+    final AsyncState<List<BookWithProgress>> progressList =
+        useSignalValue<
+          AsyncState<List<BookWithProgress>>,
+          AsyncSignal<List<BookWithProgress>>
+        >(vm.progressList);
 
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('缓存管理'),
-        actions: [
-          IconButton(
-            icon: const Icon(PhosphorIconsRegular.trashSimple),
-            onPressed: () => _clearAllCache(context, vm),
-            tooltip: '清空全部缓存',
-          ),
-        ],
-      ),
-      body: _buildBody(context, theme, vm, books, progressList, loaded),
+      appBar: AppBar(title: const Text('缓存管理')),
+      body: _buildBody(context, theme, vm, books, progressList),
     );
-  }
-
-  Future<void> _clearAllCache(
-    BuildContext context,
-    CacheManageViewModel vm,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('清空全部缓存'),
-        content: const Text('将清除所有阅读器缓存内容，包括章节内容和格式数据。下次阅读时需要重新加载。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: const Text('清空'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      vm.clearAllCache();
-      if (context.mounted) {
-        showInfoSnack(context, '已清空全部缓存');
-      }
-    }
   }
 
   Future<void> _clearProgress(
@@ -93,60 +62,97 @@ class CacheManagePage extends HookWidget {
     BuildContext context,
     ThemeData theme,
     CacheManageViewModel vm,
-    List<Book> books,
-    List<BookWithProgress> progressList,
-    bool loaded,
+    AsyncState<List<Book>> books,
+    AsyncState<List<BookWithProgress>> progressList,
   ) {
-    if (!loaded) return const Center(child: CircularProgressIndicator());
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-      children: [
-        _buildOverview(context, theme, vm, books, progressList),
-        const SizedBox(height: 24),
-        Text(
-          '阅读进度',
-          style: TextStyle(
-            fontSize: 12,
-            color: theme.colorScheme.onSurfaceVariant,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const Divider(height: 12),
-        if (progressList.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: Text(
-                '暂无阅读进度数据',
-                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+    return books.map(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (Object err, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                PhosphorIconsRegular.warningCircle,
+                size: 48,
+                color: theme.colorScheme.error,
               ),
-            ),
-          )
-        else
-          ...progressList.map((p) => _buildProgressItem(context, theme, p, vm)),
-        const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              PhosphorIconsRegular.info,
-              size: 14,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                '缓存包含已加载的章节内容。清空后需重新加载，不影响书籍文件和阅读进度',
+              const SizedBox(height: 16),
+              Text(
+                '加载失败',
                 style: TextStyle(
-                  fontSize: 12,
-                  color: theme.colorScheme.onSurfaceVariant,
+                  fontSize: 16,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
+              const SizedBox(height: 8),
+              Text(
+                '$err',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+      data: (bookList) {
+        final progressData = progressList.value ?? <BookWithProgress>[];
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          children: [
+            _buildOverview(context, theme, vm, bookList, progressData),
+            const SizedBox(height: 24),
+            Text(
+              '阅读进度',
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.colorScheme.onSurfaceVariant,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const Divider(height: 12),
+            if (progressData.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text(
+                    '暂无阅读进度数据',
+                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                ),
+              )
+            else
+              ...progressData.map(
+                (p) => _buildProgressItem(context, theme, p, vm),
+              ),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  PhosphorIconsRegular.info,
+                  size: 14,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '缓存包含已加载的章节内容。清空后需重新加载，不影响书籍文件和阅读进度',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -191,14 +197,6 @@ class CacheManagePage extends HookWidget {
             ],
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _clearAllCache(context, vm),
-              icon: const Icon(PhosphorIconsRegular.trash, size: 18),
-              label: const Text('清空全部缓存'),
-            ),
-          ),
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,

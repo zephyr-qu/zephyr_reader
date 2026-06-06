@@ -63,7 +63,7 @@ impl EpubParser {
                 isbn,
                 publish_year: None,
                 language: None,
-                chapter_count: epub_file.spine().len() as i32,
+                chapter_count: epub_file.spine().len() as i64,
                 total_characters: 0,
             })
         })
@@ -83,7 +83,7 @@ impl EpubParser {
 
             let chapter = chapters
                 .iter()
-                .find(|c| c.chapter_index == chapter_index)
+                .find(|c| c.chapter_index == chapter_index as i64)
                 .ok_or_else(|| {
                     AppError::chapter_extract_error(
                         chapter_index,
@@ -94,7 +94,7 @@ impl EpubParser {
             let spine = epub_file.spine();
             let href = spine.get(chapter.start_index as usize).ok_or_else(|| {
                 AppError::chapter_extract_error(
-                    chapter.chapter_index,
+                    (chapter.chapter_index  as i64).try_into().unwrap(),
                     format!("chapter index out of range: {}", chapter.start_index),
                 )
             })?;

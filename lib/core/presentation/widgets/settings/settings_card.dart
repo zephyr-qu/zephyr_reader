@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 
 class SettingsCard extends StatelessWidget {
-  final ColorScheme colorScheme;
   final List<Widget> children;
   final bool showDividers;
 
   const SettingsCard({
     super.key,
-    required this.colorScheme,
     required this.children,
     this.showDividers = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surface,

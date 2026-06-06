@@ -39,15 +39,26 @@ impl SessionRepository {
     pub async fn find_by_book(
         pool: &SqlitePool,
         book_id: &str,
-        limit: usize,
+        limit: i64,
     ) -> Result<Vec<ReadingSession>> {
         Ok(sqlx::query_as::<_, ReadingSession>(
             "SELECT * FROM reading_sessions WHERE book_id = ? ORDER BY started_at DESC LIMIT ?",
         )
         .bind(book_id)
-        .bind(limit as i64)
+        .bind(limit)
         .fetch_all(pool)
         .await?)
+    }
+
+    /// 获取指定书籍的会话数量
+    pub async fn count_by_book(pool: &SqlitePool, book_id: &str) -> Result<i32> {
+        let count: i32 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM reading_sessions WHERE book_id = ?",
+        )
+        .bind(book_id)
+        .fetch_one(pool)
+        .await?;
+        Ok(count)
     }
 
     /// 按日期范围获取会话（闭区间 [start_date, end_date]）
@@ -79,11 +90,11 @@ impl SessionRepository {
     }
 
     /// 获取全局最近会话
-    pub async fn find_by_recent(pool: &SqlitePool, limit: usize) -> Result<Vec<ReadingSession>> {
+    pub async fn find_by_recent(pool: &SqlitePool, limit: i64) -> Result<Vec<ReadingSession>> {
         Ok(sqlx::query_as::<_, ReadingSession>(
             "SELECT * FROM reading_sessions ORDER BY started_at DESC LIMIT ?",
         )
-        .bind(limit as i64)
+        .bind(limit)
         .fetch_all(pool)
         .await?)
     }

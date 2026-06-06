@@ -125,7 +125,8 @@ void main() {
     group('生词统计', () {
       test('_loadVocabStats 应正确更新统计', skip: 'requires Rust bridge', () async {
         when(
-          () => rust_vocab.listVocabularyByStatus(status: VocabStatus.unstarted),
+          () =>
+              rust_vocab.listVocabularyByStatus(status: VocabStatus.unstarted),
         ).thenAnswer((_) async => []);
         when(
           () => rust_vocab.listVocabularyByStatus(status: VocabStatus.learning),

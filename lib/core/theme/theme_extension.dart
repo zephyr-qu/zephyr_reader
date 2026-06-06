@@ -1,18 +1,4 @@
-// lib/core/theme/extensions/theme_helper.dart
 import 'package:flutter/material.dart';
-
-extension ThemeHelper on BuildContext {
-  Color get primaryColor => Theme.of(this).colorScheme.primary;
-  Color get surfaceColor => Theme.of(this).colorScheme.surface;
-  AppThemeExtension get appTheme {
-    final ext = Theme.of(this).extension<AppThemeExtension>();
-    assert(
-      ext != null,
-      '❌ 请在 MaterialApp.theme 中通过 extensions: [AppThemeExtension(...)] 注册！',
-    );
-    return ext!;
-  }
-}
 
 class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
   final Color primaryContainer;
