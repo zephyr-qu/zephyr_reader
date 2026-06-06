@@ -30,10 +30,10 @@ class StreakCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 PhosphorIconsRegular.fire,
                 size: 14,
-                color: Colors.orange,
+                color: cs.primary,
               ),
               const SizedBox(width: 4),
               Text(
