@@ -62,6 +62,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DateTime dco_decode_Chrono_Utc(dynamic raw);
 
   @protected
+  Map<String, String> dco_decode_Map_String_String_None(dynamic raw);
+
+  @protected
   PageStreamer
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
     dynamic raw,
@@ -258,6 +261,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Note> dco_decode_list_note(dynamic raw);
 
   @protected
+  List<NoteWithBook> dco_decode_list_note_with_book(dynamic raw);
+
+  @protected
   List<PageContent> dco_decode_list_page_content(dynamic raw);
 
   @protected
@@ -273,6 +279,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<(String, List<Note>)> dco_decode_list_record_string_list_note(
     dynamic raw,
   );
+
+  @protected
+  List<(String, String)> dco_decode_list_record_string_string(dynamic raw);
 
   @protected
   List<RichParagraph> dco_decode_list_rich_paragraph(dynamic raw);
@@ -297,6 +306,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NoteType dco_decode_note_type(dynamic raw);
+
+  @protected
+  NoteWithBook dco_decode_note_with_book(dynamic raw);
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
@@ -382,6 +394,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   (String, List<Note>) dco_decode_record_string_list_note(dynamic raw);
 
   @protected
+  (String, String) dco_decode_record_string_string(dynamic raw);
+
+  @protected
   RichParagraph dco_decode_rich_paragraph(dynamic raw);
 
   @protected
@@ -428,6 +443,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   DateTime sse_decode_Chrono_Utc(SseDeserializer deserializer);
+
+  @protected
+  Map<String, String> sse_decode_Map_String_String_None(
+    SseDeserializer deserializer,
+  );
 
   @protected
   PageStreamer
@@ -650,6 +670,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Note> sse_decode_list_note(SseDeserializer deserializer);
 
   @protected
+  List<NoteWithBook> sse_decode_list_note_with_book(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<PageContent> sse_decode_list_page_content(SseDeserializer deserializer);
 
   @protected
@@ -667,6 +692,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<(String, List<Note>)> sse_decode_list_record_string_list_note(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<(String, String)> sse_decode_list_record_string_string(
     SseDeserializer deserializer,
   );
 
@@ -699,6 +729,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NoteType sse_decode_note_type(SseDeserializer deserializer);
+
+  @protected
+  NoteWithBook sse_decode_note_with_book(SseDeserializer deserializer);
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
@@ -800,6 +833,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  (String, String) sse_decode_record_string_string(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RichParagraph sse_decode_rich_paragraph(SseDeserializer deserializer);
 
   @protected
@@ -844,6 +882,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int cst_encode_Chrono_Utc(DateTime raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return cst_encode_i_64(raw.microsecondsSinceEpoch);
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_record_string_string>
+  cst_encode_Map_String_String_None(Map<String, String> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_list_record_string_string(
+      raw.entries.map((e) => (e.key, e.value)).toList(),
+    );
   }
 
   @protected
@@ -1157,6 +1204,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  ffi.Pointer<wire_cst_list_note_with_book> cst_encode_list_note_with_book(
+    List<NoteWithBook> raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_note_with_book(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_note_with_book(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
   ffi.Pointer<wire_cst_list_page_content> cst_encode_list_page_content(
     List<PageContent> raw,
   ) {
@@ -1209,6 +1268,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     final ans = wire.cst_new_list_record_string_list_note(raw.length);
     for (var i = 0; i < raw.length; ++i) {
       cst_api_fill_to_wire_record_string_list_note(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_record_string_string>
+  cst_encode_list_record_string_string(List<(String, String)> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_record_string_string(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_record_string_string(raw[i], ans.ref.ptr[i]);
     }
     return ans;
   }
@@ -1593,18 +1663,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wire_cst_bilingual_highlight_params wireObj,
   ) {
     wireObj.source_book_id = cst_encode_String(apiObj.sourceBookId);
-    wireObj.source_chapter_index = cst_encode_i_32(apiObj.sourceChapterIndex);
-    wireObj.source_char_offset = cst_encode_i_64(apiObj.sourceCharOffset);
-    wireObj.source_length = cst_encode_i_64(apiObj.sourceLength);
+    wireObj.source_chapter_index = cst_encode_i_64(apiObj.sourceChapterIndex);
+    wireObj.source_char_offset = cst_encode_i_32(apiObj.sourceCharOffset);
+    wireObj.source_length = cst_encode_i_32(apiObj.sourceLength);
     wireObj.source_selected_text = cst_encode_String(apiObj.sourceSelectedText);
     wireObj.source_language = cst_encode_String(apiObj.sourceLanguage);
     wireObj.target_book_id = cst_encode_String(apiObj.targetBookId);
-    wireObj.target_chapter_index = cst_encode_i_32(apiObj.targetChapterIndex);
-    wireObj.target_char_offset = cst_encode_i_64(apiObj.targetCharOffset);
-    wireObj.target_length = cst_encode_i_64(apiObj.targetLength);
+    wireObj.target_chapter_index = cst_encode_i_64(apiObj.targetChapterIndex);
+    wireObj.target_char_offset = cst_encode_i_32(apiObj.targetCharOffset);
+    wireObj.target_length = cst_encode_i_32(apiObj.targetLength);
     wireObj.target_selected_text = cst_encode_String(apiObj.targetSelectedText);
     wireObj.target_language = cst_encode_String(apiObj.targetLanguage);
-    wireObj.highlight_color = cst_encode_i_32(apiObj.highlightColor);
+    wireObj.highlight_color = cst_encode_i_64(apiObj.highlightColor);
   }
 
   @protected
@@ -1617,7 +1687,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wireObj.title = cst_encode_String(apiObj.title);
     wireObj.author = cst_encode_opt_String(apiObj.author);
     wireObj.cover_path = cst_encode_opt_String(apiObj.coverPath);
-    wireObj.chapter_count = cst_encode_i_32(apiObj.chapterCount);
+    wireObj.chapter_count = cst_encode_i_64(apiObj.chapterCount);
     wireObj.total_characters = cst_encode_i_64(apiObj.totalCharacters);
     wireObj.format = cst_encode_book_format(apiObj.format);
     wireObj.added_at = cst_encode_Chrono_Utc(apiObj.addedAt);
@@ -1644,8 +1714,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     cst_api_fill_to_wire_note_stats(apiObj.noteStats, wireObj.note_stats);
     wireObj.chapters = cst_encode_list_chapter(apiObj.chapters);
     wireObj.categories = cst_encode_list_category(apiObj.categories);
-    wireObj.sessions = cst_encode_list_reading_session(apiObj.sessions);
-    wireObj.vocab_list = cst_encode_list_vocab(apiObj.vocabList);
+    wireObj.session_count = cst_encode_i_32(apiObj.sessionCount);
+    wireObj.vocab_count = cst_encode_i_32(apiObj.vocabCount);
   }
 
   @protected
@@ -1662,7 +1732,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wireObj.isbn = cst_encode_opt_String(apiObj.isbn);
     wireObj.publish_year = cst_encode_opt_box_autoadd_i_32(apiObj.publishYear);
     wireObj.language = cst_encode_opt_String(apiObj.language);
-    wireObj.chapter_count = cst_encode_i_32(apiObj.chapterCount);
+    wireObj.chapter_count = cst_encode_i_64(apiObj.chapterCount);
     wireObj.total_characters = cst_encode_i_64(apiObj.totalCharacters);
   }
 
@@ -1684,7 +1754,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ) {
     wireObj.id = cst_encode_String(apiObj.id);
     wireObj.book_id = cst_encode_String(apiObj.bookId);
-    wireObj.chapter_index = cst_encode_i_32(apiObj.chapterIndex);
+    wireObj.chapter_index = cst_encode_i_64(apiObj.chapterIndex);
     wireObj.chapter_id = cst_encode_opt_String(apiObj.chapterId);
     wireObj.char_offset = cst_encode_i_64(apiObj.charOffset);
     wireObj.title = cst_encode_String(apiObj.title);
@@ -1820,7 +1890,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wireObj.name = cst_encode_String(apiObj.name);
     wireObj.description = cst_encode_opt_String(apiObj.description);
     wireObj.color = cst_encode_String(apiObj.color);
-    wireObj.sort_order = cst_encode_i_32(apiObj.sortOrder);
+    wireObj.sort_order = cst_encode_i_64(apiObj.sortOrder);
     wireObj.is_system = cst_encode_bool(apiObj.isSystem);
   }
 
@@ -1829,13 +1899,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wireObj.id = cst_encode_String(apiObj.id);
     wireObj.book_id = cst_encode_String(apiObj.bookId);
     wireObj.title = cst_encode_String(apiObj.title);
-    wireObj.chapter_index = cst_encode_i_32(apiObj.chapterIndex);
-    wireObj.word_count = cst_encode_i_64(apiObj.wordCount);
+    wireObj.chapter_index = cst_encode_i_64(apiObj.chapterIndex);
     wireObj.cached_at = cst_encode_Chrono_Utc(apiObj.cachedAt);
-    wireObj.level = cst_encode_i_32(apiObj.level);
+    wireObj.level = cst_encode_i_64(apiObj.level);
     wireObj.start_index = cst_encode_i_64(apiObj.startIndex);
     wireObj.end_index = cst_encode_i_64(apiObj.endIndex);
-    wireObj.content_length = cst_encode_i_64(apiObj.contentLength);
   }
 
   @protected
@@ -1923,9 +1991,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       apiObj.totalReadingTimeSeconds,
     );
     wireObj.total_characters_read = cst_encode_i_64(apiObj.totalCharactersRead);
-    wireObj.books_read_count = cst_encode_i_32(apiObj.booksReadCount);
-    wireObj.books_completed_count = cst_encode_i_32(apiObj.booksCompletedCount);
-    wireObj.consecutive_reading_days = cst_encode_i_32(
+    wireObj.books_read_count = cst_encode_i_64(apiObj.booksReadCount);
+    wireObj.books_completed_count = cst_encode_i_64(apiObj.booksCompletedCount);
+    wireObj.consecutive_reading_days = cst_encode_i_64(
       apiObj.consecutiveReadingDays,
     );
     wireObj.today_reading_time_seconds = cst_encode_i_64(
@@ -1933,23 +2001,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     );
     wireObj.today_characters_read = cst_encode_i_64(apiObj.todayCharactersRead);
     wireObj.average_reading_speed = cst_encode_f_32(apiObj.averageReadingSpeed);
-    wireObj.total_books_count = cst_encode_i_32(apiObj.totalBooksCount);
-    wireObj.total_notes_count = cst_encode_i_32(apiObj.totalNotesCount);
-    wireObj.total_bookmarks_count = cst_encode_i_32(apiObj.totalBookmarksCount);
+    wireObj.total_books_count = cst_encode_i_64(apiObj.totalBooksCount);
+    wireObj.total_notes_count = cst_encode_i_64(apiObj.totalNotesCount);
+    wireObj.total_bookmarks_count = cst_encode_i_64(apiObj.totalBookmarksCount);
   }
 
   @protected
   void cst_api_fill_to_wire_note(Note apiObj, wire_cst_note wireObj) {
     wireObj.id = cst_encode_String(apiObj.id);
     wireObj.book_id = cst_encode_String(apiObj.bookId);
-    wireObj.chapter_index = cst_encode_i_32(apiObj.chapterIndex);
+    wireObj.chapter_index = cst_encode_i_64(apiObj.chapterIndex);
     wireObj.chapter_id = cst_encode_opt_String(apiObj.chapterId);
     wireObj.char_offset = cst_encode_i_64(apiObj.charOffset);
     wireObj.length = cst_encode_i_64(apiObj.length);
     wireObj.note_type = cst_encode_note_type(apiObj.noteType);
     wireObj.content = cst_encode_String(apiObj.content);
     wireObj.selected_text = cst_encode_opt_String(apiObj.selectedText);
-    wireObj.highlight_color = cst_encode_opt_box_autoadd_i_32(
+    wireObj.highlight_color = cst_encode_opt_box_autoadd_i_64(
       apiObj.highlightColor,
     );
     wireObj.paired_note_id = cst_encode_opt_String(apiObj.pairedNoteId);
@@ -1963,9 +2031,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     NoteStats apiObj,
     wire_cst_note_stats wireObj,
   ) {
-    wireObj.total_count = cst_encode_i_32(apiObj.totalCount);
-    wireObj.highlight_count = cst_encode_i_32(apiObj.highlightCount);
-    wireObj.annotation_count = cst_encode_i_32(apiObj.annotationCount);
+    wireObj.total_count = cst_encode_i_64(apiObj.totalCount);
+    wireObj.highlight_count = cst_encode_i_64(apiObj.highlightCount);
+    wireObj.annotation_count = cst_encode_i_64(apiObj.annotationCount);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_note_with_book(
+    NoteWithBook apiObj,
+    wire_cst_note_with_book wireObj,
+  ) {
+    cst_api_fill_to_wire_note(apiObj.note, wireObj.note);
+    wireObj.book_title = cst_encode_String(apiObj.bookTitle);
   }
 
   @protected
@@ -1977,8 +2054,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wireObj.page_index = cst_encode_i_32(apiObj.pageIndex);
     wireObj.content = cst_encode_String(apiObj.content);
     wireObj.is_last_page = cst_encode_bool(apiObj.isLastPage);
-    wireObj.start_offset = cst_encode_i_64(apiObj.startOffset);
-    wireObj.end_offset = cst_encode_i_64(apiObj.endOffset);
+    wireObj.start_offset = cst_encode_i_32(apiObj.startOffset);
+    wireObj.end_offset = cst_encode_i_32(apiObj.endOffset);
   }
 
   @protected
@@ -2005,12 +2082,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wire_cst_reading_progress wireObj,
   ) {
     wireObj.book_id = cst_encode_String(apiObj.bookId);
-    wireObj.chapter_index = cst_encode_i_32(apiObj.chapterIndex);
-    wireObj.chunk_index = cst_encode_i_32(apiObj.chunkIndex);
+    wireObj.chapter_index = cst_encode_i_64(apiObj.chapterIndex);
+    wireObj.chunk_index = cst_encode_i_64(apiObj.chunkIndex);
     wireObj.chapter_id = cst_encode_opt_String(apiObj.chapterId);
     wireObj.char_offset = cst_encode_i_64(apiObj.charOffset);
-    wireObj.page_index = cst_encode_i_32(apiObj.pageIndex);
-    wireObj.total_pages = cst_encode_i_32(apiObj.totalPages);
+    wireObj.page_index = cst_encode_i_64(apiObj.pageIndex);
+    wireObj.total_pages = cst_encode_i_64(apiObj.totalPages);
     wireObj.progress = cst_encode_f_32(apiObj.progress);
     wireObj.reading_time_seconds = cst_encode_i_64(apiObj.readingTimeSeconds);
     wireObj.last_read_at = cst_encode_Chrono_Utc(apiObj.lastReadAt);
@@ -2024,7 +2101,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ) {
     wireObj.id = cst_encode_String(apiObj.id);
     wireObj.book_id = cst_encode_String(apiObj.bookId);
-    wireObj.chapter_index = cst_encode_i_32(apiObj.chapterIndex);
+    wireObj.chapter_index = cst_encode_i_64(apiObj.chapterIndex);
     wireObj.start_char_offset = cst_encode_i_64(apiObj.startCharOffset);
     wireObj.end_char_offset = cst_encode_i_64(apiObj.endCharOffset);
     wireObj.started_at = cst_encode_Chrono_Utc(apiObj.startedAt);
@@ -2041,7 +2118,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     wireObj.date = cst_encode_String(apiObj.date);
     wireObj.reading_time_seconds = cst_encode_i_64(apiObj.readingTimeSeconds);
     wireObj.characters_read = cst_encode_i_64(apiObj.charactersRead);
-    wireObj.session_count = cst_encode_i_32(apiObj.sessionCount);
+    wireObj.session_count = cst_encode_i_64(apiObj.sessionCount);
     wireObj.last_session_id = cst_encode_opt_String(apiObj.lastSessionId);
   }
 
@@ -2052,6 +2129,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ) {
     wireObj.field0 = cst_encode_String(apiObj.$1);
     wireObj.field1 = cst_encode_list_note(apiObj.$2);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_record_string_string(
+    (String, String) apiObj,
+    wire_cst_record_string_string wireObj,
+  ) {
+    wireObj.field0 = cst_encode_String(apiObj.$1);
+    wireObj.field1 = cst_encode_String(apiObj.$2);
   }
 
   @protected
@@ -2168,12 +2254,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ) {
     wireObj.book_id = cst_encode_String(apiObj.bookId);
     wireObj.chapter_id = cst_encode_String(apiObj.chapterId);
-    wireObj.chapter_index = cst_encode_String(apiObj.chapterIndex);
+    wireObj.chapter_index = cst_encode_i_32(apiObj.chapterIndex);
     wireObj.chapter_title = cst_encode_String(apiObj.chapterTitle);
     wireObj.snippet = cst_encode_String(apiObj.snippet);
-    wireObj.position = cst_encode_i_64(apiObj.position);
+    wireObj.position = cst_encode_i_32(apiObj.position);
     wireObj.score = cst_encode_f_32(apiObj.score);
-    wireObj.char_offset = cst_encode_i_64(apiObj.charOffset);
+    wireObj.char_offset = cst_encode_i_32(apiObj.charOffset);
   }
 
   @protected
@@ -2226,7 +2312,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     );
     wireObj.char_offset = cst_encode_opt_box_autoadd_i_64(apiObj.charOffset);
     wireObj.created_at = cst_encode_Chrono_Utc(apiObj.createdAt);
-    wireObj.review_count = cst_encode_i_32(apiObj.reviewCount);
+    wireObj.review_count = cst_encode_i_64(apiObj.reviewCount);
     wireObj.last_reviewed_at = cst_encode_opt_box_autoadd_Chrono_Utc(
       apiObj.lastReviewedAt,
     );
@@ -2315,6 +2401,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_Chrono_Utc(DateTime self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_Map_String_String_None(
+    Map<String, String> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void
@@ -2591,6 +2683,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_note(List<Note> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_note_with_book(
+    List<NoteWithBook> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_page_content(
     List<PageContent> self,
     SseSerializer serializer,
@@ -2617,6 +2715,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_record_string_list_note(
     List<(String, List<Note>)> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_record_string_string(
+    List<(String, String)> self,
     SseSerializer serializer,
   );
 
@@ -2655,6 +2759,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_note_type(NoteType self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_note_with_book(NoteWithBook self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
@@ -2788,6 +2895,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_record_string_list_note(
     (String, List<Note>) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_record_string_string(
+    (String, String) self,
     SseSerializer serializer,
   );
 
@@ -2943,6 +3056,18 @@ class RustLibWire implements BaseWire {
             )
           >();
 
+  void wire__crate__api__backup__backup_manifest_default(int port_) {
+    return _wire__crate__api__backup__backup_manifest_default(port_);
+  }
+
+  late final _wire__crate__api__backup__backup_manifest_defaultPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__backup__backup_manifest_default',
+      );
+  late final _wire__crate__api__backup__backup_manifest_default =
+      _wire__crate__api__backup__backup_manifest_defaultPtr
+          .asFunction<void Function(int)>();
+
   void wire__crate__api__backup__backup_stats_default(int port_) {
     return _wire__crate__api__backup__backup_stats_default(port_);
   }
@@ -2954,6 +3079,70 @@ class RustLibWire implements BaseWire {
   late final _wire__crate__api__backup__backup_stats_default =
       _wire__crate__api__backup__backup_stats_defaultPtr
           .asFunction<void Function(int)>();
+
+  void wire__crate__api__data__book__batch_set_categories_for_books(
+    int port_,
+    ffi.Pointer<wire_cst_list_String> book_ids,
+    ffi.Pointer<wire_cst_list_String> category_ids,
+  ) {
+    return _wire__crate__api__data__book__batch_set_categories_for_books(
+      port_,
+      book_ids,
+      category_ids,
+    );
+  }
+
+  late final _wire__crate__api__data__book__batch_set_categories_for_booksPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_String>,
+            ffi.Pointer<wire_cst_list_String>,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__book__batch_set_categories_for_books',
+      );
+  late final _wire__crate__api__data__book__batch_set_categories_for_books =
+      _wire__crate__api__data__book__batch_set_categories_for_booksPtr
+          .asFunction<
+            void Function(
+              int,
+              ffi.Pointer<wire_cst_list_String>,
+              ffi.Pointer<wire_cst_list_String>,
+            )
+          >();
+
+  void wire__crate__api__data__book__batch_update_book_status(
+    int port_,
+    ffi.Pointer<wire_cst_list_String> book_ids,
+    int status,
+  ) {
+    return _wire__crate__api__data__book__batch_update_book_status(
+      port_,
+      book_ids,
+      status,
+    );
+  }
+
+  late final _wire__crate__api__data__book__batch_update_book_statusPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_String>,
+            ffi.Int32,
+          )
+        >
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__book__batch_update_book_status',
+      );
+  late final _wire__crate__api__data__book__batch_update_book_status =
+      _wire__crate__api__data__book__batch_update_book_statusPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_String>, int)
+          >();
 
   void wire__crate__api__backup__cleanup_auto_snapshots(
     int port_,
@@ -3225,6 +3414,28 @@ class RustLibWire implements BaseWire {
       _wire__crate__api__data__book__count_booksPtr
           .asFunction<void Function(int)>();
 
+  void wire__crate__api__data__note__count_notes(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
+  ) {
+    return _wire__crate__api__data__note__count_notes(port_, book_id);
+  }
+
+  late final _wire__crate__api__data__note__count_notesPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__data__note__count_notes');
+  late final _wire__crate__api__data__note__count_notes =
+      _wire__crate__api__data__note__count_notesPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
   void wire__crate__api__data__note__create_annotation(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
@@ -3254,7 +3465,7 @@ class RustLibWire implements BaseWire {
             ffi.Int64,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Int32,
-            ffi.Int64,
+            ffi.Int32,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
@@ -3327,7 +3538,7 @@ class RustLibWire implements BaseWire {
             ffi.Int64,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Int32,
-            ffi.Int64,
+            ffi.Int32,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
@@ -3471,8 +3682,8 @@ class RustLibWire implements BaseWire {
             ffi.Int64,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Int32,
-            ffi.Int64,
-            ffi.Int64,
+            ffi.Int32,
+            ffi.Int32,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Int32,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
@@ -3557,8 +3768,8 @@ class RustLibWire implements BaseWire {
             ffi.Int64,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Int32,
-            ffi.Int64,
-            ffi.Int64,
+            ffi.Int32,
+            ffi.Int32,
             ffi.Int64,
           )
         >
@@ -3583,7 +3794,7 @@ class RustLibWire implements BaseWire {
     ffi.Pointer<wire_cst_list_prim_u_8_strict> translation,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> context_sentence,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
-    ffi.Pointer<ffi.Int64> chapter_index,
+    ffi.Pointer<ffi.Int32> chapter_index,
     ffi.Pointer<ffi.Int64> char_offset,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> word_list,
   ) {
@@ -3610,7 +3821,7 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Pointer<ffi.Int64>,
+            ffi.Pointer<ffi.Int32>,
             ffi.Pointer<ffi.Int64>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
@@ -3628,7 +3839,7 @@ class RustLibWire implements BaseWire {
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              ffi.Pointer<ffi.Int64>,
+              ffi.Pointer<ffi.Int32>,
               ffi.Pointer<ffi.Int64>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             )
@@ -4193,6 +4404,18 @@ class RustLibWire implements BaseWire {
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
+  WireSyncRust2DartDco wire__crate__api__vocab_marker__get_cet6_words() {
+    return _wire__crate__api__vocab_marker__get_cet6_words();
+  }
+
+  late final _wire__crate__api__vocab_marker__get_cet6_wordsPtr =
+      _lookup<ffi.NativeFunction<WireSyncRust2DartDco Function()>>(
+        'frbgen_zephyr_reader_wire__crate__api__vocab_marker__get_cet6_words',
+      );
+  late final _wire__crate__api__vocab_marker__get_cet6_words =
+      _wire__crate__api__vocab_marker__get_cet6_wordsPtr
+          .asFunction<WireSyncRust2DartDco Function()>();
+
   void wire__crate__api__core__get_chapter(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> file_path,
@@ -4352,6 +4575,18 @@ class RustLibWire implements BaseWire {
   late final _wire__crate__api__data__stats__get_global_reading_stats =
       _wire__crate__api__data__stats__get_global_reading_statsPtr
           .asFunction<void Function(int)>();
+
+  WireSyncRust2DartDco wire__crate__api__vocab_marker__get_ielts_words() {
+    return _wire__crate__api__vocab_marker__get_ielts_words();
+  }
+
+  late final _wire__crate__api__vocab_marker__get_ielts_wordsPtr =
+      _lookup<ffi.NativeFunction<WireSyncRust2DartDco Function()>>(
+        'frbgen_zephyr_reader_wire__crate__api__vocab_marker__get_ielts_words',
+      );
+  late final _wire__crate__api__vocab_marker__get_ielts_words =
+      _wire__crate__api__vocab_marker__get_ielts_wordsPtr
+          .asFunction<WireSyncRust2DartDco Function()>();
 
   void wire__crate__api__md__get_md_chapter_rich_content(
     int port_,
@@ -4607,6 +4842,18 @@ class RustLibWire implements BaseWire {
       _wire__crate__api__data__stats__get_today_reading_statsPtr
           .asFunction<void Function(int)>();
 
+  WireSyncRust2DartDco wire__crate__api__vocab_marker__get_toefl_words() {
+    return _wire__crate__api__vocab_marker__get_toefl_words();
+  }
+
+  late final _wire__crate__api__vocab_marker__get_toefl_wordsPtr =
+      _lookup<ffi.NativeFunction<WireSyncRust2DartDco Function()>>(
+        'frbgen_zephyr_reader_wire__crate__api__vocab_marker__get_toefl_words',
+      );
+  late final _wire__crate__api__vocab_marker__get_toefl_words =
+      _wire__crate__api__vocab_marker__get_toefl_wordsPtr
+          .asFunction<WireSyncRust2DartDco Function()>();
+
   void wire__crate__api__data__vocabulary__get_vocabulary_stats(int port_) {
     return _wire__crate__api__data__vocabulary__get_vocabulary_stats(port_);
   }
@@ -4695,7 +4942,7 @@ class RustLibWire implements BaseWire {
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_id,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_index,
+    int chapter_index,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_title,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> content,
   ) {
@@ -4716,7 +4963,7 @@ class RustLibWire implements BaseWire {
             ffi.Int64,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Int32,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
@@ -4729,7 +4976,7 @@ class RustLibWire implements BaseWire {
               int,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              int,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             )
@@ -4822,6 +5069,22 @@ class RustLibWire implements BaseWire {
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
+
+  void wire__crate__api__data__note__list_all_notes(
+    int port_,
+    int limit,
+    int offset,
+  ) {
+    return _wire__crate__api__data__note__list_all_notes(port_, limit, offset);
+  }
+
+  late final _wire__crate__api__data__note__list_all_notesPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Int32, ffi.Int32)>
+      >('frbgen_zephyr_reader_wire__crate__api__data__note__list_all_notes');
+  late final _wire__crate__api__data__note__list_all_notes =
+      _wire__crate__api__data__note__list_all_notesPtr
+          .asFunction<void Function(int, int, int)>();
 
   void wire__crate__api__data__progress__list_all_progresses(int port_) {
     return _wire__crate__api__data__progress__list_all_progresses(port_);
@@ -5127,6 +5390,28 @@ class RustLibWire implements BaseWire {
             )
           >();
 
+  void wire__crate__api__data__note__list_notes_with_titles(
+    int port_,
+    int limit,
+    int offset,
+  ) {
+    return _wire__crate__api__data__note__list_notes_with_titles(
+      port_,
+      limit,
+      offset,
+    );
+  }
+
+  late final _wire__crate__api__data__note__list_notes_with_titlesPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Int32, ffi.Int32)>
+      >(
+        'frbgen_zephyr_reader_wire__crate__api__data__note__list_notes_with_titles',
+      );
+  late final _wire__crate__api__data__note__list_notes_with_titles =
+      _wire__crate__api__data__note__list_notes_with_titlesPtr
+          .asFunction<void Function(int, int, int)>();
+
   void wire__crate__api__data__book__list_pinned_books(int port_) {
     return _wire__crate__api__data__book__list_pinned_books(port_);
   }
@@ -5150,7 +5435,7 @@ class RustLibWire implements BaseWire {
   }
 
   late final _wire__crate__api__data__book__list_recently_opened_booksPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.UintPtr)>>(
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Int32)>>(
         'frbgen_zephyr_reader_wire__crate__api__data__book__list_recently_opened_books',
       );
   late final _wire__crate__api__data__book__list_recently_opened_books =
@@ -5175,7 +5460,7 @@ class RustLibWire implements BaseWire {
           ffi.Void Function(
             ffi.Int64,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.UintPtr,
+            ffi.Int32,
           )
         >
       >(
@@ -5236,7 +5521,7 @@ class RustLibWire implements BaseWire {
   }
 
   late final _wire__crate__api__data__session__list_sessions_by_recentPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.UintPtr)>>(
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Int32)>>(
         'frbgen_zephyr_reader_wire__crate__api__data__session__list_sessions_by_recent',
       );
   late final _wire__crate__api__data__session__list_sessions_by_recent =
@@ -5281,6 +5566,18 @@ class RustLibWire implements BaseWire {
             )
           >();
 
+  void wire__crate__api__data__vocabulary__list_word_lists(int port_) {
+    return _wire__crate__api__data__vocabulary__list_word_lists(port_);
+  }
+
+  late final _wire__crate__api__data__vocabulary__list_word_listsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__data__vocabulary__list_word_lists',
+      );
+  late final _wire__crate__api__data__vocabulary__list_word_lists =
+      _wire__crate__api__data__vocabulary__list_word_listsPtr
+          .asFunction<void Function(int)>();
+
   void wire__crate__api__dictionary__lookup_mdict(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> word,
@@ -5302,6 +5599,18 @@ class RustLibWire implements BaseWire {
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
+
+  void wire__crate__api__data__book__map_book_titles(int port_) {
+    return _wire__crate__api__data__book__map_book_titles(port_);
+  }
+
+  late final _wire__crate__api__data__book__map_book_titlesPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_zephyr_reader_wire__crate__api__data__book__map_book_titles',
+      );
+  late final _wire__crate__api__data__book__map_book_titles =
+      _wire__crate__api__data__book__map_book_titlesPtr
+          .asFunction<void Function(int)>();
 
   void wire__crate__api__core__paginate_all_content(
     int port_,
@@ -5526,6 +5835,28 @@ class RustLibWire implements BaseWire {
       >('frbgen_zephyr_reader_wire__crate__api__data__book__search_books');
   late final _wire__crate__api__data__book__search_books =
       _wire__crate__api__data__book__search_booksPtr
+          .asFunction<
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+          >();
+
+  void wire__crate__api__data__note__search_notes(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> query,
+  ) {
+    return _wire__crate__api__data__note__search_notes(port_, query);
+  }
+
+  late final _wire__crate__api__data__note__search_notesPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_zephyr_reader_wire__crate__api__data__note__search_notes');
+  late final _wire__crate__api__data__note__search_notes =
+      _wire__crate__api__data__note__search_notesPtr
           .asFunction<
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
@@ -6587,6 +6918,21 @@ class RustLibWire implements BaseWire {
   late final _cst_new_list_note = _cst_new_list_notePtr
       .asFunction<ffi.Pointer<wire_cst_list_note> Function(int)>();
 
+  ffi.Pointer<wire_cst_list_note_with_book> cst_new_list_note_with_book(
+    int len,
+  ) {
+    return _cst_new_list_note_with_book(len);
+  }
+
+  late final _cst_new_list_note_with_bookPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_note_with_book> Function(ffi.Int32)
+        >
+      >('frbgen_zephyr_reader_cst_new_list_note_with_book');
+  late final _cst_new_list_note_with_book = _cst_new_list_note_with_bookPtr
+      .asFunction<ffi.Pointer<wire_cst_list_note_with_book> Function(int)>();
+
   ffi.Pointer<wire_cst_list_page_content> cst_new_list_page_content(int len) {
     return _cst_new_list_page_content(len);
   }
@@ -6658,6 +7004,23 @@ class RustLibWire implements BaseWire {
       _cst_new_list_record_string_list_notePtr
           .asFunction<
             ffi.Pointer<wire_cst_list_record_string_list_note> Function(int)
+          >();
+
+  ffi.Pointer<wire_cst_list_record_string_string>
+  cst_new_list_record_string_string(int len) {
+    return _cst_new_list_record_string_string(len);
+  }
+
+  late final _cst_new_list_record_string_stringPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_record_string_string> Function(ffi.Int32)
+        >
+      >('frbgen_zephyr_reader_cst_new_list_record_string_string');
+  late final _cst_new_list_record_string_string =
+      _cst_new_list_record_string_stringPtr
+          .asFunction<
+            ffi.Pointer<wire_cst_list_record_string_string> Function(int)
           >();
 
   ffi.Pointer<wire_cst_list_rich_paragraph> cst_new_list_rich_paragraph(
@@ -6755,16 +7118,23 @@ final class wire_cst_list_prim_u_8_strict extends ffi.Struct {
   external int len;
 }
 
+final class wire_cst_list_String extends ffi.Struct {
+  external ffi.Pointer<ffi.Pointer<wire_cst_list_prim_u_8_strict>> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
 final class wire_cst_bilingual_highlight_params extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> source_book_id;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int source_chapter_index;
 
-  @ffi.Int64()
+  @ffi.Int32()
   external int source_char_offset;
 
-  @ffi.Int64()
+  @ffi.Int32()
   external int source_length;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> source_selected_text;
@@ -6773,20 +7143,20 @@ final class wire_cst_bilingual_highlight_params extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> target_book_id;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int target_chapter_index;
 
-  @ffi.Int64()
+  @ffi.Int32()
   external int target_char_offset;
 
-  @ffi.Int64()
+  @ffi.Int32()
   external int target_length;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> target_selected_text;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> target_language;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int highlight_color;
 }
 
@@ -6853,7 +7223,7 @@ final class wire_cst_bookmark extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int chapter_index;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_id;
@@ -6874,19 +7244,12 @@ final class wire_cst_list_bookmark extends ffi.Struct {
   external int len;
 }
 
-final class wire_cst_list_String extends ffi.Struct {
-  external ffi.Pointer<ffi.Pointer<wire_cst_list_prim_u_8_strict>> ptr;
-
-  @ffi.Int32()
-  external int len;
-}
-
 final class wire_cst_note extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int chapter_index;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_id;
@@ -6904,7 +7267,7 @@ final class wire_cst_note extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> selected_text;
 
-  external ffi.Pointer<ffi.Int32> highlight_color;
+  external ffi.Pointer<ffi.Int64> highlight_color;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> paired_note_id;
 
@@ -6935,7 +7298,7 @@ final class wire_cst_reading_stats extends ffi.Struct {
   @ffi.Int64()
   external int characters_read;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int session_count;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> last_session_id;
@@ -6959,7 +7322,7 @@ final class wire_cst_book extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> cover_path;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int chapter_count;
 
   @ffi.Int64()
@@ -6995,16 +7358,13 @@ final class wire_cst_chapter extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> title;
 
-  @ffi.Int32()
-  external int chapter_index;
-
   @ffi.Int64()
-  external int word_count;
+  external int chapter_index;
 
   @ffi.Int64()
   external int cached_at;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int level;
 
   @ffi.Int64()
@@ -7012,9 +7372,6 @@ final class wire_cst_chapter extends ffi.Struct {
 
   @ffi.Int64()
   external int end_index;
-
-  @ffi.Int64()
-  external int content_length;
 }
 
 final class wire_cst_list_chapter extends ffi.Struct {
@@ -7050,10 +7407,10 @@ final class wire_cst_dictionary extends ffi.Struct {
 final class wire_cst_reading_progress extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int chapter_index;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int chunk_index;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_id;
@@ -7061,10 +7418,10 @@ final class wire_cst_reading_progress extends ffi.Struct {
   @ffi.Int64()
   external int char_offset;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int page_index;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int total_pages;
 
   @ffi.Float()
@@ -7085,7 +7442,7 @@ final class wire_cst_reading_session extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_id;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int chapter_index;
 
   @ffi.Int64()
@@ -7151,7 +7508,7 @@ final class wire_cst_category extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> color;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int sort_order;
 
   @ffi.Bool()
@@ -7257,6 +7614,19 @@ final class wire_cst_list_epub_toc_item extends ffi.Struct {
   external int len;
 }
 
+final class wire_cst_note_with_book extends ffi.Struct {
+  external wire_cst_note note;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> book_title;
+}
+
+final class wire_cst_list_note_with_book extends ffi.Struct {
+  external ffi.Pointer<wire_cst_note_with_book> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
 final class wire_cst_page_content extends ffi.Struct {
   @ffi.Int32()
   external int chapter_index;
@@ -7269,10 +7639,10 @@ final class wire_cst_page_content extends ffi.Struct {
   @ffi.Bool()
   external bool is_last_page;
 
-  @ffi.Int64()
+  @ffi.Int32()
   external int start_offset;
 
-  @ffi.Int64()
+  @ffi.Int32()
   external int end_offset;
 }
 
@@ -7305,6 +7675,19 @@ final class wire_cst_record_string_list_note extends ffi.Struct {
 
 final class wire_cst_list_record_string_list_note extends ffi.Struct {
   external ffi.Pointer<wire_cst_record_string_list_note> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_record_string_string extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field1;
+}
+
+final class wire_cst_list_record_string_string extends ffi.Struct {
+  external ffi.Pointer<wire_cst_record_string_string> ptr;
 
   @ffi.Int32()
   external int len;
@@ -7448,19 +7831,20 @@ final class wire_cst_search_result extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_id;
 
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_index;
+  @ffi.Int32()
+  external int chapter_index;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> chapter_title;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> snippet;
 
-  @ffi.Int64()
+  @ffi.Int32()
   external int position;
 
   @ffi.Float()
   external double score;
 
-  @ffi.Int64()
+  @ffi.Int32()
   external int char_offset;
 }
 
@@ -7491,7 +7875,7 @@ final class wire_cst_vocab extends ffi.Struct {
   @ffi.Int64()
   external int created_at;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int review_count;
 
   external ffi.Pointer<ffi.Int64> last_reviewed_at;
@@ -7641,13 +8025,13 @@ final class wire_cst_bilingual_alignment extends ffi.Struct {
 }
 
 final class wire_cst_note_stats extends ffi.Struct {
-  @ffi.Int32()
+  @ffi.Int64()
   external int total_count;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int highlight_count;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int annotation_count;
 }
 
@@ -7662,9 +8046,11 @@ final class wire_cst_book_detail extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_category> categories;
 
-  external ffi.Pointer<wire_cst_list_reading_session> sessions;
+  @ffi.Int32()
+  external int session_count;
 
-  external ffi.Pointer<wire_cst_list_vocab> vocab_list;
+  @ffi.Int32()
+  external int vocab_count;
 }
 
 final class wire_cst_book_metadata extends ffi.Struct {
@@ -7686,7 +8072,7 @@ final class wire_cst_book_metadata extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> language;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int chapter_count;
 
   @ffi.Int64()
@@ -7733,13 +8119,13 @@ final class wire_cst_global_stats extends ffi.Struct {
   @ffi.Int64()
   external int total_characters_read;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int books_read_count;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int books_completed_count;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int consecutive_reading_days;
 
   @ffi.Int64()
@@ -7751,13 +8137,13 @@ final class wire_cst_global_stats extends ffi.Struct {
   @ffi.Float()
   external double average_reading_speed;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int total_books_count;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int total_notes_count;
 
-  @ffi.Int32()
+  @ffi.Int64()
   external int total_bookmarks_count;
 }
 

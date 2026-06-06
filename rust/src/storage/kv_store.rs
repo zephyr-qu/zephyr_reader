@@ -325,7 +325,7 @@ mod tests {
         assert!(cached.is_valid(config_hash), "cache must pass validation");
 
         // Step 3: 验证缓存结果与原始结果一致
-        assert_eq!(cached.total_pages, pages.len() as i32);
+        assert_eq!(cached.total_pages, pages.len() as i64);
         assert_eq!(cached.pages.len(), pages.len());
         for (i, (original, cached_page)) in pages.iter().zip(cached.pages.iter()).enumerate() {
             assert_eq!(

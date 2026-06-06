@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/features/statistics/application/reading_stats_view_model.dart';
-import 'package:zephyr_reader/features/statistics/page/widgets/today_reading_card.dart';
-import 'package:zephyr_reader/features/statistics/page/widgets/streak_card.dart';
 import 'package:zephyr_reader/features/statistics/page/widgets/reading_trend_chart.dart';
-import 'package:zephyr_reader/features/statistics/page/widgets/weekly_heatmap.dart';
+import 'package:zephyr_reader/features/statistics/page/widgets/streak_card.dart';
+import 'package:zephyr_reader/features/statistics/page/widgets/today_reading_card.dart';
 import 'package:zephyr_reader/features/statistics/page/widgets/vocab_stats_section.dart';
+import 'package:zephyr_reader/features/statistics/page/widgets/weekly_heatmap.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class StatisticsPage extends HookWidget {
@@ -18,22 +18,26 @@ class StatisticsPage extends HookWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final vm = useMemoized(() => ReadingStatsViewModel());
-    useEffect(() {
-      return null;
-    }, []);
 
-    final GlobalStats? gs = useSignalValue(vm.globalStats);
-    final List<ReadingStats> records = useSignalValue(vm.dailyRecords);
+    final AsyncState<GlobalStats?> gs = useSignalValue(vm.globalStats);
+    final AsyncState<List<ReadingStats>> records = useSignalValue(
+      vm.dailyRecords,
+    );
     final StatisticsPeriod period = useSignalValue(vm.selectedPeriod);
     final int vUnstarted = useSignalValue(vm.vocabUnstarted);
     final int vLearning = useSignalValue(vm.vocabLearning);
     final int vMastered = useSignalValue(vm.vocabMastered);
     final int vIgnored = useSignalValue(vm.vocabIgnored);
-    final bool loaded = useSignalValue(vm.loaded);
     final int goalMin = useSignalValue(vm.goalMinutes);
+    useEffect(() {
+      vm.loadData(period: period);
+      return null;
+    }, [period]);
 
-    final todayMin = gs != null ? gs.todayReadingTimeSeconds.toInt() ~/ 60 : 0;
-    final pct = (todayMin / goalMin).clamp(0.0, 1.0);
+    final todayMin = gs.value != null
+        ? gs.value!.todayReadingTimeSeconds.toInt() ~/ 60
+        : 0;
+    final pct = goalMin > 0 ? (todayMin / goalMin).clamp(0.0, 1.0) : 0.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -55,46 +59,45 @@ class StatisticsPage extends HookWidget {
           ),
         ],
       ),
-      body: loaded
-          ? ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TodayReadingCard(
-                        minutes: todayMin,
-                        progress: pct,
-                        goalMinutes: goalMin,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: StreakCard(
-                        days: gs?.consecutiveReadingDays ?? 0,
-                        totalBooks: gs?.booksReadCount ?? 0,
-                      ),
-                    ),
-                  ],
-                ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.04, end: 0),
-                const SizedBox(height: 28),
-                ReadingTrendChart(records: records)
-                    .animate()
-                    .fadeIn(duration: 400.ms, delay: 100.ms),
-                const SizedBox(height: 28),
-                WeeklyHeatmap(records: records)
-                    .animate()
-                    .fadeIn(duration: 400.ms, delay: 400.ms),
-                const SizedBox(height: 28),
-                VocabStatsSection(
-                  vocabUnstarted: vUnstarted,
-                  vocabLearning: vLearning,
-                  vocabMastered: vMastered,
-                  vocabIgnored: vIgnored,
-                ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
-              ],
-            )
-          : const Center(child: CircularProgressIndicator()),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TodayReadingCard(
+                  minutes: todayMin,
+                  progress: pct,
+                  goalMinutes: goalMin,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: StreakCard(
+                  days: gs.value?.consecutiveReadingDays ?? 0,
+                  totalBooks: gs.value?.booksReadCount ?? 0,
+                ),
+              ),
+            ],
+          ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.04, end: 0),
+          const SizedBox(height: 28),
+          ReadingTrendChart(
+            records: records.value ?? [],
+          ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
+          const SizedBox(height: 28),
+          WeeklyHeatmap(
+            records: records.value ?? [],
+            period: period,
+          ).animate().fadeIn(duration: 400.ms, delay: 400.ms),
+          const SizedBox(height: 28),
+          VocabStatsSection(
+            vocabUnstarted: vUnstarted,
+            vocabLearning: vLearning,
+            vocabMastered: vMastered,
+            vocabIgnored: vIgnored,
+          ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
+        ],
+      ),
     );
   }
 }
@@ -121,12 +124,12 @@ class _PeriodSelector extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: StatisticsPeriod.values.map((period) {
           final isActive = period == selected;
-          final labels = [
-            l10n.periodToday,
-            l10n.periodWeek,
-            l10n.periodMonth,
-            l10n.periodYear,
-          ];
+          final label = switch (period) {
+            StatisticsPeriod.today => l10n.periodToday,
+            StatisticsPeriod.week => l10n.periodWeek,
+            StatisticsPeriod.month => l10n.periodMonth,
+            StatisticsPeriod.year => l10n.periodYear,
+          };
           return InkWell(
             borderRadius: BorderRadius.circular(999),
             onTap: () => onChanged(period),
@@ -139,7 +142,7 @@ class _PeriodSelector extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                labels[period.index],
+                label,
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,

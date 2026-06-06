@@ -64,6 +64,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DateTime dco_decode_Chrono_Utc(dynamic raw);
 
   @protected
+  Map<String, String> dco_decode_Map_String_String_None(dynamic raw);
+
+  @protected
   PageStreamer
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPageStreamer(
     dynamic raw,
@@ -260,6 +263,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Note> dco_decode_list_note(dynamic raw);
 
   @protected
+  List<NoteWithBook> dco_decode_list_note_with_book(dynamic raw);
+
+  @protected
   List<PageContent> dco_decode_list_page_content(dynamic raw);
 
   @protected
@@ -275,6 +281,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<(String, List<Note>)> dco_decode_list_record_string_list_note(
     dynamic raw,
   );
+
+  @protected
+  List<(String, String)> dco_decode_list_record_string_string(dynamic raw);
 
   @protected
   List<RichParagraph> dco_decode_list_rich_paragraph(dynamic raw);
@@ -299,6 +308,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NoteType dco_decode_note_type(dynamic raw);
+
+  @protected
+  NoteWithBook dco_decode_note_with_book(dynamic raw);
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
@@ -384,6 +396,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   (String, List<Note>) dco_decode_record_string_list_note(dynamic raw);
 
   @protected
+  (String, String) dco_decode_record_string_string(dynamic raw);
+
+  @protected
   RichParagraph dco_decode_rich_paragraph(dynamic raw);
 
   @protected
@@ -430,6 +445,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   DateTime sse_decode_Chrono_Utc(SseDeserializer deserializer);
+
+  @protected
+  Map<String, String> sse_decode_Map_String_String_None(
+    SseDeserializer deserializer,
+  );
 
   @protected
   PageStreamer
@@ -652,6 +672,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Note> sse_decode_list_note(SseDeserializer deserializer);
 
   @protected
+  List<NoteWithBook> sse_decode_list_note_with_book(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<PageContent> sse_decode_list_page_content(SseDeserializer deserializer);
 
   @protected
@@ -669,6 +694,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<(String, List<Note>)> sse_decode_list_record_string_list_note(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<(String, String)> sse_decode_list_record_string_string(
     SseDeserializer deserializer,
   );
 
@@ -701,6 +731,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NoteType sse_decode_note_type(SseDeserializer deserializer);
+
+  @protected
+  NoteWithBook sse_decode_note_with_book(SseDeserializer deserializer);
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
@@ -802,6 +835,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  (String, String) sse_decode_record_string_string(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RichParagraph sse_decode_rich_paragraph(SseDeserializer deserializer);
 
   @protected
@@ -846,6 +884,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   JSAny cst_encode_Chrono_Utc(DateTime raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return cst_encode_i_64(BigInt.from(raw.millisecondsSinceEpoch));
+  }
+
+  @protected
+  JSAny cst_encode_Map_String_String_None(Map<String, String> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_list_record_string_string(
+      raw.entries.map((e) => (e.key, e.value)).toList(),
+    );
   }
 
   @protected
@@ -984,18 +1030,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
       cst_encode_String(raw.sourceBookId),
-      cst_encode_i_32(raw.sourceChapterIndex),
-      cst_encode_i_64(raw.sourceCharOffset),
-      cst_encode_i_64(raw.sourceLength),
+      cst_encode_i_64(raw.sourceChapterIndex),
+      cst_encode_i_32(raw.sourceCharOffset),
+      cst_encode_i_32(raw.sourceLength),
       cst_encode_String(raw.sourceSelectedText),
       cst_encode_String(raw.sourceLanguage),
       cst_encode_String(raw.targetBookId),
-      cst_encode_i_32(raw.targetChapterIndex),
-      cst_encode_i_64(raw.targetCharOffset),
-      cst_encode_i_64(raw.targetLength),
+      cst_encode_i_64(raw.targetChapterIndex),
+      cst_encode_i_32(raw.targetCharOffset),
+      cst_encode_i_32(raw.targetLength),
       cst_encode_String(raw.targetSelectedText),
       cst_encode_String(raw.targetLanguage),
-      cst_encode_i_32(raw.highlightColor),
+      cst_encode_i_64(raw.highlightColor),
     ].jsify()!;
   }
 
@@ -1011,7 +1057,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_String(raw.title),
       cst_encode_opt_String(raw.author),
       cst_encode_opt_String(raw.coverPath),
-      cst_encode_i_32(raw.chapterCount),
+      cst_encode_i_64(raw.chapterCount),
       cst_encode_i_64(raw.totalCharacters),
       cst_encode_book_format(raw.format),
       cst_encode_Chrono_Utc(raw.addedAt),
@@ -1034,8 +1080,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_note_stats(raw.noteStats),
       cst_encode_list_chapter(raw.chapters),
       cst_encode_list_category(raw.categories),
-      cst_encode_list_reading_session(raw.sessions),
-      cst_encode_list_vocab(raw.vocabList),
+      cst_encode_i_32(raw.sessionCount),
+      cst_encode_i_32(raw.vocabCount),
     ].jsify()!;
   }
 
@@ -1052,7 +1098,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_opt_String(raw.isbn),
       cst_encode_opt_box_autoadd_i_32(raw.publishYear),
       cst_encode_opt_String(raw.language),
-      cst_encode_i_32(raw.chapterCount),
+      cst_encode_i_64(raw.chapterCount),
       cst_encode_i_64(raw.totalCharacters),
     ].jsify()!;
   }
@@ -1072,7 +1118,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     return [
       cst_encode_String(raw.id),
       cst_encode_String(raw.bookId),
-      cst_encode_i_32(raw.chapterIndex),
+      cst_encode_i_64(raw.chapterIndex),
       cst_encode_opt_String(raw.chapterId),
       cst_encode_i_64(raw.charOffset),
       cst_encode_String(raw.title),
@@ -1216,7 +1262,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_String(raw.name),
       cst_encode_opt_String(raw.description),
       cst_encode_String(raw.color),
-      cst_encode_i_32(raw.sortOrder),
+      cst_encode_i_64(raw.sortOrder),
       cst_encode_bool(raw.isSystem),
     ].jsify()!;
   }
@@ -1228,13 +1274,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_String(raw.id),
       cst_encode_String(raw.bookId),
       cst_encode_String(raw.title),
-      cst_encode_i_32(raw.chapterIndex),
-      cst_encode_i_64(raw.wordCount),
+      cst_encode_i_64(raw.chapterIndex),
       cst_encode_Chrono_Utc(raw.cachedAt),
-      cst_encode_i_32(raw.level),
+      cst_encode_i_64(raw.level),
       cst_encode_i_64(raw.startIndex),
       cst_encode_i_64(raw.endIndex),
-      cst_encode_i_64(raw.contentLength),
     ].jsify()!;
   }
 
@@ -1314,15 +1358,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     return [
       cst_encode_i_64(raw.totalReadingTimeSeconds),
       cst_encode_i_64(raw.totalCharactersRead),
-      cst_encode_i_32(raw.booksReadCount),
-      cst_encode_i_32(raw.booksCompletedCount),
-      cst_encode_i_32(raw.consecutiveReadingDays),
+      cst_encode_i_64(raw.booksReadCount),
+      cst_encode_i_64(raw.booksCompletedCount),
+      cst_encode_i_64(raw.consecutiveReadingDays),
       cst_encode_i_64(raw.todayReadingTimeSeconds),
       cst_encode_i_64(raw.todayCharactersRead),
       cst_encode_f_32(raw.averageReadingSpeed),
-      cst_encode_i_32(raw.totalBooksCount),
-      cst_encode_i_32(raw.totalNotesCount),
-      cst_encode_i_32(raw.totalBookmarksCount),
+      cst_encode_i_64(raw.totalBooksCount),
+      cst_encode_i_64(raw.totalNotesCount),
+      cst_encode_i_64(raw.totalBookmarksCount),
     ].jsify()!;
   }
 
@@ -1401,6 +1445,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
+  JSAny cst_encode_list_note_with_book(List<NoteWithBook> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.map(cst_encode_note_with_book).toList().jsify()!;
+  }
+
+  @protected
   JSAny cst_encode_list_page_content(List<PageContent> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw.map(cst_encode_page_content).toList().jsify()!;
@@ -1430,6 +1480,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw.map(cst_encode_record_string_list_note).toList().jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_list_record_string_string(List<(String, String)> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.map(cst_encode_record_string_string).toList().jsify()!;
   }
 
   @protected
@@ -1468,14 +1524,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     return [
       cst_encode_String(raw.id),
       cst_encode_String(raw.bookId),
-      cst_encode_i_32(raw.chapterIndex),
+      cst_encode_i_64(raw.chapterIndex),
       cst_encode_opt_String(raw.chapterId),
       cst_encode_i_64(raw.charOffset),
       cst_encode_i_64(raw.length),
       cst_encode_note_type(raw.noteType),
       cst_encode_String(raw.content),
       cst_encode_opt_String(raw.selectedText),
-      cst_encode_opt_box_autoadd_i_32(raw.highlightColor),
+      cst_encode_opt_box_autoadd_i_64(raw.highlightColor),
       cst_encode_opt_String(raw.pairedNoteId),
       cst_encode_opt_String(raw.language),
       cst_encode_Chrono_Utc(raw.createdAt),
@@ -1487,9 +1543,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   JSAny cst_encode_note_stats(NoteStats raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
-      cst_encode_i_32(raw.totalCount),
-      cst_encode_i_32(raw.highlightCount),
-      cst_encode_i_32(raw.annotationCount),
+      cst_encode_i_64(raw.totalCount),
+      cst_encode_i_64(raw.highlightCount),
+      cst_encode_i_64(raw.annotationCount),
+    ].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_note_with_book(NoteWithBook raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_note(raw.note),
+      cst_encode_String(raw.bookTitle),
     ].jsify()!;
   }
 
@@ -1623,8 +1688,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_i_32(raw.pageIndex),
       cst_encode_String(raw.content),
       cst_encode_bool(raw.isLastPage),
-      cst_encode_i_64(raw.startOffset),
-      cst_encode_i_64(raw.endOffset),
+      cst_encode_i_32(raw.startOffset),
+      cst_encode_i_32(raw.endOffset),
     ].jsify()!;
   }
 
@@ -1651,12 +1716,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
       cst_encode_String(raw.bookId),
-      cst_encode_i_32(raw.chapterIndex),
-      cst_encode_i_32(raw.chunkIndex),
+      cst_encode_i_64(raw.chapterIndex),
+      cst_encode_i_64(raw.chunkIndex),
       cst_encode_opt_String(raw.chapterId),
       cst_encode_i_64(raw.charOffset),
-      cst_encode_i_32(raw.pageIndex),
-      cst_encode_i_32(raw.totalPages),
+      cst_encode_i_64(raw.pageIndex),
+      cst_encode_i_64(raw.totalPages),
       cst_encode_f_32(raw.progress),
       cst_encode_i_64(raw.readingTimeSeconds),
       cst_encode_Chrono_Utc(raw.lastReadAt),
@@ -1670,7 +1735,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     return [
       cst_encode_String(raw.id),
       cst_encode_String(raw.bookId),
-      cst_encode_i_32(raw.chapterIndex),
+      cst_encode_i_64(raw.chapterIndex),
       cst_encode_i_64(raw.startCharOffset),
       cst_encode_i_64(raw.endCharOffset),
       cst_encode_Chrono_Utc(raw.startedAt),
@@ -1687,7 +1752,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_String(raw.date),
       cst_encode_i_64(raw.readingTimeSeconds),
       cst_encode_i_64(raw.charactersRead),
-      cst_encode_i_32(raw.sessionCount),
+      cst_encode_i_64(raw.sessionCount),
       cst_encode_opt_String(raw.lastSessionId),
     ].jsify()!;
   }
@@ -1696,6 +1761,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   JSAny cst_encode_record_string_list_note((String, List<Note>) raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [cst_encode_String(raw.$1), cst_encode_list_note(raw.$2)].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_record_string_string((String, String) raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [cst_encode_String(raw.$1), cst_encode_String(raw.$2)].jsify()!;
   }
 
   @protected
@@ -1794,12 +1865,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     return [
       cst_encode_String(raw.bookId),
       cst_encode_String(raw.chapterId),
-      cst_encode_String(raw.chapterIndex),
+      cst_encode_i_32(raw.chapterIndex),
       cst_encode_String(raw.chapterTitle),
       cst_encode_String(raw.snippet),
-      cst_encode_i_64(raw.position),
+      cst_encode_i_32(raw.position),
       cst_encode_f_32(raw.score),
-      cst_encode_i_64(raw.charOffset),
+      cst_encode_i_32(raw.charOffset),
     ].jsify()!;
   }
 
@@ -1855,7 +1926,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       cst_encode_opt_box_autoadd_i_64(raw.chapterIndex),
       cst_encode_opt_box_autoadd_i_64(raw.charOffset),
       cst_encode_Chrono_Utc(raw.createdAt),
-      cst_encode_i_32(raw.reviewCount),
+      cst_encode_i_64(raw.reviewCount),
       cst_encode_opt_box_autoadd_Chrono_Utc(raw.lastReviewedAt),
       cst_encode_vocab_status(raw.status),
       cst_encode_opt_String(raw.wordList),
@@ -1943,6 +2014,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_Chrono_Utc(DateTime self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_Map_String_String_None(
+    Map<String, String> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void
@@ -2219,6 +2296,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_note(List<Note> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_note_with_book(
+    List<NoteWithBook> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_page_content(
     List<PageContent> self,
     SseSerializer serializer,
@@ -2245,6 +2328,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_record_string_list_note(
     List<(String, List<Note>)> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_record_string_string(
+    List<(String, String)> self,
     SseSerializer serializer,
   );
 
@@ -2283,6 +2372,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_note_type(NoteType self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_note_with_book(NoteWithBook self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
@@ -2420,6 +2512,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_record_string_string(
+    (String, String) self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_rich_paragraph(RichParagraph self, SseSerializer serializer);
 
   @protected
@@ -2489,8 +2587,32 @@ class RustLibWire implements BaseWire {
     category_id,
   );
 
+  void wire__crate__api__backup__backup_manifest_default(
+    NativePortType port_,
+  ) => wasmModule.wire__crate__api__backup__backup_manifest_default(port_);
+
   void wire__crate__api__backup__backup_stats_default(NativePortType port_) =>
       wasmModule.wire__crate__api__backup__backup_stats_default(port_);
+
+  void wire__crate__api__data__book__batch_set_categories_for_books(
+    NativePortType port_,
+    JSAny book_ids,
+    JSAny category_ids,
+  ) => wasmModule.wire__crate__api__data__book__batch_set_categories_for_books(
+    port_,
+    book_ids,
+    category_ids,
+  );
+
+  void wire__crate__api__data__book__batch_update_book_status(
+    NativePortType port_,
+    JSAny book_ids,
+    int status,
+  ) => wasmModule.wire__crate__api__data__book__batch_update_book_status(
+    port_,
+    book_ids,
+    status,
+  );
 
   void wire__crate__api__backup__cleanup_auto_snapshots(
     NativePortType port_,
@@ -2576,11 +2698,16 @@ class RustLibWire implements BaseWire {
   void wire__crate__api__data__book__count_books(NativePortType port_) =>
       wasmModule.wire__crate__api__data__book__count_books(port_);
 
+  void wire__crate__api__data__note__count_notes(
+    NativePortType port_,
+    String? book_id,
+  ) => wasmModule.wire__crate__api__data__note__count_notes(port_, book_id);
+
   void wire__crate__api__data__note__create_annotation(
     NativePortType port_,
     String book_id,
     int chapter_index,
-    JSAny char_offset,
+    int char_offset,
     String content,
     String? selected_text,
     String? language,
@@ -2608,7 +2735,7 @@ class RustLibWire implements BaseWire {
     NativePortType port_,
     String book_id,
     int chapter_index,
-    JSAny char_offset,
+    int char_offset,
     String title,
   ) => wasmModule.wire__crate__api__data__bookmark__create_bookmark(
     port_,
@@ -2656,8 +2783,8 @@ class RustLibWire implements BaseWire {
     NativePortType port_,
     String book_id,
     int chapter_index,
-    JSAny char_offset,
-    JSAny length,
+    int char_offset,
+    int length,
     String selected_text,
     int color,
     String? language,
@@ -2690,8 +2817,8 @@ class RustLibWire implements BaseWire {
     NativePortType port_,
     String book_id,
     int chapter_index,
-    JSAny start_char_offset,
-    JSAny end_char_offset,
+    int start_char_offset,
+    int end_char_offset,
     JSAny started_at,
   ) => wasmModule.wire__crate__api__data__session__create_session(
     port_,
@@ -2709,7 +2836,7 @@ class RustLibWire implements BaseWire {
     String translation,
     String? context_sentence,
     String? book_id,
-    JSAny? chapter_index,
+    int? chapter_index,
     JSAny? char_offset,
     String? word_list,
   ) => wasmModule.wire__crate__api__data__vocabulary__create_vocabulary_word(
@@ -2889,6 +3016,10 @@ class RustLibWire implements BaseWire {
     category_id,
   );
 
+  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__vocab_marker__get_cet6_words() =>
+      wasmModule.wire__crate__api__vocab_marker__get_cet6_words();
+
   void wire__crate__api__core__get_chapter(
     NativePortType port_,
     String file_path,
@@ -2937,6 +3068,10 @@ class RustLibWire implements BaseWire {
     NativePortType port_,
   ) =>
       wasmModule.wire__crate__api__data__stats__get_global_reading_stats(port_);
+
+  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__vocab_marker__get_ielts_words() =>
+      wasmModule.wire__crate__api__vocab_marker__get_ielts_words();
 
   void wire__crate__api__md__get_md_chapter_rich_content(
     NativePortType port_,
@@ -3022,6 +3157,10 @@ class RustLibWire implements BaseWire {
     NativePortType port_,
   ) => wasmModule.wire__crate__api__data__stats__get_today_reading_stats(port_);
 
+  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__vocab_marker__get_toefl_words() =>
+      wasmModule.wire__crate__api__vocab_marker__get_toefl_words();
+
   void wire__crate__api__data__vocabulary__get_vocabulary_stats(
     NativePortType port_,
   ) => wasmModule.wire__crate__api__data__vocabulary__get_vocabulary_stats(
@@ -3058,7 +3197,7 @@ class RustLibWire implements BaseWire {
     NativePortType port_,
     String book_id,
     String chapter_id,
-    String chapter_index,
+    int chapter_index,
     String chapter_title,
     String content,
   ) => wasmModule.wire__crate__api__search__index_chapter(
@@ -3092,6 +3231,16 @@ class RustLibWire implements BaseWire {
     NativePortType port_,
     String backup_path,
   ) => wasmModule.wire__crate__api__backup__inspect_backup(port_, backup_path);
+
+  void wire__crate__api__data__note__list_all_notes(
+    NativePortType port_,
+    int limit,
+    int offset,
+  ) => wasmModule.wire__crate__api__data__note__list_all_notes(
+    port_,
+    limit,
+    offset,
+  );
 
   void wire__crate__api__data__progress__list_all_progresses(
     NativePortType port_,
@@ -3191,12 +3340,22 @@ class RustLibWire implements BaseWire {
     note_type,
   );
 
+  void wire__crate__api__data__note__list_notes_with_titles(
+    NativePortType port_,
+    int limit,
+    int offset,
+  ) => wasmModule.wire__crate__api__data__note__list_notes_with_titles(
+    port_,
+    limit,
+    offset,
+  );
+
   void wire__crate__api__data__book__list_pinned_books(NativePortType port_) =>
       wasmModule.wire__crate__api__data__book__list_pinned_books(port_);
 
   void wire__crate__api__data__book__list_recently_opened_books(
     NativePortType port_,
-    JSAny limit,
+    int limit,
   ) => wasmModule.wire__crate__api__data__book__list_recently_opened_books(
     port_,
     limit,
@@ -3205,7 +3364,7 @@ class RustLibWire implements BaseWire {
   void wire__crate__api__data__session__list_sessions_by_book(
     NativePortType port_,
     String book_id,
-    JSAny limit,
+    int limit,
   ) => wasmModule.wire__crate__api__data__session__list_sessions_by_book(
     port_,
     book_id,
@@ -3226,7 +3385,7 @@ class RustLibWire implements BaseWire {
 
   void wire__crate__api__data__session__list_sessions_by_recent(
     NativePortType port_,
-    JSAny limit,
+    int limit,
   ) => wasmModule.wire__crate__api__data__session__list_sessions_by_recent(
     port_,
     limit,
@@ -3244,10 +3403,17 @@ class RustLibWire implements BaseWire {
     word_list,
   );
 
+  void wire__crate__api__data__vocabulary__list_word_lists(
+    NativePortType port_,
+  ) => wasmModule.wire__crate__api__data__vocabulary__list_word_lists(port_);
+
   void wire__crate__api__dictionary__lookup_mdict(
     NativePortType port_,
     String word,
   ) => wasmModule.wire__crate__api__dictionary__lookup_mdict(port_, word);
+
+  void wire__crate__api__data__book__map_book_titles(NativePortType port_) =>
+      wasmModule.wire__crate__api__data__book__map_book_titles(port_);
 
   void wire__crate__api__core__paginate_all_content(
     NativePortType port_,
@@ -3311,6 +3477,11 @@ class RustLibWire implements BaseWire {
     NativePortType port_,
     String keyword,
   ) => wasmModule.wire__crate__api__data__book__search_books(port_, keyword);
+
+  void wire__crate__api__data__note__search_notes(
+    NativePortType port_,
+    String query,
+  ) => wasmModule.wire__crate__api__data__note__search_notes(port_, query);
 
   void wire__crate__api__data__vocabulary__search_vocabulary_words(
     NativePortType port_,
@@ -3542,8 +3713,24 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     String category_id,
   );
 
+  external void wire__crate__api__backup__backup_manifest_default(
+    NativePortType port_,
+  );
+
   external void wire__crate__api__backup__backup_stats_default(
     NativePortType port_,
+  );
+
+  external void wire__crate__api__data__book__batch_set_categories_for_books(
+    NativePortType port_,
+    JSAny book_ids,
+    JSAny category_ids,
+  );
+
+  external void wire__crate__api__data__book__batch_update_book_status(
+    NativePortType port_,
+    JSAny book_ids,
+    int status,
   );
 
   external void wire__crate__api__backup__cleanup_auto_snapshots(
@@ -3599,11 +3786,16 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
 
   external void wire__crate__api__data__book__count_books(NativePortType port_);
 
+  external void wire__crate__api__data__note__count_notes(
+    NativePortType port_,
+    String? book_id,
+  );
+
   external void wire__crate__api__data__note__create_annotation(
     NativePortType port_,
     String book_id,
     int chapter_index,
-    JSAny char_offset,
+    int char_offset,
     String content,
     String? selected_text,
     String? language,
@@ -3619,7 +3811,7 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     NativePortType port_,
     String book_id,
     int chapter_index,
-    JSAny char_offset,
+    int char_offset,
     String title,
   );
 
@@ -3646,8 +3838,8 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     NativePortType port_,
     String book_id,
     int chapter_index,
-    JSAny char_offset,
-    JSAny length,
+    int char_offset,
+    int length,
     String selected_text,
     int color,
     String? language,
@@ -3665,8 +3857,8 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     NativePortType port_,
     String book_id,
     int chapter_index,
-    JSAny start_char_offset,
-    JSAny end_char_offset,
+    int start_char_offset,
+    int end_char_offset,
     JSAny started_at,
   );
 
@@ -3677,7 +3869,7 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     String translation,
     String? context_sentence,
     String? book_id,
-    JSAny? chapter_index,
+    int? chapter_index,
     JSAny? char_offset,
     String? word_list,
   );
@@ -3800,6 +3992,9 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     String category_id,
   );
 
+  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__vocab_marker__get_cet6_words();
+
   external void wire__crate__api__core__get_chapter(
     NativePortType port_,
     String file_path,
@@ -3833,6 +4028,9 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
   external void wire__crate__api__data__stats__get_global_reading_stats(
     NativePortType port_,
   );
+
+  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__vocab_marker__get_ielts_words();
 
   external void wire__crate__api__md__get_md_chapter_rich_content(
     NativePortType port_,
@@ -3894,6 +4092,9 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     NativePortType port_,
   );
 
+  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__vocab_marker__get_toefl_words();
+
   external void wire__crate__api__data__vocabulary__get_vocabulary_stats(
     NativePortType port_,
   );
@@ -3922,7 +4123,7 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     NativePortType port_,
     String book_id,
     String chapter_id,
-    String chapter_index,
+    int chapter_index,
     String chapter_title,
     String content,
   );
@@ -3945,6 +4146,12 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
   external void wire__crate__api__backup__inspect_backup(
     NativePortType port_,
     String backup_path,
+  );
+
+  external void wire__crate__api__data__note__list_all_notes(
+    NativePortType port_,
+    int limit,
+    int offset,
   );
 
   external void wire__crate__api__data__progress__list_all_progresses(
@@ -4012,19 +4219,25 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     int? note_type,
   );
 
+  external void wire__crate__api__data__note__list_notes_with_titles(
+    NativePortType port_,
+    int limit,
+    int offset,
+  );
+
   external void wire__crate__api__data__book__list_pinned_books(
     NativePortType port_,
   );
 
   external void wire__crate__api__data__book__list_recently_opened_books(
     NativePortType port_,
-    JSAny limit,
+    int limit,
   );
 
   external void wire__crate__api__data__session__list_sessions_by_book(
     NativePortType port_,
     String book_id,
-    JSAny limit,
+    int limit,
   );
 
   external void wire__crate__api__data__session__list_sessions_by_date_range(
@@ -4036,7 +4249,7 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
 
   external void wire__crate__api__data__session__list_sessions_by_recent(
     NativePortType port_,
-    JSAny limit,
+    int limit,
   );
 
   external void wire__crate__api__data__vocabulary__list_vocabulary_by_status(
@@ -4046,9 +4259,17 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     String? word_list,
   );
 
+  external void wire__crate__api__data__vocabulary__list_word_lists(
+    NativePortType port_,
+  );
+
   external void wire__crate__api__dictionary__lookup_mdict(
     NativePortType port_,
     String word,
+  );
+
+  external void wire__crate__api__data__book__map_book_titles(
+    NativePortType port_,
   );
 
   external void wire__crate__api__core__paginate_all_content(
@@ -4095,6 +4316,11 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
   external void wire__crate__api__data__book__search_books(
     NativePortType port_,
     String keyword,
+  );
+
+  external void wire__crate__api__data__note__search_notes(
+    NativePortType port_,
+    String query,
   );
 
   external void wire__crate__api__data__vocabulary__search_vocabulary_words(

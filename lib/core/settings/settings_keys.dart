@@ -71,13 +71,13 @@ abstract final class SettingsKeys {
   /// 翻页点击区域布局
   static const readerTapLayout = 'reader_tap_layout';
 
+  /// 是否跟随系统字体缩放
+  static const readerFollowSystemFontScale = 'reader_follow_system_font_scale';
+
   // ==================== 书架 ====================
 
   /// 显示阅读进度
   static const bookshelfShowProgress = 'bookshelf.show_reading_progress';
-
-  /// 显示最近阅读
-  static const bookshelfShowRecent = 'bookshelf.show_recent_reading';
 
   /// 默认排序方式
   static const bookshelfDefaultSort = 'bookshelf.default_sort_type';

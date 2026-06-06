@@ -8,7 +8,7 @@ use super::async_storage;
 use crate::domain::AppError;
 use crate::storage::repos::NoteRepository;
 
-pub use crate::storage::models::{Note, NoteStats, NoteType};
+pub use crate::storage::models::{Note, NoteStats, NoteType, NoteWithBook};
 
 /// 创建高亮笔记（自动生成 UUID）
 ///
@@ -29,8 +29,8 @@ pub use crate::storage::models::{Note, NoteStats, NoteType};
 pub async fn create_highlight(
     book_id: String,
     chapter_index: i32,
-    char_offset: i64,
-    length: i64,
+    char_offset: i32,
+    length: i32,
     selected_text: String,
     color: i32,
     language: Option<String>,
@@ -38,11 +38,11 @@ pub async fn create_highlight(
 ) -> Result<Note, AppError> {
     let note = Note::highlight(
         &book_id,
-        chapter_index,
-        char_offset,
-        length,
+        chapter_index  as i64,
+        char_offset as i64,
+        length as i64,
         &selected_text,
-        color,
+        color  as i64,
         language.as_deref(),
         paired_note_id.as_deref(),
     );
@@ -66,7 +66,7 @@ pub async fn create_highlight(
 pub async fn create_annotation(
     book_id: String,
     chapter_index: i32,
-    char_offset: i64,
+    char_offset: i32,
     content: String,
     selected_text: Option<String>,
     language: Option<String>,
@@ -74,8 +74,8 @@ pub async fn create_annotation(
 ) -> Result<Note, AppError> {
     let note = Note::annotation(
         &book_id,
-        chapter_index,
-        char_offset,
+        chapter_index  as i64,
+        char_offset as i64,
         &content,
         selected_text.as_deref(),
         language.as_deref(),
@@ -137,6 +137,63 @@ pub async fn list_notes_by_books(
         Ok::<_, AppError>(result)
     })
 }
+
+/// 搜索笔记（内容/选中文本模糊匹配）
+///
+/// # 参数
+/// * `query` - 搜索关键词
+///
+/// # 返回
+/// 匹配的笔记列表，按创建时间倒序
+#[frb]
+pub async fn search_notes(query: String) -> Result<Vec<Note>, AppError> {
+    async_storage!(|pool| NoteRepository::search(pool, &query))
+}
+
+/// 跨书分页获取所有笔记
+///
+/// 一次性获取所有书籍的笔记，按创建时间倒序排列。
+/// 替代原先的逐书串行查询模式。
+///
+/// # 参数
+/// * `limit` - 每页数量
+/// * `offset` - 偏移量
+///
+/// # 返回
+/// 笔记列表（含 `book_id`，Dart 侧通过已加载的 `bookTitles` 映射书名）
+#[frb]
+pub async fn list_all_notes(limit: i32, offset: i32) -> Result<Vec<Note>, AppError> {
+    async_storage!(|pool| NoteRepository::list_all_paginated(pool, limit as i64, offset as i64))
+}
+
+/// 分页查询笔记列表，每笔记附带书名
+///
+/// # 参数
+/// * `limit` - 每页数量
+/// * `offset` - 偏移量
+///
+/// # 返回
+/// 笔记列表，每笔记自带书名
+#[frb]
+pub async fn list_notes_with_titles(
+    limit: i32,
+    offset: i32,
+) -> Result<Vec<NoteWithBook>, AppError> {
+    async_storage!(|pool| NoteRepository::list_with_titles(pool, limit as i64, offset as i64))
+}
+
+/// 获取笔记总数（可选按 book_id 过滤）
+///
+/// # 参数
+/// * `book_id` - 可选，指定书籍 ID 时只返回该书籍的笔记数
+///
+/// # 返回
+/// 匹配的笔记总数
+#[frb]
+pub async fn count_notes(book_id: Option<String>) -> Result<i32, AppError> {
+    async_storage!(|pool| NoteRepository::count_filtered(pool, book_id.as_deref()))
+}
+
 /// 获取章节内的笔记列表
 ///
 /// # 参数
@@ -155,10 +212,10 @@ pub async fn list_notes_in_chapter(
     async_storage!(|pool| async move {
         match note_type {
             Some(nt) => {
-                NoteRepository::find_by_type_in_chapter(pool, &book_id, chapter_index, nt).await
+                NoteRepository::find_by_type_in_chapter(pool, &book_id, chapter_index as i64, nt).await
             }
             None => {
-                NoteRepository::find_paired_notes_in_chapter(pool, &book_id, chapter_index).await
+                NoteRepository::find_paired_notes_in_chapter(pool, &book_id, chapter_index as i64).await
             }
         }
     })

@@ -272,8 +272,8 @@ impl PageStreamer {
             page_index: page_index as i32,
             content: page_content,
             is_last_page: end >= self.total_lines,
-            start_offset: self.line_offsets[start].0 as i64,
-            end_offset: self.line_offsets[end - 1].1 as i64,
+            start_offset: self.line_offsets[start].0 as i32,
+            end_offset: self.line_offsets[end - 1].1 as i32,
         })
     }
 
@@ -303,8 +303,8 @@ impl PageStreamer {
             page_index: page_index as i32,
             content: page_content,
             is_last_page: char_end >= self.total_chars(),
-            start_offset: byte_start as i64,
-            end_offset: byte_end as i64,
+            start_offset: byte_start as i32,
+            end_offset: byte_end as i32,
         })
     }
 
@@ -377,8 +377,8 @@ impl PageStreamer {
                 let start = page_idx * chars_per_page;
                 let end = (start + chars_per_page).min(self.content.len());
                 offsets.push(PageOffset {
-                    offset: start as i64,
-                    length: (end - start) as i64,
+                    offset: start as i32,
+                    length: (end - start) as i32,
                 });
             }
             return offsets;
@@ -402,8 +402,8 @@ impl PageStreamer {
             let (_, page_end) = self.line_offsets[actual_end.saturating_sub(1)];
 
             offsets.push(PageOffset {
-                offset: page_start as i64,
-                length: (page_end - page_start) as i64,
+                offset: page_start as i32,
+                length: (page_end - page_start) as i32,
             });
         }
 

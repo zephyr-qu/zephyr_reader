@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-
-class _StatusTab {
-  final BookStatus? status;
-  final String label;
-  const _StatusTab(this.status, this.label);
-}
 
 class BookshelfStatusTabs extends StatelessWidget {
   final BookStatus? selectedStatus;
@@ -22,31 +17,26 @@ class BookshelfStatusTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const tabs = <_StatusTab>[
-      _StatusTab(null, '全部'),
-      _StatusTab(BookStatus.planned, '未开始'),
-      _StatusTab(BookStatus.reading, '阅读中'),
-      _StatusTab(BookStatus.completed, '已读完'),
-    ];
+    final l10n = AppLocalizations.of(context)!;
     return SizedBox(
       height: 28,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: adaptiveScrollPhysics(context),
-        itemCount: tabs.length,
+        itemCount: _statusTabs.length,
         separatorBuilder: (_, _) =>
             SizedBox(width: DesignTokens.spacing(Spacing.md)),
         itemBuilder: (context, index) {
-          final tab = tabs[index];
+          final tab = _statusTabs[index];
           final isSelected = selectedStatus == tab.status;
           return RepaintBoundary(
-            child: GestureDetector(
+            child: InkWell(
               onTap: () => onStatusChanged(tab.status),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    tab.label,
+                    tab.label(l10n),
                     style: TextStyle(
                       fontSize: 14,
                       color: isSelected
@@ -76,3 +66,22 @@ class BookshelfStatusTabs extends StatelessWidget {
     );
   }
 }
+
+class _StatusTab {
+  final BookStatus? status;
+  final String Function(AppLocalizations) label;
+
+  const _StatusTab(this.status, this.label);
+}
+
+const _statusTabs = [
+  _StatusTab(null, _all),
+  _StatusTab(BookStatus.planned, _notStarted),
+  _StatusTab(BookStatus.reading, _reading),
+  _StatusTab(BookStatus.completed, _finished),
+];
+
+String _all(AppLocalizations l) => l.all;
+String _notStarted(AppLocalizations l) => l.notStarted;
+String _reading(AppLocalizations l) => l.reading;
+String _finished(AppLocalizations l) => l.finished;

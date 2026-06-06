@@ -1,0 +1,81 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/utils/cover_utils.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
+
+class HomeRecentBookCard extends StatelessWidget {
+  final Book book;
+
+  const HomeRecentBookCard({super.key, required this.book});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: () => context.pushNamed(
+        RouteNames.reader,
+        pathParameters: {'bookId': book.bookId, 'chapterId': '0'},
+      ),
+      borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.sm)),
+      child: SizedBox(
+        width: 72,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(
+                DesignTokens.radius(RadiusSize.sm),
+              ),
+              child: SizedBox(
+                width: 72,
+                height: 96,
+                child: book.coverPath != null
+                    ? Image.file(
+                        File(resolveCoverPath(book.coverPath!)!),
+                        fit: BoxFit.cover,
+                        cacheWidth: 144,
+                        errorBuilder: (_, _, _) => Container(
+                          color: theme.colorScheme.primaryContainer,
+                          child: Icon(
+                            PhosphorIconsRegular.bookOpenText,
+                            size: 24,
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.4,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        color: theme.colorScheme.primaryContainer,
+                        child: Icon(
+                          PhosphorIconsRegular.bookOpenText,
+                          size: 24,
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.4,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+            SizedBox(height: DesignTokens.spacing(Spacing.sm)),
+            Text(
+              book.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.3,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

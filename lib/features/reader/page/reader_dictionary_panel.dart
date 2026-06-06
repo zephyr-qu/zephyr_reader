@@ -13,6 +13,7 @@ import 'package:zephyr_reader/core/dictionary/builtin_dictionary.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/dictionary/models.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
@@ -30,6 +31,7 @@ void showDictionaryPanel(
   String text,
 ) async {
   if (text.trim().isEmpty) return;
+  final l10n = AppLocalizations.of(context)!;
   final configured = await _ensureMdictConfigured(context, vm);
   if (!configured || !context.mounted) return;
 
@@ -96,7 +98,7 @@ void showDictionaryPanel(
                         if (result?.exact?.audioKey != null)
                           IconButton(
                             icon: const Icon(PhosphorIconsRegular.speakerHigh),
-                            tooltip: '发音',
+                            tooltip: l10n.pronunciation,
                             onPressed: () => _playAudio(
                               context,
                               vm,
@@ -122,9 +124,12 @@ void showDictionaryPanel(
                   return Column(
                     children: [
                       SizedBox(height: DesignTokens.spacing(Spacing.sm)),
-                      const Text(
-                        '未找到精确匹配，您是否想查：',
-                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                      Text(
+                        l10n.noExactMatch,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Wrap(
@@ -161,7 +166,7 @@ void showDictionaryPanel(
                       top: DesignTokens.spacing(Spacing.lg),
                     ),
                     child: Text(
-                      error ?? '未找到释义',
+                      error ?? l10n.noDefinition,
                       style: const TextStyle(color: Colors.grey),
                     ),
                   );
@@ -171,9 +176,9 @@ void showDictionaryPanel(
                 return Column(
                   children: [
                     SizedBox(height: DesignTokens.spacing(Spacing.lg)),
-                    const Text(
-                      '分词：',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    Text(
+                      l10n.wordSegmentation,
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                     const SizedBox(height: 6),
                     Wrap(
@@ -212,7 +217,7 @@ void showDictionaryPanel(
                         );
                       },
                       icon: const Icon(PhosphorIconsRegular.listPlus, size: 18),
-                      label: const Text('加入生词本'),
+                      label: Text(l10n.addToVocabulary),
                     ),
                   ],
                 );
@@ -232,17 +237,15 @@ Future<void> _playAudio(
   String audioKey,
 ) async {
   try {
-    final bytes = await dict_api.extractAudio(audioKey: audioKey);
-    if (bytes == null) return;
-    final tempDir = await getTemporaryDirectory();
-    final ext = audioKey.contains('.') ? audioKey.split('.').last : 'wav';
-    final tempFile = File('${tempDir.path}/dict_audio.$ext');
-    await tempFile.writeAsBytes(bytes);
-    await AudioPlayer().play(DeviceFileSource(tempFile.path));
+    final dir = await getApplicationDocumentsDirectory();
+    final audioDir = Directory('${dir.path}/dict_audio');
+    if (!audioDir.existsSync()) return;
+
+    final path = '${audioDir.path}/$audioKey';
+    final player = AudioPlayer();
+    await player.play(DeviceFileSource(path));
   } catch (e) {
-    if (context.mounted) {
-      showInfoSnack(context, '播放失败：$e');
-    }
+    Logging.error('Play audio error', exception: e);
   }
 }
 
@@ -250,6 +253,7 @@ Future<bool> _ensureMdictConfigured(
   BuildContext context,
   ReaderViewModel vm,
 ) async {
+  final l10n = AppLocalizations.of(context)!;
   final prefs = getIt<SharedPreferences>();
 
   final savedMdx = prefs.getString(_kPrefMdxPath);
@@ -263,10 +267,14 @@ Future<bool> _ensureMdictConfigured(
             ? savedMdd
             : null,
       );
-      Logging.info('用户词典加载成功');
+      Logging.info('user dict loaded');
       return true;
     } catch (e, st) {
-      Logging.error('用户词典加载失败，回退内置词典', exception: e, stackTrace: st);
+      Logging.error(
+        'user dict fail, fallback to builtin',
+        exception: e,
+        stackTrace: st,
+      );
     }
   }
 
@@ -274,10 +282,10 @@ Future<bool> _ensureMdictConfigured(
     final builtinPath = await BuiltinDictionary.ensureExtracted();
     dict_api.closeDictionary();
     await dict_api.initDictionary(mdxPath: builtinPath);
-    Logging.info('内置词典加载成功');
+    Logging.info('builtin dict loaded');
     return true;
   } catch (e, st) {
-    Logging.error('内置词典加载失败', exception: e, stackTrace: st);
+    Logging.error('builtin dict fail', exception: e, stackTrace: st);
   }
 
   if (!context.mounted) return false;
@@ -286,16 +294,12 @@ Future<bool> _ensureMdictConfigured(
     context: context,
     barrierDismissible: false,
     builder: (ctx) => AlertDialog(
-      title: const Text('选择词典文件'),
-      content: const Text(
-        '请选择一个 .mdx 格式的词典文件。\n\n'
-        '如果有同名的 .mdd 资源文件（音频/图片），'
-        '放在同一目录下会自动加载。',
-      ),
+      title: Text(l10n.selectDictionaryFile),
+      content: Text(l10n.selectMdxDescription),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('取消'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () async {
@@ -311,7 +315,7 @@ Future<bool> _ensureMdictConfigured(
               Navigator.pop(ctx);
             }
           },
-          child: const Text('选择文件'),
+          child: Text(l10n.selectFile),
         ),
       ],
     ),
@@ -322,7 +326,7 @@ Future<bool> _ensureMdictConfigured(
   final mdxFile = File(pick);
   if (!mdxFile.existsSync() || !pick.toLowerCase().endsWith('.mdx')) {
     if (context.mounted) {
-      showInfoSnack(context, '请选择有效的 .mdx 文件');
+      showInfoSnack(context, l10n.invalidMdxFile);
     }
     return false;
   }
@@ -344,9 +348,9 @@ Future<bool> _ensureMdictConfigured(
       mddPath: mddExists ? mddPath : null,
     );
   } catch (e) {
-    Logging.error('词典加载失败', exception: e);
+    Logging.error('dict load fail', exception: e);
     if (context.mounted) {
-      showInfoSnack(context, '词典加载失败，请检查文件是否有效');
+      showInfoSnack(context, l10n.dictionaryLoadFailed);
     }
     return false;
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -23,9 +24,11 @@ class SkeletonWidget extends HookWidget {
     final shimmerActive = useState(true);
 
     useEffect(() {
-      final timer = Future<void>.delayed(maxShimmerDuration);
-      timer.then((_) => shimmerActive.value = false);
-      return null;
+      if (!shimmerActive.value) return null;
+      final timer = Timer(maxShimmerDuration, () {
+        shimmerActive.value = false;
+      });
+      return timer.cancel;
     }, [maxShimmerDuration]);
 
     final skeleton = Container(

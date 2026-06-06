@@ -5,8 +5,7 @@ import 'package:zephyr_reader/core/utils/platform_guard.dart';
 
 class NetworkStateService {
   static final NetworkStateService _instance = NetworkStateService._internal();
-
-  factory NetworkStateService() => _instance;
+  static NetworkStateService get instance => _instance;
 
   NetworkStateService._internal();
 

@@ -68,7 +68,7 @@ pub fn parse_epub(file_path: String) -> Result<ParseResult, AppError> {
         title,
         author: Some(author),
         cover_path,
-        chapter_count,
+        chapter_count:chapter_count  as i64,
         total_characters: total_chars,
         publisher,
         translator,
@@ -159,7 +159,7 @@ fn read_chapter_content(epub_file: &mut EpubFile, chapter: &Chapter) -> Result<S
 
     if contents.is_empty() {
         return Err(AppError::chapter_extract_error(
-            chapter.chapter_index,
+            (chapter.chapter_index  as i64).try_into().unwrap(),
             "chapter content is empty",
         ));
     }
@@ -202,7 +202,7 @@ pub fn get_chapter_content_rich(
 
     let chapter = chapters
         .iter()
-        .find(|c| c.chapter_index == chapter_id)
+        .find(|c| c.chapter_index == chapter_id  as i64)
         .ok_or_else(|| {
             AppError::chapter_extract_error(chapter_id, format!("chapter {} not found", chapter_id))
         })?;

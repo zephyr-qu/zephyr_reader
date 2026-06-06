@@ -167,18 +167,18 @@ sealed class BilingualHighlightPair with _$BilingualHighlightPair {
 
 class BilingualHighlightParams {
   final String sourceBookId;
-  final int sourceChapterIndex;
-  final PlatformInt64 sourceCharOffset;
-  final PlatformInt64 sourceLength;
+  final PlatformInt64 sourceChapterIndex;
+  final int sourceCharOffset;
+  final int sourceLength;
   final String sourceSelectedText;
   final String sourceLanguage;
   final String targetBookId;
-  final int targetChapterIndex;
-  final PlatformInt64 targetCharOffset;
-  final PlatformInt64 targetLength;
+  final PlatformInt64 targetChapterIndex;
+  final int targetCharOffset;
+  final int targetLength;
   final String targetSelectedText;
   final String targetLanguage;
-  final int highlightColor;
+  final PlatformInt64 highlightColor;
 
   const BilingualHighlightParams({
     required this.sourceBookId,

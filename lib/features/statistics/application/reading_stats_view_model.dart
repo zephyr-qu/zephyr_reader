@@ -1,5 +1,4 @@
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/src/rust/api/data/stats.dart' as stats_api;
 import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -9,20 +8,23 @@ enum StatisticsPeriod { today, week, month, year }
 
 class ReadingStatsViewModel {
   /// 全局阅读统计
-  final globalStats = signal<GlobalStats?>(null);
+  final globalStats = asyncSignal<GlobalStats?>(AsyncState.loading());
 
   /// 近 N 天阅读记录
-  final dailyRecords = signal<List<ReadingStats>>([]);
+  final dailyRecords = asyncSignal<List<ReadingStats>>(AsyncState.loading());
 
   /// 每日阅读分钟数（图表数据，派生自 dailyRecords）
+  // UNUSED: computed 信号已定义但没有任何页面/组件读取 .value
   late final dailyMinutes = computed(
-    () => dailyRecords.value
-        .map((r) => r.readingTimeSeconds.toInt() / 60.0)
-        .toList(),
+    () =>
+        dailyRecords.value.value
+            ?.map((r) => r.readingTimeSeconds.toInt() / 60.0)
+            .toList() ??
+        [],
   );
 
   /// 当前选中时段
-  final selectedPeriod = signal<StatisticsPeriod>(StatisticsPeriod.month);
+  final selectedPeriod = signal<StatisticsPeriod>(StatisticsPeriod.today);
 
   /// 每日阅读目标（分钟）
   final goalMinutes = signal(60);
@@ -31,9 +33,8 @@ class ReadingStatsViewModel {
   final vocabLearning = signal(0);
   final vocabMastered = signal(0);
   final vocabIgnored = signal(0);
-  final loaded = signal(false);
 
-  /// 按时段加载统计数据
+  /// 按时段加载统计数据（全局统计、每日阅读记录、生词统计）。
   Future<void> loadData({StatisticsPeriod? period}) async {
     if (period != null) selectedPeriod.value = period;
     final days = switch (selectedPeriod.value) {
@@ -42,29 +43,30 @@ class ReadingStatsViewModel {
       StatisticsPeriod.month => 30,
       StatisticsPeriod.year => 365,
     };
-    // 全局统计不依赖时段，仅首次加载
-    if (globalStats.value == null) {
-      final gs = await safeLoad(
-        () => stats_api.getGlobalReadingStats(),
-        label: '加载全局统计',
-      );
-      if (gs != null) globalStats.value = gs;
+    // 全局统计
+    try {
+      final gs = await stats_api.getGlobalReadingStats();
+      globalStats.value = AsyncState<GlobalStats?>.data(gs);
+    } catch (e) {
+      globalStats.value = AsyncState<GlobalStats?>.error(e);
     }
-    final results = await safeLoad(
-      () => Future.wait([
+    // 每日阅读 + 生词统计
+    try {
+      dailyRecords.value = AsyncState<List<ReadingStats>>.loading();
+      final results = await Future.wait([
         stats_api.getReadingStatsByDaysWithFill(days: days),
         vocab_api.getVocabularyStats(),
-      ]),
-      label: '加载统计数据',
-    );
-    if (results != null) {
-      dailyRecords.value = results[0] as List<ReadingStats>;
+      ]);
+      dailyRecords.value = AsyncState<List<ReadingStats>>.data(
+        results[0] as List<ReadingStats>,
+      );
       final vs = results[1] as VocabStats;
       vocabUnstarted.value = vs.unstartedCount.toInt();
       vocabLearning.value = vs.learningCount.toInt();
       vocabMastered.value = vs.masteredCount.toInt();
       vocabIgnored.value = vs.ignoredCount.toInt();
+    } catch (e) {
+      dailyRecords.value = AsyncState<List<ReadingStats>>.error(e);
     }
-    loaded.value = true;
   }
 }

@@ -1,12 +1,13 @@
 import 'dart:async';
 
+import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
-import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/api/backup.dart';
+import 'package:zephyr_reader/src/rust/api/backup.dart' as backup_api;
 
 enum BackupStatus {
   idle,
@@ -17,7 +18,7 @@ enum BackupStatus {
   error,
 }
 
-@injectable
+@lazySingleton
 /// 本地备份 ViewModel
 ///
 /// 状态机：
@@ -27,50 +28,67 @@ enum BackupStatus {
 class BackupViewModel {
   final SharedPreferences _prefs;
 
+  BackupViewModel(this._prefs);
+
   // ============ Signals ============
 
   final status = signal(BackupStatus.idle);
   final errorMessage = signal<String?>(null);
   final lastBackupAt = signal<DateTime?>(null);
-  final lastBackupSize = signal<int>(0);
-  final currentStats = signal<BackupStats?>(null);
-  final lastManifest = signal<BackupManifest?>(null);
-
-  BackupViewModel(this._prefs);
+  final lastBackupSize = signal<int>(
+    0,
+  ); // UNUSED: 被写入 SharedPreferences 但页面从未读取
+  final currentStats = asyncSignal<backup_api.BackupStats?>(
+    AsyncState.loading(),
+  );
 
   // ============ 初始化 ============
 
+  /// 从 SharedPreferences 恢复上次备份的元信息，并刷新当前数据库统计。
   Future<void> initialize() async {
     _readLastBackupMeta();
     await _refreshStats();
   }
 
+  /// 从 SharedPreferences 读取上次备份的时间戳和文件大小，写入对应 signal。
   void _readLastBackupMeta() {
     final ts = _prefs.getInt(SettingsKeys.lastBackupAt);
     final size = _prefs.getInt(SettingsKeys.lastBackupSize);
-    if (ts != null) {
-      lastBackupAt.value = DateTime.fromMillisecondsSinceEpoch(ts * 1000);
-    }
-    if (size != null) {
-      lastBackupSize.value = size;
-    }
+    batch(() {
+      if (ts != null) {
+        lastBackupAt.value = DateTime.fromMillisecondsSinceEpoch(ts * 1000);
+      }
+      if (size != null) {
+        lastBackupSize.value = size;
+      }
+    });
   }
 
+  /// 调用 Rust 侧获取当前数据库的备份统计信息（如记录数、大小）。
   Future<void> _refreshStats() async {
     try {
-      currentStats.value = await getBackupStats();
+      currentStats.value = AsyncState.data(await backup_api.getBackupStats());
     } catch (e) {
-      // 静默失败，stats 为 null 时 UI 降级显示
+      Logging.warning('获取备份统计失败: $e');
+      currentStats.value = AsyncState.error(e);
     }
   }
 
   // ============ 操作 ============
 
+  /// 执行备份导出流程：
+  /// 1. 弹出系统文件保存对话框让用户选择位置
+  /// 2. 调用 Rust 侧导出数据库
+  /// 3. 记录备份元信息并更新界面状态
+  ///
+  /// 用户取消选择时不会产生任何副作用。
   Future<void> performBackup() async {
     if (status.value != BackupStatus.idle) return;
 
-    status.value = BackupStatus.exporting;
-    errorMessage.value = null;
+    batch(() {
+      status.value = BackupStatus.exporting;
+      errorMessage.value = null;
+    });
 
     try {
       // 1. 文件选择：用户选保存目录+文件名
@@ -90,94 +108,73 @@ class BackupViewModel {
       }
 
       // 2. 调用 Rust 导出
-      final manifest = await exportDatabase(destPath: savePath);
+      final manifest = await backup_api.exportDatabase(destPath: savePath);
 
       // 3. 记录元信息
       await _prefs.setInt('last_backup_at', manifest.exportedAt);
       await _prefs.setInt('last_backup_size', manifest.dbSize);
-      _readLastBackupMeta();
-      lastManifest.value = manifest;
-
-      status.value = BackupStatus.exportingDone;
+      batch(() {
+        _readLastBackupMeta();
+        status.value = BackupStatus.exportingDone;
+      });
     } catch (e) {
-      errorMessage.value = e.toString();
-      status.value = BackupStatus.error;
+      batch(() {
+        errorMessage.value = AppErrorMapper.humanReadable(e);
+        status.value = BackupStatus.error;
+      });
     }
   }
 
-  Future<void> performRestore() async {
+  /// 执行恢复流程：
+  /// 1. 将指定备份文件恢复至本地数据库
+  /// 2. 更新备份元信息
+  ///
+  /// [filePath] 为备份文件路径，[manifest] 为备份时记录的清单信息。
+  Future<void> performRestore(
+    String filePath,
+    backup_api.BackupManifest manifest,
+  ) async {
     if (status.value != BackupStatus.idle) return;
 
-    status.value = BackupStatus.restoring;
-    errorMessage.value = null;
+    batch(() {
+      status.value = BackupStatus.restoring;
+      errorMessage.value = null;
+    });
 
     try {
-      // 1. 文件选择：用户选备份文件
-      final result = await FilePicker.pickFiles(
-        dialogTitle: '选择备份文件',
-        type: FileType.custom,
-        allowedExtensions: ['db'],
-        allowMultiple: false,
-      );
-      if (result == null || result.files.isEmpty) {
-        status.value = BackupStatus.idle;
-        return; // 用户取消
-      }
-      final filePath = result.files.single.path;
-      if (filePath == null) {
-        errorMessage.value = '无法读取选择的文件路径';
-        status.value = BackupStatus.error;
-        return;
-      }
+      await backup_api.restoreDatabase(backupPath: filePath);
 
-      // 2. inspect 备份
-      final manifest = await inspectBackup(backupPath: filePath);
-      if (manifest == null) {
-        errorMessage.value = '所选文件不是有效的 Zephyr Reader 备份文件';
-        status.value = BackupStatus.error;
-        return;
-      }
-
-      // 3. 用 RestoreConfirmDialog 确认（调用方处理）
-      //    如果用户确认，执行 restore
-      status.value = BackupStatus.restoring;
-      await restoreDatabase(backupPath: filePath);
-
-      // 4. 更新元信息
+      // 更新元信息
       await _prefs.setInt('last_backup_at', manifest.exportedAt);
       await _prefs.setInt('last_backup_size', manifest.dbSize);
-      _readLastBackupMeta();
-      lastManifest.value = manifest;
-
-      status.value = BackupStatus.restoringDone;
+      batch(() {
+        _readLastBackupMeta();
+        status.value = BackupStatus.restoringDone;
+      });
     } catch (e) {
-      errorMessage.value = e.toString();
-      status.value = BackupStatus.error;
+      batch(() {
+        errorMessage.value = AppErrorMapper.humanReadable(e);
+        status.value = BackupStatus.error;
+      });
     }
   }
 
+  /// 将状态重置为 idle（关闭成功/错误提示），并重新刷新数据库统计。
   Future<void> dismissResult() async {
-    status.value = BackupStatus.idle;
-    lastManifest.value = null;
-    errorMessage.value = null;
+    batch(() {
+      status.value = BackupStatus.idle;
+      errorMessage.value = null;
+    });
     await _refreshStats();
   }
 
-  String? lastBackupTimeAgo(AppLocalizations l10n) {
-    final at = lastBackupAt.value;
-    if (at == null) return null;
-    final diff = DateTime.now().difference(at);
-    if (diff.inDays > 0) return '$diff.inDays days ago';
-    if (diff.inHours > 0) return '${diff.inHours}h ago';
-    if (diff.inMinutes > 0) return '${diff.inMinutes}min ago';
-    return 'just now';
-  }
-
+  /// 判断上次备份是否超过 7 天，用于在界面上提示用户备份已过期。
   bool get isBackupStale {
     final at = lastBackupAt.value;
     if (at == null) return true;
     return DateTime.now().difference(at).inDays > 7;
   }
 
+  /// 将数字补齐为两位字符串（如 3 → "03"），用于生成备份文件名中的日期段。
   String _pad(int n) => n.toString().padLeft(2, '0');
 }

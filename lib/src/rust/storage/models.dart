@@ -20,7 +20,7 @@ sealed class Book with _$Book {
     required String title,
     String? author,
     String? coverPath,
-    required int chapterCount,
+    required PlatformInt64 chapterCount,
     required PlatformInt64 totalCharacters,
     required BookFormat format,
     required DateTime addedAt,
@@ -57,7 +57,7 @@ sealed class Bookmark with _$Bookmark {
   const factory Bookmark({
     required String id,
     required String bookId,
-    required int chapterIndex,
+    required PlatformInt64 chapterIndex,
     String? chapterId,
     required PlatformInt64 charOffset,
     required String title,
@@ -73,28 +73,23 @@ sealed class Category with _$Category {
     required String name,
     String? description,
     required String color,
-    required int sortOrder,
+    required PlatformInt64 sortOrder,
     required bool isSystem,
   }) = _Category;
 }
 
 /// 章节信息
-///
-/// - `start_index` / `end_index` / `content_length` 标记了 `#[sqlx(default)]`，
-///   仅在数据库迁移新增这些列的过渡期内使用，迁移完成后应移除。
 @freezed
 sealed class Chapter with _$Chapter {
   const factory Chapter({
     required String id,
     required String bookId,
     required String title,
-    required int chapterIndex,
-    required PlatformInt64 wordCount,
+    required PlatformInt64 chapterIndex,
     required DateTime cachedAt,
-    required int level,
+    required PlatformInt64 level,
     required PlatformInt64 startIndex,
     required PlatformInt64 endIndex,
-    required PlatformInt64 contentLength,
   }) = _Chapter;
 }
 
@@ -120,15 +115,15 @@ sealed class GlobalStats with _$GlobalStats {
   const factory GlobalStats({
     required PlatformInt64 totalReadingTimeSeconds,
     required PlatformInt64 totalCharactersRead,
-    required int booksReadCount,
-    required int booksCompletedCount,
-    required int consecutiveReadingDays,
+    required PlatformInt64 booksReadCount,
+    required PlatformInt64 booksCompletedCount,
+    required PlatformInt64 consecutiveReadingDays,
     required PlatformInt64 todayReadingTimeSeconds,
     required PlatformInt64 todayCharactersRead,
     required double averageReadingSpeed,
-    required int totalBooksCount,
-    required int totalNotesCount,
-    required int totalBookmarksCount,
+    required PlatformInt64 totalBooksCount,
+    required PlatformInt64 totalNotesCount,
+    required PlatformInt64 totalBookmarksCount,
   }) = _GlobalStats;
 }
 
@@ -138,14 +133,14 @@ sealed class Note with _$Note {
   const factory Note({
     required String id,
     required String bookId,
-    required int chapterIndex,
+    required PlatformInt64 chapterIndex,
     String? chapterId,
     required PlatformInt64 charOffset,
     required PlatformInt64 length,
     required NoteType noteType,
     required String content,
     String? selectedText,
-    int? highlightColor,
+    PlatformInt64? highlightColor,
     String? pairedNoteId,
     String? language,
     required DateTime createdAt,
@@ -157,15 +152,22 @@ sealed class Note with _$Note {
 @freezed
 sealed class NoteStats with _$NoteStats {
   const factory NoteStats({
-    required int totalCount,
-    required int highlightCount,
-    required int annotationCount,
+    required PlatformInt64 totalCount,
+    required PlatformInt64 highlightCount,
+    required PlatformInt64 annotationCount,
   }) = _NoteStats;
 }
 
 ///
 /// 数据库中存储为小写文本（`highlight` / `annotation`）。
 enum NoteType { highlight, annotation }
+
+/// 笔记与书名组合（查询笔记列表时一并带回书名）
+@freezed
+sealed class NoteWithBook with _$NoteWithBook {
+  const factory NoteWithBook({required Note note, required String bookTitle}) =
+      _NoteWithBook;
+}
 
 /// 单章阅读进度
 ///
@@ -175,12 +177,12 @@ enum NoteType { highlight, annotation }
 sealed class ReadingProgress with _$ReadingProgress {
   const factory ReadingProgress({
     required String bookId,
-    required int chapterIndex,
-    required int chunkIndex,
+    required PlatformInt64 chapterIndex,
+    required PlatformInt64 chunkIndex,
     String? chapterId,
     required PlatformInt64 charOffset,
-    required int pageIndex,
-    required int totalPages,
+    required PlatformInt64 pageIndex,
+    required PlatformInt64 totalPages,
     required double progress,
     required PlatformInt64 readingTimeSeconds,
     required DateTime lastReadAt,
@@ -194,7 +196,7 @@ sealed class ReadingSession with _$ReadingSession {
   const factory ReadingSession({
     required String id,
     required String bookId,
-    required int chapterIndex,
+    required PlatformInt64 chapterIndex,
     required PlatformInt64 startCharOffset,
     required PlatformInt64 endCharOffset,
     required DateTime startedAt,
@@ -211,7 +213,7 @@ sealed class ReadingStats with _$ReadingStats {
     required String date,
     required PlatformInt64 readingTimeSeconds,
     required PlatformInt64 charactersRead,
-    required int sessionCount,
+    required PlatformInt64 sessionCount,
     String? lastSessionId,
   }) = _ReadingStats;
 }
@@ -232,7 +234,7 @@ sealed class Vocab with _$Vocab {
     PlatformInt64? chapterIndex,
     PlatformInt64? charOffset,
     required DateTime createdAt,
-    required int reviewCount,
+    required PlatformInt64 reviewCount,
     DateTime? lastReviewedAt,
     required VocabStatus status,
     String? wordList,

@@ -8,16 +8,13 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 /// 主题类型枚举
 enum AppThemeType {
   /// 浅色主题
-  light(label: '浅色'),
+  light,
 
   /// 深色主题
-  dark(label: '深色'),
+  dark,
 
   /// 跟随系统
-  system(label: '系统');
-
-  final String label;
-  const AppThemeType({required this.label});
+  system,
 }
 
 extension AppThemeTypeX on AppThemeType {
@@ -36,7 +33,9 @@ class ThemeManager {
   ThemeManager._internal();
 
   SharedPreferences? _prefs;
+  final List<void Function()> _disposers = [];
   bool _initialized = false;
+  Future<void>? _initFuture;
 
   /// 当前主题类型信号
   final themeType = signal<AppThemeType>(AppThemeType.system);
@@ -63,22 +62,23 @@ class ThemeManager {
 
   /// 是否为深色模式
   bool get isDarkMode {
-    switch (themeType.value) {
-      case AppThemeType.dark:
-        return true;
-      case AppThemeType.light:
-        return false;
-      case AppThemeType.system:
-        final brightness =
-            SchedulerBinding.instance.platformDispatcher.platformBrightness;
-        return brightness == Brightness.dark;
-    }
+    final brightness =
+        SchedulerBinding.instance.platformDispatcher.platformBrightness;
+    return switch (themeType.value) {
+      AppThemeType.dark => true,
+      AppThemeType.light => false,
+      AppThemeType.system => brightness == Brightness.dark,
+    };
   }
 
   /// 初始化主题管理器
   Future<void> init() async {
     if (_initialized) return;
+    _initFuture ??= _doInit();
+    return _initFuture;
+  }
 
+  Future<void> _doInit() async {
     _prefs = await SharedPreferences.getInstance();
 
     // 加载主题类型
@@ -106,33 +106,41 @@ class ThemeManager {
     }
 
     // 设置自动持久化 watcher
-    effect(() {
-      _prefs!.setInt(SettingsKeys.themeType, themeType.value.index);
-    });
-    effect(() {
-      final v = customPrimaryColor.value;
-      if (v != null) {
-        _prefs!.setInt(SettingsKeys.customPrimaryColor, v.toARGB32());
-      } else {
-        _prefs!.remove(SettingsKeys.customPrimaryColor);
-      }
-    });
-    effect(() {
-      final v = currentPresetId.value;
-      if (v != null) {
-        _prefs!.setString(SettingsKeys.currentPresetId, v);
-      } else {
-        _prefs!.remove(SettingsKeys.currentPresetId);
-      }
-    });
-    effect(() {
-      final v = locale.value;
-      if (v != null) {
-        _prefs!.setString(SettingsKeys.locale, v);
-      } else {
-        _prefs!.remove(SettingsKeys.locale);
-      }
-    });
+    _disposers.add(
+      effect(() {
+        _prefs!.setInt(SettingsKeys.themeType, themeType.value.index);
+      }),
+    );
+    _disposers.add(
+      effect(() {
+        final v = customPrimaryColor.value;
+        if (v != null) {
+          _prefs!.setInt(SettingsKeys.customPrimaryColor, v.toARGB32());
+        } else {
+          _prefs!.remove(SettingsKeys.customPrimaryColor);
+        }
+      }),
+    );
+    _disposers.add(
+      effect(() {
+        final v = currentPresetId.value;
+        if (v != null) {
+          _prefs!.setString(SettingsKeys.currentPresetId, v);
+        } else {
+          _prefs!.remove(SettingsKeys.currentPresetId);
+        }
+      }),
+    );
+    _disposers.add(
+      effect(() {
+        final v = locale.value;
+        if (v != null) {
+          _prefs!.setString(SettingsKeys.locale, v);
+        } else {
+          _prefs!.remove(SettingsKeys.locale);
+        }
+      }),
+    );
 
     _initialized = true;
   }
@@ -155,60 +163,12 @@ class ThemeManager {
     await setCustomPrimaryColor(null);
   }
 
-  /// 获取所有可用的主题预设（精简为 4 个）
-  List<ThemePreset> getAvailablePresets() {
-    return [
-      const ThemePreset(
-        id: 'gleam_cyan',
-        name: '莹光青',
-        primaryColor: Color(0xFF07D2D7),
-        description: '清新现代（默认）',
-      ),
-      const ThemePreset(
-        id: 'night_blue',
-        name: '静夜蓝',
-        primaryColor: Color(0xFF3B82F6),
-        description: '沉稳专注',
-      ),
-      const ThemePreset(
-        id: 'warm_amber',
-        name: '暖枫',
-        primaryColor: Color(0xFFF59E0B),
-        description: '温暖舒适',
-      ),
-      const ThemePreset(
-        id: 'mist_violet',
-        name: '薄雾紫',
-        primaryColor: Color(0xFF8B5CF6),
-        description: '优雅神秘',
-      ),
-    ];
+  /// 释放所有 effect，允许热重载时重新初始化。
+  void dispose() {
+    for (final d in _disposers) {
+      d();
+    }
+    _disposers.clear();
+    _initialized = false;
   }
-
-  Future<void> applyPreset(String presetId) async {
-    final presets = getAvailablePresets();
-    final preset = presets.firstWhere(
-      (p) => p.id == presetId,
-      orElse: () => presets.first,
-    );
-    await setCustomPrimaryColor(preset.primaryColor, presetId: preset.id);
-  }
-
-  /// 获取当前主题的名
-  String get currentThemeName => themeType.value.label;
-}
-
-/// 主题预设
-class ThemePreset {
-  final String id;
-  final String name;
-  final Color primaryColor;
-  final String description;
-
-  const ThemePreset({
-    required this.id,
-    required this.name,
-    required this.primaryColor,
-    required this.description,
-  });
 }

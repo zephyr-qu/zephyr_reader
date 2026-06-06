@@ -74,8 +74,14 @@ class BookDetailBottomActions extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                side: const BorderSide(color: Color(0xFFFFCDD2)),
-                foregroundColor: const Color(0xFFEF5350),
+                side: BorderSide(
+                  color: theme.brightness == Brightness.dark
+                      ? Colors.red[800]!
+                      : const Color(0xFFFFCDD2),
+                ),
+                foregroundColor: theme.brightness == Brightness.dark
+                    ? Colors.red[200]
+                    : const Color(0xFFEF5350),
               ),
               onPressed: onDeleteBook,
               icon: const Icon(PhosphorIconsRegular.trash, size: 16),

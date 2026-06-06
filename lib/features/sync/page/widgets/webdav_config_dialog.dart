@@ -4,12 +4,15 @@ import 'package:zephyr_reader/features/sync/application/services/sync_models.dar
 import 'package:zephyr_reader/features/sync/application/services/webdav_config_service.dart';
 import 'package:zephyr_reader/features/sync/application/storage_sync_view_model.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 Future<void> showWebDavConfigDialog(
   BuildContext context,
   StorageSyncViewModel viewModel,
 ) async {
   final config = await viewModel.getConfig();
+  if (!context.mounted) return;
+  final l10n = AppLocalizations.of(context)!;
 
   final serverController = TextEditingController(text: config?.baseUrl ?? '');
   final usernameController = TextEditingController(
@@ -22,165 +25,167 @@ Future<void> showWebDavConfigDialog(
     text: config?.remotePath ?? '/zephyr_reader',
   );
   var selectedPreset = null as WebDavPreset?;
+  final formKey = GlobalKey<FormState>();
 
   if (!context.mounted) return;
 
-  final result = await showDialog<bool>(
+  await showDialog<bool>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(
-        title: const Text('配置 WebDAV'),
+        title: Text(l10n.webdavConfig),
         content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('选择预设', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: WebDavConfigService.getPresets().map((preset) {
-                  final isSelected = selectedPreset?.name == preset.name;
-                  return ChoiceChip(
-                    label: Text(preset.name),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setDialogState(() {
-                        if (selected) {
-                          selectedPreset = preset;
-                          if (preset.baseUrl.isNotEmpty) {
-                            serverController.text = preset.baseUrl;
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.selectPreset,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: WebDavConfigService.getPresets().map((preset) {
+                    final isSelected = selectedPreset?.name == preset.name;
+                    return ChoiceChip(
+                      label: Text(preset.name),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setDialogState(() {
+                          if (selected) {
+                            selectedPreset = preset;
+                            if (preset.baseUrl.isNotEmpty) {
+                              serverController.text = preset.baseUrl;
+                            }
+                            remotePathController.text = preset.remotePath;
                           }
-                          remotePathController.text = preset.remotePath;
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: serverController,
-                decoration: const InputDecoration(
-                  labelText: '服务器地址',
-                  hintText: 'https://dav.jianguoyun.com/dav',
-                  prefixIcon: Icon(PhosphorIconsRegular.cloud),
-                  border: OutlineInputBorder(),
+                        });
+                      },
+                    );
+                  }).toList(),
                 ),
-                keyboardType: TextInputType.url,
-                validator: (value) {
-                  if (value == null || value.isEmpty) return '请输入服务器地址';
-                  if (!value.startsWith('http://') &&
-                      !value.startsWith('https://')) {
-                    return '请输入完整的 URL（包含 http:// 或 https://）';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: usernameController,
-                decoration: const InputDecoration(
-                  labelText: '用户',
-                  prefixIcon: Icon(PhosphorIconsRegular.user),
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: serverController,
+                  decoration: InputDecoration(
+                    labelText: l10n.serverUrl,
+                    hintText: 'https://dav.jianguoyun.com/dav',
+                    prefixIcon: const Icon(PhosphorIconsRegular.cloud),
+                    border: const OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.url,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return l10n.serverUrlRequired;
+                    }
+                    if (!value.startsWith('http://') &&
+                        !value.startsWith('https://')) {
+                      return l10n.serverUrlInvalid;
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return '请输入用户名';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: passwordController,
-                decoration: const InputDecoration(
-                  labelText: '密码',
-                  prefixIcon: Icon(PhosphorIconsRegular.lockSimple),
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: usernameController,
+                  decoration: InputDecoration(
+                    labelText: l10n.username,
+                    prefixIcon: const Icon(PhosphorIconsRegular.user),
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return l10n.usernameRequired;
+                    }
+                    return null;
+                  },
                 ),
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) return '请输入密码';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: remotePathController,
-                decoration: const InputDecoration(
-                  labelText: '远程目录',
-                  hintText: '/zephyr_reader',
-                  prefixIcon: Icon(PhosphorIconsRegular.folder),
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: passwordController,
+                  decoration: InputDecoration(
+                    labelText: l10n.password,
+                    prefixIcon: const Icon(PhosphorIconsRegular.lockSimple),
+                    border: const OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return l10n.passwordRequired;
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return '请输入远程目录';
-                  if (!value.startsWith('/')) return '远程目录应以 / 开头';
-                  return null;
-                },
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: remotePathController,
+                  decoration: InputDecoration(
+                    labelText: l10n.remotePath,
+                    hintText: '/zephyr_reader',
+                    prefixIcon: const Icon(PhosphorIconsRegular.folder),
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return l10n.remotePathRequired;
+                    }
+                    if (!value.startsWith('/')) {
+                      return l10n.remotePathInvalid;
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           if (config != null)
             TextButton(
               onPressed: () async {
                 await viewModel.clearConfig();
                 if (!context.mounted) return;
-                Navigator.of(context).pop(true);
+                Navigator.of(context).pop(false);
                 if (!context.mounted) return;
-                showInfoSnack(context, '配置已清除');
+                showInfoSnack(context, l10n.configCleared);
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('清除配置'),
+              child: Text(l10n.clearConfig),
             ),
           ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('保存'),
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              try {
+                await viewModel.saveConfig(
+                  WebDavConfig(
+                    baseUrl: serverController.text,
+                    username: usernameController.text,
+                    password: passwordController.text,
+                    remotePath: remotePathController.text,
+                  ),
+                );
+                if (!context.mounted) return;
+                Navigator.of(context).pop(true);
+                if (!context.mounted) return;
+                showSuccessSnack(context, l10n.configSaved);
+              } catch (_) {
+                if (!context.mounted) return;
+                showErrorSnack(context, l10n.saveConfigFailed);
+              }
+            },
+            child: Text(l10n.save),
           ),
         ],
       ),
     ),
   );
-
-  if (result == true) {
-    final serverValid =
-        serverController.text.isNotEmpty &&
-        (serverController.text.startsWith('http://') ||
-            serverController.text.startsWith('https://'));
-    final usernameValid = usernameController.text.isNotEmpty;
-    final passwordValid = passwordController.text.isNotEmpty;
-    final remotePathValid =
-        remotePathController.text.isNotEmpty &&
-        remotePathController.text.startsWith('/');
-
-    if (!serverValid || !usernameValid || !passwordValid || !remotePathValid) {
-      if (!context.mounted) return;
-      showErrorSnack(context, '请填写完整的配置信息');
-      return;
-    }
-
-    try {
-      await viewModel.saveConfig(
-        WebDavConfig(
-          baseUrl: serverController.text,
-          username: usernameController.text,
-          password: passwordController.text,
-          remotePath: remotePathController.text,
-        ),
-      );
-      if (!context.mounted) return;
-      showSuccessSnack(context, 'WebDAV 配置已保存');
-    } catch (_) {
-      if (!context.mounted) return;
-      showErrorSnack(context, '保存配置失败');
-    }
-  }
 
   serverController.dispose();
   usernameController.dispose();

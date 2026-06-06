@@ -1,8 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'dart:ui' show Color;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 
 /// 自持久化信号量
 ///
@@ -17,12 +18,14 @@ class PersistedSignal<T> {
   Timer? _saveTimer;
   final Duration _debounce;
   final Future<void> Function(SharedPreferences, String, T) _write;
+  bool _disposed = false;
 
   /// 当前值
   T get value => _signal.value;
 
   /// 设置当前值并调度持久化
   set value(T v) {
+    if (_signal.peek() == v) return;
     _signal.value = v;
     _scheduleSave();
   }
@@ -50,13 +53,18 @@ class PersistedSignal<T> {
   }
 
   Future<void> _save() async {
-    await _write(_prefs, key, _signal.value);
+    if (_disposed) return;
+    try {
+      await _write(_prefs, key, _signal.value);
+    } catch (e) {
+      Logging.warning('PersistedSignal[$key] save failed: $e');
+    }
   }
 
   /// 立即写入，跳过 debounce
   Future<void> saveImmediately() async {
     _saveTimer?.cancel();
-    await _write(_prefs, key, _signal.value);
+    await _save();
   }
 
   /// 关联信号原值（用于 `useSignal`、`SignalBuilder` 等）
@@ -64,6 +72,7 @@ class PersistedSignal<T> {
 
   /// 取消待写入的 timer。不再使用此信号时调用
   void dispose() {
+    _disposed = true;
     _saveTimer?.cancel();
   }
 }
@@ -223,7 +232,10 @@ T _readEnum<T extends Enum>(
   if (stored == null) return defaultValue;
   try {
     return parser(stored);
-  } catch (_) {
+  } catch (e) {
+    Logging.warning(
+      'PersistedSignal._readEnum[$key] failed to parse "$stored": $e',
+    );
     return defaultValue;
   }
 }
@@ -253,32 +265,4 @@ Color? _readColor(SharedPreferences prefs, String key) {
   final value = prefs.getInt(key);
   if (value == null) return null;
   return Color(value);
-}
-
-/// [AppThemeType]-like 枚举持久化（通过 index 存储）
-PersistedSignal<T> persistedEnumByIndex<T extends Enum>(
-  SharedPreferences prefs,
-  String key,
-  T defaultValue,
-  List<T> values, {
-  Duration debounce = const Duration(milliseconds: 150),
-}) {
-  return PersistedSignal<T>._(
-    initialValue: _readEnumByIndex(prefs, key, defaultValue, values),
-    key: key,
-    prefs: prefs,
-    write: (p, k, v) => p.setInt(k, v.index),
-    debounce: debounce,
-  );
-}
-
-T _readEnumByIndex<T extends Enum>(
-  SharedPreferences prefs,
-  String key,
-  T defaultValue,
-  List<T> values,
-) {
-  final index = prefs.getInt(key);
-  if (index == null || index < 0 || index >= values.length) return defaultValue;
-  return values[index];
 }

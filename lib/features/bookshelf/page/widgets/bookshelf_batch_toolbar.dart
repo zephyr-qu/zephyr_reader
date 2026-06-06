@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/core/theme/menu_colors.dart';
+import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
 
 class BookshelfBatchToolbar extends StatelessWidget {
   final int selectedCount;
@@ -24,6 +27,7 @@ class BookshelfBatchToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return SafeArea(
       child: Container(
         padding: EdgeInsets.symmetric(
@@ -41,31 +45,25 @@ class BookshelfBatchToolbar extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Text(
-              '已选 $selectedCount 本',
-              style: TextStyle(
-                fontSize: 14,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
+            Text(l10n.selectedBooksCount(selectedCount)),
             const Spacer(),
-            TextButton(onPressed: onCancel, child: const Text('取消')),
+            TextButton(onPressed: onCancel, child: Text(l10n.cancel)),
             PopupMenuButton<String>(
               onSelected: (action) async {
                 if (action == 'delete') {
                   final confirmed = await showDialog<bool>(
                     context: context,
                     builder: (c) => AlertDialog(
-                      title: const Text('删除书籍'),
-                      content: Text('确定要删除选中的 $selectedCount 本书吗？'),
+                      title: Text(l10n.deleteBook),
+                      content: Text(l10n.batchDeleteConfirm(selectedCount)),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(c, false),
-                          child: const Text('取消'),
+                          child: Text(l10n.cancel),
                         ),
                         FilledButton(
                           onPressed: () => Navigator.pop(c, true),
-                          child: const Text('删除'),
+                          child: Text(l10n.delete),
                         ),
                       ],
                     ),
@@ -74,65 +72,34 @@ class BookshelfBatchToolbar extends StatelessWidget {
                     await onDeleteAll();
                   }
                 } else if (action == 'category') {
-                  final tempIds = <String>{};
-                  final changed = await showDialog<bool>(
-                    context: context,
-                    builder: (c) => StatefulBuilder(
-                      builder: (c, setDialogState) => AlertDialog(
-                        title: const Text('移动分类'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: categories
-                              .map(
-                                (cat) => CheckboxListTile(
-                                  title: Text(cat.name),
-                                  value: tempIds.contains(cat.id),
-                                  onChanged: (v) {
-                                    if (v == true) {
-                                      tempIds.add(cat.id);
-                                    } else {
-                                      tempIds.remove(cat.id);
-                                    }
-                                    setDialogState(() {});
-                                  },
-                                ),
-                              )
-                              .toList(),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(c, false),
-                            child: const Text('取消'),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.pop(c, true),
-                            child: const Text('应用'),
-                          ),
-                        ],
-                      ),
-                    ),
+                  final selected = await showCategorySelectionDialog(
+                    context,
+                    categories: categories,
+                    title: l10n.moveCategory,
+                    cancelText: l10n.cancel,
+                    confirmText: l10n.apply,
                   );
-                  if (changed == true) {
-                    await onBatchCategoryChange(tempIds.toList());
+                  if (selected != null && selected.isNotEmpty) {
+                    await onBatchCategoryChange(selected.toList());
                   }
                 } else if (action == 'status') {
                   final status = await showDialog<String>(
                     context: context,
                     builder: (c) => AlertDialog(
-                      title: const Text('更改状态'),
+                      title: Text(l10n.changeStatus),
                       content: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           ListTile(
-                            title: const Text('阅读中'),
+                            title: Text(l10n.reading),
                             onTap: () => Navigator.pop(c, 'reading'),
                           ),
                           ListTile(
-                            title: const Text('未开始'),
+                            title: Text(l10n.notStarted),
                             onTap: () => Navigator.pop(c, 'planned'),
                           ),
                           ListTile(
-                            title: const Text('已读完'),
+                            title: Text(l10n.finished),
                             onTap: () => Navigator.pop(c, 'completed'),
                           ),
                         ],
@@ -145,32 +112,39 @@ class BookshelfBatchToolbar extends StatelessWidget {
                 }
               },
               itemBuilder: (c) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
                   child: ListTile(
                     leading: Icon(
                       PhosphorIconsRegular.trash,
-                      color: Colors.red,
+                      color: MenuItemSemantic.error.iconColor(theme.brightness),
                     ),
-                    title: Text('删除', style: TextStyle(color: Colors.red)),
+                    title: Text(
+                      l10n.delete,
+                      style: TextStyle(
+                        color: MenuItemSemantic.error.iconColor(
+                          theme.brightness,
+                        ),
+                      ),
+                    ),
                     contentPadding: EdgeInsets.zero,
                     dense: true,
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'category',
                   child: ListTile(
-                    leading: Icon(PhosphorIconsRegular.folders),
-                    title: Text('移动分类'),
+                    leading: const Icon(PhosphorIconsRegular.folders),
+                    title: Text(l10n.moveCategory),
                     contentPadding: EdgeInsets.zero,
                     dense: true,
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'status',
                   child: ListTile(
-                    leading: Icon(PhosphorIconsRegular.checkCircle),
-                    title: Text('更改状态'),
+                    leading: const Icon(PhosphorIconsRegular.checkCircle),
+                    title: Text(l10n.changeStatus),
                     contentPadding: EdgeInsets.zero,
                     dense: true,
                   ),

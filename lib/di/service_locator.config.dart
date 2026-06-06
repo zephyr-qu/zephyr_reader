@@ -22,18 +22,14 @@ import 'package:zephyr_reader/core/reader/tts_service.dart' as _i825;
 import 'package:zephyr_reader/di/app_module.dart' as _i431;
 import 'package:zephyr_reader/features/backup/application/backup_view_model.dart'
     as _i341;
-import 'package:zephyr_reader/features/bookshelf/application/book_detail_view_model.dart'
-    as _i596;
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart'
     as _i790;
-import 'package:zephyr_reader/features/learning_notes/application/learning_notes_view_model.dart'
-    as _i676;
-import 'package:zephyr_reader/features/profile/application/profile_view_model.dart'
-    as _i340;
-import 'package:zephyr_reader/features/profile/page/other_settings/other_settings_view_model.dart'
-    as _i640;
-import 'package:zephyr_reader/features/profile/page/theme_brightness/theme_brightness_view_model.dart'
-    as _i489;
+import 'package:zephyr_reader/features/profile/application/other_settings_view_model.dart'
+    as _i362;
+import 'package:zephyr_reader/features/profile/application/theme_brightness_view_model.dart'
+    as _i583;
+import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart'
+    as _i136;
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart'
     as _i335;
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart'
@@ -58,11 +54,7 @@ extension GetItInjectableX on _i174.GetIt {
       () => appModule.prefs,
       preResolve: true,
     );
-    gh.factory<_i676.LearningNotesViewModel>(
-      () => _i676.LearningNotesViewModel(),
-    );
     gh.factory<_i1054.ReaderRepository>(() => _i1054.ReaderRepository());
-    gh.factory<_i1.SearchViewModel>(() => _i1.SearchViewModel());
     gh.factory<_i657.StorageSyncViewModel>(() => _i657.StorageSyncViewModel());
     gh.singleton<_i849.ReaderBgColors>(() => _i849.ReaderBgColors());
     gh.lazySingletonAsync<_i772.FileStorage>(() {
@@ -71,30 +63,30 @@ extension GetItInjectableX on _i174.GetIt {
     });
     gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
     gh.lazySingleton<_i825.TtsService>(() => _i825.TtsService());
-    gh.lazySingleton<_i340.ProfileViewModel>(() => _i340.ProfileViewModel());
     gh.lazySingleton<_i880.VocabularyMarkerService>(
       () => _i880.VocabularyMarkerService(),
     );
-    gh.factory<_i596.BookDetailViewModel>(
-      () => _i596.BookDetailViewModel(bookId: gh<String>()),
-    );
+    gh.lazySingleton<_i1.SearchViewModel>(() => _i1.SearchViewModel());
     gh.singleton<_i82.WifiTransferService>(
       () => _i82.WifiTransferService(gh<_i460.SharedPreferences>()),
     );
     gh.factory<_i851.FontRepository>(
       () => _i851.FontRepository(gh<_i460.SharedPreferences>()),
     );
-    gh.factory<_i341.BackupViewModel>(
-      () => _i341.BackupViewModel(gh<_i460.SharedPreferences>()),
-    );
     gh.factory<_i790.BookshelfViewModel>(
       () => _i790.BookshelfViewModel(gh<_i460.SharedPreferences>()),
     );
-    gh.factory<_i640.OtherSettingsViewModel>(
-      () => _i640.OtherSettingsViewModel(gh<_i460.SharedPreferences>()),
+    gh.factory<_i362.OtherSettingsViewModel>(
+      () => _i362.OtherSettingsViewModel(gh<_i460.SharedPreferences>()),
     );
-    gh.factory<_i489.ThemeBrightnessViewModel>(
-      () => _i489.ThemeBrightnessViewModel(gh<_i460.SharedPreferences>()),
+    gh.factory<_i583.ThemeBrightnessViewModel>(
+      () => _i583.ThemeBrightnessViewModel(gh<_i460.SharedPreferences>()),
+    );
+    gh.factory<_i136.TtsSettingsViewModel>(
+      () => _i136.TtsSettingsViewModel(gh<_i460.SharedPreferences>()),
+    );
+    gh.lazySingleton<_i341.BackupViewModel>(
+      () => _i341.BackupViewModel(gh<_i460.SharedPreferences>()),
     );
     gh.singleton<_i849.ReaderConfig>(
       () => _i849.ReaderConfig(gh<_i460.SharedPreferences>()),

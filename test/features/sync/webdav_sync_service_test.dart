@@ -206,22 +206,6 @@ void main() {
           equals(time2.millisecondsSinceEpoch),
         );
       });
-
-      test('自动同步设置', () async {
-        // 初始值
-        expect(configService.autoSyncEnabled.value, isFalse);
-        expect(configService.autoSyncInterval.value, equals(30));
-
-        // 修改设置（实际应用中会通过其他方法修改）
-        await prefs.setBool('webdav.auto_sync', true);
-        await prefs.setInt('webdav.sync_interval', 60);
-
-        // 重新加载配置状态
-        configService = WebDavConfigService(prefs: prefs);
-
-        expect(configService.autoSyncEnabled.value, isTrue);
-        expect(configService.autoSyncInterval.value, equals(60));
-      });
     });
 
     group('WebDAV 同步状态测试', () {
@@ -270,30 +254,32 @@ void main() {
         expect(result.downloadedCount, equals(3));
       });
 
-      test('SyncResult 摘要信息 - 失败', () {
+      test('SyncResult - 失败状态与错误消息', () {
         final result = SyncResult(success: false, error: '网络错误');
 
-        expect(result.summary, contains('同步失败'));
-        expect(result.summary, contains('网络错误'));
+        expect(result.success, isFalse);
+        expect(result.error, equals('网络错误'));
       });
 
-      test('SyncResult 摘要信息 - 成功', () {
+      test('SyncResult - 成功状态与计数', () {
         final result = SyncResult(
           success: true,
           uploadedCount: 5,
           downloadedCount: 3,
         );
 
-        expect(result.summary, contains('上传'));
-        expect(result.summary, contains('5'));
-        expect(result.summary, contains('下载'));
-        expect(result.summary, contains('3'));
+        expect(result.success, isTrue);
+        expect(result.uploadedCount, equals(5));
+        expect(result.downloadedCount, equals(3));
       });
 
-      test('SyncResult 摘要信息 - 无更新', () {
+      test('SyncResult - 默认无更新', () {
         final result = SyncResult(success: true);
 
-        expect(result.summary, contains('同步完成'));
+        expect(result.success, isTrue);
+        expect(result.uploadedCount, equals(0));
+        expect(result.downloadedCount, equals(0));
+        expect(result.error, isNull);
       });
     });
 

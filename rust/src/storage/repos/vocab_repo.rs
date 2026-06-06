@@ -137,4 +137,15 @@ impl VocabRepository {
 
     Ok(stats)
 }
+
+    /// 获取指定书籍的生词数量
+    pub async fn count_by_book(pool: &SqlitePool, book_id: &str) -> Result<i32> {
+        let count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM vocabulary_words WHERE book_id = ?",
+        )
+        .bind(book_id)
+        .fetch_one(pool)
+        .await?;
+        Ok(count as i32)
+    }
 }

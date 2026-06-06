@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 class SelectionChip extends StatelessWidget {
   final String label;
   final bool selected;
-  final ColorScheme colorScheme;
   final VoidCallback onTap;
   final Color? activeColor;
   final EdgeInsets padding;
@@ -15,7 +14,6 @@ class SelectionChip extends StatelessWidget {
     super.key,
     required this.label,
     required this.selected,
-    required this.colorScheme,
     required this.onTap,
     this.activeColor,
     this.padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -26,6 +24,7 @@ class SelectionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final color = activeColor ?? colorScheme.primary;
     return Semantics(
       button: true,

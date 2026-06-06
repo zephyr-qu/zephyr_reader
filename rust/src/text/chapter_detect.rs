@@ -51,25 +51,27 @@ fn extract_chapters_with_pattern(
             // 更新上一章的结束位置
             if let Some(last) = chapters.last_mut() {
                 last.end_index = start;
-                last.content_length = start - last.start_index;
+                // last.content_length = (start - last.start_index as i64);
             }
 
             let chapter_index = extract_chapter_number(&title)
                 .map(|n| n - 1)
                 .unwrap_or(chapters.len() as i32);
 
-            chapters.push(Chapter {
-                id: uuid::Uuid::new_v4().to_string(),
-                book_id: book_id.to_string(),
-                title,
-                start_index: start,
-                end_index: content_len,
-                content_length: content_len - start,
-                chapter_index,
-                word_count: 0,
-                cached_at: chrono::Utc::now(),
-                level: 0,
-            });
+            chapters.push(Chapter::new(book_id, &title, chapter_index as i64,  0, start as i64, content_len as i64)
+            //   {
+            //     id: uuid::Uuid::new_v4().to_string(),
+            //     book_id: book_id.to_string(),
+            //     title,
+            //     start_index: start as i64,
+            //     end_index: content_len as i64,
+            //     // content_length: (content_len - start) as i64,
+            //     chapter_index:chapter_index as i64,
+            //     word_count: 0,
+            //     cached_at: chrono::Utc::now(),
+            //     level: 0,
+            // }
+          );
         }
     }
 

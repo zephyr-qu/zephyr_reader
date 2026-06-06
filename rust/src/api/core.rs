@@ -582,7 +582,7 @@ fn format_from_extension(file_path: &str) -> BookFormat {
 async fn get_chapter_bounds(
     validated_path: &str,
     chapter_index: i32,
-) -> Result<(i64, i64), AppError> {
+) -> Result<(i32, i32), AppError> {
     let pool = storage_pool()?;
     let book = BookRepository::find_by_file_path(&pool, validated_path)
         .await?
@@ -592,7 +592,7 @@ async fn get_chapter_bounds(
         .await?
         .ok_or_else(|| AppError::chapter_extract_error(chapter_index, "chapter not found in DB"))?;
 
-    Ok((chapter.start_index, chapter.end_index))
+    Ok((chapter.start_index  as i32, chapter.end_index  as i32))
 }
 
 /// 轻量分块排版：将文本按行分割为多页
@@ -624,8 +624,8 @@ fn paginate_chunk(
             page_index: page_idx as i32,
             content: page_text,
             is_last_page: false,
-            start_offset: acc_offset as i64,
-            end_offset: (acc_offset + page_len) as i64,
+            start_offset: acc_offset as i32,
+            end_offset: (acc_offset + page_len) as i32,
         });
         acc_offset += page_len;
     }

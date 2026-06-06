@@ -2,140 +2,51 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'dart:async';
 
+import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_slider_tile.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/core/reader/custom_font_service.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/core/reader/models/font_info.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 class TypographySettingsPage extends HookWidget {
-  late final ReaderConfig config = getIt<ReaderConfig>();
-  late final FontRepository fontRepo = getIt<FontRepository>();
-
-  TypographySettingsPage({super.key});
+  const TypographySettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final fontSize = useState(18.0);
-    final lineHeight = useState(1.6);
-    final paragraphSpacing = useState(16.0);
-    final letterSpacing = useState(0.0);
-    final margin = useState(20.0);
-    final currentFontId = useState('system');
-    final punctuationSqueeze = useState(true);
-    final baselineAlign = useState(true);
-    final verticalMode = useState(false);
-    final loaded = useState(false);
-
-    useEffect(() {
-      _loadSettings(
-        fontSize,
-        lineHeight,
-        paragraphSpacing,
-        letterSpacing,
-        margin,
-        punctuationSqueeze,
-        baselineAlign,
-        currentFontId,
-        loaded,
-      );
-      return null;
-    }, []);
-
+    final config = useMemoized(() => getIt<ReaderConfig>(), []);
+    final fontRepo = useMemoized(() => getIt<FontRepository>(), []);
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '排版与字体',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-            color: cs.onSurface,
-            letterSpacing: -0.5,
-          ),
-        ),
+      appBar: SettingsAppBar(title: l10n.typographySettings),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+        children: [
+          _buildPreview(context, cs, config, fontRepo),
+          const SizedBox(height: 24),
+          _buildFontGrid(context, cs, config, fontRepo),
+          const SizedBox(height: 24),
+          _buildSliders(context, cs, config),
+          const SizedBox(height: 24),
+          _buildAdvancedCjk(context, cs, config),
+          const SizedBox(height: 12),
+          _buildReset(context, cs, config, fontRepo),
+        ],
       ),
-      body: loaded.value
-          ? ListView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-              children: [
-                _buildPreview(
-                  cs,
-                  fontSize.value,
-                  lineHeight.value,
-                  paragraphSpacing.value,
-                  letterSpacing.value,
-                  margin.value,
-                  currentFontId.value,
-                ),
-                const SizedBox(height: 24),
-                _buildFontGrid(context, cs, currentFontId.value, currentFontId),
-                const SizedBox(height: 24),
-                _buildSliders(
-                  context,
-                  cs,
-                  fontSize,
-                  lineHeight,
-                  paragraphSpacing,
-                  letterSpacing,
-                  margin,
-                ),
-                const SizedBox(height: 24),
-                _buildAdvancedCjk(
-                  context,
-                  cs,
-                  punctuationSqueeze,
-                  baselineAlign,
-                  verticalMode,
-                ),
-                const SizedBox(height: 12),
-                _buildReset(
-                  cs,
-                  fontSize,
-                  lineHeight,
-                  paragraphSpacing,
-                  letterSpacing,
-                  margin,
-                  punctuationSqueeze,
-                  baselineAlign,
-                  currentFontId,
-                  loaded,
-                ),
-              ],
-            )
-          : Center(child: CircularProgressIndicator(color: cs.primary)),
     );
   }
 
-  void _loadSettings(
-    ValueNotifier<double> fontSize,
-    ValueNotifier<double> lineHeight,
-    ValueNotifier<double> paragraphSpacing,
-    ValueNotifier<double> letterSpacing,
-    ValueNotifier<double> margin,
-    ValueNotifier<bool> punctuationSqueeze,
-    ValueNotifier<bool> baselineAlign,
-    ValueNotifier<String> currentFontId,
-    ValueNotifier<bool> loaded,
-  ) {
-    fontSize.value = config.fontSize.value;
-    lineHeight.value = config.lineHeight.value;
-    paragraphSpacing.value = config.paragraphSpacing.value;
-    letterSpacing.value = config.letterSpacing.value;
-    margin.value = config.padding.value;
-    punctuationSqueeze.value = config.punctuationSqueeze.value;
-    currentFontId.value = fontRepo.currentFont.value?.id ?? 'system';
-
-    loaded.value = true;
-  }
-
-  String _fontFamily(String fontId) {
+  String _fontFamily(FontRepository fontRepo, String fontId) {
     try {
       final font = fontRepo.availableFonts.value.firstWhere(
         (f) => f.id == fontId,
@@ -146,49 +57,46 @@ class TypographySettingsPage extends HookWidget {
     }
   }
 
-  Future<void> _selectFont(
-    String id,
-    ValueNotifier<String> currentFontId,
-  ) async {
-    currentFontId.value = id;
-    await fontRepo.setCurrentFont(id);
-  }
-
-  Future<void> _reset(
-    ValueNotifier<double> fontSize,
-    ValueNotifier<double> lineHeight,
-    ValueNotifier<double> paragraphSpacing,
-    ValueNotifier<double> letterSpacing,
-    ValueNotifier<double> margin,
-    ValueNotifier<bool> punctuationSqueeze,
-    ValueNotifier<bool> baselineAlign,
-    ValueNotifier<String> currentFontId,
-    ValueNotifier<bool> loaded,
-  ) async {
-    await config.resetToDefault();
+  /// 仅重置排版页面管理的设置项，不触及主题、自动滚动、点击区域等其他页面管理的配置。
+  Future<void> _reset(ReaderConfig config, FontRepository fontRepo) async {
+    config.fontSize.value = ReaderFontSize.medium.size;
+    config.lineHeight.value = 1.6;
+    config.paragraphSpacing.value = 16.0;
+    config.padding.value = 16.0;
+    config.letterSpacing.value = 0.0;
+    config.punctuationSqueeze.value = true;
+    config.baselineAlign.value = true;
+    config.writingDirection.value = WritingDirection.horizontal;
     await fontRepo.setCurrentFont('system');
-    _loadSettings(
-      fontSize,
-      lineHeight,
-      paragraphSpacing,
-      letterSpacing,
-      margin,
-      punctuationSqueeze,
-      baselineAlign,
-      currentFontId,
-      loaded,
-    );
   }
 
   Widget _buildPreview(
+    BuildContext context,
     ColorScheme cs,
-    double fontSize,
-    double lineHeight,
-    double paragraphSpacing,
-    double letterSpacing,
-    double margin,
-    String currentFontId,
+    ReaderConfig config,
+    FontRepository fontRepo,
   ) {
+    final l10n = AppLocalizations.of(context)!;
+    final fontSize = useSignalValue<double, Signal<double>>(
+      config.fontSize.signal,
+    );
+    final lineHeight = useSignalValue<double, Signal<double>>(
+      config.lineHeight.signal,
+    );
+    final paragraphSpacing = useSignalValue<double, Signal<double>>(
+      config.paragraphSpacing.signal,
+    );
+    final letterSpacing = useSignalValue<double, Signal<double>>(
+      config.letterSpacing.signal,
+    );
+    final margin = useSignalValue<double, Signal<double>>(
+      config.padding.signal,
+    );
+    final currentFontInfo = useSignalValue<FontInfo?, Signal<FontInfo?>>(
+      fontRepo.currentFont,
+    );
+    final fontId = currentFontInfo?.id ?? 'system';
+
     return Container(
       padding: EdgeInsets.fromLTRB(margin, 24, margin, 24),
       decoration: BoxDecoration(
@@ -214,7 +122,7 @@ class TypographySettingsPage extends HookWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                '实时预览',
+                l10n.livePreview,
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
@@ -232,7 +140,7 @@ class TypographySettingsPage extends HookWidget {
                 Text(
                   '春风又绿江南岸，明月何时照我还。',
                   style: TextStyle(
-                    fontFamily: _fontFamily(currentFontId),
+                    fontFamily: _fontFamily(fontRepo, fontId),
                     fontSize: fontSize * 1.05,
                     height: lineHeight,
                     letterSpacing: letterSpacing,
@@ -243,7 +151,7 @@ class TypographySettingsPage extends HookWidget {
                 Text(
                   'The spring wind has greened the southern shore again.',
                   style: TextStyle(
-                    fontFamily: _fontFamily(currentFontId),
+                    fontFamily: _fontFamily(fontRepo, fontId),
                     fontSize: fontSize * 0.9,
                     height: lineHeight,
                     letterSpacing: letterSpacing,
@@ -262,19 +170,21 @@ class TypographySettingsPage extends HookWidget {
   Widget _buildFontGrid(
     BuildContext context,
     ColorScheme cs,
-    String currentFontId,
-    ValueNotifier<String> currentFontIdNotifier,
+    ReaderConfig config,
+    FontRepository fontRepo,
   ) {
+    final l10n = AppLocalizations.of(context)!;
+    final currentFontInfo = useSignalValue<FontInfo?, Signal<FontInfo?>>(
+      fontRepo.currentFont,
+    );
+    final currentFontId = currentFontInfo?.id;
     final builtInFonts = fontRepo.availableFonts.value
         .where((f) => f.isBuiltIn)
         .toList();
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SectionLabel(
-              label: '字体选择',
-              colorScheme: Theme.of(context).colorScheme,
-            ),
+            SectionLabel(label: l10n.fontSelection),
             Container(
               decoration: BoxDecoration(
                 color: cs.surface,
@@ -294,7 +204,9 @@ class TypographySettingsPage extends HookWidget {
                   };
                   return Expanded(
                     child: GestureDetector(
-                      onTap: () => _selectFont(font.id, currentFontIdNotifier),
+                      onTap: () async {
+                        await fontRepo.setCurrentFont(font.id);
+                      },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -351,87 +263,93 @@ class TypographySettingsPage extends HookWidget {
   Widget _buildSliders(
     BuildContext context,
     ColorScheme cs,
-    ValueNotifier<double> fontSize,
-    ValueNotifier<double> lineHeight,
-    ValueNotifier<double> paragraphSpacing,
-    ValueNotifier<double> letterSpacing,
-    ValueNotifier<double> margin,
+    ReaderConfig config,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionLabel(label: l10n.typographyParams),
+        SettingsCard(
           children: [
-            SectionLabel(
-              label: '排版参数',
-              colorScheme: Theme.of(context).colorScheme,
+            SettingsSliderTile(
+              label: l10n.fontSize,
+              value:
+                  '${useSignalValue<double, Signal<double>>(config.fontSize.signal).toInt()}px',
+              current: useSignalValue<double, Signal<double>>(
+                config.fontSize.signal,
+              ),
+              min: 12,
+              max: 32,
+              onChanged: (v) => config.fontSize.value = v.roundToDouble(),
             ),
-            SettingsCard(
-              colorScheme: Theme.of(context).colorScheme,
-              children: [
-                SettingsSliderTile(
-                  label: '字号',
-                  value: '${fontSize.value.toInt()}px',
-                  current: fontSize.value,
-                  min: 12,
-                  max: 32,
-                  onChanged: (v) => fontSize.value = v.roundToDouble(),
-                  colorScheme: cs,
-                ),
-                SettingsSliderTile(
-                  label: '行距',
-                  value: lineHeight.value.toStringAsFixed(1),
-                  current: lineHeight.value,
-                  min: 1.0,
-                  max: 2.5,
-                  onChanged: (v) => lineHeight.value = v,
-                  step: 0.1,
-                  colorScheme: cs,
-                ),
-                SettingsSliderTile(
-                  label: '段间距',
-                  value: '${paragraphSpacing.value.toInt()}px',
-                  current: paragraphSpacing.value,
-                  min: 0,
-                  max: 24,
-                  onChanged: (v) => paragraphSpacing.value = v.roundToDouble(),
-                  step: 2,
-                  colorScheme: cs,
-                ),
-                SettingsSliderTile(
-                  label: '字间距',
-                  value: '${letterSpacing.value.toStringAsFixed(1)}px',
-                  current: letterSpacing.value,
-                  min: -0.5,
-                  max: 2.0,
-                  onChanged: (v) => letterSpacing.value = v,
-                  step: 0.1,
-                  colorScheme: cs,
-                ),
-                SettingsSliderTile(
-                  label: '页边距',
-                  value: '${margin.value.toInt()}px',
-                  current: margin.value,
-                  min: 16,
-                  max: 48,
-                  onChanged: (v) => margin.value = v.roundToDouble(),
-                  step: 2,
-                  colorScheme: cs,
-                ),
-              ],
+            SettingsSliderTile(
+              label: l10n.lineHeight,
+              value: useSignalValue<double, Signal<double>>(
+                config.lineHeight.signal,
+              ).toStringAsFixed(1),
+              current: useSignalValue<double, Signal<double>>(
+                config.lineHeight.signal,
+              ),
+              min: 1.0,
+              max: 2.5,
+              onChanged: (v) => config.lineHeight.value = v,
+              step: 0.1,
+            ),
+            SettingsSliderTile(
+              label: l10n.paragraphSpacing,
+              value:
+                  '${useSignalValue<double, Signal<double>>(config.paragraphSpacing.signal).toInt()}px',
+              current: useSignalValue<double, Signal<double>>(
+                config.paragraphSpacing.signal,
+              ),
+              min: 0,
+              max: 24,
+              onChanged: (v) =>
+                  config.paragraphSpacing.value = v.roundToDouble(),
+              step: 2,
+            ),
+            SettingsSliderTile(
+              label: l10n.letterSpacing,
+              value:
+                  '${useSignalValue<double, Signal<double>>(config.letterSpacing.signal).toStringAsFixed(1)}px',
+              current: useSignalValue<double, Signal<double>>(
+                config.letterSpacing.signal,
+              ),
+              min: -0.5,
+              max: 2.0,
+              onChanged: (v) => config.letterSpacing.value = v,
+              step: 0.1,
+            ),
+            SettingsSliderTile(
+              label: l10n.pageMargin,
+              value:
+                  '${useSignalValue<double, Signal<double>>(config.padding.signal).toInt()}px',
+              current: useSignalValue<double, Signal<double>>(
+                config.padding.signal,
+              ),
+              min: 16,
+              max: 48,
+              onChanged: (v) => config.padding.value = v.roundToDouble(),
+              step: 2,
             ),
           ],
-        )
-        .animate()
-        .fadeIn(duration: 300.ms, delay: 150.ms)
-        .slideY(begin: 0.04, end: 0);
+        ),
+      ],
+    ).animate().fadeIn(duration: 300.ms, delay: 150.ms).slideY(begin: 0.04, end: 0);
   }
 
   Widget _buildAdvancedCjk(
     BuildContext context,
     ColorScheme cs,
-    ValueNotifier<bool> punctuationSqueeze,
-    ValueNotifier<bool> baselineAlign,
-    ValueNotifier<bool> verticalMode,
+    ReaderConfig config,
   ) {
+    final l10n = AppLocalizations.of(context)!;
+    final isVertical =
+        useSignalValue<WritingDirection, Signal<WritingDirection>>(
+          config.writingDirection,
+        ) ==
+        WritingDirection.vertical;
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -440,7 +358,7 @@ class TypographySettingsPage extends HookWidget {
               child: Row(
                 children: [
                   Text(
-                    '高级排版',
+                    l10n.advancedTypography,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -455,15 +373,18 @@ class TypographySettingsPage extends HookWidget {
                       vertical: 1,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF3E0),
-                      borderRadius: BorderRadius.circular(4),
+                      color: cs.brightness == Brightness.dark
+                          ? const Color(0xFF4E2D0D)
+                          : const Color(0xFFFFF3E0),
                     ),
-                    child: const Text(
-                      'CJK 优化',
+                    child: Text(
+                      l10n.cjkOptimization,
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFEF6C00),
+                        color: cs.brightness == Brightness.dark
+                            ? const Color(0xFFFFCC80)
+                            : const Color(0xFFEF6C00),
                       ),
                     ),
                   ),
@@ -472,7 +393,6 @@ class TypographySettingsPage extends HookWidget {
             ),
             SettingsCard(
               showDividers: true,
-              colorScheme: Theme.of(context).colorScheme,
               children: [
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.sliders,
@@ -482,10 +402,12 @@ class TypographySettingsPage extends HookWidget {
                   iconBackground: MenuItemSemantic.typography.iconBackground(
                     Theme.of(context).brightness,
                   ),
-                  title: '标点挤压',
-                  subtitle: '减少中文标点符号周围的空白',
-                  value: punctuationSqueeze.value,
-                  onChanged: (v) => punctuationSqueeze.value = v,
+                  title: l10n.punctuationSqueeze,
+                  subtitle: l10n.punctuationSqueezeDesc,
+                  value: useSignalValue<bool, Signal<bool>>(
+                    config.punctuationSqueeze.signal,
+                  ),
+                  onChanged: (v) => config.punctuationSqueeze.value = v,
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.textAa,
@@ -495,10 +417,12 @@ class TypographySettingsPage extends HookWidget {
                   iconBackground: MenuItemSemantic.typography.iconBackground(
                     Theme.of(context).brightness,
                   ),
-                  title: '中西文基线对齐',
-                  subtitle: '强制统一行高，避免混排时文字跳动',
-                  value: baselineAlign.value,
-                  onChanged: (v) => baselineAlign.value = v,
+                  title: l10n.baselineAlign,
+                  subtitle: l10n.baselineAlignDesc,
+                  value: useSignalValue<bool, Signal<bool>>(
+                    config.baselineAlign.signal,
+                  ),
+                  onChanged: (v) => config.baselineAlign.value = v,
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.arrowDown,
@@ -508,10 +432,12 @@ class TypographySettingsPage extends HookWidget {
                   iconBackground: MenuItemSemantic.typography.iconBackground(
                     Theme.of(context).brightness,
                   ),
-                  title: '竖排模式',
-                  subtitle: '从右向左阅读，适合古籍排版',
-                  value: verticalMode.value,
-                  onChanged: (v) => verticalMode.value = v,
+                  title: l10n.verticalMode,
+                  subtitle: l10n.verticalModeDesc,
+                  value: isVertical,
+                  onChanged: (v) => config.writingDirection.value = v
+                      ? WritingDirection.vertical
+                      : WritingDirection.horizontal,
                 ),
               ],
             ),
@@ -523,32 +449,17 @@ class TypographySettingsPage extends HookWidget {
   }
 
   Widget _buildReset(
+    BuildContext context,
     ColorScheme cs,
-    ValueNotifier<double> fontSize,
-    ValueNotifier<double> lineHeight,
-    ValueNotifier<double> paragraphSpacing,
-    ValueNotifier<double> letterSpacing,
-    ValueNotifier<double> margin,
-    ValueNotifier<bool> punctuationSqueeze,
-    ValueNotifier<bool> baselineAlign,
-    ValueNotifier<String> currentFontId,
-    ValueNotifier<bool> loaded,
+    ReaderConfig config,
+    FontRepository fontRepo,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: TextButton(
-        onPressed: () => _reset(
-          fontSize,
-          lineHeight,
-          paragraphSpacing,
-          letterSpacing,
-          margin,
-          punctuationSqueeze,
-          baselineAlign,
-          currentFontId,
-          loaded,
-        ),
+        onPressed: () => _reset(config, fontRepo),
         child: Text(
-          '恢复默认设置',
+          l10n.resetToDefault,
           style: TextStyle(
             fontSize: 13,
             color: cs.onSurfaceVariant.withValues(alpha: 0.6),

@@ -38,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
                     default_rust_auto_opaque = RustAutoOpaqueNom,
                 );
                 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1622434856;
+                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1469070352;
             
 
 // Section: executor
@@ -59,11 +59,29 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::data::category::assign_category_to_book(api_book_id, api_category_id).await?;   Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__backup__backup_manifest_default_impl(port_: flutter_rust_bridge::for_generated::MessagePort)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "backup_manifest_default", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {  move |context|  {
+                    transform_result_dco::<_, _, ()>((move ||  {
+                         let output_ok = Result::<_,()>::Ok(crate::api::backup::BackupManifest::default())?;   Ok(output_ok)
+                    })())
+                } })
             }fn wire__crate__api__backup__backup_stats_default_impl(port_: flutter_rust_bridge::for_generated::MessagePort)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "backup_stats_default", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {  move |context|  {
                     transform_result_dco::<_, _, ()>((move ||  {
                          let output_ok = Result::<_,()>::Ok(crate::api::backup::BackupStats::default())?;   Ok(output_ok)
                     })())
+                } })
+            }fn wire__crate__api__data__book__batch_set_categories_for_books_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_ids: impl CstDecode<Vec<String>>,category_ids: impl CstDecode<Vec<String>>)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "batch_set_categories_for_books", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_book_ids = book_ids.cst_decode();let api_category_ids = category_ids.cst_decode(); move |context| async move {
+                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
+                         let output_ok = crate::api::data::book::batch_set_categories_for_books(api_book_ids, api_category_ids).await?;   Ok(output_ok)
+                    })().await)
+                } })
+            }fn wire__crate__api__data__book__batch_update_book_status_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_ids: impl CstDecode<Vec<String>>,status: impl CstDecode<crate::storage::models::BookStatus>)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "batch_update_book_status", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_book_ids = book_ids.cst_decode();let api_status = status.cst_decode(); move |context| async move {
+                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
+                         let output_ok = crate::api::data::book::batch_update_book_status(api_book_ids, api_status).await?;   Ok(output_ok)
+                    })().await)
                 } })
             }fn wire__crate__api__backup__cleanup_auto_snapshots_impl(port_: flutter_rust_bridge::for_generated::MessagePort,older_than_unix: impl CstDecode<i64>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "cleanup_auto_snapshots", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_older_than_unix = older_than_unix.cst_decode(); move |context| async move {
@@ -136,7 +154,13 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::data::book::count_books().await?;   Ok(output_ok)
                     })().await)
                 } })
-            }fn wire__crate__api__data__note__create_annotation_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>,chapter_index: impl CstDecode<i32>,char_offset: impl CstDecode<i64>,content: impl CstDecode<String>,selected_text: impl CstDecode<Option<String>>,language: impl CstDecode<Option<String>>,paired_note_id: impl CstDecode<Option<String>>)  {
+            }fn wire__crate__api__data__note__count_notes_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<Option<String>>)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "count_notes", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_book_id = book_id.cst_decode(); move |context| async move {
+                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
+                         let output_ok = crate::api::data::note::count_notes(api_book_id).await?;   Ok(output_ok)
+                    })().await)
+                } })
+            }fn wire__crate__api__data__note__create_annotation_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>,chapter_index: impl CstDecode<i32>,char_offset: impl CstDecode<i32>,content: impl CstDecode<String>,selected_text: impl CstDecode<Option<String>>,language: impl CstDecode<Option<String>>,paired_note_id: impl CstDecode<Option<String>>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "create_annotation", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_book_id = book_id.cst_decode();let api_chapter_index = chapter_index.cst_decode();let api_char_offset = char_offset.cst_decode();let api_content = content.cst_decode();let api_selected_text = selected_text.cst_decode();let api_language = language.cst_decode();let api_paired_note_id = paired_note_id.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::data::note::create_annotation(api_book_id, api_chapter_index, api_char_offset, api_content, api_selected_text, api_language, api_paired_note_id).await?;   Ok(output_ok)
@@ -148,7 +172,7 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::bilingual::create_bilingual_highlight_pair(api_params).await?;   Ok(output_ok)
                     })().await)
                 } })
-            }fn wire__crate__api__data__bookmark__create_bookmark_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>,chapter_index: impl CstDecode<i32>,char_offset: impl CstDecode<i64>,title: impl CstDecode<String>)  {
+            }fn wire__crate__api__data__bookmark__create_bookmark_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>,chapter_index: impl CstDecode<i32>,char_offset: impl CstDecode<i32>,title: impl CstDecode<String>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "create_bookmark", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_book_id = book_id.cst_decode();let api_chapter_index = chapter_index.cst_decode();let api_char_offset = char_offset.cst_decode();let api_title = title.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::data::bookmark::create_bookmark(api_book_id, api_chapter_index, api_char_offset, api_title).await?;   Ok(output_ok)
@@ -166,7 +190,7 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::dictionary::create_dictionary(api_name, api_file_path, api_dict_type, api_lang_from, api_lang_to, api_is_enabled, api_word_count).await?;   Ok(output_ok)
                     })().await)
                 } })
-            }fn wire__crate__api__data__note__create_highlight_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>,chapter_index: impl CstDecode<i32>,char_offset: impl CstDecode<i64>,length: impl CstDecode<i64>,selected_text: impl CstDecode<String>,color: impl CstDecode<i32>,language: impl CstDecode<Option<String>>,paired_note_id: impl CstDecode<Option<String>>)  {
+            }fn wire__crate__api__data__note__create_highlight_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>,chapter_index: impl CstDecode<i32>,char_offset: impl CstDecode<i32>,length: impl CstDecode<i32>,selected_text: impl CstDecode<String>,color: impl CstDecode<i32>,language: impl CstDecode<Option<String>>,paired_note_id: impl CstDecode<Option<String>>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "create_highlight", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_book_id = book_id.cst_decode();let api_chapter_index = chapter_index.cst_decode();let api_char_offset = char_offset.cst_decode();let api_length = length.cst_decode();let api_selected_text = selected_text.cst_decode();let api_color = color.cst_decode();let api_language = language.cst_decode();let api_paired_note_id = paired_note_id.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::data::note::create_highlight(api_book_id, api_chapter_index, api_char_offset, api_length, api_selected_text, api_color, api_language, api_paired_note_id).await?;   Ok(output_ok)
@@ -178,13 +202,13 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::core::create_page_streamer(api_file_path, api_chapter_index, api_config).await?;   Ok(output_ok)
                     })().await)
                 } })
-            }fn wire__crate__api__data__session__create_session_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>,chapter_index: impl CstDecode<i32>,start_char_offset: impl CstDecode<i64>,end_char_offset: impl CstDecode<i64>,started_at: impl CstDecode<i64>)  {
+            }fn wire__crate__api__data__session__create_session_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>,chapter_index: impl CstDecode<i32>,start_char_offset: impl CstDecode<i32>,end_char_offset: impl CstDecode<i32>,started_at: impl CstDecode<i64>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "create_session", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_book_id = book_id.cst_decode();let api_chapter_index = chapter_index.cst_decode();let api_start_char_offset = start_char_offset.cst_decode();let api_end_char_offset = end_char_offset.cst_decode();let api_started_at = started_at.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::data::session::create_session(api_book_id, api_chapter_index, api_start_char_offset, api_end_char_offset, api_started_at).await?;   Ok(output_ok)
                     })().await)
                 } })
-            }fn wire__crate__api__data__vocabulary__create_vocabulary_word_impl(port_: flutter_rust_bridge::for_generated::MessagePort,word: impl CstDecode<String>,pinyin: impl CstDecode<String>,translation: impl CstDecode<String>,context_sentence: impl CstDecode<Option<String>>,book_id: impl CstDecode<Option<String>>,chapter_index: impl CstDecode<Option<i64>>,char_offset: impl CstDecode<Option<i64>>,word_list: impl CstDecode<Option<String>>)  {
+            }fn wire__crate__api__data__vocabulary__create_vocabulary_word_impl(port_: flutter_rust_bridge::for_generated::MessagePort,word: impl CstDecode<String>,pinyin: impl CstDecode<String>,translation: impl CstDecode<String>,context_sentence: impl CstDecode<Option<String>>,book_id: impl CstDecode<Option<String>>,chapter_index: impl CstDecode<Option<i32>>,char_offset: impl CstDecode<Option<i64>>,word_list: impl CstDecode<Option<String>>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "create_vocabulary_word", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_word = word.cst_decode();let api_pinyin = pinyin.cst_decode();let api_translation = translation.cst_decode();let api_context_sentence = context_sentence.cst_decode();let api_book_id = book_id.cst_decode();let api_chapter_index = chapter_index.cst_decode();let api_char_offset = char_offset.cst_decode();let api_word_list = word_list.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::data::vocabulary::create_vocabulary_word(api_word, api_pinyin, api_translation, api_context_sentence, api_book_id, api_chapter_index, api_char_offset, api_word_list).await?;   Ok(output_ok)
@@ -321,6 +345,11 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::data::category::get_category(api_category_id).await?;   Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__vocab_marker__get_cet6_words_impl() -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::DcoCodec,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "get_cet6_words", port: None, mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync }, move || { 
+                transform_result_dco::<_, _, crate::domain::error::AppError>((move || {
+                     let output_ok = crate::api::vocab_marker::get_cet6_words()?;   Ok(output_ok)
+                })()) })
             }fn wire__crate__api__core__get_chapter_impl(port_: flutter_rust_bridge::for_generated::MessagePort,file_path: impl CstDecode<String>,chapter_index: impl CstDecode<i32>,config: impl CstDecode<Option<crate::domain::types::typeset::TypesetConfig>>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "get_chapter", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_file_path = file_path.cst_decode();let api_chapter_index = chapter_index.cst_decode();let api_config = config.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
@@ -357,6 +386,11 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::data::stats::get_global_reading_stats().await?;   Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__vocab_marker__get_ielts_words_impl() -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::DcoCodec,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "get_ielts_words", port: None, mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync }, move || { 
+                transform_result_dco::<_, _, crate::domain::error::AppError>((move || {
+                     let output_ok = crate::api::vocab_marker::get_ielts_words()?;   Ok(output_ok)
+                })()) })
             }fn wire__crate__api__md__get_md_chapter_rich_content_impl(port_: flutter_rust_bridge::for_generated::MessagePort,file_path: impl CstDecode<String>,chapter_index: impl CstDecode<i32>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "get_md_chapter_rich_content", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_file_path = file_path.cst_decode();let api_chapter_index = chapter_index.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
@@ -423,6 +457,11 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::data::stats::get_today_reading_stats().await?;   Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__vocab_marker__get_toefl_words_impl() -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::DcoCodec,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "get_toefl_words", port: None, mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync }, move || { 
+                transform_result_dco::<_, _, crate::domain::error::AppError>((move || {
+                     let output_ok = crate::api::vocab_marker::get_toefl_words()?;   Ok(output_ok)
+                })()) })
             }fn wire__crate__api__data__vocabulary__get_vocabulary_stats_impl(port_: flutter_rust_bridge::for_generated::MessagePort)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "get_vocabulary_stats", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {  move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
@@ -453,7 +492,7 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::data::bookmark::import_bookmarks(api_bookmarks).await?;   Ok(output_ok)
                     })().await)
                 } })
-            }fn wire__crate__api__search__index_chapter_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>,chapter_id: impl CstDecode<String>,chapter_index: impl CstDecode<String>,chapter_title: impl CstDecode<String>,content: impl CstDecode<String>)  {
+            }fn wire__crate__api__search__index_chapter_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>,chapter_id: impl CstDecode<String>,chapter_index: impl CstDecode<i32>,chapter_title: impl CstDecode<String>,content: impl CstDecode<String>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "index_chapter", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_book_id = book_id.cst_decode();let api_chapter_id = chapter_id.cst_decode();let api_chapter_index = chapter_index.cst_decode();let api_chapter_title = chapter_title.cst_decode();let api_content = content.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::search::index_chapter(api_book_id, api_chapter_id, api_chapter_index, api_chapter_title, api_content).await?;   Ok(output_ok)
@@ -481,6 +520,12 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "inspect_backup", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_backup_path = backup_path.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::backup::inspect_backup(api_backup_path).await?;   Ok(output_ok)
+                    })().await)
+                } })
+            }fn wire__crate__api__data__note__list_all_notes_impl(port_: flutter_rust_bridge::for_generated::MessagePort,limit: impl CstDecode<i32>,offset: impl CstDecode<i32>)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "list_all_notes", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_limit = limit.cst_decode();let api_offset = offset.cst_decode(); move |context| async move {
+                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
+                         let output_ok = crate::api::data::note::list_all_notes(api_limit, api_offset).await?;   Ok(output_ok)
                     })().await)
                 } })
             }fn wire__crate__api__data__progress__list_all_progresses_impl(port_: flutter_rust_bridge::for_generated::MessagePort)  {
@@ -561,19 +606,25 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::data::note::list_notes_in_chapter(api_book_id, api_chapter_index, api_note_type).await?;   Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__data__note__list_notes_with_titles_impl(port_: flutter_rust_bridge::for_generated::MessagePort,limit: impl CstDecode<i32>,offset: impl CstDecode<i32>)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "list_notes_with_titles", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_limit = limit.cst_decode();let api_offset = offset.cst_decode(); move |context| async move {
+                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
+                         let output_ok = crate::api::data::note::list_notes_with_titles(api_limit, api_offset).await?;   Ok(output_ok)
+                    })().await)
+                } })
             }fn wire__crate__api__data__book__list_pinned_books_impl(port_: flutter_rust_bridge::for_generated::MessagePort)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "list_pinned_books", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {  move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::data::book::list_pinned_books().await?;   Ok(output_ok)
                     })().await)
                 } })
-            }fn wire__crate__api__data__book__list_recently_opened_books_impl(port_: flutter_rust_bridge::for_generated::MessagePort,limit: impl CstDecode<usize>)  {
+            }fn wire__crate__api__data__book__list_recently_opened_books_impl(port_: flutter_rust_bridge::for_generated::MessagePort,limit: impl CstDecode<i32>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "list_recently_opened_books", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_limit = limit.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::data::book::list_recently_opened_books(api_limit).await?;   Ok(output_ok)
                     })().await)
                 } })
-            }fn wire__crate__api__data__session__list_sessions_by_book_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>,limit: impl CstDecode<usize>)  {
+            }fn wire__crate__api__data__session__list_sessions_by_book_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>,limit: impl CstDecode<i32>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "list_sessions_by_book", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_book_id = book_id.cst_decode();let api_limit = limit.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::data::session::list_sessions_by_book(api_book_id, api_limit).await?;   Ok(output_ok)
@@ -585,7 +636,7 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::data::session::list_sessions_by_date_range(api_book_id, api_start_date, api_end_date).await?;   Ok(output_ok)
                     })().await)
                 } })
-            }fn wire__crate__api__data__session__list_sessions_by_recent_impl(port_: flutter_rust_bridge::for_generated::MessagePort,limit: impl CstDecode<usize>)  {
+            }fn wire__crate__api__data__session__list_sessions_by_recent_impl(port_: flutter_rust_bridge::for_generated::MessagePort,limit: impl CstDecode<i32>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "list_sessions_by_recent", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_limit = limit.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::data::session::list_sessions_by_recent(api_limit).await?;   Ok(output_ok)
@@ -597,10 +648,22 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::data::vocabulary::list_vocabulary_by_status(api_book_id, api_status, api_word_list).await?;   Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__data__vocabulary__list_word_lists_impl(port_: flutter_rust_bridge::for_generated::MessagePort)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "list_word_lists", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {  move |context|  {
+                    transform_result_dco::<_, _, ()>((move ||  {
+                         let output_ok = Result::<_,()>::Ok(crate::api::data::vocabulary::list_word_lists())?;   Ok(output_ok)
+                    })())
+                } })
             }fn wire__crate__api__dictionary__lookup_mdict_impl(port_: flutter_rust_bridge::for_generated::MessagePort,word: impl CstDecode<String>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "lookup_mdict", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_word = word.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::dictionary::lookup_mdict(api_word).await?;   Ok(output_ok)
+                    })().await)
+                } })
+            }fn wire__crate__api__data__book__map_book_titles_impl(port_: flutter_rust_bridge::for_generated::MessagePort)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "map_book_titles", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {  move |context| async move {
+                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
+                         let output_ok = crate::api::data::book::map_book_titles().await?;   Ok(output_ok)
                     })().await)
                 } })
             }fn wire__crate__api__core__paginate_all_content_impl(port_: flutter_rust_bridge::for_generated::MessagePort,file_path: impl CstDecode<String>,chapter_index: impl CstDecode<i32>,config: impl CstDecode<crate::domain::types::typeset::TypesetConfig>)  {
@@ -647,6 +710,12 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "search_books", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_keyword = keyword.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::data::book::search_books(api_keyword).await?;   Ok(output_ok)
+                    })().await)
+                } })
+            }fn wire__crate__api__data__note__search_notes_impl(port_: flutter_rust_bridge::for_generated::MessagePort,query: impl CstDecode<String>)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "search_notes", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_query = query.cst_decode(); move |context| async move {
+                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
+                         let output_ok = crate::api::data::note::search_notes(api_query).await?;   Ok(output_ok)
                     })().await)
                 } })
             }fn wire__crate__api__data__vocabulary__search_vocabulary_words_impl(port_: flutter_rust_bridge::for_generated::MessagePort,query: impl CstDecode<String>)  {
@@ -913,6 +982,12 @@ impl CstDecode<chrono::DateTime::<chrono::Utc>> for i64 {
         return chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(chrono::DateTime::from_timestamp_micros(inner).expect("invalid or out-of-range datetime").naive_utc(), chrono::Utc);}
                 }
                 
+                impl SseDecode for std::collections::HashMap<String, String> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut inner = <Vec<(String,String,)>>::sse_decode(deserializer);
+        return inner.into_iter().collect();}
+                }
+                
                 impl SseDecode for RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<PageStreamer>> {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut inner = <usize>::sse_decode(deserializer);
@@ -1014,18 +1089,18 @@ return crate::api::bilingual::BilingualHighlightPair{source_note: var_sourceNote
                 impl SseDecode for crate::api::bilingual::BilingualHighlightParams {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_sourceBookId = <String>::sse_decode(deserializer);
-let mut var_sourceChapterIndex = <i32>::sse_decode(deserializer);
-let mut var_sourceCharOffset = <i64>::sse_decode(deserializer);
-let mut var_sourceLength = <i64>::sse_decode(deserializer);
+let mut var_sourceChapterIndex = <i64>::sse_decode(deserializer);
+let mut var_sourceCharOffset = <i32>::sse_decode(deserializer);
+let mut var_sourceLength = <i32>::sse_decode(deserializer);
 let mut var_sourceSelectedText = <String>::sse_decode(deserializer);
 let mut var_sourceLanguage = <String>::sse_decode(deserializer);
 let mut var_targetBookId = <String>::sse_decode(deserializer);
-let mut var_targetChapterIndex = <i32>::sse_decode(deserializer);
-let mut var_targetCharOffset = <i64>::sse_decode(deserializer);
-let mut var_targetLength = <i64>::sse_decode(deserializer);
+let mut var_targetChapterIndex = <i64>::sse_decode(deserializer);
+let mut var_targetCharOffset = <i32>::sse_decode(deserializer);
+let mut var_targetLength = <i32>::sse_decode(deserializer);
 let mut var_targetSelectedText = <String>::sse_decode(deserializer);
 let mut var_targetLanguage = <String>::sse_decode(deserializer);
-let mut var_highlightColor = <i32>::sse_decode(deserializer);
+let mut var_highlightColor = <i64>::sse_decode(deserializer);
 return crate::api::bilingual::BilingualHighlightParams{source_book_id: var_sourceBookId, source_chapter_index: var_sourceChapterIndex, source_char_offset: var_sourceCharOffset, source_length: var_sourceLength, source_selected_text: var_sourceSelectedText, source_language: var_sourceLanguage, target_book_id: var_targetBookId, target_chapter_index: var_targetChapterIndex, target_char_offset: var_targetCharOffset, target_length: var_targetLength, target_selected_text: var_targetSelectedText, target_language: var_targetLanguage, highlight_color: var_highlightColor};}
                 }
                 
@@ -1039,7 +1114,7 @@ let mut var_fileMtime = <Option<i64>>::sse_decode(deserializer);
 let mut var_title = <String>::sse_decode(deserializer);
 let mut var_author = <Option<String>>::sse_decode(deserializer);
 let mut var_coverPath = <Option<String>>::sse_decode(deserializer);
-let mut var_chapterCount = <i32>::sse_decode(deserializer);
+let mut var_chapterCount = <i64>::sse_decode(deserializer);
 let mut var_totalCharacters = <i64>::sse_decode(deserializer);
 let mut var_format = <crate::storage::models::BookFormat>::sse_decode(deserializer);
 let mut var_addedAt = <chrono::DateTime::<chrono::Utc>>::sse_decode(deserializer);
@@ -1060,9 +1135,9 @@ let mut var_progress = <Option<crate::storage::models::ReadingProgress>>::sse_de
 let mut var_noteStats = <crate::storage::models::NoteStats>::sse_decode(deserializer);
 let mut var_chapters = <Vec<crate::storage::models::Chapter>>::sse_decode(deserializer);
 let mut var_categories = <Vec<crate::storage::models::Category>>::sse_decode(deserializer);
-let mut var_sessions = <Vec<crate::storage::models::ReadingSession>>::sse_decode(deserializer);
-let mut var_vocabList = <Vec<crate::storage::models::Vocab>>::sse_decode(deserializer);
-return crate::api::data::book::BookDetail{book: var_book, progress: var_progress, note_stats: var_noteStats, chapters: var_chapters, categories: var_categories, sessions: var_sessions, vocab_list: var_vocabList};}
+let mut var_sessionCount = <i32>::sse_decode(deserializer);
+let mut var_vocabCount = <i32>::sse_decode(deserializer);
+return crate::api::data::book::BookDetail{book: var_book, progress: var_progress, note_stats: var_noteStats, chapters: var_chapters, categories: var_categories, session_count: var_sessionCount, vocab_count: var_vocabCount};}
                 }
                 
                 impl SseDecode for crate::storage::models::BookFormat {
@@ -1088,7 +1163,7 @@ let mut var_translator = <Option<String>>::sse_decode(deserializer);
 let mut var_isbn = <Option<String>>::sse_decode(deserializer);
 let mut var_publishYear = <Option<i32>>::sse_decode(deserializer);
 let mut var_language = <Option<String>>::sse_decode(deserializer);
-let mut var_chapterCount = <i32>::sse_decode(deserializer);
+let mut var_chapterCount = <i64>::sse_decode(deserializer);
 let mut var_totalCharacters = <i64>::sse_decode(deserializer);
 return crate::parser::book_parser::BookMetadata{title: var_title, author: var_author, description: var_description, cover_path: var_coverPath, publisher: var_publisher, translator: var_translator, isbn: var_isbn, publish_year: var_publishYear, language: var_language, chapter_count: var_chapterCount, total_characters: var_totalCharacters};}
                 }
@@ -1116,7 +1191,7 @@ return crate::storage::models::BookWithProgress{book: var_book, progress: var_pr
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_id = <String>::sse_decode(deserializer);
 let mut var_bookId = <String>::sse_decode(deserializer);
-let mut var_chapterIndex = <i32>::sse_decode(deserializer);
+let mut var_chapterIndex = <i64>::sse_decode(deserializer);
 let mut var_chapterId = <Option<String>>::sse_decode(deserializer);
 let mut var_charOffset = <i64>::sse_decode(deserializer);
 let mut var_title = <String>::sse_decode(deserializer);
@@ -1135,7 +1210,7 @@ return crate::storage::models::Bookmark{id: var_id, book_id: var_bookId, chapter
 let mut var_name = <String>::sse_decode(deserializer);
 let mut var_description = <Option<String>>::sse_decode(deserializer);
 let mut var_color = <String>::sse_decode(deserializer);
-let mut var_sortOrder = <i32>::sse_decode(deserializer);
+let mut var_sortOrder = <i64>::sse_decode(deserializer);
 let mut var_isSystem = <bool>::sse_decode(deserializer);
 return crate::storage::models::Category{id: var_id, name: var_name, description: var_description, color: var_color, sort_order: var_sortOrder, is_system: var_isSystem};}
                 }
@@ -1145,14 +1220,12 @@ return crate::storage::models::Category{id: var_id, name: var_name, description:
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_id = <String>::sse_decode(deserializer);
 let mut var_bookId = <String>::sse_decode(deserializer);
 let mut var_title = <String>::sse_decode(deserializer);
-let mut var_chapterIndex = <i32>::sse_decode(deserializer);
-let mut var_wordCount = <i64>::sse_decode(deserializer);
+let mut var_chapterIndex = <i64>::sse_decode(deserializer);
 let mut var_cachedAt = <chrono::DateTime::<chrono::Utc>>::sse_decode(deserializer);
-let mut var_level = <i32>::sse_decode(deserializer);
+let mut var_level = <i64>::sse_decode(deserializer);
 let mut var_startIndex = <i64>::sse_decode(deserializer);
 let mut var_endIndex = <i64>::sse_decode(deserializer);
-let mut var_contentLength = <i64>::sse_decode(deserializer);
-return crate::storage::models::Chapter{id: var_id, book_id: var_bookId, title: var_title, chapter_index: var_chapterIndex, word_count: var_wordCount, cached_at: var_cachedAt, level: var_level, start_index: var_startIndex, end_index: var_endIndex, content_length: var_contentLength};}
+return crate::storage::models::Chapter{id: var_id, book_id: var_bookId, title: var_title, chapter_index: var_chapterIndex, cached_at: var_cachedAt, level: var_level, start_index: var_startIndex, end_index: var_endIndex};}
                 }
                 
                 impl SseDecode for crate::api::core::ChapterContent {
@@ -1221,15 +1294,15 @@ return crate::domain::types::metadata::EpubTocItem{label: var_label, href: var_h
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_totalReadingTimeSeconds = <i64>::sse_decode(deserializer);
 let mut var_totalCharactersRead = <i64>::sse_decode(deserializer);
-let mut var_booksReadCount = <i32>::sse_decode(deserializer);
-let mut var_booksCompletedCount = <i32>::sse_decode(deserializer);
-let mut var_consecutiveReadingDays = <i32>::sse_decode(deserializer);
+let mut var_booksReadCount = <i64>::sse_decode(deserializer);
+let mut var_booksCompletedCount = <i64>::sse_decode(deserializer);
+let mut var_consecutiveReadingDays = <i64>::sse_decode(deserializer);
 let mut var_todayReadingTimeSeconds = <i64>::sse_decode(deserializer);
 let mut var_todayCharactersRead = <i64>::sse_decode(deserializer);
 let mut var_averageReadingSpeed = <f32>::sse_decode(deserializer);
-let mut var_totalBooksCount = <i32>::sse_decode(deserializer);
-let mut var_totalNotesCount = <i32>::sse_decode(deserializer);
-let mut var_totalBookmarksCount = <i32>::sse_decode(deserializer);
+let mut var_totalBooksCount = <i64>::sse_decode(deserializer);
+let mut var_totalNotesCount = <i64>::sse_decode(deserializer);
+let mut var_totalBookmarksCount = <i64>::sse_decode(deserializer);
 return crate::storage::models::GlobalStats{total_reading_time_seconds: var_totalReadingTimeSeconds, total_characters_read: var_totalCharactersRead, books_read_count: var_booksReadCount, books_completed_count: var_booksCompletedCount, consecutive_reading_days: var_consecutiveReadingDays, today_reading_time_seconds: var_todayReadingTimeSeconds, today_characters_read: var_todayCharactersRead, average_reading_speed: var_averageReadingSpeed, total_books_count: var_totalBooksCount, total_notes_count: var_totalNotesCount, total_bookmarks_count: var_totalBookmarksCount};}
                 }
                 
@@ -1358,6 +1431,14 @@ return crate::storage::models::GlobalStats{total_reading_time_seconds: var_total
         return ans_;}
                 }
                 
+                impl SseDecode for Vec<crate::storage::models::NoteWithBook> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ { ans_.push(<crate::storage::models::NoteWithBook>::sse_decode(deserializer)); }
+        return ans_;}
+                }
+                
                 impl SseDecode for Vec<crate::domain::types::pagination::PageContent> {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut len_ = <i32>::sse_decode(deserializer);
@@ -1395,6 +1476,14 @@ return crate::storage::models::GlobalStats{total_reading_time_seconds: var_total
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = Vec::with_capacity(len_ as usize);
         for idx_ in 0..len_ { ans_.push(<(String,Vec<crate::storage::models::Note>,)>::sse_decode(deserializer)); }
+        return ans_;}
+                }
+                
+                impl SseDecode for Vec<(String,String,)> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ { ans_.push(<(String,String,)>::sse_decode(deserializer)); }
         return ans_;}
                 }
                 
@@ -1442,14 +1531,14 @@ return crate::storage::models::GlobalStats{total_reading_time_seconds: var_total
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_id = <String>::sse_decode(deserializer);
 let mut var_bookId = <String>::sse_decode(deserializer);
-let mut var_chapterIndex = <i32>::sse_decode(deserializer);
+let mut var_chapterIndex = <i64>::sse_decode(deserializer);
 let mut var_chapterId = <Option<String>>::sse_decode(deserializer);
 let mut var_charOffset = <i64>::sse_decode(deserializer);
 let mut var_length = <i64>::sse_decode(deserializer);
 let mut var_noteType = <crate::storage::models::NoteType>::sse_decode(deserializer);
 let mut var_content = <String>::sse_decode(deserializer);
 let mut var_selectedText = <Option<String>>::sse_decode(deserializer);
-let mut var_highlightColor = <Option<i32>>::sse_decode(deserializer);
+let mut var_highlightColor = <Option<i64>>::sse_decode(deserializer);
 let mut var_pairedNoteId = <Option<String>>::sse_decode(deserializer);
 let mut var_language = <Option<String>>::sse_decode(deserializer);
 let mut var_createdAt = <chrono::DateTime::<chrono::Utc>>::sse_decode(deserializer);
@@ -1459,9 +1548,9 @@ return crate::storage::models::Note{id: var_id, book_id: var_bookId, chapter_ind
                 
                 impl SseDecode for crate::storage::models::NoteStats {
                     // Codec=Sse (Serialization based), see doc to use other codecs
-                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_totalCount = <i32>::sse_decode(deserializer);
-let mut var_highlightCount = <i32>::sse_decode(deserializer);
-let mut var_annotationCount = <i32>::sse_decode(deserializer);
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_totalCount = <i64>::sse_decode(deserializer);
+let mut var_highlightCount = <i64>::sse_decode(deserializer);
+let mut var_annotationCount = <i64>::sse_decode(deserializer);
 return crate::storage::models::NoteStats{total_count: var_totalCount, highlight_count: var_highlightCount, annotation_count: var_annotationCount};}
                 }
                 
@@ -1473,6 +1562,13 @@ return crate::storage::models::NoteStats{total_count: var_totalCount, highlight_
 1 => crate::storage::models::NoteType::Annotation,
             _ => unreachable!("Invalid variant for NoteType: {}", inner),
         };}
+                }
+                
+                impl SseDecode for crate::storage::models::NoteWithBook {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_note = <crate::storage::models::Note>::sse_decode(deserializer);
+let mut var_bookTitle = <String>::sse_decode(deserializer);
+return crate::storage::models::NoteWithBook{note: var_note, book_title: var_bookTitle};}
                 }
                 
                 impl SseDecode for Option<String> {
@@ -1661,8 +1757,8 @@ return crate::storage::models::NoteStats{total_count: var_totalCount, highlight_
 let mut var_pageIndex = <i32>::sse_decode(deserializer);
 let mut var_content = <String>::sse_decode(deserializer);
 let mut var_isLastPage = <bool>::sse_decode(deserializer);
-let mut var_startOffset = <i64>::sse_decode(deserializer);
-let mut var_endOffset = <i64>::sse_decode(deserializer);
+let mut var_startOffset = <i32>::sse_decode(deserializer);
+let mut var_endOffset = <i32>::sse_decode(deserializer);
 return crate::domain::types::pagination::PageContent{chapter_index: var_chapterIndex, page_index: var_pageIndex, content: var_content, is_last_page: var_isLastPage, start_offset: var_startOffset, end_offset: var_endOffset};}
                 }
                 
@@ -1683,12 +1779,12 @@ return crate::domain::types::metadata::ParseResult{book_info: var_bookInfo, chap
                 impl SseDecode for crate::storage::models::ReadingProgress {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_bookId = <String>::sse_decode(deserializer);
-let mut var_chapterIndex = <i32>::sse_decode(deserializer);
-let mut var_chunkIndex = <i32>::sse_decode(deserializer);
+let mut var_chapterIndex = <i64>::sse_decode(deserializer);
+let mut var_chunkIndex = <i64>::sse_decode(deserializer);
 let mut var_chapterId = <Option<String>>::sse_decode(deserializer);
 let mut var_charOffset = <i64>::sse_decode(deserializer);
-let mut var_pageIndex = <i32>::sse_decode(deserializer);
-let mut var_totalPages = <i32>::sse_decode(deserializer);
+let mut var_pageIndex = <i64>::sse_decode(deserializer);
+let mut var_totalPages = <i64>::sse_decode(deserializer);
 let mut var_progress = <f32>::sse_decode(deserializer);
 let mut var_readingTimeSeconds = <i64>::sse_decode(deserializer);
 let mut var_lastReadAt = <chrono::DateTime::<chrono::Utc>>::sse_decode(deserializer);
@@ -1700,7 +1796,7 @@ return crate::storage::models::ReadingProgress{book_id: var_bookId, chapter_inde
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_id = <String>::sse_decode(deserializer);
 let mut var_bookId = <String>::sse_decode(deserializer);
-let mut var_chapterIndex = <i32>::sse_decode(deserializer);
+let mut var_chapterIndex = <i64>::sse_decode(deserializer);
 let mut var_startCharOffset = <i64>::sse_decode(deserializer);
 let mut var_endCharOffset = <i64>::sse_decode(deserializer);
 let mut var_startedAt = <chrono::DateTime::<chrono::Utc>>::sse_decode(deserializer);
@@ -1715,7 +1811,7 @@ return crate::storage::models::ReadingSession{id: var_id, book_id: var_bookId, c
 let mut var_date = <String>::sse_decode(deserializer);
 let mut var_readingTimeSeconds = <i64>::sse_decode(deserializer);
 let mut var_charactersRead = <i64>::sse_decode(deserializer);
-let mut var_sessionCount = <i32>::sse_decode(deserializer);
+let mut var_sessionCount = <i64>::sse_decode(deserializer);
 let mut var_lastSessionId = <Option<String>>::sse_decode(deserializer);
 return crate::storage::models::ReadingStats{book_id: var_bookId, date: var_date, reading_time_seconds: var_readingTimeSeconds, characters_read: var_charactersRead, session_count: var_sessionCount, last_session_id: var_lastSessionId};}
                 }
@@ -1724,6 +1820,13 @@ return crate::storage::models::ReadingStats{book_id: var_bookId, date: var_date,
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_field0 = <String>::sse_decode(deserializer);
 let mut var_field1 = <Vec<crate::storage::models::Note>>::sse_decode(deserializer);
+return (var_field0, var_field1);}
+                }
+                
+                impl SseDecode for (String,String,) {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_field0 = <String>::sse_decode(deserializer);
+let mut var_field1 = <String>::sse_decode(deserializer);
 return (var_field0, var_field1);}
                 }
                 
@@ -1786,12 +1889,12 @@ return crate::domain::types::rich_text::RichTextSpan::Link{text: var_text, url: 
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_bookId = <String>::sse_decode(deserializer);
 let mut var_chapterId = <String>::sse_decode(deserializer);
-let mut var_chapterIndex = <String>::sse_decode(deserializer);
+let mut var_chapterIndex = <i32>::sse_decode(deserializer);
 let mut var_chapterTitle = <String>::sse_decode(deserializer);
 let mut var_snippet = <String>::sse_decode(deserializer);
-let mut var_position = <i64>::sse_decode(deserializer);
+let mut var_position = <i32>::sse_decode(deserializer);
 let mut var_score = <f32>::sse_decode(deserializer);
-let mut var_charOffset = <i64>::sse_decode(deserializer);
+let mut var_charOffset = <i32>::sse_decode(deserializer);
 return crate::domain::types::pagination::SearchResult{book_id: var_bookId, chapter_id: var_chapterId, chapter_index: var_chapterIndex, chapter_title: var_chapterTitle, snippet: var_snippet, position: var_position, score: var_score, char_offset: var_charOffset};}
                 }
                 
@@ -1855,7 +1958,7 @@ let mut var_bookId = <Option<String>>::sse_decode(deserializer);
 let mut var_chapterIndex = <Option<i64>>::sse_decode(deserializer);
 let mut var_charOffset = <Option<i64>>::sse_decode(deserializer);
 let mut var_createdAt = <chrono::DateTime::<chrono::Utc>>::sse_decode(deserializer);
-let mut var_reviewCount = <i32>::sse_decode(deserializer);
+let mut var_reviewCount = <i64>::sse_decode(deserializer);
 let mut var_lastReviewedAt = <Option<chrono::DateTime::<chrono::Utc>>>::sse_decode(deserializer);
 let mut var_status = <crate::storage::models::VocabStatus>::sse_decode(deserializer);
 let mut var_wordList = <Option<String>>::sse_decode(deserializer);
@@ -2137,8 +2240,8 @@ self.progress.into_into_dart().into_dart(),
 self.note_stats.into_into_dart().into_dart(),
 self.chapters.into_into_dart().into_dart(),
 self.categories.into_into_dart().into_dart(),
-self.sessions.into_into_dart().into_dart(),
-self.vocab_list.into_into_dart().into_dart()
+self.session_count.into_into_dart().into_dart(),
+self.vocab_count.into_into_dart().into_dart()
                 ].into_dart()
                 }
             }
@@ -2270,12 +2373,10 @@ impl flutter_rust_bridge::IntoIntoDart<crate::storage::models::Category> for cra
 self.book_id.into_into_dart().into_dart(),
 self.title.into_into_dart().into_dart(),
 self.chapter_index.into_into_dart().into_dart(),
-self.word_count.into_into_dart().into_dart(),
 self.cached_at.into_into_dart().into_dart(),
 self.level.into_into_dart().into_dart(),
 self.start_index.into_into_dart().into_dart(),
-self.end_index.into_into_dart().into_dart(),
-self.content_length.into_into_dart().into_dart()
+self.end_index.into_into_dart().into_dart()
                 ].into_dart()
                 }
             }
@@ -2507,6 +2608,21 @@ Self::Annotation => 1.into_dart(),
             impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::storage::models::NoteType {}
 impl flutter_rust_bridge::IntoIntoDart<crate::storage::models::NoteType> for crate::storage::models::NoteType {
             fn into_into_dart(self) -> crate::storage::models::NoteType {
+                self
+            }
+        }
+// Codec=Dco (DartCObject based), see doc to use other codecs
+            impl flutter_rust_bridge::IntoDart for crate::storage::models::NoteWithBook {
+                fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+                    [
+                    self.note.into_into_dart().into_dart(),
+self.book_title.into_into_dart().into_dart()
+                ].into_dart()
+                }
+            }
+            impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::storage::models::NoteWithBook {}
+impl flutter_rust_bridge::IntoIntoDart<crate::storage::models::NoteWithBook> for crate::storage::models::NoteWithBook {
+            fn into_into_dart(self) -> crate::storage::models::NoteWithBook {
                 self
             }
         }
@@ -2849,6 +2965,11 @@ impl flutter_rust_bridge::IntoIntoDart<crate::storage::models::VocabStatus> for 
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i64>::sse_encode(self.timestamp_micros(), serializer);}
                 }
                 
+                impl SseEncode for std::collections::HashMap<String, String> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<Vec<(String,String,)>>::sse_encode(self.into_iter().collect(), serializer);}
+                }
+                
                 impl SseEncode for RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<PageStreamer>> {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {let (ptr, size) = self.sse_encode_raw();
@@ -2944,18 +3065,18 @@ crate::domain::error::AppError::Other(field0) => { <i32>::sse_encode(14, seriali
                 impl SseEncode for crate::api::bilingual::BilingualHighlightParams {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<String>::sse_encode(self.source_book_id, serializer);
-<i32>::sse_encode(self.source_chapter_index, serializer);
-<i64>::sse_encode(self.source_char_offset, serializer);
-<i64>::sse_encode(self.source_length, serializer);
+<i64>::sse_encode(self.source_chapter_index, serializer);
+<i32>::sse_encode(self.source_char_offset, serializer);
+<i32>::sse_encode(self.source_length, serializer);
 <String>::sse_encode(self.source_selected_text, serializer);
 <String>::sse_encode(self.source_language, serializer);
 <String>::sse_encode(self.target_book_id, serializer);
-<i32>::sse_encode(self.target_chapter_index, serializer);
-<i64>::sse_encode(self.target_char_offset, serializer);
-<i64>::sse_encode(self.target_length, serializer);
+<i64>::sse_encode(self.target_chapter_index, serializer);
+<i32>::sse_encode(self.target_char_offset, serializer);
+<i32>::sse_encode(self.target_length, serializer);
 <String>::sse_encode(self.target_selected_text, serializer);
 <String>::sse_encode(self.target_language, serializer);
-<i32>::sse_encode(self.highlight_color, serializer);}
+<i64>::sse_encode(self.highlight_color, serializer);}
                 }
                 
                 impl SseEncode for crate::storage::models::Book {
@@ -2968,7 +3089,7 @@ crate::domain::error::AppError::Other(field0) => { <i32>::sse_encode(14, seriali
 <String>::sse_encode(self.title, serializer);
 <Option<String>>::sse_encode(self.author, serializer);
 <Option<String>>::sse_encode(self.cover_path, serializer);
-<i32>::sse_encode(self.chapter_count, serializer);
+<i64>::sse_encode(self.chapter_count, serializer);
 <i64>::sse_encode(self.total_characters, serializer);
 <crate::storage::models::BookFormat>::sse_encode(self.format, serializer);
 <chrono::DateTime::<chrono::Utc>>::sse_encode(self.added_at, serializer);
@@ -2988,8 +3109,8 @@ crate::domain::error::AppError::Other(field0) => { <i32>::sse_encode(14, seriali
 <crate::storage::models::NoteStats>::sse_encode(self.note_stats, serializer);
 <Vec<crate::storage::models::Chapter>>::sse_encode(self.chapters, serializer);
 <Vec<crate::storage::models::Category>>::sse_encode(self.categories, serializer);
-<Vec<crate::storage::models::ReadingSession>>::sse_encode(self.sessions, serializer);
-<Vec<crate::storage::models::Vocab>>::sse_encode(self.vocab_list, serializer);}
+<i32>::sse_encode(self.session_count, serializer);
+<i32>::sse_encode(self.vocab_count, serializer);}
                 }
                 
                 impl SseEncode for crate::storage::models::BookFormat {
@@ -3012,7 +3133,7 @@ crate::storage::models::BookFormat::Md => { 3 }
 <Option<String>>::sse_encode(self.isbn, serializer);
 <Option<i32>>::sse_encode(self.publish_year, serializer);
 <Option<String>>::sse_encode(self.language, serializer);
-<i32>::sse_encode(self.chapter_count, serializer);
+<i64>::sse_encode(self.chapter_count, serializer);
 <i64>::sse_encode(self.total_characters, serializer);}
                 }
                 
@@ -3035,7 +3156,7 @@ crate::storage::models::BookStatus::Planned => { 3 }
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<String>::sse_encode(self.id, serializer);
 <String>::sse_encode(self.book_id, serializer);
-<i32>::sse_encode(self.chapter_index, serializer);
+<i64>::sse_encode(self.chapter_index, serializer);
 <Option<String>>::sse_encode(self.chapter_id, serializer);
 <i64>::sse_encode(self.char_offset, serializer);
 <String>::sse_encode(self.title, serializer);
@@ -3053,7 +3174,7 @@ crate::storage::models::BookStatus::Planned => { 3 }
 <String>::sse_encode(self.name, serializer);
 <Option<String>>::sse_encode(self.description, serializer);
 <String>::sse_encode(self.color, serializer);
-<i32>::sse_encode(self.sort_order, serializer);
+<i64>::sse_encode(self.sort_order, serializer);
 <bool>::sse_encode(self.is_system, serializer);}
                 }
                 
@@ -3062,13 +3183,11 @@ crate::storage::models::BookStatus::Planned => { 3 }
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<String>::sse_encode(self.id, serializer);
 <String>::sse_encode(self.book_id, serializer);
 <String>::sse_encode(self.title, serializer);
-<i32>::sse_encode(self.chapter_index, serializer);
-<i64>::sse_encode(self.word_count, serializer);
+<i64>::sse_encode(self.chapter_index, serializer);
 <chrono::DateTime::<chrono::Utc>>::sse_encode(self.cached_at, serializer);
-<i32>::sse_encode(self.level, serializer);
+<i64>::sse_encode(self.level, serializer);
 <i64>::sse_encode(self.start_index, serializer);
-<i64>::sse_encode(self.end_index, serializer);
-<i64>::sse_encode(self.content_length, serializer);}
+<i64>::sse_encode(self.end_index, serializer);}
                 }
                 
                 impl SseEncode for crate::api::core::ChapterContent {
@@ -3131,15 +3250,15 @@ crate::api::core::ChapterContent::Pages(field0) => { <i32>::sse_encode(1, serial
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i64>::sse_encode(self.total_reading_time_seconds, serializer);
 <i64>::sse_encode(self.total_characters_read, serializer);
-<i32>::sse_encode(self.books_read_count, serializer);
-<i32>::sse_encode(self.books_completed_count, serializer);
-<i32>::sse_encode(self.consecutive_reading_days, serializer);
+<i64>::sse_encode(self.books_read_count, serializer);
+<i64>::sse_encode(self.books_completed_count, serializer);
+<i64>::sse_encode(self.consecutive_reading_days, serializer);
 <i64>::sse_encode(self.today_reading_time_seconds, serializer);
 <i64>::sse_encode(self.today_characters_read, serializer);
 <f32>::sse_encode(self.average_reading_speed, serializer);
-<i32>::sse_encode(self.total_books_count, serializer);
-<i32>::sse_encode(self.total_notes_count, serializer);
-<i32>::sse_encode(self.total_bookmarks_count, serializer);}
+<i64>::sse_encode(self.total_books_count, serializer);
+<i64>::sse_encode(self.total_notes_count, serializer);
+<i64>::sse_encode(self.total_bookmarks_count, serializer);}
                 }
                 
                 impl SseEncode for i32 {
@@ -3239,6 +3358,12 @@ crate::domain::types::typeset::LanguageType::Auto => { 3 }
         for item in self { <crate::storage::models::Note>::sse_encode(item, serializer); }}
                 }
                 
+                impl SseEncode for Vec<crate::storage::models::NoteWithBook> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(self.len() as _, serializer);
+        for item in self { <crate::storage::models::NoteWithBook>::sse_encode(item, serializer); }}
+                }
+                
                 impl SseEncode for Vec<crate::domain::types::pagination::PageContent> {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(self.len() as _, serializer);
@@ -3267,6 +3392,12 @@ crate::domain::types::typeset::LanguageType::Auto => { 3 }
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(self.len() as _, serializer);
         for item in self { <(String,Vec<crate::storage::models::Note>,)>::sse_encode(item, serializer); }}
+                }
+                
+                impl SseEncode for Vec<(String,String,)> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(self.len() as _, serializer);
+        for item in self { <(String,String,)>::sse_encode(item, serializer); }}
                 }
                 
                 impl SseEncode for Vec<crate::domain::types::rich_text::RichParagraph> {
@@ -3303,14 +3434,14 @@ crate::domain::types::typeset::LanguageType::Auto => { 3 }
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<String>::sse_encode(self.id, serializer);
 <String>::sse_encode(self.book_id, serializer);
-<i32>::sse_encode(self.chapter_index, serializer);
+<i64>::sse_encode(self.chapter_index, serializer);
 <Option<String>>::sse_encode(self.chapter_id, serializer);
 <i64>::sse_encode(self.char_offset, serializer);
 <i64>::sse_encode(self.length, serializer);
 <crate::storage::models::NoteType>::sse_encode(self.note_type, serializer);
 <String>::sse_encode(self.content, serializer);
 <Option<String>>::sse_encode(self.selected_text, serializer);
-<Option<i32>>::sse_encode(self.highlight_color, serializer);
+<Option<i64>>::sse_encode(self.highlight_color, serializer);
 <Option<String>>::sse_encode(self.paired_note_id, serializer);
 <Option<String>>::sse_encode(self.language, serializer);
 <chrono::DateTime::<chrono::Utc>>::sse_encode(self.created_at, serializer);
@@ -3319,9 +3450,9 @@ crate::domain::types::typeset::LanguageType::Auto => { 3 }
                 
                 impl SseEncode for crate::storage::models::NoteStats {
                     // Codec=Sse (Serialization based), see doc to use other codecs
-                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(self.total_count, serializer);
-<i32>::sse_encode(self.highlight_count, serializer);
-<i32>::sse_encode(self.annotation_count, serializer);}
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i64>::sse_encode(self.total_count, serializer);
+<i64>::sse_encode(self.highlight_count, serializer);
+<i64>::sse_encode(self.annotation_count, serializer);}
                 }
                 
                 impl SseEncode for crate::storage::models::NoteType {
@@ -3329,6 +3460,12 @@ crate::domain::types::typeset::LanguageType::Auto => { 3 }
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(match self {crate::storage::models::NoteType::Highlight => { 0 }
 crate::storage::models::NoteType::Annotation => { 1 }
  _ => { unimplemented!(""); }}, serializer);}
+                }
+                
+                impl SseEncode for crate::storage::models::NoteWithBook {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<crate::storage::models::Note>::sse_encode(self.note, serializer);
+<String>::sse_encode(self.book_title, serializer);}
                 }
                 
                 impl SseEncode for Option<String> {
@@ -3497,8 +3634,8 @@ crate::storage::models::NoteType::Annotation => { 1 }
 <i32>::sse_encode(self.page_index, serializer);
 <String>::sse_encode(self.content, serializer);
 <bool>::sse_encode(self.is_last_page, serializer);
-<i64>::sse_encode(self.start_offset, serializer);
-<i64>::sse_encode(self.end_offset, serializer);}
+<i32>::sse_encode(self.start_offset, serializer);
+<i32>::sse_encode(self.end_offset, serializer);}
                 }
                 
                 impl SseEncode for crate::parser::provider::PageData {
@@ -3516,12 +3653,12 @@ crate::storage::models::NoteType::Annotation => { 1 }
                 impl SseEncode for crate::storage::models::ReadingProgress {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<String>::sse_encode(self.book_id, serializer);
-<i32>::sse_encode(self.chapter_index, serializer);
-<i32>::sse_encode(self.chunk_index, serializer);
+<i64>::sse_encode(self.chapter_index, serializer);
+<i64>::sse_encode(self.chunk_index, serializer);
 <Option<String>>::sse_encode(self.chapter_id, serializer);
 <i64>::sse_encode(self.char_offset, serializer);
-<i32>::sse_encode(self.page_index, serializer);
-<i32>::sse_encode(self.total_pages, serializer);
+<i64>::sse_encode(self.page_index, serializer);
+<i64>::sse_encode(self.total_pages, serializer);
 <f32>::sse_encode(self.progress, serializer);
 <i64>::sse_encode(self.reading_time_seconds, serializer);
 <chrono::DateTime::<chrono::Utc>>::sse_encode(self.last_read_at, serializer);
@@ -3532,7 +3669,7 @@ crate::storage::models::NoteType::Annotation => { 1 }
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<String>::sse_encode(self.id, serializer);
 <String>::sse_encode(self.book_id, serializer);
-<i32>::sse_encode(self.chapter_index, serializer);
+<i64>::sse_encode(self.chapter_index, serializer);
 <i64>::sse_encode(self.start_char_offset, serializer);
 <i64>::sse_encode(self.end_char_offset, serializer);
 <chrono::DateTime::<chrono::Utc>>::sse_encode(self.started_at, serializer);
@@ -3546,7 +3683,7 @@ crate::storage::models::NoteType::Annotation => { 1 }
 <String>::sse_encode(self.date, serializer);
 <i64>::sse_encode(self.reading_time_seconds, serializer);
 <i64>::sse_encode(self.characters_read, serializer);
-<i32>::sse_encode(self.session_count, serializer);
+<i64>::sse_encode(self.session_count, serializer);
 <Option<String>>::sse_encode(self.last_session_id, serializer);}
                 }
                 
@@ -3554,6 +3691,12 @@ crate::storage::models::NoteType::Annotation => { 1 }
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<String>::sse_encode(self.0, serializer);
 <Vec<crate::storage::models::Note>>::sse_encode(self.1, serializer);}
+                }
+                
+                impl SseEncode for (String,String,) {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<String>::sse_encode(self.0, serializer);
+<String>::sse_encode(self.1, serializer);}
                 }
                 
                 impl SseEncode for crate::domain::types::rich_text::RichParagraph {
@@ -3613,12 +3756,12 @@ crate::domain::types::rich_text::RichTextSpan::Link{text,url,font_size,color} =>
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<String>::sse_encode(self.book_id, serializer);
 <String>::sse_encode(self.chapter_id, serializer);
-<String>::sse_encode(self.chapter_index, serializer);
+<i32>::sse_encode(self.chapter_index, serializer);
 <String>::sse_encode(self.chapter_title, serializer);
 <String>::sse_encode(self.snippet, serializer);
-<i64>::sse_encode(self.position, serializer);
+<i32>::sse_encode(self.position, serializer);
 <f32>::sse_encode(self.score, serializer);
-<i64>::sse_encode(self.char_offset, serializer);}
+<i32>::sse_encode(self.char_offset, serializer);}
                 }
                 
                 impl SseEncode for crate::domain::types::typeset::TypesetCalibration {
@@ -3679,7 +3822,7 @@ crate::domain::types::rich_text::RichTextSpan::Link{text,url,font_size,color} =>
 <Option<i64>>::sse_encode(self.chapter_index, serializer);
 <Option<i64>>::sse_encode(self.char_offset, serializer);
 <chrono::DateTime::<chrono::Utc>>::sse_encode(self.created_at, serializer);
-<i32>::sse_encode(self.review_count, serializer);
+<i64>::sse_encode(self.review_count, serializer);
 <Option<chrono::DateTime::<chrono::Utc>>>::sse_encode(self.last_reviewed_at, serializer);
 <crate::storage::models::VocabStatus>::sse_encode(self.status, serializer);
 <Option<String>>::sse_encode(self.word_list, serializer);
@@ -3739,6 +3882,11 @@ impl CstDecode<PageStreamer> for usize {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> PageStreamer {
                 flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(CstDecode::<RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<PageStreamer>>>::cst_decode(self))
+            }
+        }impl CstDecode<std::collections::HashMap<String, String>> for *mut wire_cst_list_record_string_string {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> std::collections::HashMap<String, String> {
+                let vec: Vec<(String, String)> = self.cst_decode(); vec.into_iter().collect()
             }
         }impl CstDecode<RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<PageStreamer>>> for usize {
             // Codec=Cst (C-struct based), see doc to use other codecs
@@ -3852,7 +4000,7 @@ impl CstDecode<PageStreamer> for usize {
         }impl CstDecode<crate::api::data::book::BookDetail> for wire_cst_book_detail {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> crate::api::data::book::BookDetail {
-                crate::api::data::book::BookDetail{book:  self.book.cst_decode(),progress:  self.progress.cst_decode(),note_stats:  self.note_stats.cst_decode(),chapters:  self.chapters.cst_decode(),categories:  self.categories.cst_decode(),sessions:  self.sessions.cst_decode(),vocab_list:  self.vocab_list.cst_decode()}
+                crate::api::data::book::BookDetail{book:  self.book.cst_decode(),progress:  self.progress.cst_decode(),note_stats:  self.note_stats.cst_decode(),chapters:  self.chapters.cst_decode(),categories:  self.categories.cst_decode(),session_count:  self.session_count.cst_decode(),vocab_count:  self.vocab_count.cst_decode()}
             }
         }impl CstDecode<crate::parser::book_parser::BookMetadata> for wire_cst_book_metadata {
             // Codec=Cst (C-struct based), see doc to use other codecs
@@ -4000,7 +4148,7 @@ impl CstDecode<PageStreamer> for usize {
         }impl CstDecode<crate::storage::models::Chapter> for wire_cst_chapter {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> crate::storage::models::Chapter {
-                crate::storage::models::Chapter{id:  self.id.cst_decode(),book_id:  self.book_id.cst_decode(),title:  self.title.cst_decode(),chapter_index:  self.chapter_index.cst_decode(),word_count:  self.word_count.cst_decode(),cached_at:  self.cached_at.cst_decode(),level:  self.level.cst_decode(),start_index:  self.start_index.cst_decode(),end_index:  self.end_index.cst_decode(),content_length:  self.content_length.cst_decode()}
+                crate::storage::models::Chapter{id:  self.id.cst_decode(),book_id:  self.book_id.cst_decode(),title:  self.title.cst_decode(),chapter_index:  self.chapter_index.cst_decode(),cached_at:  self.cached_at.cst_decode(),level:  self.level.cst_decode(),start_index:  self.start_index.cst_decode(),end_index:  self.end_index.cst_decode()}
             }
         }impl CstDecode<crate::api::core::ChapterContent> for wire_cst_chapter_content {
             // Codec=Cst (C-struct based), see doc to use other codecs
@@ -4146,6 +4294,15 @@ impl CstDecode<PageStreamer> for usize {
     };
     vec.into_iter().map(CstDecode::cst_decode).collect()
             }
+        }impl CstDecode<Vec<crate::storage::models::NoteWithBook>> for *mut wire_cst_list_note_with_book {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> Vec<crate::storage::models::NoteWithBook> {
+                let vec = unsafe {
+        let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+        flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+    };
+    vec.into_iter().map(CstDecode::cst_decode).collect()
+            }
         }impl CstDecode<Vec<crate::domain::types::pagination::PageContent>> for *mut wire_cst_list_page_content {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> Vec<crate::domain::types::pagination::PageContent> {
@@ -4184,6 +4341,15 @@ impl CstDecode<PageStreamer> for usize {
         }impl CstDecode<Vec<(String,Vec<crate::storage::models::Note>,)>> for *mut wire_cst_list_record_string_list_note {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> Vec<(String,Vec<crate::storage::models::Note>,)> {
+                let vec = unsafe {
+        let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+        flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+    };
+    vec.into_iter().map(CstDecode::cst_decode).collect()
+            }
+        }impl CstDecode<Vec<(String,String,)>> for *mut wire_cst_list_record_string_string {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> Vec<(String,String,)> {
                 let vec = unsafe {
         let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
         flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
@@ -4245,6 +4411,11 @@ impl CstDecode<PageStreamer> for usize {
             fn cst_decode(self) -> crate::storage::models::NoteStats {
                 crate::storage::models::NoteStats{total_count:  self.total_count.cst_decode(),highlight_count:  self.highlight_count.cst_decode(),annotation_count:  self.annotation_count.cst_decode()}
             }
+        }impl CstDecode<crate::storage::models::NoteWithBook> for wire_cst_note_with_book {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> crate::storage::models::NoteWithBook {
+                crate::storage::models::NoteWithBook{note:  self.note.cst_decode(),book_title:  self.book_title.cst_decode()}
+            }
         }impl CstDecode<crate::domain::types::pagination::PageContent> for wire_cst_page_content {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> crate::domain::types::pagination::PageContent {
@@ -4278,6 +4449,11 @@ impl CstDecode<PageStreamer> for usize {
         }impl CstDecode<(String,Vec<crate::storage::models::Note>,)> for wire_cst_record_string_list_note {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> (String,Vec<crate::storage::models::Note>,) {
+                (self.field0.cst_decode(),self.field1.cst_decode(),)
+            }
+        }impl CstDecode<(String,String,)> for wire_cst_record_string_string {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> (String,String,) {
                 (self.field0.cst_decode(),self.field1.cst_decode(),)
             }
         }impl CstDecode<crate::domain::types::rich_text::RichParagraph> for wire_cst_rich_paragraph {
@@ -4480,8 +4656,8 @@ progress: core::ptr::null_mut(),
 note_stats: Default::default(),
 chapters: core::ptr::null_mut(),
 categories: core::ptr::null_mut(),
-sessions: core::ptr::null_mut(),
-vocab_list: core::ptr::null_mut(), }
+session_count: Default::default(),
+vocab_count: Default::default(), }
             }
         }
         impl Default for wire_cst_book_detail {
@@ -4552,12 +4728,10 @@ is_system: Default::default(), }
 book_id: core::ptr::null_mut(),
 title: core::ptr::null_mut(),
 chapter_index: Default::default(),
-word_count: Default::default(),
 cached_at: Default::default(),
 level: Default::default(),
 start_index: Default::default(),
-end_index: Default::default(),
-content_length: Default::default(), }
+end_index: Default::default(), }
             }
         }
         impl Default for wire_cst_chapter {
@@ -4687,6 +4861,16 @@ annotation_count: Default::default(), }
             fn default() -> Self {
                 Self::new_with_null_ptr()
             }
+        }impl NewWithNullPtr for wire_cst_note_with_book {
+            fn new_with_null_ptr() -> Self {
+                Self { note: Default::default(),
+book_title: core::ptr::null_mut(), }
+            }
+        }
+        impl Default for wire_cst_note_with_book {
+            fn default() -> Self {
+                Self::new_with_null_ptr()
+            }
         }impl NewWithNullPtr for wire_cst_page_content {
             fn new_with_null_ptr() -> Self {
                 Self { chapter_index: Default::default(),
@@ -4780,6 +4964,16 @@ field1: core::ptr::null_mut(), }
             fn default() -> Self {
                 Self::new_with_null_ptr()
             }
+        }impl NewWithNullPtr for wire_cst_record_string_string {
+            fn new_with_null_ptr() -> Self {
+                Self { field0: core::ptr::null_mut(),
+field1: core::ptr::null_mut(), }
+            }
+        }
+        impl Default for wire_cst_record_string_string {
+            fn default() -> Self {
+                Self::new_with_null_ptr()
+            }
         }impl NewWithNullPtr for wire_cst_rich_paragraph {
             fn new_with_null_ptr() -> Self {
                 Self { spans: core::ptr::null_mut(),
@@ -4812,7 +5006,7 @@ image_alt: core::ptr::null_mut(), }
             fn new_with_null_ptr() -> Self {
                 Self { book_id: core::ptr::null_mut(),
 chapter_id: core::ptr::null_mut(),
-chapter_index: core::ptr::null_mut(),
+chapter_index: Default::default(),
 chapter_title: core::ptr::null_mut(),
 snippet: core::ptr::null_mut(),
 position: Default::default(),
@@ -4921,8 +5115,26 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__backup__backup_manifest_default(port_: i64)  {
+                    wire__crate__api__backup__backup_manifest_default_impl(port_)
+                }
+            
+
+                #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__backup__backup_stats_default(port_: i64)  {
                     wire__crate__api__backup__backup_stats_default_impl(port_)
+                }
+            
+
+                #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__book__batch_set_categories_for_books(port_: i64, book_ids: *mut wire_cst_list_String, category_ids: *mut wire_cst_list_String)  {
+                    wire__crate__api__data__book__batch_set_categories_for_books_impl(port_, book_ids, category_ids)
+                }
+            
+
+                #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__book__batch_update_book_status(port_: i64, book_ids: *mut wire_cst_list_String, status: i32)  {
+                    wire__crate__api__data__book__batch_update_book_status_impl(port_, book_ids, status)
                 }
             
 
@@ -4999,7 +5211,13 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
-                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__note__create_annotation(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict, chapter_index: i32, char_offset: i64, content: *mut wire_cst_list_prim_u_8_strict, selected_text: *mut wire_cst_list_prim_u_8_strict, language: *mut wire_cst_list_prim_u_8_strict, paired_note_id: *mut wire_cst_list_prim_u_8_strict)  {
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__note__count_notes(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict)  {
+                    wire__crate__api__data__note__count_notes_impl(port_, book_id)
+                }
+            
+
+                #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__note__create_annotation(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict, chapter_index: i32, char_offset: i32, content: *mut wire_cst_list_prim_u_8_strict, selected_text: *mut wire_cst_list_prim_u_8_strict, language: *mut wire_cst_list_prim_u_8_strict, paired_note_id: *mut wire_cst_list_prim_u_8_strict)  {
                     wire__crate__api__data__note__create_annotation_impl(port_, book_id, chapter_index, char_offset, content, selected_text, language, paired_note_id)
                 }
             
@@ -5011,7 +5229,7 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
-                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__bookmark__create_bookmark(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict, chapter_index: i32, char_offset: i64, title: *mut wire_cst_list_prim_u_8_strict)  {
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__bookmark__create_bookmark(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict, chapter_index: i32, char_offset: i32, title: *mut wire_cst_list_prim_u_8_strict)  {
                     wire__crate__api__data__bookmark__create_bookmark_impl(port_, book_id, chapter_index, char_offset, title)
                 }
             
@@ -5029,7 +5247,7 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
-                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__note__create_highlight(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict, chapter_index: i32, char_offset: i64, length: i64, selected_text: *mut wire_cst_list_prim_u_8_strict, color: i32, language: *mut wire_cst_list_prim_u_8_strict, paired_note_id: *mut wire_cst_list_prim_u_8_strict)  {
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__note__create_highlight(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict, chapter_index: i32, char_offset: i32, length: i32, selected_text: *mut wire_cst_list_prim_u_8_strict, color: i32, language: *mut wire_cst_list_prim_u_8_strict, paired_note_id: *mut wire_cst_list_prim_u_8_strict)  {
                     wire__crate__api__data__note__create_highlight_impl(port_, book_id, chapter_index, char_offset, length, selected_text, color, language, paired_note_id)
                 }
             
@@ -5041,13 +5259,13 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
-                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__session__create_session(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict, chapter_index: i32, start_char_offset: i64, end_char_offset: i64, started_at: i64)  {
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__session__create_session(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict, chapter_index: i32, start_char_offset: i32, end_char_offset: i32, started_at: i64)  {
                     wire__crate__api__data__session__create_session_impl(port_, book_id, chapter_index, start_char_offset, end_char_offset, started_at)
                 }
             
 
                 #[unsafe(no_mangle)]
-                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__vocabulary__create_vocabulary_word(port_: i64, word: *mut wire_cst_list_prim_u_8_strict, pinyin: *mut wire_cst_list_prim_u_8_strict, translation: *mut wire_cst_list_prim_u_8_strict, context_sentence: *mut wire_cst_list_prim_u_8_strict, book_id: *mut wire_cst_list_prim_u_8_strict, chapter_index: *mut i64, char_offset: *mut i64, word_list: *mut wire_cst_list_prim_u_8_strict)  {
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__vocabulary__create_vocabulary_word(port_: i64, word: *mut wire_cst_list_prim_u_8_strict, pinyin: *mut wire_cst_list_prim_u_8_strict, translation: *mut wire_cst_list_prim_u_8_strict, context_sentence: *mut wire_cst_list_prim_u_8_strict, book_id: *mut wire_cst_list_prim_u_8_strict, chapter_index: *mut i32, char_offset: *mut i64, word_list: *mut wire_cst_list_prim_u_8_strict)  {
                     wire__crate__api__data__vocabulary__create_vocabulary_word_impl(port_, word, pinyin, translation, context_sentence, book_id, chapter_index, char_offset, word_list)
                 }
             
@@ -5185,6 +5403,12 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__vocab_marker__get_cet6_words() -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+                    wire__crate__api__vocab_marker__get_cet6_words_impl()
+                }
+            
+
+                #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__core__get_chapter(port_: i64, file_path: *mut wire_cst_list_prim_u_8_strict, chapter_index: i32, config: *mut wire_cst_typeset_config)  {
                     wire__crate__api__core__get_chapter_impl(port_, file_path, chapter_index, config)
                 }
@@ -5217,6 +5441,12 @@ ignored_count: Default::default(), }
                 #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__stats__get_global_reading_stats(port_: i64)  {
                     wire__crate__api__data__stats__get_global_reading_stats_impl(port_)
+                }
+            
+
+                #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__vocab_marker__get_ielts_words() -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+                    wire__crate__api__vocab_marker__get_ielts_words_impl()
                 }
             
 
@@ -5287,6 +5517,12 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__vocab_marker__get_toefl_words() -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+                    wire__crate__api__vocab_marker__get_toefl_words_impl()
+                }
+            
+
+                #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__vocabulary__get_vocabulary_stats(port_: i64)  {
                     wire__crate__api__data__vocabulary__get_vocabulary_stats_impl(port_)
                 }
@@ -5317,7 +5553,7 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
-                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__search__index_chapter(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict, chapter_id: *mut wire_cst_list_prim_u_8_strict, chapter_index: *mut wire_cst_list_prim_u_8_strict, chapter_title: *mut wire_cst_list_prim_u_8_strict, content: *mut wire_cst_list_prim_u_8_strict)  {
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__search__index_chapter(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict, chapter_id: *mut wire_cst_list_prim_u_8_strict, chapter_index: i32, chapter_title: *mut wire_cst_list_prim_u_8_strict, content: *mut wire_cst_list_prim_u_8_strict)  {
                     wire__crate__api__search__index_chapter_impl(port_, book_id, chapter_id, chapter_index, chapter_title, content)
                 }
             
@@ -5343,6 +5579,12 @@ ignored_count: Default::default(), }
                 #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__backup__inspect_backup(port_: i64, backup_path: *mut wire_cst_list_prim_u_8_strict)  {
                     wire__crate__api__backup__inspect_backup_impl(port_, backup_path)
+                }
+            
+
+                #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__note__list_all_notes(port_: i64, limit: i32, offset: i32)  {
+                    wire__crate__api__data__note__list_all_notes_impl(port_, limit, offset)
                 }
             
 
@@ -5425,19 +5667,25 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__note__list_notes_with_titles(port_: i64, limit: i32, offset: i32)  {
+                    wire__crate__api__data__note__list_notes_with_titles_impl(port_, limit, offset)
+                }
+            
+
+                #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__book__list_pinned_books(port_: i64)  {
                     wire__crate__api__data__book__list_pinned_books_impl(port_)
                 }
             
 
                 #[unsafe(no_mangle)]
-                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__book__list_recently_opened_books(port_: i64, limit: usize)  {
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__book__list_recently_opened_books(port_: i64, limit: i32)  {
                     wire__crate__api__data__book__list_recently_opened_books_impl(port_, limit)
                 }
             
 
                 #[unsafe(no_mangle)]
-                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__session__list_sessions_by_book(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict, limit: usize)  {
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__session__list_sessions_by_book(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict, limit: i32)  {
                     wire__crate__api__data__session__list_sessions_by_book_impl(port_, book_id, limit)
                 }
             
@@ -5449,7 +5697,7 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
-                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__session__list_sessions_by_recent(port_: i64, limit: usize)  {
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__session__list_sessions_by_recent(port_: i64, limit: i32)  {
                     wire__crate__api__data__session__list_sessions_by_recent_impl(port_, limit)
                 }
             
@@ -5461,8 +5709,20 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__vocabulary__list_word_lists(port_: i64)  {
+                    wire__crate__api__data__vocabulary__list_word_lists_impl(port_)
+                }
+            
+
+                #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__dictionary__lookup_mdict(port_: i64, word: *mut wire_cst_list_prim_u_8_strict)  {
                     wire__crate__api__dictionary__lookup_mdict_impl(port_, word)
+                }
+            
+
+                #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__book__map_book_titles(port_: i64)  {
+                    wire__crate__api__data__book__map_book_titles_impl(port_)
                 }
             
 
@@ -5511,6 +5771,12 @@ ignored_count: Default::default(), }
                 #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__book__search_books(port_: i64, keyword: *mut wire_cst_list_prim_u_8_strict)  {
                     wire__crate__api__data__book__search_books_impl(port_, keyword)
+                }
+            
+
+                #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__note__search_notes(port_: i64, query: *mut wire_cst_list_prim_u_8_strict)  {
+                    wire__crate__api__data__note__search_notes_impl(port_, query)
                 }
             
 
@@ -5874,6 +6140,13 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_cst_new_list_note_with_book(len: i32) -> *mut wire_cst_list_note_with_book {
+                    let wrap = wire_cst_list_note_with_book { ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(<wire_cst_note_with_book>::new_with_null_ptr(), len), len };
+                flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+                }
+            
+
+                #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_cst_new_list_page_content(len: i32) -> *mut wire_cst_list_page_content {
                     let wrap = wire_cst_list_page_content { ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(<wire_cst_page_content>::new_with_null_ptr(), len), len };
                 flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
@@ -5904,6 +6177,13 @@ ignored_count: Default::default(), }
                 #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_cst_new_list_record_string_list_note(len: i32) -> *mut wire_cst_list_record_string_list_note {
                     let wrap = wire_cst_list_record_string_list_note { ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(<wire_cst_record_string_list_note>::new_with_null_ptr(), len), len };
+                flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+                }
+            
+
+                #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_cst_new_list_record_string_string(len: i32) -> *mut wire_cst_list_record_string_string {
+                    let wrap = wire_cst_list_record_string_string { ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(<wire_cst_record_string_string>::new_with_null_ptr(), len), len };
                 flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
                 }
             
@@ -5999,18 +6279,18 @@ unmatched_english: *mut wire_cst_list_String }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_bilingual_highlight_pair { source_note: wire_cst_note,
 target_note: *mut wire_cst_note }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_bilingual_highlight_params { source_book_id: *mut wire_cst_list_prim_u_8_strict,
-source_chapter_index: i32,
-source_char_offset: i64,
-source_length: i64,
+source_chapter_index: i64,
+source_char_offset: i32,
+source_length: i32,
 source_selected_text: *mut wire_cst_list_prim_u_8_strict,
 source_language: *mut wire_cst_list_prim_u_8_strict,
 target_book_id: *mut wire_cst_list_prim_u_8_strict,
-target_chapter_index: i32,
-target_char_offset: i64,
-target_length: i64,
+target_chapter_index: i64,
+target_char_offset: i32,
+target_length: i32,
 target_selected_text: *mut wire_cst_list_prim_u_8_strict,
 target_language: *mut wire_cst_list_prim_u_8_strict,
-highlight_color: i32 }
+highlight_color: i64 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_book { book_id: *mut wire_cst_list_prim_u_8_strict,
 file_path: *mut wire_cst_list_prim_u_8_strict,
 file_hash: *mut wire_cst_list_prim_u_8_strict,
@@ -6019,7 +6299,7 @@ file_mtime: *mut i64,
 title: *mut wire_cst_list_prim_u_8_strict,
 author: *mut wire_cst_list_prim_u_8_strict,
 cover_path: *mut wire_cst_list_prim_u_8_strict,
-chapter_count: i32,
+chapter_count: i64,
 total_characters: i64,
 format: i32,
 added_at: i64,
@@ -6035,8 +6315,8 @@ progress: *mut wire_cst_reading_progress,
 note_stats: wire_cst_note_stats,
 chapters: *mut wire_cst_list_chapter,
 categories: *mut wire_cst_list_category,
-sessions: *mut wire_cst_list_reading_session,
-vocab_list: *mut wire_cst_list_vocab }
+session_count: i32,
+vocab_count: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_book_metadata { title: *mut wire_cst_list_prim_u_8_strict,
 author: *mut wire_cst_list_prim_u_8_strict,
 description: *mut wire_cst_list_prim_u_8_strict,
@@ -6046,13 +6326,13 @@ translator: *mut wire_cst_list_prim_u_8_strict,
 isbn: *mut wire_cst_list_prim_u_8_strict,
 publish_year: *mut i32,
 language: *mut wire_cst_list_prim_u_8_strict,
-chapter_count: i32,
+chapter_count: i64,
 total_characters: i64 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_book_with_progress { book: wire_cst_book,
 progress: *mut wire_cst_reading_progress }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_bookmark { id: *mut wire_cst_list_prim_u_8_strict,
 book_id: *mut wire_cst_list_prim_u_8_strict,
-chapter_index: i32,
+chapter_index: i64,
 chapter_id: *mut wire_cst_list_prim_u_8_strict,
 char_offset: i64,
 title: *mut wire_cst_list_prim_u_8_strict,
@@ -6061,18 +6341,16 @@ created_at: i64 }
 name: *mut wire_cst_list_prim_u_8_strict,
 description: *mut wire_cst_list_prim_u_8_strict,
 color: *mut wire_cst_list_prim_u_8_strict,
-sort_order: i32,
+sort_order: i64,
 is_system: bool }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_chapter { id: *mut wire_cst_list_prim_u_8_strict,
 book_id: *mut wire_cst_list_prim_u_8_strict,
 title: *mut wire_cst_list_prim_u_8_strict,
-chapter_index: i32,
-word_count: i64,
+chapter_index: i64,
 cached_at: i64,
-level: i32,
+level: i64,
 start_index: i64,
-end_index: i64,
-content_length: i64 }
+end_index: i64 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_chapter_content { tag: i32, kind: ChapterContentKind, }
 #[repr(C)] #[derive(Clone, Copy)] pub union ChapterContentKind { Raw: wire_cst_ChapterContent_Raw,
 Pages: wire_cst_ChapterContent_Pages,
@@ -6103,15 +6381,15 @@ href: *mut wire_cst_list_prim_u_8_strict,
 level: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_global_stats { total_reading_time_seconds: i64,
 total_characters_read: i64,
-books_read_count: i32,
-books_completed_count: i32,
-consecutive_reading_days: i32,
+books_read_count: i64,
+books_completed_count: i64,
+consecutive_reading_days: i64,
 today_reading_time_seconds: i64,
 today_characters_read: i64,
 average_reading_speed: f32,
-total_books_count: i32,
-total_notes_count: i32,
-total_bookmarks_count: i32 }
+total_books_count: i64,
+total_notes_count: i64,
+total_bookmarks_count: i64 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_String { ptr: *mut *mut wire_cst_list_prim_u_8_strict,
 len: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_aligned_segment { ptr: *mut wire_cst_aligned_segment,
@@ -6134,6 +6412,8 @@ len: i32 }
 len: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_note { ptr: *mut wire_cst_note,
 len: i32 }
+#[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_note_with_book { ptr: *mut wire_cst_note_with_book,
+len: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_page_content { ptr: *mut wire_cst_page_content,
 len: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_prim_u_8_strict { ptr: *mut u8,
@@ -6143,6 +6423,8 @@ len: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_reading_stats { ptr: *mut wire_cst_reading_stats,
 len: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_record_string_list_note { ptr: *mut wire_cst_record_string_list_note,
+len: i32 }
+#[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_record_string_string { ptr: *mut wire_cst_record_string_string,
 len: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_rich_paragraph { ptr: *mut wire_cst_rich_paragraph,
 len: i32 }
@@ -6156,45 +6438,47 @@ len: i32 }
 len: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_note { id: *mut wire_cst_list_prim_u_8_strict,
 book_id: *mut wire_cst_list_prim_u_8_strict,
-chapter_index: i32,
+chapter_index: i64,
 chapter_id: *mut wire_cst_list_prim_u_8_strict,
 char_offset: i64,
 length: i64,
 note_type: i32,
 content: *mut wire_cst_list_prim_u_8_strict,
 selected_text: *mut wire_cst_list_prim_u_8_strict,
-highlight_color: *mut i32,
+highlight_color: *mut i64,
 paired_note_id: *mut wire_cst_list_prim_u_8_strict,
 language: *mut wire_cst_list_prim_u_8_strict,
 created_at: i64,
 updated_at: i64 }
-#[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_note_stats { total_count: i32,
-highlight_count: i32,
-annotation_count: i32 }
+#[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_note_stats { total_count: i64,
+highlight_count: i64,
+annotation_count: i64 }
+#[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_note_with_book { note: wire_cst_note,
+book_title: *mut wire_cst_list_prim_u_8_strict }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_page_content { chapter_index: i32,
 page_index: i32,
 content: *mut wire_cst_list_prim_u_8_strict,
 is_last_page: bool,
-start_offset: i64,
-end_offset: i64 }
+start_offset: i32,
+end_offset: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_page_data { page_index: u32,
 text: *mut wire_cst_list_prim_u_8_strict }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_parse_result { book_info: wire_cst_book,
 chapters: *mut wire_cst_list_chapter }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_reading_progress { book_id: *mut wire_cst_list_prim_u_8_strict,
-chapter_index: i32,
-chunk_index: i32,
+chapter_index: i64,
+chunk_index: i64,
 chapter_id: *mut wire_cst_list_prim_u_8_strict,
 char_offset: i64,
-page_index: i32,
-total_pages: i32,
+page_index: i64,
+total_pages: i64,
 progress: f32,
 reading_time_seconds: i64,
 last_read_at: i64,
 is_completed: bool }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_reading_session { id: *mut wire_cst_list_prim_u_8_strict,
 book_id: *mut wire_cst_list_prim_u_8_strict,
-chapter_index: i32,
+chapter_index: i64,
 start_char_offset: i64,
 end_char_offset: i64,
 started_at: i64,
@@ -6204,10 +6488,12 @@ duration_seconds: i64 }
 date: *mut wire_cst_list_prim_u_8_strict,
 reading_time_seconds: i64,
 characters_read: i64,
-session_count: i32,
+session_count: i64,
 last_session_id: *mut wire_cst_list_prim_u_8_strict }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_record_string_list_note { field0: *mut wire_cst_list_prim_u_8_strict,
 field1: *mut wire_cst_list_note }
+#[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_record_string_string { field0: *mut wire_cst_list_prim_u_8_strict,
+field1: *mut wire_cst_list_prim_u_8_strict }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_rich_paragraph { spans: *mut wire_cst_list_rich_text_span,
 indent: u8,
 is_heading: bool,
@@ -6256,12 +6542,12 @@ font_size: *mut f32,
 color: *mut wire_cst_list_prim_u_8_strict, }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_search_result { book_id: *mut wire_cst_list_prim_u_8_strict,
 chapter_id: *mut wire_cst_list_prim_u_8_strict,
-chapter_index: *mut wire_cst_list_prim_u_8_strict,
+chapter_index: i32,
 chapter_title: *mut wire_cst_list_prim_u_8_strict,
 snippet: *mut wire_cst_list_prim_u_8_strict,
-position: i64,
+position: i32,
 score: f32,
-char_offset: i64 }
+char_offset: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_typeset_calibration { dpr: f32,
 cjk_width: f32,
 ascii_width: f32,
@@ -6290,7 +6576,7 @@ book_id: *mut wire_cst_list_prim_u_8_strict,
 chapter_index: *mut i64,
 char_offset: *mut i64,
 created_at: i64,
-review_count: i32,
+review_count: i64,
 last_reviewed_at: *mut i64,
 status: i32,
 word_list: *mut wire_cst_list_prim_u_8_strict,
@@ -6413,7 +6699,7 @@ impl CstDecode<String> for String {
             fn cst_decode(self) -> crate::api::data::book::BookDetail {
                 let self_ = self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap();
                 assert_eq!(self_.length(), 7, "Expected 7 elements, got {}", self_.length());
-                crate::api::data::book::BookDetail{book:  self_.get(0).cst_decode(),progress:  self_.get(1).cst_decode(),note_stats:  self_.get(2).cst_decode(),chapters:  self_.get(3).cst_decode(),categories:  self_.get(4).cst_decode(),sessions:  self_.get(5).cst_decode(),vocab_list:  self_.get(6).cst_decode()}
+                crate::api::data::book::BookDetail{book:  self_.get(0).cst_decode(),progress:  self_.get(1).cst_decode(),note_stats:  self_.get(2).cst_decode(),chapters:  self_.get(3).cst_decode(),categories:  self_.get(4).cst_decode(),session_count:  self_.get(5).cst_decode(),vocab_count:  self_.get(6).cst_decode()}
             }
         }impl CstDecode<crate::parser::book_parser::BookMetadata> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
             // Codec=Cst (C-struct based), see doc to use other codecs
@@ -6447,8 +6733,8 @@ impl CstDecode<String> for String {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> crate::storage::models::Chapter {
                 let self_ = self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap();
-                assert_eq!(self_.length(), 10, "Expected 10 elements, got {}", self_.length());
-                crate::storage::models::Chapter{id:  self_.get(0).cst_decode(),book_id:  self_.get(1).cst_decode(),title:  self_.get(2).cst_decode(),chapter_index:  self_.get(3).cst_decode(),word_count:  self_.get(4).cst_decode(),cached_at:  self_.get(5).cst_decode(),level:  self_.get(6).cst_decode(),start_index:  self_.get(7).cst_decode(),end_index:  self_.get(8).cst_decode(),content_length:  self_.get(9).cst_decode()}
+                assert_eq!(self_.length(), 8, "Expected 8 elements, got {}", self_.length());
+                crate::storage::models::Chapter{id:  self_.get(0).cst_decode(),book_id:  self_.get(1).cst_decode(),title:  self_.get(2).cst_decode(),chapter_index:  self_.get(3).cst_decode(),cached_at:  self_.get(4).cst_decode(),level:  self_.get(5).cst_decode(),start_index:  self_.get(6).cst_decode(),end_index:  self_.get(7).cst_decode()}
             }
         }impl CstDecode<crate::api::core::ChapterContent> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
             // Codec=Cst (C-struct based), see doc to use other codecs
@@ -6556,6 +6842,11 @@ impl CstDecode<String> for String {
             fn cst_decode(self) -> Vec<crate::storage::models::Note> {
                 self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap().iter().map(CstDecode::cst_decode).collect()
             }
+        }impl CstDecode<Vec<crate::storage::models::NoteWithBook>> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> Vec<crate::storage::models::NoteWithBook> {
+                self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap().iter().map(CstDecode::cst_decode).collect()
+            }
         }impl CstDecode<Vec<crate::domain::types::pagination::PageContent>> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> Vec<crate::domain::types::pagination::PageContent> {
@@ -6579,6 +6870,11 @@ impl CstDecode<String> for String {
         }impl CstDecode<Vec<(String,Vec<crate::storage::models::Note>,)>> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> Vec<(String,Vec<crate::storage::models::Note>,)> {
+                self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap().iter().map(CstDecode::cst_decode).collect()
+            }
+        }impl CstDecode<Vec<(String,String,)>> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> Vec<(String,String,)> {
                 self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap().iter().map(CstDecode::cst_decode).collect()
             }
         }impl CstDecode<Vec<crate::domain::types::rich_text::RichParagraph>> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
@@ -6619,6 +6915,13 @@ impl CstDecode<String> for String {
                 let self_ = self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap();
                 assert_eq!(self_.length(), 3, "Expected 3 elements, got {}", self_.length());
                 crate::storage::models::NoteStats{total_count:  self_.get(0).cst_decode(),highlight_count:  self_.get(1).cst_decode(),annotation_count:  self_.get(2).cst_decode()}
+            }
+        }impl CstDecode<crate::storage::models::NoteWithBook> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> crate::storage::models::NoteWithBook {
+                let self_ = self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap();
+                assert_eq!(self_.length(), 2, "Expected 2 elements, got {}", self_.length());
+                crate::storage::models::NoteWithBook{note:  self_.get(0).cst_decode(),book_title:  self_.get(1).cst_decode()}
             }
         }impl CstDecode<Option<String>> for Option<String> {
             // Codec=Cst (C-struct based), see doc to use other codecs
@@ -6675,6 +6978,13 @@ impl CstDecode<String> for String {
         }impl CstDecode<(String,Vec<crate::storage::models::Note>,)> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> (String,Vec<crate::storage::models::Note>,) {
+                let self_ = self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap();
+                assert_eq!(self_.length(), 2, "Expected 2 elements, got {}", self_.length());
+                (self_.get(0).cst_decode(),self_.get(1).cst_decode(),)
+            }
+        }impl CstDecode<(String,String,)> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> (String,String,) {
                 let self_ = self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap();
                 assert_eq!(self_.length(), 2, "Expected 2 elements, got {}", self_.length());
                 (self_.get(0).cst_decode(),self_.get(1).cst_decode(),)
@@ -6752,6 +7062,11 @@ impl CstDecode<String> for String {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> chrono::DateTime::<chrono::Utc> {
                 CstDecode::<i64>::cst_decode(self).cst_decode()
+            }
+        }impl CstDecode<std::collections::HashMap<String, String>> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> std::collections::HashMap<String, String> {
+                let vec: Vec<(String, String)> = self.cst_decode(); vec.into_iter().collect()
             }
         }impl CstDecode<RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<PageStreamer>>> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
             // Codec=Cst (C-struct based), see doc to use other codecs
@@ -6850,8 +7165,26 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
+                pub  fn wire__crate__api__backup__backup_manifest_default(port_: flutter_rust_bridge::for_generated::MessagePort)  {
+                    wire__crate__api__backup__backup_manifest_default_impl(port_)
+                }
+            
+
+                #[wasm_bindgen]
                 pub  fn wire__crate__api__backup__backup_stats_default(port_: flutter_rust_bridge::for_generated::MessagePort)  {
                     wire__crate__api__backup__backup_stats_default_impl(port_)
+                }
+            
+
+                #[wasm_bindgen]
+                pub  fn wire__crate__api__data__book__batch_set_categories_for_books(port_: flutter_rust_bridge::for_generated::MessagePort, book_ids: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue, category_ids: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue)  {
+                    wire__crate__api__data__book__batch_set_categories_for_books_impl(port_, book_ids, category_ids)
+                }
+            
+
+                #[wasm_bindgen]
+                pub  fn wire__crate__api__data__book__batch_update_book_status(port_: flutter_rust_bridge::for_generated::MessagePort, book_ids: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue, status: i32)  {
+                    wire__crate__api__data__book__batch_update_book_status_impl(port_, book_ids, status)
                 }
             
 
@@ -6928,7 +7261,13 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
-                pub  fn wire__crate__api__data__note__create_annotation(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String, chapter_index: i32, char_offset: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue, content: String, selected_text: Option<String>, language: Option<String>, paired_note_id: Option<String>)  {
+                pub  fn wire__crate__api__data__note__count_notes(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: Option<String>)  {
+                    wire__crate__api__data__note__count_notes_impl(port_, book_id)
+                }
+            
+
+                #[wasm_bindgen]
+                pub  fn wire__crate__api__data__note__create_annotation(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String, chapter_index: i32, char_offset: i32, content: String, selected_text: Option<String>, language: Option<String>, paired_note_id: Option<String>)  {
                     wire__crate__api__data__note__create_annotation_impl(port_, book_id, chapter_index, char_offset, content, selected_text, language, paired_note_id)
                 }
             
@@ -6940,7 +7279,7 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
-                pub  fn wire__crate__api__data__bookmark__create_bookmark(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String, chapter_index: i32, char_offset: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue, title: String)  {
+                pub  fn wire__crate__api__data__bookmark__create_bookmark(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String, chapter_index: i32, char_offset: i32, title: String)  {
                     wire__crate__api__data__bookmark__create_bookmark_impl(port_, book_id, chapter_index, char_offset, title)
                 }
             
@@ -6958,7 +7297,7 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
-                pub  fn wire__crate__api__data__note__create_highlight(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String, chapter_index: i32, char_offset: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue, length: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue, selected_text: String, color: i32, language: Option<String>, paired_note_id: Option<String>)  {
+                pub  fn wire__crate__api__data__note__create_highlight(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String, chapter_index: i32, char_offset: i32, length: i32, selected_text: String, color: i32, language: Option<String>, paired_note_id: Option<String>)  {
                     wire__crate__api__data__note__create_highlight_impl(port_, book_id, chapter_index, char_offset, length, selected_text, color, language, paired_note_id)
                 }
             
@@ -6970,7 +7309,7 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
-                pub  fn wire__crate__api__data__session__create_session(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String, chapter_index: i32, start_char_offset: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue, end_char_offset: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue, started_at: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue)  {
+                pub  fn wire__crate__api__data__session__create_session(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String, chapter_index: i32, start_char_offset: i32, end_char_offset: i32, started_at: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue)  {
                     wire__crate__api__data__session__create_session_impl(port_, book_id, chapter_index, start_char_offset, end_char_offset, started_at)
                 }
             
@@ -7114,6 +7453,12 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
+                pub  fn wire__crate__api__vocab_marker__get_cet6_words() -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+                    wire__crate__api__vocab_marker__get_cet6_words_impl()
+                }
+            
+
+                #[wasm_bindgen]
                 pub  fn wire__crate__api__core__get_chapter(port_: flutter_rust_bridge::for_generated::MessagePort, file_path: String, chapter_index: i32, config: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue)  {
                     wire__crate__api__core__get_chapter_impl(port_, file_path, chapter_index, config)
                 }
@@ -7146,6 +7491,12 @@ impl CstDecode<String> for String {
                 #[wasm_bindgen]
                 pub  fn wire__crate__api__data__stats__get_global_reading_stats(port_: flutter_rust_bridge::for_generated::MessagePort)  {
                     wire__crate__api__data__stats__get_global_reading_stats_impl(port_)
+                }
+            
+
+                #[wasm_bindgen]
+                pub  fn wire__crate__api__vocab_marker__get_ielts_words() -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+                    wire__crate__api__vocab_marker__get_ielts_words_impl()
                 }
             
 
@@ -7216,6 +7567,12 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
+                pub  fn wire__crate__api__vocab_marker__get_toefl_words() -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+                    wire__crate__api__vocab_marker__get_toefl_words_impl()
+                }
+            
+
+                #[wasm_bindgen]
                 pub  fn wire__crate__api__data__vocabulary__get_vocabulary_stats(port_: flutter_rust_bridge::for_generated::MessagePort)  {
                     wire__crate__api__data__vocabulary__get_vocabulary_stats_impl(port_)
                 }
@@ -7246,7 +7603,7 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
-                pub  fn wire__crate__api__search__index_chapter(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String, chapter_id: String, chapter_index: String, chapter_title: String, content: String)  {
+                pub  fn wire__crate__api__search__index_chapter(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String, chapter_id: String, chapter_index: i32, chapter_title: String, content: String)  {
                     wire__crate__api__search__index_chapter_impl(port_, book_id, chapter_id, chapter_index, chapter_title, content)
                 }
             
@@ -7272,6 +7629,12 @@ impl CstDecode<String> for String {
                 #[wasm_bindgen]
                 pub  fn wire__crate__api__backup__inspect_backup(port_: flutter_rust_bridge::for_generated::MessagePort, backup_path: String)  {
                     wire__crate__api__backup__inspect_backup_impl(port_, backup_path)
+                }
+            
+
+                #[wasm_bindgen]
+                pub  fn wire__crate__api__data__note__list_all_notes(port_: flutter_rust_bridge::for_generated::MessagePort, limit: i32, offset: i32)  {
+                    wire__crate__api__data__note__list_all_notes_impl(port_, limit, offset)
                 }
             
 
@@ -7354,19 +7717,25 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
+                pub  fn wire__crate__api__data__note__list_notes_with_titles(port_: flutter_rust_bridge::for_generated::MessagePort, limit: i32, offset: i32)  {
+                    wire__crate__api__data__note__list_notes_with_titles_impl(port_, limit, offset)
+                }
+            
+
+                #[wasm_bindgen]
                 pub  fn wire__crate__api__data__book__list_pinned_books(port_: flutter_rust_bridge::for_generated::MessagePort)  {
                     wire__crate__api__data__book__list_pinned_books_impl(port_)
                 }
             
 
                 #[wasm_bindgen]
-                pub  fn wire__crate__api__data__book__list_recently_opened_books(port_: flutter_rust_bridge::for_generated::MessagePort, limit: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue)  {
+                pub  fn wire__crate__api__data__book__list_recently_opened_books(port_: flutter_rust_bridge::for_generated::MessagePort, limit: i32)  {
                     wire__crate__api__data__book__list_recently_opened_books_impl(port_, limit)
                 }
             
 
                 #[wasm_bindgen]
-                pub  fn wire__crate__api__data__session__list_sessions_by_book(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String, limit: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue)  {
+                pub  fn wire__crate__api__data__session__list_sessions_by_book(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String, limit: i32)  {
                     wire__crate__api__data__session__list_sessions_by_book_impl(port_, book_id, limit)
                 }
             
@@ -7378,7 +7747,7 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
-                pub  fn wire__crate__api__data__session__list_sessions_by_recent(port_: flutter_rust_bridge::for_generated::MessagePort, limit: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue)  {
+                pub  fn wire__crate__api__data__session__list_sessions_by_recent(port_: flutter_rust_bridge::for_generated::MessagePort, limit: i32)  {
                     wire__crate__api__data__session__list_sessions_by_recent_impl(port_, limit)
                 }
             
@@ -7390,8 +7759,20 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
+                pub  fn wire__crate__api__data__vocabulary__list_word_lists(port_: flutter_rust_bridge::for_generated::MessagePort)  {
+                    wire__crate__api__data__vocabulary__list_word_lists_impl(port_)
+                }
+            
+
+                #[wasm_bindgen]
                 pub  fn wire__crate__api__dictionary__lookup_mdict(port_: flutter_rust_bridge::for_generated::MessagePort, word: String)  {
                     wire__crate__api__dictionary__lookup_mdict_impl(port_, word)
+                }
+            
+
+                #[wasm_bindgen]
+                pub  fn wire__crate__api__data__book__map_book_titles(port_: flutter_rust_bridge::for_generated::MessagePort)  {
+                    wire__crate__api__data__book__map_book_titles_impl(port_)
                 }
             
 
@@ -7440,6 +7821,12 @@ impl CstDecode<String> for String {
                 #[wasm_bindgen]
                 pub  fn wire__crate__api__data__book__search_books(port_: flutter_rust_bridge::for_generated::MessagePort, keyword: String)  {
                     wire__crate__api__data__book__search_books_impl(port_, keyword)
+                }
+            
+
+                #[wasm_bindgen]
+                pub  fn wire__crate__api__data__note__search_notes(port_: flutter_rust_bridge::for_generated::MessagePort, query: String)  {
+                    wire__crate__api__data__note__search_notes_impl(port_, query)
                 }
             
 

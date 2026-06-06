@@ -9,7 +9,6 @@ class SettingsSliderTile extends StatelessWidget {
   final double max;
   final ValueChanged<double> onChanged;
   final double step;
-  final ColorScheme colorScheme;
 
   const SettingsSliderTile({
     super.key,
@@ -20,11 +19,11 @@ class SettingsSliderTile extends StatelessWidget {
     required this.max,
     required this.onChanged,
     this.step = 1,
-    required this.colorScheme,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       child: Column(

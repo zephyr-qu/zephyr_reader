@@ -1,18 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/search/application/search_view_model.dart';
 import 'package:zephyr_reader/features/search/application/services/search_history_service.dart';
-import 'package:zephyr_reader/features/search/page/search_history.dart';
 import 'package:zephyr_reader/features/search/page/search_results.dart';
-import 'package:zephyr_reader/features/search/page/search_result_header.dart';
-import 'package:zephyr_reader/features/search/page/search_results_view.dart';
+import 'package:zephyr_reader/features/search/page/widgets/search_history.dart';
+import 'package:zephyr_reader/features/search/page/widgets/search_result_header.dart';
+import 'package:zephyr_reader/features/search/page/widgets/search_results_view.dart';
 
 // ──────────────────────── Page ────────────────────────
 
@@ -36,56 +35,10 @@ class SearchPage extends HookWidget {
       vm.searchError,
     );
 
-    // Derived search results from VM raw signals
     final searchResults = useComputed(() {
       if (!vm.hasSearched.value) return null;
       if (vm.searchError.value != null) return null;
-
-      final bookMap = vm.allBooksMap.value;
-      final allBooksList = vm.allBooks.value;
-
-      final seenBooks = <String>{};
-      final bookItems = <BookSearchItem>[];
-
-      for (final hit in vm.contentHits.value) {
-        final book = bookMap[hit.bookId];
-        if (book == null || !seenBooks.add(hit.bookId)) continue;
-        bookItems.add(
-          BookSearchItem(
-            book: book,
-            snippet: hit.snippet,
-            chapterTitle: hit.chapterTitle,
-          ),
-        );
-      }
-      for (final book in vm.titleHits.value) {
-        if (seenBooks.add(book.bookId)) {
-          bookItems.add(BookSearchItem(book: book));
-        }
-      }
-
-      final noteItems = vm.noteHits.value.map((note) {
-        final book =
-            bookMap[note.bookId] ??
-            allBooksList.firstWhere((b) => b.bookId == note.bookId);
-        return NoteSearchItem(note: note, book: book);
-      }).toList();
-
-      final vocabItems = vm.vocabHits.value
-          .map(
-            (v) => VocabSearchItem(
-              vocab: v,
-              bookTitle: v.bookId != null ? bookMap[v.bookId]?.title : null,
-            ),
-          )
-          .toList();
-
-      return SearchResults(
-        books: bookItems,
-        notes: noteItems,
-        vocab: vocabItems,
-        durationMs: vm.durationMs.value,
-      );
+      return vm.searchResults.value.value;
     });
 
     // Debounced search effect

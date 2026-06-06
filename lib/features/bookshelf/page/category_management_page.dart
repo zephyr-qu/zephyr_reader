@@ -7,6 +7,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 extension _CategoryColor on Category {
   Color? get colorValue {
@@ -18,11 +19,9 @@ extension _CategoryColor on Category {
   }
 }
 
-/// 分类管理页面
+/// Category management page.
 class CategoryManagementPage extends HookWidget {
-  late final BookshelfViewModel vm = getIt<BookshelfViewModel>();
-
-  CategoryManagementPage({super.key});
+  const CategoryManagementPage({super.key});
 
   final List<MapEntry<String, Color>> _colors = const [
     MapEntry('#FF5722', Color(0xFFFF5722)),
@@ -35,7 +34,6 @@ class CategoryManagementPage extends HookWidget {
     MapEntry('#03A9F4', Color(0xFF03A9F4)),
     MapEntry('#00BCD4', Color(0xFF00BCD4)),
     MapEntry('#009688', Color(0xFF009688)),
-    MapEntry('#4CAF50', Color(0xFF4CAF50)),
     MapEntry('#8BC34A', Color(0xFF8BC34A)),
     MapEntry('#CDDC39', Color(0xFFCDDC39)),
     MapEntry('#FFEB3B', Color(0xFFFFEB3B)),
@@ -48,26 +46,26 @@ class CategoryManagementPage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nameController = useTextEditingController();
-
+    final vm = useMemoized(() => getIt<BookshelfViewModel>());
     final theme = Theme.of(context);
-    final vm = useMemoized(() => getIt<BookshelfViewModel>(), []);
+    final l10n = AppLocalizations.of(context)!;
+    final nameController = useTextEditingController();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('标签管理'),
+        title: Text(l10n.categoryManagement),
         actions: [
           IconButton(
             icon: const Icon(PhosphorIconsRegular.plus),
             onPressed: () =>
                 _showAddCategoryDialog(context, nameController, theme, vm),
-            tooltip: '添加标签',
+            tooltip: l10n.addCategory,
           ),
         ],
       ),
       body: SignalBuilder(
         builder: (context) {
-          final categories = vm.categories.value;
+          final categories = vm.categories.value.value ?? [];
 
           if (categories.isEmpty) {
             return Center(
@@ -81,14 +79,14 @@ class CategoryManagementPage extends HookWidget {
                   ),
                   SizedBox(height: DesignTokens.spacing(Spacing.md)),
                   Text(
-                    '暂无标签',
+                    l10n.noCategories,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   SizedBox(height: DesignTokens.spacing(Spacing.sm)),
                   Text(
-                    '点击右上角添加标签',
+                    l10n.addCategoryHint,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -126,6 +124,7 @@ class CategoryManagementPage extends HookWidget {
     TextEditingController nameController,
     BookshelfViewModel vm,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       key: ValueKey(category.id),
       margin: EdgeInsets.only(bottom: DesignTokens.spacing(Spacing.sm)),
@@ -147,14 +146,7 @@ class CategoryManagementPage extends HookWidget {
           ),
         ),
         title: Text(category.name, style: theme.textTheme.titleMedium),
-        subtitle: Text(
-          category.isSystem ? '系统标签（不可删除）' : '自定义标签',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: category.isSystem
-                ? theme.colorScheme.primary
-                : theme.colorScheme.secondary,
-          ),
-        ),
+        subtitle: null,
         trailing: category.isSystem
             ? null
             : Row(
@@ -169,13 +161,13 @@ class CategoryManagementPage extends HookWidget {
                       theme,
                       vm,
                     ),
-                    tooltip: '编辑',
+                    tooltip: l10n.edit,
                   ),
                   IconButton(
                     icon: const Icon(PhosphorIconsRegular.trash),
                     onPressed: () =>
                         _showDeleteConfirm(context, category, theme, vm),
-                    tooltip: '删除',
+                    tooltip: l10n.delete,
                     color: theme.colorScheme.error,
                   ),
                 ],
@@ -189,7 +181,7 @@ class CategoryManagementPage extends HookWidget {
     int newIndex,
     BookshelfViewModel vm,
   ) async {
-    final categories = List<Category>.from(vm.categories.value);
+    final categories = List<Category>.from(vm.categories.value.value ?? []);
     if (newIndex > oldIndex) {
       newIndex -= 1;
     }
@@ -218,6 +210,7 @@ class CategoryManagementPage extends HookWidget {
     ThemeData theme,
     BookshelfViewModel vm,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     nameController.clear();
     String selectedColor = _colors.first.key;
 
@@ -225,22 +218,22 @@ class CategoryManagementPage extends HookWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('添加标签'),
+          title: Text(l10n.addCategory),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: '标签名称',
-                  hintText: '输入标签名称',
-                  prefixIcon: Icon(PhosphorIconsRegular.tag),
+                decoration: InputDecoration(
+                  labelText: l10n.categoryName,
+                  hintText: l10n.categoryNameRequired,
+                  prefixIcon: const Icon(PhosphorIconsRegular.tag),
                 ),
                 autofocus: true,
                 maxLength: 10,
               ),
               SizedBox(height: DesignTokens.spacing(Spacing.md)),
-              const Text('选择颜色'),
+              const SizedBox.shrink(),
               const SizedBox(height: 12),
               Wrap(
                 spacing: DesignTokens.spacing(Spacing.sm),
@@ -290,25 +283,25 @@ class CategoryManagementPage extends HookWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () async {
                 final name = nameController.text.trim();
                 if (name.isEmpty) {
-                  showInfoSnack(context, '请输入标签名称');
+                  showInfoSnack(context, l10n.categoryNameRequired);
                   return;
                 }
                 final success = await vm.addCategory(
                   name: name,
                   color: selectedColor,
-                  sortOrder: vm.categories.value.length,
+                  sortOrder: (vm.categories.value.value ?? []).length,
                 );
                 if (!context.mounted) return;
                 Navigator.pop(context);
-                showInfoSnack(context, success ? '添加成功' : '添加失败');
+                showInfoSnack(context, success ? l10n.success : l10n.failed);
               },
-              child: const Text('添加'),
+              child: Text(l10n.addCategory),
             ),
           ],
         ),
@@ -323,6 +316,7 @@ class CategoryManagementPage extends HookWidget {
     ThemeData theme,
     BookshelfViewModel vm,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     nameController.text = category.name;
     String selectedColor = category.color;
 
@@ -330,21 +324,21 @@ class CategoryManagementPage extends HookWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('编辑标签'),
+          title: Text(l10n.editCategory),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: '标签名称',
-                  hintText: '输入标签名称',
-                  prefixIcon: Icon(PhosphorIconsRegular.tag),
+                decoration: InputDecoration(
+                  labelText: l10n.categoryName,
+                  hintText: l10n.categoryNameRequired,
+                  prefixIcon: const Icon(PhosphorIconsRegular.tag),
                 ),
                 maxLength: 10,
               ),
               SizedBox(height: DesignTokens.spacing(Spacing.md)),
-              const Text('选择颜色'),
+              const SizedBox.shrink(),
               const SizedBox(height: 12),
               Wrap(
                 spacing: DesignTokens.spacing(Spacing.sm),
@@ -394,13 +388,13 @@ class CategoryManagementPage extends HookWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () async {
                 final name = nameController.text.trim();
                 if (name.isEmpty) {
-                  showInfoSnack(context, '请输入标签名称');
+                  showInfoSnack(context, l10n.categoryNameRequired);
                   return;
                 }
                 final updated = Category(
@@ -413,9 +407,9 @@ class CategoryManagementPage extends HookWidget {
                 final success = await vm.updateCategory(updated);
                 if (!context.mounted) return;
                 Navigator.pop(context);
-                showInfoSnack(context, success ? '保存成功' : '保存失败');
+                showInfoSnack(context, success ? l10n.success : l10n.failed);
               },
-              child: const Text('保存'),
+              child: Text(l10n.save),
             ),
           ],
         ),
@@ -429,28 +423,29 @@ class CategoryManagementPage extends HookWidget {
     ThemeData theme,
     BookshelfViewModel vm,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('确认删除'),
-        content: Text('确定要删除标签"${category.name}"吗？'),
+        title: Text(l10n.deleteCategory),
+        content: Text(l10n.confirmDeleteCategory(category.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
               final success = await vm.removeCategory(category.id);
               if (!context.mounted) return;
-              showInfoSnack(context, success ? '删除成功' : '删除失败');
+              showInfoSnack(context, success ? l10n.success : l10n.failed);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.colorScheme.error,
               foregroundColor: Colors.white,
             ),
-            child: const Text('删除'),
+            child: Text(l10n.delete),
           ),
         ],
       ),

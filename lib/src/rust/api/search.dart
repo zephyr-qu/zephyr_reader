@@ -18,7 +18,7 @@ Future<void> initSearchEngine() =>
 Future<void> indexChapter({
   required String bookId,
   required String chapterId,
-  required String chapterIndex,
+  required int chapterIndex,
   required String chapterTitle,
   required String content,
 }) => RustLib.instance.api.crateApiSearchIndexChapter(

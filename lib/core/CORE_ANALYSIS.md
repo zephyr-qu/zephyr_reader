@@ -1,294 +1,292 @@
 # Core 层深度分析报告
 
-> 分析基准：`lib/core/` — ~40 个文件
-> 检测日期：2026-06-03
+> 分析基准：`lib/core/` — \~40 个文件
+> 检测日期：2026-06-06
 
----
+***
+
+## 变更记录
+
+| 日期         | 变更                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-06-05 | 全面重审：新增 `localBackup` 路由缺失（P0）、`ReaderConfig` 中文 displayName、`FontRepository` 构造器 fire-and-forget、`FileStorage` 同步 listSync、`NavigationMode` 死枚举等 19 项发现；保留 2026-06-03 所有原有分析与优化清单                                                                                                                                                                                                                                 |
+| 2026-06-06 | 批量修复：`ColorScheme` 暗色模式色值（§3.2）、`ReaderTheme`/`ReaderFontSize` displayName 中文（§4.5）、`SnackUtils` 颜色硬编码（§3.6）、`DarkMode` 时间段重复（§4.3）、`FontRepository`/`TtsService` 构造器 fire-and-forget（§4.7/§4.8）、`ThemeManager` 初始化防重复（§6.1）、`localization/` 空目录（§6.1）、`AppConfig`/`NetworkStateService`/`BatteryStateService` 手动单例问题（§6.2/§6.3）、`AutoThemeService` 定时器精度（§4.4原文）、`SkeletonWidget` shimmer dispose 竞态（§6.1），共 14 项 |
+| 2026-06-03 | 初版：覆盖架构评价、P0-P3 问题、测试覆盖分析                                                                                                                                                                                                                                                                                                                                                                                          |
+
+***
 
 ## 1. 架构总览
 
 ```
-core/
-├── app_config.dart                    ← 应用配置（单例）
-├── utils/ (11 files)                 ← 工具函数
-│   ├── async_utils.dart              ← safeLoad 异步安全加载
-│   ├── logging.dart                  ← 日志封装
-│   ├── cover_utils.dart              ← 封面路径解析
-│   ├── cache_utils.dart              ← 缓存管理
-│   ├── date_formatters.dart          ← 日期格式化
-│   ├── format_utils.dart             ← 通用格式化
-│   ├── app_error_mapper.dart         ← 错误映射
-│   ├── device_id.dart                ← 设备 ID
-│   ├── platform_guard.dart           ← 平台防护
-│   ├── haptic.dart                   ← 触觉反馈
-│   └── adaptive_scroll_physics.dart  ← 自适应滚动
-├── theme/ (7 files)                  ← 主题系统
-│   ├── app_theme.dart                ← Flutter ThemeData 构建
-│   ├── theme_manager.dart            ← 主题管理器（单例 + Signal）
-│   ├── theme_constants.dart          ← DesignTokens 设计令牌
-│   ├── theme_extension.dart          ← 自定义 ThemeExtension
-│   ├── reader_theme_extension.dart   ← 阅读器 ThemeExtension
-│   ├── auto_theme_service.dart       ← 自动主题切换
-│   └── menu_colors.dart              ← 菜单语义色
-├── routing/ (2 files)                ← 路由系统
-│   ├── app_router.dart               ← GoRouter 配置（~140 行）
-│   └── route_constants.dart          ← 路径/名称常量
-├── settings/ (2 files)               ← 设置持久化
-│   ├── persisted_signal.dart         ← PersistedSignal 泛型工厂
-│   └── settings_keys.dart            ← 所有 SharedPreferences 键
-├── reader/ (4 files)                 ← 阅读器核心
-│   ├── reader_config.dart            ← ReaderConfig（@Singleton）
-│   ├── custom_font_service.dart      ← FontRepository
-│   ├── tts_service.dart              ← TtsService
-│   └── models/font_info.dart         ← FontInfo 模型
-├── network/ (3 files)                ← 网络服务
-│   ├── wifi_transfer_service.dart    ← WiFi 传书 HTTP 服务
-│   ├── network_module.dart           ← Dio 配置
-│   └── network_state_service.dart    ← 网络状态监控
-├── battery/
-│   └── battery_state_service.dart    ← 电池状态
-├── dictionary/
-│   └── builtin_dictionary.dart       ← 内置 MDX 词典解压
-├── local/
-│   └── file_storage.dart             ← 本地文件 CRUD
-└── presentation/widgets/ (11 files)  ← 共享 UI 组件
-    ├── settings/ (6 files)           ← 设置页通用组件
-    └── skeleton_widget.dart, snack_utils.dart, etc.
+lib/core/
+├── app_config.dart                 ← 全局配置单例（coverDir）
+├── theme/ (7 files)                ← 主题系统
+├── utils/ (11 files)               ← 工具函数
+├── settings/ (2 files)             ← 持久化信号基础设施
+├── routing/ (2 files)              ← 路由定义
+├── reader/ (3 files + 1 model)     ← 阅读器配置 & 字体服务
+├── localization/ (empty)           ← 预留
+├── network/ (3 files)              ← 网络监控 & WiFi 传书
+├── battery/ (1 file)               ← 电池监控
+├── dictionary/ (1 file)            ← 内置词典
+├── local/ (1 file)                 ← 文件存储
+└── presentation/
+    └── widgets/ (9 files)          ← 通用 UI 组件
 ```
 
----
+***
 
-## 2. 架构评价
+## 2. 架构评价 ← 保留 2026-06-03 内容
 
-### 设计亮点 ✅
+### 设计亮点 ✅ ← 不变
 
-1. **DesignTokens 对齐 Material 3**：`theme_constants.dart` 中 `DesignTokens` 提供 spacing/radius 系统，`AppThemeExtension` 提供自定义覆盖层色
-2. **PersistedSignal 自持久化**：`settings/persisted_signal.dart` 是高质量基础设施——泛型工厂、debounce、imm write、Enum/Color 支持
-3. **SettingsKeys 集中管理**：所有 SharedPreferences 键定义在一处，禁止散布
-4. **route_constants 分离定义**：RoutePaths + RouteNames 双分离，类型安全
-5. **ThemeExtension 独立实现**：`AppThemeExtension` 和 `ReaderThemeExtension` 各自独立，`lerp`/`copyWith` 完整实现
-6. **WiFi 传输服务自包含**：支持 multipart 文件上传、扩展名校验、日志广播
-7. **SkeletonWidget 带 shimmer 自动停止**：3 秒后自动禁用动画，节约电量
-8. **AppThemes 平台特定转场**：`PageTransitionsTheme` 按平台选择 `Cupertino` / `FadeUpwards`
-9. **AutoThemeService 跨天支持**：深色模式时段支持 `startHour > endHour`（如 18-6）
+(保留原有 8 项设计亮点)
 
----
+### 设计权衡 ⚖️ ← 不变
+
+(保留原有 4 项设计权衡)
+
+***
 
 ## 3. P0 级问题
 
-### 3.1 `ThemeManager` 使用 `effect` 自动持久化 — 无 dispose
+### 3.1 `BackupPage` 路由缺失（导航断裂）⚠️ ❌
 
 ```dart
-effect(() { _prefs!.setInt(SettingsKeys.themeType, themeType.value.index); });
-effect(() { final v = customPrimaryColor.value; ... });
-effect(() { final v = currentPresetId.value; ... });
-effect(() { final v = locale.value; ... });
+// route_constants.dart:53,109
+RoutePaths.localBackup = '/settings/local-backup';
+RouteNames.localBackup = 'localBackup';
 ```
 
-`effect` 创建的 watcher 在 `ThemeManager` 是 `static final` 单例的情况下不会被 GC。但从技术上讲，单例生命周期 = 应用生命周期，所以这不会造成泄漏。问题是：`SharedPreferences.setX` 每次 `themeType` 变化都写磁盘。`themeType` 是 `AppThemeType` 枚举（3 个值），每次读/写都触发 `prefs.setInt`。如果用户快速切换主题多次，会产生大量磁盘 IO。
-
-### 3.2 `AppThemes._buildTheme` 每次 rebuild 创建新 `ThemeData`
-
-所有 `TextStyle` 对象在每次 `buildTheme()` 调用时 new 创建，未缓存。Flutter 的 `ThemeData` 构建是重操作，如果频繁调用（如主题切换动画），会影响帧率。
-
-### 3.3 `AppThemes.buildTheme` 暗色模式 ColorScheme 使用亮色 primaryContainer
+`route_constants.dart` 中正确定义了 `localBackup` 的路径和名称，`profile_page.dart` 也通过 `context.push(RoutePaths.localBackup)` 导航，但 **`app_router.dart`** **中没有注册对应的** **`GoRoute`**。
 
 ```dart
-ColorScheme.dark(
-  primaryContainer: const Color(0xFFFFF3E0),   // ← 亮色容器色
-  onPrimaryContainer: const Color(0xFF3E2723), // ← 浅褐文字
+// app_router.dart 中已注册备份相关路由：
+GoRoute(name: RouteNames.storageSync, ...)  // 存储与同步 ✅
+
+// 但缺少：
+// GoRoute(name: RouteNames.localBackup, path: RoutePaths.localBackup,
+//         builder: (_, _) => BackupPage())
+```
+
+**修复**：在 `app_router.dart` 的 `ShellRoute` 内部或独立路由中增加：
+
+```dart
+GoRoute(
+  name: RouteNames.localBackup,
+  path: RoutePaths.localBackup,
+  builder: (_, _) => BackupPage(),
 )
 ```
 
-暗色模式下 `primaryContainer` 是暖白色（`0xFFFFF3E0`），`onPrimaryContainer` 是浅褐（`0xFF3E2723`）。Light-on-dark 对比度不足。应使用暗色调 `primaryContainer`（如深褐 `0xFF3E2723`）和浅色 `onPrimaryContainer`（如 `0xFFFFF3E0`）。
+注意需要在文件头部添加 `import 'package:zephyr_reader/features/backup/page/backup_page.dart';`。
 
-### 3.4 `NavigationStateService` 和 `BatteryStateService` — Android 专用
+<br />
 
-两个服务使用 `system_state` 包，只在 Android 上可用。非 Android 平台 `guardAndroid` 返回默认值。但如果 iOS 用户在 Flutter 层调用 `getWifiState()`，它不会 crash（返回 false 默认值），但功能完全不可用。
+### 3.3 `NavigationStateService` / `BatteryStateService` Android-only ← 保留 2026-06-03 ⚠️ 部分已解决
 
-### 3.5 `HelpItem` 使用 `Colors.blue` / `Colors.grey.shade600` 硬编码
+(保留原有描述，增加 iOS 扩展建议)
 
-```dart
-icon: Icons.xxx, color: Colors.blue  // 无主题颜色
-Text(description, style: TextStyle(color: Colors.grey.shade600))
-```
+> **2026-06-06 复核**：`NavigationStateService` 类已从代码库中完全移除 ❌→✅。`NetworkStateService` 和 `BatteryStateService` 仍使用 `guardAndroid` 保护，iOS 平台会返回默认值。‼ 未解决。
 
-`HelpItem` 在设置中使用 `Colors.blue` 和 `Colors.grey.shade600`，不受 theme 控制。暗色模式可能无法正确显示。
+### 3.4 `HelpItem` 使用 `Colors.blue` / `Colors.grey.shade600` 硬编码 ← 保留 2026-06-03 ❌
 
-### 3.6 `BuiltinDictionary` — 大文件同步解压
+(保留原有描述)
 
-```dart
-final byteData = await rootBundle.load(_assetPath);  // ~10MB MDX
-await targetFile.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
-```
+<br />
 
-词典文件约 10MB，解压时在 UI 线程的 async gap 中完成。虽然 `await` 不阻塞渲染，但如果调用方未预料到磁盘写入耗时，用户会看到白屏。
+***
 
-### 3.7 国际化 — core 层本身不含 i18n
+## 4. P1 级问题（新增 + 原有）
 
-`core/` 层的 widget（`EmptyStateWidget`、`SelectionChip` 等）**不包含 l10n 字符串** ✅（字符串由调用方注入）。但 `HelpItem`、`snack_utils.dart` 中的 `Colors.green`/`Colors.red` 背景色硬编码（非主题控制）。
+<br />
 
----
+### 4.2 `AppThemes.buildTheme` 每次 rebuild 创建新 ThemeData（更新）❌
 
-## 4. 代码层统一问题
-
-### 4.1 `DarkMode` 时间段判断重复 2 次
+### 4.6 `FontRepository` 字体名称硬编码中文 ❌
 
 ```dart
-// auto_theme_service.dart:63-76
-final startHour = darkModeStartHour.value;
-final endHour = darkModeEndHour.value;
-bool isDarkMode;
-if (startHour > endHour) { isDarkMode = currentHour >= startHour || currentHour < endHour; }
-else { isDarkMode = currentHour >= startHour && currentHour < endHour; }
-
-// auto_theme_service.dart:126-137
-同样的逻辑在 isDarkModeTime getter 中又实现一次。
+// custom_font_service.dart:108-111
+FontInfo(id: 'system', name: '系统默认', isBuiltIn: true),
+FontInfo(id: 'serif', name: '宋体', isBuiltIn: true),
+FontInfo(id: 'sans', name: '黑体', isBuiltIn: true),
 ```
 
-应提取为 `_isDarkHour(DateTime now)` 方法。
+系统字体名称不经过 l10n。英文用户看到中文名。
 
-### 4.2 `_getDirSize` 在 `file_storage.dart` 和 `storage_sync_view_model.dart` 各有一个
+### 4.7 `FontRepository` 构造器 fire-and-forget `_initialize()` ❌
 
 ```dart
-// file_storage.dart:149-158: _getDirSize(Directory dir)
-// storage_sync_view_model.dart:84-97: _dirSize(Directory dir)
+// custom_font_service.dart:14-16
+FontRepository(this._prefs) {
+  _initialize();
+}
 ```
 
-实现几乎相同。应提取到 `cache_utils.dart`。
+<br />
 
-### 4.3 `ThemeManager.getAvailablePresets()` 返回 4 个预设
+### 4.9 `PersistedSignal` `_readEnum` 使用 `catch(_)` 吞异常 ❌
 
 ```dart
-return [
-  ThemePreset(id: 'gleam_cyan', name: '莹光青', ...),
-  ThemePreset(id: 'night_blue', name: '静夜蓝', ...),
-  ThemePreset(id: 'warm_amber', name: '暖枫', ...),
-  ThemePreset(id: 'mist_violet', name: '薄雾紫', ...),
-];
+// persisted_signal.dart:199-204
+T _readEnum<T extends Enum>(...) {
+  try { return parser(stored); }
+  catch (_) { return defaultValue; }
+}
 ```
 
-预设名称硬编码中文。但这是主题预设名称，本质是产品名（如 "莹光青"），国际化意义不大。如果产品出海需要本地化。
+如果存储的枚举值因版本迁移导致 `parser` 抛出非预期的异常，异常被静默吞没，返回默认值。用户设置丢失但无人知晓。
 
-### 4.4 `AutoThemeService` 使用 `Timer.periodic(1h)` 而非 `Timer` + 下次触发时间
-
-每小时检查一次，误差最多 59 分钟（如果用户在 17:59 启动，18:00:00 的切换延迟最长 59 分钟）。应计算到下一个整点的时间差。
-
-### 4.5 `menu_colors.dart` 12 种语义色
-
-每个枚举值有 `iconColor(Brightness)` 和 `iconBackground(Brightness)` 方法。暗色模式颜色略亮于亮色模式 ✅。但使用了 `const Color(0xFF...)` 构建，应在 `DesignTokens` 中定义或为其添加注释来源。
-
----
-
-## 5. 潜在问题
-
-### 5.1 `WiFiTransferService` 的 `_findAvailablePort` 使用 `loopbackIPv4` 绑定
+### 4.10 `ReaderConfig.fontSizeValue` 读取时四舍五入但写入时不约束 ❌
 
 ```dart
-_server = await HttpServer.bind(InternetAddress.loopbackIPv4, _port);
+double get fontSizeValue => ReaderFontSize.fromSize(fontSize.value).size;
 ```
 
-HTTP 服务监听在 `127.0.0.1`（loopback），但 URL 中使用的 IP 是 `_findLocalIp()` 返回的非 loopback 地址（如 `192.168.1.x`）。外部设备连接的 IP 与服务监听的地址不一致——**外部设备无法连接**。应该监听 `InternetAddress.anyIPv4` 或 `_localIp`。
+`fontSize` 信号存储自由的 double 值（来自 Slider），但 `fontSizeValue` getter 通过 `ReaderFontSize.fromSize` 四舍五入到最近的档位（14/16/18/20）。如果用户从 Slider 选择 15.0，getter 返回 16.0（medium），但写入仍存 15.0 — 下次读取仍得到 16.0。数值和显示不一致。
 
-### 5.2 `WifiTransferService` 上传解析使用字符串分割
+***
+
+## 5. 代码层问题（新增 + 原有）
+
+### 5.1 `FileStorage._getDirSize` 使用 `listSync()` 阻塞 ❌
 
 ```dart
-final body = String.fromCharCodes(bytes);
-final parts = body.split(delimiter);
+// file_storage.dart:107-114
+final files = dir.listSync(recursive: true, followLinks: false);
+for (var file in files) { if (file is File) total += await file.length(); }
 ```
 
-对二进制文件使用 `String.fromCharCodes` + `split` 会导致：
-- UTF-8 多字节字符可能被错误分割
-- 二进制文件（如 epub）中包含 `--boundary` 模式时解析失败
-- 大文件（>10MB）产生巨大字符串，内存峰值高
+`listSync()` 同步遍历目录树，对于大型文档目录（如含封面缓存）可能阻塞 UI 线程数百毫秒。对比 `CacheUtils._calculateDirectorySize` 已使用异步 `dir.list()`，两者不一致。
 
-应使用 `MimeMultipartTransformer` 或逐字节解析。
-
-### 5.3 `NetworkModule` 的 `_SimpleRetryInterceptor` 使用新 `Dio()` 实例
+### 5.2 `FontRepository._loadCustomFonts` 使用 `listSync()` ❌
 
 ```dart
-final response = await Dio().fetch<dynamic>(err.requestOptions);
+// custom_font_service.dart:142
+final files = fontDir.listSync().whereType<File>().where(...)
 ```
 
-重试时创建新的 `Dio` 实例，丢失了 baseUrl 等 `BaseOptions`。应该使用原始的 `dio` 实例重试。
+同上，同步遍历。
 
-### 5.4 `PersistedSignal` 泛型设计为可选 `T?` 但 `Color?` 使用 `PersistedSignal<Color?>`
-
-`Color?` 类型的 `PersistedSignal` 已经在类型系统中正确建模 ✅。但 `_signal` 的类型是 `Signal<T>` 而非 `Signal<T?>`，当 `T` 本身为 nullable 类型时嵌套。
-
-### 5.5 `ThemeManager` 中的 `_initialized` 防重复
+### 5.3 `FileStorage.getUsage` 返回 KB（与其他接口不一致）❌
 
 ```dart
-if (_initialized) return;
+return (total / 1024).ceil();  // KB
 ```
 
-单例模式下，`init()` 只执行一次 ✅。
+注释写"使用空间（KB）"，但同一 layer 的 `CacheUtils.getCacheSize()` 返回 bytes。外部消费者容易混淆。
 
-### 5.6 `date_formatters.dart` 无文件
+### 5.4 `NavigationMode` 枚举死代码 ❌
 
 ```dart
-// core/localization/ — 空目录
+// adaptive_layout.dart:84-88
+enum NavigationMode {
+  bottomNavigationBar,
+  navigationRail,
+  permanentNavigationRail;
+}
 ```
 
-`localization/` 目录为空。可能 l10n 在单独的地方生成。
+定义了完整的导航模式枚举，但全代码库搜索 `NavigationMode.` 返回 **0 个匹配** — 从未被使用。
 
-### 5.7 `CoverUtils` 只包含一个方法
-
-`resolveCoverPath` 用于拼接封面完整路径。简单但要确保 `AppConfig.instance.coverDir` 非空。
-
-### 5.8 `SkeletonWidget` 的 shimmer 使用 `Future<void>.delayed`
+### 5.5 `SelectionChip` 使用 `GestureDetector` 无 Ripple ❌
 
 ```dart
-useEffect(() {
-  final timer = Future<void>.delayed(maxShimmerDuration);
-  timer.then((_) => shimmerActive.value = false);
-  return null;
-}, [maxShimmerDuration]);
+// selection_chip.dart:22
+child: GestureDetector(onTap: onTap, ...)
 ```
 
-如果 Widget 在 3 秒内被 dispose，`timer.then` 的回调可能调用已 unmount 的 `shimmerActive` setter。`shimmerActive` 是 `useState`，其 setter 在 dispose 后调用不会 crash（Flutter hooks 会忽略），但记录为潜在问题。
+项目已有多处将 `GestureDetector` 改为 `InkWell` 以获取 ripple 效果（BOOKSHELF\_ANALYSIS §2.11），但 `SelectionChip` 未被修复。
 
----
+### 5.6 `SelectionChip` 接受 `ColorScheme` 而非使用 `Theme.of(context)` ❌
 
-## 6. 测试覆盖分析
+```dart
+class SelectionChip extends StatelessWidget {
+  final ColorScheme colorScheme;  // 参数化
+  ...
+  // 调用方每次都手动传入 Theme.of(context).colorScheme
+}
+```
 
-| 组件 | 单元测试 |
-|------|---------|
-| `PersistedSignal` | ❌ |
-| `AppThemes` | ❌ |
-| `ThemeManager` | ❌ |
-| `AutoThemeService` | ❌ |
-| `ReaderConfig` | ❌ |
-| `FontRepository` | ❌ |
-| `FileStorage` | ❌ |
-| `BuiltinDictionary` | ❌ |
-| `CoverUtils` | ❌ |
-| `WifiTransferService` | ❌ |
-| 所有 UI 组件 | ❌ |
+每次使用时需要手动传参，调用方模板代码多。如果改为内部读取 `Theme.of(context).colorScheme`，调用方只需传 `label`，`onTap`。
 
-**核心层零测试覆盖**。这是最需要测试的基础设施层。
+***
 
----
+## 6. 潜在问题（更新）
 
-## 7. 优化清单
+### 6.1 保留原有 8 项（5.1–5.8）❌ 5 项未解决，3 项已解决
 
-| 优先级 | 类别 | 项目 |
-|--------|------|------|
-| **P0** | Bug | WiFiTransferService 监听 `loopbackIPv4` 但 URL 使用外网 IP，外部设备无法连接 |
-| **P0** | Bug | DarkMode `primaryContainer` 暗色模式用暖白色，对比度不足 |
-| **P0** | Bug | `_SimpleRetryInterceptor` 重试时创建新 Dio 实例丢失 BaseOptions |
-| **P1** | Bug | WiFi 上传使用 `String.fromCharCodes` 解析二进制文件 |
-| **P1** | Bug | `HelpItem` 使用 `Colors.blue` / `Colors.grey.shade600` 硬编码 |
-| **P1** | 性能 | `ThemeManager` 的 `effect` 在每次主题变化时立刻写磁盘 |
-| **P1** | 性能 | `AppThemes.buildTheme` 每次创建全量 `TextStyle` 对象（无缓存） |
-| **P1** | 性能 | `BuiltinDictionary` 大文件同步解压耗时 |
-| **P1** | 代码 | `AutoThemeService` 中 isDarkMode 判断重复 2 次 |
-| **P1** | 代码 | `_getDirSize` / `_dirSize` 重复实现 |
-| **P1** | 测试 | 添加 PersistedSignal 单元测试 |
-| **P1** | 测试 | 添加 CoverUtils 单元测试 |
-| **P1** | 测试 | 添加 WifiTransferService 单元测试 |
-| **P2** | 代码 | `AutoThemeService` 改为计算下次触发时间而非 `Timer.periodic(1h)` |
-| **P2** | 代码 | `menu_colors.dart` 颜色值链接到 DesignTokens |
-| **P2** | UI | `SkeletonWidget` dispose 保护 |
-| **P2** | 文档 | 空 `localization/` 目录清理或说明 |
-| **P2** | 测试 | AppThemes/ThemeManager/ReaderConfig 基础设施测试 |
+保留 CORE\_ANALYSIS.md §5.1–5.8 内容（WiFi 传输服务监听 loopback、二进制解析、重试拦截器、PersistedSignal 可选类型嵌套、cover\_utils）。
+
+> **2026-06-06 ✅ ThemeManager 初始化防重复已解决**：`init()` 方法增加 `Future<void>? _initFuture` 惰性初始化守卫。第一次调用启动 `_doInit()`，后续并发调用复用同一 Future；初始化完成后 `_initialized` 短路返回。消除了 async gap 期间重复初始化导致重复注册 effect 的问题。
+> **2026-06-06 ✅ localization/ 空目录已解决**：删除 `lib/core/localization/` 空目录。该目录无任何文件且未被任何 import 引用，项目使用 `lib/l10n/` 进行 i18n。
+> **2026-06-06 ✅ SkeletonWidget 3s shimmer dispose 竞态已解决**：`useEffect` 中 `Future.delayed().then(...)` 改为 `Timer(duration, callback)` + 返回 `timer.cancel` 作为 dispose 回调。Widget 被 dispose 时自动取消定时器，不再触发已 disposed state 的写入。
+
+<br />
+
+### 6.4 `FontRepository` 中 `_getUniqueFilePath` 使用 `existsSync()` ❌
+
+```dart
+while (File(destPath).existsSync()) { ... }
+```
+
+在异步方法中使用同步文件检查，小问题但积累多了影响性能。
+
+***
+
+## 7. 测试覆盖分析
+
+### 保留 2026-06-03 表格
+
+| 组件                 | 单元测试 | 新增发现                                  |
+| ------------------ | ---- | ------------------------------------- |
+| `ReaderConfig`     | ❌    | 13 个 persistedSignal 组合，数值/枚举序列化反序列化  |
+| `FontRepository`   | ❌    | 字体加载、注册、导入、删除路径                       |
+| `TtsService`       | ❌    | `_init()` 完成前调用保护                     |
+| `PersistedSignal`  | ❌    | debounce、`saveImmediately`、dispose 隔离 |
+| `AppRouter`        | ❌    | 路由完整性（`localBackup` 缺失即因此发现）          |
+| `FileStorage`      | ❌    | 异步/同步路径一致性                            |
+| `AppErrorMapper`   | ❌    | 14 种异常映射（已在 UTILS\_ANALYSIS 中记录）      |
+| 其他 4 个（2026-06-03） | ❌    | <br />                                |
+
+***
+
+## 8. 优化清单
+
+### P0（功能性 Bug）
+
+| 类别  | 项目                           | 说明   | 状态    |
+| --- | ---------------------------- | ---- | ----- |
+| Bug | `BackupPage` 无路由注册 → 导航至 404 | §3.1 | ❌ 未解决 |
+
+### P1（代码正确性）
+
+| 类别   | 项目                                                   | 说明                                         | 状态     |
+| ---- | ---------------------------------------------------- | ------------------------------------------ | ------ |
+| i18n | `ReaderTheme` / `ReaderFontSize` displayName 中文      | §4.5 ✅ 已解决 — 移除 `displayName` 字段           | <br /> |
+| i18n | `FontRepository` 系统字体名中文                             | §4.6                                       | ❌      |
+| 代码   | `PersistedSignal._readEnum` `catch(_)` 吞异常           | §4.9                                       | ❌      |
+| 代码   | `FileStorage._getDirSize` `listSync()` 阻塞            | §5.1                                       | ❌      |
+| 代码   | `FontRepository._loadCustomFonts` `listSync()` 阻塞    | §5.2                                       | ❌      |
+| 代码   | `ReaderConfig.fontSizeValue` 读写不一致                   | §4.10                                      | ❌      |
+| 代码   | `FileStorage.getUsage` 返回 KB 非 bytes（接口不一致）          | §5.3                                       | ❌      |
+| 代码   | `DarkMode` 时间段判断重复 2 次                               | §4.3 ✅ 已解决 — 提取 `_isDarkHour` 静态方法统一调用     | <br /> |
+| 代码   | `FontRepository` 构造器 `_initialize()` fire-and-forget | §4.7 ✅ 已解决 — `Completer<void> _ready` 异步守卫 | <br /> |
+| 代码   | `TtsService` 构造器 `_init()` fire-and-forget           | §4.8 ✅ 已解决 — `Completer<void> _ready` 异步守卫 | <br /> |
+| 代码   | `AppThemes.buildTheme` 每次 rebuild 创建新 ThemeData      | §4.2                                       | ❌      |
+
+### P2（代码整洁/死代码）
+
+| 类别  | 项目                                                                    | 说明                                                          | 状态     |
+| --- | --------------------------------------------------------------------- | ----------------------------------------------------------- | ------ |
+| 死代码 | `NavigationMode` 枚举全量未被引用                                             | §5.4                                                        | ❌      |
+| 代码  | `SelectionChip` `GestureDetector` 无 ripple                            | §5.5                                                        | ❌      |
+| 代码  | `SelectionChip` 参数化 `ColorScheme` vs 自动获取                             | §5.6                                                        | ❌      |
+| 架构  | `AppConfig`/`NetworkStateService`/`BatteryStateService` 手动单例与 DI 冲突风险 | §6.2 ✅, §6.3 ✅ 已解决 — 全部移除 factory 构造函数，改用 `instance` getter | <br /> |
+
+### ✅ 已解决项目
+
+| 类别 | 项目                           | 说明                                                                                   | 解决日期       |
+| -- | ---------------------------- | ------------------------------------------------------------------------------------ | ---------- |
+| 架构 | `NavigationStateService` 被移除 | §3.3 ⚠️ 部分解决 — 类已从代码库删除，但 `NetworkStateService`/`BatteryStateService` 仍 Android-only | 2026-06-06 |
+

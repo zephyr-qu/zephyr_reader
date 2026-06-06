@@ -7,7 +7,6 @@ use super::decode;
 use crate::domain::{AppError, ParseResult};
 use crate::storage::models::{Book, BookFormat, Chapter};
 use crate::text::chapter_detect;
-use crate::text::constants::CHAPTER_PATTERN_ZH;
 
 /// 解析 TXT 文件
 pub fn parse_txt(file_path: String) -> Result<ParseResult, AppError> {
@@ -127,7 +126,7 @@ fn parse_txt_inner(file_path: String) -> Result<ParseResult, AppError> {
         file_path: file_path.clone(),
         title,
         author: Some(author),
-        chapter_count: chapters.len() as i32,
+        chapter_count: chapters.len() as i64,
         total_characters: total_chars,
         cover_path: None,
         publisher: None,
@@ -163,66 +162,30 @@ fn parse_txt_inner(file_path: String) -> Result<ParseResult, AppError> {
 /// **重要**：返回的 `Chapter.start_index` 和 `end_index` 是**字节偏移**（而非字符索引）。
 /// 在使用这些值切片内容时，必须确保在 UTF-8 字符边界处截断。
 fn extract_chapters(content: &str, book_id: &str) -> Vec<Chapter> {
-    let mut chapters: Vec<Chapter> = Vec::new();
-    let mut chapter_index = 0i32;
-
-    // 使用通用章节检测
+    // 使用通用章节检测（支持中文、英文、数字等多种模式）
     let detected = chapter_detect::extract_chapters(content, 1000, book_id);
-
     if !detected.is_empty() {
         return detected;
     }
 
-    // 如果没有检测到章节，尝试按正则匹配
-    let mut last_end = 0i64;
+    // 如果没有检测到章节标记，将整个文件作为一章
+    vec![
 
-    for cap in CHAPTER_PATTERN_ZH.captures_iter(content) {
-        if let Some(m) = cap.get(0) {
-            let start = m.start() as i64;
 
-            if chapter_index > 0 && last_end > 0 {
-                // 更新上一章的结束位置
-                if let Some(last) = chapters.last_mut() {
-                    last.end_index = start;
-                    last.content_length = start - last.start_index;
-                }
-            }
+      Chapter::new(book_id, "Full Text", 0, 0, 0,  content.len() as i64)
 
-            chapters.push(Chapter {
-                id: uuid::Uuid::new_v4().to_string(),
-                book_id: book_id.to_string(),
-                title: m.as_str().trim().to_string(),
-                start_index: start,
-                end_index: content.len() as i64,
-                content_length: content.len() as i64 - start,
-                chapter_index,
-                word_count: 0,
-                cached_at: chrono::Utc::now(),
-                level: 0,
-            });
-
-            chapter_index += 1;
-            last_end = start;
-        }
-    }
-
-    // 如果没有匹配到任何章节，将整个文件作为一章
-    if chapters.is_empty() {
-        chapters.push(Chapter {
-            id: uuid::Uuid::new_v4().to_string(),
-            book_id: book_id.to_string(),
-            title: "Full Text".to_string(),
-            start_index: 0,
-            end_index: content.len() as i64,
-            content_length: content.len() as i64,
-            chapter_index: 0,
-            word_count: 0,
-            cached_at: chrono::Utc::now(),
-            level: 0,
-        });
-    }
-
-    chapters
+    //   {
+    //     id: uuid::Uuid::new_v4().to_string(),
+    //     book_id: book_id.to_string(),
+    //     title: "Full Text".to_string(),
+    //     start_index: 0,
+    //     end_index: content.len() as i64,
+    //     chapter_index: 0,
+    //     word_count: 0,
+    //     cached_at: chrono::Utc::now(),
+    //     level: 0,
+    // }
+    ]
 }
 
 #[cfg(test)]

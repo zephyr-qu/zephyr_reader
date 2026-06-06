@@ -1,182 +1,13 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/presentation/widgets/skeleton_widget.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:zephyr_reader/core/utils/cover_utils.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/core/utils/haptic.dart';
+import 'package:zephyr_reader/features/bookshelf/page/widgets/book_cover.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-
-// ─── Bottom-Left Triangle Clipper ──────────────────────────────────────────
-
-class _BottomLeftTriangleClipper extends CustomClipper<Path> {
-  const _BottomLeftTriangleClipper();
-
-  @override
-  Path getClip(Size size) {
-    return Path()
-      ..moveTo(0, size.height)
-      ..lineTo(0, size.height * 0.38)
-      ..lineTo(size.width * 0.42, size.height)
-      ..close();
-  }
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
-}
-
-// ─── Book Cover ─────────────────────────────────────────────────────────────
-
-class _BookCover extends StatelessWidget {
-  final Book book;
-  final String statusLabel;
-  final double? progress;
-
-  const _BookCover({
-    required this.book,
-    required this.statusLabel,
-    this.progress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final showProgress = progress != null && progress! > 0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Stack(
-            children: [
-              // Cover image / placeholder
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer,
-                  borderRadius: BorderRadius.circular(
-                    DesignTokens.radius(RadiusSize.sm),
-                  ),
-                ),
-                child: book.coverPath != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(
-                          DesignTokens.radius(RadiusSize.sm),
-                        ),
-                        child: Image.file(
-                          File(resolveCoverPath(book.coverPath!)!),
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                          cacheWidth: 160,
-                          errorBuilder: (_, _, _) => Center(
-                            child: Icon(
-                              PhosphorIconsRegular.book,
-                              size: 24,
-                              color: cs.primary.withValues(alpha: 0.4),
-                            ),
-                          ),
-                        ),
-                      )
-                    : Center(
-                        child: Icon(
-                          PhosphorIconsRegular.book,
-                          size: 24,
-                          color: cs.primary.withValues(alpha: 0.4),
-                        ),
-                      ),
-              ),
-
-              // Status tag - top-right
-              if (book.status == BookStatus.reading)
-                Positioned(
-                  top: 6,
-                  right: 6,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: cs.primary,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      statusLabel,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: cs.onPrimary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Progress triangle overlay - bottom-left
-              if (showProgress)
-                Positioned.fill(
-                  child: ClipPath(
-                    clipper: const _BottomLeftTriangleClipper(),
-                    child: Container(
-                      color: Colors.black.withValues(alpha: 0.55),
-                    ),
-                  ),
-                ),
-
-              // Progress percentage text
-              if (showProgress)
-                Positioned(
-                  left: 7,
-                  bottom: 7,
-                  child: Text(
-                    '${(progress! * 100).round()}%',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      height: 1,
-                    ),
-                  ),
-                ),
-
-              // Progress bar at bottom
-              if (showProgress)
-                Positioned(
-                  left: 4,
-                  right: 4,
-                  bottom: 4,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(1.5),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: Colors.black.withValues(alpha: 0.15),
-                      valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
-                      minHeight: 3,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          book.title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 12,
-            color: cs.onSurface,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class BookshelfBookContent extends StatelessWidget {
   final bool isLoading;
@@ -210,18 +41,19 @@ class BookshelfBookContent extends StatelessWidget {
     required this.readingProgress,
   });
 
-  String _statusLabel(String statusName) {
+  String _statusLabel(BuildContext context, String statusName) {
+    final l10n = AppLocalizations.of(context)!;
     return switch (statusName) {
-      'reading' => '阅读中',
-      'completed' => '已读完',
-      _ => '未开始',
+      'reading' => l10n.reading,
+      'completed' => l10n.finished,
+      _ => l10n.notStarted,
     };
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
+    final l10n = AppLocalizations.of(context)!;
     if (isLoading) return const SkeletonGrid();
     if (hasError) {
       return Center(
@@ -229,11 +61,11 @@ class BookshelfBookContent extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '加载失败',
+              l10n.loadFailed,
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             ),
             SizedBox(height: DesignTokens.spacing(Spacing.sm)),
-            TextButton(onPressed: onRetry, child: const Text('重试')),
+            TextButton(onPressed: onRetry, child: Text(l10n.retry)),
           ],
         ),
       );
@@ -250,7 +82,7 @@ class BookshelfBookContent extends StatelessWidget {
             ),
             SizedBox(height: DesignTokens.spacing(Spacing.md)),
             Text(
-              '书架空空如也',
+              l10n.bookshelfEmpty,
               style: TextStyle(
                 fontSize: 16,
                 color: theme.colorScheme.onSurfaceVariant,
@@ -260,7 +92,7 @@ class BookshelfBookContent extends StatelessWidget {
             FilledButton.tonalIcon(
               onPressed: onImportTap,
               icon: const Icon(PhosphorIconsRegular.uploadSimple, size: 18),
-              label: const Text('导入书籍'),
+              label: Text(l10n.importBook),
             ),
           ],
         ),
@@ -286,12 +118,11 @@ class BookshelfBookContent extends StatelessWidget {
             crossAxisSpacing: 14,
             mainAxisSpacing: 18,
           ),
-          itemCount: books.length,
           itemBuilder: (context, index) {
             final book = books[index];
             final selected = selectedIds.contains(book.bookId);
             return RepaintBoundary(
-              child: GestureDetector(
+              child: InkWell(
                 onTap: batchMode
                     ? () {
                         if (selected) {
@@ -314,9 +145,12 @@ class BookshelfBookContent extends StatelessWidget {
                 child:
                     Stack(
                           children: [
-                            _BookCover(
+                            BookCover(
                               book: book,
-                              statusLabel: _statusLabel(book.status.name),
+                              statusLabel: _statusLabel(
+                                context,
+                                book.status.name,
+                              ),
                               progress: readingProgress[book.bookId],
                             ),
                             if (batchMode)

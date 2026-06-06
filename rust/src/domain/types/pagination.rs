@@ -22,9 +22,8 @@ pub struct PageContent {
     /// 是否为最后一页
     pub is_last_page: bool,
     /// 此页在章节原文中的起始字节偏移（用于阅读进度定位）
-    pub start_offset: i64,
-    /// 此页在章节原文中的结束字节偏移
-    pub end_offset: i64,
+    pub start_offset: i32,
+    pub end_offset: i32,
 }
 
 // ==================== 页面偏移量 ====================
@@ -35,9 +34,8 @@ pub struct PageContent {
 #[frb(non_opaque)]
 pub struct PageOffset {
     /// 起始偏移量（字节）
-    pub offset: i64,
-    /// 内容长度（字节）
-    pub length: i64,
+    pub offset: i32,
+    pub length: i32,
 }
 
 /// 搜索结果
@@ -50,15 +48,14 @@ pub struct SearchResult {
     pub book_id: String,
     /// 章节 ID
     pub chapter_id: String,
-    pub chapter_index: String,
+    #[sqlx(try_from = "i64")]
+    pub chapter_index: i32,
     /// 章节标题
     pub chapter_title: String,
     /// 匹配内容的片段（上下文）
     pub snippet: String,
     /// 匹配位置（在章节中的字符偏移）
-    pub position: i64,
-    /// 相关性得分（越高越相关）
+    pub position: i32,
     pub score: f32,
-    /// 字符偏移量（用于定位高亮）
-    pub char_offset: i64,
+    pub char_offset: i32,
 }

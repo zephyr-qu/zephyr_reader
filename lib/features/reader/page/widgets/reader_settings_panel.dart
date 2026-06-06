@@ -29,6 +29,8 @@ class ReaderSettingsPanel extends HookWidget {
   final ValueChanged<double> onBrightnessChanged;
   final TapLayout tapLayout;
   final ValueChanged<TapLayout> onTapLayoutChanged;
+  final bool followSystemFontScale;
+  final ValueChanged<bool> onFollowSystemFontScale;
   final VoidCallback onClose;
 
   const ReaderSettingsPanel({
@@ -53,6 +55,8 @@ class ReaderSettingsPanel extends HookWidget {
     required this.onReaderBgColorChanged,
     required this.tapLayout,
     required this.onTapLayoutChanged,
+    required this.followSystemFontScale,
+    required this.onFollowSystemFontScale,
     required this.brightnessValue,
     required this.onBrightnessChanged,
     required this.onClose,
@@ -91,6 +95,8 @@ class ReaderSettingsPanel extends HookWidget {
                   ),
                   const SizedBox(height: 4),
                   _buildThemeSelector(readerTheme, l10n),
+                  const SizedBox(height: 8),
+                  _buildFontScaleToggle(readerTheme, l10n),
                   const SizedBox(height: 4),
                   _buildBgColorPicker(readerTheme, l10n),
                   const SizedBox(height: 8),
@@ -674,6 +680,35 @@ class ReaderSettingsPanel extends HookWidget {
               padding: const EdgeInsets.only(top: 2, bottom: 2),
               child: preview,
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFontScaleToggle(
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      child: Row(
+        children: [
+          Text(
+            l10n.followSystemFontScale,
+            style: TextStyle(
+              color: readerTheme.mutedColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          const Spacer(),
+          SizedBox(
+            height: 24,
+            child: Switch.adaptive(
+              value: followSystemFontScale,
+              onChanged: onFollowSystemFontScale,
+            ),
+          ),
         ],
       ),
     );

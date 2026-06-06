@@ -38,10 +38,10 @@ pub async fn list_bookmarks_by_book(book_id: String) -> Result<Vec<Bookmark>, Ap
 pub async fn create_bookmark(
     book_id: String,
     chapter_index: i32,
-    char_offset: i64,
+    char_offset: i32,
     title: String,
 ) -> Result<Bookmark, AppError> {
-    let bookmark = Bookmark::new(&book_id, chapter_index, None, char_offset, &title);
+    let bookmark = Bookmark::new(&book_id, chapter_index as i64, None, char_offset as i64, &title);
     async_storage!(|pool| BookmarkRepository::save(pool, &bookmark))
 }
 

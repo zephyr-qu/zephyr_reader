@@ -22,9 +22,9 @@ pub use crate::storage::models::ReadingSession;
 #[frb]
 pub async fn list_sessions_by_book(
     book_id: String,
-    limit: usize,
+    limit: i32,
 ) -> Result<Vec<ReadingSession>, AppError> {
-    async_storage!(|pool| SessionRepository::find_by_book(pool, &book_id, limit))
+    async_storage!(|pool| SessionRepository::find_by_book(pool, &book_id, limit as i64))
 }
 
 /// 根据日期范围获取阅读会话列表
@@ -58,8 +58,8 @@ pub async fn list_sessions_by_date_range(
 /// # 返回
 /// 按时间倒序排列的最近阅读会话列表
 #[frb]
-pub async fn list_sessions_by_recent(limit: usize) -> Result<Vec<ReadingSession>, AppError> {
-    async_storage!(|pool| SessionRepository::find_by_recent(pool, limit))
+pub async fn list_sessions_by_recent(limit: i32) -> Result<Vec<ReadingSession>, AppError> {
+    async_storage!(|pool| SessionRepository::find_by_recent(pool, limit as i64))
 }
 
 /// 创建阅读会话（自动生成 UUID）
@@ -77,17 +77,17 @@ pub async fn list_sessions_by_recent(limit: usize) -> Result<Vec<ReadingSession>
 pub async fn create_session(
     book_id: String,
     chapter_index: i32,
-    start_char_offset: i64,
-    end_char_offset: i64,
+    start_char_offset: i32,
+    end_char_offset: i32,
     started_at: i64,
 ) -> Result<ReadingSession, AppError> {
     let started = chrono::DateTime::from_timestamp(started_at, 0)
         .ok_or_else(|| AppError::internal("invalid started_at timestamp".to_string()))?;
     let session = ReadingSession::new(
         &book_id,
-        chapter_index,
-        start_char_offset,
-        end_char_offset,
+        chapter_index  as i64,
+        start_char_offset as i64,
+        end_char_offset as i64,
         started,
     );
     async_storage!(|pool| SessionRepository::save(pool, &session))

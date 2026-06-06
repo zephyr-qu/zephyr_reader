@@ -36,7 +36,9 @@ class BookDetailNoteStats extends StatelessWidget {
             theme,
             '$highlightCount',
             l10n.highlightsCount,
-            const Color(0xFFFFA726),
+            theme.brightness == Brightness.dark
+                ? const Color(0xFFFFB74D)
+                : const Color(0xFFFFA726),
             Colors.orange.shade50,
             onHighlightsTap ?? () {},
           ),
@@ -54,7 +56,9 @@ class BookDetailNoteStats extends StatelessWidget {
             theme,
             '$vocabCount',
             l10n.vocabularyCount,
-            const Color(0xFFAB47BC),
+            theme.brightness == Brightness.dark
+                ? const Color(0xFFCE93D8)
+                : const Color(0xFFAB47BC),
             Colors.purple.shade50,
             onVocabularyTap ?? () {},
           ),
@@ -72,8 +76,9 @@ class BookDetailNoteStats extends StatelessWidget {
     VoidCallback onTap,
   ) {
     return Expanded(
-      child: GestureDetector(
+      child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           decoration: BoxDecoration(

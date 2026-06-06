@@ -41,7 +41,7 @@ impl EpubContentProvider {
 
         let chapter = chapters
             .iter()
-            .find(|c| c.chapter_index == chapter_index)
+            .find(|c| c.chapter_index == chapter_index  as i64)
             .ok_or_else(|| {
                 AppError::chapter_extract_error(
                     chapter_index,

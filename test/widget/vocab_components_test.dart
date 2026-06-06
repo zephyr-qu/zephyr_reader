@@ -1,24 +1,60 @@
 // test/widget/vocab_components_test.dart
 //
-// 生词页面提取的三个 StatelessWidget 的渲染测试。
+// 生词页面提取的三个 StatelessWidget 的渲染和交互测试。
 // 不依赖 Rust FFI，纯 UI 验证。
 
 import 'package:flutter/material.dart';
+import 'package:signals_flutter/signals_flutter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:zephyr_reader/l10n/app_localizations_en.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_status_chip.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_list_item_tile.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_stats_row.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/storage/vocab_status_extension.dart';
 
+final testL10n = AppLocalizationsEn();
+
 Widget wrapWithTheme(Widget child) {
   return MaterialApp(
-    theme: ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-    ),
+    theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue)),
     home: Scaffold(body: child),
   );
+}
+
+/// Helper to create a test Vocab with overridable fields.
+Vocab createTestVocabItem({
+  String id = 'test-id',
+  String word = '测试词',
+  String pinyin = 'ce shi ci',
+  String translation = 'test word',
+  String? bookId,
+  VocabStatus status = VocabStatus.learning,
+  String? wordList,
+}) {
+  return Vocab(
+    id: id,
+    word: word,
+    pinyin: pinyin,
+    translation: translation,
+    contextSentence: null,
+    bookId: bookId,
+    chapterIndex: null,
+    charOffset: null,
+    createdAt: DateTime.now(),
+    reviewCount: 0,
+    lastReviewedAt: null,
+    status: status,
+    wordList: wordList,
+    dictSource: null,
+    dictEntryHash: null,
+  );
+}
+
+/// Pump past flutter_animate animation timers to avoid pending-timer assertion.
+Future<void> flushAnimations(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 500));
 }
 
 void main() {
@@ -28,40 +64,28 @@ void main() {
     for (final status in VocabStatus.values) {
       testWidgets('渲染 ${status.displayName} 标签', (tester) async {
         await tester.pumpWidget(
-          wrapWithTheme(VocabStatusChip(status: status, theme: ThemeData())),
+          wrapWithTheme(
+            VocabStatusChip(status: status, theme: ThemeData(), l10n: testL10n),
+          ),
         );
 
-        expect(find.text(status.displayName), findsOneWidget);
+        expect(find.text(status.displayName(testL10n)), findsOneWidget);
       });
     }
   });
 
   group('VocabListItemTile', () {
-    testWidgets('渲染词条内容和状态标签', (tester) async {
-      final item = Vocab(
-        id: 'test-id',
-        word: '测试词',
-        pinyin: 'ce shi ci',
-        translation: 'test word',
-        contextSentence: null,
-        bookId: null,
-        chapterIndex: null,
-        charOffset: null,
-        createdAt: DateTime.now(),
-        reviewCount: 0,
-        lastReviewedAt: null,
-        status: VocabStatus.learning,
-        wordList: null,
-        dictSource: null,
-        dictEntryHash: null,
-      );
+    testWidgets('渲染词条基本内容和状态标签', (tester) async {
+      final item = createTestVocabItem();
 
       await tester.pumpWidget(
         wrapWithTheme(
           VocabListItemTile(
             item: item,
-            bookTitles: {},
+            bookTitles: const {},
             theme: ThemeData(),
+            l10n: testL10n,
+            index: 0,
             onDismissed: () {},
             onUpdateStatus: (_) {},
           ),
@@ -69,35 +93,85 @@ void main() {
       );
 
       expect(find.text('测试词'), findsOneWidget);
-      expect(find.text(VocabStatus.learning.displayName), findsOneWidget);
-      expect(find.text('ce shi ci'), findsOneWidget);
+      expect(find.text(testL10n.statusLearning), findsOneWidget);
+      expect(find.text('/ce shi ci/'), findsOneWidget);
+      await flushAnimations(tester);
     });
 
-    testWidgets('无拼音时无 subtitle', (tester) async {
-      final item = Vocab(
-        id: 'test-id-2',
-        word: 'word',
-        pinyin: '',
-        translation: 'word',
-        contextSentence: null,
-        bookId: null,
-        chapterIndex: null,
-        charOffset: null,
-        createdAt: DateTime.now(),
-        reviewCount: 0,
-        lastReviewedAt: null,
-        status: VocabStatus.mastered,
-        wordList: null,
-        dictSource: null,
-        dictEntryHash: null,
-      );
+    testWidgets('渲染 translation 翻译内容', (tester) async {
+      final item = createTestVocabItem(translation: 'test translation');
 
       await tester.pumpWidget(
         wrapWithTheme(
           VocabListItemTile(
             item: item,
-            bookTitles: {},
+            bookTitles: const {},
             theme: ThemeData(),
+            l10n: testL10n,
+            index: 0,
+            onDismissed: () {},
+            onUpdateStatus: (_) {},
+          ),
+        ),
+      );
+
+      expect(find.text('test translation'), findsOneWidget);
+      await flushAnimations(tester);
+    });
+
+    testWidgets('渲染 wordList badge 标签', (tester) async {
+      final item = createTestVocabItem(wordList: 'CET-4');
+
+      await tester.pumpWidget(
+        wrapWithTheme(
+          VocabListItemTile(
+            item: item,
+            bookTitles: const {},
+            theme: ThemeData(),
+            l10n: testL10n,
+            index: 0,
+            onDismissed: () {},
+            onUpdateStatus: (_) {},
+          ),
+        ),
+      );
+
+      expect(find.text('CET-4'), findsOneWidget);
+      await flushAnimations(tester);
+    });
+
+    testWidgets('渲染 bookTitle 来自书籍映射', (tester) async {
+      final item = createTestVocabItem(bookId: 'book_1');
+
+      await tester.pumpWidget(
+        wrapWithTheme(
+          VocabListItemTile(
+            item: item,
+            bookTitles: const {'book_1': '测试书籍'},
+            theme: ThemeData(),
+            l10n: testL10n,
+            index: 0,
+            onDismissed: () {},
+            onUpdateStatus: (_) {},
+          ),
+        ),
+      );
+
+      expect(find.text('测试书籍'), findsOneWidget);
+      await flushAnimations(tester);
+    });
+
+    testWidgets('无拼音时隐藏拼音', (tester) async {
+      final item = createTestVocabItem(pinyin: '', translation: 'word');
+
+      await tester.pumpWidget(
+        wrapWithTheme(
+          VocabListItemTile(
+            item: item,
+            bookTitles: const {},
+            theme: ThemeData(),
+            l10n: testL10n,
+            index: 0,
             onDismissed: () {},
             onUpdateStatus: (_) {},
           ),
@@ -105,47 +179,78 @@ void main() {
       );
 
       expect(find.text('word'), findsOneWidget);
-      // subtitle Text 不应存在（空 parts）
-      // 用 hasLength 验证没有多余的 Text widget 包含 pinyin
-      expect(find.text(VocabStatus.mastered.displayName), findsOneWidget);
+      expect(find.text(testL10n.statusLearning), findsOneWidget);
+      expect(find.text('/ce shi ci/'), findsNothing);
+      await flushAnimations(tester);
     });
 
-    testWidgets('渲染词条后部件结构正确', (tester) async {
-      final item = Vocab(
-        id: 'swipe-test',
-        word: 'swipe word',
-        pinyin: '',
-        translation: '',
-        contextSentence: null,
-        bookId: null,
-        chapterIndex: null,
-        charOffset: null,
-        createdAt: DateTime.now(),
-        reviewCount: 0,
-        lastReviewedAt: null,
-        status: VocabStatus.unstarted,
-        wordList: null,
-        dictSource: null,
-        dictEntryHash: null,
-      );
- 
+    testWidgets('无 bookId 和 wordList 时不渲染 meta row', (tester) async {
+      final item = createTestVocabItem(bookId: null, wordList: null);
+
       await tester.pumpWidget(
         wrapWithTheme(
           VocabListItemTile(
             item: item,
-            bookTitles: {},
+            bookTitles: const {},
             theme: ThemeData(),
+            l10n: testL10n,
+            index: 0,
             onDismissed: () {},
             onUpdateStatus: (_) {},
           ),
         ),
       );
- 
-      expect(find.text('swipe word'), findsOneWidget);
-      expect(find.text(VocabStatus.unstarted.displayName), findsOneWidget);
+
+      expect(find.text('测试词'), findsOneWidget);
+      expect(find.text('test word'), findsOneWidget);
+      expect(find.text(testL10n.statusLearning), findsOneWidget);
+      expect(find.byIcon(Icons.book), findsNothing);
+      await flushAnimations(tester);
     });
+
+    testWidgets('Dismissible 滑动出现确认弹窗', (tester) async {
+      final item = createTestVocabItem(word: 'delete-me');
+
+      bool dismissed = false;
+      await tester.pumpWidget(
+        wrapWithTheme(
+          VocabListItemTile(
+            item: item,
+            bookTitles: const {},
+            theme: ThemeData(),
+            l10n: testL10n,
+            index: 0,
+            onDismissed: () => dismissed = true,
+            onUpdateStatus: (_) {},
+          ),
+        ),
+      );
+
+      // 左滑删除
+      await tester.fling(find.text('delete-me'), const Offset(-500, 0), 1000);
+      await tester.pumpAndSettle();
+
+      // 确认弹窗应出现
+      expect(find.text(testL10n.confirmDelete), findsOneWidget);
+      expect(find.text(testL10n.cancel), findsOneWidget);
+      expect(find.text(testL10n.delete), findsOneWidget);
+
+      // 点击取消，不应删除
+      await tester.tap(find.text(testL10n.cancel));
+      await tester.pumpAndSettle();
+      expect(dismissed, isFalse);
+
+      // 再次左滑
+      await tester.fling(find.text('delete-me'), const Offset(-500, 0), 1000);
+      await tester.pumpAndSettle();
+
+      // 点击确认删除
+      await tester.tap(find.text(testL10n.delete));
+      await tester.pumpAndSettle();
+      expect(dismissed, isTrue);
+      await flushAnimations(tester);
     });
- 
+  });
 
   group('VocabStatsRow', () {
     final stats = const VocabStats(
@@ -161,7 +266,8 @@ void main() {
         wrapWithTheme(
           VocabStatsRow(
             theme: ThemeData(),
-            stats: stats,
+            l10n: testL10n,
+            stats: AsyncState.data(stats),
             filterStatus: null,
             filterWordList: null,
             wordLists: const ['CET-4', 'CET-6'],
@@ -171,12 +277,12 @@ void main() {
         ),
       );
 
-      expect(find.text('全部 100'), findsOneWidget);
-      expect(find.text('未学 40'), findsOneWidget);
-      expect(find.text('学习中 30'), findsOneWidget);
-      expect(find.text('已忽略 10'), findsOneWidget);
-      expect(find.text('已掌握 20'), findsOneWidget);
-      expect(find.text('全部词库'), findsOneWidget);
+      expect(find.text('All 100'), findsOneWidget);
+      expect(find.text('Unlearned 40'), findsOneWidget);
+      expect(find.text('Learning 30'), findsOneWidget);
+      expect(find.text('Ignored 10'), findsOneWidget);
+      expect(find.text('Mastered 20'), findsOneWidget);
+      expect(find.text('All Word Lists'), findsOneWidget);
       expect(find.text('CET-4'), findsOneWidget);
       expect(find.text('CET-6'), findsOneWidget);
     });
@@ -186,7 +292,8 @@ void main() {
         wrapWithTheme(
           VocabStatsRow(
             theme: ThemeData(),
-            stats: null,
+            l10n: testL10n,
+            stats: AsyncState.loading(),
             filterStatus: null,
             filterWordList: null,
             wordLists: const ['CET-4'],
@@ -196,8 +303,7 @@ void main() {
         ),
       );
 
-      // 不应渲染任何数据 chip
-      expect(find.text('全部 0'), findsNothing);
+      expect(find.text('All 0'), findsNothing);
     });
 
     testWidgets('filterStatus 选中状态高亮', (tester) async {
@@ -205,7 +311,8 @@ void main() {
         wrapWithTheme(
           VocabStatsRow(
             theme: ThemeData(),
-            stats: stats,
+            l10n: testL10n,
+            stats: AsyncState.data(stats),
             filterStatus: VocabStatus.learning,
             filterWordList: null,
             wordLists: const [],
@@ -215,8 +322,8 @@ void main() {
         ),
       );
 
-      expect(find.text('学习中 30'), findsOneWidget);
-      expect(find.text('未学 40'), findsOneWidget);
+      expect(find.text('Learning 30'), findsOneWidget);
+      expect(find.text('Unlearned 40'), findsOneWidget);
     });
   });
 }

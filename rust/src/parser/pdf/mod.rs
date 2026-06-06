@@ -76,8 +76,8 @@ impl PdfParser {
                 isbn: None,
                 publish_year: None,
                 language: None,
-                chapter_count: metadata.page_count,
                 total_characters: 0,
+                chapter_count: 0,
             })
         })
         .await

@@ -1,3 +1,11 @@
+/// 根据平台返回适配的滚动物理效果。
+///
+/// iOS/macOS → [BouncingScrollPhysics]（弹性回弹）
+/// Android/others → [ClampingScrollPhysics]（边界卡停）
+///
+/// 传入可选的 [physics] 作为父级物理效果链。
+library;
+
 import 'package:flutter/material.dart';
 
 ScrollPhysics adaptiveScrollPhysics(

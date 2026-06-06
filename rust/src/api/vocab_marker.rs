@@ -34,3 +34,21 @@ pub fn scan_for_vocabulary(text: &str) -> Result<Vec<VocabMatch>, AppError> {
 pub fn get_all_vocabulary_words() -> Result<Vec<String>, AppError> {
     Ok(engine::wordlists::all_words())
 }
+
+/// Return all CET-6 vocabulary words.
+#[frb(sync)]
+pub fn get_cet6_words() -> Result<Vec<String>, AppError> {
+    Ok(engine::wordlists::cet6_words())
+}
+
+/// Return all IELTS vocabulary words.
+#[frb(sync)]
+pub fn get_ielts_words() -> Result<Vec<String>, AppError> {
+    Ok(engine::wordlists::ielts_words())
+}
+
+/// Return all TOEFL vocabulary words.
+#[frb(sync)]
+pub fn get_toefl_words() -> Result<Vec<String>, AppError> {
+    Ok(engine::wordlists::toefl_words())
+}

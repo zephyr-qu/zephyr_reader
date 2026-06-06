@@ -164,7 +164,7 @@ class ChapterManager {
       await _searchIndexOperation?.cancel();
       _searchIndexOperation = CancelableOperation.fromFuture(
         _indexForSearch(chapterIndex, content),
-        onCancel: () {},
+        onCancel: () => Logging.debug('_searchIndexOperation cancelled'),
       );
 
       // █ 字符宽度校准（仅首次执行，字体/字号/DPR 变化后重置） █
@@ -233,8 +233,8 @@ class ChapterManager {
         await onChapterLoaded();
       }
 
-      // 预加载前后章节（不阻塞 UI）
-      _prefetchChapters(chapterIndex);
+      // 预加载前后章节（限制并发，不阻塞 UI）
+      unawaited(_prefetchChapters(chapterIndex));
     } catch (e) {
       chapterContent.value = AsyncState.error(e);
       error.value = '章节加载失败：$e';
@@ -257,8 +257,8 @@ class ChapterManager {
     }
   }
 
-  /// 预加载前后章节到缓存
-  void _prefetchChapters(int centerIndex) {
+  /// 预加载前后章节到缓存（限制并发数为 2，避免堆积）。
+  Future<void> _prefetchChapters(int centerIndex) async {
     final chapterList = chapters.value.value ?? [];
     if (chapterList.isEmpty) return;
 
@@ -268,9 +268,19 @@ class ChapterManager {
     );
     final end = (centerIndex + _preloadCount).clamp(0, chapterList.length - 1);
 
+    final indices = <int>[];
     for (int i = start; i <= end; i++) {
-      if (i == centerIndex) continue;
-      _repo.preloadChapter(bookId.value, i);
+      if (i != centerIndex) indices.add(i);
+    }
+    // 批次限制并发数为 2，减轻 Rust 层压力
+    const batchSize = 2;
+    for (int b = 0; b < indices.length; b += batchSize) {
+      final batch = indices.skip(b).take(batchSize);
+      await Future.wait(
+        batch.map(
+          (i) => _repo.preloadChapter(bookId.value, i).catchError((_) {}),
+        ),
+      );
     }
   }
 
@@ -287,7 +297,7 @@ class ChapterManager {
       await search_api.indexChapter(
         bookId: bookId.value,
         chapterId: '${bookId.value}_$chapterIndex',
-        chapterIndex: chapterIndex.toString(),
+        chapterIndex: chapterIndex,
         chapterTitle: title,
         content: content,
       );
@@ -384,10 +394,11 @@ class ChapterManager {
 
   // ==================== 重置 ====================
 
-  /// 重置所有信号到默认值
+  /// 重置所有信号到默认值，取消定时器和搜索索引操作。
   void reset() {
-    _autoScrollTimer?.cancel();
+    stopAutoScroll();
     _searchIndexOperation?.cancel();
+    _searchIndexOperation = null;
     bookId.value = '0';
     chapterIndex.value = 0;
     chapters.value = AsyncState.data([]);
@@ -399,10 +410,5 @@ class ChapterManager {
     isLoading.value = false;
     error.value = null;
     autoScrollTick.value = 0;
-  }
-
-  void dispose() {
-    _autoScrollTimer?.cancel();
-    _searchIndexOperation?.cancel();
   }
 }

@@ -42,8 +42,9 @@ class BookshelfCategoryChips extends StatelessWidget {
             final category = categories[index];
             final isSelected = selectedCategoryId == category.id;
             return RepaintBoundary(
-              child: GestureDetector(
+              child: InkWell(
                 onTap: () => onCategoryChanged(isSelected ? null : category),
+                borderRadius: BorderRadius.circular(12),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(

@@ -212,7 +212,6 @@ class AboutPage extends HookWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: SettingsCard(
-              colorScheme: cs,
               children: [
                 Padding(
                   padding: const EdgeInsets.all(12),
@@ -240,7 +239,7 @@ class AboutPage extends HookWidget {
               ),
             ),
           ),
-          _LinksSection(links: _buildLinks(l10n), version: version, l10n: l10n),
+          _LinksSection(links: _buildLinks(l10n), version: version),
 
           const SizedBox(height: 32),
 
@@ -374,37 +373,34 @@ class _TechChip extends StatelessWidget {
 class _LinksSection extends StatelessWidget {
   final List<(IconData, String, String?, bool)> links;
   final String version;
-  final AppLocalizations l10n;
 
-  const _LinksSection({
-    required this.links,
-    required this.version,
-    required this.l10n,
-  });
+  const _LinksSection({required this.links, required this.version});
 
   void _handleTap(BuildContext context, String title) {
-    if (title == l10n.aboutCheckUpdate) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.aboutLatestVersion)));
-    } else if (title == l10n.aboutUserAgreement) {
+    if (title == AppLocalizations.of(context)!.aboutCheckUpdate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.aboutLatestVersion),
+        ),
+      );
+    } else if (title == AppLocalizations.of(context)!.aboutUserAgreement) {
       Navigator.push(
         context,
         MaterialPageRoute<void>(builder: (_) => const UserAgreementPage()),
       );
-    } else if (title == l10n.aboutPrivacyPolicy) {
+    } else if (title == AppLocalizations.of(context)!.aboutPrivacyPolicy) {
       Navigator.push(
         context,
         MaterialPageRoute<void>(builder: (_) => const PrivacyPolicyPage()),
       );
-    } else if (title == l10n.aboutOpenSourceLicense) {
+    } else if (title == AppLocalizations.of(context)!.aboutOpenSourceLicense) {
       showLicensePage(
         context: context,
         applicationName: 'Zephyr Reader',
         applicationVersion: version,
         applicationLegalese: 'MIT License',
       );
-    } else if (title == l10n.aboutFeedback) {
+    } else if (title == AppLocalizations.of(context)!.aboutFeedback) {
       _launchUrl(
         context,
         'https://github.com/zephyr-reader/zephyr_reader/issues',
@@ -417,9 +413,11 @@ class _LinksSection extends StatelessWidget {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.aboutCannotOpenLink)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.aboutCannotOpenLink),
+        ),
+      );
     }
   }
 

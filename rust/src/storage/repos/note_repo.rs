@@ -4,6 +4,7 @@ use anyhow::Result;
 use sqlx::{QueryBuilder, SqlitePool};
 
 use super::super::models::*;
+use super::BookRepository;
 
 const SQL_UPSERT_NOTE: &str = "\
 INSERT INTO notes (id, book_id, chapter_index, chapter_id, char_offset, length, note_type, content, selected_text, highlight_color, paired_note_id, language, created_at, updated_at) \
@@ -105,7 +106,7 @@ impl NoteRepository {
     pub async fn find_by_chapter(
         pool: &SqlitePool,
         book_id: &str,
-        chapter_index: i32,
+        chapter_index: i64,
     ) -> Result<Vec<Note>> {
         Ok(sqlx::query_as::<_, Note>(
             "SELECT * FROM notes WHERE book_id = ? AND chapter_index = ? ORDER BY char_offset",
@@ -120,7 +121,7 @@ impl NoteRepository {
     pub async fn find_by_type_in_chapter(
         pool: &SqlitePool,
         book_id: &str,
-        chapter_index: i32,
+        chapter_index: i64,
         note_type: NoteType,
     ) -> Result<Vec<Note>> {
         Ok(sqlx::query_as::<_, Note>(
@@ -215,7 +216,7 @@ impl NoteRepository {
     pub async fn find_paired_notes_in_chapter(
         pool: &SqlitePool,
         book_id: &str,
-        chapter_index: i32,
+        chapter_index: i64,
     ) -> Result<Vec<Note>> {
         Ok(sqlx::query_as::<_, Note>(
             "SELECT * FROM notes WHERE book_id = ? AND chapter_index = ? AND paired_note_id IS NOT NULL ORDER BY char_offset",
@@ -239,6 +240,70 @@ impl NoteRepository {
         .fetch_one(pool)
         .await?)
     }
+
+    /// 搜索笔记（内容/选中文本模糊匹配）
+    pub async fn search(
+        pool: &SqlitePool,
+        query: &str,
+    ) -> Result<Vec<Note>> {
+        let pattern = format!("%{}%", query);
+        Ok(sqlx::query_as::<_, Note>(
+            "SELECT * FROM notes WHERE content LIKE ?1 OR selected_text LIKE ?1 ORDER BY created_at DESC",
+        )
+        .bind(&pattern)
+        .fetch_all(pool)
+        .await?)
+    }
+
+    /// 跨书分页获取所有笔记，按创建时间倒序
+    pub async fn list_all_paginated(
+        pool: &SqlitePool,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<Note>> {
+        Ok(sqlx::query_as::<_, Note>(
+            "SELECT * FROM notes ORDER BY created_at DESC LIMIT ?1 OFFSET ?2",
+        )
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(pool)
+        .await?)
+    }
+
+    /// 分页获取所有笔记，每笔记附带书名
+    pub async fn list_with_titles(
+        pool: &SqlitePool,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<NoteWithBook>> {
+        let notes = Self::list_all_paginated(pool, limit, offset).await?;
+        let titles = BookRepository::list_titles(pool).await?;
+        let title_map: HashMap<String, String> =
+            titles.into_iter().map(|t| (t.book_id, t.title)).collect();
+        Ok(notes
+            .into_iter()
+            .map(|note| {
+                let book_title = title_map.get(&note.book_id).cloned().unwrap_or_default();
+                NoteWithBook { note, book_title }
+            })
+            .collect())
+    }
+
+    /// 获取笔记总数（可选按 book_id 过滤）
+    pub async fn count_filtered(pool: &SqlitePool, book_id: Option<&str>) -> Result<i32> {
+        let count: i32 = if let Some(bid) = book_id {
+            sqlx::query_scalar("SELECT COUNT(*) FROM notes WHERE book_id = ?")
+                .bind(bid)
+                .fetch_one(pool)
+                .await?
+        } else {
+            sqlx::query_scalar("SELECT COUNT(*) FROM notes")
+                .fetch_one(pool)
+                .await?
+        };
+        Ok(count)
+    }
+
 }
 // #[cfg(test)]
 // mod tests {

@@ -2,18 +2,13 @@ import 'package:flutter/material.dart';
 
 class SectionLabel extends StatelessWidget {
   final String label;
-  final ColorScheme colorScheme;
   final Widget? tag;
 
-  const SectionLabel({
-    super.key,
-    required this.label,
-    required this.colorScheme,
-    this.tag,
-  });
+  const SectionLabel({super.key, required this.label, this.tag});
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 10),
       child: Row(

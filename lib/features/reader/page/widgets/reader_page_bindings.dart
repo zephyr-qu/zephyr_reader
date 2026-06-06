@@ -129,9 +129,10 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
         AsyncSignal<BilingualAlignment?>
       >(vm.bilingualAlignment);
   final autoScrollTick = useSignalValue<int, Signal<int>>(vm.autoScrollTick);
-  final highlights = useSignalValue<List<Note>, Signal<List<Note>>>(
-    vm.highlights,
-  );
+  final highlights =
+      useSignalValue<AsyncState<List<Note>>, AsyncSignal<List<Note>>>(
+        vm.highlights,
+      );
   final searchQuery = useSignalValue<String, Signal<String>>(vm.searchQuery);
   final searchCurrentIndex = useSignalValue<int, Signal<int>>(
     vm.searchCurrentIndex,
@@ -189,7 +190,7 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
     isBilingualLoading: bState.isLoading,
     bilingualError: bState.error?.toString(),
     autoScrollTick: autoScrollTick,
-    highlights: highlights,
+    highlights: highlights.value ?? [],
     searchQuery: searchQuery,
     searchCurrentIndex: searchCurrentIndex,
     searchMatchHighlight: searchCurrentIndex > 0,
@@ -236,9 +237,10 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
         AsyncSignal<BilingualAlignment?>
       >(vm.bilingualAlignment);
   final autoScrollTick = useSignalValue<int, Signal<int>>(vm.autoScrollTick);
-  final highlights = useSignalValue<List<Note>, Signal<List<Note>>>(
-    vm.highlights,
-  );
+  final highlights =
+      useSignalValue<AsyncState<List<Note>>, AsyncSignal<List<Note>>>(
+        vm.highlights,
+      );
   final searchQuery = useSignalValue<String, Signal<String>>(vm.searchQuery);
   final searchCurrentIndex = useSignalValue<int, Signal<int>>(
     vm.searchCurrentIndex,
@@ -290,7 +292,7 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
     isBilingualLoading: bState.isLoading,
     bilingualError: bState.error?.toString(),
     autoScrollTick: autoScrollTick,
-    highlights: highlights,
+    highlights: highlights.value ?? [],
     searchQuery: searchQuery,
     searchCurrentIndex: searchCurrentIndex,
     searchMatchHighlight: searchCurrentIndex > 0,

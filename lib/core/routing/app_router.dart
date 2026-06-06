@@ -12,7 +12,7 @@ import 'package:zephyr_reader/features/learning_notes/page/learning_notes_page.d
 import 'package:zephyr_reader/features/home/page/splash_page.dart';
 import 'package:zephyr_reader/features/main_layout.dart';
 import 'package:zephyr_reader/features/profile/page/about_page.dart';
-import 'package:zephyr_reader/features/profile/page/profile_page.dart';
+import 'package:zephyr_reader/features/profile/page/profile/profile_page.dart';
 import 'package:zephyr_reader/features/profile/page/tts_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/typography_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/theme_brightness/theme_brightness_page.dart';
@@ -22,7 +22,7 @@ import 'package:zephyr_reader/features/reader/page/bookmark_manage_page.dart';
 import 'package:zephyr_reader/features/search/page/search_page.dart';
 import 'package:zephyr_reader/features/search/page/book_search_page.dart';
 import 'package:zephyr_reader/features/statistics/page/statistics_page.dart';
-import 'package:zephyr_reader/shared/widget/not_found_page.dart';
+import 'package:zephyr_reader/core/routing/not_found_page.dart';
 import 'package:zephyr_reader/features/sync/page/storage_sync_page.dart';
 import 'package:zephyr_reader/features/vocabulary/page/vocabulary_page.dart';
 import 'package:zephyr_reader/features/statistics/page/reading_sessions_page.dart';
@@ -71,19 +71,19 @@ final router = GoRouter(
         GoRoute(
           name: RouteNames.home,
           path: RoutePaths.home,
-          builder: (_, _) => HomePage(),
+          builder: (_, _) => const HomePage(),
         ),
 
         // 书架相关路由
         GoRoute(
           name: RouteNames.bookshelf,
           path: RoutePaths.bookshelf,
-          builder: (_, _) => BookshelfPage(),
+          builder: (_, _) => const BookshelfPage(),
         ),
         GoRoute(
           name: RouteNames.categoryManagement,
           path: RoutePaths.categoryManagement,
-          builder: (_, _) => CategoryManagementPage(),
+          builder: (_, _) => const CategoryManagementPage(),
         ),
         GoRoute(
           name: RouteNames.bookDetail,
@@ -96,26 +96,26 @@ final router = GoRouter(
         GoRoute(
           name: RouteNames.statistics,
           path: RoutePaths.statistics,
-          builder: (_, _) => StatisticsPage(),
+          builder: (_, _) => const StatisticsPage(),
         ),
 
         // 个人中心路由
         GoRoute(
           name: RouteNames.profile,
           path: RoutePaths.profile,
-          builder: (_, _) => ProfilePage(),
+          builder: (_, _) => const ProfilePage(),
         ),
 
         // 设置相关路由
         GoRoute(
           name: RouteNames.ttsSettings,
           path: RoutePaths.ttsSettings,
-          builder: (_, _) => TtsSettingsPage(),
+          builder: (_, _) => const TtsSettingsPage(),
         ),
         GoRoute(
           name: RouteNames.typographySettings,
           path: RoutePaths.typographySettings,
-          builder: (_, _) => TypographySettingsPage(),
+          builder: (_, _) => const TypographySettingsPage(),
         ),
         GoRoute(
           name: RouteNames.themeBrightness,
@@ -218,14 +218,14 @@ final router = GoRouter(
     GoRoute(
       name: RouteNames.vocabulary,
       path: RoutePaths.vocabulary,
-      builder: (_, _) => VocabularyPage(),
+      builder: (_, _) => const VocabularyPage(),
     ),
 
     // 学习与笔记
     GoRoute(
       name: RouteNames.learningNotes,
       path: RoutePaths.learningNotes,
-      builder: (_, _) => LearningNotesPage(),
+      builder: (_, _) => const LearningNotesPage(),
     ),
 
     // 阅读会话历史
@@ -239,7 +239,7 @@ final router = GoRouter(
     GoRoute(
       name: RouteNames.cacheManage,
       path: RoutePaths.cacheManage,
-      builder: (_, _) => CacheManagePage(),
+      builder: (_, _) => const CacheManagePage(),
     ),
 
     // WiFi 传书

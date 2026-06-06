@@ -19,15 +19,14 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 书架排序方式
 enum BookshelfSortType {
-  lastRead('last_read', '最近阅读'),
-  createdAt('created_at', '添加时间'),
-  title('title', '书名'),
-  author('author', '作者'),
-  progress('progress', '阅读进度');
+  lastRead('last_read'),
+  createdAt('created_at'),
+  title('title'),
+  author('author'),
+  progress('progress');
 
   final String key;
-  final String displayName;
-  const BookshelfSortType(this.key, this.displayName);
+  const BookshelfSortType(this.key);
 
   static BookshelfSortType fromKey(String key) {
     return BookshelfSortType.values.firstWhere(
@@ -41,11 +40,23 @@ enum BookshelfSortType {
 class BookshelfViewModel {
   final SharedPreferences _prefs;
 
+  /// 自增世代计数器
+  int _reloadGeneration = 0;
+
+  /// 全量书籍列表缓存，避免无筛选时重复 FFI 调用。
+  List<Book>? _cachedBooks;
+  bool _cacheDirty = true;
+
+  void _invalidateCache() {
+    _cacheDirty = true;
+    _cachedBooks = null;
+  }
+
   /// 所有书籍
   final books = asyncSignal<List<Book>>(AsyncState.loading());
 
   /// 所有分类（立即从缓存获取）
-  final categories = signal<List<Category>>([]);
+  final categories = asyncSignal<List<Category>>(AsyncState.loading());
 
   /// 当前选中的分类
   final selectedCategory = signal<Category?>(null);
@@ -66,13 +77,6 @@ class BookshelfViewModel {
     true,
   );
 
-  /// 显示最近阅读
-  late final showRecentReading = persistedBool(
-    _prefs,
-    SettingsKeys.bookshelfShowRecent,
-    true,
-  );
-
   /// 默认排序方式
   late final defaultSortType = persistedEnumCustom(
     _prefs,
@@ -90,35 +94,33 @@ class BookshelfViewModel {
   );
 
   /// 阅读进度映射 (bookId -> progress 0.0~1.0)
-  final readingProgress = signal<Map<String, double>>({});
-
-  /// 最近阅读的书籍
-  final recentBooks = signal<List<Book>>([]);
+  final readingProgress = asyncSignal<Map<String, double>>(
+    AsyncState.loading(),
+  );
 
   /// 瞬态反馈消息（Page 通过 useSignalEffect 消费）
   final feedback = signal<String?>(null);
 
-  BookshelfViewModel(this._prefs) {
-    _loadCategories();
-    loadBooks();
-  }
+  BookshelfViewModel(this._prefs);
 
-  Future<void> _loadCategories() async {
+  /// 加载所有分类列表。
+  Future<void> loadCategories() async {
     try {
       final data = await category_api.listCategories();
-      categories.value = data.cast<Category>();
+      categories.value = AsyncState.data(data.cast<Category>());
     } catch (e, stack) {
       Logging.error(
         'BookshelfViewModel._loadCategories error',
         exception: e,
         stackTrace: stack,
       );
-      categories.value = [];
+      categories.value = AsyncState.error(e);
     }
   }
 
-  /// 加载书籍
-  Future<void> loadBooks() async {
+  /// 加载书籍列表 + 排序（最常用的刷新）
+  Future<void> reloadBooks() async {
+    final gen = ++_reloadGeneration;
     books.value = AsyncState.loading();
     try {
       List<Book> data;
@@ -126,25 +128,39 @@ class BookshelfViewModel {
       if (isSearching.value && searchKeyword.value.isNotEmpty) {
         data = await book_api.searchBooks(keyword: searchKeyword.value);
       } else {
-        data = await book_api.listBooks();
+        final category = selectedCategory.value;
+        final status = selectedStatus.value;
+        if (category != null && status != null) {
+          // Both filters: fetch by category, filter status in Dart
+          data = await category_api.listBooksByCategory(
+            categoryId: category.id,
+          );
+          data = data.where((b) => b.status == status).toList();
+        } else if (category != null) {
+          data = await category_api.listBooksByCategory(
+            categoryId: category.id,
+          );
+        } else if (status != null) {
+          data = await book_api.listBooksByStatus(status: status);
+        } else {
+          // 无筛选时使用缓存，避免重复全量 FFI 调用
+          if (_cacheDirty || _cachedBooks == null) {
+            data = await book_api.listBooks();
+            _cachedBooks = data;
+            _cacheDirty = false;
+          } else {
+            data = _cachedBooks!;
+          }
+        }
       }
 
       data = List.from(data);
 
-      recentBooks.value = await book_api.listRecentlyOpenedBooks(
-        limit: BigInt.from(10),
-      );
-
-      final allProgress = await progress_api.listAllProgresses();
-      final progressMap = <String, double>{};
-      for (final item in allProgress) {
-        if (item.progress != null) {
-          progressMap[item.book.bookId] = item.progress!.progress;
-        }
-      }
-      readingProgress.value = progressMap;
-
       data.sort((a, b) {
+        // 置顶书始终排在最前
+        if (a.isPinned != b.isPinned) {
+          return a.isPinned ? -1 : 1;
+        }
         switch (defaultSortType.value) {
           case BookshelfSortType.title:
             return a.title.compareTo(b.title);
@@ -155,17 +171,46 @@ class BookshelfViewModel {
               b.lastOpenedAt ?? DateTime(2000),
             );
           case BookshelfSortType.progress:
+            final pa = (readingProgress.value.value ?? {})[a.bookId] ?? 0;
+            final pb = (readingProgress.value.value ?? {})[b.bookId] ?? 0;
+            return pb.compareTo(pa);
           case BookshelfSortType.createdAt:
             return -(a.addedAt).compareTo(b.addedAt);
         }
       });
 
+      if (gen != _reloadGeneration) return;
       books.value = AsyncState.data(data);
     } catch (e) {
+      if (gen != _reloadGeneration) return;
       books.value = AsyncState.error(e);
     }
   }
 
+  /// 刷新阅读进度
+  Future<void> reloadProgress() async {
+    try {
+      final allProgress = await progress_api.listAllProgresses();
+      final progressMap = <String, double>{};
+      for (final item in allProgress) {
+        if (item.progress != null) {
+          progressMap[item.book.bookId] = item.progress!.progress;
+        }
+      }
+      readingProgress.value = AsyncState.data(progressMap);
+    } catch (e) {
+      readingProgress.value = AsyncState.error(e);
+    }
+  }
+
+  /// 加载书籍列表和阅读进度。
+  Future<void> loadBooks() async {
+    _invalidateCache();
+    await reloadBooks();
+    await reloadProgress();
+  }
+
+  /// 获取指定书籍关联的分类 ID 集合。
   Future<Set<String>> getCategoryIds(String bookId) async {
     try {
       final cats = await category_api.listCategoriesByBook(bookId: bookId);
@@ -175,10 +220,11 @@ class BookshelfViewModel {
     }
   }
 
+  /// 安全执行操作，捕获异常并记录日志，成功后可选执行回调。
   Future<bool> _safeAction(
     String label,
-    FutureOr<bool> Function() action, {
-    FutureOr<void> Function()? onSuccess,
+    Future<bool> Function() action, {
+    Future<void> Function()? onSuccess,
   }) async {
     try {
       final ok = await action();
@@ -200,13 +246,14 @@ class BookshelfViewModel {
     selectedCategory.value = category;
     isSearching.value = false;
     searchKeyword.value = '';
+    reloadBooks();
   }
 
   /// 切换状态筛选
   void selectStatus(BookStatus? status) {
     selectedStatus.value = status;
     isSearching.value = false;
-    searchKeyword.value = '';
+    reloadBooks();
   }
 
   /// 开始搜索
@@ -214,19 +261,25 @@ class BookshelfViewModel {
     isSearching.value = true;
   }
 
-  /// 停止搜索
+  /// 停止搜索，自动刷新恢复全量列表
   void stopSearch() {
     isSearching.value = false;
     searchKeyword.value = '';
+    reloadBooks();
   }
 
-  /// 更新搜索关键词
+  /// 更新搜索关键词，自动触发搜索
   void updateSearchKeyword(String keyword) {
     searchKeyword.value = keyword;
+    reloadBooks();
   }
 
+  /// 删除指定书籍及其封面文件。
   Future<bool> deleteBook(String id) => _safeAction('deleteBook', () async {
-    await book_api.deleteBook(bookId: id, coversDir: AppConfig.instance.coverDir);
+    await book_api.deleteBook(
+      bookId: id,
+      coversDir: AppConfig.instance.coverDir,
+    );
     return true;
   }, onSuccess: loadBooks);
 
@@ -237,6 +290,7 @@ class BookshelfViewModel {
 
   // ==================== 分类管理 ====================
 
+  /// 添加新分类。
   Future<bool> addCategory({
     required String name,
     String color = '#FF5722',
@@ -248,7 +302,7 @@ class BookshelfViewModel {
       sortOrder: sortOrder,
     );
     return true;
-  }, onSuccess: _loadCategories);
+  }, onSuccess: loadCategories);
 
   /// 更新分类
   Future<bool> updateCategory(Category category) =>
@@ -260,7 +314,7 @@ class BookshelfViewModel {
           description: category.description,
         );
         return true;
-      }, onSuccess: _loadCategories);
+      }, onSuccess: loadCategories);
 
   /// 删除分类
   Future<bool> removeCategory(String id) => _safeAction(
@@ -272,11 +326,11 @@ class BookshelfViewModel {
       return true;
     },
     onSuccess: () async {
-      await _loadCategories();
+      await loadCategories();
       if (selectedCategory.value?.id == id) {
-        selectedCategory.value = categories.value.isEmpty
+        selectedCategory.value = (categories.value.value ?? []).isEmpty
             ? null
-            : categories.value.first;
+            : (categories.value.value ?? []).first;
       }
     },
   );
@@ -291,6 +345,7 @@ class BookshelfViewModel {
         return true;
       }, onSuccess: loadBooks);
 
+  /// 重新提取并保存书籍封面。
   Future<bool> reExtractCover(String bookId, String filePath) async {
     if (!cover_api.supportsCoverExtraction(filePath: filePath)) {
       return false;
@@ -307,82 +362,159 @@ class BookshelfViewModel {
     }, onSuccess: loadBooks);
   }
 
+  /// 从文件导入书籍（解析并存入数据库）。
   Future<bool> importBook(String filePath) async {
-    String? title;
     final ok = await _safeAction('importBook', () async {
       final parseResult = await core_api.parseBook(filePath: filePath);
-      title = parseResult.bookInfo.title;
       await book_api.upsertBook(book: parseResult.bookInfo);
       return true;
     }, onSuccess: loadBooks);
-    feedback.value = ok ? '已导入：$title' : '导入失败：$filePath';
     return ok;
   }
 
-  Future<(int, String)> scanFolder(String folderPath) async {
+  /// 并发上限
+  static const int _scanConcurrency = 4;
+
+  /// 扫描文件夹并将发现的书籍文件导入数据库。
+  ///
+  /// [onProgress] 可选进度回调，接收 (done, total) 用于 UI 展示。
+  /// 返回 (successCount, failCount)。
+  Future<(int, int)> scanFolder(
+    String folderPath, {
+    void Function(int done, int total)? onProgress,
+  }) async {
     final extensions = {'.txt', '.epub', '.pdf'};
     final dir = Directory(folderPath);
-    final files = dir
-        .listSync(recursive: true)
-        .whereType<File>()
+    final files = await dir
+        .list(recursive: true)
+        .where((e) => e is File)
+        .cast<File>()
         .where((f) => extensions.contains(p.extension(f.path).toLowerCase()))
         .map((f) => f.path)
         .toList();
     if (files.isEmpty) {
-      feedback.value = '未找到书籍文件';
-      return (0, '未找到书籍文件');
+      return (0, 0);
     }
-    var count = 0;
-    for (final file in files) {
-      try {
-        final parseResult = await core_api.parseBook(filePath: file);
-        await book_api.upsertBook(book: parseResult.bookInfo);
-        count++;
-      } catch (_) {}
-    }
-    await loadBooks();
-    feedback.value = '扫描完成，导入了 $count 本书';
-    return (count, '扫描完成，导入了 $count 本书');
+
+    final total = files.length;
+    var done = 0;
+    var success = 0;
+    var fail = 0;
+    onProgress?.call(0, total);
+
+    final sem = _Semaphore(_scanConcurrency);
+    await Future.wait(
+      files.map(
+        (file) => sem.acquire(() async {
+          try {
+            final parseResult = await core_api.parseBook(filePath: file);
+            await book_api.upsertBook(book: parseResult.bookInfo);
+            success++;
+          } catch (e, stack) {
+            fail++;
+            Logging.error(
+              'scanFolder error: $file',
+              exception: e,
+              stackTrace: stack,
+            );
+          } finally {
+            done++;
+            onProgress?.call(done, total);
+          }
+        }),
+      ),
+    );
+
+    _invalidateCache();
+    await reloadBooks();
+    return (success, fail);
   }
 
+  /// 批量更新书籍阅读状态。
   Future<void> batchUpdateStatus(
     Iterable<String> bookIds,
     String statusName,
   ) async {
     final status = BookStatus.values.byName(statusName);
-    for (final id in bookIds) {
-      await book_api.updateBookStatus(bookId: id, status: status);
-    }
-    await loadBooks();
+    await book_api.batchUpdateBookStatus(
+      bookIds: bookIds.toList(),
+      status: status,
+    );
+    _invalidateCache();
+    await reloadBooks();
   }
 
+  /// 批量设置书籍分类。
   Future<void> batchSetCategories(
     Iterable<String> bookIds,
     List<String> categoryIds,
   ) async {
-    for (final id in bookIds) {
-      await category_api.setCategoriesForBook(
-        bookId: id,
-        categoryIds: categoryIds,
-      );
-    }
-    await loadBooks();
+    await book_api.batchSetCategoriesForBooks(
+      bookIds: bookIds.toList(),
+      categoryIds: categoryIds,
+    );
+    _invalidateCache();
+    await reloadBooks();
   }
 
+  /// 切换单本书的阅读状态（reading ↔ planned）。
   Future<void> toggleBookStatus(String bookId, BookStatus currentStatus) async {
     final newStatus = currentStatus == BookStatus.reading
         ? BookStatus.planned
         : BookStatus.reading;
     await book_api.updateBookStatus(bookId: bookId, status: newStatus);
-    await loadBooks();
+    _invalidateCache();
+    await reloadBooks();
   }
 
+  /// 切换书籍的置顶状态。
   Future<void> toggleBookPin(String bookId, bool isPinned) async {
     await book_api.updateBookPin(bookId: bookId, isPinned: !isPinned);
-    await loadBooks();
+    _invalidateCache();
+    await reloadBooks();
   }
 
+  /// 切换列表/网格视图模式。
   void toggleViewMode() {
     isListView.value = !isListView.value;
+  }
+
+  /// 释放所有 signal 资源。
+  void dispose() {
+    showReadingProgress.dispose();
+    defaultSortType.dispose();
+    isListView.dispose();
+  }
+}
+
+/// 简单信号量，限制并发数。
+class _Semaphore {
+  final int _max;
+  int _count = 0;
+  final _queue = <Completer<void>>[];
+
+  _Semaphore(this._max);
+
+  Future<T> acquire<T>(Future<T> Function() fn) async {
+    if (_count < _max) {
+      _count++;
+      try {
+        return await fn();
+      } finally {
+        _release();
+      }
+    }
+    final completer = Completer<void>();
+    _queue.add(completer);
+    await completer.future;
+    return acquire(fn);
+  }
+
+  void _release() {
+    if (_queue.isNotEmpty) {
+      _queue.removeAt(0).complete();
+    } else {
+      _count--;
+    }
   }
 }

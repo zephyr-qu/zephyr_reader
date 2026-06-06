@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
@@ -10,13 +11,15 @@ import 'package:zephyr_reader/core/presentation/widgets/settings/settings_naviga
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
-import 'package:zephyr_reader/features/profile/page/other_settings/other_settings_view_model.dart';
+import 'package:zephyr_reader/features/profile/application/other_settings_view_model.dart';
 import 'package:zephyr_reader/features/profile/page/privacy_policy_page.dart';
 import 'package:zephyr_reader/features/profile/page/user_agreement_page.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:zephyr_reader/core/presentation/widgets/confirm_action_dialog.dart';
+import 'package:zephyr_reader/core/presentation/widgets/danger_section.dart';
 
 class OtherSettingsPage extends HookWidget {
   late final OtherSettingsViewModel vm = getIt<OtherSettingsViewModel>();
-
   OtherSettingsPage({super.key});
 
   @override
@@ -27,33 +30,28 @@ class OtherSettingsPage extends HookWidget {
     }, []);
 
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     final String localeLabel = useSignalValue(vm.localeLabel);
     final String appVersion = useSignalValue(vm.appVersion);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          '其他设置',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-          ),
-        ),
+      appBar: SettingsAppBar(
+        title: l10n.otherSettings,
+        fontWeight: FontWeight.w800,
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
         children: [
-          _buildBehaviorSection(context, cs, localeLabel),
+          _buildBehaviorSection(context, cs, l10n, localeLabel),
           const SizedBox(height: 24),
-          _buildExperimentalSection(context, cs),
+          _buildExperimentalSection(context, cs, l10n),
           const SizedBox(height: 24),
-          _buildLegalSection(context, cs),
+          _buildLegalSection(context, cs, l10n),
           const SizedBox(height: 24),
-          _buildDangerSection(context, cs),
+          _buildDangerSection(context, cs, l10n),
           const SizedBox(height: 24),
-          _buildVersionFooter(context, cs, appVersion),
+          _buildVersionFooter(context, cs, l10n, appVersion),
         ],
       ),
     );
@@ -62,14 +60,14 @@ class OtherSettingsPage extends HookWidget {
   Widget _buildBehaviorSection(
     BuildContext context,
     ColorScheme cs,
+    AppLocalizations l10n,
     String localeLabel,
   ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SectionLabel(label: '应用行为', colorScheme: cs),
+            SectionLabel(label: l10n.otherBehavior),
             SettingsCard(
-              colorScheme: cs,
               showDividers: true,
               children: [
                 SettingsNavigationTile(
@@ -80,8 +78,8 @@ class OtherSettingsPage extends HookWidget {
                   iconBackground: MenuItemSemantic.info.iconBackground(
                     Theme.of(context).brightness,
                   ),
-                  title: '界面语言',
-                  subtitle: '简体中文 / English',
+                  title: l10n.language,
+                  subtitle: l10n.languageSubtitle,
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -100,7 +98,7 @@ class OtherSettingsPage extends HookWidget {
                       ),
                     ],
                   ),
-                  onTap: () => _showLanguageSheet(context, cs),
+                  onTap: () => _showLanguageSheet(context, cs, l10n),
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.bell,
@@ -110,8 +108,8 @@ class OtherSettingsPage extends HookWidget {
                   iconBackground: MenuItemSemantic.warning.iconBackground(
                     Theme.of(context).brightness,
                   ),
-                  title: '通知与提醒',
-                  subtitle: '阅读目标提醒、同步完成通知',
+                  title: l10n.otherNotifications,
+                  subtitle: l10n.otherNotificationsDesc,
                   value: vm.notificationsEnabled.value,
                   onChanged: (v) => vm.notificationsEnabled.value = v,
                 ),
@@ -123,8 +121,8 @@ class OtherSettingsPage extends HookWidget {
                   iconBackground: MenuItemSemantic.success.iconBackground(
                     Theme.of(context).brightness,
                   ),
-                  title: '启动时检查更新',
-                  subtitle: '仅前台启动时检测新版本',
+                  title: l10n.otherStartupCheck,
+                  subtitle: l10n.otherStartupCheckDesc,
                   value: vm.startupCheckEnabled.value,
                   onChanged: (v) => vm.startupCheckEnabled.value = v,
                 ),
@@ -137,7 +135,11 @@ class OtherSettingsPage extends HookWidget {
         .slideY(begin: 0.03, end: 0);
   }
 
-  Widget _buildExperimentalSection(BuildContext context, ColorScheme cs) {
+  Widget _buildExperimentalSection(
+    BuildContext context,
+    ColorScheme cs,
+    AppLocalizations l10n,
+  ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -146,7 +148,7 @@ class OtherSettingsPage extends HookWidget {
               child: Row(
                 children: [
                   Text(
-                    '实验性功能',
+                    l10n.otherExperimental,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: cs.outline,
@@ -176,7 +178,6 @@ class OtherSettingsPage extends HookWidget {
               ),
             ),
             SettingsCard(
-              colorScheme: cs,
               showDividers: true,
               children: [
                 SettingsToggleTile(
@@ -187,8 +188,8 @@ class OtherSettingsPage extends HookWidget {
                   iconBackground: MenuItemSemantic.experimental.iconBackground(
                     Theme.of(context).brightness,
                   ),
-                  title: 'Markdown 笔记预览',
-                  subtitle: '在笔记列表中渲染 Markdown 格式',
+                  title: l10n.otherMarkdownPreview,
+                  subtitle: l10n.otherMarkdownPreviewDesc,
                   value: vm.markdownPreview.value,
                   onChanged: (v) => vm.markdownPreview.value = v,
                 ),
@@ -201,13 +202,16 @@ class OtherSettingsPage extends HookWidget {
         .slideY(begin: 0.03, end: 0);
   }
 
-  Widget _buildLegalSection(BuildContext context, ColorScheme cs) {
+  Widget _buildLegalSection(
+    BuildContext context,
+    ColorScheme cs,
+    AppLocalizations l10n,
+  ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SectionLabel(label: '法律与合规', colorScheme: cs),
+            SectionLabel(label: l10n.otherLegal),
             SettingsCard(
-              colorScheme: cs,
               showDividers: true,
               children: [
                 SettingsNavigationTile(
@@ -218,7 +222,7 @@ class OtherSettingsPage extends HookWidget {
                   iconBackground: MenuItemSemantic.legal.iconBackground(
                     Theme.of(context).brightness,
                   ),
-                  title: '用户协议',
+                  title: l10n.userAgreement,
                   subtitle: '',
                   onTap: () => Navigator.push(
                     context,
@@ -235,7 +239,7 @@ class OtherSettingsPage extends HookWidget {
                   iconBackground: MenuItemSemantic.legal.iconBackground(
                     Theme.of(context).brightness,
                   ),
-                  title: '隐私政策',
+                  title: l10n.privacyPolicy,
                   subtitle: '',
                   onTap: () => Navigator.push(
                     context,
@@ -252,8 +256,8 @@ class OtherSettingsPage extends HookWidget {
                   iconBackground: MenuItemSemantic.legal.iconBackground(
                     Theme.of(context).brightness,
                   ),
-                  title: '开源许可证',
-                  subtitle: 'Flutter / Rust / 第三方库许可',
+                  title: l10n.openSourceLicense,
+                  subtitle: l10n.openSourceLicenseDesc,
                   onTap: () => showLicensePage(
                     context: context,
                     applicationName: 'Zephyr Reader',
@@ -269,53 +273,25 @@ class OtherSettingsPage extends HookWidget {
         .slideY(begin: 0.03, end: 0);
   }
 
-  Widget _buildDangerSection(BuildContext context, ColorScheme cs) {
-    return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildDangerSection(
+    BuildContext context,
+    ColorScheme cs,
+    AppLocalizations l10n,
+  ) {
+    return DangerSection(
+          label: l10n.dangerZone,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 10),
-              child: Text(
-                '危险操作',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: cs.error.withValues(alpha: 0.8),
-                  letterSpacing: 0.4,
-                ),
-              ),
+            DangerItem(
+              icon: PhosphorIconsRegular.arrowCounterClockwise,
+              title: l10n.resetAllSettings,
+              description: l10n.resetAllSettingsDesc,
+              onTap: () => _confirmResetSettings(context, cs),
             ),
-            Container(
-              decoration: BoxDecoration(
-                color: cs.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: cs.error.withValues(alpha: 0.2),
-                  width: 0.5,
-                ),
-              ),
-              child: Column(
-                children: [
-                  _dangerItem(
-                    cs,
-                    icon: PhosphorIconsRegular.arrowCounterClockwise,
-                    title: '重置所有设置',
-                    desc: '恢复默认排版、主题、同步配置',
-                    onTap: () => _confirmResetSettings(context, cs),
-                  ),
-                  Container(
-                    height: 0.5,
-                    color: cs.error.withValues(alpha: 0.15),
-                  ),
-                  _dangerItem(
-                    cs,
-                    icon: PhosphorIconsRegular.trash,
-                    title: '清除全部本地数据',
-                    desc: '删除书籍、笔记、生词本、统计记录',
-                    onTap: () => _confirmClearData(context, cs),
-                  ),
-                ],
-              ),
+            DangerItem(
+              icon: PhosphorIconsRegular.trash,
+              title: l10n.clearAllData,
+              description: l10n.clearAllDataDesc,
+              onTap: () => _confirmClearData(context, cs),
             ),
           ],
         )
@@ -324,62 +300,10 @@ class OtherSettingsPage extends HookWidget {
         .slideY(begin: 0.03, end: 0);
   }
 
-  Widget _dangerItem(
-    ColorScheme cs, {
-    required IconData icon,
-    required String title,
-    required String desc,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: cs.error.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, size: 16, color: cs.error),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: cs.error,
-                    ),
-                  ),
-                  Text(
-                    desc,
-                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              PhosphorIconsRegular.caretRight,
-              size: 14,
-              color: cs.onSurface.withValues(alpha: 0.3),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildVersionFooter(
     BuildContext context,
     ColorScheme cs,
+    AppLocalizations l10n,
     String appVersion,
   ) {
     return Column(
@@ -405,7 +329,7 @@ class OtherSettingsPage extends HookWidget {
             GestureDetector(
               onTap: () {},
               child: Text(
-                '检查更新',
+                l10n.checkUpdate,
                 style: TextStyle(
                   fontSize: 11,
                   color: cs.primary,
@@ -423,7 +347,7 @@ class OtherSettingsPage extends HookWidget {
             GestureDetector(
               onTap: () {},
               child: Text(
-                '反馈问题',
+                l10n.feedback,
                 style: TextStyle(
                   fontSize: 11,
                   color: cs.primary,
@@ -437,7 +361,11 @@ class OtherSettingsPage extends HookWidget {
     );
   }
 
-  void _showLanguageSheet(BuildContext context, ColorScheme cs) {
+  void _showLanguageSheet(
+    BuildContext context,
+    ColorScheme cs,
+    AppLocalizations l10n,
+  ) {
     showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -450,16 +378,19 @@ class OtherSettingsPage extends HookWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                '界面语言',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              Text(
+                l10n.language,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 16),
-              _langOption(context, cs, '跟随系统', null),
+              _langOption(context, cs, l10n.followSystem, null),
               const SizedBox(height: 8),
-              _langOption(context, cs, '简体中文', 'zh'),
+              _langOption(context, cs, l10n.chinese, 'zh'),
               const SizedBox(height: 8),
-              _langOption(context, cs, 'English', 'en'),
+              _langOption(context, cs, l10n.english, 'en'),
             ],
           ),
         ),
@@ -527,66 +458,24 @@ class OtherSettingsPage extends HookWidget {
   }
 
   void _confirmResetSettings(BuildContext context, ColorScheme cs) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(PhosphorIconsRegular.warning, size: 20, color: cs.error),
-            const SizedBox(width: 8),
-            const Text('确认重置', style: TextStyle(fontSize: 18)),
-          ],
-        ),
-        content: const Text('此操作将恢复排版、主题、同步配置等所有设置为默认值。\n\n不会删除书籍、笔记和生词数据。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('取消', style: TextStyle(color: cs.onSurfaceVariant)),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: cs.error),
-            onPressed: () {
-              Navigator.pop(ctx);
-              vm.resetAllSettings();
-            },
-            child: const Text('确认重置'),
-          ),
-        ],
-      ),
+    final l10n = AppLocalizations.of(context)!;
+    showConfirmActionDialog(
+      context,
+      title: l10n.confirmReset,
+      content: l10n.confirmResetContent,
+      confirmLabel: l10n.confirmReset,
+      onConfirm: () => vm.resetAllSettings(),
     );
   }
 
   void _confirmClearData(BuildContext context, ColorScheme cs) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(PhosphorIconsRegular.warning, size: 20, color: cs.error),
-            const SizedBox(width: 8),
-            const Text('清除所有数据', style: TextStyle(fontSize: 18)),
-          ],
-        ),
-        content: const Text(
-          '此操作将删除所有书籍、笔记、生词本、阅读进度和统计记录。\n\n建议先通过 WebDAV 备份数据。\n\n此操作不可撤销。',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('取消', style: TextStyle(color: cs.onSurfaceVariant)),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: cs.error),
-            onPressed: () {
-              Navigator.pop(ctx);
-              vm.clearAllLocalData();
-            },
-            child: const Text('确认清除'),
-          ),
-        ],
-      ),
+    final l10n = AppLocalizations.of(context)!;
+    showConfirmActionDialog(
+      context,
+      title: l10n.clearAllDataTitle,
+      content: l10n.clearAllDataContent,
+      confirmLabel: l10n.confirmClear,
+      onConfirm: () => vm.clearAllLocalData(),
     );
   }
 }

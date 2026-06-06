@@ -1,0 +1,91 @@
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:injectable/injectable.dart';
+import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/core/settings/persisted_signal.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/core/settings/settings_keys.dart';
+import 'package:zephyr_reader/core/theme/theme_manager.dart';
+import 'package:zephyr_reader/core/utils/cache_utils.dart';
+
+@injectable
+class OtherSettingsViewModel {
+  final SharedPreferences _prefs;
+
+  late final notificationsEnabled = persistedBool(
+    _prefs,
+    SettingsKeys.otherNotifications,
+    true,
+  );
+  late final startupCheckEnabled = persistedBool(
+    _prefs,
+    SettingsKeys.otherStartupCheck,
+    true,
+  );
+  late final markdownPreview = persistedBool(
+    _prefs,
+    SettingsKeys.otherMarkdownPreview,
+    false,
+  );
+
+  final localeCode = signal<String?>(null);
+  final localeLabel = signal<String>('简体中文');
+  final appVersion = signal<String>('');
+
+  bool _initialized = false;
+
+  OtherSettingsViewModel(this._prefs);
+
+  /// 初始化 ViewModel，读取当前语言环境和应用版本号。
+  Future<void> initialize() async {
+    if (_initialized) return;
+    _initialized = true;
+
+    final tm = ThemeManager.instance;
+    localeCode.value = tm.locale.value;
+    localeLabel.value = tm.locale.value == 'en' ? 'English' : '简体中文';
+
+    try {
+      final info = await PackageInfo.fromPlatform();
+      appVersion.value = 'v${info.version} (Build ${info.buildNumber})';
+    } catch (_) {
+      appVersion.value = '';
+    }
+  }
+
+  /// 将所有设置恢复为默认值。
+  Future<void> resetAllSettings() async {
+    await getIt<ReaderConfig>().resetToDefault();
+    notificationsEnabled.value = true;
+    startupCheckEnabled.value = true;
+    markdownPreview.value = false;
+
+    // 重置语言到跟随系统
+    final tm = ThemeManager.instance;
+    tm.locale.value = null;
+    localeCode.value = null;
+    localeLabel.value = '简体中文';
+
+    // 重置主题到跟随系统
+    tm.themeType.value = AppThemeType.system;
+
+    // 重置自定义颜色
+    tm.customPrimaryColor.value = null;
+  }
+
+  /// 清除所有本地缓存数据。
+  Future<void> clearAllLocalData() async {
+    await CacheUtils.clearCache();
+  }
+
+  /// 释放所有 signal 资源。
+  void dispose() {
+    notificationsEnabled.dispose();
+    startupCheckEnabled.dispose();
+    markdownPreview.dispose();
+    localeCode.dispose();
+    localeLabel.dispose();
+    appVersion.dispose();
+  }
+}

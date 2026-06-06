@@ -6,6 +6,7 @@ import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
+import 'package:zephyr_reader/src/rust/api/search.dart' as search_api;
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -73,7 +74,7 @@ class ReaderViewModel {
   final selectionStart = signal<int>(0);
   final selectionEnd = signal<int>(0);
   final showSelectionToolbar = signal<bool>(false);
-  final highlights = signal<List<Note>>([]);
+  final highlights = asyncSignal<List<Note>>(AsyncState.data([]));
 
   // ==================== 双语 信号 ====================
 
@@ -94,12 +95,32 @@ class ReaderViewModel {
 
   final List<void Function()> _disposers = [];
 
+  /// 高亮/笔记缓存（按章节索引）。
+  /// 切换回已访问章节时避免重复 API 调用。
+  final Map<int, List<Note>> _highlightsCache = {};
   late final ChapterManager chapterManager;
   late final ReadingSessionManager sessionManager;
 
   ReaderViewModel(this._repo, this._config) {
     chapterManager = ChapterManager(_repo, _config);
     sessionManager = ReadingSessionManager(_repo, chapterManager);
+  }
+
+  // ==================== 编排方法 ====================
+
+  /// 初始化阅读器，加载章节列表、恢复阅读进度、加载书签并开始计时。
+  Future<void> initialize(
+    String bookId, {
+    int initialChapterId = 0,
+    int initialPageIndex = 0,
+  }) async {
+    resetForNewBook();
+    chapterManager.bookId.value = bookId;
+    chapterManager.currentCharOffset.value = 0;
+
+    isLoading.value = true;
+    error.value = null;
+
     _disposers.add(
       effect(() {
         if (_config.autoScroll.value && sessionManager.isReading.value) {
@@ -109,25 +130,6 @@ class ReaderViewModel {
         }
       }),
     );
-  }
-
-  // ==================== 编排方法 ====================
-
-  /// 初始化阅读器
-  Future<void> initialize(
-    String bookId, {
-    int initialChapterId = 0,
-    int initialPageIndex = 0,
-  }) async {
-    if (this.bookId.value == bookId &&
-        chapters.value.value?.isNotEmpty == true) {
-      return;
-    }
-    chapterManager.bookId.value = bookId;
-    chapterManager.currentCharOffset.value = 0;
-
-    isLoading.value = true;
-    error.value = null;
 
     try {
       await chapterManager.loadChapters();
@@ -179,10 +181,10 @@ class ReaderViewModel {
     );
   }
 
-  /// 加载指定页（包装 ChapterManager + 保存进度）
+  /// 加载指定页（不阻塞进度保存）。
   Future<void> loadPage(int pageIndex) async {
     chapterManager.loadPage(pageIndex);
-    await sessionManager.saveProgress();
+    unawaited(sessionManager.saveProgress());
   }
 
   /// 跳转到指定章节（包装 ChapterManager + 隐藏目录）
@@ -191,40 +193,59 @@ class ReaderViewModel {
     showCatalog.value = false;
   }
 
+  /// 跳转到指定章节的字符偏移位置。
   Future<void> jumpToPosition(int chapterIndex, int charOffset) async {
     await chapterManager.jumpToPosition(chapterIndex, charOffset);
   }
 
+  /// 切换到上一章。
   Future<void> previousChapter() => chapterManager.previousChapter();
+
+  /// 切换到下一章。
   Future<void> nextChapter() => chapterManager.nextChapter();
+
+  /// 翻到上一页。
   void previousPage() => chapterManager.previousPage();
+
+  /// 翻到下一页。
   void nextPage() => chapterManager.nextPage();
+
+  /// 更新当前阅读的字符偏移位置。
   void updateCurrentCharOffset(int charOffset) =>
       chapterManager.updateCurrentCharOffset(charOffset);
+
+  /// 消费待处理的跳转偏移（跳转完成后清除标记）。
   void consumePendingJumpOffset() => chapterManager.consumePendingJumpOffset();
+
+  /// 更新阅读器的字体。
   void updateFont(String fontFamily) => chapterManager.updateFont(fontFamily);
 
   // ==================== UI 面板切换 ====================
 
+  /// 切换目录面板的显示状态。
   void toggleCatalog() {
     showCatalog.value = !showCatalog.value;
     showBookmarks.value = false;
   }
 
+  /// 切换书签面板的显示状态。
   void toggleBookmarks() {
     showBookmarks.value = !showBookmarks.value;
     showCatalog.value = false;
   }
 
+  /// 切换底部工具栏的显示状态。
   void toggleToolbar() => showToolbar.value = !showToolbar.value;
 
+  /// 切换设置面板的显示状态（同时显示工具栏）。
   void toggleSettings() {
     showSettings.value = !showSettings.value;
     showToolbar.value = showSettings.value;
   }
 
-  // ==================== 搜索（委托给 SearchController） ====================
+  // ==================== 搜索 ====================
 
+  /// 切换搜索面板的显示状态，关闭时重置搜索状态。
   void toggleSearch() {
     showSearch.value = !showSearch.value;
     if (!showSearch.value) {
@@ -235,6 +256,7 @@ class ReaderViewModel {
     }
   }
 
+  /// 更新搜索查询、匹配数量和当前匹配项。
   void updateSearch(
     String query, {
     int matches = 0,
@@ -251,12 +273,39 @@ class ReaderViewModel {
     searchMatchParagraph.value = paragraphIndex;
   }
 
+  /// 用户输入搜索查询时触发。
+  ///
+  /// 优先通过 FTS5 索引获取匹配数（异步），索引未就绪时降级为 `updateSearch` 占位。
+  /// 匹配位置在 Rust 侧由 `search()` 返回，Dart 侧不再全文扫描。
+  Future<void> onSearchChanged(String query) async {
+    if (query.isEmpty) {
+      updateSearch('', matches: 0, currentIndex: 0, paragraphIndex: -1);
+      return;
+    }
+    try {
+      final results = await search_api.search(
+        bookId: bookId.value,
+        query: query,
+        limit: 1000,
+      );
+      final currentChapterMatches = results
+          .where((r) => r.chapterIndex == chapterIndex.value)
+          .toList();
+      updateSearch(query, matches: currentChapterMatches.length);
+    } catch (_) {
+      // FTS5 索引未就绪时静默降级（匹配数显示为 0，下次输入重试）
+      updateSearch(query, matches: 0);
+    }
+  }
+
+  /// 跳转到下一个搜索匹配项。
   void nextSearchMatch() {
     if (searchMatches.value <= 0) return;
     searchCurrentIndex.value =
         (searchCurrentIndex.value + 1) % searchMatches.value;
   }
 
+  /// 跳转到上一个搜索匹配项。
   void prevSearchMatch() {
     if (searchMatches.value <= 0) return;
     searchCurrentIndex.value =
@@ -266,6 +315,7 @@ class ReaderViewModel {
 
   // ==================== 书签 ====================
 
+  /// 加载当前书籍的所有书签。
   Future<void> loadBookmarks() async {
     await bookmarks.loadAsync(
       () => _repo.getBookmarks(bookId.value),
@@ -273,6 +323,7 @@ class ReaderViewModel {
     );
   }
 
+  /// 在当前阅读位置添加书签。
   Future<bool> addBookmark() async {
     try {
       await _repo.addBookmark(
@@ -288,6 +339,7 @@ class ReaderViewModel {
     }
   }
 
+  /// 删除指定书签。
   Future<bool> deleteBookmark(String bookmarkId) async {
     try {
       final success = await _repo.deleteBookmark(bookmarkId);
@@ -299,11 +351,13 @@ class ReaderViewModel {
     }
   }
 
+  /// 跳转到指定书签位置并关闭书签面板。
   Future<void> jumpToBookmark(Bookmark bookmark) async {
     await jumpToPosition(bookmark.chapterIndex, bookmark.charOffset.toInt());
     showBookmarks.value = false;
   }
 
+  /// 当前阅读位置是否存在书签。
   bool get hasBookmarkAtCurrentPosition {
     final currentBookmarks = bookmarks.value.value ?? [];
     return currentBookmarks.any(
@@ -313,6 +367,7 @@ class ReaderViewModel {
     );
   }
 
+  /// 获取当前阅读位置的书签（如果存在）。
   Bookmark? get currentBookmark {
     final currentBookmarks = bookmarks.value.value ?? [];
     try {
@@ -326,6 +381,7 @@ class ReaderViewModel {
     }
   }
 
+  /// 切换当前阅读位置的书签状态（添加/删除）。
   Future<bool> toggleBookmarkAtCurrentPosition() async {
     final existing = currentBookmark;
     if (existing != null) {
@@ -337,18 +393,32 @@ class ReaderViewModel {
 
   // ==================== 划词批注 ====================
 
-  Future<void> loadHighlights() async {
+  /// 加载当前章节的全部高亮和笔记。
+  ///
+  /// [forceRefresh] 为 `true` 时绕过缓存，强制从 API 重新获取。
+  Future<void> loadHighlights({bool forceRefresh = false}) async {
+    final idx = chapterIndex.value;
+    if (!forceRefresh) {
+      final cached = _highlightsCache[idx];
+      if (cached != null) {
+        highlights.value = AsyncState.data(cached);
+        return;
+      }
+    }
     try {
-      highlights.value = await note_api.listNotesInChapter(
+      final notes = await note_api.listNotesInChapter(
         bookId: bookId.value,
-        chapterIndex: chapterIndex.value,
+        chapterIndex: idx,
       );
+      _highlightsCache[idx] = notes;
+      highlights.value = AsyncState.data(notes);
     } catch (_) {
-      highlights.value = [];
+      highlights.value = AsyncState.data([]);
     }
     HighlightPainter.invalidateCache();
   }
 
+  /// 更新当前选中的文本范围和内容。
   void updateSelection(String text, int start, int end) {
     selectedText.value = text;
     selectionStart.value = start;
@@ -356,6 +426,7 @@ class ReaderViewModel {
     showSelectionToolbar.value = text.isNotEmpty;
   }
 
+  /// 清除当前选中文本并隐藏工具栏。
   void clearSelection() {
     selectedText.value = '';
     selectionStart.value = 0;
@@ -363,6 +434,7 @@ class ReaderViewModel {
     showSelectionToolbar.value = false;
   }
 
+  /// 保存当前选中的文本为高亮。
   Future<void> saveHighlight() async {
     if (selectedText.value.isEmpty) return;
     try {
@@ -374,13 +446,14 @@ class ReaderViewModel {
         selectedText: selectedText.value,
         color: 0xFFFFEB3B,
       );
-      await loadHighlights();
+      await loadHighlights(forceRefresh: true);
       clearSelection();
     } catch (e) {
       toastMessage.value = '保存高亮失败';
     }
   }
 
+  /// 保存当前选中的文本为笔记。
   Future<void> saveAnnotation(String annotationContent) async {
     if (selectedText.value.isEmpty || annotationContent.isEmpty) return;
     try {
@@ -391,27 +464,29 @@ class ReaderViewModel {
         content: annotationContent,
         selectedText: selectedText.value,
       );
-      await loadHighlights();
+      await loadHighlights(forceRefresh: true);
       clearSelection();
     } catch (e) {
       toastMessage.value = '保存笔记失败';
     }
   }
 
+  /// 删除指定笔记或高亮。
   Future<void> deleteNote(String noteId) async {
     try {
       await note_api.deleteNote(noteId: noteId);
       hapticFeedback(HapticType.heavy);
-      await loadHighlights();
+      await loadHighlights(forceRefresh: true);
     } catch (e) {
       toastMessage.value = '删除失败';
     }
   }
 
+  /// 更新笔记内容。
   Future<void> updateNote(Note note) async {
     try {
       await note_api.upsertNote(note: note);
-      await loadHighlights();
+      await loadHighlights(forceRefresh: true);
     } catch (e) {
       toastMessage.value = '更新笔记失败';
     }
@@ -419,6 +494,7 @@ class ReaderViewModel {
 
   // ==================== 设置变更 ====================
 
+  /// 设置阅读器字体大小并重绘当前章节。
   Future<void> setFontSize(double size) async {
     _config.fontSize.value = size;
     await chapterManager.loadChapter(
@@ -429,6 +505,7 @@ class ReaderViewModel {
     );
   }
 
+  /// 设置阅读器行高并重绘当前章节。
   Future<void> setLineHeight(double height) async {
     _config.lineHeight.value = height;
     await chapterManager.loadChapter(
@@ -439,6 +516,7 @@ class ReaderViewModel {
     );
   }
 
+  /// 设置阅读模式（分页/滚动/双语），双语模式下自动触发对齐。
   void setReadingMode(ReadingMode mode) {
     readingMode.value = mode;
     if (mode == ReadingMode.bilingual) {
@@ -446,6 +524,7 @@ class ReaderViewModel {
     }
   }
 
+  /// 设置翻译内容，双语模式下自动触发对齐。
   void setTranslationContent(String content) {
     translationContent.value = content;
     if (readingMode.value == ReadingMode.bilingual) {
@@ -453,6 +532,7 @@ class ReaderViewModel {
     }
   }
 
+  /// 运行双语对齐（将中文内容与英文翻译逐段对齐）。
   Future<void> _runBilingualAlignment() async {
     final content = chapterContent.value.value ?? '';
     final translation = translationContent.value;
@@ -469,6 +549,7 @@ class ReaderViewModel {
 
   // ==================== 双语高亮 ====================
 
+  /// 创建双语对照高亮（同时高亮原文和译文中对应的文本）。
   Future<void> createBilingualHighlight({
     required String sourceBookId,
     required int sourceChapterIndex,
@@ -514,6 +595,7 @@ class ReaderViewModel {
 
   // ==================== 重置 ====================
 
+  /// 重置阅读器状态，清理定时器和信号，为切换书籍做准备。
   void resetForNewBook() {
     for (final disposer in _disposers) {
       disposer();
@@ -536,7 +618,8 @@ class ReaderViewModel {
     selectedText.value = '';
     selectionStart.value = 0;
     selectionEnd.value = 0;
+    _highlightsCache.clear();
     showSelectionToolbar.value = false;
-    highlights.value = [];
+    highlights.value = AsyncState.data([]);
   }
 }
