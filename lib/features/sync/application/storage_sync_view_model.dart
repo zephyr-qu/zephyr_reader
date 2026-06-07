@@ -61,7 +61,7 @@ class StorageSyncViewModel {
 
   /// 计算应用缓存、数据库和书籍文件的大小。
   Future<void> _calcStorage({int? knownCacheBytes}) async {
-    final cacheBytes = knownCacheBytes ?? await CacheUtils.getCacheSize();
+    final cacheBytes = knownCacheBytes ?? await CacheManager.getCacheSize();
     cacheSize.value = cacheBytes;
 
     final appDir = await getApplicationDocumentsDirectory();
@@ -128,7 +128,7 @@ class StorageSyncViewModel {
 
   /// 清除应用缓存并重新计算存储用量。
   Future<void> clearCache() async {
-    await CacheUtils.clearCache();
+    await CacheManager.clearCache();
     await _calcStorage(knownCacheBytes: 0);
   }
 
@@ -165,7 +165,7 @@ class StorageSyncViewModel {
       }
 
       // 4. 清除缓存
-      await CacheUtils.clearCache();
+      await CacheManager.clearCache();
 
       // 5. 清除 WebDAV 同步配置
       await clearConfig();

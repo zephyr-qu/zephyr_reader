@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// 设置页卡片容器。
+///
+/// 将子组件放在带边框和圆角的卡片中，可选显示分割线。
 class SettingsCard extends StatelessWidget {
   final List<Widget> children;
   final bool showDividers;

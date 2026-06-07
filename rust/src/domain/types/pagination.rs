@@ -23,6 +23,7 @@ pub struct PageContent {
     pub is_last_page: bool,
     /// 此页在章节原文中的起始字节偏移（用于阅读进度定位）
     pub start_offset: i32,
+    /// 此页在章节原文中的结束字节偏移（用于阅读进度定位）
     pub end_offset: i32,
 }
 
@@ -35,6 +36,7 @@ pub struct PageContent {
 pub struct PageOffset {
     /// 起始偏移量（字节）
     pub offset: i32,
+    /// 数据长度（字节）
     pub length: i32,
 }
 
@@ -48,6 +50,7 @@ pub struct SearchResult {
     pub book_id: String,
     /// 章节 ID
     pub chapter_id: String,
+    /// 章节索引
     #[sqlx(try_from = "i64")]
     pub chapter_index: i32,
     /// 章节标题
@@ -56,6 +59,8 @@ pub struct SearchResult {
     pub snippet: String,
     /// 匹配位置（在章节中的字符偏移）
     pub position: i32,
+    /// 匹配得分（相关性排序）
     pub score: f32,
+    /// 匹配所在的字符偏移（精确位置）
     pub char_offset: i32,
 }

@@ -21,6 +21,11 @@ pub struct StorageManager {
 }
 
 impl StorageManager {
+    /// 创建新的存储管理器
+    ///
+    /// 初始化 SQLite 连接池并运行迁移，同时初始化 KV 存储（sled）。
+    /// # 参数
+    /// `data_dir` - 数据库文件和 KV 缓存的存放目录
     pub async fn new(data_dir: impl AsRef<Path>) -> Result<Self> {
         let data_dir = data_dir.as_ref().to_path_buf();
         std::fs::create_dir_all(&data_dir)?;
@@ -64,6 +69,7 @@ impl StorageManager {
             .context("Failed to initialize SQLx pool")
     }
 
+    /// 获取 SQLite 连接池
     pub fn pool(&self) -> Result<SqlitePool> {
         self.pool
             .lock()
@@ -71,10 +77,12 @@ impl StorageManager {
             .ok_or_else(|| anyhow::anyhow!("Storage pool has been closed"))
     }
 
+    /// 获取 KV 存储引用
     pub fn kv(&self) -> Arc<KvStore> {
         Arc::clone(&self.kv)
     }
 
+    /// 获取数据目录路径
     pub fn data_dir(&self) -> &Path {
         &self.data_dir
     }
@@ -154,6 +162,9 @@ impl StorageManager {
         Ok(())
     }
 
+    /// 导出数据库文件
+    ///
+    /// 先刷 KV 缓存、执行 WAL checkpoint，再复制 db 文件到目标路径。
     pub async fn export_db(&self, dest_path: impl AsRef<Path>) -> Result<()> {
         let dest_path = dest_path.as_ref();
 

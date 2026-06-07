@@ -1,7 +1,11 @@
+//! 文件 I/O 工具
+//! 提供文本文件的块读取功能，支持 mmap 和标准 I/O 两种方式，带 UTF-8 边界安全对齐
+
 use crate::domain::AppError;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 
+/// mmap 读取阈值（1 MB），文件超过此大小时使用内存映射读取以提高性能
 const MMAP_THRESHOLD: usize = 1024 * 1024;
 
 /// 读取文本块（UTF-8），适用于显示文本内容

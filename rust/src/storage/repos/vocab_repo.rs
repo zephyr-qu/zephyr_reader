@@ -4,6 +4,7 @@ use sqlx::{QueryBuilder, SqlitePool};
 
 use super::super::models::*;
 
+/// 生词仓储 — 管理生词本的增删改查
 pub struct VocabRepository;
 
 impl VocabRepository {

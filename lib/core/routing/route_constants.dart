@@ -1,3 +1,7 @@
+/// 路由路径常量定义
+///
+/// 集中管理应用中所有路由的路径模式字符串，用于 [GoRouter] 路由配置。
+/// 使用路径参数（如 `/reader/:bookId/:chapterId`）标识动态路由。
 abstract class RoutePaths {
   static const String splash = '/';
   static const String home = '/home';
@@ -52,6 +56,10 @@ abstract class RoutePaths {
   static const String localBackup = '/settings/local-backup';
 }
 
+/// 路由名称常量定义
+///
+/// 集中管理应用中所有路由的命名标识，用于程序化导航和路由识别。
+/// 与 [RoutePaths] 中的路径一一对应。
 abstract class RouteNames {
   static const String splash = 'splash';
   static const String home = 'home';

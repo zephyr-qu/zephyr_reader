@@ -14,6 +14,7 @@ char_offset = excluded.char_offset, \
 title = excluded.title, \
 created_at = excluded.created_at";
 
+/// 书签仓储 — 管理书签的增删改查
 pub struct BookmarkRepository;
 
 impl BookmarkRepository {

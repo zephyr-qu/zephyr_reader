@@ -28,14 +28,27 @@ pub struct MdContentProvider {
 
 // ==================== 懒编译正则 ====================
 
+/// 匹配 Markdown 图片语法：![alt](url)
 static RE_IMAGE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"!\[([^\]]*)\]\([^)]*\)").unwrap());
+/// 匹配 Markdown 链接语法：[text](url)
 static RE_LINK: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\[([^\]]*)\]\([^)]*\)").unwrap());
+/// 匹配加粗/斜体标记：*text* / **text** / ***text***
 static RE_BOLD_ITALIC: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\*{1,3}([^*]+)\*{1,3}").unwrap());
+/// 匹配下划线标记：__text__
 static RE_UNDERLINE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"__([^_]+)__").unwrap());
+/// 匹配行内代码标记：`code`
 static RE_INLINE_CODE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"`([^`]+)`").unwrap());
+/// 匹配删除线标记：~~text~~
 static RE_STRIKETHROUGH: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"~~([^~]+)~~").unwrap());
 
 impl MdContentProvider {
+    /// 创建新的 MD 内容提供器
+    ///
+    /// 执行单次 O(n) 扫描，预计算文本块边界和代码块区域。
+    ///
+    /// # 参数
+    ///
+    /// * `content` - 完整的 Markdown 文件内容
     pub fn new(content: String) -> Self {
         let (block_offsets, code_block_regions) = Self::scan_blocks(&content);
 
@@ -277,6 +290,7 @@ impl ChapterContentProvider for MdContentProvider {
         Some(Ok(markdown_slice_to_html(slice)))
     }
 }
+
 fn markdown_slice_to_html(text: &str) -> String {
     let arena = Arena::new();
     let options = Options {
@@ -314,6 +328,7 @@ fn markdown_slice_to_html(text: &str) -> String {
             sourcepos_chars: false,
             tasklist_in_table: false,
         },
+        ..Default::default()
     };
 
     let root = parse_document(&arena, text, &options);

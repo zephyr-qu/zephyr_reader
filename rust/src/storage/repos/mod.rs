@@ -1,3 +1,7 @@
+//! 数据库仓储层
+//!
+//! 每个实体对应一个 Repository，封装对该实体表的 CRUD 操作
+
 pub mod book_repo;
 pub mod bookmark_repo;
 pub mod category_repo;

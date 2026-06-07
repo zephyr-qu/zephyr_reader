@@ -1,10 +1,8 @@
-/// 集中式日志工具，内部基于 [Logger] 实现。
+/// 集中式日志工具。
 ///
-/// Release 模式下仅输出错误级别，不格式化；Debug 模式下使用 [PrettyPrinter]。
+/// 内部基于 [Logger] 实现，Release 模式下仅输出错误级别，
+/// Debug 模式下使用 [PrettyPrinter] 格式化输出。
 /// 项目中应统一使用此类，而非直接调用 `Logger`、`print` 或 `stderr`。
-///
-/// 方法：[info], [debug], [warning], [error]（支持传 exception + stackTrace）。
-library;
 
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:logger/logger.dart';
@@ -24,10 +22,16 @@ class Logging {
           ),
   );
 
+  /// 记录信息级别日志。
+  ///
+  /// [message] 日志内容。
   static void info(String message) {
     _logger.i(message);
   }
 
+  /// 记录错误级别日志。
+  ///
+  /// [message] 错误描述；[exception] 异常对象（可选）；[stackTrace] 堆栈信息（可选）。
   static void error(
     String message, {
     Object? exception,
@@ -46,10 +50,16 @@ class Logging {
     }
   }
 
+  /// 记录调试级别日志。
+  ///
+  /// [message] 日志内容。
   static void debug(String message) {
     _logger.d(message);
   }
 
+  /// 记录警告级别日志。
+  ///
+  /// [message] 日志内容。
   static void warning(String message) {
     _logger.w(message);
   }

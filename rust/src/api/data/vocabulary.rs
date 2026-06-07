@@ -1,3 +1,6 @@
+//! 生词管理 API
+//!
+//! 提供生词的 CRUD 操作、状态管理、搜索和统计功能。
 use flutter_rust_bridge::frb;
 
 use super::async_storage;

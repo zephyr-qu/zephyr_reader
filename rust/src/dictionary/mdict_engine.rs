@@ -1,7 +1,7 @@
-/// MDict 词典引擎，封装 `rs-mdict` 库的功能。
-///
-/// 负责管理 .mdx（释义）和 .mdd（资源：音频、图片、CSS）文件。
-/// 使用内存映射文件 I/O，因此构建后的查询速度接近瞬时响应。
+//! MDict 词典引擎，封装 `rs-mdict` 库的功能。
+//!
+//! 负责管理 .mdx（释义）和 .mdd（资源：音频、图片、CSS）文件。
+//! 使用内存映射文件 I/O，因此构建后的查询速度接近瞬时响应。
 use rust_mdict::{LookupResult, Mdd, Mdx};
 
 use super::models::{DictEntry, DictSearchResult};

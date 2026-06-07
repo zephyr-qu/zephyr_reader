@@ -3,6 +3,7 @@ use sqlx::SqlitePool;
 
 use super::super::models::*;
 
+/// 章节仓储 — 管理书籍章节的增删查
 pub struct ChapterRepository;
 
 impl ChapterRepository {

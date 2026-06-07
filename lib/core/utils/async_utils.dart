@@ -1,7 +1,10 @@
+/// [Signal<AsyncState<T>>] 的安全加载扩展。
+///
+/// 为 ViewModel 中的异步加载提供状态管理，自动处理 loading → data/error 状态转换及日志记录。
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 
-/// [Signal<AsyncState<T>>] 的安全加载扩展
+/// [Signal<AsyncState<T>>] 的安全加载扩展。
 ///
 /// 自动处理 loading → data/error 状态转换 + 日志，
 /// 消除 ViewModel 中手写的 try/catch 模板。

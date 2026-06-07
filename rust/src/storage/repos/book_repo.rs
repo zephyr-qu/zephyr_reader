@@ -25,9 +25,13 @@ ON CONFLICT(book_id) DO UPDATE SET \
 description = excluded.description, publisher = excluded.publisher, \
 translator = excluded.translator, isbn = excluded.isbn";
 
+/// 书籍仓储 — 管理书籍的增删改查及相关关联表操作
 pub struct BookRepository;
 
 impl BookRepository {
+    /// 级联删除书籍及其所有关联数据
+    ///
+    /// 事务内依次删除书签、笔记、章节、阅读进度、阅读会话、分类关联和元数据，最后删除书籍本体。
     pub async fn delete_cascade(pool: &SqlitePool, book_id: &str) -> Result<()> {
         let mut tx = pool.begin().await?;
 
@@ -76,6 +80,7 @@ impl BookRepository {
         tx.commit().await?;
         Ok(())
     }
+    /// 获取所有书籍列表
     pub async fn list(pool: &SqlitePool) -> Result<Vec<Book>> {
         // 直接使用 query_as，FromRow 自动完成所有映射
         Ok(sqlx::query_as::<_, Book>("SELECT * FROM books")
@@ -83,12 +88,14 @@ impl BookRepository {
             .await?)
     }
 
+    /// 获取所有书籍的 ID 和标题
     pub async fn list_titles(pool: &SqlitePool) -> Result<Vec<BookTitle>> {
         Ok(sqlx::query_as::<_, BookTitle>("SELECT id, title FROM books")
             .fetch_all(pool)
             .await?)
     }
 
+    /// 按 ID 查找书籍（含元数据 LEFT JOIN）
     pub async fn find_by_id(pool: &SqlitePool, id: &str) -> Result<Option<Book>> {
         Ok(sqlx::query_as::<_, Book>(
             "SELECT b.*, m.description, m.publisher, m.translator, m.isbn \
@@ -101,6 +108,7 @@ impl BookRepository {
         .await?)
     }
 
+    /// 按文件路径查找书籍
     pub async fn find_by_file_path(pool: &SqlitePool, file_path: &str) -> Result<Option<Book>> {
         Ok(sqlx::query_as::<_, Book>(
             "SELECT b.*, m.description, m.publisher, m.translator, m.isbn \
@@ -113,6 +121,7 @@ impl BookRepository {
         .await?)
     }
 
+    /// 保存或更新书籍（UPSERT 热字段）
     pub async fn save(pool: &SqlitePool, book: &Book) -> Result<()> {
         sqlx::query(SQL_UPSERT_BOOK)
             .bind(&book.book_id)
@@ -135,6 +144,7 @@ impl BookRepository {
         Ok(())
     }
 
+    /// 保存或更新书籍元数据（UPSERT 冷字段）
     pub async fn save_metadata(pool: &SqlitePool, book: &Book) -> Result<()> {
         sqlx::query(SQL_UPSERT_BOOK_METADATA)
             .bind(&book.book_id)
@@ -147,6 +157,7 @@ impl BookRepository {
         Ok(())
     }
 
+    /// 按 ID 删除书籍
     pub async fn delete_by_id(pool: &SqlitePool, id: &str) -> Result<()> {
         sqlx::query("DELETE FROM books WHERE id = ?")
             .bind(id)

@@ -117,6 +117,15 @@ pub async fn list_notes_by_book(
     })
 }
 
+/// 批量获取多本书籍的笔记
+///
+/// 通过单次 I/O 查询所有指定书籍的笔记，并按 book_id 分组返回。
+///
+/// # 参数
+/// * `book_ids` - 书籍 ID 列表
+///
+/// # 返回
+/// 元组列表，每项为 (book_id, 该书籍的笔记列表)
 #[frb]
 pub async fn list_notes_by_books(
     book_ids: Vec<String>,

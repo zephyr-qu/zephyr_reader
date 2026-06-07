@@ -9,12 +9,19 @@ use crate::domain::SearchResult;
 
 static JIEBA: OnceLock<Jieba> = OnceLock::new();
 
+/// 搜索分块大小（每块 500 个字符）
 pub const SEARCH_CHUNK_SIZE: usize = 500;
+/// 搜索引擎
+///
+/// 基于 SQLite FTS5 全文检索引擎，支持中文分词（jieba-rs）
 pub struct SearchEngine {
     pool: SqlitePool,
 }
 
 impl SearchEngine {
+    /// 创建新的搜索引擎实例
+    ///
+    /// FTS5 表会在首次写入时自动创建（如果不存在）
     pub fn new(pool: SqlitePool) -> Self {
         // FTS5 表会在首次写入时自动创建（如果不存在）
         // DDL 在 test 模块中保留作为参考
@@ -183,6 +190,7 @@ impl SearchEngine {
         .await
     }
 
+    /// 删除指定书籍的所有索引
     pub async fn delete_by_book(&self, book_id: &str) -> Result<(), sqlx::Error> {
         sqlx::query("DELETE FROM search_index WHERE book_id = ?")
             .bind(book_id)
@@ -191,6 +199,7 @@ impl SearchEngine {
         Ok(())
     }
 
+    /// 清空所有索引
     pub async fn clear_all(&self) -> Result<(), sqlx::Error> {
         sqlx::query("DELETE FROM search_index")
             .execute(&self.pool)

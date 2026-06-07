@@ -1,3 +1,6 @@
+//! 页面排版分页
+//! 提供分页流式处理，支持懒加载模式以减少大文件内存占用
+
 use crate::domain::{PageContent, PageOffset, TypesetConfig};
 use crate::text::char_width::CharWidthTable;
 use crate::text::constants::is_start_avoid_punctuation;
@@ -61,7 +64,11 @@ fn compute_line_breaks_from_indices(
     lines
 }
 
-#[frb(opaque)]
+/// 分页流处理器
+///
+/// 根据排版配置将文本内容分割为页面。
+/// 提供两种模式：eager 模式（小文件，预计算所有行偏移）和 lazy 模式（大文件，按需计算）。
+/// 通过 `#[frb(opaque)]` 暴露给 Flutter 侧使用。
 #[derive(Clone)]
 pub struct PageStreamer {
     content: String,
@@ -78,7 +85,10 @@ pub struct PageStreamer {
     indent_str: String,
 }
 
+/// 主动模式内存阈值（100 MB），超过此大小记录警告
 const PAGE_STREAMER_MEMORY_THRESHOLD: usize = 100 * 1024 * 1024;
+/// 懒加载模式字符数阈值（50K 字符）
+/// 当内容字符数超过此值时使用懒加载分页，避免预计算所有行偏移
 const LAZY_PAGINATION_CHAR_THRESHOLD: usize = 50_000;
 
 #[frb]
@@ -411,6 +421,17 @@ impl PageStreamer {
     }
 }
 
+/// 对全文进行完整分页，返回所有页面的内容列表
+///
+/// # 参数
+///
+/// * `content` - 文本内容
+/// * `chapter_index` - 章节索引
+/// * `config` - 排版配置
+///
+/// # 返回值
+///
+/// 按页码顺序排列的 `PageContent` 列表
 pub fn paginate_all(
     content: String,
     chapter_index: i32,

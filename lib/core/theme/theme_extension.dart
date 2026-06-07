@@ -1,9 +1,21 @@
 import 'package:flutter/material.dart';
 
+
+/// 应用主题扩展
+///
+/// 自定义 [ThemeExtension]，提供 Material 默认色板之外的语义化颜色和阴影。
+/// 包括容器色、分割线、覆盖层和卡片阴影，通过 [Theme.of] 的 `extension` 访问。
 class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
+  /// 主容器色 — 用于选中项、标签等强调背景
   final Color primaryContainer;
+
+  /// 辅助容器色 — 用于次要强调背景
   final Color secondaryContainer;
+
+  /// 表面变体色 — 轻微的替代背景色
   final Color surfaceVariant;
+
+  /// 卡片阴影 — 暖色装饰阴影
   final BoxShadow shadow;
 
   /// 弱化分割线 — 替代 `outlineVariant.withValues(alpha: 0.15)`

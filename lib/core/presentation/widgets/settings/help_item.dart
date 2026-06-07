@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// 帮助条目组件。
+///
+/// 在帮助页面中显示图标、标题和说明文字。
 class HelpItem extends StatelessWidget {
   final String title;
   final String description;

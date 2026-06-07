@@ -15,6 +15,18 @@ pub fn parser_for_format(format: BookFormat) -> Parser {
     }
 }
 
+/// 根据文件扩展名返回对应的 BookFormat
+///
+/// 在栈上做 ASCII 小写转换（零堆分配），扩展名最长 8 字节。
+///
+/// # 参数
+///
+/// * `ext` - 文件扩展名（如 "txt", "epub", "pdf", "md"）
+///
+/// # 返回值
+///
+/// * `Ok(BookFormat)` - 匹配的格式
+/// * `Err(AppError)` - 不支持的格式
 pub fn format_from_extension(ext: &str) -> Result<BookFormat, AppError> {
     let bytes = ext.as_bytes();
     // 栈上做 ASCII tolower，零堆分配；扩展名最长 8 字节 (markdown)

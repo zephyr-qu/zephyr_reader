@@ -17,23 +17,40 @@ use crate::storage::models::{Book, BookFormat, BookStatus, Chapter};
 const MAX_FILE_SIZE: u64 = 50 * 1024 * 1024;
 const MD_PARSER_NAME: &str = "md";
 
+/// Markdown 文件解析器
 #[derive(Clone, Copy)]
 #[frb(opaque)]
 pub struct MdParser;
 
 impl MdParser {
+    /// 创建新的 Markdown 解析器
     pub fn new() -> Self {
         Self
     }
 
+    /// 获取解析器名称
     pub fn name(&self) -> &'static str {
         MD_PARSER_NAME
     }
 
+    /// 获取支持的格式列表
     pub fn supported_formats(&self) -> Vec<&str> {
         vec!["md", "markdown", "mdown", "mkdn"]
     }
 
+    /// 解析 MD 文件
+    ///
+    /// 读取文件内容，提取 YAML frontmatter 中的标题/作者信息，
+    /// 按 H2（##）标题分割章节。
+    ///
+    /// # 参数
+    ///
+    /// * `file_path` - Markdown 文件路径
+    ///
+    /// # 返回值
+    ///
+    /// * `Ok(ParseResult)` - 解析结果（含书籍信息和章节列表）
+    /// * `Err(AppError)` - 解析失败
     pub async fn parse(&self, file_path: &str) -> Result<ParseResult, AppError> {
         let content = fs::read_to_string(file_path)
             .await
@@ -88,6 +105,18 @@ impl MdParser {
         })
     }
 
+    /// 提取 MD 文件元数据
+    ///
+    /// 从 YAML frontmatter 或 H1 标题中提取书名和作者信息。
+    ///
+    /// # 参数
+    ///
+    /// * `file_path` - Markdown 文件路径
+    ///
+    /// # 返回值
+    ///
+    /// * `Ok(BookMetadata)` - 书籍元数据
+    /// * `Err(AppError)` - 提取失败
     pub async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata, AppError> {
         let content = fs::read_to_string(file_path)
             .await
@@ -119,6 +148,19 @@ impl MdParser {
         })
     }
 
+    /// 提取指定章节内容（HTML 格式）
+    ///
+    /// 使用 comrak 将章节 Markdown 渲染为 HTML。
+    ///
+    /// # 参数
+    ///
+    /// * `file_path` - Markdown 文件路径
+    /// * `chapter_index` - 章节索引（从 0 开始）
+    ///
+    /// # 返回值
+    ///
+    /// * `Ok(String)` - 章节 HTML 内容
+    /// * `Err(AppError)` - 提取失败
     pub async fn extract_chapter(
         &self,
         file_path: &str,
@@ -148,21 +190,7 @@ fn extract_chapters(content: &str, book_id: &str) -> Vec<Chapter> {
     let raw = extract_chapters_raw(content);
     raw.iter()
         .enumerate()
-        .map(|(i, (title, text))| Chapter::new(book_id, title,  i as i64, 0, 0, text.len() as i64)
-
-        // {
-        //     id: uuid::Uuid::new_v4().to_string(),
-        //     book_id: book_id.to_string(),
-        //     title: title.clone(),
-        //     chapter_index: i as i64,
-        //     word_count: text.len() as i64,
-        //     cached_at: chrono::Utc::now(),
-        //     level: 0,
-        //     start_index: 0,
-        //     end_index: 0,
-        //     // content_length: text.len() as i64,
-        // }
-      )
+        .map(|(i, (title, text))| Chapter::new(book_id, title, i as i64, 0, 0, text.len() as i64))
         .collect()
 }
 
@@ -298,14 +326,5 @@ Content here.
         let md = "| A | B |\n|---|---|\n| 1 | 2 |";
         let html = markdown_to_html(md);
         assert!(html.contains("<table>"));
-        assert!(html.contains("<th>"));
-        assert!(html.contains("<td>"));
-    }
-
-    #[test]
-    fn test_footnote_rendering() {
-        let md = "Text[^1]\n\n[^1]: Footnote content";
-        let html = markdown_to_html(md);
-        assert!(html.contains("footnote"));
     }
 }

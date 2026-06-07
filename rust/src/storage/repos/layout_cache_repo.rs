@@ -5,23 +5,28 @@ use anyhow::Result;
 use super::super::kv_store::KvStore;
 use super::super::models::{LayoutCache, LayoutCacheKey};
 
+/// 排版缓存仓储 — 委托 KvStore 操作
 pub struct LayoutCacheRepository {
     kv: Arc<KvStore>,
 }
 
 impl LayoutCacheRepository {
+    /// 创建排版缓存仓储
     pub fn new(kv: Arc<KvStore>) -> Self {
         Self { kv }
     }
 
+    /// 保存排版缓存
     pub fn save_layout_cache(&self, key: &LayoutCacheKey, cache: &LayoutCache) -> Result<()> {
         self.kv.save_layout_cache(key, cache)
     }
 
+    /// 获取排版缓存
     pub fn get_layout_cache(&self, key: &LayoutCacheKey) -> Result<Option<LayoutCache>> {
         self.kv.get_layout_cache(key)
     }
 
+    /// 使指定书籍的所有排版缓存失效
     pub fn invalidate_book_cache(&self, book_id: &str) -> Result<()> {
         self.kv.delete_book_layout_cache(book_id)
     }

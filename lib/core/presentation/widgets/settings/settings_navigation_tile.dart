@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// 设置页导航条目。
+///
+/// 显示图标、标题、副标题和可选的尾部组件，点击时触发导航。
 class SettingsNavigationTile extends StatelessWidget {
   final String title;
   final String subtitle;

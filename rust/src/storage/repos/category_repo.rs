@@ -3,6 +3,7 @@ use sqlx::SqlitePool;
 
 use super::super::models::*;
 
+/// 分类仓储 — 管理书籍分类的增删改查
 pub struct CategoryRepository;
 
 impl CategoryRepository {

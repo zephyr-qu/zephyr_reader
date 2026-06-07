@@ -23,6 +23,7 @@ paired_note_id = excluded.paired_note_id, \
 language = excluded.language, \
 updated_at = excluded.updated_at";
 
+/// 笔记仓储 — 管理笔记（高亮/标注）的增删改查
 pub struct NoteRepository;
 
 impl NoteRepository {
@@ -58,6 +59,13 @@ impl NoteRepository {
         .await?)
     }
 
+    /// 批量获取多本书的所有笔记
+    ///
+    /// # 参数
+    /// `book_ids` - 书籍 ID 列表（为空时返回空 HashMap）
+    ///
+    /// # 返回值
+    /// 按 book_id 分组的笔记 HashMap
     pub async fn list_by_books_batch(
         pool: &SqlitePool,
         book_ids: &[String],
@@ -177,6 +185,12 @@ impl NoteRepository {
         )
     }
 
+    /// 批量查找配对笔记
+    ///
+    /// 根据多组 (pair_id, exclude_id) 一次性查询配对对象，减少 N+1 查询。
+    ///
+    /// # 返回值
+    /// 以 pair_id 为 key 的配对笔记 HashMap
     pub async fn find_partner_notes_batch(
         pool: &SqlitePool,
         pairs: &[(String, String)],

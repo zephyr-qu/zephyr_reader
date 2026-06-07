@@ -47,6 +47,7 @@ enum BottomNavItem {
     required this.routeName,
   });
 
+  /// 获取当前导航项对应的本地化标签文本
   String label(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return switch (this) {
@@ -57,6 +58,7 @@ enum BottomNavItem {
     };
   }
 
+  /// 判断当前路由是否匹配此导航项
   bool matchesRoute(String currentRoute) {
     final normalizedRoute = currentRoute.split('?').first;
 
@@ -77,6 +79,7 @@ enum BottomNavItem {
 
 /// 带自适应导航栏的主布局
 class MainLayout extends HookWidget {
+  /// 子页面内容
   final Widget child;
 
   const MainLayout({super.key, required this.child});
@@ -117,6 +120,7 @@ class MainLayout extends HookWidget {
     }
   }
 
+  /// 构建侧边栏（平板/桌面端自适应导航）
   Widget _buildSideBar(
     BuildContext context,
     DeviceType deviceType,
@@ -161,6 +165,7 @@ class MainLayout extends HookWidget {
     );
   }
 
+  /// 构建侧边栏顶部的应用 Logo
   Widget _buildLogo(
     BuildContext context,
     DeviceType deviceType,
@@ -195,6 +200,7 @@ class MainLayout extends HookWidget {
     );
   }
 
+  /// 构建侧边栏中的单个导航目的地项
   Widget _buildRailDestination(
     BuildContext context,
     BottomNavItem navItem,
@@ -259,6 +265,7 @@ class MainLayout extends HookWidget {
     );
   }
 
+  /// 构建侧边栏底部操作区域
   Widget _buildBottomActions(
     BuildContext context,
     ThemeData theme,
@@ -267,6 +274,7 @@ class MainLayout extends HookWidget {
     return const SizedBox.shrink();
   }
 
+  /// 构建底部导航栏（移动端）
   Widget _buildBottomNavigationBar(
     BuildContext context,
     int currentIndex,
@@ -340,6 +348,7 @@ class MainLayout extends HookWidget {
     );
   }
 
+  /// 计算当前路由对应的导航索引
   int _calculateSelectedIndex(String currentRoute) {
     for (var i = 0; i < BottomNavItem.values.length; i++) {
       if (BottomNavItem.values[i].matchesRoute(currentRoute)) {

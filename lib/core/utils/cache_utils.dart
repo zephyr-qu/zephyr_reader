@@ -1,7 +1,7 @@
 /// 缓存管理器
-/// 提供缓存清理、缓存大小计算等功能
-library;
-
+///
+/// 提供应用缓存清理与大小统计的静态方法。
+/// 涵盖临时目录、应用缓存目录及日志目录。
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -9,8 +9,7 @@ import 'package:path_provider/path_provider.dart';
 
 import './logging.dart';
 
-/// 缓存管理器
-class CacheUtils {
+class CacheManager {
   /// 清理缓存
   ///
   /// 返回清理的字节数

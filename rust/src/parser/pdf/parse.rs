@@ -140,6 +140,16 @@ fn generate_chapters(total_pages: usize, pages_per_chapter: usize, book_id: &str
     chapters
 }
 
+/// 获取 PDF 元数据
+///
+/// # 参数
+///
+/// * `file_path` - PDF 文件路径
+///
+/// # 返回值
+///
+/// * `Ok(PdfMetadata)` - 元数据（含页码数和信息字典内容）
+/// * `Err(AppError)` - 提取失败
 pub fn get_pdf_metadata(file_path: String) -> Result<PdfMetadata, AppError> {
     extract_metadata_from_path(&file_path)
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 class ProfileHeader extends StatelessWidget {

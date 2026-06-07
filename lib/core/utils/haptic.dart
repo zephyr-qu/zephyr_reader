@@ -1,16 +1,19 @@
-/// 触觉反馈类型枚举。
+/// 触觉反馈工具。
 ///
-/// 包装 [HapticFeedback] 的轻/中/重/选择 四类系统振动。
-///
-/// 使用示例：`hapticFeedback(HapticType.light);`
-///
-/// 与 Raw [HapticFeedback] 的区别：集中在一处管理，未来可加条件开关（如静音模式跳过振动）。
-library;
+/// 封装系统 [HapticFeedback]，集中管理振动反馈。
+/// 使用 [hapticFeedback] 函数而非直接调用 [HapticFeedback] 方法。
 
 import 'package:flutter/services.dart';
 
+/// 触觉反馈类型枚举。
+///
+/// 可选值：[light]（轻触）、[medium]（中）、[heavy]（重）、[selection]（选择点击）。
 enum HapticType { light, medium, heavy, selection }
 
+/// 触发指定类型的触觉反馈。
+///
+/// [type] 指定振动强度类型。
+/// 示例：`hapticFeedback(HapticType.light);`
 void hapticFeedback(HapticType type) {
   switch (type) {
     case HapticType.light:

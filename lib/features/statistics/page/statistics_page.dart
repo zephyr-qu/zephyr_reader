@@ -87,7 +87,6 @@ class StatisticsPage extends HookWidget {
           const SizedBox(height: 28),
           WeeklyHeatmap(
             records: records.value ?? [],
-            period: period,
           ).animate().fadeIn(duration: 400.ms, delay: 400.ms),
           const SizedBox(height: 28),
           VocabStatsSection(
