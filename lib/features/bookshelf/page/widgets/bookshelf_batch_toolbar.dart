@@ -6,6 +6,9 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
 
+/// 书架批量操作工具栏。
+///
+/// 在批量选择模式下显示，提供分类、删除等批量操作按钮。
 class BookshelfBatchToolbar extends StatelessWidget {
   final int selectedCount;
   final List<Category> categories;

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/features/statistics/page/widgets/vocab_stat_bar.dart';
 
+/// 生词统计区块。
+///
+/// 显示未开始、学习中、已掌握、已忽略的生词数量及进度条。
 class VocabStatsSection extends StatelessWidget {
   final int vocabUnstarted;
   final int vocabLearning;

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+/// 备份操作行组件。
+///
+/// 显示图标、标题和副标题，点击触发对应操作。
 class BackupActionTile extends StatelessWidget {
   final IconData icon;
   final Color iconBackground;

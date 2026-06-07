@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/backup.dart';
 
+/// 备份统计区块。
+///
+/// 以网格形式展示数据库中各表的行数统计。
 class BackupStatsSection extends StatelessWidget {
   final BackupStats? stats;
 

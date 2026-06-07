@@ -1,5 +1,4 @@
-/// 阅读器仓库
-library;
+/// 阅读器数据仓库，封装 Rust FFI 调用。
 
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';

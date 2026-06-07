@@ -3,6 +3,9 @@ import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 分类筛选标签栏。
+///
+/// 以横向滚动的标签形式展示书籍分类，支持选中分类筛选。
 class BookshelfCategoryChips extends StatelessWidget {
   final List<Category> categories;
   final String? selectedCategoryId;

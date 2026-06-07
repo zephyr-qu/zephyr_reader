@@ -31,6 +31,11 @@ import 'widgets/reader_highlight_sheet.dart';
 import 'widgets/reader_translation_dialog.dart';
 import 'widgets/selection_toolbar.dart';
 
+/// 阅读器页面。
+///
+/// 核心阅读界面，支持滚动/翻页/双语对照等多种阅读模式。
+/// 包含工具栏、目录、书签、笔记、搜索、高亮、TTS 朗读等完整阅读功能。
+/// 通过 [ReaderViewModel] 管理阅读状态。
 class ReaderPage extends HookWidget {
   final String bookId;
   final int initialChapterId;

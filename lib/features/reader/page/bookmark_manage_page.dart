@@ -11,7 +11,9 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../../../di/service_locator.dart';
 
+/// 书签排序类型。
 enum BookmarkSortType { createdAt, chapterIndex, position }
+
 
 class BookmarkManagePage extends HookWidget {
   final String bookId;

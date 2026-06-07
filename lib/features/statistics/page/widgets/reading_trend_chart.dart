@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 阅读趋势曲线图。
+///
+/// 使用 fl_chart 绘制折线图，展示一段时间内的每日阅读时长变化。
 class ReadingTrendChart extends StatelessWidget {
   final List<ReadingStats> records;
 

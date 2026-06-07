@@ -9,6 +9,9 @@ import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/book_cover.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 书架书籍内容网格。
+///
+/// 以网格布局展示书籍封面，支持加载态、空态、错误态和批量选择模式。
 class BookshelfBookContent extends StatelessWidget {
   final bool isLoading;
   final bool hasError;

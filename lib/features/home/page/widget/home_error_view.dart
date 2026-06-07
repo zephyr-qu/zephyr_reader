@@ -3,6 +3,9 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+/// 首页错误状态视图。
+///
+/// 数据加载失败时显示错误信息和重试按钮。
 class HomeErrorView extends StatelessWidget {
   final String errorMessage;
   final VoidCallback onRetry;

@@ -11,6 +11,9 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'search_highlight.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+/// 书籍搜索结果卡片列表。
+///
+/// 展示搜索到的书籍条目，每个卡片显示封面、标题和匹配片段。
 // ──────────────────── Shared Card Shell ────────────────────
 
 /// 搜索结果卡片共用容器（圆角 + 阴影 + 底部边距 + 水波纹）

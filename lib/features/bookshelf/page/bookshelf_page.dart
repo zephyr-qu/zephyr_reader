@@ -23,6 +23,10 @@ import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_status_t
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 书架页面。
+///
+/// 展示书籍列表，支持分类筛选、搜索导入、排序和批量管理。
+/// 使用 [HookWidget] + [BookshelfViewModel] 管理状态。
 class BookshelfPage extends HookWidget {
   const BookshelfPage({super.key});
   @override

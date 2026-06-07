@@ -1,9 +1,7 @@
-/// 格式化工具函数。
+/// 数据格式化工具。
 ///
-/// 提供字节数、时长、字符数等数据的可读字符串格式化，
-/// 以及列表错峰入场动画延迟计算。
+/// 提供文件大小、阅读时长、页码等常见数据的可读格式化输出。
 /// 所有格式化函数均接收 [AppLocalizations] 实现 i18n。
-library;
 
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 

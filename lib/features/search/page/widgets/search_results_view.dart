@@ -8,6 +8,9 @@ import '../search_results.dart';
 
 // ──────────────────────── Results List View ────────────────────────
 
+/// 搜索结果视图。
+///
+/// 展示搜索结果的不同来源分类（书籍/笔记/生词）及各自的条目列表。
 class SearchResultsView extends StatelessWidget {
   final SearchResults results;
   final String query;

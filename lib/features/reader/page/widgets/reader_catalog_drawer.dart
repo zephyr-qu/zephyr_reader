@@ -3,6 +3,9 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import 'chapter_list_widget.dart';
 
+/// 阅读器目录侧边栏。
+///
+/// 展示章节列表，支持点击跳转到指定章节。
 class ReaderCatalogDrawer extends StatelessWidget {
   final List<Chapter> chapters;
   final int currentChapterIndex;

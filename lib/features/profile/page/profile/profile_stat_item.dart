@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
+/// 个人中心统计项组件。
+///
+/// 显示数值、标签和图标的三列统计卡片。
 class ProfileStatItem extends StatelessWidget {
   final String value;
   final String label;

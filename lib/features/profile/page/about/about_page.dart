@@ -10,6 +10,9 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+/// 关于页面。
+///
+/// 展示应用版本、功能特性、技术栈、开源许可和相关链接。
 class AboutPage extends HookWidget {
   const AboutPage({super.key});
 

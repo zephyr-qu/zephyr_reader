@@ -13,8 +13,10 @@ import 'package:zephyr_reader/features/search/page/widgets/search_history.dart';
 import 'package:zephyr_reader/features/search/page/widgets/search_result_header.dart';
 import 'package:zephyr_reader/features/search/page/widgets/search_results_view.dart';
 
-// ──────────────────────── Page ────────────────────────
-
+/// 全局搜索页面。
+///
+/// 支持搜索所有已索引书籍的文本内容，展示搜索结果摘要。
+/// 使用 [SearchViewModel] 管理搜索状态和结果。
 class SearchPage extends HookWidget {
   late final SearchViewModel vm = getIt<SearchViewModel>();
   SearchPage({super.key});

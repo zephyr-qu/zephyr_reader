@@ -5,6 +5,9 @@ import 'package:zephyr_reader/src/rust/api/backup.dart' as backup_api;
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/features/backup/application/backup_view_model.dart';
 
+/// 备份状态卡片。
+///
+/// 显示当前数据库的行数统计概览。
 class BackupStatusCard extends HookWidget {
   final BackupViewModel vm;
 

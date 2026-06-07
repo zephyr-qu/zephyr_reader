@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// 技术栈标签组件。
+///
+/// 在关于页面中展示应用使用的技术名称，带有语义颜色。
 class TechChip extends StatelessWidget {
   final String label;
   final Color color;

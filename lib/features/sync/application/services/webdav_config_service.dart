@@ -8,6 +8,9 @@ import 'package:webdav_client/webdav_client.dart' as webdav;
 
 import 'sync_models.dart';
 
+/// WebDAV 配置服务。
+///
+/// 管理 WebDAV 服务器连接参数的持久化存储（使用 FlutterSecureStorage）。
 class WebDavConfigService {
   final SharedPreferences _prefs;
   final FlutterSecureStorage _secureStorage;

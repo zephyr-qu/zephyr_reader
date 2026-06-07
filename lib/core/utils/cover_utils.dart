@@ -1,7 +1,6 @@
-/// 封面路径解析工具。
+/// 封面图片路径处理工具。
 ///
 /// DB 中只存文件名（相对路径），读取时拼接回完整路径。
-library;
 
 import 'package:path/path.dart' as p;
 import 'package:zephyr_reader/core/app_config.dart';

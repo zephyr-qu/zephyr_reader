@@ -5,6 +5,9 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:zephyr_reader/core/utils/logging.dart';
 
+/// 内置词典管理。
+///
+/// 负责将 assets 中的词典文件（.mdx）解压到应用文档目录以供查询。
 class BuiltinDictionary {
   static const _assetPath = 'assets/dictionary.mdx';
   static const _fileName = 'dictionary.mdx';

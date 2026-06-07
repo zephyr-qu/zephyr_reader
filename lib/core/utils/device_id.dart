@@ -1,8 +1,7 @@
-/// 读取或生成本地设备唯一标识。
+/// 设备 ID 获取工具。
 ///
-/// 首次调用时生成 UUID v4 并持久化到 SharedPreferences，
-/// 后续调用返回同一值。适用于 WebDAV 同步等需要匿名设备标识的场景。
-library;
+/// 首次调用时生成并持久化 UUID，后续调用返回同一值。
+/// 适用于 WebDAV 同步等需要匿名设备标识的场景。
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';

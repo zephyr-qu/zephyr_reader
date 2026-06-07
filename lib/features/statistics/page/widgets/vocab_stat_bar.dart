@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// 生词统计条形图组件。
+///
+/// 显示某一状态生词的数量和占比进度条。
 class VocabStatBar extends StatelessWidget {
   final String label;
   final int count;

@@ -8,6 +8,9 @@ import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/cover_utils.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 最近阅读书籍卡片。
+///
+/// 展示书籍封面和标题，点击跳转到阅读器。
 class HomeRecentBookCard extends StatelessWidget {
   final Book book;
 

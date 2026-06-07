@@ -1,5 +1,4 @@
-/// 书签管理组件
-library;
+/// 书签管理组件。
 
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';

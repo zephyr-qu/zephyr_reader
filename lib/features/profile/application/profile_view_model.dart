@@ -4,6 +4,9 @@ import 'package:zephyr_reader/src/rust/api/data/stats.dart' as stats_api;
 import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 个人中心 ViewModel。
+///
+/// 管理全局阅读统计和生词统计的异步加载。
 class ProfileViewModel {
   final vocabStats = asyncSignal<VocabStats?>(AsyncState.loading());
   final globalStats = asyncSignal<GlobalStats?>(AsyncState.loading());

@@ -3,6 +3,10 @@ import 'package:flutter/gestures.dart';
 
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 文本高亮绘制器。
+///
+/// 使用 TextPainter 在文本上绘制高亮背景，支持笔记高亮、搜索匹配和生词标记三种颜色。
+/// 内置缓存机制，在输入不变时跳过重复绘制。
 class HighlightPainter {
   HighlightPainter._();
 

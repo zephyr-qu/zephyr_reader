@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+/// 学习笔记统计仪表盘。
+///
+/// 显示笔记总数和相关统计信息。
 class LearningNotesStatDashboard extends StatelessWidget {
   final int noteTotalCount;
 

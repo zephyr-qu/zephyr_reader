@@ -3,6 +3,9 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+/// 阅读器内搜索栏。
+///
+/// 提供关键词搜索、匹配导航和关闭功能。
 class ReaderSearchBar extends StatelessWidget {
   final TextEditingController controller;
   final int matchCount;

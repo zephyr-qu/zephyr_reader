@@ -6,6 +6,9 @@ import 'package:zephyr_reader/features/sync/application/storage_sync_view_model.
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+/// 显示 WebDAV 配置对话框。
+///
+/// 允许用户输入/编辑服务器地址、用户名、密码和远程路径。
 Future<void> showWebDavConfigDialog(
   BuildContext context,
   StorageSyncViewModel viewModel,

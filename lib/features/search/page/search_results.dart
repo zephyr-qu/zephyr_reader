@@ -1,7 +1,6 @@
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-// ──────────────────────── Models ────────────────────────
-
+/// 书籍搜索结果模型。
 class BookSearchItem {
   final Book book;
   final String? snippet;
@@ -9,18 +8,21 @@ class BookSearchItem {
   BookSearchItem({required this.book, this.snippet, this.chapterTitle});
 }
 
+/// 笔记搜索结果模型。
 class NoteSearchItem {
   final Note note;
   final Book book;
   NoteSearchItem({required this.note, required this.book});
 }
 
+/// 生词搜索结果模型。
 class VocabSearchItem {
   final Vocab vocab;
   final String? bookTitle;
   VocabSearchItem({required this.vocab, this.bookTitle});
 }
 
+/// 搜索结果聚合模型，包含书籍、笔记和生词三类结果。
 class SearchResults {
   final List<BookSearchItem> books;
   final List<NoteSearchItem> notes;

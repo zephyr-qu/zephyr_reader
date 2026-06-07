@@ -6,6 +6,9 @@ import 'package:zephyr_reader/features/reader/application/reader_view_model.dart
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 阅读器笔记侧边栏。
+///
+/// 展示当前书籍的笔记/高亮列表，支持点击跳转到笔记位置。
 class ReaderNoteSidebar extends HookWidget {
   final String bookId;
   final String bookTitle;

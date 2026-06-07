@@ -10,6 +10,10 @@ import 'package:zephyr_reader/features/search/page/widgets/search_result_tile.da
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
+/// 书籍内搜索页面。
+///
+/// 在指定书籍内搜索文本内容，展示匹配结果和上下文。
+/// 使用 [BookSearchViewModel] 管理搜索状态。
 class BookSearchPage extends HookWidget {
   final String bookId;
   const BookSearchPage({super.key, this.bookId = ''});

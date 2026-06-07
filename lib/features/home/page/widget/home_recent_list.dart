@@ -3,6 +3,9 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/features/home/page/widget/home_recent_book_card.dart';
 
+/// 最近阅读书籍列表。
+///
+/// 展示最近打开过的书籍封面列表，支持点击跳转到阅读器。
 class HomeRecentList extends StatelessWidget {
   final List<Book> books;
 

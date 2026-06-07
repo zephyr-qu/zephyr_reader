@@ -8,6 +8,10 @@ import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_word_list_v
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_stats_row.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 生词本页面。
+///
+/// 展示已标记的生词列表，支持按学习状态筛选和查看单词详情。
+/// 使用 [VocabularyViewModel] 加载单词数据。
 class VocabularyPage extends HookWidget {
   const VocabularyPage({super.key});
 

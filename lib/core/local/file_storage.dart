@@ -7,6 +7,9 @@ import 'package:path_provider/path_provider.dart';
 import '../utils/logging.dart';
 
 @LazySingleton()
+/// 文件存储服务。
+///
+/// 提供应用文档目录和临时目录下的文件读写操作封装。
 class FileStorage {
   // 缓存目录，避免重复调用平台通道
   late Future<Directory> _appDir;

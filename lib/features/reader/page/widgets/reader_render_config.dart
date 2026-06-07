@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 @immutable
+/// 阅读器渲染配置。
+///
+/// 聚合文本颜色、背景色、字体、行距等排版参数，供各渲染器使用。
 class ReaderRenderConfig {
   final Color textColor;
   final Color backgroundColor;

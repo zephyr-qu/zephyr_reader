@@ -11,6 +11,9 @@ import '../../data/repositories/rust_reader_repository.dart';
 import '../../domain/services/highlight_painter.dart';
 import 'reader_render_config.dart';
 
+/// 滚动模式渲染器。
+///
+/// 以连续滚动形式展示书籍内容，支持高亮显示和无限加载。
 class ScrollModeRenderer extends HookWidget {
   final ReaderRenderConfig config;
   final ScrollController scrollController;
