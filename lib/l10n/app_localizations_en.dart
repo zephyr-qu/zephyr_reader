@@ -159,6 +159,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fontSize => 'Font Size';
 
   @override
+  String get followSystemFontScale => 'Follow System';
+
+  @override
   String get lineHeight => 'Line Height';
 
   @override
@@ -417,9 +420,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncSettings => 'Sync';
 
   @override
-  String get autoSync => 'Auto Sync';
-
-  @override
   String get manualSync => 'Manual';
 
   @override
@@ -480,6 +480,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get remotePath => 'Remote Path';
 
   @override
+  String get selectPreset => 'Select Preset';
+
+  @override
+  String get clearConfig => 'Clear Config';
+
+  @override
+  String get serverUrlRequired => 'Please enter server URL';
+
+  @override
+  String get serverUrlInvalid =>
+      'Please enter a full URL (including http:// or https://)';
+
+  @override
+  String get usernameRequired => 'Please enter username';
+
+  @override
+  String get passwordRequired => 'Please enter password';
+
+  @override
+  String get remotePathRequired => 'Please enter remote path';
+
+  @override
+  String get remotePathInvalid => 'Remote path should start with /';
+
+  @override
+  String get configSaved => 'WebDAV config saved';
+
+  @override
+  String get saveConfigFailed => 'Failed to save config';
+
+  @override
+  String get configCleared => 'Config cleared';
+
+  @override
   String get testConnection => 'Test Connection';
 
   @override
@@ -493,6 +527,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncFailed => 'Sync Failed';
+
+  @override
+  String get syncConfigInvalid =>
+      'Invalid sync config, please check WebDAV settings';
+
+  @override
+  String get dataCleared => 'All local data cleared';
+
+  @override
+  String dataClearFailed(Object error) {
+    return 'Failed to clear data: $error';
+  }
 
   @override
   String get lastSync => 'Last Sync';
@@ -525,6 +571,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirm => 'Confirm';
 
   @override
+  String get confirmAgain => 'Confirm Again';
+
+  @override
+  String get continueAction => 'Continue';
+
+  @override
   String get success => 'Success';
 
   @override
@@ -535,6 +587,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get empty => 'Nothing here yet';
+
+  @override
+  String get unknownError => 'Unknown error';
 
   @override
   String get search => 'Search';
@@ -633,10 +688,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get showReadingProgress => 'Show Reading Progress';
+  String scanProgress(Object done, Object total) {
+    return 'Scanning $done/$total...';
+  }
 
   @override
-  String get showRecentReading => 'Show Recent Reading';
+  String scanCompleteWithFailures(Object fail, Object success) {
+    return 'Scan complete, imported $success, failed $fail';
+  }
+
+  @override
+  String get showReadingProgress => 'Show Reading Progress';
 
   @override
   String get defaultSort => 'Default Sort';
@@ -735,6 +797,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get pasteTranslationHint =>
       'Paste or enter the translation of this chapter:';
+
+  @override
+  String get pasteTranslationPlaceholder => 'Paste your translation text here…';
 
   @override
   String get addNote => 'Add Note';
@@ -903,6 +968,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectFile => 'Select File';
+
+  @override
+  String get dictionaryConfigHint =>
+      'Select a .mdx dictionary file. If a matching .mdd resource file (audio/images) exists in the same directory, it will be loaded automatically.';
 
   @override
   String get categoryManagement => 'Category Management';
@@ -1233,4 +1302,525 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sessionsCount => 'sessions';
+
+  @override
+  String get wifiPageTitle => 'WiFi Transfer';
+
+  @override
+  String get wifiServerRunning => 'Server running';
+
+  @override
+  String get wifiServerStopped => 'Server stopped';
+
+  @override
+  String get wifiStartServer => 'Start Server';
+
+  @override
+  String get wifiStopServer => 'Stop Server';
+
+  @override
+  String get wifiCopyLink => 'Copy Link';
+
+  @override
+  String get wifiLinkCopied => 'Link copied';
+
+  @override
+  String get wifiInstruction =>
+      'Connect to the same Wi-Fi network and open the URL above in your browser to transfer files.';
+
+  @override
+  String wifiFileUploaded(Object filename) {
+    return 'Uploaded: $filename';
+  }
+
+  @override
+  String get wifiServerStarted => 'Server started';
+
+  @override
+  String batchDeleteConfirm(Object count) {
+    return 'Delete $count selected books?';
+  }
+
+  @override
+  String get categoryName => 'Category Name';
+
+  @override
+  String get addCategory => 'Add Category';
+
+  @override
+  String get editCategoryName => 'Edit Category Name';
+
+  @override
+  String get deleteCategory => 'Delete Category';
+
+  @override
+  String confirmDeleteCategory(Object name) {
+    return 'Delete category \"$name\"? Books won\'t be affected.';
+  }
+
+  @override
+  String get categoryNameRequired => 'Please enter a category name';
+
+  @override
+  String get categoryAlreadyExists => 'Category name already exists';
+
+  @override
+  String get noCategories => 'No categories yet';
+
+  @override
+  String get addCategoryHint => 'Tap + to add a category';
+
+  @override
+  String get wifiTransferLog => 'Transfer Log';
+
+  @override
+  String get wifiWaitUpload => 'Waiting for file upload…';
+
+  @override
+  String get wifiStartServerPrompt => 'Start the server to begin transferring';
+
+  @override
+  String get backupSuccess => 'Backup successful';
+
+  @override
+  String backupFailed(Object error) {
+    return 'Backup failed: $error';
+  }
+
+  @override
+  String get restoreSuccess => 'Restore successful';
+
+  @override
+  String restoreFailed(Object error) {
+    return 'Restore failed: $error';
+  }
+
+  @override
+  String get searchGroupBooks => 'Books';
+
+  @override
+  String get searchGroupNotes => 'Notes';
+
+  @override
+  String get searchGroupVocab => 'Vocabulary';
+
+  @override
+  String get searchNoResults => 'No results found';
+
+  @override
+  String get bookSearchHint => 'Search book content…';
+
+  @override
+  String get bookSearchHintAll => 'Search all books…';
+
+  @override
+  String get searchHint => 'Search books, notes, vocabulary…';
+
+  @override
+  String get searchHistory => 'Search history';
+
+  @override
+  String get searchFailed => 'Search failed';
+
+  @override
+  String get searchEnterKeyword => 'Enter a keyword to search';
+
+  @override
+  String get searchTryOtherKeywords => 'Try other keywords';
+
+  @override
+  String get searchError => 'Search error';
+
+  @override
+  String resultSummary(Object count, Object duration) {
+    return '$count results · ${duration}ms';
+  }
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String get restoreRestartNotice => 'Data restored. Please restart the app.';
+
+  @override
+  String get backupSubtitleNever => 'Never backed up';
+
+  @override
+  String backupSubtitleDays(Object days) {
+    return 'Backed up $days days ago — backup now';
+  }
+
+  @override
+  String backupSubtitleHours(Object hours) {
+    return 'Backed up $hours hours ago';
+  }
+
+  @override
+  String backupSubtitleMinutes(Object minutes) {
+    return 'Backed up $minutes minutes ago';
+  }
+
+  @override
+  String get backupSubtitleJustNow => 'Just backed up';
+
+  @override
+  String get restoreTitle => 'Restore from backup';
+
+  @override
+  String get restoreSubtitle => 'Select a .db backup file to restore';
+
+  @override
+  String get currentDataStats => 'Data at a glance';
+
+  @override
+  String get backingUp => 'Backing up…';
+
+  @override
+  String get restoring => 'Restoring…';
+
+  @override
+  String operationFailed(Object error) {
+    return 'Failed: $error';
+  }
+
+  @override
+  String lastBackup(Object time) {
+    return 'Last backup: $time';
+  }
+
+  @override
+  String get neverBackedUp => 'Never backed up';
+
+  @override
+  String dataSummary(Object books, Object notes) {
+    return 'Data: $books books · $notes notes';
+  }
+
+  @override
+  String timeDaysAgo(Object days) {
+    return '$days days ago';
+  }
+
+  @override
+  String timeMonthsAgo(Object months) {
+    return '$months months ago';
+  }
+
+  @override
+  String get restoreConfirmTitle => 'Restore backup?';
+
+  @override
+  String get restoreConfirmWarning =>
+      'This will overwrite all current data. Verify the backup is from a trusted source.';
+
+  @override
+  String get restoreConfirmAction => 'Restore';
+
+  @override
+  String get restoreStatVersion => 'Version';
+
+  @override
+  String get restoreStatExportedAt => 'Exported';
+
+  @override
+  String get restoreStatBooks => 'Books';
+
+  @override
+  String get restoreStatNotes => 'Notes';
+
+  @override
+  String get restoreStatBookmarks => 'Bookmarks';
+
+  @override
+  String get restoreStatVocabulary => 'Vocabulary';
+
+  @override
+  String get allBooks => 'All Books';
+
+  @override
+  String get allWordLists => 'All Word Lists';
+
+  @override
+  String get export => 'Export';
+
+  @override
+  String get exportLearningData => 'Export Learning Data';
+
+  @override
+  String get exportNotesMarkdownDesc =>
+      'Export all notes as Markdown documents';
+
+  @override
+  String get exportVocabCsvDesc => 'Export all vocabulary as a CSV file';
+
+  @override
+  String get goReading => 'Go Reading';
+
+  @override
+  String get noNotes => 'No notes yet';
+
+  @override
+  String get noteEmptyHint =>
+      'Take notes while reading, and they will appear here.';
+
+  @override
+  String get notebook => 'Notebook';
+
+  @override
+  String get notesMarkdown => 'Notes (Markdown)';
+
+  @override
+  String get totalVocabCount => 'Vocabulary Total';
+
+  @override
+  String get vocabEmptyHint =>
+      'Add vocabulary while reading, and they will appear here.';
+
+  @override
+  String get vocabListCsv => 'Vocabulary (CSV)';
+
+  @override
+  String get wordListCet4 => 'CET-4';
+
+  @override
+  String get wordListCet6 => 'CET-6';
+
+  @override
+  String get wordListIelts => 'IELTS';
+
+  @override
+  String get wordListToefl => 'TOEFL';
+
+  @override
+  String confirmDeleteWord(Object word) {
+    return 'Are you sure you want to delete \"$word\"?';
+  }
+
+  @override
+  String get vocabPageEmptyHint =>
+      'Tap words while reading to add them to your vocabulary book.';
+
+  @override
+  String get vocabFilterEmptyHint => 'No words match your filter.';
+
+  @override
+  String vocabStatsAll(Object count) {
+    return 'All $count';
+  }
+
+  @override
+  String vocabStatsUnstarted(Object count) {
+    return 'Unlearned $count';
+  }
+
+  @override
+  String vocabStatsLearning(Object count) {
+    return 'Learning $count';
+  }
+
+  @override
+  String vocabStatsMastered(Object count) {
+    return 'Mastered $count';
+  }
+
+  @override
+  String vocabStatsIgnored(Object count) {
+    return 'Ignored $count';
+  }
+
+  @override
+  String get secondsUnit => 'sec';
+
+  @override
+  String get hoursUnit => 'hr';
+
+  @override
+  String get charsUnit => 'chars';
+
+  @override
+  String get thousandCharsUnit => 'K';
+
+  @override
+  String get livePreview => 'Live Preview';
+
+  @override
+  String get fontSelection => 'Font Selection';
+
+  @override
+  String get typographyParams => 'Typography';
+
+  @override
+  String get advancedTypography => 'Advanced';
+
+  @override
+  String get cjkOptimization => 'CJK';
+
+  @override
+  String get punctuationSqueeze => 'Punctuation Squeeze';
+
+  @override
+  String get punctuationSqueezeDesc =>
+      'Reduce spacing around Chinese punctuation';
+
+  @override
+  String get baselineAlign => 'Baseline Align';
+
+  @override
+  String get baselineAlignDesc =>
+      'Force uniform line height to prevent text jumping';
+
+  @override
+  String get verticalMode => 'Vertical Mode';
+
+  @override
+  String get verticalModeDesc =>
+      'Right-to-left reading, ideal for classical texts';
+
+  @override
+  String get ttsPreviewStop => 'Stop';
+
+  @override
+  String get ttsPreviewPlay => 'Preview';
+
+  @override
+  String get ttsAutoRefresh => 'Auto-refresh on change';
+
+  @override
+  String get ttsVoiceEngine => 'Voice Engine';
+
+  @override
+  String get ttsEngine => 'TTS Engine';
+
+  @override
+  String get systemDefault => 'System Default';
+
+  @override
+  String get ttsEnglishVoice => 'English Voice';
+
+  @override
+  String get ttsChineseVoice => 'Chinese Voice';
+
+  @override
+  String get ttsPlaybackParams => 'Playback';
+
+  @override
+  String get ttsPitch => 'Pitch';
+
+  @override
+  String get ttsPauseBetween => 'Pause Between Sentences';
+
+  @override
+  String get ttsBilingualReading => 'Bilingual Reading';
+
+  @override
+  String get zephyrExclusive => 'Zephyr Exclusive';
+
+  @override
+  String get ttsBilingualAlternate => 'Alternate Bilingual';
+
+  @override
+  String get ttsBilingualAlternateDesc => 'Read English first, then Chinese';
+
+  @override
+  String get ttsOriginalOnly => 'Original Only';
+
+  @override
+  String get ttsOriginalOnlyDesc =>
+      'Skip translations, ideal for listening practice';
+
+  @override
+  String get ttsSwitchInterval => 'Switch Interval';
+
+  @override
+  String get ttsBehavior => 'Behavior';
+
+  @override
+  String get ttsBackgroundPlay => 'Background Play';
+
+  @override
+  String get ttsBackgroundPlayDesc =>
+      'Continue reading when app is backgrounded';
+
+  @override
+  String get ttsAutoPage => 'Auto Page Turn';
+
+  @override
+  String get ttsAutoPageDesc => 'Auto-advance to next chapter';
+
+  @override
+  String get ttsHighlightFollow => 'Highlight Follow';
+
+  @override
+  String get ttsHighlightFollowDesc => 'Highlight current sentence during TTS';
+
+  @override
+  String get ttsDimOnLock => 'Dim on Lock';
+
+  @override
+  String get ttsDimOnLockDesc => 'Save battery, ideal for bedtime listening';
+
+  @override
+  String get otherBehavior => 'Behavior';
+
+  @override
+  String get languageSubtitle => '简体中文 / English';
+
+  @override
+  String get otherNotifications => 'Notifications';
+
+  @override
+  String get otherNotificationsDesc =>
+      'Reading goal reminders, sync notifications';
+
+  @override
+  String get otherStartupCheck => 'Check Updates on Start';
+
+  @override
+  String get otherStartupCheckDesc =>
+      'Check for new versions on foreground start';
+
+  @override
+  String get otherExperimental => 'Experimental';
+
+  @override
+  String get otherMarkdownPreview => 'Markdown Preview';
+
+  @override
+  String get otherMarkdownPreviewDesc => 'Render Markdown in notes list';
+
+  @override
+  String get otherLegal => 'Legal & Compliance';
+
+  @override
+  String get openSourceLicenseDesc => 'Flutter / Rust / Third-party licenses';
+
+  @override
+  String get resetAllSettings => 'Reset All Settings';
+
+  @override
+  String get resetAllSettingsDesc =>
+      'Reset typography, themes, sync to defaults';
+
+  @override
+  String get clearAllData => 'Clear All Data';
+
+  @override
+  String get clearAllDataDesc => 'Delete books, notes, vocabulary, records';
+
+  @override
+  String get confirmReset => 'Confirm Reset';
+
+  @override
+  String get confirmResetContent =>
+      'This will reset typography, theme, sync settings to defaults.\n\nBooks, notes and vocabulary won\'t be deleted.';
+
+  @override
+  String get clearAllDataTitle => 'Clear All Data';
+
+  @override
+  String get clearAllDataContent =>
+      'This will delete all books, notes, vocabulary, reading progress and statistics.\n\nWe recommend backing up via WebDAV first.\n\nThis action cannot be undone.';
+
+  @override
+  String get confirmClear => 'Confirm Clear';
 }

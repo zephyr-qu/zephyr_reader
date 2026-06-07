@@ -398,6 +398,12 @@ abstract class AppLocalizations {
   /// **'字体大小'**
   String get fontSize;
 
+  /// No description provided for @followSystemFontScale.
+  ///
+  /// In zh, this message translates to:
+  /// **'跟随系统'**
+  String get followSystemFontScale;
+
   /// No description provided for @lineHeight.
   ///
   /// In zh, this message translates to:
@@ -902,12 +908,6 @@ abstract class AppLocalizations {
   /// **'同步设置'**
   String get syncSettings;
 
-  /// No description provided for @autoSync.
-  ///
-  /// In zh, this message translates to:
-  /// **'自动同步'**
-  String get autoSync;
-
   /// No description provided for @manualSync.
   ///
   /// In zh, this message translates to:
@@ -1028,6 +1028,72 @@ abstract class AppLocalizations {
   /// **'远程路径'**
   String get remotePath;
 
+  /// No description provided for @selectPreset.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择预设'**
+  String get selectPreset;
+
+  /// No description provided for @clearConfig.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除配置'**
+  String get clearConfig;
+
+  /// No description provided for @serverUrlRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入服务器地址'**
+  String get serverUrlRequired;
+
+  /// No description provided for @serverUrlInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入完整的 URL（包含 http:// 或 https://）'**
+  String get serverUrlInvalid;
+
+  /// No description provided for @usernameRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入用户名'**
+  String get usernameRequired;
+
+  /// No description provided for @passwordRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入密码'**
+  String get passwordRequired;
+
+  /// No description provided for @remotePathRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入远程路径'**
+  String get remotePathRequired;
+
+  /// No description provided for @remotePathInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'远程路径应以 / 开头'**
+  String get remotePathInvalid;
+
+  /// No description provided for @configSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'WebDAV 配置已保存'**
+  String get configSaved;
+
+  /// No description provided for @saveConfigFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存配置失败'**
+  String get saveConfigFailed;
+
+  /// No description provided for @configCleared.
+  ///
+  /// In zh, this message translates to:
+  /// **'配置已清除'**
+  String get configCleared;
+
   /// No description provided for @testConnection.
   ///
   /// In zh, this message translates to:
@@ -1057,6 +1123,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'同步失败'**
   String get syncFailed;
+
+  /// No description provided for @syncConfigInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步配置无效，请检查 WebDAV 设置'**
+  String get syncConfigInvalid;
+
+  /// No description provided for @dataCleared.
+  ///
+  /// In zh, this message translates to:
+  /// **'已清除全部本地数据'**
+  String get dataCleared;
+
+  /// No description provided for @dataClearFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除数据失败：{error}'**
+  String dataClearFailed(Object error);
 
   /// No description provided for @lastSync.
   ///
@@ -1118,6 +1202,18 @@ abstract class AppLocalizations {
   /// **'确定'**
   String get confirm;
 
+  /// No description provided for @confirmAgain.
+  ///
+  /// In zh, this message translates to:
+  /// **'二次确认'**
+  String get confirmAgain;
+
+  /// No description provided for @continueAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'继续'**
+  String get continueAction;
+
   /// No description provided for @success.
   ///
   /// In zh, this message translates to:
@@ -1141,6 +1237,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'暂无内容'**
   String get empty;
+
+  /// No description provided for @unknownError.
+  ///
+  /// In zh, this message translates to:
+  /// **'未知错误'**
+  String get unknownError;
 
   /// No description provided for @search.
   ///
@@ -1322,17 +1424,23 @@ abstract class AppLocalizations {
   /// **'扫描完成，导入了 {count} 本书'**
   String scanComplete(Object count);
 
+  /// No description provided for @scanProgress.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在扫描 {done}/{total}...'**
+  String scanProgress(Object done, Object total);
+
+  /// No description provided for @scanCompleteWithFailures.
+  ///
+  /// In zh, this message translates to:
+  /// **'扫描完成，导入了 {success} 本，导入失败 {fail} 本'**
+  String scanCompleteWithFailures(Object fail, Object success);
+
   /// No description provided for @showReadingProgress.
   ///
   /// In zh, this message translates to:
   /// **'显示阅读进度'**
   String get showReadingProgress;
-
-  /// No description provided for @showRecentReading.
-  ///
-  /// In zh, this message translates to:
-  /// **'显示最近阅读'**
-  String get showRecentReading;
 
   /// No description provided for @defaultSort.
   ///
@@ -1513,6 +1621,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'粘贴或输入当前章节的译文内容：'**
   String get pasteTranslationHint;
+
+  /// No description provided for @pasteTranslationPlaceholder.
+  ///
+  /// In zh, this message translates to:
+  /// **'在此粘贴译文文本…'**
+  String get pasteTranslationPlaceholder;
 
   /// No description provided for @addNote.
   ///
@@ -1837,6 +1951,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'选择文件'**
   String get selectFile;
+
+  /// No description provided for @dictionaryConfigHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'请选择一个 .mdx 格式的词典文件。如果有同名的 .mdd 资源文件（音频/图片），放在同一目录下会自动加载。'**
+  String get dictionaryConfigHint;
 
   /// No description provided for @categoryManagement.
   ///
@@ -2443,6 +2563,936 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'次会话'**
   String get sessionsCount;
+
+  /// No description provided for @wifiPageTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'WiFi 传书'**
+  String get wifiPageTitle;
+
+  /// No description provided for @wifiServerRunning.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务器运行中'**
+  String get wifiServerRunning;
+
+  /// No description provided for @wifiServerStopped.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务器已停止'**
+  String get wifiServerStopped;
+
+  /// No description provided for @wifiStartServer.
+  ///
+  /// In zh, this message translates to:
+  /// **'启动服务器'**
+  String get wifiStartServer;
+
+  /// No description provided for @wifiStopServer.
+  ///
+  /// In zh, this message translates to:
+  /// **'停止服务器'**
+  String get wifiStopServer;
+
+  /// No description provided for @wifiCopyLink.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制链接'**
+  String get wifiCopyLink;
+
+  /// No description provided for @wifiLinkCopied.
+  ///
+  /// In zh, this message translates to:
+  /// **'链接已复制'**
+  String get wifiLinkCopied;
+
+  /// No description provided for @wifiInstruction.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接与电脑相同的 Wi-Fi 网络，在浏览器中打开上方地址即可传输文件。'**
+  String get wifiInstruction;
+
+  /// No description provided for @wifiFileUploaded.
+  ///
+  /// In zh, this message translates to:
+  /// **'已上传：{filename}'**
+  String wifiFileUploaded(Object filename);
+
+  /// No description provided for @wifiServerStarted.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务器已启动'**
+  String get wifiServerStarted;
+
+  /// No description provided for @batchDeleteConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要删除选中的 {count} 本书吗？'**
+  String batchDeleteConfirm(Object count);
+
+  /// No description provided for @categoryName.
+  ///
+  /// In zh, this message translates to:
+  /// **'分类名称'**
+  String get categoryName;
+
+  /// No description provided for @addCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加分类'**
+  String get addCategory;
+
+  /// No description provided for @editCategoryName.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑分类名称'**
+  String get editCategoryName;
+
+  /// No description provided for @deleteCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除分类'**
+  String get deleteCategory;
+
+  /// No description provided for @confirmDeleteCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要删除分类「{name}」吗？关联书籍不会受影响。'**
+  String confirmDeleteCategory(Object name);
+
+  /// No description provided for @categoryNameRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入分类名称'**
+  String get categoryNameRequired;
+
+  /// No description provided for @categoryAlreadyExists.
+  ///
+  /// In zh, this message translates to:
+  /// **'分类名称已存在'**
+  String get categoryAlreadyExists;
+
+  /// No description provided for @noCategories.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无分类'**
+  String get noCategories;
+
+  /// No description provided for @addCategoryHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击右上角添加分类'**
+  String get addCategoryHint;
+
+  /// No description provided for @wifiTransferLog.
+  ///
+  /// In zh, this message translates to:
+  /// **'传输记录'**
+  String get wifiTransferLog;
+
+  /// No description provided for @wifiWaitUpload.
+  ///
+  /// In zh, this message translates to:
+  /// **'等待文件上传…'**
+  String get wifiWaitUpload;
+
+  /// No description provided for @wifiStartServerPrompt.
+  ///
+  /// In zh, this message translates to:
+  /// **'启动服务器开始传输'**
+  String get wifiStartServerPrompt;
+
+  /// No description provided for @backupSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'备份成功'**
+  String get backupSuccess;
+
+  /// No description provided for @backupFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'备份失败：{error}'**
+  String backupFailed(Object error);
+
+  /// No description provided for @restoreSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复成功'**
+  String get restoreSuccess;
+
+  /// No description provided for @restoreFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复失败：{error}'**
+  String restoreFailed(Object error);
+
+  /// No description provided for @searchGroupBooks.
+  ///
+  /// In zh, this message translates to:
+  /// **'书籍'**
+  String get searchGroupBooks;
+
+  /// No description provided for @searchGroupNotes.
+  ///
+  /// In zh, this message translates to:
+  /// **'笔记'**
+  String get searchGroupNotes;
+
+  /// No description provided for @searchGroupVocab.
+  ///
+  /// In zh, this message translates to:
+  /// **'生词'**
+  String get searchGroupVocab;
+
+  /// No description provided for @searchNoResults.
+  ///
+  /// In zh, this message translates to:
+  /// **'未找到相关结果'**
+  String get searchNoResults;
+
+  /// No description provided for @bookSearchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索书籍内容…'**
+  String get bookSearchHint;
+
+  /// No description provided for @bookSearchHintAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索所有书籍内容…'**
+  String get bookSearchHintAll;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索书籍、笔记、生词…'**
+  String get searchHint;
+
+  /// No description provided for @searchHistory.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索历史'**
+  String get searchHistory;
+
+  /// No description provided for @searchFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索失败'**
+  String get searchFailed;
+
+  /// No description provided for @searchEnterKeyword.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入搜索关键词'**
+  String get searchEnterKeyword;
+
+  /// No description provided for @searchTryOtherKeywords.
+  ///
+  /// In zh, this message translates to:
+  /// **'尝试其他关键词'**
+  String get searchTryOtherKeywords;
+
+  /// No description provided for @searchError.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索出错'**
+  String get searchError;
+
+  /// No description provided for @resultSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'找到 {count} 条结果 · 耗时 {duration}ms'**
+  String resultSummary(Object count, Object duration);
+
+  /// No description provided for @clear.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除'**
+  String get clear;
+
+  /// No description provided for @restoreRestartNotice.
+  ///
+  /// In zh, this message translates to:
+  /// **'数据已还原，请重启应用以生效。'**
+  String get restoreRestartNotice;
+
+  /// No description provided for @backupSubtitleNever.
+  ///
+  /// In zh, this message translates to:
+  /// **'从未备份'**
+  String get backupSubtitleNever;
+
+  /// No description provided for @backupSubtitleDays.
+  ///
+  /// In zh, this message translates to:
+  /// **'{days} 天前备份 — 建议立即备份'**
+  String backupSubtitleDays(Object days);
+
+  /// No description provided for @backupSubtitleHours.
+  ///
+  /// In zh, this message translates to:
+  /// **'{hours} 小时前备份'**
+  String backupSubtitleHours(Object hours);
+
+  /// No description provided for @backupSubtitleMinutes.
+  ///
+  /// In zh, this message translates to:
+  /// **'{minutes} 分钟前备份'**
+  String backupSubtitleMinutes(Object minutes);
+
+  /// No description provided for @backupSubtitleJustNow.
+  ///
+  /// In zh, this message translates to:
+  /// **'刚刚备份'**
+  String get backupSubtitleJustNow;
+
+  /// No description provided for @restoreTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'从备份还原'**
+  String get restoreTitle;
+
+  /// No description provided for @restoreSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择一个 .db 备份文件恢复数据'**
+  String get restoreSubtitle;
+
+  /// No description provided for @currentDataStats.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前数据统计'**
+  String get currentDataStats;
+
+  /// No description provided for @backingUp.
+  ///
+  /// In zh, this message translates to:
+  /// **'备份中…'**
+  String get backingUp;
+
+  /// No description provided for @restoring.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复中…'**
+  String get restoring;
+
+  /// No description provided for @operationFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'操作失败：{error}'**
+  String operationFailed(Object error);
+
+  /// No description provided for @lastBackup.
+  ///
+  /// In zh, this message translates to:
+  /// **'上次备份：{time}'**
+  String lastBackup(Object time);
+
+  /// No description provided for @neverBackedUp.
+  ///
+  /// In zh, this message translates to:
+  /// **'尚未进行过备份'**
+  String get neverBackedUp;
+
+  /// No description provided for @dataSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'数据量：{books} 本书 · {notes} 条笔记'**
+  String dataSummary(Object books, Object notes);
+
+  /// No description provided for @timeDaysAgo.
+  ///
+  /// In zh, this message translates to:
+  /// **'{days} 天前'**
+  String timeDaysAgo(Object days);
+
+  /// No description provided for @timeMonthsAgo.
+  ///
+  /// In zh, this message translates to:
+  /// **'{months} 个月前'**
+  String timeMonthsAgo(Object months);
+
+  /// No description provided for @restoreConfirmTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认还原'**
+  String get restoreConfirmTitle;
+
+  /// No description provided for @restoreConfirmWarning.
+  ///
+  /// In zh, this message translates to:
+  /// **'此操作将覆盖当前所有数据。请确认该备份文件来源可信。'**
+  String get restoreConfirmWarning;
+
+  /// No description provided for @restoreConfirmAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认还原'**
+  String get restoreConfirmAction;
+
+  /// No description provided for @restoreStatVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'备份版本'**
+  String get restoreStatVersion;
+
+  /// No description provided for @restoreStatExportedAt.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出时间'**
+  String get restoreStatExportedAt;
+
+  /// No description provided for @restoreStatBooks.
+  ///
+  /// In zh, this message translates to:
+  /// **'书籍'**
+  String get restoreStatBooks;
+
+  /// No description provided for @restoreStatNotes.
+  ///
+  /// In zh, this message translates to:
+  /// **'笔记'**
+  String get restoreStatNotes;
+
+  /// No description provided for @restoreStatBookmarks.
+  ///
+  /// In zh, this message translates to:
+  /// **'书签'**
+  String get restoreStatBookmarks;
+
+  /// No description provided for @restoreStatVocabulary.
+  ///
+  /// In zh, this message translates to:
+  /// **'生词'**
+  String get restoreStatVocabulary;
+
+  /// No description provided for @allBooks.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部书籍'**
+  String get allBooks;
+
+  /// No description provided for @allWordLists.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部词库'**
+  String get allWordLists;
+
+  /// No description provided for @export.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出'**
+  String get export;
+
+  /// No description provided for @exportLearningData.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出学习数据'**
+  String get exportLearningData;
+
+  /// No description provided for @exportNotesMarkdownDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出所有笔记为 Markdown 文档'**
+  String get exportNotesMarkdownDesc;
+
+  /// No description provided for @exportVocabCsvDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出所有生词为表格文件'**
+  String get exportVocabCsvDesc;
+
+  /// No description provided for @goReading.
+  ///
+  /// In zh, this message translates to:
+  /// **'去阅读'**
+  String get goReading;
+
+  /// No description provided for @noNotes.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无笔记'**
+  String get noNotes;
+
+  /// No description provided for @noteEmptyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'在阅读中做笔记后，它们会出现在这里'**
+  String get noteEmptyHint;
+
+  /// No description provided for @notebook.
+  ///
+  /// In zh, this message translates to:
+  /// **'笔记本'**
+  String get notebook;
+
+  /// No description provided for @notesMarkdown.
+  ///
+  /// In zh, this message translates to:
+  /// **'笔记 (Markdown)'**
+  String get notesMarkdown;
+
+  /// No description provided for @totalVocabCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'生词总数'**
+  String get totalVocabCount;
+
+  /// No description provided for @vocabEmptyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'在阅读中添加生词后，它们会出现在这里'**
+  String get vocabEmptyHint;
+
+  /// No description provided for @vocabListCsv.
+  ///
+  /// In zh, this message translates to:
+  /// **'生词表 (CSV)'**
+  String get vocabListCsv;
+
+  /// No description provided for @wordListCet4.
+  ///
+  /// In zh, this message translates to:
+  /// **'CET-4'**
+  String get wordListCet4;
+
+  /// No description provided for @wordListCet6.
+  ///
+  /// In zh, this message translates to:
+  /// **'CET-6'**
+  String get wordListCet6;
+
+  /// No description provided for @wordListIelts.
+  ///
+  /// In zh, this message translates to:
+  /// **'IELTS'**
+  String get wordListIelts;
+
+  /// No description provided for @wordListToefl.
+  ///
+  /// In zh, this message translates to:
+  /// **'TOEFL'**
+  String get wordListToefl;
+
+  /// No description provided for @confirmDeleteWord.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要删除「{word}」吗？'**
+  String confirmDeleteWord(Object word);
+
+  /// No description provided for @vocabPageEmptyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'去阅读时点击单词即可加入生词本'**
+  String get vocabPageEmptyHint;
+
+  /// No description provided for @vocabFilterEmptyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有符合条件的生词'**
+  String get vocabFilterEmptyHint;
+
+  /// No description provided for @vocabStatsAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部 {count}'**
+  String vocabStatsAll(Object count);
+
+  /// No description provided for @vocabStatsUnstarted.
+  ///
+  /// In zh, this message translates to:
+  /// **'未学 {count}'**
+  String vocabStatsUnstarted(Object count);
+
+  /// No description provided for @vocabStatsLearning.
+  ///
+  /// In zh, this message translates to:
+  /// **'学习中 {count}'**
+  String vocabStatsLearning(Object count);
+
+  /// No description provided for @vocabStatsMastered.
+  ///
+  /// In zh, this message translates to:
+  /// **'已掌握 {count}'**
+  String vocabStatsMastered(Object count);
+
+  /// No description provided for @vocabStatsIgnored.
+  ///
+  /// In zh, this message translates to:
+  /// **'已忽略 {count}'**
+  String vocabStatsIgnored(Object count);
+
+  /// No description provided for @secondsUnit.
+  ///
+  /// In zh, this message translates to:
+  /// **'秒'**
+  String get secondsUnit;
+
+  /// No description provided for @hoursUnit.
+  ///
+  /// In zh, this message translates to:
+  /// **'小时'**
+  String get hoursUnit;
+
+  /// No description provided for @charsUnit.
+  ///
+  /// In zh, this message translates to:
+  /// **'字'**
+  String get charsUnit;
+
+  /// No description provided for @thousandCharsUnit.
+  ///
+  /// In zh, this message translates to:
+  /// **'千'**
+  String get thousandCharsUnit;
+
+  /// No description provided for @livePreview.
+  ///
+  /// In zh, this message translates to:
+  /// **'实时预览'**
+  String get livePreview;
+
+  /// No description provided for @fontSelection.
+  ///
+  /// In zh, this message translates to:
+  /// **'字体选择'**
+  String get fontSelection;
+
+  /// No description provided for @typographyParams.
+  ///
+  /// In zh, this message translates to:
+  /// **'排版参数'**
+  String get typographyParams;
+
+  /// No description provided for @advancedTypography.
+  ///
+  /// In zh, this message translates to:
+  /// **'高级排版'**
+  String get advancedTypography;
+
+  /// No description provided for @cjkOptimization.
+  ///
+  /// In zh, this message translates to:
+  /// **'CJK 优化'**
+  String get cjkOptimization;
+
+  /// No description provided for @punctuationSqueeze.
+  ///
+  /// In zh, this message translates to:
+  /// **'标点挤压'**
+  String get punctuationSqueeze;
+
+  /// No description provided for @punctuationSqueezeDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'减少中文标点符号周围的空白'**
+  String get punctuationSqueezeDesc;
+
+  /// No description provided for @baselineAlign.
+  ///
+  /// In zh, this message translates to:
+  /// **'中西文基线对齐'**
+  String get baselineAlign;
+
+  /// No description provided for @baselineAlignDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'强制统一行高，避免混排时文字跳动'**
+  String get baselineAlignDesc;
+
+  /// No description provided for @verticalMode.
+  ///
+  /// In zh, this message translates to:
+  /// **'竖排模式'**
+  String get verticalMode;
+
+  /// No description provided for @verticalModeDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'从右向左阅读，适合古籍排版'**
+  String get verticalModeDesc;
+
+  /// No description provided for @ttsPreviewStop.
+  ///
+  /// In zh, this message translates to:
+  /// **'停止试听'**
+  String get ttsPreviewStop;
+
+  /// No description provided for @ttsPreviewPlay.
+  ///
+  /// In zh, this message translates to:
+  /// **'试听当前配置'**
+  String get ttsPreviewPlay;
+
+  /// No description provided for @ttsAutoRefresh.
+  ///
+  /// In zh, this message translates to:
+  /// **'修改后自动刷新'**
+  String get ttsAutoRefresh;
+
+  /// No description provided for @ttsVoiceEngine.
+  ///
+  /// In zh, this message translates to:
+  /// **'语音引擎'**
+  String get ttsVoiceEngine;
+
+  /// No description provided for @ttsEngine.
+  ///
+  /// In zh, this message translates to:
+  /// **'TTS 引擎'**
+  String get ttsEngine;
+
+  /// No description provided for @systemDefault.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统默认'**
+  String get systemDefault;
+
+  /// No description provided for @ttsEnglishVoice.
+  ///
+  /// In zh, this message translates to:
+  /// **'英文语音'**
+  String get ttsEnglishVoice;
+
+  /// No description provided for @ttsChineseVoice.
+  ///
+  /// In zh, this message translates to:
+  /// **'中文语音'**
+  String get ttsChineseVoice;
+
+  /// No description provided for @ttsPlaybackParams.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放参数'**
+  String get ttsPlaybackParams;
+
+  /// No description provided for @ttsPitch.
+  ///
+  /// In zh, this message translates to:
+  /// **'音调'**
+  String get ttsPitch;
+
+  /// No description provided for @ttsPauseBetween.
+  ///
+  /// In zh, this message translates to:
+  /// **'句间停顿'**
+  String get ttsPauseBetween;
+
+  /// No description provided for @ttsBilingualReading.
+  ///
+  /// In zh, this message translates to:
+  /// **'双语朗读'**
+  String get ttsBilingualReading;
+
+  /// No description provided for @zephyrExclusive.
+  ///
+  /// In zh, this message translates to:
+  /// **'Zephyr 专属'**
+  String get zephyrExclusive;
+
+  /// No description provided for @ttsBilingualAlternate.
+  ///
+  /// In zh, this message translates to:
+  /// **'双语交替朗读'**
+  String get ttsBilingualAlternate;
+
+  /// No description provided for @ttsBilingualAlternateDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'先读英文原文，再读中文译文'**
+  String get ttsBilingualAlternateDesc;
+
+  /// No description provided for @ttsOriginalOnly.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅朗读原文'**
+  String get ttsOriginalOnly;
+
+  /// No description provided for @ttsOriginalOnlyDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'跳过译文段落，适合听力训练'**
+  String get ttsOriginalOnlyDesc;
+
+  /// No description provided for @ttsSwitchInterval.
+  ///
+  /// In zh, this message translates to:
+  /// **'中英切换间隔'**
+  String get ttsSwitchInterval;
+
+  /// No description provided for @ttsBehavior.
+  ///
+  /// In zh, this message translates to:
+  /// **'行为偏好'**
+  String get ttsBehavior;
+
+  /// No description provided for @ttsBackgroundPlay.
+  ///
+  /// In zh, this message translates to:
+  /// **'后台播放'**
+  String get ttsBackgroundPlay;
+
+  /// No description provided for @ttsBackgroundPlayDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'切出应用或锁屏后继续朗读'**
+  String get ttsBackgroundPlayDesc;
+
+  /// No description provided for @ttsAutoPage.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动翻页'**
+  String get ttsAutoPage;
+
+  /// No description provided for @ttsAutoPageDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'读完当前章节自动跳转下一章'**
+  String get ttsAutoPageDesc;
+
+  /// No description provided for @ttsHighlightFollow.
+  ///
+  /// In zh, this message translates to:
+  /// **'高亮跟随'**
+  String get ttsHighlightFollow;
+
+  /// No description provided for @ttsHighlightFollowDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'朗读时实时高亮当前句子'**
+  String get ttsHighlightFollowDesc;
+
+  /// No description provided for @ttsDimOnLock.
+  ///
+  /// In zh, this message translates to:
+  /// **'息屏时降低音量'**
+  String get ttsDimOnLock;
+
+  /// No description provided for @ttsDimOnLockDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'节省电量，适合睡前听书'**
+  String get ttsDimOnLockDesc;
+
+  /// No description provided for @otherBehavior.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用行为'**
+  String get otherBehavior;
+
+  /// No description provided for @languageSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'简体中文 / English'**
+  String get languageSubtitle;
+
+  /// No description provided for @otherNotifications.
+  ///
+  /// In zh, this message translates to:
+  /// **'通知与提醒'**
+  String get otherNotifications;
+
+  /// No description provided for @otherNotificationsDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'阅读目标提醒、同步完成通知'**
+  String get otherNotificationsDesc;
+
+  /// No description provided for @otherStartupCheck.
+  ///
+  /// In zh, this message translates to:
+  /// **'启动时检查更新'**
+  String get otherStartupCheck;
+
+  /// No description provided for @otherStartupCheckDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅前台启动时检测新版本'**
+  String get otherStartupCheckDesc;
+
+  /// No description provided for @otherExperimental.
+  ///
+  /// In zh, this message translates to:
+  /// **'实验性功能'**
+  String get otherExperimental;
+
+  /// No description provided for @otherMarkdownPreview.
+  ///
+  /// In zh, this message translates to:
+  /// **'Markdown 笔记预览'**
+  String get otherMarkdownPreview;
+
+  /// No description provided for @otherMarkdownPreviewDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'在笔记列表中渲染 Markdown 格式'**
+  String get otherMarkdownPreviewDesc;
+
+  /// No description provided for @otherLegal.
+  ///
+  /// In zh, this message translates to:
+  /// **'法律与合规'**
+  String get otherLegal;
+
+  /// No description provided for @openSourceLicenseDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'Flutter / Rust / 第三方库许可'**
+  String get openSourceLicenseDesc;
+
+  /// No description provided for @resetAllSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'重置所有设置'**
+  String get resetAllSettings;
+
+  /// No description provided for @resetAllSettingsDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复默认排版、主题、同步配置'**
+  String get resetAllSettingsDesc;
+
+  /// No description provided for @clearAllData.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除全部本地数据'**
+  String get clearAllData;
+
+  /// No description provided for @clearAllDataDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除书籍、笔记、生词本、统计记录'**
+  String get clearAllDataDesc;
+
+  /// No description provided for @confirmReset.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认重置'**
+  String get confirmReset;
+
+  /// No description provided for @confirmResetContent.
+  ///
+  /// In zh, this message translates to:
+  /// **'此操作将恢复排版、主题、同步配置等所有设置为默认值。\n\n不会删除书籍、笔记和生词数据。'**
+  String get confirmResetContent;
+
+  /// No description provided for @clearAllDataTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除所有数据'**
+  String get clearAllDataTitle;
+
+  /// No description provided for @clearAllDataContent.
+  ///
+  /// In zh, this message translates to:
+  /// **'此操作将删除所有书籍、笔记、生词本、阅读进度和统计记录。\n\n建议先通过 WebDAV 备份数据。\n\n此操作不可撤销。'**
+  String get clearAllDataContent;
+
+  /// No description provided for @confirmClear.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认清除'**
+  String get confirmClear;
 }
 
 class _AppLocalizationsDelegate
