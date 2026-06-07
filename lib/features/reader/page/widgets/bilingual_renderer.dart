@@ -6,6 +6,9 @@ import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'reader_render_config.dart';
 
+/// 双语对照模式渲染器。
+///
+/// 并排显示中英文对照内容，支持高亮配对显示。
 class BilingualModeRenderer extends StatelessWidget {
   final ReaderRenderConfig config;
   final ScrollController scrollController;

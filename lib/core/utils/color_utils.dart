@@ -1,7 +1,6 @@
 /// 颜色计算工具函数。
 ///
 /// 提供 [contrastingTextColor] 等与主题无关的纯色值计算。
-library;
 
 import 'package:flutter/material.dart';
 

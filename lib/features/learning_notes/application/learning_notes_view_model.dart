@@ -4,6 +4,9 @@ import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 学习笔记 ViewModel。
+///
+/// 管理笔记/高亮列表、总数统计和书籍筛选。
 class LearningNotesViewModel {
   final noteList = asyncSignal<List<NoteWithBook>>(AsyncState.data([]));
   final noteTotalCount = asyncSignal<int>(AsyncState.loading());

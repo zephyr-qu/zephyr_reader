@@ -3,6 +3,9 @@ import 'package:zephyr_reader/core/app_config.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 书籍详情 ViewModel。
+///
+/// 加载并管理书籍的详细信息、阅读进度、笔记统计、章节列表等。
 class BookDetailViewModel {
   BookDetailViewModel({required this.bookId});
 

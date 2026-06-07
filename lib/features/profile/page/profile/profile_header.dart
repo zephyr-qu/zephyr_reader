@@ -4,6 +4,9 @@ import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+/// 个人中心头部组件。
+///
+/// 显示用户头像和应用名称。
 class ProfileHeader extends StatelessWidget {
   const ProfileHeader({super.key});
 

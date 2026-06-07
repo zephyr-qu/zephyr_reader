@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// 翻页阴影绘制器。
+///
+/// 在仿真翻页模式中绘制页面边缘的卷曲阴影效果。
 class PageTurnShadowPainter extends CustomPainter {
   final double opacity;
   final bool isForward;

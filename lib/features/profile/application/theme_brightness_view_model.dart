@@ -9,6 +9,9 @@ import 'package:zephyr_reader/core/theme/theme_manager.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 
 @injectable
+/// 主题与亮度设置 ViewModel。
+///
+/// 管理主题类型、阅读器背景色、亮度遮罩等设置的状态和持久化。
 class ThemeBrightnessViewModel {
   final SharedPreferences _prefs;
   final _themeManager = ThemeManager.instance;

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// 功能特性卡片。
+///
+/// 在关于页面中展示应用的核心功能亮点。
 class FeatureCard extends StatelessWidget {
   final IconData icon;
   final String title;

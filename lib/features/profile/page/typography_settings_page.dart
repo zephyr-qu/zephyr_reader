@@ -17,6 +17,9 @@ import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/reader/models/font_info.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+/// 排版设置页面。
+///
+/// 提供字体大小、行间距、字间距、页边距等阅读排版参数的调节。
 class TypographySettingsPage extends HookWidget {
   const TypographySettingsPage({super.key});
 

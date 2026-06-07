@@ -5,6 +5,9 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 
+/// 阅读器顶部工具栏。
+///
+/// 显示书名、阅读进度和关闭按钮。
 class ReaderToolbar extends HookWidget {
   final String title;
   final String progress;

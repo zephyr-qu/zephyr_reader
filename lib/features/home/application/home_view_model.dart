@@ -7,6 +7,9 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 /// 首页最近阅读列表最大条目数
 final _recentBookLimit = 4;
 
+/// 首页 ViewModel。
+///
+/// 管理最近阅读书籍列表和阅读趋势数据的异步加载状态。
 class HomeViewModel {
   final recentBooks = asyncSignal<List<Book>>(AsyncState.loading());
   final dailyRecords = asyncSignal<List<ReadingStats>>(AsyncState.loading());

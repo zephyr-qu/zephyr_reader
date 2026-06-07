@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// 带动画的工具栏面板容器。
+///
+/// 提供显隐切换的滑动动画效果。
 class AnimatedToolbarPanel extends StatelessWidget {
   final bool visible;
   final double slideBeginY;

@@ -29,6 +29,9 @@ const _cnNumerals = [
   '二十',
 ];
 
+/// 章节列表组件。
+///
+/// 展示书籍的章节列表，支持点击跳转和当前章节高亮。
 class ChapterListWidget extends HookWidget {
   final List<Chapter> chapters;
   final int currentChapterIndex;

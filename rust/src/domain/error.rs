@@ -31,6 +31,9 @@ pub enum AppError {
     // ========== 数据库错误 ==========
     #[error("Database error: {reason}")]
     DatabaseError { reason: String },
+    // ========== 实体未找到 ==========
+    #[error("Resource not found: {entity}")]
+    NotFound { entity: String },
     // ========== 存储未初始化 ==========
     #[error("Storage not initialized. Call init() first.")]
     StorageNotInitialized,
@@ -120,6 +123,13 @@ impl AppError {
         }
     }
 
+    /// 实体未找到
+    pub fn not_found(entity: impl Into<String>) -> Self {
+        Self::NotFound {
+            entity: entity.into(),
+        }
+    }
+
     /// 存储未初始化
     pub fn storage_not_initialized() -> Self {
         Self::StorageNotInitialized
@@ -178,6 +188,7 @@ impl AppError {
             Self::ChapterExtractError { .. } => "CHAPTER_EXTRACT_ERROR",
             Self::TypesetConfigError { .. } => "TYPESET_CONFIG_ERROR",
             Self::DatabaseError { .. } => "DATABASE_ERROR",
+            Self::NotFound { .. } => "NOT_FOUND",
             Self::StorageNotInitialized => "STORAGE_NOT_INITIALIZED",
             Self::SearchError { .. } => "SEARCH_ERROR",
             Self::SecurityError { .. } => "SECURITY_ERROR",

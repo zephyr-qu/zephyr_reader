@@ -8,6 +8,10 @@ import 'package:zephyr_reader/features/reader/application/cache_manage_view_mode
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 缓存管理页面。
+///
+/// 查看和清理阅读排版缓存，支持按书籍粒度操作。
+/// 使用 [CacheManageViewModel] 管理缓存数据。
 class CacheManagePage extends HookWidget {
   final String? bookId;
 

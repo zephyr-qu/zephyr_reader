@@ -17,6 +17,9 @@ import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
 import 'package:zephyr_reader/src/rust/api/search.dart';
 
 @injectable
+/// 存储同步 ViewModel。
+///
+/// 管理 WebDAV 同步配置、同步状态和本地数据导出/导入。
 class StorageSyncViewModel {
   final configService = WebDavConfigService(prefs: getIt<SharedPreferences>());
 

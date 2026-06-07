@@ -4,6 +4,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
+/// 骨架屏加载占位组件。
+///
+/// 在数据加载期间显示闪烁动画占位块，提升用户感知的加载体验。
 class SkeletonWidget extends HookWidget {
   final double width;
   final double height;

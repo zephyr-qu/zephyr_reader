@@ -11,6 +11,10 @@ import 'package:zephyr_reader/features/statistics/page/widgets/weekly_heatmap.da
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 阅读统计页面。
+///
+/// 展示每日阅读时长、连续打卡、阅读趋势图表和生词本统计。
+/// 使用 [ReadingStatsViewModel] 加载和管理统计数据。
 class StatisticsPage extends HookWidget {
   const StatisticsPage({super.key});
 

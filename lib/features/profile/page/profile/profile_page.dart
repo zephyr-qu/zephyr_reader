@@ -16,6 +16,10 @@ import 'profile_header.dart';
 import 'profile_menu_widgets.dart';
 import 'profile_stat_item.dart';
 
+/// 个人中心页面。
+///
+/// 展示用户阅读统计概览，提供主题外观设置、TTS 设置、
+/// 排版设置、数据管理等入口。
 class ProfilePage extends HookWidget {
   const ProfilePage({super.key});
 

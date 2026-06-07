@@ -3,6 +3,9 @@ import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 生词本 ViewModel。
+///
+/// 管理生词列表、学习统计和筛选状态的异步加载。
 class VocabularyViewModel {
   final words = asyncSignal<List<Vocab>>(AsyncState.data([]));
   final stats = asyncSignal<VocabStats?>(AsyncState.loading());

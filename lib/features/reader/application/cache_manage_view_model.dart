@@ -4,6 +4,9 @@ import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 缓存管理 ViewModel。
+///
+/// 管理书籍列表和排版缓存信息的加载与清理。
 class CacheManageViewModel {
   final ReaderRepository repo;
   final String? bookId;

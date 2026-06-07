@@ -3,6 +3,9 @@ import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/src/rust/api/vocab_marker.dart' as rust;
 
 @lazySingleton
+/// 生词标记服务。
+///
+/// 从 Rust 侧加载词库（CET6/IELTS/TOEFL），提供文本中生词检测能力。
 class VocabularyMarkerService {
   Set<String> _allWords = {};
   Set<String> _cet6Words = {};

@@ -10,6 +10,10 @@ import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+/// WiFi 传书页面。
+///
+/// 通过局域网 HTTP 服务从电脑端上传书籍文件到应用。
+/// 使用 [WifiTransferService] 管理 HTTP 服务。
 class WifiTransferPage extends HookWidget {
   const WifiTransferPage({super.key});
 

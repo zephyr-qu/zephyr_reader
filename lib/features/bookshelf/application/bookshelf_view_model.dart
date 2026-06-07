@@ -17,7 +17,7 @@ import 'package:zephyr_reader/src/rust/api/data/category.dart' as category_api;
 import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-/// 书架排序方式
+/// 书架排序方式枚举。
 enum BookshelfSortType {
   lastRead('last_read'),
   createdAt('created_at'),

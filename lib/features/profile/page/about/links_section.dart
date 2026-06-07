@@ -5,6 +5,9 @@ import 'package:zephyr_reader/features/profile/page/user_agreement_page.dart';
 import 'package:zephyr_reader/features/profile/page/privacy_policy_page.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+/// 关于页面的链接区域。
+///
+/// 显示检查更新、用户协议、隐私政策、开源许可等相关链接。
 class LinksSection extends StatelessWidget {
   final List<(IconData, String, String?, bool)> links;
   final String version;

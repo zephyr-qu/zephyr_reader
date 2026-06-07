@@ -10,6 +10,10 @@ import 'package:zephyr_reader/features/learning_notes/page/widgets/stat_dashboar
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 学习笔记页面。
+///
+/// 展示笔记/高亮列表，支持按来源书籍筛选和查看笔记详情。
+/// 使用 [LearningNotesViewModel] 加载笔记数据。
 class LearningNotesPage extends HookWidget {
   const LearningNotesPage({super.key});
 

@@ -5,6 +5,9 @@ import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+/// 阅读器设置面板。
+///
+/// 提供阅读模式、字体大小、行间距、主题等参数调节。
 class ReaderSettingsPanel extends HookWidget {
   final ThemeMode themeMode;
   final ReadingMode readingMode;

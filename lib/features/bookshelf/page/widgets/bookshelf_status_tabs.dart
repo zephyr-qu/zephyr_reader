@@ -4,6 +4,9 @@ import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 阅读状态标签栏。
+///
+/// 以横向滚动的标签形式展示书籍阅读状态（在读/已读完/未读等），支持筛选。
 class BookshelfStatusTabs extends StatelessWidget {
   final BookStatus? selectedStatus;
   final ValueChanged<BookStatus?> onStatusChanged;

@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 // 断点定义
 // ============================================================================
 
+/// 布局断点工具类，提供设备类型判断和自适应布局辅助方法。
+///
+/// 断点定义：phone < 600px < tablet < 840px < desktop。
 class LayoutBreakpoints {
   static const double phoneMax = 600;
   static const double tabletMin = 600;

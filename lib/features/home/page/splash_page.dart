@@ -7,6 +7,9 @@ import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+/// 启动页。
+///
+/// 展示应用 Logo 和加载动画，初始化完成后自动跳转到首页。
 class SplashPage extends HookWidget {
   const SplashPage({super.key});
 

@@ -5,6 +5,9 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+/// 阅读器底部工具栏。
+///
+/// 提供目录、笔记、设置、TTS 朗读、翻页控制等操作按钮。
 class ReaderBottomToolbar extends StatelessWidget {
   final int currentPageIndex;
   final int totalPages;

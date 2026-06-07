@@ -5,8 +5,9 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/features/search/application/search_view_model.dart';
 import 'package:zephyr_reader/features/search/application/services/search_history_service.dart';
 
-// ──────────────────────── History View ────────────────────────
-
+/// 搜索历史视图。
+///
+/// 显示搜索历史记录列表，支持点击重新搜索和清除历史。
 class SearchHistoryView extends StatelessWidget {
   final SearchHistoryService history;
   final TextEditingController controller;

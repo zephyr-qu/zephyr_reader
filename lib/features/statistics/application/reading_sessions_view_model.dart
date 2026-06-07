@@ -4,6 +4,9 @@ import 'package:zephyr_reader/src/rust/api/data/session.dart' as session_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 阅读会话列表 ViewModel。
+///
+/// 加载历史阅读会话记录及其关联的书籍信息。
 class ReadingSessionsViewModel {
   final sessions = asyncSignal<List<ReadingSession>>(AsyncState.loading());
   final bookCache = mapSignal<String, Book>({});

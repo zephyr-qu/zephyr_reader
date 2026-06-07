@@ -8,6 +8,10 @@ import 'package:zephyr_reader/features/reader/application/reader_view_model.dart
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 阅读器页面绑定的状态集合。
+///
+/// 聚合 ReaderViewModel 中各信号的状态值，供渲染组件读取。
+/// 减少重复的 useSignalValue 调用。
 class ReaderPageBindings {
   final ReaderTheme readerTheme;
   final bool showToolbar;

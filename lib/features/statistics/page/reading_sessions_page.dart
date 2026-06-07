@@ -10,6 +10,10 @@ import 'package:zephyr_reader/features/statistics/page/widgets/reading_session_o
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 阅读会话列表页面。
+///
+/// 展示历史阅读会话记录，按日期分组显示每次阅读的时长和书籍。
+/// 使用 [ReadingSessionsViewModel] 加载阅读会话数据。
 class ReadingSessionsPage extends HookWidget {
   const ReadingSessionsPage({super.key});
 

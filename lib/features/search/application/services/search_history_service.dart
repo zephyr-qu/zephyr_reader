@@ -1,3 +1,4 @@
+/// 搜索历史记录服务（内存存储，应用重启后清空）。
 class SearchHistoryService {
   final List<String> _history = [];
   static const int maxHistory = 20;

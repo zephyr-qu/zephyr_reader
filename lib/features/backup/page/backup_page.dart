@@ -13,6 +13,10 @@ import 'package:zephyr_reader/features/backup/page/widgets/backup_stats_section.
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/backup.dart';
 
+/// 数据备份与还原页面。
+///
+/// 支持导出数据库备份、导入备份文件还原数据，
+/// 以及管理自动快照。
 class BackupPage extends HookWidget {
   const BackupPage({super.key});
 

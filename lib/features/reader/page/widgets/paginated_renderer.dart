@@ -6,6 +6,9 @@ import 'package:zephyr_reader/features/reader/domain/services/highlight_painter.
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'reader_render_config.dart';
 
+/// 分页模式渲染器。
+///
+/// 以左右分页形式展示书籍内容，支持翻页动画和高亮显示。
 class PaginatedModeRenderer extends StatelessWidget {
   final ReaderRenderConfig config;
   final PageController pageController;

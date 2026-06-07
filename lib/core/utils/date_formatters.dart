@@ -1,8 +1,7 @@
-/// 日期时间格式化工具函数。
+/// 日期格式化工具。
 ///
-/// 提供相对时间（"几分钟前"）、固定格式（YYYY-MM-DD）等格式化能力。
+/// 提供相对时间（如"3分钟前"）和绝对时间的格式化输出。
 /// 相对时间依赖 [AppLocalizations] 实现 i18n。
-library;
 
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 

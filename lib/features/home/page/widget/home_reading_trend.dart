@@ -5,6 +5,9 @@ import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 阅读趋势图表。
+///
+/// 使用 fl_chart 绘制柱状图，展示近期的每日阅读时长。
 class ReadingTrend extends StatelessWidget {
   const ReadingTrend({super.key, required this.dailyRecords});
 

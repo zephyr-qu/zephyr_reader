@@ -19,10 +19,10 @@ pub use crate::storage::models::{
     ReadingProgress, ReadingSession, Vocab,
 };
 
-/// 书籍详情聚合（1 次 FFI 替代 7 次调用）
+/// 书籍详情聚合
 #[frb(dart_metadata = ("freezed"))]
 pub struct BookDetail {
-    pub book: Option<Book>,
+    pub book: Book,
     pub progress: Option<ReadingProgress>,
     pub note_stats: NoteStats,
     pub chapters: Vec<Chapter>,
@@ -38,7 +38,8 @@ pub async fn get_book_detail(book_id: String) -> Result<BookDetail, AppError> {
     let pool = crate::storage::storage_pool()?;
 
     let book = BookRepository::find_by_id(&pool, &book_id).await
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+        .map_err(|e| AppError::database_error(e.to_string()))?
+        .ok_or_else(|| AppError::not_found("book"))?;
     let progress = ProgressRepository::find_by_book(&pool, &book_id).await
         .map_err(|e| AppError::database_error(e.to_string()))?;
     let note_stats = NoteRepository::find_note_stats(&pool, &book_id).await

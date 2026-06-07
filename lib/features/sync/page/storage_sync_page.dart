@@ -15,6 +15,10 @@ import 'package:zephyr_reader/features/sync/page/widgets/webdav_config_dialog.da
 import 'package:zephyr_reader/core/presentation/widgets/confirm_action_dialog.dart';
 import 'package:zephyr_reader/core/presentation/widgets/danger_section.dart';
 
+/// 存储同步页面。
+///
+/// 支持 WebDAV 协议的阅读数据同步，包括上传备份和下载恢复。
+/// 使用 [StorageSyncViewModel] 管理同步状态。
 class StorageSyncPage extends HookWidget {
   const StorageSyncPage({super.key});
 

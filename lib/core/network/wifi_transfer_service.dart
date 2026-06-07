@@ -12,6 +12,10 @@ import 'package:zephyr_reader/core/settings/settings_keys.dart';
 const _kPortKey = SettingsKeys.wifiTransferPort;
 
 @singleton
+/// WiFi 传书 HTTP 服务。
+///
+/// 在局域网内启动 HTTP 服务器，提供 Web 界面上传书籍文件。
+/// 支持文件上传、目录选择和多文件批量上传。
 class WifiTransferService {
   final SharedPreferences _prefs;
   String _htmlContent = '';

@@ -6,6 +6,9 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 /// 统计时段枚举
 enum StatisticsPeriod { today, week, month, year }
 
+/// 阅读统计 ViewModel。
+///
+/// 管理阅读统计、每日记录、趋势数据和生词统计的加载与筛选。
 class ReadingStatsViewModel {
   /// 全局阅读统计
   final globalStats = asyncSignal<GlobalStats?>(AsyncState.loading());

@@ -1,3 +1,6 @@
+/// WebDAV 服务器连接配置。
+///
+/// 包含服务器地址、用户名、密码和远程路径。
 class WebDavConfig {
   final String baseUrl;
   final String username;

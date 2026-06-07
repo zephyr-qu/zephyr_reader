@@ -5,6 +5,9 @@ import '../search_results.dart';
 
 // ──────────────────────── Summary Bar ────────────────────────
 
+/// 搜索结果摘要栏。
+///
+/// 显示搜索结果的来源分布统计（书籍/笔记/生词）。
 class SearchSummaryBar extends StatelessWidget {
   final SearchResults results;
   const SearchSummaryBar({super.key, required this.results});
