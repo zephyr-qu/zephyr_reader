@@ -16,10 +16,10 @@ import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_sort_type_ext.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
-import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_batch_toolbar.dart';
-import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_book_content.dart';
-import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_category_chips.dart';
-import 'package:zephyr_reader/features/bookshelf/page/widgets/bookshelf_status_tabs.dart';
+import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_batch_toolbar.dart';
+import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_book_content.dart';
+import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_category_chips.dart';
+import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_status_tabs.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 

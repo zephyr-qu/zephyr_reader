@@ -1,9 +1,20 @@
 use flutter_rust_bridge::frb;
 use thiserror::Error;
 
+/// 应用程序统一错误类型。
+///
+/// 枚举所有可能的应用程序错误，按功能域分组：
+/// - 文件操作错误（未找到、读取失败、格式不支持）
+/// - 解析错误（EPUB/PDF/章节提取）
+/// - 配置错误、数据库错误、搜索错误
+/// - 安全错误、输入验证错误等
+/// 使用 [thiserror::Error] 派生，自动实现 [std::error::Error]。
+/// 标注 `#[frb(non_opaque)]` 允许 Dart 侧接收此错误类型。
 #[derive(Debug, Error)]
 #[frb(non_opaque)]
 pub enum AppError {
+
+
     // ========== 文件错误 ==========
     #[error("File not found: {path}")]
     FileNotFound { path: String },

@@ -12,12 +12,18 @@ import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
 import 'package:zephyr_reader/features/profile/application/other_settings_view_model.dart';
+import 'package:zephyr_reader/features/profile/page/other/lang_option_tile.dart';
+import 'package:zephyr_reader/features/profile/page/other/version_footer.dart';
 import 'package:zephyr_reader/features/profile/page/privacy_policy_page.dart';
 import 'package:zephyr_reader/features/profile/page/user_agreement_page.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/presentation/widgets/confirm_action_dialog.dart';
 import 'package:zephyr_reader/core/presentation/widgets/danger_section.dart';
 
+/// 其他设置页面。
+///
+/// 提供学习目标、日间模式、阅读时长提醒、用户协议和隐私政策等入口。
+/// 使用 [OtherSettingsViewModel] 管理设置状态。
 class OtherSettingsPage extends HookWidget {
   late final OtherSettingsViewModel vm = getIt<OtherSettingsViewModel>();
   OtherSettingsPage({super.key});
@@ -51,7 +57,13 @@ class OtherSettingsPage extends HookWidget {
           const SizedBox(height: 24),
           _buildDangerSection(context, cs, l10n),
           const SizedBox(height: 24),
-          _buildVersionFooter(context, cs, l10n, appVersion),
+          VersionFooter(
+            appVersion: appVersion,
+            checkUpdateLabel: l10n.checkUpdate,
+            feedbackLabel: l10n.feedback,
+            onCheckUpdate: () {},
+            onFeedback: () {},
+          ),
         ],
       ),
     );
@@ -98,7 +110,7 @@ class OtherSettingsPage extends HookWidget {
                       ),
                     ],
                   ),
-                  onTap: () => _showLanguageSheet(context, cs, l10n),
+                  onTap: () => _showLanguageSheet(context, l10n),
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.bell,
@@ -300,72 +312,7 @@ class OtherSettingsPage extends HookWidget {
         .slideY(begin: 0.03, end: 0);
   }
 
-  Widget _buildVersionFooter(
-    BuildContext context,
-    ColorScheme cs,
-    AppLocalizations l10n,
-    String appVersion,
-  ) {
-    return Column(
-      children: [
-        Text(
-          'Zephyr Reader $appVersion',
-          style: Theme.of(
-            context,
-          ).textTheme.labelSmall?.copyWith(color: cs.outline),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          'Flutter 3.41.2 · Rust 1.82.0 · FRB 2.12.0',
-          style: TextStyle(
-            fontSize: 10,
-            color: cs.onSurfaceVariant.withValues(alpha: 0.4),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            GestureDetector(
-              onTap: () {},
-              child: Text(
-                l10n.checkUpdate,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: cs.primary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            Text(
-              ' · ',
-              style: TextStyle(
-                fontSize: 11,
-                color: cs.onSurfaceVariant.withValues(alpha: 0.4),
-              ),
-            ),
-            GestureDetector(
-              onTap: () {},
-              child: Text(
-                l10n.feedback,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: cs.primary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  void _showLanguageSheet(
-    BuildContext context,
-    ColorScheme cs,
-    AppLocalizations l10n,
-  ) {
+  void _showLanguageSheet(BuildContext context, AppLocalizations l10n) {
     showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -386,72 +333,43 @@ class OtherSettingsPage extends HookWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              _langOption(context, cs, l10n.followSystem, null),
+              LangOptionTile(
+                label: l10n.followSystem,
+                isSelected: vm.localeCode.value == null,
+                onTap: () {
+                  final tm = ThemeManager.instance;
+                  tm.locale.value = null;
+                  vm.localeCode.value = null;
+                  vm.localeLabel.value = '简体中文';
+                  Navigator.pop(context);
+                },
+              ),
               const SizedBox(height: 8),
-              _langOption(context, cs, l10n.chinese, 'zh'),
+              LangOptionTile(
+                label: l10n.chinese,
+                isSelected: vm.localeCode.value == 'zh',
+                onTap: () {
+                  final tm = ThemeManager.instance;
+                  tm.locale.value = 'zh';
+                  vm.localeCode.value = 'zh';
+                  vm.localeLabel.value = '简体中文';
+                  Navigator.pop(context);
+                },
+              ),
               const SizedBox(height: 8),
-              _langOption(context, cs, l10n.english, 'en'),
+              LangOptionTile(
+                label: l10n.english,
+                isSelected: vm.localeCode.value == 'en',
+                onTap: () {
+                  final tm = ThemeManager.instance;
+                  tm.locale.value = 'en';
+                  vm.localeCode.value = 'en';
+                  vm.localeLabel.value = 'English';
+                  Navigator.pop(context);
+                },
+              ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _langOption(
-    BuildContext context,
-    ColorScheme cs,
-    String label,
-    String? code,
-  ) {
-    final tm = ThemeManager.instance;
-    return InkWell(
-      onTap: () {
-        tm.locale.value = code;
-        vm.localeCode.value = code;
-        vm.localeLabel.value = code == 'en' ? 'English' : '简体中文';
-        Navigator.pop(context);
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color:
-                      (code == null && tm.locale.value == null) ||
-                          tm.locale.value == code
-                      ? cs.primary
-                      : cs.outlineVariant,
-                  width: 2,
-                ),
-              ),
-              child:
-                  ((code == null && tm.locale.value == null) ||
-                      tm.locale.value == code)
-                  ? Center(
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: cs.primary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-          ],
         ),
       ),
     );

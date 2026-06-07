@@ -9,7 +9,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 class BookDetailViewModel {
   BookDetailViewModel({required this.bookId});
 
-  final book = asyncSignal<Book?>(AsyncState.loading());
+  final book = asyncSignal<Book>(AsyncState.loading());
   final progress = asyncSignal<ReadingProgress?>(AsyncState.loading());
   final noteStats = asyncSignal<NoteStats?>(AsyncState.loading());
   final chapters = asyncSignal<List<Chapter>>(AsyncState.loading());

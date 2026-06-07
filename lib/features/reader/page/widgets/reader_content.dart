@@ -16,6 +16,10 @@ import 'page_turn_painter.dart';
 import 'reader_render_config.dart';
 import 'scroll_mode_renderer.dart';
 
+/// 阅读内容容器组件。
+///
+/// 根据当前阅读模式（分页/滚动/双语）选择对应渲染器展示书籍内容。
+/// 集成高亮显示、翻页动画、双向滚动等阅读交互功能。
 class ReaderContent extends HookWidget {
   final String bookId;
   final int chapterId;
@@ -26,6 +30,7 @@ class ReaderContent extends HookWidget {
   final ThemeMode themeMode;
   final ReadingMode readingMode;
   final String content;
+
   final bool isLoading;
   final String? error;
   final BilingualAlignment? bilingualAlignment;
@@ -452,6 +457,11 @@ class ReaderContent extends HookWidget {
     }
   }
 }
+
+/// 阅读内容视图组件（ViewModel 绑定层）。
+///
+/// 与 [ReaderViewModel] 直接绑定，通过 bindings 自动响应信号变化。
+/// 处理文本选择、高亮交互、跳转偏移消费等阅读器高级交互逻辑。
 
 class ReaderContentView extends HookWidget {
   final ReaderViewModel vm;

@@ -70,6 +70,7 @@ fn compute_line_breaks_from_indices(
 /// 提供两种模式：eager 模式（小文件，预计算所有行偏移）和 lazy 模式（大文件，按需计算）。
 /// 通过 `#[frb(opaque)]` 暴露给 Flutter 侧使用。
 #[derive(Clone)]
+#[frb(opaque)]
 pub struct PageStreamer {
     content: String,
     pub(crate) current_page: usize,
