@@ -3,9 +3,11 @@ use sqlx::SqlitePool;
 
 use super::super::models::*;
 
+/// 词典仓储 — 管理词典配置的增删改查
 pub struct DictionaryRepository;
 
 impl DictionaryRepository {
+    /// 保存或更新词典配置
     pub async fn save(pool: &SqlitePool, dict: &Dictionary) -> Result<Dictionary> {
         sqlx::query(
             "INSERT INTO dictionaries (id, name, file_path, dict_type, lang_from, lang_to, is_enabled, word_count, added_at) \
@@ -33,6 +35,7 @@ impl DictionaryRepository {
         Ok(dict.clone())
     }
 
+    /// 获取所有词典（按添加时间倒序）
     pub async fn find_all(pool: &SqlitePool) -> Result<Vec<Dictionary>> {
         Ok(
             sqlx::query_as::<_, Dictionary>("SELECT * FROM dictionaries ORDER BY added_at DESC")
@@ -41,6 +44,7 @@ impl DictionaryRepository {
         )
     }
 
+    /// 按 ID 查找词典
     pub async fn find_by_id(pool: &SqlitePool, id: &str) -> Result<Option<Dictionary>> {
         Ok(
             sqlx::query_as::<_, Dictionary>("SELECT * FROM dictionaries WHERE id = ?")
@@ -50,6 +54,10 @@ impl DictionaryRepository {
         )
     }
 
+    /// 删除词典
+    ///
+    /// # 返回值
+    /// 返回是否成功删除了记录
     pub async fn delete(pool: &SqlitePool, id: &str) -> Result<bool> {
         let rows = sqlx::query("DELETE FROM dictionaries WHERE id = ?")
             .bind(id)

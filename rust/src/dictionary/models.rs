@@ -1,6 +1,7 @@
-/// 词典模块数据模型
-///
-/// 定义词典查询相关的数据结构。
+//! 词典数据模型 (Dictionary Data Models)
+//!
+//! 定义词典查询相关的数据结构，包括词条信息 (`DictEntry`) 和查询结果 (`DictSearchResult`)。
+//! 词条包含单词、HTML 格式释义以及可选的音频资源键名。
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 

@@ -1,3 +1,5 @@
+//! 书籍元数据定义
+//! 提供与 Dart FFI 交互的 BookMetadata 结构体
 use flutter_rust_bridge::frb;
 
 /// 书籍元数据，用于 Dart FFI 交互

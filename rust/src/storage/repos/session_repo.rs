@@ -16,6 +16,7 @@ started_at = excluded.started_at, \
 ended_at = excluded.ended_at, \
 duration_seconds = excluded.duration_seconds";
 
+/// 阅读会话仓储 — 管理阅读会话记录
 pub struct SessionRepository;
 
 impl SessionRepository {

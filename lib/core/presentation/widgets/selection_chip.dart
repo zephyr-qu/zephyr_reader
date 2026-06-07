@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// 可选中标签组件。
+///
+/// 显示一个带选中态高亮的圆角标签，支持自定义颜色和动画过渡。
 class SelectionChip extends StatelessWidget {
   final String label;
   final bool selected;

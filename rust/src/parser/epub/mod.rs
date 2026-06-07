@@ -21,18 +21,33 @@ pub use parse::parse_epub;
 pub struct EpubParser;
 
 impl EpubParser {
+    /// 创建新的 EPUB 解析器
     pub fn new() -> Self {
         Self
     }
 
+    /// 获取解析器名称
     pub fn name(&self) -> &'static str {
         "EPUB Parser"
     }
 
+    /// 获取支持的格式列表
     pub fn supported_formats(&self) -> Vec<&str> {
         vec!["epub"]
     }
 
+    /// 解析 EPUB 文件
+    ///
+    /// 解压 EPUB 并提取元数据、章节列表和目录信息。
+    ///
+    /// # 参数
+    ///
+    /// * `file_path` - EPUB 文件路径
+    ///
+    /// # 返回值
+    ///
+    /// * `Ok(ParseResult)` - 解析结果（含书籍信息和章节列表）
+    /// * `Err(AppError)` - 解析失败
     pub async fn parse(&self, file_path: &str) -> Result<ParseResult, AppError> {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || parse_epub(fp))
@@ -40,6 +55,19 @@ impl EpubParser {
             .map_err(|e| AppError::internal(format!("EPUB parse task failed: {}", e)))?
     }
 
+    /// 提取 EPUB 文件元数据
+    ///
+    /// 快速获取 EPUB 文件的基本元数据（书名、作者、封面、出版商等），
+    /// 无需完整解析章节内容。
+    ///
+    /// # 参数
+    ///
+    /// * `file_path` - EPUB 文件路径
+    ///
+    /// # 返回值
+    ///
+    /// * `Ok(BookMetadata)` - 书籍元数据
+    /// * `Err(AppError)` - 提取失败
     pub async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata, AppError> {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || -> Result<BookMetadata, AppError> {
@@ -71,6 +99,17 @@ impl EpubParser {
         .map_err(|e| AppError::internal(format!("EPUB metadata extraction failed: {}", e)))?
     }
 
+    /// 提取指定章节内容
+    ///
+    /// # 参数
+    ///
+    /// * `file_path` - EPUB 文件路径
+    /// * `chapter_index` - 章节索引（从 0 开始）
+    ///
+    /// # 返回值
+    ///
+    /// * `Ok(String)` - 章节 HTML 内容
+    /// * `Err(AppError)` - 提取失败
     pub async fn extract_chapter(
         &self,
         file_path: &str,
@@ -94,7 +133,7 @@ impl EpubParser {
             let spine = epub_file.spine();
             let href = spine.get(chapter.start_index as usize).ok_or_else(|| {
                 AppError::chapter_extract_error(
-                    (chapter.chapter_index  as i64).try_into().unwrap(),
+                    (chapter.chapter_index as i64).try_into().unwrap(),
                     format!("chapter index out of range: {}", chapter.start_index),
                 )
             })?;

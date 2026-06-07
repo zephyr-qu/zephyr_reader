@@ -11,6 +11,7 @@ import 'package:signals_hooks/signals_hooks.dart';
 import 'core/routing/app_router.dart';
 import 'l10n/app_localizations.dart';
 
+/// Zephyr Reader 应用根组件
 class ZephyrReaderApp extends HookWidget {
   const ZephyrReaderApp({super.key});
 

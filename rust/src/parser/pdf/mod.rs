@@ -28,18 +28,33 @@ pub const DEFAULT_PAGES_PER_CHAPTER: usize = 10;
 pub struct PdfParser;
 
 impl PdfParser {
+    /// 创建新的 PDF 解析器
     pub fn new() -> Self {
         Self
     }
 
+    /// 获取解析器名称
     pub fn name(&self) -> &'static str {
         "PDF Parser"
     }
 
+    /// 获取支持的格式列表
     pub fn supported_formats(&self) -> Vec<&str> {
         vec!["pdf"]
     }
 
+    /// 解析 PDF 文件
+    ///
+    /// PDF 章节按页数划分，每 10 页为一章（可配置）。
+    ///
+    /// # 参数
+    ///
+    /// * `file_path` - PDF 文件路径
+    ///
+    /// # 返回值
+    ///
+    /// * `Ok(ParseResult)` - 解析结果（含书籍信息和章节列表）
+    /// * `Err(AppError)` - 解析失败
     pub async fn parse(&self, file_path: &str) -> Result<ParseResult, AppError> {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || parse_pdf(fp))
@@ -47,6 +62,18 @@ impl PdfParser {
             .map_err(|e| AppError::internal(format!("PDF parse task failed: {}", e)))?
     }
 
+    /// 提取 PDF 文件元数据
+    ///
+    /// 从 PDF /Info 字典中提取标题、作者等元数据信息。
+    ///
+    /// # 参数
+    ///
+    /// * `file_path` - PDF 文件路径
+    ///
+    /// # 返回值
+    ///
+    /// * `Ok(BookMetadata)` - 书籍元数据
+    /// * `Err(AppError)` - 提取失败
     pub async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata, AppError> {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || -> Result<BookMetadata, AppError> {
@@ -84,6 +111,19 @@ impl PdfParser {
         .map_err(|e| AppError::internal(format!("PDF metadata extraction failed: {}", e)))?
     }
 
+    /// 提取指定章节内容
+    ///
+    /// 按每章页数划分，提取对应页面的文本。
+    ///
+    /// # 参数
+    ///
+    /// * `file_path` - PDF 文件路径
+    /// * `chapter_index` - 章节索引（从 0 开始）
+    ///
+    /// # 返回值
+    ///
+    /// * `Ok(String)` - 章节文本内容
+    /// * `Err(AppError)` - 提取失败
     pub async fn extract_chapter(
         &self,
         file_path: &str,

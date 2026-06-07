@@ -4,7 +4,12 @@ import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 @lazySingleton
+/// 文字转语音服务
+///
+/// 封装 [FlutterTts]，提供朗读、暂停、恢复、停止等控制功能。
+/// 支持语速、音调、语言和语音切换，通过 signals 暴露播放状态信号。
 class TtsService {
+
   final FlutterTts _tts = FlutterTts();
   final Completer<void> _ready = Completer<void>();
   final isPlaying = signal<bool>(false);

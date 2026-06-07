@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// 设置页开关条目。
+///
+/// 显示带图标、标题、副标题和 Switch 开关的配置项。
 class SettingsToggleTile extends StatelessWidget {
   final String title;
   final String? subtitle;

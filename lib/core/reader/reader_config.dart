@@ -6,10 +6,10 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// 阅读器翻页点击区域布局
+/// 阅读器翻页点击区域布局（右手/左手习惯）
 enum TapLayout { rightHanded, leftHanded }
 
-/// 书写方向
+/// 书写方向 — 横排或竖排（top-to-bottom, right-to-left）
 enum WritingDirection {
   /// 横排
   horizontal,
@@ -18,7 +18,7 @@ enum WritingDirection {
   vertical,
 }
 
-/// 阅读模式
+/// 阅读模式 — 上下滚动、仿真翻页、左右分页、双语对照
 enum ReadingMode {
   /// 上下滚动
   scroll,
@@ -33,7 +33,7 @@ enum ReadingMode {
   bilingual,
 }
 
-/// 阅读器主题
+/// 阅读器主题 — 亮色、深色、护眼色
 enum ReaderTheme {
   light('light'),
   dark('dark'),
@@ -108,6 +108,10 @@ class ReaderBgColors {
 }
 
 @Singleton()
+/// 阅读器配置
+///
+/// 管理阅读页的所有用户可调参数，包括主题、字体、布局、翻页等。
+/// 使用 PersistedSignal 实现自动持久化，支持重置为默认值。
 class ReaderConfig {
   final SharedPreferences prefs;
 

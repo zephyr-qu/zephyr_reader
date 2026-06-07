@@ -5,6 +5,12 @@ import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/theme/theme_extension.dart';
 import 'package:zephyr_reader/core/utils/color_utils.dart';
 
+
+/// 应用主题工厂
+///
+/// 构建基于 Material 3 的亮色/深色 [ThemeData]，支持自定义主色。
+/// 提供统一的 AppBar、卡片、按钮、输入框等组件主题配置，
+/// 并注入自定义 [AppThemeExtension] 和 [ReaderThemeExtension]。
 class AppThemes {
   AppThemes._();
 
@@ -247,7 +253,8 @@ class AppThemes {
     );
   }
 
-  static TextTheme _textTheme({
+/// 构建应用文本主题，包含标题、正文、标签等各级文字样式
+static TextTheme _textTheme({
     required Color onSurface,
     required Color onSurfaceVariant,
   }) {

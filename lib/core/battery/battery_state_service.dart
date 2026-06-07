@@ -3,7 +3,12 @@ import 'dart:io';
 import 'package:system_state/system_state.dart';
 import 'package:zephyr_reader/core/utils/platform_guard.dart';
 
+/// 电池状态服务
+///
+/// 单例模式，提供设备充电状态和电量的查询与监听。
+/// 使用 [SystemState] 获取底层电池信息，非 Android 平台返回默认值。
 class BatteryStateService {
+
   static final BatteryStateService _instance = BatteryStateService._internal();
   static BatteryStateService get instance => _instance;
 

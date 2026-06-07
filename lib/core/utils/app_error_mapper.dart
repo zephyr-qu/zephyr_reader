@@ -1,3 +1,7 @@
+/// 应用错误映射工具。
+///
+/// 按异常类型将各类异常映射为用户可读的中文错误消息，
+/// 覆盖 FRB/Rust 引擎、网络请求、文件 IO、数据格式等场景。
 import 'dart:io';
 
 import 'package:dio/dio.dart';

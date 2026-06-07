@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// 设置页分区标签。
+///
+/// 显示带有标题文字和可选标签（tag）的分区标题。
 class SectionLabel extends StatelessWidget {
   final String label;
   final Widget? tag;

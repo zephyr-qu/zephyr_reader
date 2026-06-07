@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/utils/haptic.dart';
 
+/// 设置页滑块条目。
+///
+/// 显示带标签和当前数值的滑动条，支持自定义范围和步进。
 class SettingsSliderTile extends StatelessWidget {
   final String label;
   final String value;

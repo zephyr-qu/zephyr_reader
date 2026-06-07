@@ -1,13 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
+/// 阅读器主题扩展
+///
+/// 自定义 [ThemeExtension]，定义阅读页专用的颜色体系。
+/// 提供亮色、深色和护眼色（sepia）三套预设配色方案，
+/// 包括文字、背景、分割线、强调色和 TTS 激活色。
 class ReaderThemeExtension extends ThemeExtension<ReaderThemeExtension> {
+  /// 正文文字色
   final Color textColor;
+
+  /// 弱化文字色 — 用于辅助信息或不可交互元素
   final Color mutedColor;
+
+  /// 背景色
   final Color backgroundColor;
+
+  /// 表面色 — 卡片、面板等浮层背景
   final Color surfaceColor;
+
+  /// 分割线色
   final Color dividerColor;
+
+  /// 强调色 — 链接、选中标记等
   final Color accentColor;
+
+  /// TTS 朗读激活色 — 正在朗读的文本高亮色
   final Color ttsActiveColor;
 
   const ReaderThemeExtension({

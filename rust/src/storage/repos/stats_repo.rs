@@ -52,6 +52,7 @@ async fn calculate_consecutive_reading_days(pool: &SqlitePool) -> Result<i64> {
     Ok(days)
 }
 
+/// 阅读统计仓储 — 管理每日阅读统计和全局统计
 pub struct StatsRepository;
 
 impl StatsRepository {

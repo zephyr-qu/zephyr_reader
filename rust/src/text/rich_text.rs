@@ -1,3 +1,6 @@
+//! 富文本解析
+//! 解析 HTML 内容为富文本段落列表，支持内联 CSS 样式提取和图片占位
+
 use crate::domain::{AppError, RichParagraph, RichTextSpan};
 use crate::text::css;
 use html5ever::Attribute;
@@ -71,6 +74,9 @@ pub fn parse_html_to_rich_text(html_content: &str) -> Result<Vec<RichParagraph>,
 }
 
 #[derive(Debug, Clone, Default)]
+/// 计算后的样式表
+///
+/// 存储解析后的字体大小、颜色、字体系列、对齐方式、行高、字重、字体样式、文本修饰等 CSS 属性
 struct ComputedStyle {
     font_size: Option<f32>,
     color: Option<String>,
@@ -521,6 +527,10 @@ fn collect_plain_text(handle: &Handle, text: &mut String) {
     }
 }
 
+/// 从 HTML 元素属性中提取内联 CSS 样式
+///
+/// 解析 `style` 属性中的声明（如 `"color: red; font-size: 16px"`），
+/// 返回属性名到属性值的映射表
 fn extract_inline_css_style(attrs: &RefCell<Vec<Attribute>>) -> HashMap<String, String> {
     let mut result = HashMap::new();
     for attr in attrs.borrow().iter() {
@@ -540,6 +550,9 @@ fn extract_inline_css_style(attrs: &RefCell<Vec<Attribute>>) -> HashMap<String, 
     result
 }
 
+/// 将内联样式应用到基础样式上，返回新的计算后样式
+///
+/// 遍历内联样式声明并逐一调用 `apply_declaration` 合并到基础样式
 fn apply_inline_style(base: &ComputedStyle, inline: &HashMap<String, String>) -> ComputedStyle {
     let mut s = base.clone();
     for (name, value) in inline {

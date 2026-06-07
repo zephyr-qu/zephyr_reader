@@ -76,7 +76,7 @@ class OtherSettingsViewModel {
 
   /// 清除所有本地缓存数据。
   Future<void> clearAllLocalData() async {
-    await CacheUtils.clearCache();
+    await CacheManager.clearCache();
   }
 
   /// 释放所有 signal 资源。

@@ -1,8 +1,14 @@
+//! CSS 解析与样式解析
+//! 提供 CSS 规则解析、选择器简化、字体大小/颜色/数值属性值的解析与换算
+
 use std::{collections::HashMap, sync::LazyLock};
 
 use regex::Regex;
 
 #[derive(Debug, Clone)]
+/// CSS 规则
+///
+/// 包含选择器列表和声明（属性名 -> 属性值）映射表
 pub struct CssRule {
     pub selectors: Vec<String>,
     pub declarations: HashMap<String, String>,
@@ -20,6 +26,9 @@ const CSS_FONT_SIZES: &[(&str, f32)] = &[
 
 type StyleMap = HashMap<String, Vec<CssRule>>;
 
+/// 构建样式映射表
+///
+/// 将 CSS 规则按选择器（class 名或标签名）分组，以便快速查找匹配的样式
 pub fn build_style_map(rules: &[CssRule]) -> StyleMap {
     let mut map: StyleMap = HashMap::new();
 
@@ -45,6 +54,9 @@ static CSS_RULE_RE: LazyLock<Regex> =
 static CSS_DECL_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"([\w-]+)\s*:\s*(.*?)\s*(?:;|$)").unwrap());
 
+/// 解析 CSS 字符串为规则列表
+///
+/// 使用正则表达式提取选择器和声明块，支持多个选择器和多个声明
 pub fn parse_css(css: &str) -> Vec<CssRule> {
     let rule_re = &*CSS_RULE_RE;
     let decl_re = &*CSS_DECL_RE;
@@ -84,6 +96,10 @@ pub fn parse_css(css: &str) -> Vec<CssRule> {
     rules
 }
 
+/// 简化 CSS 选择器
+///
+/// 对复合选择器（如 `"div.content"`），取最后一部分作为 class 名；
+/// 对单个选择器直接返回。用于从完整选择器中提取 class 名
 fn simplify_selector(sel: &str) -> String {
     let sel = sel.trim();
     if sel.is_empty() {
@@ -98,6 +114,10 @@ fn simplify_selector(sel: &str) -> String {
     sel.to_string()
 }
 
+/// 解析 CSS 字体大小值
+///
+/// 支持 px、pt、em、rem、% 以及预定义关键字（xx-small ~ xx-large），
+/// 相对单位基于父元素字体大小 `parent_px` 计算
 pub fn resolve_font_size(value: &str, parent_px: f32) -> Option<f32> {
     let value = value.trim().to_lowercase();
 
@@ -132,6 +152,10 @@ pub fn resolve_font_size(value: &str, parent_px: f32) -> Option<f32> {
     None
 }
 
+/// 解析 CSS 颜色值
+///
+/// 支持十六进制（#rgb/#rrggbb）、rgb() 函数格式以及 20+ 种命名颜色。
+/// 返回标准化的 `#rrggbb` 格式字符串
 pub fn resolve_color(value: &str) -> Option<String> {
     let value = value.trim().to_lowercase();
 
@@ -225,6 +249,10 @@ mod tests {
     }
 }
 
+/// 解析 CSS 浮动数值属性值
+///
+/// 支持 px、em、% 单位以及 `normal` 关键字（返回 1.2），
+/// 相对单位基于父元素相应值 `parent_px` 计算
 pub fn resolve_float(value: &str, parent_px: f32) -> Option<f32> {
     let value = value.trim().to_lowercase();
 

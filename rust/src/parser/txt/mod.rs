@@ -20,18 +20,31 @@ pub use provider::TxtContentProvider;
 pub struct TxtParser;
 
 impl TxtParser {
+    /// 创建新的 TXT 解析器
     pub fn new() -> Self {
         Self
     }
 
+    /// 获取解析器名称
     pub fn name(&self) -> &'static str {
         "TXT Parser"
     }
 
+    /// 获取支持的格式列表
     pub fn supported_formats(&self) -> Vec<&str> {
         vec!["txt", "text"]
     }
 
+    /// 解析 TXT 文件
+    ///
+    /// # 参数
+    ///
+    /// * `file_path` - TXT 文件路径
+    ///
+    /// # 返回值
+    ///
+    /// * `Ok(ParseResult)` - 解析结果（含书籍信息和章节列表）
+    /// * `Err(AppError)` - 解析失败
     pub async fn parse(&self, file_path: &str) -> Result<ParseResult, AppError> {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || parse_txt(fp))
@@ -39,6 +52,18 @@ impl TxtParser {
             .map_err(|e| AppError::internal(format!("parse task failed: {}", e)))?
     }
 
+    /// 提取 TXT 文件元数据
+    ///
+    /// 解析文件内容头部，提取书名、作者等元数据信息。
+    ///
+    /// # 参数
+    ///
+    /// * `file_path` - TXT 文件路径
+    ///
+    /// # 返回值
+    ///
+    /// * `Ok(BookMetadata)` - 书籍元数据
+    /// * `Err(AppError)` - 提取失败
     pub async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata, AppError> {
         let fp = file_path.to_string();
         let result = tokio::task::spawn_blocking(move || parse_txt(fp))
@@ -59,6 +84,17 @@ impl TxtParser {
         })
     }
 
+    /// 提取指定章节内容
+    ///
+    /// # 参数
+    ///
+    /// * `file_path` - TXT 文件路径
+    /// * `chapter_index` - 章节索引（从 0 开始）
+    ///
+    /// # 返回值
+    ///
+    /// * `Ok(String)` - 章节文本内容
+    /// * `Err(AppError)` - 提取失败
     pub async fn extract_chapter(
         &self,
         file_path: &str,

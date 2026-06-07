@@ -1,3 +1,6 @@
+//! 字符宽度查找表
+//! 基于 Flutter TextPainter 校准值的字符宽度查询，用于精确文本排版
+
 use crate::domain::types::typeset::TypesetCalibration;
 
 /// 字符宽度查找表
@@ -11,6 +14,9 @@ pub struct CharWidthTable {
 }
 
 impl CharWidthTable {
+    /// 从校准数据创建字符宽度查找表
+    ///
+    /// 根据 Flutter TextPainter 实测的各类字符宽度值，构建定长宽度数组
     pub fn from_calibration(cal: &TypesetCalibration) -> Self {
         Self {
             widths: [

@@ -12,6 +12,7 @@ import 'package:zephyr_reader/src/rust/frb_generated.dart';
 
 import 'di/service_locator.dart';
 
+/// 应用入口函数，初始化 Rust 后端、存储、搜索索引及依赖注入
 Future<void> main() async {
   await runZonedGuarded<Future<void>>(
     () async {

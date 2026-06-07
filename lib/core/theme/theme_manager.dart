@@ -5,7 +5,7 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-/// 主题类型枚举
+/// App主题类型枚举
 enum AppThemeType {
   /// 浅色主题
   light,
@@ -26,6 +26,11 @@ extension AppThemeTypeX on AppThemeType {
 }
 
 /// 主题管理器单
+/// 主题管理器单例
+///
+/// 管理应用的主题状态，包括主题类型（浅色/深色/跟随系统）、
+/// 语言偏好和自定义主题色。使用 signals 实现响应式状态管理，
+/// 并提供主题持久化能力。
 class ThemeManager {
   static final ThemeManager _instance = ThemeManager._internal();
   static ThemeManager get instance => _instance;
@@ -49,6 +54,7 @@ class ThemeManager {
   /// 当前激活的主题预设 ID（null = 自定义颜色或默认）
   final currentPresetId = signal<String?>(null);
 
+/// 获取 Flutter [ThemeMode]，将 [AppThemeType] 映射为 Material 主题模式
   ThemeMode get themeMode {
     switch (themeType.value) {
       case AppThemeType.light:
@@ -60,7 +66,9 @@ class ThemeManager {
     }
   }
 
-  /// 是否为深色模式
+/// 当前是否为深色模式
+///
+/// 根据 [themeType] 和系统亮度判断当前实际深色状态
   bool get isDarkMode {
     final brightness =
         SchedulerBinding.instance.platformDispatcher.platformBrightness;
@@ -71,7 +79,7 @@ class ThemeManager {
     };
   }
 
-  /// 初始化主题管理器
+/// 初始化主题管理器，从 SharedPreferences 加载持久化的主题设置
   Future<void> init() async {
     if (_initialized) return;
     _initFuture ??= _doInit();
@@ -145,20 +153,20 @@ class ThemeManager {
     _initialized = true;
   }
 
-  /// 获取应用当前 Locale（null 表示跟随系统）
+/// 获取应用当前 Locale（null 表示跟随系统）
   Locale? get appLocale {
     final code = locale.value;
     if (code == null) return null;
     return Locale(code);
   }
 
-  /// 设置自定义主色（同时更新主题预设 ID）
+/// 设置自定义主色（同时更新主题预设 ID）
   Future<void> setCustomPrimaryColor(Color? color, {String? presetId}) async {
     customPrimaryColor.value = color;
     currentPresetId.value = presetId;
   }
 
-  /// 重置为主题默认色
+/// 重置为主题默认色
   Future<void> resetCustomPrimaryColor() async {
     await setCustomPrimaryColor(null);
   }

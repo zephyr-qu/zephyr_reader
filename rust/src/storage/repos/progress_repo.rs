@@ -18,6 +18,7 @@ reading_time_seconds = excluded.reading_time_seconds, \
 last_read_at = excluded.last_read_at, \
 is_completed = excluded.is_completed";
 
+/// 阅读进度仓储 — 管理阅读进度的增改查
 pub struct ProgressRepository;
 
 impl ProgressRepository {
