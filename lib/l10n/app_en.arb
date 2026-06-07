@@ -166,7 +166,7 @@
   "remotePathInvalid": "Remote path should start with /",
   "configSaved": "WebDAV config saved",
   "saveConfigFailed": "Failed to save config",
-  "configCleared": "Config cleared"
+  "configCleared": "Config cleared",
   "testConnection": "Test Connection",
   "syncNow": "Sync Now",
   "syncHistory": "Sync History",
@@ -310,7 +310,7 @@
   "bilingualNoParagraph": "No matching paragraph found",
   "bilingualHighlightCreated": "Bilingual highlight created",
   "selectFile": "Select File",
-  "selectDictionaryFile": "Select Dictionary File",
+  "dictionaryConfigHint": "Select a .mdx dictionary file. If a matching .mdd resource file (audio/images) exists in the same directory, it will be loaded automatically.",
   "categoryManagement": "Category Management",
   "aboutTitle": "About",
   "aboutTagline": "A reading experience as light as a breeze",

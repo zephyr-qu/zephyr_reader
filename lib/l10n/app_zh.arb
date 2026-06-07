@@ -166,7 +166,7 @@
   "remotePathInvalid": "远程路径应以 / 开头",
   "configSaved": "WebDAV 配置已保存",
   "saveConfigFailed": "保存配置失败",
-  "configCleared": "配置已清除"
+  "configCleared": "配置已清除",
   "testConnection": "测试连接",
   "syncNow": "立即同步",
   "syncHistory": "同步历史",
@@ -310,7 +310,6 @@
   "bilingualNoParagraph": "未找到对应段落",
   "bilingualHighlightCreated": "双语高亮已创建",
   "selectFile": "选择文件",
-  "selectDictionaryFile": "选择词典文件",
   "dictionaryConfigHint": "请选择一个 .mdx 格式的词典文件。如果有同名的 .mdd 资源文件（音频/图片），放在同一目录下会自动加载。",
   "categoryManagement": "分类管理",
   "aboutTitle": "关于",

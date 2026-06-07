@@ -159,6 +159,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fontSize => '字体大小';
 
   @override
+  String get followSystemFontScale => '跟随系统';
+
+  @override
   String get lineHeight => '行间距';
 
   @override
@@ -417,9 +420,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncSettings => '同步设置';
 
   @override
-  String get autoSync => '自动同步';
-
-  @override
   String get manualSync => '手动同步';
 
   @override
@@ -480,6 +480,39 @@ class AppLocalizationsZh extends AppLocalizations {
   String get remotePath => '远程路径';
 
   @override
+  String get selectPreset => '选择预设';
+
+  @override
+  String get clearConfig => '清除配置';
+
+  @override
+  String get serverUrlRequired => '请输入服务器地址';
+
+  @override
+  String get serverUrlInvalid => '请输入完整的 URL（包含 http:// 或 https://）';
+
+  @override
+  String get usernameRequired => '请输入用户名';
+
+  @override
+  String get passwordRequired => '请输入密码';
+
+  @override
+  String get remotePathRequired => '请输入远程路径';
+
+  @override
+  String get remotePathInvalid => '远程路径应以 / 开头';
+
+  @override
+  String get configSaved => 'WebDAV 配置已保存';
+
+  @override
+  String get saveConfigFailed => '保存配置失败';
+
+  @override
+  String get configCleared => '配置已清除';
+
+  @override
   String get testConnection => '测试连接';
 
   @override
@@ -493,6 +526,17 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get syncFailed => '同步失败';
+
+  @override
+  String get syncConfigInvalid => '同步配置无效，请检查 WebDAV 设置';
+
+  @override
+  String get dataCleared => '已清除全部本地数据';
+
+  @override
+  String dataClearFailed(Object error) {
+    return '清除数据失败：$error';
+  }
 
   @override
   String get lastSync => '上次同步';
@@ -525,6 +569,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get confirm => '确定';
 
   @override
+  String get confirmAgain => '二次确认';
+
+  @override
+  String get continueAction => '继续';
+
+  @override
   String get success => '成功';
 
   @override
@@ -535,6 +585,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get empty => '暂无内容';
+
+  @override
+  String get unknownError => '未知错误';
 
   @override
   String get search => '搜索';
@@ -633,10 +686,17 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get showReadingProgress => '显示阅读进度';
+  String scanProgress(Object done, Object total) {
+    return '正在扫描 $done/$total...';
+  }
 
   @override
-  String get showRecentReading => '显示最近阅读';
+  String scanCompleteWithFailures(Object fail, Object success) {
+    return '扫描完成，导入了 $success 本，导入失败 $fail 本';
+  }
+
+  @override
+  String get showReadingProgress => '显示阅读进度';
 
   @override
   String get defaultSort => '默认排序';
@@ -733,6 +793,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pasteTranslationHint => '粘贴或输入当前章节的译文内容：';
+
+  @override
+  String get pasteTranslationPlaceholder => '在此粘贴译文文本…';
 
   @override
   String get addNote => '添加笔记';
@@ -899,6 +962,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get selectFile => '选择文件';
+
+  @override
+  String get dictionaryConfigHint =>
+      '请选择一个 .mdx 格式的词典文件。如果有同名的 .mdd 资源文件（音频/图片），放在同一目录下会自动加载。';
 
   @override
   String get categoryManagement => '分类管理';
@@ -1225,4 +1292,511 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get sessionsCount => '次会话';
+
+  @override
+  String get wifiPageTitle => 'WiFi 传书';
+
+  @override
+  String get wifiServerRunning => '服务器运行中';
+
+  @override
+  String get wifiServerStopped => '服务器已停止';
+
+  @override
+  String get wifiStartServer => '启动服务器';
+
+  @override
+  String get wifiStopServer => '停止服务器';
+
+  @override
+  String get wifiCopyLink => '复制链接';
+
+  @override
+  String get wifiLinkCopied => '链接已复制';
+
+  @override
+  String get wifiInstruction => '连接与电脑相同的 Wi-Fi 网络，在浏览器中打开上方地址即可传输文件。';
+
+  @override
+  String wifiFileUploaded(Object filename) {
+    return '已上传：$filename';
+  }
+
+  @override
+  String get wifiServerStarted => '服务器已启动';
+
+  @override
+  String batchDeleteConfirm(Object count) {
+    return '确定要删除选中的 $count 本书吗？';
+  }
+
+  @override
+  String get categoryName => '分类名称';
+
+  @override
+  String get addCategory => '添加分类';
+
+  @override
+  String get editCategoryName => '编辑分类名称';
+
+  @override
+  String get deleteCategory => '删除分类';
+
+  @override
+  String confirmDeleteCategory(Object name) {
+    return '确定要删除分类「$name」吗？关联书籍不会受影响。';
+  }
+
+  @override
+  String get categoryNameRequired => '请输入分类名称';
+
+  @override
+  String get categoryAlreadyExists => '分类名称已存在';
+
+  @override
+  String get noCategories => '暂无分类';
+
+  @override
+  String get addCategoryHint => '点击右上角添加分类';
+
+  @override
+  String get wifiTransferLog => '传输记录';
+
+  @override
+  String get wifiWaitUpload => '等待文件上传…';
+
+  @override
+  String get wifiStartServerPrompt => '启动服务器开始传输';
+
+  @override
+  String get backupSuccess => '备份成功';
+
+  @override
+  String backupFailed(Object error) {
+    return '备份失败：$error';
+  }
+
+  @override
+  String get restoreSuccess => '恢复成功';
+
+  @override
+  String restoreFailed(Object error) {
+    return '恢复失败：$error';
+  }
+
+  @override
+  String get searchGroupBooks => '书籍';
+
+  @override
+  String get searchGroupNotes => '笔记';
+
+  @override
+  String get searchGroupVocab => '生词';
+
+  @override
+  String get searchNoResults => '未找到相关结果';
+
+  @override
+  String get bookSearchHint => '搜索书籍内容…';
+
+  @override
+  String get bookSearchHintAll => '搜索所有书籍内容…';
+
+  @override
+  String get searchHint => '搜索书籍、笔记、生词…';
+
+  @override
+  String get searchHistory => '搜索历史';
+
+  @override
+  String get searchFailed => '搜索失败';
+
+  @override
+  String get searchEnterKeyword => '请输入搜索关键词';
+
+  @override
+  String get searchTryOtherKeywords => '尝试其他关键词';
+
+  @override
+  String get searchError => '搜索出错';
+
+  @override
+  String resultSummary(Object count, Object duration) {
+    return '找到 $count 条结果 · 耗时 ${duration}ms';
+  }
+
+  @override
+  String get clear => '清除';
+
+  @override
+  String get restoreRestartNotice => '数据已还原，请重启应用以生效。';
+
+  @override
+  String get backupSubtitleNever => '从未备份';
+
+  @override
+  String backupSubtitleDays(Object days) {
+    return '$days 天前备份 — 建议立即备份';
+  }
+
+  @override
+  String backupSubtitleHours(Object hours) {
+    return '$hours 小时前备份';
+  }
+
+  @override
+  String backupSubtitleMinutes(Object minutes) {
+    return '$minutes 分钟前备份';
+  }
+
+  @override
+  String get backupSubtitleJustNow => '刚刚备份';
+
+  @override
+  String get restoreTitle => '从备份还原';
+
+  @override
+  String get restoreSubtitle => '选择一个 .db 备份文件恢复数据';
+
+  @override
+  String get currentDataStats => '当前数据统计';
+
+  @override
+  String get backingUp => '备份中…';
+
+  @override
+  String get restoring => '恢复中…';
+
+  @override
+  String operationFailed(Object error) {
+    return '操作失败：$error';
+  }
+
+  @override
+  String lastBackup(Object time) {
+    return '上次备份：$time';
+  }
+
+  @override
+  String get neverBackedUp => '尚未进行过备份';
+
+  @override
+  String dataSummary(Object books, Object notes) {
+    return '数据量：$books 本书 · $notes 条笔记';
+  }
+
+  @override
+  String timeDaysAgo(Object days) {
+    return '$days 天前';
+  }
+
+  @override
+  String timeMonthsAgo(Object months) {
+    return '$months 个月前';
+  }
+
+  @override
+  String get restoreConfirmTitle => '确认还原';
+
+  @override
+  String get restoreConfirmWarning => '此操作将覆盖当前所有数据。请确认该备份文件来源可信。';
+
+  @override
+  String get restoreConfirmAction => '确认还原';
+
+  @override
+  String get restoreStatVersion => '备份版本';
+
+  @override
+  String get restoreStatExportedAt => '导出时间';
+
+  @override
+  String get restoreStatBooks => '书籍';
+
+  @override
+  String get restoreStatNotes => '笔记';
+
+  @override
+  String get restoreStatBookmarks => '书签';
+
+  @override
+  String get restoreStatVocabulary => '生词';
+
+  @override
+  String get allBooks => '全部书籍';
+
+  @override
+  String get allWordLists => '全部词库';
+
+  @override
+  String get export => '导出';
+
+  @override
+  String get exportLearningData => '导出学习数据';
+
+  @override
+  String get exportNotesMarkdownDesc => '导出所有笔记为 Markdown 文档';
+
+  @override
+  String get exportVocabCsvDesc => '导出所有生词为表格文件';
+
+  @override
+  String get goReading => '去阅读';
+
+  @override
+  String get noNotes => '暂无笔记';
+
+  @override
+  String get noteEmptyHint => '在阅读中做笔记后，它们会出现在这里';
+
+  @override
+  String get notebook => '笔记本';
+
+  @override
+  String get notesMarkdown => '笔记 (Markdown)';
+
+  @override
+  String get totalVocabCount => '生词总数';
+
+  @override
+  String get vocabEmptyHint => '在阅读中添加生词后，它们会出现在这里';
+
+  @override
+  String get vocabListCsv => '生词表 (CSV)';
+
+  @override
+  String get wordListCet4 => 'CET-4';
+
+  @override
+  String get wordListCet6 => 'CET-6';
+
+  @override
+  String get wordListIelts => 'IELTS';
+
+  @override
+  String get wordListToefl => 'TOEFL';
+
+  @override
+  String confirmDeleteWord(Object word) {
+    return '确定要删除「$word」吗？';
+  }
+
+  @override
+  String get vocabPageEmptyHint => '去阅读时点击单词即可加入生词本';
+
+  @override
+  String get vocabFilterEmptyHint => '没有符合条件的生词';
+
+  @override
+  String vocabStatsAll(Object count) {
+    return '全部 $count';
+  }
+
+  @override
+  String vocabStatsUnstarted(Object count) {
+    return '未学 $count';
+  }
+
+  @override
+  String vocabStatsLearning(Object count) {
+    return '学习中 $count';
+  }
+
+  @override
+  String vocabStatsMastered(Object count) {
+    return '已掌握 $count';
+  }
+
+  @override
+  String vocabStatsIgnored(Object count) {
+    return '已忽略 $count';
+  }
+
+  @override
+  String get secondsUnit => '秒';
+
+  @override
+  String get hoursUnit => '小时';
+
+  @override
+  String get charsUnit => '字';
+
+  @override
+  String get thousandCharsUnit => '千';
+
+  @override
+  String get livePreview => '实时预览';
+
+  @override
+  String get fontSelection => '字体选择';
+
+  @override
+  String get typographyParams => '排版参数';
+
+  @override
+  String get advancedTypography => '高级排版';
+
+  @override
+  String get cjkOptimization => 'CJK 优化';
+
+  @override
+  String get punctuationSqueeze => '标点挤压';
+
+  @override
+  String get punctuationSqueezeDesc => '减少中文标点符号周围的空白';
+
+  @override
+  String get baselineAlign => '中西文基线对齐';
+
+  @override
+  String get baselineAlignDesc => '强制统一行高，避免混排时文字跳动';
+
+  @override
+  String get verticalMode => '竖排模式';
+
+  @override
+  String get verticalModeDesc => '从右向左阅读，适合古籍排版';
+
+  @override
+  String get ttsPreviewStop => '停止试听';
+
+  @override
+  String get ttsPreviewPlay => '试听当前配置';
+
+  @override
+  String get ttsAutoRefresh => '修改后自动刷新';
+
+  @override
+  String get ttsVoiceEngine => '语音引擎';
+
+  @override
+  String get ttsEngine => 'TTS 引擎';
+
+  @override
+  String get systemDefault => '系统默认';
+
+  @override
+  String get ttsEnglishVoice => '英文语音';
+
+  @override
+  String get ttsChineseVoice => '中文语音';
+
+  @override
+  String get ttsPlaybackParams => '播放参数';
+
+  @override
+  String get ttsPitch => '音调';
+
+  @override
+  String get ttsPauseBetween => '句间停顿';
+
+  @override
+  String get ttsBilingualReading => '双语朗读';
+
+  @override
+  String get zephyrExclusive => 'Zephyr 专属';
+
+  @override
+  String get ttsBilingualAlternate => '双语交替朗读';
+
+  @override
+  String get ttsBilingualAlternateDesc => '先读英文原文，再读中文译文';
+
+  @override
+  String get ttsOriginalOnly => '仅朗读原文';
+
+  @override
+  String get ttsOriginalOnlyDesc => '跳过译文段落，适合听力训练';
+
+  @override
+  String get ttsSwitchInterval => '中英切换间隔';
+
+  @override
+  String get ttsBehavior => '行为偏好';
+
+  @override
+  String get ttsBackgroundPlay => '后台播放';
+
+  @override
+  String get ttsBackgroundPlayDesc => '切出应用或锁屏后继续朗读';
+
+  @override
+  String get ttsAutoPage => '自动翻页';
+
+  @override
+  String get ttsAutoPageDesc => '读完当前章节自动跳转下一章';
+
+  @override
+  String get ttsHighlightFollow => '高亮跟随';
+
+  @override
+  String get ttsHighlightFollowDesc => '朗读时实时高亮当前句子';
+
+  @override
+  String get ttsDimOnLock => '息屏时降低音量';
+
+  @override
+  String get ttsDimOnLockDesc => '节省电量，适合睡前听书';
+
+  @override
+  String get otherBehavior => '应用行为';
+
+  @override
+  String get languageSubtitle => '简体中文 / English';
+
+  @override
+  String get otherNotifications => '通知与提醒';
+
+  @override
+  String get otherNotificationsDesc => '阅读目标提醒、同步完成通知';
+
+  @override
+  String get otherStartupCheck => '启动时检查更新';
+
+  @override
+  String get otherStartupCheckDesc => '仅前台启动时检测新版本';
+
+  @override
+  String get otherExperimental => '实验性功能';
+
+  @override
+  String get otherMarkdownPreview => 'Markdown 笔记预览';
+
+  @override
+  String get otherMarkdownPreviewDesc => '在笔记列表中渲染 Markdown 格式';
+
+  @override
+  String get otherLegal => '法律与合规';
+
+  @override
+  String get openSourceLicenseDesc => 'Flutter / Rust / 第三方库许可';
+
+  @override
+  String get resetAllSettings => '重置所有设置';
+
+  @override
+  String get resetAllSettingsDesc => '恢复默认排版、主题、同步配置';
+
+  @override
+  String get clearAllData => '清除全部本地数据';
+
+  @override
+  String get clearAllDataDesc => '删除书籍、笔记、生词本、统计记录';
+
+  @override
+  String get confirmReset => '确认重置';
+
+  @override
+  String get confirmResetContent =>
+      '此操作将恢复排版、主题、同步配置等所有设置为默认值。\n\n不会删除书籍、笔记和生词数据。';
+
+  @override
+  String get clearAllDataTitle => '清除所有数据';
+
+  @override
+  String get clearAllDataContent =>
+      '此操作将删除所有书籍、笔记、生词本、阅读进度和统计记录。\n\n建议先通过 WebDAV 备份数据。\n\n此操作不可撤销。';
+
+  @override
+  String get confirmClear => '确认清除';
 }
