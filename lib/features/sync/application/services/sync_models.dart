@@ -76,7 +76,11 @@ enum SyncDataType {
   const SyncDataType(this.filename, this.displayName);
 }
 
+/// 同步方向枚举：上传、下载、双向。
+
 enum SyncDirection { upload, download, both }
+
+/// 同步操作结果，表示一次同步成功/失败的状态和统计数据。
 
 class SyncResult {
   bool success;

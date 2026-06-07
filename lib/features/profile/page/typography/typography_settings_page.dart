@@ -1,20 +1,22 @@
-import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'dart:async';
 
-import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_slider_tile.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/core/reader/custom_font_service.dart';
-import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/reader/models/font_info.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/core/theme/menu_colors.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/features/profile/page/typography/font_tile.dart';
+import 'package:zephyr_reader/features/profile/page/typography/reset_button.dart';
+import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 排版设置页面。
@@ -43,7 +45,10 @@ class TypographySettingsPage extends HookWidget {
           const SizedBox(height: 24),
           _buildAdvancedCjk(context, cs, config),
           const SizedBox(height: 12),
-          _buildReset(context, cs, config, fontRepo),
+          ResetButton(
+            label: l10n.resetToDefault,
+            onTap: () => _reset(config, fontRepo),
+          ),
         ],
       ),
     );
@@ -200,58 +205,11 @@ class TypographySettingsPage extends HookWidget {
               child: Row(
                 children: builtInFonts.map((font) {
                   final active = currentFontId == font.id;
-                  final sampleChar = switch (font.id) {
-                    'serif' => '宋',
-                    'sans' => '黑',
-                    _ => '永',
-                  };
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () async {
-                        await fontRepo.setCurrentFont(font.id);
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: active
-                              ? cs.primary.withValues(alpha: 0.08)
-                              : cs.onSurface.withValues(alpha: 0.03),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: active ? cs.primary : Colors.transparent,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              sampleChar,
-                              style: TextStyle(
-                                fontFamily: fontRepo.familyNameFor(font),
-                                fontSize: 22,
-                                fontWeight: FontWeight.w600,
-                                color: active ? cs.primary : cs.onSurface,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              font.name,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: active
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
-                                color: active
-                                    ? cs.primary
-                                    : cs.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  return FontTile(
+                    font: font,
+                    isActive: active,
+                    familyName: fontRepo.familyNameFor(font),
+                    onTap: () => fontRepo.setCurrentFont(font.id),
                   );
                 }).toList(),
               ),
@@ -449,26 +407,5 @@ class TypographySettingsPage extends HookWidget {
         .animate()
         .fadeIn(duration: 300.ms, delay: 200.ms)
         .slideY(begin: 0.04, end: 0);
-  }
-
-  Widget _buildReset(
-    BuildContext context,
-    ColorScheme cs,
-    ReaderConfig config,
-    FontRepository fontRepo,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    return Center(
-      child: TextButton(
-        onPressed: () => _reset(config, fontRepo),
-        child: Text(
-          l10n.resetToDefault,
-          style: TextStyle(
-            fontSize: 13,
-            color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-          ),
-        ),
-      ),
-    );
   }
 }

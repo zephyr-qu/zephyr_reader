@@ -1566,47 +1566,53 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       wireObj.kind.DatabaseError.reason = pre_reason;
       return;
     }
-    if (apiObj is AppError_StorageNotInitialized) {
+    if (apiObj is AppError_NotFound) {
+      var pre_entity = cst_encode_String(apiObj.entity);
       wireObj.tag = 8;
+      wireObj.kind.NotFound.entity = pre_entity;
+      return;
+    }
+    if (apiObj is AppError_StorageNotInitialized) {
+      wireObj.tag = 9;
       return;
     }
     if (apiObj is AppError_SearchError) {
       var pre_reason = cst_encode_String(apiObj.reason);
-      wireObj.tag = 9;
+      wireObj.tag = 10;
       wireObj.kind.SearchError.reason = pre_reason;
       return;
     }
     if (apiObj is AppError_SecurityError) {
       var pre_reason = cst_encode_String(apiObj.reason);
       var pre_path = cst_encode_String(apiObj.path);
-      wireObj.tag = 10;
+      wireObj.tag = 11;
       wireObj.kind.SecurityError.reason = pre_reason;
       wireObj.kind.SecurityError.path = pre_path;
       return;
     }
     if (apiObj is AppError_InvalidInput) {
       var pre_reason = cst_encode_String(apiObj.reason);
-      wireObj.tag = 11;
+      wireObj.tag = 12;
       wireObj.kind.InvalidInput.reason = pre_reason;
       return;
     }
     if (apiObj is AppError_InternalError) {
       var pre_reason = cst_encode_String(apiObj.reason);
-      wireObj.tag = 12;
+      wireObj.tag = 13;
       wireObj.kind.InternalError.reason = pre_reason;
       return;
     }
     if (apiObj is AppError_TaskPanic) {
       var pre_task_name = cst_encode_String(apiObj.taskName);
       var pre_details = cst_encode_String(apiObj.details);
-      wireObj.tag = 13;
+      wireObj.tag = 14;
       wireObj.kind.TaskPanic.task_name = pre_task_name;
       wireObj.kind.TaskPanic.details = pre_details;
       return;
     }
     if (apiObj is AppError_Other) {
       var pre_field0 = cst_encode_String(apiObj.field0);
-      wireObj.tag = 14;
+      wireObj.tag = 15;
       wireObj.kind.Other.field0 = pre_field0;
       return;
     }
@@ -1707,7 +1713,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     BookDetail apiObj,
     wire_cst_book_detail wireObj,
   ) {
-    wireObj.book = cst_encode_opt_box_autoadd_book(apiObj.book);
+    cst_api_fill_to_wire_book(apiObj.book, wireObj.book);
     wireObj.progress = cst_encode_opt_box_autoadd_reading_progress(
       apiObj.progress,
     );
@@ -7951,6 +7957,10 @@ final class wire_cst_AppError_DatabaseError extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> reason;
 }
 
+final class wire_cst_AppError_NotFound extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> entity;
+}
+
 final class wire_cst_AppError_SearchError extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> reason;
 }
@@ -7996,6 +8006,8 @@ final class AppErrorKind extends ffi.Union {
 
   external wire_cst_AppError_DatabaseError DatabaseError;
 
+  external wire_cst_AppError_NotFound NotFound;
+
   external wire_cst_AppError_SearchError SearchError;
 
   external wire_cst_AppError_SecurityError SecurityError;
@@ -8036,7 +8048,7 @@ final class wire_cst_note_stats extends ffi.Struct {
 }
 
 final class wire_cst_book_detail extends ffi.Struct {
-  external ffi.Pointer<wire_cst_book> book;
+  external wire_cst_book book;
 
   external ffi.Pointer<wire_cst_reading_progress> progress;
 

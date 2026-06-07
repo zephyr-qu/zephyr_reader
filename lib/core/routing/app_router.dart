@@ -14,7 +14,7 @@ import 'package:zephyr_reader/features/main_layout.dart';
 import 'package:zephyr_reader/features/profile/page/about/about_page.dart';
 import 'package:zephyr_reader/features/profile/page/profile/profile_page.dart';
 import 'package:zephyr_reader/features/profile/page/tts/tts_settings_page.dart';
-import 'package:zephyr_reader/features/profile/page/typography_settings_page.dart';
+import 'package:zephyr_reader/features/profile/page/typography/typography_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/theme/theme_brightness_page.dart';
 import 'package:zephyr_reader/features/profile/page/other/other_settings_page.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page.dart';

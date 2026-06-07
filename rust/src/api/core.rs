@@ -52,6 +52,9 @@ static PROVIDER_CACHE: LazyLock<Mutex<LruCache<CacheKey, Arc<dyn ChapterContentP
 
 // ==================== 格式检测 ====================
 
+/// 获取所有支持的文件格式列表。
+///
+/// 返回格式扩展名字符串数组，如 `["txt", "epub", "pdf", "md"]`。
 #[frb]
 pub async fn get_supported_formats() -> Result<Vec<String>, AppError> {
     let formats: &[&str] = &[
@@ -59,6 +62,9 @@ pub async fn get_supported_formats() -> Result<Vec<String>, AppError> {
     ];
     Ok(formats.iter().map(|s| s.to_string()).collect())
 }
+/// 检查指定文件格式是否受支持。
+///
+/// 格式匹配不区分大小写。
 #[frb(sync)]
 pub fn supports_format(format: &str) -> bool {
     matches!(
@@ -69,6 +75,10 @@ pub fn supports_format(format: &str) -> bool {
 
 // ==================== 导入与解析 ====================
 
+/// 解析书籍文件：验证路径、检查大小限制、选择解析器、保存元数据。
+///
+/// 完整的导入流程，包括文件校验（大小、安全路径）、格式检测、内容解析
+/// 以及将书籍信息和章节写入数据库。
 #[frb]
 pub async fn parse_book(file_path: String) -> Result<ParseResult, AppError> {
     tracing::info!("[parse_book] start: file_path={}", file_path);
@@ -122,6 +132,9 @@ pub async fn parse_book(file_path: String) -> Result<ParseResult, AppError> {
     Ok(result)
 }
 
+/// 提取书籍元数据（标题、作者、语言等），不写入数据库。
+///
+/// 用于书籍详情页等只读场景。
 #[frb]
 pub async fn extract_metadata(file_path: String) -> Result<BookMetadata, AppError> {
     let validated_path = validate_file_path_async(&file_path).await?;
@@ -448,6 +461,9 @@ async fn get_or_create_provider(
     Ok(p)
 }
 
+/// 获取指定章节的原始文本内容。
+///
+/// 返回章节全文的字符串，适用于无需分页的场景。
 #[frb]
 pub async fn get_chapter(
     file_path: String,
@@ -525,6 +541,9 @@ pub async fn get_chapter(
     }
 }
 
+/// 创建分页流式读取器 [PageStreamer]。
+///
+/// PageStreamer 支持按 chunk 分段读取章节内容，减少大章节的首屏等待时间。
 #[frb]
 pub async fn create_page_streamer(
     file_path: String,
@@ -536,6 +555,10 @@ pub async fn create_page_streamer(
     let config = config.validate_and_fix();
     Ok(PageStreamer::new(content, config))
 }
+
+/// 分页排版指定文件的所有章节。
+///
+/// 返回完整的分页结果，适用于全量排版场景。
 
 #[frb]
 pub async fn paginate_all_content(

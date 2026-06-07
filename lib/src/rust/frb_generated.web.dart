@@ -947,34 +947,37 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     if (raw is AppError_DatabaseError) {
       return [7, cst_encode_String(raw.reason)].jsify()!;
     }
+    if (raw is AppError_NotFound) {
+      return [8, cst_encode_String(raw.entity)].jsify()!;
+    }
     if (raw is AppError_StorageNotInitialized) {
-      return [8].jsify()!;
+      return [9].jsify()!;
     }
     if (raw is AppError_SearchError) {
-      return [9, cst_encode_String(raw.reason)].jsify()!;
+      return [10, cst_encode_String(raw.reason)].jsify()!;
     }
     if (raw is AppError_SecurityError) {
       return [
-        10,
+        11,
         cst_encode_String(raw.reason),
         cst_encode_String(raw.path),
       ].jsify()!;
     }
     if (raw is AppError_InvalidInput) {
-      return [11, cst_encode_String(raw.reason)].jsify()!;
+      return [12, cst_encode_String(raw.reason)].jsify()!;
     }
     if (raw is AppError_InternalError) {
-      return [12, cst_encode_String(raw.reason)].jsify()!;
+      return [13, cst_encode_String(raw.reason)].jsify()!;
     }
     if (raw is AppError_TaskPanic) {
       return [
-        13,
+        14,
         cst_encode_String(raw.taskName),
         cst_encode_String(raw.details),
       ].jsify()!;
     }
     if (raw is AppError_Other) {
-      return [14, cst_encode_String(raw.field0)].jsify()!;
+      return [15, cst_encode_String(raw.field0)].jsify()!;
     }
 
     throw Exception('unreachable');
@@ -1075,7 +1078,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   JSAny cst_encode_book_detail(BookDetail raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return [
-      cst_encode_opt_box_autoadd_book(raw.book),
+      cst_encode_book(raw.book),
       cst_encode_opt_box_autoadd_reading_progress(raw.progress),
       cst_encode_note_stats(raw.noteStats),
       cst_encode_list_chapter(raw.chapters),

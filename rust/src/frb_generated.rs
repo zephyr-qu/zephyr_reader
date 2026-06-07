@@ -1031,20 +1031,22 @@ return crate::domain::error::AppError::ChapterExtractError{index: var_index, rea
 return crate::domain::error::AppError::TypesetConfigError{reason: var_reason}; }
 7 => { let mut var_reason = <String>::sse_decode(deserializer);
 return crate::domain::error::AppError::DatabaseError{reason: var_reason}; }
-8 => { return crate::domain::error::AppError::StorageNotInitialized; }
-9 => { let mut var_reason = <String>::sse_decode(deserializer);
-return crate::domain::error::AppError::SearchError{reason: var_reason}; }
+8 => { let mut var_entity = <String>::sse_decode(deserializer);
+return crate::domain::error::AppError::NotFound{entity: var_entity}; }
+9 => { return crate::domain::error::AppError::StorageNotInitialized; }
 10 => { let mut var_reason = <String>::sse_decode(deserializer);
+return crate::domain::error::AppError::SearchError{reason: var_reason}; }
+11 => { let mut var_reason = <String>::sse_decode(deserializer);
 let mut var_path = <String>::sse_decode(deserializer);
 return crate::domain::error::AppError::SecurityError{reason: var_reason, path: var_path}; }
-11 => { let mut var_reason = <String>::sse_decode(deserializer);
-return crate::domain::error::AppError::InvalidInput{reason: var_reason}; }
 12 => { let mut var_reason = <String>::sse_decode(deserializer);
+return crate::domain::error::AppError::InvalidInput{reason: var_reason}; }
+13 => { let mut var_reason = <String>::sse_decode(deserializer);
 return crate::domain::error::AppError::InternalError{reason: var_reason}; }
-13 => { let mut var_taskName = <String>::sse_decode(deserializer);
+14 => { let mut var_taskName = <String>::sse_decode(deserializer);
 let mut var_details = <String>::sse_decode(deserializer);
 return crate::domain::error::AppError::TaskPanic{task_name: var_taskName, details: var_details}; }
-14 => { let mut var_field0 = <String>::sse_decode(deserializer);
+15 => { let mut var_field0 = <String>::sse_decode(deserializer);
 return crate::domain::error::AppError::Other(var_field0); }
  _ => { unimplemented!(""); }}}
                 }
@@ -1130,7 +1132,7 @@ return crate::storage::models::Book{book_id: var_bookId, file_path: var_filePath
                 
                 impl SseDecode for crate::api::data::book::BookDetail {
                     // Codec=Sse (Serialization based), see doc to use other codecs
-                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_book = <Option<crate::storage::models::Book>>::sse_decode(deserializer);
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_book = <crate::storage::models::Book>::sse_decode(deserializer);
 let mut var_progress = <Option<crate::storage::models::ReadingProgress>>::sse_decode(deserializer);
 let mut var_noteStats = <crate::storage::models::NoteStats>::sse_decode(deserializer);
 let mut var_chapters = <Vec<crate::storage::models::Chapter>>::sse_decode(deserializer);
@@ -2080,20 +2082,22 @@ crate::domain::error::AppError::TypesetConfigError{reason} => { [6.into_dart(),
 reason.into_into_dart().into_dart()].into_dart() }
 crate::domain::error::AppError::DatabaseError{reason} => { [7.into_dart(),
 reason.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::StorageNotInitialized => { [8.into_dart()].into_dart() }
-crate::domain::error::AppError::SearchError{reason} => { [9.into_dart(),
+crate::domain::error::AppError::NotFound{entity} => { [8.into_dart(),
+entity.into_into_dart().into_dart()].into_dart() }
+crate::domain::error::AppError::StorageNotInitialized => { [9.into_dart()].into_dart() }
+crate::domain::error::AppError::SearchError{reason} => { [10.into_dart(),
 reason.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::SecurityError{reason,path} => { [10.into_dart(),
+crate::domain::error::AppError::SecurityError{reason,path} => { [11.into_dart(),
 reason.into_into_dart().into_dart(),
 path.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::InvalidInput{reason} => { [11.into_dart(),
+crate::domain::error::AppError::InvalidInput{reason} => { [12.into_dart(),
 reason.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::InternalError{reason} => { [12.into_dart(),
+crate::domain::error::AppError::InternalError{reason} => { [13.into_dart(),
 reason.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::TaskPanic{task_name,details} => { [13.into_dart(),
+crate::domain::error::AppError::TaskPanic{task_name,details} => { [14.into_dart(),
 task_name.into_into_dart().into_dart(),
 details.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::Other(field0) => { [14.into_dart(),
+crate::domain::error::AppError::Other(field0) => { [15.into_dart(),
 field0.into_into_dart().into_dart()].into_dart() }
  _ => { unimplemented!(""); }}
                 }
@@ -3011,20 +3015,22 @@ crate::domain::error::AppError::TypesetConfigError{reason} => { <i32>::sse_encod
  }
 crate::domain::error::AppError::DatabaseError{reason} => { <i32>::sse_encode(7, serializer); <String>::sse_encode(reason, serializer);
  }
-crate::domain::error::AppError::StorageNotInitialized => { <i32>::sse_encode(8, serializer);  }
-crate::domain::error::AppError::SearchError{reason} => { <i32>::sse_encode(9, serializer); <String>::sse_encode(reason, serializer);
+crate::domain::error::AppError::NotFound{entity} => { <i32>::sse_encode(8, serializer); <String>::sse_encode(entity, serializer);
  }
-crate::domain::error::AppError::SecurityError{reason,path} => { <i32>::sse_encode(10, serializer); <String>::sse_encode(reason, serializer);
+crate::domain::error::AppError::StorageNotInitialized => { <i32>::sse_encode(9, serializer);  }
+crate::domain::error::AppError::SearchError{reason} => { <i32>::sse_encode(10, serializer); <String>::sse_encode(reason, serializer);
+ }
+crate::domain::error::AppError::SecurityError{reason,path} => { <i32>::sse_encode(11, serializer); <String>::sse_encode(reason, serializer);
 <String>::sse_encode(path, serializer);
  }
-crate::domain::error::AppError::InvalidInput{reason} => { <i32>::sse_encode(11, serializer); <String>::sse_encode(reason, serializer);
+crate::domain::error::AppError::InvalidInput{reason} => { <i32>::sse_encode(12, serializer); <String>::sse_encode(reason, serializer);
  }
-crate::domain::error::AppError::InternalError{reason} => { <i32>::sse_encode(12, serializer); <String>::sse_encode(reason, serializer);
+crate::domain::error::AppError::InternalError{reason} => { <i32>::sse_encode(13, serializer); <String>::sse_encode(reason, serializer);
  }
-crate::domain::error::AppError::TaskPanic{task_name,details} => { <i32>::sse_encode(13, serializer); <String>::sse_encode(task_name, serializer);
+crate::domain::error::AppError::TaskPanic{task_name,details} => { <i32>::sse_encode(14, serializer); <String>::sse_encode(task_name, serializer);
 <String>::sse_encode(details, serializer);
  }
-crate::domain::error::AppError::Other(field0) => { <i32>::sse_encode(14, serializer); <String>::sse_encode(field0, serializer);
+crate::domain::error::AppError::Other(field0) => { <i32>::sse_encode(15, serializer); <String>::sse_encode(field0, serializer);
  }
  _ => { unimplemented!(""); }}}
                 }
@@ -3104,7 +3110,7 @@ crate::domain::error::AppError::Other(field0) => { <i32>::sse_encode(14, seriali
                 
                 impl SseEncode for crate::api::data::book::BookDetail {
                     // Codec=Sse (Serialization based), see doc to use other codecs
-                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<Option<crate::storage::models::Book>>::sse_encode(self.book, serializer);
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<crate::storage::models::Book>::sse_encode(self.book, serializer);
 <Option<crate::storage::models::ReadingProgress>>::sse_encode(self.progress, serializer);
 <crate::storage::models::NoteStats>::sse_encode(self.note_stats, serializer);
 <Vec<crate::storage::models::Chapter>>::sse_encode(self.chapters, serializer);
@@ -3939,28 +3945,32 @@ impl CstDecode<PageStreamer> for usize {
                         let ans = unsafe { self.kind.DatabaseError };
                         crate::domain::error::AppError::DatabaseError{reason:  ans.reason.cst_decode()}
                     }
-8 => crate::domain::error::AppError::StorageNotInitialized,
-9 => {
+8 => {
+                        let ans = unsafe { self.kind.NotFound };
+                        crate::domain::error::AppError::NotFound{entity:  ans.entity.cst_decode()}
+                    }
+9 => crate::domain::error::AppError::StorageNotInitialized,
+10 => {
                         let ans = unsafe { self.kind.SearchError };
                         crate::domain::error::AppError::SearchError{reason:  ans.reason.cst_decode()}
                     }
-10 => {
+11 => {
                         let ans = unsafe { self.kind.SecurityError };
                         crate::domain::error::AppError::SecurityError{reason:  ans.reason.cst_decode(),path:  ans.path.cst_decode()}
                     }
-11 => {
+12 => {
                         let ans = unsafe { self.kind.InvalidInput };
                         crate::domain::error::AppError::InvalidInput{reason:  ans.reason.cst_decode()}
                     }
-12 => {
+13 => {
                         let ans = unsafe { self.kind.InternalError };
                         crate::domain::error::AppError::InternalError{reason:  ans.reason.cst_decode()}
                     }
-13 => {
+14 => {
                         let ans = unsafe { self.kind.TaskPanic };
                         crate::domain::error::AppError::TaskPanic{task_name:  ans.task_name.cst_decode(),details:  ans.details.cst_decode()}
                     }
-14 => {
+15 => {
                         let ans = unsafe { self.kind.Other };
                         crate::domain::error::AppError::Other( ans.field0.cst_decode())
                     }
@@ -4651,7 +4661,7 @@ isbn: core::ptr::null_mut(), }
             }
         }impl NewWithNullPtr for wire_cst_book_detail {
             fn new_with_null_ptr() -> Self {
-                Self { book: core::ptr::null_mut(),
+                Self { book: Default::default(),
 progress: core::ptr::null_mut(),
 note_stats: Default::default(),
 chapters: core::ptr::null_mut(),
@@ -6236,6 +6246,7 @@ PdfParseError: wire_cst_AppError_PdfParseError,
 ChapterExtractError: wire_cst_AppError_ChapterExtractError,
 TypesetConfigError: wire_cst_AppError_TypesetConfigError,
 DatabaseError: wire_cst_AppError_DatabaseError,
+NotFound: wire_cst_AppError_NotFound,
 SearchError: wire_cst_AppError_SearchError,
 SecurityError: wire_cst_AppError_SecurityError,
 InvalidInput: wire_cst_AppError_InvalidInput,
@@ -6253,6 +6264,7 @@ details: *mut wire_cst_list_prim_u_8_strict, }
 reason: *mut wire_cst_list_prim_u_8_strict, }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_AppError_TypesetConfigError { reason: *mut wire_cst_list_prim_u_8_strict, }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_AppError_DatabaseError { reason: *mut wire_cst_list_prim_u_8_strict, }
+#[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_AppError_NotFound { entity: *mut wire_cst_list_prim_u_8_strict, }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_AppError_SearchError { reason: *mut wire_cst_list_prim_u_8_strict, }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_AppError_SecurityError { reason: *mut wire_cst_list_prim_u_8_strict,
 path: *mut wire_cst_list_prim_u_8_strict, }
@@ -6310,7 +6322,7 @@ description: *mut wire_cst_list_prim_u_8_strict,
 publisher: *mut wire_cst_list_prim_u_8_strict,
 translator: *mut wire_cst_list_prim_u_8_strict,
 isbn: *mut wire_cst_list_prim_u_8_strict }
-#[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_book_detail { book: *mut wire_cst_book,
+#[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_book_detail { book: wire_cst_book,
 progress: *mut wire_cst_reading_progress,
 note_stats: wire_cst_note_stats,
 chapters: *mut wire_cst_list_chapter,
@@ -6642,13 +6654,14 @@ impl CstDecode<String> for String {
 5 => { crate::domain::error::AppError::ChapterExtractError{index:  self_.get(1).cst_decode(),reason:  self_.get(2).cst_decode()} },
 6 => { crate::domain::error::AppError::TypesetConfigError{reason:  self_.get(1).cst_decode()} },
 7 => { crate::domain::error::AppError::DatabaseError{reason:  self_.get(1).cst_decode()} },
-8 => crate::domain::error::AppError::StorageNotInitialized,
-9 => { crate::domain::error::AppError::SearchError{reason:  self_.get(1).cst_decode()} },
-10 => { crate::domain::error::AppError::SecurityError{reason:  self_.get(1).cst_decode(),path:  self_.get(2).cst_decode()} },
-11 => { crate::domain::error::AppError::InvalidInput{reason:  self_.get(1).cst_decode()} },
-12 => { crate::domain::error::AppError::InternalError{reason:  self_.get(1).cst_decode()} },
-13 => { crate::domain::error::AppError::TaskPanic{task_name:  self_.get(1).cst_decode(),details:  self_.get(2).cst_decode()} },
-14 => { crate::domain::error::AppError::Other( self_.get(1).cst_decode()) },
+8 => { crate::domain::error::AppError::NotFound{entity:  self_.get(1).cst_decode()} },
+9 => crate::domain::error::AppError::StorageNotInitialized,
+10 => { crate::domain::error::AppError::SearchError{reason:  self_.get(1).cst_decode()} },
+11 => { crate::domain::error::AppError::SecurityError{reason:  self_.get(1).cst_decode(),path:  self_.get(2).cst_decode()} },
+12 => { crate::domain::error::AppError::InvalidInput{reason:  self_.get(1).cst_decode()} },
+13 => { crate::domain::error::AppError::InternalError{reason:  self_.get(1).cst_decode()} },
+14 => { crate::domain::error::AppError::TaskPanic{task_name:  self_.get(1).cst_decode(),details:  self_.get(2).cst_decode()} },
+15 => { crate::domain::error::AppError::Other( self_.get(1).cst_decode()) },
                     _ => unreachable!(),
                 }
             }

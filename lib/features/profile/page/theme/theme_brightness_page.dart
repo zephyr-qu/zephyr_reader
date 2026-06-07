@@ -8,10 +8,16 @@ import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.d
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
-import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/features/profile/page/theme/bg_color_picker.dart';
+import 'package:zephyr_reader/features/profile/page/theme/brightness_slider.dart';
+import 'package:zephyr_reader/features/profile/page/theme/theme_mode_option.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/features/profile/application/theme_brightness_view_model.dart';
 
+/// 主题与亮度设置页面。
+///
+/// 提供浅色/深色/跟随系统主题切换、自定义主题色和自动主题切换配置。
+/// 使用 [ThemeBrightnessViewModel] 管理设置状态。
 class ThemeBrightnessPage extends HookWidget {
   late final ThemeBrightnessViewModel vm = getIt<ThemeBrightnessViewModel>();
 
@@ -156,28 +162,28 @@ class ThemeBrightnessPage extends HookWidget {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  _modeOption(
-                    cs,
-                    l10n.themeLight,
-                    PhosphorIconsRegular.sun,
-                    AppThemeType.light,
-                    themeType,
+                  ThemeModeOption(
+                    label: l10n.themeLight,
+                    icon: PhosphorIconsRegular.sun,
+                    type: AppThemeType.light,
+                    currentTheme: themeType,
+                    onTap: () => vm.setThemeType(AppThemeType.light),
                   ),
                   const SizedBox(width: 12),
-                  _modeOption(
-                    cs,
-                    l10n.themeDark,
-                    PhosphorIconsRegular.moon,
-                    AppThemeType.dark,
-                    themeType,
+                  ThemeModeOption(
+                    label: l10n.themeDark,
+                    icon: PhosphorIconsRegular.moon,
+                    type: AppThemeType.dark,
+                    currentTheme: themeType,
+                    onTap: () => vm.setThemeType(AppThemeType.dark),
                   ),
                   const SizedBox(width: 12),
-                  _modeOption(
-                    cs,
-                    l10n.themeSystem,
-                    PhosphorIconsRegular.desktop,
-                    AppThemeType.system,
-                    themeType,
+                  ThemeModeOption(
+                    label: l10n.themeSystem,
+                    icon: PhosphorIconsRegular.desktop,
+                    type: AppThemeType.system,
+                    currentTheme: themeType,
+                    onTap: () => vm.setThemeType(AppThemeType.system),
                   ),
                 ],
               ),
@@ -187,58 +193,6 @@ class ThemeBrightnessPage extends HookWidget {
         .animate()
         .fadeIn(duration: 300.ms, delay: 100.ms)
         .slideY(begin: 0.03, end: 0);
-  }
-
-  Widget _modeOption(
-    ColorScheme cs,
-    String label,
-    IconData icon,
-    AppThemeType type,
-    AppThemeType currentTheme,
-  ) {
-    final active = currentTheme == type;
-    final iconColor = active ? cs.primary : cs.onSurfaceVariant;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => vm.setThemeType(type),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-          decoration: BoxDecoration(
-            color: active
-                ? cs.primary.withValues(alpha: 0.08)
-                : cs.surfaceContainerHighest.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: active ? cs.primary : Colors.transparent,
-              width: 2,
-            ),
-          ),
-          child: Column(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, size: 20, color: iconColor),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                  color: active ? cs.primary : cs.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   Widget _buildBgColorSection(ColorScheme cs, int activeIdx) {
@@ -256,71 +210,16 @@ class ThemeBrightnessPage extends HookWidget {
                 ),
               ),
               padding: const EdgeInsets.all(16),
-              child: _buildBgColorPicker(cs, activeIdx),
+              child: BgColorPicker(
+                activeIndex: activeIdx,
+                onSelected: vm.setReaderBgColorIndex,
+              ),
             ),
           ],
         )
         .animate()
         .fadeIn(duration: 300.ms, delay: 150.ms)
         .slideY(begin: 0.03, end: 0);
-  }
-
-  /// 构建背景色选择器
-  ///
-  /// 使用 [ReaderBgColors.presets] 作为基础色板，额外添加 AMOLED 纯黑色。
-  Widget _buildBgColorPicker(ColorScheme cs, int activeIdx) {
-    final colors = [
-      ...ReaderBgColors.presets,
-      const Color(0xFF000000), // AMOLED 纯黑
-    ];
-    return SizedBox(
-      height: 48,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: colors.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
-        itemBuilder: (_, i) {
-          final active = i == activeIdx;
-          return GestureDetector(
-            onTap: () => vm.setReaderBgColorIndex(i),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: colors[i],
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: active ? cs.primary : Colors.transparent,
-                  width: 3,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: cs.onSurface.withValues(alpha: 0.08),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              transform: active
-                  ? Matrix4.diagonal3Values(1.1, 1.1, 1)
-                  : Matrix4.identity(),
-              child: active
-                  ? Center(
-                      child: Icon(
-                        PhosphorIconsRegular.check,
-                        size: 20,
-                        color: colors[i].computeLuminance() > 0.3
-                            ? Colors.black54
-                            : Colors.white70,
-                      ),
-                    )
-                  : null,
-            ),
-          );
-        },
-      ),
-    );
   }
 
   Widget _buildBrightnessSection(
@@ -344,7 +243,10 @@ class ThemeBrightnessPage extends HookWidget {
               ),
               child: Column(
                 children: [
-                  _buildBrightnessSlider(cs, brightness),
+                  BrightnessSlider(
+                    value: brightness,
+                    onChanged: vm.setBrightness,
+                  ),
                   SettingsToggleTile(
                     icon: PhosphorIconsRegular.sunHorizon,
                     iconColor: MenuItemSemantic.warning.iconColor(
@@ -368,70 +270,4 @@ class ThemeBrightnessPage extends HookWidget {
         .fadeIn(duration: 300.ms, delay: 200.ms)
         .slideY(begin: 0.03, end: 0);
   }
-
-  Widget _buildBrightnessSlider(ColorScheme cs, int val) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(PhosphorIconsRegular.sun, size: 20, color: cs.onSurface),
-              const SizedBox(width: 6),
-              Text(
-                '屏幕亮度',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: cs.onSurface,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 2,
-                ),
-                decoration: BoxDecoration(
-                  color: cs.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '$val%',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: cs.primary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SliderTheme(
-            data: SliderThemeData(
-              trackHeight: 6,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
-              activeTrackColor: const Color(0xFFFFD54F), // 保留品牌色
-              inactiveTrackColor: cs.onSurface.withValues(alpha: 0.12),
-              thumbColor: cs.surface,
-              overlayColor: cs.primary.withValues(alpha: 0.12),
-            ),
-            child: Slider(
-              value: val.toDouble(),
-              min: 30,
-              max: 100,
-              divisions: 70,
-              label: '$val%',
-              onChanged: (v) => vm.setBrightness(v.round()),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // _buildAdvancedSection 已移除（reduceWhitePoint 设置无消费者）
 }

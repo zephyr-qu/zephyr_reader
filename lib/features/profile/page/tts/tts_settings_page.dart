@@ -14,8 +14,15 @@ import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle
 import 'package:zephyr_reader/core/reader/tts_service.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
+import 'package:zephyr_reader/features/profile/page/tts/select_item_tile.dart';
+import 'package:zephyr_reader/features/profile/page/tts/tts_preview_card.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+/// TTS 语音朗读设置页面。
+///
+/// 提供语速、音调、音量等 TTS 参数调节，
+/// 以及朗读引擎选择和预览功能。
+/// 使用 [TtsSettingsViewModel] 管理设置状态。
 class TtsSettingsPage extends HookWidget {
   const TtsSettingsPage({super.key});
 
@@ -43,9 +50,17 @@ class TtsSettingsPage extends HookWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
         children: [
-          _buildPreviewCard(cs, tts, l10n),
+          TtsPreviewCard(
+            text: _previewText,
+            isPlaying: tts.isPlaying.value,
+            playLabel: l10n.ttsPreviewPlay,
+            stopLabel: l10n.ttsPreviewStop,
+            autoLabel: l10n.ttsAutoRefresh,
+            onPlay: () => _preview(tts),
+            onStop: tts.stop,
+          ),
           const SizedBox(height: 24),
-          _buildVoiceSection(context, cs, tts, l10n),
+          _buildVoiceSection(context, tts, l10n),
           const SizedBox(height: 24),
           _buildPlaybackSection(cs, vm, tts, l10n),
           const SizedBox(height: 24),
@@ -151,78 +166,8 @@ class TtsSettingsPage extends HookWidget {
     }
   }
 
-  Widget _buildPreviewCard(
-    ColorScheme cs,
-    TtsService tts,
-    AppLocalizations l10n,
-  ) {
-    final isPlaying = tts.isPlaying.value;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            cs.primary.withValues(alpha: 0.85),
-            cs.primary.withValues(alpha: 0.5),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            _previewText,
-            style: TextStyle(fontSize: 14, height: 1.6, color: cs.onPrimary),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: isPlaying ? tts.stop : () => _preview(tts),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: cs.onPrimary.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    isPlaying ? PhosphorIconsFill.stop : PhosphorIconsFill.play,
-                    size: 18,
-                    color: cs.onPrimary,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                isPlaying ? l10n.ttsPreviewStop : l10n.ttsPreviewPlay,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: cs.onPrimary,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                l10n.ttsAutoRefresh,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: cs.onPrimary.withValues(alpha: 0.6),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.05, end: 0);
-  }
-
   Widget _buildVoiceSection(
     BuildContext context,
-    ColorScheme cs,
     TtsService tts,
     AppLocalizations l10n,
   ) {
@@ -232,15 +177,27 @@ class TtsSettingsPage extends HookWidget {
             SectionLabel(label: l10n.ttsVoiceEngine),
             SettingsCard(
               children: [
-                _selectItem(cs, l10n.ttsEngine, tts.currentLanguage.value, () {
-                  _showLangPicker(context, l10n, tts);
-                }),
-                _selectItem(cs, l10n.ttsEnglishVoice, 'Google US English', () {
-                  _showVoicePicker(context, l10n, tts, 'en');
-                }),
-                _selectItem(cs, l10n.ttsChineseVoice, '讯飞小燕', () {
-                  _showVoicePicker(context, l10n, tts, 'zh');
-                }),
+                SelectItemTile(
+                  label: l10n.ttsEngine,
+                  value: tts.currentLanguage.value,
+                  onTap: () {
+                    _showLangPicker(context, l10n, tts);
+                  },
+                ),
+                SelectItemTile(
+                  label: l10n.ttsEnglishVoice,
+                  value: 'Google US English',
+                  onTap: () {
+                    _showVoicePicker(context, l10n, tts, 'en');
+                  },
+                ),
+                SelectItemTile(
+                  label: l10n.ttsChineseVoice,
+                  value: '讯飞小燕',
+                  onTap: () {
+                    _showVoicePicker(context, l10n, tts, 'zh');
+                  },
+                ),
               ],
             ),
           ],
@@ -468,51 +425,5 @@ class TtsSettingsPage extends HookWidget {
         .animate()
         .fadeIn(duration: 300.ms, delay: 250.ms)
         .slideY(begin: 0.04, end: 0);
-  }
-
-  Widget _selectItem(
-    ColorScheme cs,
-    String label,
-    String current,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: cs.outlineVariant.withValues(alpha: 0.15),
-              width: 0.5,
-            ),
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: cs.onSurface,
-                ),
-              ),
-            ),
-            Text(
-              current,
-              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              PhosphorIconsRegular.caretRight,
-              size: 14,
-              color: cs.onSurfaceVariant.withValues(alpha: 0.4),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

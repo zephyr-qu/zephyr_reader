@@ -5,14 +5,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:zephyr_reader/features/bookshelf/page/widgets/book_detail_desc_section.dart';
-import 'package:zephyr_reader/features/bookshelf/page/widgets/book_detail_info_section.dart';
-import 'package:zephyr_reader/features/bookshelf/page/widgets/book_detail_actions.dart';
-import 'package:zephyr_reader/features/bookshelf/page/widgets/book_detail_bottom_actions.dart';
-import 'package:zephyr_reader/features/bookshelf/page/widgets/book_detail_hero.dart';
-import 'package:zephyr_reader/features/bookshelf/page/widgets/book_detail_progress_card.dart';
-import 'package:zephyr_reader/features/bookshelf/page/widgets/book_detail_note_stats.dart';
-import 'package:zephyr_reader/features/bookshelf/page/widgets/book_detail_toc_section.dart';
+import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_desc_section.dart';
+import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_info_section.dart';
+import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_actions.dart';
+import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_bottom_actions.dart';
+import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_hero.dart';
+import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_progress_card.dart';
+import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_note_stats.dart';
+import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_toc_section.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 

@@ -51,20 +51,42 @@ Future<List<RichParagraph>> getEpubChapterRichContent({
 
 /// 图片格式
 enum ImageFormat {
+  /// JPEG 格式
   jpeg,
+
+  /// PNG 格式
   png,
+
+  /// GIF 格式
   gif,
+
+  /// WebP 格式
   webp,
+
+  /// BMP 格式
   bmp,
+
+  /// SVG 格式
   svg,
+
+  /// 未知格式
   unknown;
 
+  /// 获取图片格式对应的标准文件扩展名（不含点号）
   Future<String> extension_() =>
       RustLib.instance.api.crateApiEpubImageFormatExtension(that: this);
 
+  /// 根据文件扩展名识别图片格式
+  ///
+  /// # 参数
+  /// - `ext`: 文件扩展名（可含前导点号，如 `.jpg` 或 `jpg`）
+  ///
+  /// # 返回值
+  /// 返回匹配的 ImageFormat，无法识别时返回 `Unknown`
   static Future<ImageFormat> fromExtension({required String ext}) =>
       RustLib.instance.api.crateApiEpubImageFormatFromExtension(ext: ext);
 
+  /// 获取图片格式对应的 MIME 类型字符串
   Future<String> mimeType() =>
       RustLib.instance.api.crateApiEpubImageFormatMimeType(that: this);
 }

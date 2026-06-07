@@ -113,6 +113,11 @@ final _heroCoverPlaceholder = Container(
   ),
 );
 
+/// 首页顶部 Hero 区域组件。
+///
+/// 有书籍时显示封面和当前阅读书目的快捷入口卡片；
+/// 无书籍时显示空态引导（导入书籍按钮）。
+
 class HomeHeroSection extends StatelessWidget {
   final Book? book;
 

@@ -3,10 +3,15 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// 月度阅读热力图组件。
+///
+/// 以网格形式展示一个自然月中每天的阅读情况，色块深浅反映当日阅读时长。
+/// 从每月 1 号所在周的周一开始，到月末所在周的周日结束。
 class WeeklyHeatmap extends StatelessWidget {
   final List<ReadingStats> records;
 
   const WeeklyHeatmap({super.key, required this.records});
+
 
   @override
   Widget build(BuildContext context) {

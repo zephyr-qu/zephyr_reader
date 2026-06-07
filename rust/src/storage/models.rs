@@ -343,7 +343,7 @@ pub struct ReadingStats {
     #[sqlx(default)]
     pub last_session_id: Option<String>,
 }
-// 单次聚合查询获取所有计数与求和指标
+/// 单次聚合查询获取所有计数与求和指标。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
 #[frb(non_opaque)]
 pub struct AggregatedStats {
@@ -358,6 +358,7 @@ pub struct AggregatedStats {
     pub today_characters_read: i64,
 }
 /// 全局阅读统计汇总（应用层计算，非直接 DB 映射）
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
 #[frb(non_opaque, dart_metadata = ("freezed"))]
 pub struct GlobalStats {

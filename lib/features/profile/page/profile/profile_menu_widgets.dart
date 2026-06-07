@@ -4,7 +4,7 @@ import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_extension.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-// --- Data classes ---
+/// 菜单区域数据模型，包含分区标签及该分区下的菜单项列表。
 
 class MenuSectionData {
   final String label;
@@ -12,6 +12,12 @@ class MenuSectionData {
   const MenuSectionData(this.label, this.items);
 }
 
+/// 菜单项数据模型，包含图标、标题、语义类型和点击回调。
+
+/// 个人中心菜单项组件。
+///
+/// 根据 [MenuItemData] 渲染带图标和标题的菜单行，支持徽标和语义颜色。
+/// 使用 [MenuColors] 根据语义类型区分图标颜色。
 class MenuItemData {
   final IconData icon;
   final String title;
@@ -23,6 +29,7 @@ class MenuItemData {
 }
 
 // --- Widgets ---
+
 
 class ProfileMenuItem extends StatelessWidget {
   final MenuItemData item;
@@ -112,6 +119,10 @@ class ProfileMenuItem extends StatelessWidget {
   }
 }
 
+/// 个人中心分区容器，用于包裹一组相关的菜单项或功能区块。
+///
+/// 提供圆角边框和统一背景样式，子组件通过 [children] 列表传入。
+
 class ProfileSection extends StatelessWidget {
   final List<Widget> children;
 
@@ -134,6 +145,10 @@ class ProfileSection extends StatelessWidget {
     );
   }
 }
+
+/// 个人中心分区标签文字。
+///
+/// 显示分区标题，用于在 [ProfileSection] 上方标识分区用途。
 
 class ProfileSectionLabel extends StatelessWidget {
   final String label;

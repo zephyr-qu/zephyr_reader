@@ -27,6 +27,9 @@ typedef struct _Dart_Handle* Dart_Handle;
  */
 #define DEFAULT_PAGES_PER_CHAPTER 10
 
+/**
+ * 搜索分块大小（每块 500 个字符）
+ */
 #define SEARCH_CHUNK_SIZE 500
 
 /**
@@ -544,6 +547,10 @@ typedef struct wire_cst_AppError_DatabaseError {
   struct wire_cst_list_prim_u_8_strict *reason;
 } wire_cst_AppError_DatabaseError;
 
+typedef struct wire_cst_AppError_NotFound {
+  struct wire_cst_list_prim_u_8_strict *entity;
+} wire_cst_AppError_NotFound;
+
 typedef struct wire_cst_AppError_SearchError {
   struct wire_cst_list_prim_u_8_strict *reason;
 } wire_cst_AppError_SearchError;
@@ -579,6 +586,7 @@ typedef union AppErrorKind {
   struct wire_cst_AppError_ChapterExtractError ChapterExtractError;
   struct wire_cst_AppError_TypesetConfigError TypesetConfigError;
   struct wire_cst_AppError_DatabaseError DatabaseError;
+  struct wire_cst_AppError_NotFound NotFound;
   struct wire_cst_AppError_SearchError SearchError;
   struct wire_cst_AppError_SecurityError SecurityError;
   struct wire_cst_AppError_InvalidInput InvalidInput;
@@ -605,7 +613,7 @@ typedef struct wire_cst_note_stats {
 } wire_cst_note_stats;
 
 typedef struct wire_cst_book_detail {
-  struct wire_cst_book *book;
+  struct wire_cst_book book;
   struct wire_cst_reading_progress *progress;
   struct wire_cst_note_stats note_stats;
   struct wire_cst_list_chapter *chapters;

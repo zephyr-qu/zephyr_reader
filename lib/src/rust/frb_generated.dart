@@ -4873,24 +4873,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case 7:
         return AppError_DatabaseError(reason: dco_decode_String(raw[1]));
       case 8:
-        return const AppError_StorageNotInitialized();
+        return AppError_NotFound(entity: dco_decode_String(raw[1]));
       case 9:
-        return AppError_SearchError(reason: dco_decode_String(raw[1]));
+        return const AppError_StorageNotInitialized();
       case 10:
+        return AppError_SearchError(reason: dco_decode_String(raw[1]));
+      case 11:
         return AppError_SecurityError(
           reason: dco_decode_String(raw[1]),
           path: dco_decode_String(raw[2]),
         );
-      case 11:
-        return AppError_InvalidInput(reason: dco_decode_String(raw[1]));
       case 12:
-        return AppError_InternalError(reason: dco_decode_String(raw[1]));
+        return AppError_InvalidInput(reason: dco_decode_String(raw[1]));
       case 13:
+        return AppError_InternalError(reason: dco_decode_String(raw[1]));
+      case 14:
         return AppError_TaskPanic(
           taskName: dco_decode_String(raw[1]),
           details: dco_decode_String(raw[2]),
         );
-      case 14:
+      case 15:
         return AppError_Other(dco_decode_String(raw[1]));
       default:
         throw Exception('unreachable');
@@ -5013,7 +5015,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     if (arr.length != 7)
       throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
     return BookDetail(
-      book: dco_decode_opt_box_autoadd_book(arr[0]),
+      book: dco_decode_book(arr[0]),
       progress: dco_decode_opt_box_autoadd_reading_progress(arr[1]),
       noteStats: dco_decode_note_stats(arr[2]),
       chapters: dco_decode_list_chapter(arr[3]),
@@ -6146,25 +6148,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         final var_reason = sse_decode_String(deserializer);
         return AppError_DatabaseError(reason: var_reason);
       case 8:
-        return const AppError_StorageNotInitialized();
+        final var_entity = sse_decode_String(deserializer);
+        return AppError_NotFound(entity: var_entity);
       case 9:
+        return const AppError_StorageNotInitialized();
+      case 10:
         final var_reason = sse_decode_String(deserializer);
         return AppError_SearchError(reason: var_reason);
-      case 10:
+      case 11:
         final var_reason = sse_decode_String(deserializer);
         final var_path = sse_decode_String(deserializer);
         return AppError_SecurityError(reason: var_reason, path: var_path);
-      case 11:
-        final var_reason = sse_decode_String(deserializer);
-        return AppError_InvalidInput(reason: var_reason);
       case 12:
         final var_reason = sse_decode_String(deserializer);
-        return AppError_InternalError(reason: var_reason);
+        return AppError_InvalidInput(reason: var_reason);
       case 13:
+        final var_reason = sse_decode_String(deserializer);
+        return AppError_InternalError(reason: var_reason);
+      case 14:
         final var_taskName = sse_decode_String(deserializer);
         final var_details = sse_decode_String(deserializer);
         return AppError_TaskPanic(taskName: var_taskName, details: var_details);
-      case 14:
+      case 15:
         final var_field0 = sse_decode_String(deserializer);
         return AppError_Other(var_field0);
       default:
@@ -6323,7 +6328,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   BookDetail sse_decode_book_detail(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_book = sse_decode_opt_box_autoadd_book(deserializer);
+    final var_book = sse_decode_book(deserializer);
     final var_progress = sse_decode_opt_box_autoadd_reading_progress(
       deserializer,
     );
@@ -7960,27 +7965,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case AppError_DatabaseError(reason: final reason):
         sse_encode_i_32(7, serializer);
         sse_encode_String(reason, serializer);
-      case AppError_StorageNotInitialized():
+      case AppError_NotFound(entity: final entity):
         sse_encode_i_32(8, serializer);
-      case AppError_SearchError(reason: final reason):
+        sse_encode_String(entity, serializer);
+      case AppError_StorageNotInitialized():
         sse_encode_i_32(9, serializer);
+      case AppError_SearchError(reason: final reason):
+        sse_encode_i_32(10, serializer);
         sse_encode_String(reason, serializer);
       case AppError_SecurityError(reason: final reason, path: final path):
-        sse_encode_i_32(10, serializer);
+        sse_encode_i_32(11, serializer);
         sse_encode_String(reason, serializer);
         sse_encode_String(path, serializer);
       case AppError_InvalidInput(reason: final reason):
-        sse_encode_i_32(11, serializer);
-        sse_encode_String(reason, serializer);
-      case AppError_InternalError(reason: final reason):
         sse_encode_i_32(12, serializer);
         sse_encode_String(reason, serializer);
-      case AppError_TaskPanic(taskName: final taskName, details: final details):
+      case AppError_InternalError(reason: final reason):
         sse_encode_i_32(13, serializer);
+        sse_encode_String(reason, serializer);
+      case AppError_TaskPanic(taskName: final taskName, details: final details):
+        sse_encode_i_32(14, serializer);
         sse_encode_String(taskName, serializer);
         sse_encode_String(details, serializer);
       case AppError_Other(field0: final field0):
-        sse_encode_i_32(14, serializer);
+        sse_encode_i_32(15, serializer);
         sse_encode_String(field0, serializer);
     }
   }
@@ -8079,7 +8087,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_encode_book_detail(BookDetail self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_opt_box_autoadd_book(self.book, serializer);
+    sse_encode_book(self.book, serializer);
     sse_encode_opt_box_autoadd_reading_progress(self.progress, serializer);
     sse_encode_note_stats(self.noteStats, serializer);
     sse_encode_list_chapter(self.chapters, serializer);

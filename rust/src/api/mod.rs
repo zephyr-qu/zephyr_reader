@@ -30,7 +30,12 @@ pub use bilingual::{
     delete_bilingual_highlight_pair, get_bilingual_highlight_pairs, simple_bilingual_align,
 };
 
+/// 测试 Rust 引擎连接是否正常。
+///
+/// 返回成功连接信息，用于 Dart 侧启动时验证 FFI 通道可用性。
 #[frb(sync)]
 pub fn test_connection() -> Result<String, AppError> {
+
+
     Ok("Rust core engine connected successfully".to_string())
 }
