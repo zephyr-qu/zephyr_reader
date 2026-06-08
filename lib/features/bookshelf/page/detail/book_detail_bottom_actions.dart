@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 底部操作按钮行：编辑元数据 / 导出笔记 / 删除书籍

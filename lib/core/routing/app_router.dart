@@ -15,8 +15,10 @@ import 'package:zephyr_reader/features/profile/page/about/about_page.dart';
 import 'package:zephyr_reader/features/profile/page/profile/profile_page.dart';
 import 'package:zephyr_reader/features/profile/page/tts/tts_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/typography/typography_settings_page.dart';
+import 'package:zephyr_reader/features/profile/page/dictionary/dictionary_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/theme/theme_brightness_page.dart';
 import 'package:zephyr_reader/features/profile/page/other/other_settings_page.dart';
+import 'package:zephyr_reader/features/backup/page/backup_page.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page.dart';
 import 'package:zephyr_reader/features/reader/page/bookmark_manage_page.dart';
 import 'package:zephyr_reader/features/search/page/search_page.dart';
@@ -106,11 +108,15 @@ final router = GoRouter(
           builder: (_, _) => const ProfilePage(),
         ),
 
-        // 设置相关路由
         GoRoute(
           name: RouteNames.ttsSettings,
           path: RoutePaths.ttsSettings,
           builder: (_, _) => const TtsSettingsPage(),
+        ),
+        GoRoute(
+          name: RouteNames.dictionarySettings,
+          path: RoutePaths.dictionarySettings,
+          builder: (_, _) => const DictionarySettingsPage(),
         ),
         GoRoute(
           name: RouteNames.typographySettings,
@@ -120,17 +126,22 @@ final router = GoRouter(
         GoRoute(
           name: RouteNames.themeBrightness,
           path: RoutePaths.themeBrightness,
-          builder: (_, _) => ThemeBrightnessPage(),
+          builder: (_, _) => const ThemeBrightnessPage(),
         ),
         GoRoute(
           name: RouteNames.otherSettings,
           path: RoutePaths.otherSettings,
-          builder: (_, _) => OtherSettingsPage(),
+          builder: (_, _) => const OtherSettingsPage(),
         ),
         GoRoute(
           name: RouteNames.about,
           path: RoutePaths.about,
           builder: (_, _) => const AboutPage(),
+        ),
+        GoRoute(
+          name: RouteNames.localBackup,
+          path: RoutePaths.localBackup,
+          builder: (_, _) => const BackupPage(),
         ),
       ],
     ),

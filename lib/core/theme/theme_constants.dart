@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
-
 /// 设计令牌
 ///
 /// 集中管理应用的色板、间距系统和圆角系统。
 /// 所有组件应引用此处的设计令牌，而非直接使用字面值。
-  // ===== 强调色（#F59E0B — 暖橙，按钮、进度、选中态、链接）=====
-  class DesignTokens {
+// ===== 强调色（#F59E0B — 暖橙，按钮、进度、选中态、链接）=====
+class DesignTokens {
   static const Color primary = Color(0xFFF59E0B);
 
   // ===== 辅助语义色 =====
@@ -53,5 +52,6 @@ import 'package:flutter/material.dart';
 
 /// 间距枚举 — xs(4)、sm(8)、md(16)、lg(24)、xl(32)、xxl(48)
 enum Spacing { xs, sm, md, lg, xl, xxl }
+
 /// 圆角尺寸枚举 — sm(6)、md(8)、lg(12)、xl(16)
 enum RadiusSize { sm, md, lg, xl }

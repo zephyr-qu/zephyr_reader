@@ -4,6 +4,7 @@
 /// Android/others → [ClampingScrollPhysics]（边界卡停）。
 ///
 /// [context] 用于读取平台信息；[physics] 为可选的父级物理效果链。
+library;
 
 import 'package:flutter/material.dart';
 

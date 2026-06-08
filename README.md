@@ -137,7 +137,7 @@ zephyr_reader/
 │       ├── dictionary/      # 离线词典（MDict .mdx/.mdd）
 │       ├── domain/          # 领域类型与错误
 │       └── utils/           # 文件 IO、安全校验
-├── assets/                  # 静态资源（dictionary.db, 图片）
+├── assets/                  # 静态资源（dictionary.mdx, 图片）
 ├── test/                    # 单元测试
 ├── integration_test/        # 集成测试
 ├── pubspec.yaml             # Flutter 依赖配置

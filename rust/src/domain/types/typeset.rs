@@ -103,6 +103,8 @@ pub struct TypesetConfig {
     pub paragraph_spacing: f32,
     /// 首行缩进（字符数）
     pub first_line_indent: u8,
+    /// 标点挤压 — 连续 CJK 标点占用更少水平空间
+    pub punctuation_squeeze: bool,
     /// 语言类型
     pub language: LanguageType,
     /// 是否启用连字符（英文）
@@ -126,6 +128,7 @@ impl Default for TypesetConfig {
             paragraph_spacing: 1.0,
             first_line_indent: 2,
             language: LanguageType::Auto,
+            punctuation_squeeze: true,
             enable_hyphenation: false,
             hyphenation_language: None,
             font_family: "Noto Sans SC".into(),
@@ -143,8 +146,9 @@ impl Hash for TypesetConfig {
         self.letter_spacing.to_bits().hash(state);
         self.paragraph_spacing.to_bits().hash(state);
         self.first_line_indent.hash(state);
-        self.language.hash(state);
+        self.punctuation_squeeze.hash(state);
         self.enable_hyphenation.hash(state);
+        self.language.hash(state);
         self.hyphenation_language.hash(state);
         self.font_family.hash(state);
         if let Some(c) = self.calibration {
@@ -253,11 +257,7 @@ impl TypesetConfig {
                 .paragraph_spacing
                 .clamp(MIN_PARAGRAPH_SPACING, MAX_PARAGRAPH_SPACING),
             first_line_indent: self.first_line_indent.clamp(0_u8, MAX_FIRST_LINE_INDENT),
-            language: self.language.clone(),
-            enable_hyphenation: self.enable_hyphenation,
-            hyphenation_language: self.hyphenation_language.clone(),
-            font_family: self.font_family.clone(),
-            calibration: self.calibration,
+            ..self.clone()
         }
     }
 
@@ -275,8 +275,9 @@ impl TypesetConfig {
         bytes.extend_from_slice(&self.letter_spacing.to_le_bytes());
         bytes.extend_from_slice(&self.paragraph_spacing.to_le_bytes());
         bytes.push(self.first_line_indent);
-        bytes.push(self.language as u8);
+        bytes.push(self.punctuation_squeeze as u8);
         bytes.push(self.enable_hyphenation as u8);
+        bytes.push(self.language as u8);
         if let Some(ref lang) = self.hyphenation_language {
             bytes.extend_from_slice(lang.as_bytes());
         }

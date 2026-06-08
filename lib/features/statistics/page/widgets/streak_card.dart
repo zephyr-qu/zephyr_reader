@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
-/// 连续阅读打卡卡片。
-///
-/// 显示连续阅读天数和累计阅读书籍数。
 class StreakCard extends StatelessWidget {
   final int days;
   final int totalBooks;

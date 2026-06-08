@@ -69,6 +69,18 @@ pub async fn delete_bookmark(bookmark_id: String) -> Result<(), AppError> {
     async_storage!(|pool| BookmarkRepository::delete_by_id(pool, &bookmark_id))
 }
 
+/// 批量删除书签
+///
+/// # 参数
+/// * `bookmark_ids` - 要删除的书签 ID 列表
+///
+/// # 返回
+/// 成功时返回 Ok(()), 失败时返回 AppError
+#[frb]
+pub async fn delete_bookmarks(bookmark_ids: Vec<String>) -> Result<(), AppError> {
+    async_storage!(|pool| BookmarkRepository::delete_by_ids(pool, &bookmark_ids))
+}
+
 /// 根据 ID 获取书签
 ///
 /// # 参数

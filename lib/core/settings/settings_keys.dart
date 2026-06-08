@@ -93,11 +93,6 @@ abstract final class SettingsKeys {
   /// 上次备份大小
   static const lastBackupSize = 'last_backup_size';
 
-  // ==================== 设备 ====================
-
-  /// 设备唯一标识
-  static const deviceId = 'app.device.id';
-
   // ==================== Wi-Fi 传输 ====================
 
   /// Wi-Fi 传输端口

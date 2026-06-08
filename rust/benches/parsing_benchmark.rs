@@ -87,48 +87,6 @@ fn bench_txt_parsing(c: &mut Criterion) {
     group.finish();
 }
 
-/// 基准测试：排版处理
-fn bench_typesetting(c: &mut Criterion) {
-    let mut group = c.benchmark_group("typesetting");
-    group.sample_size(10);
-    group.measurement_time(Duration::from_secs(30));
-    let rt = tokio::runtime::Runtime::new().unwrap();
-
-    let config = TypesetConfig {
-        page_width: 1080,
-        page_height: 1920,
-        font_size: 18,
-        line_spacing: 1.5,
-        letter_spacing: 0.0,
-        paragraph_spacing: 1.0,
-        first_line_indent: 2,
-        language: LanguageType::Auto,
-        enable_hyphenation: false,
-        hyphenation_language: Some("en".to_string()),
-        font_family: todo!(),
-        calibration: todo!(),
-    };
-
-    for size in [1, 5, 10].iter() {
-        let text = generate_chinese_text(*size);
-
-        group.throughput(Throughput::Bytes(text.len() as u64));
-        group.bench_with_input(
-            BenchmarkId::from_parameter(format!("{}kb", size)),
-            &text,
-            |b, text| {
-                b.iter(|| {
-                    rt.block_on(async {
-                        let _ =
-                            api::typeset_text(black_box(text.clone()), black_box(config.clone()));
-                    })
-                })
-            },
-        );
-    }
-
-    group.finish();
-}
 
 /// 基准测试：分页处理（直接调用 paginate_all 测量纯计算性能）
 fn bench_pagination(c: &mut Criterion) {
@@ -147,8 +105,8 @@ fn bench_pagination(c: &mut Criterion) {
         language: LanguageType::Auto,
         enable_hyphenation: false,
         hyphenation_language: Some("en".to_string()),
-        font_family: todo!(),
-        calibration: todo!(),
+        font_family: "Noto Sans SC".into(),
+        calibration: None,
     };
 
     for size in [1, 5, 10].iter() {
@@ -173,75 +131,10 @@ fn bench_pagination(c: &mut Criterion) {
     group.finish();
 }
 
-/// 基准测试：文件大小获取
-fn bench_file_size(c: &mut Criterion) {
-    let mut group = c.benchmark_group("file_size");
-    group.sample_size(10);
-    group.measurement_time(Duration::from_secs(10));
-    let rt = tokio::runtime::Runtime::new().unwrap();
-
-    let temp_dir = std::env::temp_dir();
-    let file_path = temp_dir.join("bench_file_size.txt");
-    fs::write(&file_path, generate_chinese_text(10)).unwrap();
-
-    // group.bench_function("get_file_size", |b| {
-    //     b.iter(|| {
-    //         rt.block_on(async {
-    //             let _ = utils::get_file_size(black_box(file_path.to_string_lossy().to_string())).await;
-    //         })
-    //     })
-    // });
-
-    fs::remove_file(file_path).ok();
-    group.finish();
-}
-
-/// 基准测试：文件分块读取
-fn bench_chunk_read(c: &mut Criterion) {
-    let mut group = c.benchmark_group("chunk_read");
-    group.sample_size(10);
-    group.measurement_time(Duration::from_secs(10));
-    let rt = tokio::runtime::Runtime::new().unwrap();
-
-    let temp_dir = std::env::temp_dir();
-    let file_path = temp_dir.join("bench_chunk_read.txt");
-    fs::write(&file_path, generate_chinese_text(100)).unwrap();
-
-    // group.bench_function("read_1kb_chunk", |b| {
-    //     b.iter(|| {
-    //         rt.block_on(async {
-    //             let _ = api::read_file_chunk(
-    //                 black_box(file_path.to_string_lossy().to_string()),
-    //                 black_box(0),
-    //                 black_box(1024),
-    //             ).await;
-    //         })
-    //     })
-    // });
-
-    // group.bench_function("read_10kb_chunk", |b| {
-    //     b.iter(|| {
-    //         rt.block_on(async {
-    //             let _ = api::read_file_chunk(
-    //                 black_box(file_path.to_string_lossy().to_string()),
-    //                 black_box(0),
-    //                 black_box(10 * 1024),
-    //             ).await;
-    //         })
-    //     })
-    // });
-
-    fs::remove_file(file_path).ok();
-    group.finish();
-}
-
 criterion_group!(
     benches,
     bench_txt_parsing,
-    bench_typesetting,
     bench_pagination,
-    bench_file_size,
-    bench_chunk_read,
 );
 
 criterion_main!(benches);

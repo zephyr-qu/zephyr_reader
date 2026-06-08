@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::Result;
+use crate::domain::AppError;
 
 use super::super::kv_store::KvStore;
 use super::super::models::{LayoutCache, LayoutCacheKey};
@@ -17,17 +17,17 @@ impl LayoutCacheRepository {
     }
 
     /// 保存排版缓存
-    pub fn save_layout_cache(&self, key: &LayoutCacheKey, cache: &LayoutCache) -> Result<()> {
+    pub fn save_layout_cache(&self, key: &LayoutCacheKey, cache: &LayoutCache) -> Result<(), AppError> {
         self.kv.save_layout_cache(key, cache)
     }
 
     /// 获取排版缓存
-    pub fn get_layout_cache(&self, key: &LayoutCacheKey) -> Result<Option<LayoutCache>> {
+    pub fn get_layout_cache(&self, key: &LayoutCacheKey) -> Result<Option<LayoutCache>, AppError> {
         self.kv.get_layout_cache(key)
     }
 
     /// 使指定书籍的所有排版缓存失效
-    pub fn invalidate_book_cache(&self, book_id: &str) -> Result<()> {
+    pub fn invalidate_book_cache(&self, book_id: &str) -> Result<(), AppError> {
         self.kv.delete_book_layout_cache(book_id)
     }
 }

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::domain::AppError;
 use sqlx::{QueryBuilder, SqlitePool};
 
 use super::super::models::*;
@@ -32,7 +32,7 @@ impl BookRepository {
     /// 级联删除书籍及其所有关联数据
     ///
     /// 事务内依次删除书签、笔记、章节、阅读进度、阅读会话、分类关联和元数据，最后删除书籍本体。
-    pub async fn delete_cascade(pool: &SqlitePool, book_id: &str) -> Result<()> {
+    pub async fn delete_cascade(pool: &SqlitePool, book_id: &str) -> Result<(), AppError> {
         let mut tx = pool.begin().await?;
 
         // 先删关联表（避免外键约束冲突，若启用了 foreign_keys）
@@ -81,7 +81,7 @@ impl BookRepository {
         Ok(())
     }
     /// 获取所有书籍列表
-    pub async fn list(pool: &SqlitePool) -> Result<Vec<Book>> {
+    pub async fn list(pool: &SqlitePool) -> Result<Vec<Book>, AppError> {
         // 直接使用 query_as，FromRow 自动完成所有映射
         Ok(sqlx::query_as::<_, Book>("SELECT * FROM books")
             .fetch_all(pool)
@@ -89,14 +89,14 @@ impl BookRepository {
     }
 
     /// 获取所有书籍的 ID 和标题
-    pub async fn list_titles(pool: &SqlitePool) -> Result<Vec<BookTitle>> {
+    pub async fn list_titles(pool: &SqlitePool) -> Result<Vec<BookTitle>, AppError> {
         Ok(sqlx::query_as::<_, BookTitle>("SELECT id, title FROM books")
             .fetch_all(pool)
             .await?)
     }
 
     /// 按 ID 查找书籍（含元数据 LEFT JOIN）
-    pub async fn find_by_id(pool: &SqlitePool, id: &str) -> Result<Option<Book>> {
+    pub async fn find_by_id(pool: &SqlitePool, id: &str) -> Result<Option<Book>, AppError> {
         Ok(sqlx::query_as::<_, Book>(
             "SELECT b.*, m.description, m.publisher, m.translator, m.isbn \
              FROM books b \
@@ -109,7 +109,7 @@ impl BookRepository {
     }
 
     /// 按文件路径查找书籍
-    pub async fn find_by_file_path(pool: &SqlitePool, file_path: &str) -> Result<Option<Book>> {
+    pub async fn find_by_file_path(pool: &SqlitePool, file_path: &str) -> Result<Option<Book>, AppError> {
         Ok(sqlx::query_as::<_, Book>(
             "SELECT b.*, m.description, m.publisher, m.translator, m.isbn \
              FROM books b \
@@ -122,7 +122,7 @@ impl BookRepository {
     }
 
     /// 保存或更新书籍（UPSERT 热字段）
-    pub async fn save(pool: &SqlitePool, book: &Book) -> Result<()> {
+    pub async fn save(pool: &SqlitePool, book: &Book) -> Result<(), AppError> {
         sqlx::query(SQL_UPSERT_BOOK)
             .bind(&book.book_id)
             .bind(&book.file_path)
@@ -135,8 +135,8 @@ impl BookRepository {
             .bind(book.chapter_count)
             .bind(book.total_characters)
             .bind(book.format.as_ref())
-            .bind(book.added_at.timestamp())
-            .bind(book.last_opened_at.map(|d| d.timestamp()))
+            .bind(book.added_at)
+            .bind(book.last_opened_at)
             .bind(book.status.as_ref())
             .bind(book.is_pinned)
             .execute(pool)
@@ -145,7 +145,7 @@ impl BookRepository {
     }
 
     /// 保存或更新书籍元数据（UPSERT 冷字段）
-    pub async fn save_metadata(pool: &SqlitePool, book: &Book) -> Result<()> {
+    pub async fn save_metadata(pool: &SqlitePool, book: &Book) -> Result<(), AppError> {
         sqlx::query(SQL_UPSERT_BOOK_METADATA)
             .bind(&book.book_id)
             .bind(&book.description)
@@ -158,7 +158,7 @@ impl BookRepository {
     }
 
     /// 按 ID 删除书籍
-    pub async fn delete_by_id(pool: &SqlitePool, id: &str) -> Result<()> {
+    pub async fn delete_by_id(pool: &SqlitePool, id: &str) -> Result<(), AppError> {
         sqlx::query("DELETE FROM books WHERE id = ?")
             .bind(id)
             .execute(pool)
@@ -167,7 +167,7 @@ impl BookRepository {
     }
 
     /// 搜索书籍（标题或作者模糊匹配）
-    pub async fn search(pool: &SqlitePool, keyword: &str) -> Result<Vec<Book>> {
+    pub async fn search(pool: &SqlitePool, keyword: &str) -> Result<Vec<Book>, AppError> {
         if keyword.trim().is_empty() {
             return Ok(Vec::new());
         }
@@ -185,7 +185,7 @@ impl BookRepository {
     }
 
     /// 按阅读状态筛选
-    pub async fn list_by_status(pool: &SqlitePool, status: BookStatus) -> Result<Vec<Book>> {
+    pub async fn list_by_status(pool: &SqlitePool, status: BookStatus) -> Result<Vec<Book>, AppError> {
         Ok(sqlx::query_as::<_, Book>(
             "SELECT * FROM books WHERE status = ? ORDER BY last_opened_at DESC NULLS LAST",
         )
@@ -195,7 +195,7 @@ impl BookRepository {
     }
 
     /// 获取所有置顶书籍
-    pub async fn list_pinned(pool: &SqlitePool) -> Result<Vec<Book>> {
+    pub async fn list_pinned(pool: &SqlitePool) -> Result<Vec<Book>, AppError> {
         Ok(sqlx::query_as::<_, Book>(
             "SELECT * FROM books WHERE is_pinned = 1 ORDER BY last_opened_at DESC NULLS LAST",
         )
@@ -204,7 +204,7 @@ impl BookRepository {
     }
 
     /// 获取最近阅读的书籍（关联 reading_progress 表）
-    pub async fn list_recent(pool: &SqlitePool, limit: i64) -> Result<Vec<Book>> {
+    pub async fn list_recent(pool: &SqlitePool, limit: i64) -> Result<Vec<Book>, AppError> {
         Ok(sqlx::query_as::<_, Book>(
             "SELECT b.* FROM books b \
              JOIN reading_progress p ON b.id = p.book_id \
@@ -223,7 +223,7 @@ impl BookRepository {
         offset: i64,
         sort_by: &str,
         sort_order: &str,
-    ) -> Result<Vec<Book>> {
+    ) -> Result<Vec<Book>, AppError> {
         let mut builder = QueryBuilder::<sqlx::Sqlite>::new("SELECT * FROM books ORDER BY ");
 
         // 白名单校验
@@ -252,7 +252,7 @@ impl BookRepository {
     }
 
     /// 更新阅读状态
-    pub async fn update_status(pool: &SqlitePool, id: &str, status: BookStatus) -> Result<()> {
+    pub async fn update_status(pool: &SqlitePool, id: &str, status: BookStatus) -> Result<(), AppError> {
         sqlx::query("UPDATE books SET status = ? WHERE id = ?")
             .bind(status.as_ref())
             .bind(id)
@@ -262,7 +262,7 @@ impl BookRepository {
     }
 
     /// 更新置顶状态
-    pub async fn update_pin(pool: &SqlitePool, id: &str, is_pinned: bool) -> Result<()> {
+    pub async fn update_pin(pool: &SqlitePool, id: &str, is_pinned: bool) -> Result<(), AppError> {
         sqlx::query("UPDATE books SET is_pinned = ? WHERE id = ?")
             .bind(is_pinned as i32)
             .bind(id)
@@ -273,7 +273,7 @@ impl BookRepository {
     }
 
     /// 获取书籍总数
-    pub async fn count(pool: &SqlitePool) -> Result<i64> {
+    pub async fn count(pool: &SqlitePool) -> Result<i64, AppError> {
         //使用 query_scalar 替代手动 row.get
         Ok(sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM books")
             .fetch_one(pool)
@@ -281,7 +281,7 @@ impl BookRepository {
     }
 
     /// 更新书籍标题
-    pub async fn update_title(pool: &SqlitePool, book_id: &str, title: &str) -> Result<()> {
+    pub async fn update_title(pool: &SqlitePool, book_id: &str, title: &str) -> Result<(), AppError> {
         sqlx::query("UPDATE books SET title = ? WHERE id = ?")
             .bind(title)
             .bind(book_id)
@@ -291,7 +291,7 @@ impl BookRepository {
     }
 
     /// 查找书籍封面路径
-    pub async fn find_cover_path(pool: &SqlitePool, book_id: &str) -> Result<Option<String>> {
+    pub async fn find_cover_path(pool: &SqlitePool, book_id: &str) -> Result<Option<String>, AppError> {
         let row: Option<(String,)> =
             sqlx::query_as("SELECT cover_path FROM books WHERE id = ? AND cover_path IS NOT NULL")
                 .bind(book_id)
@@ -305,7 +305,7 @@ impl BookRepository {
         pool: &SqlitePool,
         book_id: &str,
         cover_path: &str,
-    ) -> Result<()> {
+    ) -> Result<(), AppError> {
         sqlx::query("UPDATE books SET cover_path = ? WHERE id = ?")
             .bind(cover_path)
             .bind(book_id)
@@ -321,7 +321,7 @@ impl BookRepository {
         title: Option<&str>,
         author: Option<&str>,
         description: Option<&str>,
-    ) -> Result<()> {
+    ) -> Result<(), AppError> {
         let mut tx = pool.begin().await?;
         if let Some(v) = title {
             sqlx::query("UPDATE books SET title = ?1 WHERE id = ?2")

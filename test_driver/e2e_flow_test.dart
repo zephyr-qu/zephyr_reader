@@ -67,42 +67,6 @@ void main() {
       expect(vocabService.isVocabularyWord('Abandon'), isTrue);
     });
 
-    testWidgets('scanText 应返回文本中所有生词位置', (tester) async {
-      await vocabService.ensureLoaded();
-      final text = 'We should not abandon our academic pursuits.';
-      final result = vocabService.scanText(text);
-
-      expect(result.length, equals(2));
-      expect(result[0].$1, equals('abandon'));
-      expect(result[1].$1, equals('academic'));
-    });
-
-    testWidgets('scanText 应返回正确的偏移位置', (tester) async {
-      await vocabService.ensureLoaded();
-      final text = 'abandon academic';
-      final result = vocabService.scanText(text);
-
-      expect(result[0].$2, equals(0));
-      expect(result[0].$3, equals(7));
-      expect(result[1].$2, equals(8));
-      expect(result[1].$3, equals(16));
-    });
-
-    testWidgets('scanText 英文中应跳过中文', (tester) async {
-      await vocabService.ensureLoaded();
-      final text = '放弃abandon学术academic研究';
-      final result = vocabService.scanText(text);
-
-      expect(result.length, equals(2));
-      expect(result[0].$1, equals('abandon'));
-      expect(result[1].$1, equals('academic'));
-    });
-
-    testWidgets('scanText 空文本应返回空列表', (tester) async {
-      await vocabService.ensureLoaded();
-      expect(vocabService.scanText(''), isEmpty);
-      expect(vocabService.scanText('纯中文文本'), isEmpty);
-    });
   });
 
   group('E2E - 书架到阅读流程', () {

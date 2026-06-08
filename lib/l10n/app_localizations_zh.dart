@@ -99,6 +99,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get estimatedRemaining => '预计剩余';
 
   @override
+  String estimatedTime(Object hours, Object minutes) {
+    return '约 $hours小时$minutes分钟';
+  }
+
+  @override
+  String estimatedTimeShort(Object minutes) {
+    return '约 $minutes分钟';
+  }
+
+  @override
   String get startReading => '开始阅读';
 
   @override
@@ -531,11 +541,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncConfigInvalid => '同步配置无效，请检查 WebDAV 设置';
 
   @override
-  String get dataCleared => '已清除全部本地数据';
+  String get dataCleared => '已清理缓存';
 
   @override
   String dataClearFailed(Object error) {
-    return '清除数据失败：$error';
+    return '清理缓存失败：$error';
   }
 
   @override
@@ -763,6 +773,29 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get loadFailed => '加载失败';
+
+  @override
+  String get saveHighlightFailed => '保存高亮失败';
+
+  @override
+  String get saveAnnotationFailed => '保存笔记失败';
+
+  @override
+  String get deleteHighlightFailed => '删除高亮失败';
+
+  @override
+  String get updateNoteFailed => '更新笔记失败';
+
+  @override
+  String get bilingualHighlightFailed => '双语高亮创建失败';
+
+  @override
+  String chapterLoadFailed(Object error) {
+    return '章节加载失败：$error';
+  }
+
+  @override
+  String get contentEmpty => '内容为空';
 
   @override
   String get appearanceSection => '外观主题';
@@ -1155,6 +1188,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get appTheme => '应用主题';
+
+  @override
+  String get autoTheme => '自动主题';
+
+  @override
+  String get autoThemeDesc => '根据时间段自动切换深浅主题';
+
+  @override
+  String get autoThemeSchedule => '定时设置';
 
   @override
   String get bookFormat => '格式';
@@ -1652,6 +1694,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get baselineAlignDesc => '强制统一行高，避免混排时文字跳动';
 
   @override
+  String get autoScroll => '自动翻页';
+
+  @override
+  String get autoScrollSpeed => '翻页间隔';
+
+  @override
   String get verticalMode => '竖排模式';
 
   @override
@@ -1778,10 +1826,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get resetAllSettingsDesc => '恢复默认排版、主题、同步配置';
 
   @override
-  String get clearAllData => '清除全部本地数据';
+  String get clearAllData => '清理缓存';
 
   @override
-  String get clearAllDataDesc => '删除书籍、笔记、生词本、统计记录';
+  String get clearAllDataDesc => '清除阅读缓存和临时文件，不影响个人数据';
 
   @override
   String get confirmReset => '确认重置';
@@ -1791,11 +1839,10 @@ class AppLocalizationsZh extends AppLocalizations {
       '此操作将恢复排版、主题、同步配置等所有设置为默认值。\n\n不会删除书籍、笔记和生词数据。';
 
   @override
-  String get clearAllDataTitle => '清除所有数据';
+  String get clearAllDataTitle => '清理缓存';
 
   @override
-  String get clearAllDataContent =>
-      '此操作将删除所有书籍、笔记、生词本、阅读进度和统计记录。\n\n建议先通过 WebDAV 备份数据。\n\n此操作不可撤销。';
+  String get clearAllDataContent => '此操作将清除阅读缓存和临时文件。\n\n不会删除书籍、笔记和生词数据。';
 
   @override
   String get confirmClear => '确认清除';

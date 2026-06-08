@@ -8,44 +8,29 @@ import 'package:zephyr_reader/src/rust/api/vocab_marker.dart' as rust;
 /// 从 Rust 侧加载词库（CET6/IELTS/TOEFL），提供文本中生词检测能力。
 class VocabularyMarkerService {
   Set<String> _allWords = {};
-  Set<String> _cet6Words = {};
-  Set<String> _ieltsWords = {};
-  Set<String> _toeflWords = {};
   bool _loaded = false;
 
   Future<void> ensureLoaded() async {
     if (_loaded) return;
     _allWords = rust.getAllVocabularyWords().toSet();
-    _cet6Words = rust.getCet6Words().toSet();
-    _ieltsWords = rust.getIeltsWords().toSet();
-    _toeflWords = rust.getToeflWords().toSet();
     _loaded = true;
   }
 
-  /// 全部词汇。
-  Set<String> get allWords => _allWords;
+  /// 全部内置词汇的不可变视图。
+  UnmodifiableSetView<String> get allWords => UnmodifiableSetView(_allWords);
 
-  /// CET-6 词汇（仅该词库，不含雅思/托福）。
-  UnmodifiableSetView<String> get cet6 => UnmodifiableSetView(_cet6Words);
+  /// 判断单词是否在词汇表中（不区分大小写）。
+  bool isVocabularyWord(String word) => _allWords.contains(word.toLowerCase());
 
-  /// IELTS 词汇（仅该词库，不含四六级/托福）。
-  UnmodifiableSetView<String> get ielts => UnmodifiableSetView(_ieltsWords);
+  /// CET-6 词汇（当前返回全量词库）。
+  /// TODO: 多词库管理页面完成后返回独立词库
+  UnmodifiableSetView<String> get cet6 => allWords;
 
-  /// TOEFL 词汇（仅该词库，不含四六级/雅思）。
-  UnmodifiableSetView<String> get toefl => UnmodifiableSetView(_toeflWords);
+  /// IELTS 词汇（当前返回全量词库）。
+  /// TODO: 多词库管理页面完成后返回独立词库
+  UnmodifiableSetView<String> get ielts => allWords;
 
-  bool isVocabularyWord(String word) {
-    return _allWords.contains(word.toLowerCase());
-  }
-
-  List<(String, int, int)> scanText(String text) {
-    final result = <(String, int, int)>[];
-    final wordRegex = RegExp(r"[a-zA-Z]+(?:'[a-zA-Z]+)?");
-    for (final match in wordRegex.allMatches(text)) {
-      if (isVocabularyWord(match.group(0)!)) {
-        result.add((match.group(0)!, match.start, match.end));
-      }
-    }
-    return result;
-  }
+  /// TOEFL 词汇（当前返回全量词库）。
+  /// TODO: 多词库管理页面完成后返回独立词库
+  UnmodifiableSetView<String> get toefl => allWords;
 }

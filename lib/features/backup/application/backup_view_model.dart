@@ -96,18 +96,16 @@ class BackupViewModel {
       final suggestedName =
           'zephyr-backup-${now.year}${_pad(now.month)}${_pad(now.day)}-${_pad(now.hour)}${_pad(now.minute)}.db';
 
-      final savePath = await FilePicker.saveFile(
+      final dirPath = await FilePicker.getDirectoryPath(
         dialogTitle: '选择备份保存位置',
-        fileName: suggestedName,
-        type: FileType.custom,
-        allowedExtensions: ['db'],
       );
-      if (savePath == null) {
+      if (dirPath == null) {
         status.value = BackupStatus.idle;
         return; // 用户取消
       }
+      final savePath = '$dirPath/$suggestedName';
 
-      // 2. 调用 Rust 导出
+      // 2. 调用 Rust 导出到所选路径
       final manifest = await backup_api.exportDatabase(destPath: savePath);
 
       // 3. 记录元信息
@@ -143,6 +141,17 @@ class BackupViewModel {
 
     try {
       await backup_api.restoreDatabase(backupPath: filePath);
+      // 清理 7 天前的自动快照
+      try {
+        final cutoff =
+            DateTime.now()
+                .subtract(const Duration(days: 7))
+                .millisecondsSinceEpoch ~/
+            1000;
+        await backup_api.cleanupAutoSnapshots(olderThanUnix: cutoff);
+      } catch (_) {
+        // 快照清理失败不影响还原结果
+      }
 
       // 更新元信息
       await _prefs.setInt('last_backup_at', manifest.exportedAt);

@@ -5,8 +5,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/core/dictionary/builtin_dictionary.dart';
@@ -237,13 +236,10 @@ Future<void> _playAudio(
   String audioKey,
 ) async {
   try {
-    final dir = await getApplicationDocumentsDirectory();
-    final audioDir = Directory('${dir.path}/dict_audio');
-    if (!audioDir.existsSync()) return;
-
-    final path = '${audioDir.path}/$audioKey';
+    final bytes = await dict_api.extractAudio(audioKey: audioKey);
+    if (bytes == null || bytes.isEmpty) return;
     final player = AudioPlayer();
-    await player.play(DeviceFileSource(path));
+    await player.play(BytesSource(bytes));
   } catch (e) {
     Logging.error('Play audio error', exception: e);
   }
@@ -303,13 +299,10 @@ Future<bool> _ensureMdictConfigured(
         ),
         FilledButton(
           onPressed: () async {
-            final result = await FilePicker.pickFiles(
-              type: FileType.any,
-              allowMultiple: false,
-            );
-            if (result != null && result.files.single.path != null) {
+            final result = await FilePicker.pickFile(type: FileType.any);
+            if (result != null && result.path != null) {
               if (!context.mounted) return;
-              Navigator.pop(ctx, result.files.single.path);
+              Navigator.pop(ctx, result.path);
             } else {
               if (!context.mounted) return;
               Navigator.pop(ctx);

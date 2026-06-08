@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/presentation/widgets/skeleton_widget.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -111,6 +111,7 @@ class BookshelfBookContent extends StatelessWidget {
           batchMode ? 80 : 0,
         ),
         child: GridView.builder(
+          itemCount: books.length,
           physics: adaptiveScrollPhysics(
             context,
             physics: const AlwaysScrollableScrollPhysics(),

@@ -207,10 +207,8 @@ async fn open_readonly_pool(validated: &str) -> Result<sqlx::SqlitePool, AppErro
 /// 获取当前数据库行数统计
 #[frb]
 pub async fn get_backup_stats() -> Result<BackupStats, AppError> {
-    let storage = ensure_storage().map_err(|_| AppError::storage_not_initialized())?;
-    let pool = storage
-        .pool()
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+    let storage = ensure_storage()?;
+    let pool = storage.pool()?;
     count_stats(&pool).await
 }
 
@@ -220,11 +218,9 @@ pub async fn get_backup_stats() -> Result<BackupStats, AppError> {
 #[frb]
 pub async fn export_database(dest_path: String) -> Result<BackupManifest, AppError> {
     let validated = validate_file_path_async(&dest_path).await?;
-    let storage = ensure_storage().map_err(|_| AppError::storage_not_initialized())?;
+    let storage = ensure_storage()?;
 
-    let pool = storage
-        .pool()
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+    let pool = storage.pool()?;
     let stats = count_stats(&pool).await?;
     let mut manifest = BackupManifest {
         app_version: CURRENT_APP_VERSION.to_string(),
@@ -285,7 +281,7 @@ pub async fn inspect_backup(backup_path: String) -> Result<Option<BackupManifest
 #[frb]
 pub async fn restore_database(backup_path: String) -> Result<BackupManifest, AppError> {
     let validated = validate_file_path_async(&backup_path).await?;
-    let storage = ensure_storage().map_err(|_| AppError::storage_not_initialized())?;
+    let storage = ensure_storage()?;
 
     let inspect_pool = open_readonly_pool(&validated).await?;
     let manifest = read_manifest_from_pool(&inspect_pool).await?;
@@ -341,7 +337,7 @@ pub async fn restore_database(backup_path: String) -> Result<BackupManifest, App
 /// 清理指定时间戳之前的自动快照
 #[frb]
 pub async fn cleanup_auto_snapshots(older_than_unix: i64) -> Result<i64, AppError> {
-    let storage = ensure_storage().map_err(|_| AppError::storage_not_initialized())?;
+    let storage = ensure_storage()?;
     let mut count = 0i64;
     let entries = std::fs::read_dir(storage.data_dir()).map_err(|e| {
         AppError::file_read_error(

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::domain::AppError;
 use sqlx::SqlitePool;
 
 use super::super::models::*;
@@ -23,7 +23,7 @@ pub struct ProgressRepository;
 
 impl ProgressRepository {
     /// 保存或更新阅读进度
-    pub async fn save(pool: &SqlitePool, progress: &ReadingProgress) -> Result<()> {
+    pub async fn save(pool: &SqlitePool, progress: &ReadingProgress) -> Result<(), AppError> {
         sqlx::query(SQL_UPSERT_PROGRESS)
             .bind(&progress.book_id)
             .bind(progress.chapter_index)
@@ -34,7 +34,7 @@ impl ProgressRepository {
             .bind(progress.total_pages)
             .bind(progress.progress)
             .bind(progress.reading_time_seconds)
-            .bind(progress.last_read_at.timestamp())
+            .bind(progress.last_read_at)
             .bind(progress.is_completed as i32)
             .execute(pool)
             .await?;
@@ -45,7 +45,7 @@ impl ProgressRepository {
     ///
     /// 内部执行 2 次查询（books + progress），Rust 层按 book_id 匹配，
     /// 替代 Dart 侧 N+1 次 FRB 调用。
-    pub async fn list_all_with_progress(pool: &SqlitePool) -> Result<Vec<BookWithProgress>> {
+    pub async fn list_all_with_progress(pool: &SqlitePool) -> Result<Vec<BookWithProgress>, AppError> {
         let books = super::BookRepository::list(pool).await?;
         let all_progress: Vec<ReadingProgress> =
             sqlx::query_as::<_, ReadingProgress>("SELECT * FROM reading_progress")
@@ -69,7 +69,7 @@ impl ProgressRepository {
     }
 
     /// 获取指定书籍的阅读进度
-    pub async fn find_by_book(pool: &SqlitePool, book_id: &str) -> Result<Option<ReadingProgress>> {
+    pub async fn find_by_book(pool: &SqlitePool, book_id: &str) -> Result<Option<ReadingProgress>, AppError> {
         Ok(
             sqlx::query_as::<_, ReadingProgress>(
                 "SELECT * FROM reading_progress WHERE book_id = ?",
@@ -81,7 +81,7 @@ impl ProgressRepository {
     }
 
     /// 清除指定书籍的阅读进度
-    pub async fn clear_by_book(pool: &SqlitePool, book_id: &str) -> Result<()> {
+    pub async fn clear_by_book(pool: &SqlitePool, book_id: &str) -> Result<(), AppError> {
         sqlx::query("DELETE FROM reading_progress WHERE book_id = ?")
             .bind(book_id)
             .execute(pool)

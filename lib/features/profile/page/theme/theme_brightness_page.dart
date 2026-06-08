@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
@@ -10,8 +10,10 @@ import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
 import 'package:zephyr_reader/features/profile/page/theme/bg_color_picker.dart';
 import 'package:zephyr_reader/features/profile/page/theme/brightness_slider.dart';
+import 'package:zephyr_reader/features/profile/page/theme/theme_preview_card.dart';
 import 'package:zephyr_reader/features/profile/page/theme/theme_mode_option.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/features/profile/application/theme_brightness_view_model.dart';
 
 /// 主题与亮度设置页面。
@@ -19,21 +21,19 @@ import 'package:zephyr_reader/features/profile/application/theme_brightness_view
 /// 提供浅色/深色/跟随系统主题切换、自定义主题色和自动主题切换配置。
 /// 使用 [ThemeBrightnessViewModel] 管理设置状态。
 class ThemeBrightnessPage extends HookWidget {
-  late final ThemeBrightnessViewModel vm = getIt<ThemeBrightnessViewModel>();
-
-  ThemeBrightnessPage({super.key});
+  const ThemeBrightnessPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    useEffect(() {
-      vm.initialize();
-      return null;
-    }, []);
-
+    final vm = useMemoized(() => getIt<ThemeBrightnessViewModel>());
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
-    final int bgIndex = useSignalValue(vm.readerBgColorIndex);
-    final AppThemeType themeType = useSignalValue(vm.themeType);
+    final int bgIndex = useSignalValue(
+      getIt<ReaderConfig>().readerBgColorIndex.signal,
+    );
+    final AppThemeType themeType = useSignalValue(
+      ThemeManager.instance.themeType,
+    );
     final int brightness = useSignalValue(vm.brightness.signal);
     final bool useSystemBrightness = useSignalValue(
       vm.useSystemBrightness.signal,
@@ -52,12 +52,18 @@ class ThemeBrightnessPage extends HookWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
         children: [
-          _buildPreviewCard(cs, bgIndex),
-          _buildAppThemeSection(cs, themeType, l10n),
+          ThemePreviewCard(bgIndex: bgIndex),
+          _buildAppThemeSection(cs, themeType, l10n, vm),
           const SizedBox(height: 24),
-          _buildBgColorSection(cs, bgIndex),
+          _buildBgColorSection(cs, bgIndex, vm),
           const SizedBox(height: 24),
-          _buildBrightnessSection(context, cs, brightness, useSystemBrightness),
+          _buildBrightnessSection(
+            context,
+            cs,
+            brightness,
+            useSystemBrightness,
+            vm,
+          ),
           const SizedBox(height: 24),
           // 高级选项部分（reduceWhitePoint 已移除）
         ],
@@ -65,86 +71,11 @@ class ThemeBrightnessPage extends HookWidget {
     );
   }
 
-  Widget _buildPreviewCard(ColorScheme cs, int bgIndex) {
-    final previewColors = _previewColors();
-    final colors = previewColors[bgIndex.clamp(0, previewColors.length - 1)];
-    final bg = colors.$1;
-    final fg = colors.$2;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: bg.computeLuminance() > 0.5
-              ? cs.outlineVariant.withValues(alpha: 0.15)
-              : Colors.transparent,
-          width: 1,
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-      child: Stack(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 4),
-              Text(
-                '春风又绿江南岸，明月何时照我还。',
-                style: TextStyle(fontSize: 16, height: 1.8, color: fg),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'The spring wind has greened the southern shore again.',
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.8,
-                  color: fg.withValues(alpha: 0.75),
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
-          ),
-          Positioned(
-            top: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: fg.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '实时预览',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: fg.withValues(alpha: 0.6),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.04, end: 0);
-  }
-
-  List<(Color, Color)> _previewColors() {
-    return [
-      (const Color(0xFFFFFFFF), const Color(0xFF1D1D1F)),
-      (const Color(0xFFF5E6C8), const Color(0xFF3E2723)),
-      (const Color(0xFFFFF8E1), const Color(0xFF4E342E)),
-      (const Color(0xFFC8E6C9), const Color(0xFF1B5E20)),
-      (const Color(0xFFECEFF1), const Color(0xFF263238)),
-      (const Color(0xFF000000), const Color(0xFF9E9E9E)),
-    ];
-  }
-
   Widget _buildAppThemeSection(
     ColorScheme cs,
     AppThemeType themeType,
     AppLocalizations l10n,
+    ThemeBrightnessViewModel vm,
   ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,7 +126,11 @@ class ThemeBrightnessPage extends HookWidget {
         .slideY(begin: 0.03, end: 0);
   }
 
-  Widget _buildBgColorSection(ColorScheme cs, int activeIdx) {
+  Widget _buildBgColorSection(
+    ColorScheme cs,
+    int activeIdx,
+    ThemeBrightnessViewModel vm,
+  ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -227,6 +162,7 @@ class ThemeBrightnessPage extends HookWidget {
     ColorScheme cs,
     int brightness,
     bool useSystemBrightness,
+    ThemeBrightnessViewModel vm,
   ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

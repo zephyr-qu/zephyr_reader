@@ -8,6 +8,7 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/features/reader/application/chapter_manager.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
+import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../helpers/fixtures.dart';
@@ -138,6 +139,13 @@ class _MockConfig implements ReaderConfig {
 
   @override
   final brightnessOverlay = signal<double>(0.0);
+  @override
+  late final followSystemFontScale = persistedBool(
+    prefs,
+    '',
+    false,
+    debounce: Duration.zero,
+  );
 
   @override
   double get pageMargin => padding.value;
@@ -160,6 +168,9 @@ class _MockConfig implements ReaderConfig {
     baselineAlign.value = true;
     tapLayout.value = TapLayout.rightHanded;
   }
+
+  @override
+  void dispose() {}
 }
 
 // ===== Helpers =====
@@ -167,23 +178,41 @@ class _MockConfig implements ReaderConfig {
 ChapterManager createManager({ReaderRepository? repo, ReaderConfig? config}) {
   return ChapterManager(repo ?? _MockRepo(), config ?? _MockConfig());
 }
+/// Mock 设置 `paginateChapter` 成功返回 2 页。
+void _setupPaginateChapter(_MockRepo repo, {bool isFallback = false}) {
+  when(
+    () => repo.paginateChapter(
+      bookId: any(named: 'bookId'),
+      chapterIndex: any(named: 'chapterIndex'),
+      fontSize: any(named: 'fontSize'),
+      lineHeight: any(named: 'lineHeight'),
+      width: any(named: 'width'),
+      height: any(named: 'height'),
+      padding: any(named: 'padding'),
+      devicePixelRatio: any(named: 'devicePixelRatio'),
+      calibration: any(named: 'calibration'),
+      fontFamily: any(named: 'fontFamily'),
+    ),
+  ).thenAnswer((_) async => isFallback ? 0 : 2);
 
-Future<({List<PageInfo> pages, bool cacheHit, bool isFallback})> _twoPages({
-  bool isFallback = false,
-}) async {
-  return (
-    pages: [
-      PageInfo(pageIndex: 0, content: 'A' * 50, startOffset: 0, endOffset: 50),
-      PageInfo(
+  if (isFallback) {
+    when(() => repo.descriptors).thenReturn(null);
+  } else {
+    when(() => repo.descriptors).thenReturn([
+      const PageDescriptor(
+        pageIndex: 0,
+        startOffset: 0,
+        endOffset: 50,
+        isLastPage: false,
+      ),
+      const PageDescriptor(
         pageIndex: 1,
-        content: 'A' * 50,
         startOffset: 50,
         endOffset: 100,
+        isLastPage: true,
       ),
-    ],
-    cacheHit: false,
-    isFallback: isFallback,
-  );
+    ]);
+  }
 }
 
 void _registerFallbackValues() {
@@ -211,23 +240,11 @@ void main() {
     when(
       () => repo.loadChapterContent(any(), any()),
     ).thenAnswer((_) async => 'A' * 100);
-    when(
-      () => repo.getPaginatedChapterPages(
-        bookId: any(named: 'bookId'),
-        chapterIndex: any(named: 'chapterIndex'),
-        fontSize: any(named: 'fontSize'),
-        lineHeight: any(named: 'lineHeight'),
-        width: any(named: 'width'),
-        height: any(named: 'height'),
-        padding: any(named: 'padding'),
-        devicePixelRatio: any(named: 'devicePixelRatio'),
-        calibration: any(named: 'calibration'),
-        fontFamily: any(named: 'fontFamily'),
-      ),
-    ).thenAnswer((_) => _twoPages());
+    _setupPaginateChapter(repo);
     when(() => repo.loadReadingProgress(any())).thenAnswer((_) async => null);
     when(() => repo.currentPages).thenReturn(null);
     when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {});
+    when(() => repo.ensurePageWindow(any())).thenReturn(null);
     when(
       () => repo.calculatePages(
         bookId: any(named: 'bookId'),
@@ -248,15 +265,6 @@ void main() {
         ),
       ],
     );
-    when(
-      () => repo.updateReadingProgress(
-        bookId: any(named: 'bookId'),
-        chapterId: any(named: 'chapterId'),
-        charOffset: any(named: 'charOffset'),
-        pageIndex: any(named: 'pageIndex'),
-        totalPages: any(named: 'totalPages'),
-      ),
-    ).thenAnswer((_) async {});
 
     manager = createManager(repo: repo, config: config);
   });
@@ -276,9 +284,9 @@ void main() {
         expect(manager.error.value, null);
         expect(manager.autoScrollTick.value, 0);
         expect(manager.readingMode.value, ReadingMode.pagination);
-        expect(manager.pageWidth.value, 400);
-        expect(manager.pageHeight.value, 600);
-        expect(manager.devicePixelRatio.value, 1.0);
+        expect(manager.pageWidth, 400);
+        expect(manager.pageHeight, 600);
+        expect(manager.devicePixelRatio, 1.0);
       });
     });
 
@@ -356,22 +364,8 @@ void main() {
       });
 
       test('isFallback 时退化到 calculatePages', () async {
-        when(
-          () => repo.getPaginatedChapterPages(
-            bookId: any(named: 'bookId'),
-            chapterIndex: any(named: 'chapterIndex'),
-            fontSize: any(named: 'fontSize'),
-            lineHeight: any(named: 'lineHeight'),
-            width: any(named: 'width'),
-            height: any(named: 'height'),
-            padding: any(named: 'padding'),
-            devicePixelRatio: any(named: 'devicePixelRatio'),
-            calibration: any(named: 'calibration'),
-            fontFamily: any(named: 'fontFamily'),
-          ),
-        ).thenAnswer(
-          (_) async => (pages: <PageInfo>[], cacheHit: false, isFallback: true),
-        );
+        // Override paginateChapter to return 0 (failure)
+        _setupPaginateChapter(repo, isFallback: true);
 
         await manager.loadChapter(0);
 
@@ -478,18 +472,18 @@ void main() {
       });
 
       test('loadPage 按页码加载并更新偏移', () {
-        when(() => repo.currentPages).thenReturn([
-          PageInfo(
+        when(() => repo.descriptors).thenReturn([
+          const PageDescriptor(
             pageIndex: 0,
-            content: 'A' * 50,
             startOffset: 0,
             endOffset: 50,
+            isLastPage: false,
           ),
-          PageInfo(
+          const PageDescriptor(
             pageIndex: 1,
-            content: 'A' * 50,
             startOffset: 50,
             endOffset: 100,
+            isLastPage: true,
           ),
         ]);
 
@@ -505,11 +499,11 @@ void main() {
       });
     });
 
-    // ==================== resolvePageIndexForOffset ====================
+    // ==================== resolvePageIndexFromPageInfo ====================
 
-    group('resolvePageIndexForOffset', () {
+    group('resolvePageIndexFromPageInfo', () {
       test('空列表返回 0', () {
-        expect(manager.resolvePageIndexForOffset([], 50), 0);
+        expect(manager.resolvePageIndexFromPageInfo([], 50), 0);
       });
 
       test('offset 落在第0页范围内', () {
@@ -521,7 +515,7 @@ void main() {
             endOffset: 50,
           ),
         ];
-        expect(manager.resolvePageIndexForOffset(pages, 25), 0);
+        expect(manager.resolvePageIndexFromPageInfo(pages, 25), 0);
       });
 
       test('offset 落在第1页范围内', () {
@@ -539,7 +533,7 @@ void main() {
             endOffset: 100,
           ),
         ];
-        expect(manager.resolvePageIndexForOffset(pages, 75), 1);
+        expect(manager.resolvePageIndexFromPageInfo(pages, 75), 1);
       });
 
       test('offset 超范围时返回最后一页', () {
@@ -557,7 +551,63 @@ void main() {
             endOffset: 100,
           ),
         ];
-        expect(manager.resolvePageIndexForOffset(pages, 999), 1);
+        expect(manager.resolvePageIndexFromPageInfo(pages, 999), 1);
+      });
+    });
+
+    // ==================== resolvePageIndexForOffset (descriptors) ====================
+
+    group('resolvePageIndexForOffset', () {
+      test('空列表返回 0', () {
+        expect(manager.resolvePageIndexForOffset(<PageDescriptor>[], 50), 0);
+      });
+
+      test('offset 落在第0页范围内', () {
+        final descriptors = [
+          const PageDescriptor(
+            pageIndex: 0,
+            startOffset: 0,
+            endOffset: 50,
+            isLastPage: false,
+          ),
+        ];
+        expect(manager.resolvePageIndexForOffset(descriptors, 25), 0);
+      });
+
+      test('offset 落在第1页范围内', () {
+        final descriptors = [
+          const PageDescriptor(
+            pageIndex: 0,
+            startOffset: 0,
+            endOffset: 50,
+            isLastPage: false,
+          ),
+          const PageDescriptor(
+            pageIndex: 1,
+            startOffset: 50,
+            endOffset: 100,
+            isLastPage: true,
+          ),
+        ];
+        expect(manager.resolvePageIndexForOffset(descriptors, 75), 1);
+      });
+
+      test('offset 超范围时返回最后一页', () {
+        final descriptors = [
+          const PageDescriptor(
+            pageIndex: 0,
+            startOffset: 0,
+            endOffset: 50,
+            isLastPage: false,
+          ),
+          const PageDescriptor(
+            pageIndex: 1,
+            startOffset: 50,
+            endOffset: 100,
+            isLastPage: true,
+          ),
+        ];
+        expect(manager.resolvePageIndexForOffset(descriptors, 999), 1);
       });
     });
 

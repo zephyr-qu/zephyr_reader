@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
-import 'package:zephyr_reader/features/reader/domain/services/highlight_painter.dart';
+import 'package:zephyr_reader/features/reader/page/widgets/highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'reader_render_config.dart';
 
@@ -21,6 +21,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   final ReadingMode readingMode;
   final void Function(Note)? onHighlightTap;
   final void Function(String text, int start, int end)? onSelectionChanged;
+  final WritingDirection writingDirection;
   final void Function(Offset?)? onSelectionGlobalPosition;
   final ValueChanged<int>? onPageChanged;
   final ValueChanged<int>? onPositionChanged;
@@ -41,6 +42,7 @@ class PaginatedModeRenderer extends StatelessWidget {
     this.onSelectionGlobalPosition,
     this.onPageChanged,
     this.onPositionChanged,
+    this.writingDirection = WritingDirection.horizontal,
   });
 
   void _reportSelectionPosition(BuildContext context, TextSelection sel) {
@@ -143,45 +145,100 @@ class PaginatedModeRenderer extends StatelessWidget {
           searchMatchHighlight: config.searchMatchHighlight,
           vocabularyWords: config.effectiveVocabWords,
         );
-        return RepaintBoundary(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: config.pageMargin,
-              vertical: 20,
-            ),
-            child: SelectableText.rich(
-              painted,
-              strutStyle: strutStyle,
-              textAlign: TextAlign.justify,
-              onSelectionChanged: (sel, cause) =>
-                  _onSelection(sel, pageContent, pageStart, context),
-              contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-            ),
-          ),
+        return _renderPageContent(
+          context, pageContent, painted, textStyle, strutStyle, pageStart,
         );
       },
     );
   }
 
   Widget _buildPageTurn(BuildContext context) {
+    // 新版：使用描述符 + 按需加载的内容
+    final descriptors = repo.descriptors;
+    if (descriptors != null && descriptors.isNotEmpty) {
+      final index = pageIndex.clamp(0, descriptors.length - 1);
+      return _buildPageContent(
+        context,
+        index,
+        descriptors[index].startOffset,
+      );
+    }
+    // 旧版：使用预计算的全量 PageInfo
     final cachedPages = repo.currentPages;
     if (cachedPages != null && cachedPages.isNotEmpty) {
       final index = pageIndex.clamp(0, cachedPages.length - 1);
       final page = cachedPages[index];
       final textStyle = config.buildTextStyle();
       final strutStyle = config.buildStrutStyle();
-      final paintedSpan = page.richContent != null
-          ? HighlightPainter.paintRich(
-              page.richContent!,
-              page.startOffset,
-              highlights,
-              onHighlightTap: onHighlightTap,
-              searchQuery: config.searchQuery,
-              searchMatchHighlight: config.searchMatchHighlight,
-              vocabularyWords: config.effectiveVocabWords,
-            )
-          : HighlightPainter.paintPlain(
-              page.content,
+      final paintedSpan = HighlightPainter.paintPlain(
+        page.content,
+        textStyle,
+        highlights,
+        onHighlightTap: onHighlightTap,
+        searchQuery: config.searchQuery,
+        searchMatchHighlight: config.searchMatchHighlight,
+        vocabularyWords: config.effectiveVocabWords,
+      );
+      return _renderPageContent(
+        context, page.content, paintedSpan, textStyle, strutStyle, page.startOffset,
+      );
+    }
+    return _buildFallbackPagination(context);
+  }
+
+  /// 构建页面内容组件（描述符模式）。
+  /// 如果内容未缓存（null），显示占位符。
+  Widget _buildPageContent(BuildContext context, int pageIndex, int startOffset) {
+    final pageContent = repo.getPageContent(pageIndex);
+    if (pageContent == null) {
+      return const SizedBox(
+        width: double.infinity,
+        height: 600,
+      );
+    }
+    final textStyle = config.buildTextStyle();
+    final strutStyle = config.buildStrutStyle();
+    final paintedSpan = HighlightPainter.paintPlain(
+      pageContent,
+      textStyle,
+      highlights,
+      onHighlightTap: onHighlightTap,
+      searchQuery: config.searchQuery,
+      searchMatchHighlight: config.searchMatchHighlight,
+      vocabularyWords: config.effectiveVocabWords,
+    );
+    return _renderPageContent(
+      context, pageContent, paintedSpan, textStyle, strutStyle, startOffset,
+    );
+  }
+
+  Widget _buildPageContentVertical(
+    BuildContext context,
+    String pageContent,
+    TextSpan paintedSpan,
+    TextStyle textStyle,
+    StrutStyle strutStyle,
+    int startOffset,
+  ) {
+    final charWidth = config.fontSize * 1.2;
+    final paragraphs = pageContent
+        .split('\n')
+        .where((p) => p.trim().isNotEmpty)
+        .toList();
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(
+          horizontal: config.pageMargin,
+          vertical: 20,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: paragraphs.map((para) {
+            final painted = HighlightPainter.paintPlain(
+              para,
               textStyle,
               highlights,
               onHighlightTap: onHighlightTap,
@@ -189,26 +246,59 @@ class PaginatedModeRenderer extends StatelessWidget {
               searchMatchHighlight: config.searchMatchHighlight,
               vocabularyWords: config.effectiveVocabWords,
             );
-      return RepaintBoundary(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: config.pageMargin,
-            vertical: 20,
-          ),
-          child: SelectableText.rich(
-            page.richContent != null
-                ? TextSpan(style: textStyle, children: [paintedSpan])
-                : paintedSpan,
-            strutStyle: strutStyle,
-            textAlign: TextAlign.justify,
-            onSelectionChanged: (sel, cause) =>
-                _onSelection(sel, page.content, page.startOffset, context),
-            contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-          ),
+            return Padding(
+              padding: EdgeInsets.only(
+                left: paragraphs.length > 1 ? 8 : 0,
+              ),
+              child: SizedBox(
+                width: charWidth,
+                child: SelectableText.rich(
+                  painted,
+                  style: textStyle,
+                  strutStyle: strutStyle,
+                  textAlign: TextAlign.start,
+                  onSelectionChanged: (sel, cause) =>
+                      _onSelection(sel, para, startOffset, context),
+                  contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+                ),
+              ),
+            );
+          }).toList(),
         ),
+      ),
+    );
+  }
+
+  /// 根据书写方向渲染页面内容（水平或竖排）
+  Widget _renderPageContent(
+    BuildContext context,
+    String pageContent,
+    TextSpan paintedSpan,
+    TextStyle textStyle,
+    StrutStyle strutStyle,
+    int startOffset,
+  ) {
+    if (writingDirection == WritingDirection.vertical) {
+      return _buildPageContentVertical(
+        context, pageContent, paintedSpan, textStyle, strutStyle, startOffset,
       );
     }
-    return _buildFallbackPagination(context);
+    return RepaintBoundary(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(
+          horizontal: config.pageMargin,
+          vertical: 20,
+        ),
+        child: SelectableText.rich(
+          paintedSpan,
+          strutStyle: strutStyle,
+          textAlign: TextAlign.justify,
+          onSelectionChanged: (sel, cause) =>
+              _onSelection(sel, pageContent, startOffset, context),
+          contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+        ),
+      ),
+    );
   }
 
   @override
@@ -216,6 +306,22 @@ class PaginatedModeRenderer extends StatelessWidget {
     if (readingMode == ReadingMode.pageTurn) {
       return _buildPageTurn(context);
     }
+    // 新版：使用描述符 + 按需加载的内容
+    final descriptors = repo.descriptors;
+    if (descriptors != null && descriptors.isNotEmpty) {
+      return PageView.builder(
+        controller: pageController,
+        physics: adaptiveScrollPhysics(context),
+        itemCount: descriptors.length,
+        onPageChanged: (index) {
+          onPageChanged?.call(index);
+          onPositionChanged?.call(descriptors[index].startOffset);
+        },
+        itemBuilder: (context, index) =>
+            _buildPageContent(context, index, descriptors[index].startOffset),
+      );
+    }
+    // 旧版：使用预计算的全量 PageInfo
     final cachedPages = repo.currentPages;
     if (cachedPages != null && cachedPages.isNotEmpty) {
       return PageView.builder(
@@ -230,37 +336,6 @@ class PaginatedModeRenderer extends StatelessWidget {
           final page = cachedPages[index];
           final textStyle = config.buildTextStyle();
           final strutStyle = config.buildStrutStyle();
-          if (page.richContent != null) {
-            final painted = HighlightPainter.paintRich(
-              page.richContent!,
-              page.startOffset,
-              highlights,
-              onHighlightTap: onHighlightTap,
-              searchQuery: config.searchQuery,
-              searchMatchHighlight: config.searchMatchHighlight,
-              vocabularyWords: config.effectiveVocabWords,
-            );
-            return RepaintBoundary(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: config.pageMargin,
-                  vertical: 20,
-                ),
-                child: SelectableText.rich(
-                  TextSpan(style: textStyle, children: [painted]),
-                  strutStyle: strutStyle,
-                  textAlign: TextAlign.justify,
-                  onSelectionChanged: (sel, cause) => _onSelection(
-                    sel,
-                    page.content,
-                    page.startOffset,
-                    context,
-                  ),
-                  contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-                ),
-              ),
-            );
-          }
           final paintedSpan = HighlightPainter.paintPlain(
             page.content,
             textStyle,
@@ -270,21 +345,8 @@ class PaginatedModeRenderer extends StatelessWidget {
             searchMatchHighlight: config.searchMatchHighlight,
             vocabularyWords: config.effectiveVocabWords,
           );
-          return RepaintBoundary(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: config.pageMargin,
-                vertical: 20,
-              ),
-              child: SelectableText.rich(
-                paintedSpan,
-                strutStyle: strutStyle,
-                textAlign: TextAlign.justify,
-                onSelectionChanged: (sel, cause) =>
-                    _onSelection(sel, page.content, page.startOffset, context),
-                contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-              ),
-            ),
+          return _renderPageContent(
+            context, page.content, paintedSpan, textStyle, strutStyle, page.startOffset,
           );
         },
       );

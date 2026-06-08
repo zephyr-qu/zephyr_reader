@@ -36,7 +36,7 @@ const _otherSamples = 'ñüé';
 ///
 /// 在字体已加载的前提下，测量 5 组 Unicode 区间的真实像素宽度。
 /// 总耗时目标 < 2ms（每组测量仅 3-5 个字符）。
-CalibrationData calibrateCharacterWidths({
+CalibrationData _calibrateCharacterWidths({
   required double fontSize,
   required double devicePixelRatio,
   String fontFamily = 'Noto Sans SC',
@@ -68,12 +68,12 @@ Future<CalibrationData?> calibrateSafely({
   required double fontSize,
   required double devicePixelRatio,
   String fontFamily = 'Noto Sans SC',
-  int maxRetries = 3,
-  Duration retryDelay = const Duration(milliseconds: 100),
+  int maxRetries = 5,
+  Duration retryDelay = const Duration(milliseconds: 200),
 }) async {
   for (int attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      final result = calibrateCharacterWidths(
+      final result = _calibrateCharacterWidths(
         fontSize: fontSize,
         devicePixelRatio: devicePixelRatio,
         fontFamily: fontFamily,
@@ -142,6 +142,9 @@ double _measureWidth(String text, double fontSize, String fontFamily) {
 /// [devicePixelRatio]: 设备像素比
 /// [calibration]: 字符宽度校准数据（可选）
 /// [fontFamily]: 当前字体系列名
+/// [letterSpacing]: 字间距（逻辑像素 dp）
+/// [paragraphSpacing]: 段落间距（逻辑像素 dp）
+/// [punctuationSqueeze]: 标点挤压
 TypesetConfig buildTypesetConfig({
   required double width,
   required double height,
@@ -152,8 +155,10 @@ TypesetConfig buildTypesetConfig({
   int firstLineIndent = 2,
   CalibrationData? calibration,
   String fontFamily = 'Noto Sans SC',
+  double letterSpacing = 0,
+  double paragraphSpacing = 16,
+  bool punctuationSqueeze = true,
 }) {
-  final scale = devicePixelRatio;
   final rustCalibration = calibration != null
       ? TypesetCalibration(
           dpr: calibration.dpr,
@@ -167,42 +172,17 @@ TypesetConfig buildTypesetConfig({
       : null;
 
   return TypesetConfig(
-    pageWidth: (width * scale).round(),
-    pageHeight: (height * scale).round(),
-    fontSize: (fontSize * scale).round(),
+    pageWidth: (width * devicePixelRatio).round(),
+    pageHeight: (height * devicePixelRatio).round(),
+    fontSize: (fontSize * devicePixelRatio).round(),
     lineSpacing: lineHeight,
-    letterSpacing: 0,
-    paragraphSpacing: lineHeight,
+    letterSpacing: letterSpacing * devicePixelRatio,
+    paragraphSpacing: (paragraphSpacing / fontSize).clamp(0.0, 10.0),
     firstLineIndent: firstLineIndent,
     language: LanguageType.mixed,
     enableHyphenation: false,
+    punctuationSqueeze: punctuationSqueeze,
     fontFamily: fontFamily,
     calibration: rustCalibration,
-  );
-}
-
-/// 从 MediaQuery 中提取 devicePixelRatio 并构建配置
-TypesetConfig buildTypesetConfigFromMediaQuery({
-  required dynamic mediaQuery,
-  required double width,
-  required double height,
-  required double fontSize,
-  required double lineHeight,
-  double padding = 16,
-  int firstLineIndent = 2,
-  CalibrationData? calibration,
-  String fontFamily = 'Noto Sans SC',
-}) {
-  final dpr = mediaQuery.devicePixelRatio as double;
-  return buildTypesetConfig(
-    width: width,
-    height: height,
-    fontSize: fontSize,
-    lineHeight: lineHeight,
-    padding: padding,
-    devicePixelRatio: dpr,
-    firstLineIndent: firstLineIndent,
-    calibration: calibration,
-    fontFamily: fontFamily,
   );
 }

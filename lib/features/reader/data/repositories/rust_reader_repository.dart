@@ -1,4 +1,7 @@
 /// 阅读器数据仓库，封装 Rust FFI 调用。
+library;
+
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
@@ -6,10 +9,11 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/api/data/bookmark.dart' as bookmark_api;
 import 'package:zephyr_reader/src/rust/api/data/chapter.dart' as chapter_api;
 import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
-import 'package:zephyr_reader/src/rust/api/epub.dart' as epub;
+import 'package:zephyr_reader/src/rust/api/epub.dart' as epub_api;
+import 'package:zephyr_reader/src/rust/api/md.dart' as md_api;
+import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -17,13 +21,11 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 class PageInfo {
   final int pageIndex;
   final String content;
-  final TextSpan? richContent;
   final int startOffset;
   final int endOffset;
   PageInfo({
     required this.pageIndex,
     required this.content,
-    this.richContent,
     required this.startOffset,
     required this.endOffset,
   });
@@ -47,8 +49,6 @@ class ReadingProgressData {
     required this.readingTimeSeconds,
     required this.lastReadAt,
   });
-  double get progressPercent =>
-      totalPages > 0 ? (pageIndex + 1) / totalPages : 0.0;
 }
 
 @Injectable()
@@ -62,7 +62,26 @@ class ReaderRepository {
   TextSpan? currentRichContent;
   List<RichParagraph>? currentRichParagraphs;
 
+  /// 页面描述符列表（轻量级，不包含文本内容）
+  List<PageDescriptor>? _descriptors;
+
+  /// 排版配置哈希，用于按需获取页面内容
+  BigInt? _configHash;
+
+  /// 当前使用的文件路径
+  String? _filePath;
+
+  /// 当前章节索引
+  int? _chapterIndex;
+
+  /// 页面内容缓存（页码 → 文本内容）
+  final Map<int, String> _pageCache = {};
+
   ReaderRepository();
+
+  /// 公开 getter：页面描述符列表
+  List<PageDescriptor>? get descriptors => _descriptors;
+
 
   /// 带 KV 缓存的分页排版
   ///
@@ -80,6 +99,9 @@ class ReaderRepository {
     double devicePixelRatio = 1.0,
     CalibrationData? calibration,
     String fontFamily = 'Noto Sans SC',
+    double letterSpacing = 0,
+    double paragraphSpacing = 16,
+    bool punctuationSqueeze = true,
   }) async {
     try {
       final book = await book_api.getBook(bookId: bookId);
@@ -99,6 +121,9 @@ class ReaderRepository {
         devicePixelRatio: devicePixelRatio,
         calibration: calibration,
         fontFamily: fontFamily,
+        letterSpacing: letterSpacing,
+        paragraphSpacing: paragraphSpacing,
+        punctuationSqueeze: punctuationSqueeze,
       );
 
       final pageContents = await core_api.paginateAllContent(
@@ -112,7 +137,6 @@ class ReaderRepository {
             (pc) => PageInfo(
               pageIndex: pc.pageIndex,
               content: pc.content,
-              richContent: null,
               startOffset: pc.startOffset.toInt(),
               endOffset: pc.endOffset.toInt(),
             ),
@@ -127,47 +151,133 @@ class ReaderRepository {
     }
   }
 
-  Future<Chapter?> getChapter(String bookId, int chapterIndex) async {
+  /// 轻量级分页排版（只获取页面描述符，文本按需加载）。
+  ///
+  /// 调用 Rust `paginate_chapter` 获取轻量级页面描述符列表，
+  /// 预加载前 5 页内容到 `_pageCache`。
+  /// 返回页面总数，0 表示失败。
+  Future<int> paginateChapter({
+    required String bookId,
+    required int chapterIndex,
+    required double fontSize,
+    required double lineHeight,
+    required double width,
+    required double height,
+    required double padding,
+    double devicePixelRatio = 1.0,
+    CalibrationData? calibration,
+    String fontFamily = 'Noto Sans SC',
+    double letterSpacing = 0,
+    double paragraphSpacing = 16,
+    bool punctuationSqueeze = true,
+  }) async {
     try {
-      return await chapter_api.getChapterByIndex(
-        bookId: bookId,
-        chapterIndex: chapterIndex,
+      final book = await book_api.getBook(bookId: bookId);
+      if (book == null || book.filePath.isEmpty) {
+        Logging.error('paginateChapter: book not found for bookId=$bookId');
+        return 0;
+      }
+
+      final config = buildTypesetConfig(
+        width: width,
+        height: height,
+        fontSize: fontSize,
+        lineHeight: lineHeight,
+        padding: padding,
+        devicePixelRatio: devicePixelRatio,
+        calibration: calibration,
+        fontFamily: fontFamily,
+        letterSpacing: letterSpacing,
+        paragraphSpacing: paragraphSpacing,
+        punctuationSqueeze: punctuationSqueeze,
       );
-    } catch (_) {
-      return null;
+
+      final result = await core_api.paginateChapter(
+        filePath: book.filePath,
+        chapterIndex: chapterIndex,
+        config: config,
+      );
+
+      _filePath = book.filePath;
+      _chapterIndex = chapterIndex;
+      _descriptors = result.descriptors;
+      _configHash = result.configHash;
+      _pageCache.clear();
+
+      // 预加载前 5 页到缓存
+      final preloadCount = 5.clamp(0, result.descriptors.length);
+      for (int i = 0; i < preloadCount; i++) {
+        _fetchPageSync(i);
+      }
+
+      return result.descriptors.length;
+    } catch (e) {
+      Logging.error('paginateChapter error: $e');
+      return 0;
     }
+  }
+
+  /// 获取页面内容（优先从缓存查找）。
+  /// 返回 `null` 表示内容尚未缓存，渲染器应显示占位符。
+  String? getPageContent(int pageIndex) {
+    return _pageCache[pageIndex];
+  }
+
+  /// 同步获取单页内容并写入缓存。
+  void _fetchPageSync(int pageIndex) {
+    if (_pageCache.containsKey(pageIndex)) return;
+    if (_filePath == null || _chapterIndex == null || _configHash == null || _descriptors == null) return;
+    if (pageIndex < 0 || pageIndex >= _descriptors!.length) return;
+
+    try {
+      final content = core_api.getPageContent(
+        filePath: _filePath!,
+        chapterIndex: _chapterIndex!,
+        configHash: _configHash!,
+        pageIndex: pageIndex,
+      );
+      if (content.isNotEmpty) {
+        _pageCache[pageIndex] = content;
+      }
+    } catch (e) {
+      Logging.error('_fetchPageSync error for page $pageIndex: $e');
+    }
+  }
+
+  /// 确保指定页面及其周围页面的内容已缓存。
+  ///
+  /// 同步获取 `centerPage`，同时异步预加载周围 ±3 页。
+  void ensurePageWindow(int centerPage) {
+    if (_descriptors == null) return;
+
+    // 同步获取当前页
+    _fetchPageSync(centerPage);
+
+    // 异步预加载周围页
+    _prefetchSurrounding(centerPage);
+  }
+
+  /// 异步预加载指定页面周围的 ±3 页，并清理远离的缓存。
+  void _prefetchSurrounding(int center) {
+    if (_descriptors == null) return;
+    final total = _descriptors!.length;
+    final start = math.max(0, center - 3);
+    final end = math.min(total - 1, center + 3);
+
+    // 异步获取周围页（使用 Future.microtask 避免阻塞 UI）
+    Future.microtask(() {
+      for (int i = start; i <= end; i++) {
+        _fetchPageSync(i);
+      }
+    });
+
+    // 清理远离的缓存页（距离 >5 的页面）
+    _pageCache.removeWhere((key, _) => (key - center).abs() > 5);
   }
 
   Future<List<Chapter>> getChapters(String bookId) async {
     return chapter_api.listChaptersByBook(bookId: bookId);
   }
-
-  Future<Bookmark> addBookmark(
-    String bookId,
-    int chapterIndex,
-    int position,
-  ) async {
-    return bookmark_api.createBookmark(
-      bookId: bookId,
-      chapterIndex: chapterIndex,
-      charOffset: position,
-      title: '书签',
-    );
-  }
-
-  Future<List<Bookmark>> getBookmarks(String bookId) async {
-    return bookmark_api.listBookmarksByBook(bookId: bookId);
-  }
-
-  Future<bool> deleteBookmark(String bookmarkId) async {
-    try {
-      await bookmark_api.deleteBookmark(bookmarkId: bookmarkId);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
   // ===== From ChapterContentService =====
 
   Future<String> loadChapterContent(String bookId, int chapterId) async {
@@ -203,7 +313,7 @@ class ReaderRepository {
             devicePixelRatio: 1.0,
             fontFamily: 'Noto Sans SC',
           );
-          final paragraphs = await epub.getEpubChapterRichContent(
+          final paragraphs = await epub_api.getEpubChapterRichContent(
             filePath: filePath,
             chapterIndex: chapterId,
             config: config,
@@ -216,6 +326,24 @@ class ReaderRepository {
           }
         } catch (e) {
           Logging.error('loadChapterContent EPUB rich typeset failed: $e');
+        }
+      }
+      // 3. 对 MD 额外获取富文本排版内容
+      final isMd = filePath.toLowerCase().endsWith('.md');
+      if (isMd) {
+        try {
+          final paragraphs = await md_api.getMdChapterRichContent(
+            filePath: filePath,
+            chapterIndex: chapterId,
+          );
+          if (paragraphs.isNotEmpty) {
+            final result = _richParagraphsToRichText(paragraphs);
+            content = result.$2;
+            currentRichContent = result.$1;
+            currentRichParagraphs = paragraphs;
+          }
+        } catch (e) {
+          Logging.error('loadChapterContent MD rich typeset failed: $e');
         }
       }
 
@@ -411,7 +539,6 @@ class ReaderRepository {
         PageInfo(
           pageIndex: pageIndex,
           content: content.substring(offset, end),
-          richContent: null,
           startOffset: offset,
           endOffset: end,
         ),
@@ -425,7 +552,6 @@ class ReaderRepository {
         PageInfo(
           pageIndex: 0,
           content: content,
-          richContent: null,
           startOffset: 0,
           endOffset: content.length,
         ),
@@ -441,45 +567,6 @@ class ReaderRepository {
     } catch (e) {
       Logging.error('章节预加载失败', exception: e);
     }
-  }
-
-  // ===== From ReadingProgressService =====
-
-  Future<void> updateReadingProgress({
-    required String bookId,
-    required int chapterId,
-    required int charOffset,
-    required int pageIndex,
-    required int totalPages,
-    int readingTimeSeconds = 0,
-  }) async {
-    final now = DateTime.now();
-    final pct = totalPages > 0
-        ? ((pageIndex + 1) / totalPages).clamp(0.0, 1.0)
-        : 0.0;
-    await progress_api.upsertProgress(
-      progress: ReadingProgress(
-        bookId: bookId,
-        chapterIndex: chapterId,
-        chunkIndex: 0,
-        charOffset: charOffset,
-        pageIndex: pageIndex,
-        totalPages: totalPages,
-        progress: pct,
-        readingTimeSeconds: readingTimeSeconds,
-        lastReadAt: now,
-        isCompleted: pct >= 1.0,
-      ),
-    );
-    _currentProgress = ReadingProgressData(
-      bookId: bookId,
-      chapterIndex: chapterId,
-      charOffset: charOffset,
-      pageIndex: pageIndex,
-      totalPages: totalPages,
-      readingTimeSeconds: readingTimeSeconds,
-      lastReadAt: now,
-    );
   }
 
   Future<ReadingProgressData?> loadReadingProgress(String bookId) async {
@@ -499,13 +586,4 @@ class ReaderRepository {
     );
     return _currentProgress;
   }
-
-  ReadingProgressData? get currentProgress => _currentProgress;
-
-  Future<void> clearReadingProgress(String bookId) async {
-    await progress_api.clearProgress(bookId: bookId);
-    if (_currentProgress?.bookId == bookId) _currentProgress = null;
-  }
-
-  void clearProgressCache() => _currentProgress = null;
 }

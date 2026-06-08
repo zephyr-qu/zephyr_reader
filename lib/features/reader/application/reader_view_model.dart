@@ -4,15 +4,18 @@ import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/core/utils/haptic.dart';
+import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/api/search.dart' as search_api;
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
+import 'package:zephyr_reader/src/rust/api/data/bookmark.dart' as bookmark_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../../core/reader/reader_config.dart';
 import '../data/repositories/rust_reader_repository.dart';
-import '../domain/services/highlight_painter.dart';
+import 'package:zephyr_reader/features/reader/page/widgets/highlight_painter.dart';
 import 'chapter_manager.dart';
 import 'reading_session_manager.dart';
 
@@ -25,6 +28,8 @@ import 'reading_session_manager.dart';
 class ReaderViewModel {
   final ReaderRepository _repo;
   final ReaderConfig _config;
+
+  Timer? _reloadDebounce;
 
   /// 阅读配置
   ReaderConfig get config => _config;
@@ -42,9 +47,12 @@ class ReaderViewModel {
       chapterManager.pendingJumpCharOffset;
   Signal<bool> get isLoading => chapterManager.isLoading;
   Signal<String?> get error => chapterManager.error;
-  Signal<double> get pageWidth => chapterManager.pageWidth;
-  Signal<double> get pageHeight => chapterManager.pageHeight;
-  Signal<double> get devicePixelRatio => chapterManager.devicePixelRatio;
+  double get pageWidth => chapterManager.pageWidth;
+  double get pageHeight => chapterManager.pageHeight;
+  double get devicePixelRatio => chapterManager.devicePixelRatio;
+  set pageWidth(double value) => chapterManager.pageWidth = value;
+  set pageHeight(double value) => chapterManager.pageHeight = value;
+  set devicePixelRatio(double value) => chapterManager.devicePixelRatio = value;
   Signal<ReadingMode> get readingMode => chapterManager.readingMode;
   Signal<int> get autoScrollTick => chapterManager.autoScrollTick;
   ReadonlySignal<String> get progressText => chapterManager.progressText;
@@ -66,6 +74,17 @@ class ReaderViewModel {
 
   // ==================== 书签 信号 ====================
 
+  /// 书签位置索引（chapterIndex:charOffset → Bookmark），O(1) 查找。
+  late final ReadonlySignal<Map<String, Bookmark>> _bookmarkIndex = computed(
+    () {
+      final list = bookmarks.value.value ?? [];
+      final map = <String, Bookmark>{};
+      for (final b in list) {
+        map['${b.chapterIndex}:${b.charOffset}'] = b;
+      }
+      return map;
+    },
+  );
   final bookmarks = asyncSignal<List<Bookmark>>(AsyncState.data([]));
 
   // ==================== 批注 信号 ====================
@@ -103,7 +122,7 @@ class ReaderViewModel {
 
   ReaderViewModel(this._repo, this._config) {
     chapterManager = ChapterManager(_repo, _config);
-    sessionManager = ReadingSessionManager(_repo, chapterManager);
+    sessionManager = ReadingSessionManager(chapterManager);
   }
 
   // ==================== 编排方法 ====================
@@ -158,7 +177,7 @@ class ReaderViewModel {
       sessionManager.startReading();
       sessionManager.startAutoSave();
     } catch (e) {
-      error.value = '加载失败：$e';
+      error.value = AppErrorMapper.humanReadable(e);
       Logging.error('ReaderViewModel.initialize error', exception: e);
     } finally {
       isLoading.value = false;
@@ -283,15 +302,12 @@ class ReaderViewModel {
       return;
     }
     try {
-      final results = await search_api.search(
+      final count = await search_api.countMatches(
         bookId: bookId.value,
         query: query,
-        limit: 1000,
+        chapterIndex: chapterIndex.value,
       );
-      final currentChapterMatches = results
-          .where((r) => r.chapterIndex == chapterIndex.value)
-          .toList();
-      updateSearch(query, matches: currentChapterMatches.length);
+      updateSearch(query, matches: count);
     } catch (_) {
       // FTS5 索引未就绪时静默降级（匹配数显示为 0，下次输入重试）
       updateSearch(query, matches: 0);
@@ -318,7 +334,7 @@ class ReaderViewModel {
   /// 加载当前书籍的所有书签。
   Future<void> loadBookmarks() async {
     await bookmarks.loadAsync(
-      () => _repo.getBookmarks(bookId.value),
+      () => bookmark_api.listBookmarksByBook(bookId: bookId.value),
       label: 'loadBookmarks',
     );
   }
@@ -326,10 +342,11 @@ class ReaderViewModel {
   /// 在当前阅读位置添加书签。
   Future<bool> addBookmark() async {
     try {
-      await _repo.addBookmark(
-        bookId.value,
-        chapterIndex.value,
-        currentCharOffset.value,
+      await bookmark_api.createBookmark(
+        bookId: bookId.value,
+        chapterIndex: chapterIndex.value,
+        charOffset: currentCharOffset.value,
+        title: '书签',
       );
       await loadBookmarks();
       return true;
@@ -342,9 +359,9 @@ class ReaderViewModel {
   /// 删除指定书签。
   Future<bool> deleteBookmark(String bookmarkId) async {
     try {
-      final success = await _repo.deleteBookmark(bookmarkId);
-      if (success) await loadBookmarks();
-      return success;
+      await bookmark_api.deleteBookmark(bookmarkId: bookmarkId);
+      await loadBookmarks();
+      return true;
     } catch (e) {
       Logging.error('deleteBookmark error', exception: e);
       return false;
@@ -359,26 +376,14 @@ class ReaderViewModel {
 
   /// 当前阅读位置是否存在书签。
   bool get hasBookmarkAtCurrentPosition {
-    final currentBookmarks = bookmarks.value.value ?? [];
-    return currentBookmarks.any(
-      (b) =>
-          b.chapterIndex == chapterIndex.value &&
-          b.charOffset.toInt() == currentCharOffset.value,
-    );
+    final key = '${chapterIndex.value}:${currentCharOffset.value}';
+    return _bookmarkIndex.value.containsKey(key);
   }
 
   /// 获取当前阅读位置的书签（如果存在）。
   Bookmark? get currentBookmark {
-    final currentBookmarks = bookmarks.value.value ?? [];
-    try {
-      return currentBookmarks.firstWhere(
-        (b) =>
-            b.chapterIndex == chapterIndex.value &&
-            b.charOffset.toInt() == currentCharOffset.value,
-      );
-    } catch (_) {
-      return null;
-    }
+    final key = '${chapterIndex.value}:${currentCharOffset.value}';
+    return _bookmarkIndex.value[key];
   }
 
   /// 切换当前阅读位置的书签状态（添加/删除）。
@@ -435,7 +440,7 @@ class ReaderViewModel {
   }
 
   /// 保存当前选中的文本为高亮。
-  Future<void> saveHighlight() async {
+  Future<void> saveHighlight(AppLocalizations l10n) async {
     if (selectedText.value.isEmpty) return;
     try {
       await note_api.createHighlight(
@@ -449,12 +454,15 @@ class ReaderViewModel {
       await loadHighlights(forceRefresh: true);
       clearSelection();
     } catch (e) {
-      toastMessage.value = '保存高亮失败';
+      toastMessage.value = l10n.saveHighlightFailed;
     }
   }
 
   /// 保存当前选中的文本为笔记。
-  Future<void> saveAnnotation(String annotationContent) async {
+  Future<void> saveAnnotation(
+    String annotationContent,
+    AppLocalizations l10n,
+  ) async {
     if (selectedText.value.isEmpty || annotationContent.isEmpty) return;
     try {
       await note_api.createAnnotation(
@@ -467,53 +475,58 @@ class ReaderViewModel {
       await loadHighlights(forceRefresh: true);
       clearSelection();
     } catch (e) {
-      toastMessage.value = '保存笔记失败';
+      toastMessage.value = l10n.saveAnnotationFailed;
     }
   }
 
   /// 删除指定笔记或高亮。
-  Future<void> deleteNote(String noteId) async {
+  Future<void> deleteNote(String noteId, AppLocalizations l10n) async {
     try {
-      await note_api.deleteNote(noteId: noteId);
+      await deleteBilingualHighlightPair(noteId: noteId);
       hapticFeedback(HapticType.heavy);
       await loadHighlights(forceRefresh: true);
     } catch (e) {
-      toastMessage.value = '删除失败';
+      toastMessage.value = l10n.deleteHighlightFailed;
     }
   }
 
   /// 更新笔记内容。
-  Future<void> updateNote(Note note) async {
+  Future<void> updateNote(Note note, AppLocalizations l10n) async {
     try {
       await note_api.upsertNote(note: note);
       await loadHighlights(forceRefresh: true);
     } catch (e) {
-      toastMessage.value = '更新笔记失败';
+      toastMessage.value = l10n.updateNoteFailed;
     }
   }
 
   // ==================== 设置变更 ====================
 
-  /// 设置阅读器字体大小并重绘当前章节。
-  Future<void> setFontSize(double size) async {
-    _config.fontSize.value = size;
-    await chapterManager.loadChapter(
-      chapterIndex.value,
-      initialCharOffset: currentCharOffset.value,
-      restartSession: false,
-      onChapterLoaded: loadHighlights,
-    );
+  /// 防抖重载当前章节（滑块拖拽时延迟触发，避免连续拖动触发多次重载）。
+  void _debounceReloadChapter() {
+    _reloadDebounce?.cancel();
+    _reloadDebounce = Timer(const Duration(milliseconds: 300), () {
+      unawaited(
+        chapterManager.loadChapter(
+          chapterIndex.value,
+          initialCharOffset: currentCharOffset.value,
+          restartSession: false,
+          onChapterLoaded: loadHighlights,
+        ),
+      );
+    });
   }
 
-  /// 设置阅读器行高并重绘当前章节。
-  Future<void> setLineHeight(double height) async {
+  /// 设置阅读器字体大小（立即更新信号值，防抖重载章节）。
+  void setFontSize(double size) {
+    _config.fontSize.value = size;
+    _debounceReloadChapter();
+  }
+
+  /// 设置阅读器行高（立即更新信号值，防抖重载章节）。
+  void setLineHeight(double height) {
     _config.lineHeight.value = height;
-    await chapterManager.loadChapter(
-      chapterIndex.value,
-      initialCharOffset: currentCharOffset.value,
-      restartSession: false,
-      onChapterLoaded: loadHighlights,
-    );
+    _debounceReloadChapter();
   }
 
   /// 设置阅读模式（分页/滚动/双语），双语模式下自动触发对齐。
@@ -551,6 +564,7 @@ class ReaderViewModel {
 
   /// 创建双语对照高亮（同时高亮原文和译文中对应的文本）。
   Future<void> createBilingualHighlight({
+    required AppLocalizations l10n,
     required String sourceBookId,
     required int sourceChapterIndex,
     required int sourceCharOffset,
@@ -589,7 +603,7 @@ class ReaderViewModel {
         exception: e,
         stackTrace: stack,
       );
-      toastMessage.value = '双语高亮创建失败';
+      toastMessage.value = l10n.bilingualHighlightFailed;
     }
   }
 
@@ -597,6 +611,7 @@ class ReaderViewModel {
 
   /// 重置阅读器状态，清理定时器和信号，为切换书籍做准备。
   void resetForNewBook() {
+    _reloadDebounce?.cancel();
     for (final disposer in _disposers) {
       disposer();
     }

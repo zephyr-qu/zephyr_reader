@@ -24,6 +24,7 @@ pub struct VocabMatch {
 /// # 返回值
 /// 返回所有匹配的单词及其在文本中的位置
 #[frb(sync)]
+// DEAD CODE: 扫描在 Dart 侧进行
 pub fn scan_for_vocabulary(text: &str) -> Result<Vec<VocabMatch>, AppError> {
     Ok(engine::scan_for_vocabulary(text)
         .into_iter()
@@ -45,16 +46,19 @@ pub fn get_all_vocabulary_words() -> Result<Vec<String>, AppError> {
 
 /// 获取所有 CET-6 词汇
 #[frb(sync)]
+// TODO: 多词库管理页面
 pub fn get_cet6_words() -> Result<Vec<String>, AppError> {
     Ok(engine::wordlists::cet6_words())
 }
 
 /// 获取所有 IELTS 词汇
+// TODO: 多词库管理页面
 #[frb(sync)]
 pub fn get_ielts_words() -> Result<Vec<String>, AppError> {
     Ok(engine::wordlists::ielts_words())
 }
 
+// TODO: 多词库管理页面
 /// 获取所有 TOEFL 词汇
 #[frb(sync)]
 pub fn get_toefl_words() -> Result<Vec<String>, AppError> {

@@ -106,6 +106,7 @@ pub struct EpubImageInfo {
 /// # 返回值
 /// * `Ok(EpubMetadata)` - 元数据（包含标题、作者、封面、目录、阅读顺序）
 /// * `Err(AppError)` - 解析失败（文件不存在、格式错误等）
+// DEAD CODE: Dart 侧无调用，导入走 parseBook 不经过此函数
 #[frb]
 pub async fn get_epub_metadata(file_path: String) -> Result<EpubMetadata, AppError> {
     let validated_path = validate_file_path_async(&file_path).await?;

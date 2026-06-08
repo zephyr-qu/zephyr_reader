@@ -2,6 +2,7 @@
 ///
 /// 封装系统 [HapticFeedback]，集中管理振动反馈。
 /// 使用 [hapticFeedback] 函数而非直接调用 [HapticFeedback] 方法。
+library;
 
 import 'package:flutter/services.dart';
 

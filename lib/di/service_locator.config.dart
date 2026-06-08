@@ -24,6 +24,8 @@ import 'package:zephyr_reader/features/backup/application/backup_view_model.dart
     as _i341;
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart'
     as _i790;
+import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart'
+    as _i5;
 import 'package:zephyr_reader/features/profile/application/other_settings_view_model.dart'
     as _i362;
 import 'package:zephyr_reader/features/profile/application/theme_brightness_view_model.dart'
@@ -54,6 +56,7 @@ extension GetItInjectableX on _i174.GetIt {
       () => appModule.prefs,
       preResolve: true,
     );
+    gh.factory<_i5.CategoryViewModel>(() => _i5.CategoryViewModel());
     gh.factory<_i1054.ReaderRepository>(() => _i1054.ReaderRepository());
     gh.factory<_i657.StorageSyncViewModel>(() => _i657.StorageSyncViewModel());
     gh.singleton<_i849.ReaderBgColors>(() => _i849.ReaderBgColors());
@@ -67,14 +70,17 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i880.VocabularyMarkerService(),
     );
     gh.lazySingleton<_i1.SearchViewModel>(() => _i1.SearchViewModel());
+    gh.factory<_i790.BookshelfViewModel>(
+      () => _i790.BookshelfViewModel(
+        gh<_i460.SharedPreferences>(),
+        gh<_i5.CategoryViewModel>(),
+      ),
+    );
     gh.singleton<_i82.WifiTransferService>(
       () => _i82.WifiTransferService(gh<_i460.SharedPreferences>()),
     );
     gh.factory<_i851.FontRepository>(
       () => _i851.FontRepository(gh<_i460.SharedPreferences>()),
-    );
-    gh.factory<_i790.BookshelfViewModel>(
-      () => _i790.BookshelfViewModel(gh<_i460.SharedPreferences>()),
     );
     gh.factory<_i362.OtherSettingsViewModel>(
       () => _i362.OtherSettingsViewModel(gh<_i460.SharedPreferences>()),

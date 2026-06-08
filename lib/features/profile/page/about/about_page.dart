@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/features/profile/page/about/feature_card.dart';
 import 'package:zephyr_reader/features/profile/page/about/links_section.dart';
 import 'package:zephyr_reader/features/profile/page/about/tech_chip.dart';
+import 'package:zephyr_reader/features/profile/page/about/about_header.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -97,7 +98,7 @@ class AboutPage extends HookWidget {
           const SizedBox(height: 8),
 
           // ── Header ─────────────────────────────────────────────────
-          _buildHeader(cs, theme, version, build, l10n),
+          AboutHeader(version: version, buildNumber: build, l10n: l10n),
 
           const SizedBox(height: 28),
 
@@ -181,63 +182,6 @@ class AboutPage extends HookWidget {
           _buildFooter(cs),
         ],
       ),
-    );
-  }
-
-  Widget _buildHeader(
-    ColorScheme cs,
-    ThemeData theme,
-    String version,
-    String build,
-    AppLocalizations l10n,
-  ) {
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            color: cs.primaryContainer.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Icon(
-            PhosphorIconsBold.bookOpenText,
-            size: 34,
-            color: cs.primary,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Zephyr Reader',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          l10n.aboutTagline,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: cs.onSurface.withValues(alpha: 0.45),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: cs.primary.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            'v$version${build.isNotEmpty ? ' ($build)' : ''}',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: cs.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
     );
   }
 

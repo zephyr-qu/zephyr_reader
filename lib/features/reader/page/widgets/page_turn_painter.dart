@@ -104,33 +104,3 @@ class PageTurnTransitionBuilder extends StatelessWidget {
     );
   }
 }
-
-class FadeTurnTransitionBuilder extends StatelessWidget {
-  final Widget child;
-  final Animation<double> animation;
-  final bool isForward;
-
-  const FadeTurnTransitionBuilder({
-    super.key,
-    required this.child,
-    required this.animation,
-    required this.isForward,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final offset = isForward ? const Offset(0.5, 0) : const Offset(-0.5, 0);
-    return SlideTransition(
-      position: Tween<Offset>(begin: offset, end: Offset.zero).animate(
-        CurvedAnimation(parent: animation, curve: Curves.fastOutSlowIn),
-      ),
-      child: FadeTransition(
-        opacity: CurvedAnimation(
-          parent: animation,
-          curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-        ),
-        child: child,
-      ),
-    );
-  }
-}

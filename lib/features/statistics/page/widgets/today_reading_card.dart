@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
-/// 今日阅读卡片。
-///
-/// 显示当日阅读时长、阅读目标进度和达标状态。
 class TodayReadingCard extends StatelessWidget {
   final int minutes;
   final double progress;

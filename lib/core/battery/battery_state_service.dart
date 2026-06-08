@@ -1,36 +1,40 @@
-import 'dart:io';
+/// 电池状态
+class BatteryState {
+  final int batteryLevel;
+  final int temperature;
+  final bool isCharging;
 
-import 'package:system_state/system_state.dart';
-import 'package:zephyr_reader/core/utils/platform_guard.dart';
+  const BatteryState({
+    required this.batteryLevel,
+    required this.temperature,
+    required this.isCharging,
+  });
+
+  factory BatteryState.fromMap(Map<String, dynamic> map) => BatteryState(
+    batteryLevel: map['level'] as int,
+    temperature: map['temperature'] as int,
+    isCharging: map['isCharging'] as bool,
+  );
+}
 
 /// 电池状态服务
 ///
 /// 单例模式，提供设备充电状态和电量的查询与监听。
-/// 使用 [SystemState] 获取底层电池信息，非 Android 平台返回默认值。
+/// 注意：当前返回假数据，system_state 插件因 Kotlin 版本不兼容暂不可用。
 class BatteryStateService {
-
   static final BatteryStateService _instance = BatteryStateService._internal();
   static BatteryStateService get instance => _instance;
 
   BatteryStateService._internal();
 
-  Future<bool> isCharging() async => guardAndroid(
-    () async => (await SystemState.battery.getBatteryState()).isCharging,
-    false,
-  );
+  Future<bool> isCharging() async => false;
 
-  Future<int> getBatteryLevel() async => guardAndroid(
-    () async => (await SystemState.battery.getBatteryState()).batteryLevel,
-    0,
-  );
+  Future<int> getBatteryLevel() async => 0;
 
-  Future<BatteryState> getBatteryState() async => guardAndroid(
-    () async => await SystemState.battery.getBatteryState(),
-    BatteryState.fromMap({'level': 0, 'temperature': 0, 'isCharging': false}),
-  );
+  Future<BatteryState> getBatteryState() async =>
+      const BatteryState(batteryLevel: 0, temperature: 0, isCharging: false);
 
   void listen(void Function(BatteryState state) callback) {
-    if (!Platform.isAndroid) return;
-    SystemState.battery.listen(callback);
+    // Not supported without system_state plugin
   }
 }

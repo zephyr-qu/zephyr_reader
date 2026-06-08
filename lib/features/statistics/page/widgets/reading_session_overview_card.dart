@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/core/utils/format_utils.dart';
+import 'package:zephyr_reader/core/utils/time_formatters.dart';
 
 /// 阅读会话总览卡片。
 ///

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 
 /// 阅读背景色选择器。
@@ -15,7 +15,6 @@ class BgColorPicker extends StatelessWidget {
     required this.activeIndex,
     required this.onSelected,
   });
-
 
   @override
   Widget build(BuildContext context) {

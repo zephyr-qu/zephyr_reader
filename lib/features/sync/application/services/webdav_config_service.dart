@@ -18,10 +18,9 @@ class WebDavConfigService {
   final isConfigured = signal(false);
 
   WebDavConfigService({
-    required SharedPreferences prefs,
+    required this._prefs,
     FlutterSecureStorage? secureStorage,
-  }) : _prefs = prefs,
-       _secureStorage = secureStorage ?? const FlutterSecureStorage() {
+  }) : _secureStorage = secureStorage ?? const FlutterSecureStorage() {
     _loadConfigStatus();
   }
   static const String _keyConfig = 'webdav.config';

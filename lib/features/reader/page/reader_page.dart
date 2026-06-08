@@ -12,15 +12,20 @@ import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
+import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page_actions.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 import 'reader_dictionary_panel.dart';
 import 'widgets/animated_toolbar_panel.dart';
 import 'widgets/bookmark_widget.dart';
+import 'widgets/brightness_mask.dart';
+import 'widgets/page_indicator.dart';
 import 'widgets/reader_bottom_toolbar.dart';
 import 'widgets/reader_catalog_drawer.dart';
 import 'widgets/reader_content.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/battery_indicator.dart';
+import 'widgets/tap_zone.dart';
 import 'widgets/reader_note_sidebar.dart';
 import 'widgets/reader_page_bindings.dart';
 import 'widgets/reader_search_bar.dart';
@@ -52,6 +57,7 @@ class ReaderPage extends HookWidget {
   Widget build(BuildContext context) {
     final vm = useMemoized(() => getIt<ReaderViewModel>());
     final fontRepo = useMemoized(() => getIt<FontRepository>());
+    final readRepo = useMemoized(() => getIt<ReaderRepository>());
     final ttsService = useMemoized(() => getIt<TtsService>());
     final config = useMemoized(() => getIt<ReaderConfig>());
     final tapLayout = useSignalValue<TapLayout, Signal<TapLayout>>(
@@ -98,9 +104,9 @@ class ReaderPage extends HookWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!context.mounted) return;
         final mq = MediaQuery.of(context);
-        vm.pageWidth.value = mq.size.width - mq.padding.horizontal;
-        vm.pageHeight.value = mq.size.height - mq.padding.vertical;
-        vm.devicePixelRatio.value = mq.devicePixelRatio;
+        vm.pageWidth = mq.size.width - mq.padding.horizontal;
+        vm.pageHeight = mq.size.height - mq.padding.vertical;
+        vm.devicePixelRatio = mq.devicePixelRatio;
         vm.updateFont(fontRepo.currentFontFamily);
         vm.initialize(
           bookId,
@@ -116,7 +122,20 @@ class ReaderPage extends HookWidget {
     }, []);
 
     // ── Bind VM signals via custom Hook ──
+    final l10n = AppLocalizations.of(context)!;
+
     final b = useReaderBindings(vm);
+    const brightnessPresets = [0.0, 0.3, 0.5, 0.7];
+
+    void cycleBrightness() {
+      final current = vm.config.brightnessOverlay.value;
+      final idx = brightnessPresets.indexWhere(
+        (p) => (p - current).abs() < 0.05,
+      );
+      final nextIdx = idx == -1 ? 0 : (idx + 1) % brightnessPresets.length;
+      vm.config.brightnessOverlay.value = brightnessPresets[nextIdx];
+    }
+
     final fontFamily = fontRepo.currentFontFamily;
 
     void resetHideTimer() {
@@ -147,16 +166,297 @@ class ReaderPage extends HookWidget {
       );
     }, [b.readerTheme]);
 
+    // ── 提取的 Stack children 构建方法 ──
+
+    List<Widget> buildContentArea() {
+      final textScaler = vm.config.followSystemFontScale.value
+          ? MediaQuery.textScalerOf(context)
+          : TextScaler.noScaling;
+      return [
+        MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+          child: ReaderContent(
+            repo: readRepo,
+            bookId: b.currentBookId,
+            chapterId: b.chapterIndex,
+            pageIndex: b.pageIndex,
+            totalPages: b.totalPages,
+            fontSize: b.fontSize,
+            lineHeight: b.lineHeight,
+            themeMode: b.themeMode,
+            readingMode: b.currentReadingMode,
+            content: b.content,
+            isLoading: b.isLoading,
+            error: b.error,
+            bilingualAlignment: b.bilingualAlign,
+            isBilingualLoading: b.isBilingualLoading,
+            bilingualError: b.bilingualError,
+            onRequestTranslation: () => showDialog<void>(
+              context: context,
+              builder: (_) =>
+                  ReaderTranslationDialog(onChanged: vm.setTranslationContent),
+            ),
+            onPageChanged: vm.loadPage,
+            onRetry: () => vm.loadChapter(
+              b.chapterIndex,
+              initialCharOffset: vm.currentCharOffset.value,
+              restartSession: false,
+            ),
+            autoScrollTick: b.autoScrollTick,
+            highlights: b.highlights,
+            onSelectionChanged: vm.updateSelection,
+            onSelectionGlobalPosition: (pos) => selectionGlobalPos.value = pos,
+            onHighlightTap: (note) => showModalBottomSheet<void>(
+              context: context,
+              builder: (_) => ReaderHighlightSheet(
+                note: note,
+                onEdit: () {
+                  showDialog<void>(
+                    context: context,
+                    builder: (_) => ReaderAnnotationDialog(
+                      selectedText: note.selectedText ?? '',
+                      initialContent: note.content,
+                      onSave: (text) {
+                        final updated = note.copyWith(
+                          content: text,
+                          updatedAt: DateTime.now(),
+                        );
+                        vm.updateNote(updated, l10n);
+                      },
+                    ),
+                  );
+                },
+                onDelete: () => vm.deleteNote(note.id, l10n),
+              ),
+            ),
+            fontFamily: fontFamily,
+            searchQuery: b.searchQuery,
+            searchMatchHighlight: b.searchMatchHighlight,
+            letterSpacing: b.letterSpacing,
+            paragraphSpacing: b.paragraphSpacing,
+            pageMargin: b.pageMargin,
+            writingDirection: b.writingDirection,
+            baselineAlign: b.baselineAlign,
+            showVocabularyMark: true,
+            vocabularyWords: vocabWords.value,
+            showSentenceSplit: true,
+            bgIndex: b.bgIndex,
+            jumpToCharOffset: b.pendingJumpCharOffset,
+            onPositionChanged: vm.updateCurrentCharOffset,
+            onJumpHandled: vm.consumePendingJumpOffset,
+          ),
+        ),
+        BrightnessMask(
+          brightness: b.brightness,
+          readingMode: b.currentReadingMode,
+          onDoubleTap: cycleBrightness,
+        ),
+        const Positioned(bottom: 12, right: 0, child: BatteryIndicator()),
+      ];
+    }
+
+    Widget buildSearchBar() {
+      return Positioned(
+        top: 0,
+        left: 0,
+        right: 0,
+        child: ReaderSearchBar(
+          controller: searchController,
+          matchCount: vm.searchMatches.value,
+          currentIndex: vm.searchCurrentIndex.value,
+          onChanged: (q) => vm.onSearchChanged(q),
+          onNext: () => vm.nextSearchMatch(),
+          onPrev: () => vm.prevSearchMatch(),
+          onClose: () {
+            searchController.clear();
+            vm.toggleSearch();
+          },
+        ),
+      );
+    }
+
+    Widget buildTopToolbar() {
+      return Positioned(
+        top: b.showSearch ? 56 : 0,
+        left: 0,
+        right: 0,
+        child: AnimatedToolbarPanel(
+          visible: b.showToolbar,
+          slideBeginY: -1,
+          child: ReaderToolbar(
+            title: b.currentChapterTitle,
+            progress: b.progressText,
+            themeMode: b.themeMode,
+            onClose: () {
+              vm.resetForNewBook();
+              context.pop();
+            },
+            onToggleToolbar: () => withTimer(vm.toggleToolbar),
+          ),
+        ),
+      );
+    }
+
+    List<Widget> buildBottomArea() {
+      return [
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: AnimatedToolbarPanel(
+            visible: b.showToolbar,
+            slideBeginY: 1,
+            child: ReaderBottomToolbar(
+              currentPageIndex: vm.pageIndex.value,
+              totalPages: vm.totalPages.value,
+              themeMode: b.themeMode,
+              onShowSettings: () => withTimer(vm.toggleSettings),
+              onTtsToggle: () => withTimer(() => _toggleTts(vm, ttsService)),
+              isTtsPlaying: ttsService.isPlaying.value,
+              isTtsPaused: ttsService.isPaused.value,
+              onShowCatalog: () =>
+                  withTimer(() => scaffoldKey.currentState?.openDrawer()),
+              onShowNotes: () =>
+                  withTimer(() => scaffoldKey.currentState?.openEndDrawer()),
+            ),
+          ),
+        ),
+        if (b.showSettings)
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () => vm.toggleSettings(),
+              onVerticalDragEnd: (details) {
+                if (details.primaryVelocity != null &&
+                    details.primaryVelocity! > 300) {
+                  vm.toggleSettings();
+                }
+              },
+              child: Container(color: Colors.black.withValues(alpha: 0.3)),
+            ),
+          ),
+        AnimatedSlide(
+          offset: b.showSettings ? Offset.zero : const Offset(0, 1),
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutBack,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: ReaderSettingsPanel(
+              themeMode: b.themeMode,
+              readingMode: b.currentReadingMode,
+              fontSize: vm.config.fontSize.value,
+              lineHeight: vm.config.lineHeight.value,
+              letterSpacing: vm.config.letterSpacing.value,
+              paragraphSpacing: vm.config.paragraphSpacing.value,
+              pageMargin: vm.config.pageMargin,
+              writingDirection: vm.config.writingDirection.value,
+              onReadingModeChanged: vm.setReadingMode,
+              onFontSizeChanged: vm.setFontSize,
+              onLineHeightChanged: vm.setLineHeight,
+              onThemeChanged: (tm) => config.theme.value = tm == ThemeMode.dark
+                  ? ReaderTheme.dark
+                  : ReaderTheme.light,
+              onLetterSpacingChanged: (v) => config.letterSpacing.value = v,
+              onParagraphSpacingChanged: (v) =>
+                  config.paragraphSpacing.value = v,
+              onPageMarginChanged: (m) => config.padding.value = m,
+              onWritingDirectionChanged: (d) =>
+                  vm.config.writingDirection.value = d,
+              onClose: vm.toggleSettings,
+              readerBgColorIndex: vm.config.readerBgColorIndex.value,
+              onReaderBgColorChanged: (v) =>
+                  config.readerBgColorIndex.value = v,
+              brightnessValue: vm.config.brightnessOverlay.value,
+              onBrightnessChanged: (v) =>
+                  vm.config.brightnessOverlay.value = v.clamp(0.0, 1.0),
+              tapLayout: config.tapLayout.value,
+              onTapLayoutChanged: (layout) => config.tapLayout.value = layout,
+              followSystemFontScale: config.followSystemFontScale.value,
+              onFollowSystemFontScale: (v) =>
+                  config.followSystemFontScale.value = v,
+              autoScroll: config.autoScroll.value,
+              autoScrollSpeed: config.autoScrollSpeed.value,
+              onAutoScrollChanged: (v) => config.autoScroll.value = v,
+              onAutoScrollSpeedChanged: (v) =>
+                  config.autoScrollSpeed.value = v.round(),
+            ),
+          ),
+        ),
+      ];
+    }
+
+    Widget buildBookmarks() {
+      return BookmarkWidget(
+        bookmarks: vm.bookmarks.value.value ?? [],
+        themeMode: b.themeMode,
+        onBookmarkSelected: vm.jumpToBookmark,
+        onAddBookmark: vm.addBookmark,
+        onDeleteBookmark: vm.deleteBookmark,
+        onClose: vm.toggleBookmarks,
+      );
+    }
+
+    Widget buildSelectionToolbar() {
+      return Positioned(
+        top: _toolbarTop(
+          MediaQuery.sizeOf(context).height,
+          selectionGlobalPos.value,
+        ),
+        left: 0,
+        right: 0,
+        child: SelectionToolbar(
+          selectedText: vm.selectedText.value,
+          onHighlight: () => vm.saveHighlight(l10n),
+          onAnnotate: () => showDialog<void>(
+            context: context,
+            builder: (_) => ReaderAnnotationDialog(
+              selectedText: vm.selectedText.value,
+              onSave: (text) => vm.saveAnnotation(text, l10n),
+            ),
+          ),
+          onLookup: () =>
+              showDictionaryPanel(context, vm, vm.selectedText.value),
+          onAddToVocabulary: () => addToVocabulary(
+            context,
+            vm,
+            vm.selectedText.value,
+            bookId: vm.bookId.value,
+            chapterIndex: vm.chapterIndex.value,
+            charOffset: vm.selectionStart.value,
+          ),
+          onBilingualHighlight: b.currentReadingMode == ReadingMode.bilingual
+              ? () => onBilingualHighlight(context, vm)
+              : null,
+          onDismiss: () => vm.clearSelection(),
+        ),
+      );
+    }
+
     return Theme(
       data: readerData,
       child: PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, _) {
           if (didPop) return;
+          // Close drawer/endDrawer first if open, don't pop yet
+          final scaffold = scaffoldKey.currentState;
+          if (scaffold != null && scaffold.isDrawerOpen) {
+            scaffold.closeDrawer();
+            return;
+          }
+          if (scaffold != null && scaffold.isEndDrawerOpen) {
+            scaffold.closeEndDrawer();
+            return;
+          }
+          // 离开页面前清理定时器和 VM 状态，防止 Timer 泄漏
+          autoHideTimer.value?.cancel();
+          vm.resetForNewBook();
           context.pop();
         },
         child: Scaffold(
           key: scaffoldKey,
+          drawerEnableOpenDragGesture: false,
+          endDrawerEnableOpenDragGesture: false,
+          drawerEdgeDragWidth: 0,
           drawer: ReaderCatalogDrawer(
             chapters: vm.chapters.value.value ?? [],
             currentChapterIndex: vm.chapterIndex.value,
@@ -180,367 +480,45 @@ class ReaderPage extends HookWidget {
             child: SafeArea(
               child: Builder(
                 builder: (context) {
-                  final textScaler = vm.config.followSystemFontScale.value
-                      ? MediaQuery.textScalerOf(context)
-                      : TextScaler.noScaling;
                   return Stack(
                     children: [
-                      MediaQuery(
-                        data: MediaQuery.of(
-                          context,
-                        ).copyWith(textScaler: textScaler),
-                        child: ReaderContent(
-                          bookId: b.currentBookId,
-                          chapterId: b.chapterIndex,
-                          pageIndex: b.pageIndex,
-                          totalPages: b.totalPages,
-                          fontSize: b.fontSize,
-                          lineHeight: b.lineHeight,
-                          themeMode: b.themeMode,
-                          readingMode: b.currentReadingMode,
-                          content: b.content,
-                          isLoading: b.isLoading,
-                          error: b.error,
-                          bilingualAlignment: b.bilingualAlign,
-                          isBilingualLoading: b.isBilingualLoading,
-                          bilingualError: b.bilingualError,
-                          onRequestTranslation: () => showDialog<void>(
-                            context: context,
-                            builder: (_) => ReaderTranslationDialog(
-                              onChanged: vm.setTranslationContent,
-                            ),
-                          ),
-                          onPageChanged: vm.loadPage,
-                          onRetry: () => vm.loadChapter(
-                            b.chapterIndex,
-                            initialCharOffset: vm.currentCharOffset.value,
-                            restartSession: false,
-                          ),
-                          autoScrollTick: b.autoScrollTick,
-                          highlights: b.highlights,
-                          onSelectionChanged: vm.updateSelection,
-                          onSelectionGlobalPosition: (pos) =>
-                              selectionGlobalPos.value = pos,
-                          onHighlightTap: (note) => showModalBottomSheet<void>(
-                            context: context,
-                            builder: (_) => ReaderHighlightSheet(
-                              note: note,
-                              onEdit: () {
-                                showDialog<void>(
-                                  context: context,
-                                  builder: (_) => ReaderAnnotationDialog(
-                                    selectedText: note.selectedText ?? '',
-                                    initialContent: note.content,
-                                    onSave: (text) {
-                                      final updated = note.copyWith(
-                                        content: text,
-                                        updatedAt: DateTime.now(),
-                                      );
-                                      vm.updateNote(updated);
-                                    },
-                                  ),
-                                );
-                              },
-                              onDelete: () => vm.deleteNote(note.id),
-                            ),
-                          ),
-                          fontFamily: fontFamily,
-                          searchQuery: b.searchQuery,
-                          searchMatchHighlight: b.searchMatchHighlight,
-                          letterSpacing: b.letterSpacing,
-                          paragraphSpacing: b.paragraphSpacing,
-                          pageMargin: b.pageMargin,
-                          writingDirection: b.writingDirection,
-                          showVocabularyMark: true,
-                          vocabularyWords: vocabWords.value,
-                          showSentenceSplit: true,
-                          bgIndex: b.bgIndex,
-                          jumpToCharOffset: b.pendingJumpCharOffset,
-                          onPositionChanged: vm.updateCurrentCharOffset,
-                          onJumpHandled: vm.consumePendingJumpOffset,
-                        ),
+                      ...buildContentArea(),
+                      if (b.showSearch) buildSearchBar(),
+                      buildTopToolbar(),
+                      PageIndicator(
+                        pageIndex: b.pageIndex,
+                        totalPages: b.effectiveTotalPages,
+                        visible:
+                            !b.showToolbar &&
+                            !b.showSearch &&
+                            !b.showCatalog &&
+                            !b.showBookmarks,
                       ),
-                      if (b.brightness > 0)
-                        IgnorePointer(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: RadialGradient(
-                                center: Alignment.center,
-                                radius: 0.6,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withValues(
-                                    alpha: b.brightness * 0.5,
-                                  ),
-                                  Colors.black.withValues(alpha: b.brightness),
-                                ],
-                                stops: const [0.3, 0.7, 1.0],
-                              ),
-                            ),
-                          ),
-                        ),
-                      const Positioned(
-                        bottom: 12,
-                        right: 0,
-                        child: BatteryIndicator(),
-                      ),
-                      if (b.showSearch)
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          child: ReaderSearchBar(
-                            controller: searchController,
-                            matchCount: vm.searchMatches.value,
-                            currentIndex: vm.searchCurrentIndex.value,
-                            onChanged: (q) => vm.onSearchChanged(q),
-                            onNext: () => vm.nextSearchMatch(),
-                            onPrev: () => vm.prevSearchMatch(),
-                            onClose: () {
-                              searchController.clear();
-                              vm.toggleSearch();
-                            },
-                          ),
-                        ),
-                      Positioned(
-                        top: b.showSearch ? 56 : 0,
-                        left: 0,
-                        right: 0,
-                        child: AnimatedToolbarPanel(
-                          visible: b.showToolbar,
-                          slideBeginY: -1,
-                          child: ReaderToolbar(
-                            title: b.currentChapterTitle,
-                            progress: b.progressText,
-                            themeMode: b.themeMode,
-                            onClose: () {
-                              vm.resetForNewBook();
-                              context.pop();
-                            },
-                            onToggleToolbar: () => withTimer(vm.toggleToolbar),
-                          ),
-                        ),
-                      ),
-                      if (!b.showToolbar &&
-                          !b.showSearch &&
-                          !b.showCatalog &&
-                          !b.showBookmarks)
-                        Positioned(
-                          bottom: 8,
-                          left: 0,
-                          right: 0,
-                          child: IgnorePointer(
-                            child: Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  '${b.pageIndex + 1} / ${b.effectiveTotalPages}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w400,
-                                    letterSpacing: 0.8,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: AnimatedToolbarPanel(
-                          visible: b.showToolbar,
-                          slideBeginY: 1,
-                          child: ReaderBottomToolbar(
-                            currentPageIndex: vm.pageIndex.value,
-                            totalPages: vm.totalPages.value,
-                            themeMode: b.themeMode,
-                            onShowSettings: () => withTimer(vm.toggleSettings),
-                            onTtsToggle: () =>
-                                withTimer(() => _toggleTts(vm, ttsService)),
-                            isTtsPlaying: ttsService.isPlaying.value,
-                            onShowCatalog: () => withTimer(
-                              () => scaffoldKey.currentState?.openDrawer(),
-                            ),
-                            onShowNotes: () => withTimer(
-                              () => scaffoldKey.currentState?.openEndDrawer(),
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (b.showSettings)
-                        Positioned.fill(
-                          child: GestureDetector(
-                            onTap: () => vm.toggleSettings(),
-                            onVerticalDragEnd: (details) {
-                              if (details.primaryVelocity != null &&
-                                  details.primaryVelocity! > 300) {
-                                vm.toggleSettings();
-                              }
-                            },
-                            child: Container(
-                              color: Colors.black.withValues(alpha: 0.3),
-                            ),
-                          ),
-                        ),
-                      AnimatedSlide(
-                        offset: b.showSettings
-                            ? Offset.zero
-                            : const Offset(0, 1),
-                        duration: const Duration(milliseconds: 350),
-                        curve: Curves.easeOutBack,
-                        child: Align(
-                          alignment: Alignment.bottomCenter,
-                          child: ReaderSettingsPanel(
-                            themeMode: b.themeMode,
-                            readingMode: b.currentReadingMode,
-                            fontSize: vm.config.fontSize.value,
-                            lineHeight: vm.config.lineHeight.value,
-                            letterSpacing: vm.config.letterSpacing.value,
-                            paragraphSpacing: vm.config.paragraphSpacing.value,
-                            pageMargin: vm.config.pageMargin,
-                            writingDirection: vm.config.writingDirection.value,
-                            onReadingModeChanged: vm.setReadingMode,
-                            onFontSizeChanged: vm.setFontSize,
-                            onLineHeightChanged: vm.setLineHeight,
-                            onThemeChanged: (tm) =>
-                                config.theme.value = tm == ThemeMode.dark
-                                ? ReaderTheme.dark
-                                : ReaderTheme.light,
-                            onLetterSpacingChanged: (v) =>
-                                config.letterSpacing.value = v,
-                            onParagraphSpacingChanged: (v) =>
-                                config.paragraphSpacing.value = v,
-                            onPageMarginChanged: (m) =>
-                                config.padding.value = m,
-                            onWritingDirectionChanged: (d) =>
-                                vm.config.writingDirection.value = d,
-                            onClose: vm.toggleSettings,
-                            readerBgColorIndex:
-                                vm.config.readerBgColorIndex.value,
-                            onReaderBgColorChanged: (v) =>
-                                config.readerBgColorIndex.value = v,
-                            brightnessValue: vm.config.brightnessOverlay.value,
-                            onBrightnessChanged: (v) =>
-                                vm.config.brightnessOverlay.value = v.clamp(
-                                  0.0,
-                                  1.0,
-                                ),
-                            tapLayout: config.tapLayout.value,
-                            onTapLayoutChanged: (layout) =>
-                                config.tapLayout.value = layout,
-                            followSystemFontScale:
-                                config.followSystemFontScale.value,
-                            onFollowSystemFontScale: (v) =>
-                                config.followSystemFontScale.value = v,
-                          ),
-                        ),
-                      ),
-                      if (b.showBookmarks)
-                        BookmarkWidget(
-                          bookmarks: vm.bookmarks.value.value ?? [],
-                          themeMode: b.themeMode,
-                          onBookmarkSelected: vm.jumpToBookmark,
-                          onAddBookmark: vm.addBookmark,
-                          onDeleteBookmark: vm.deleteBookmark,
-                          onClose: vm.toggleBookmarks,
-                        ),
+                      ...buildBottomArea(),
+                      if (b.showBookmarks) buildBookmarks(),
                       if (b.showSelection && vm.selectedText.value.isNotEmpty)
-                        Positioned(
-                          top: _toolbarTop(
-                            MediaQuery.sizeOf(context).height,
-                            selectionGlobalPos.value,
-                          ),
-                          left: 0,
-                          right: 0,
-                          child: SelectionToolbar(
-                            selectedText: vm.selectedText.value,
-                            onHighlight: () => vm.saveHighlight(),
-                            onAnnotate: () => showDialog<void>(
-                              context: context,
-                              builder: (_) => ReaderAnnotationDialog(
-                                selectedText: vm.selectedText.value,
-                                onSave: vm.saveAnnotation,
-                              ),
-                            ),
-                            onLookup: () => showDictionaryPanel(
-                              context,
-                              vm,
-                              vm.selectedText.value,
-                            ),
-                            onAddToVocabulary: () => addToVocabulary(
-                              context,
-                              vm,
-                              vm.selectedText.value,
-                              bookId: vm.bookId.value,
-                              chapterIndex: vm.chapterIndex.value,
-                              charOffset: vm.selectionStart.value,
-                            ),
-                            onBilingualHighlight:
-                                b.currentReadingMode == ReadingMode.bilingual
-                                ? () => onBilingualHighlight(context, vm)
-                                : null,
-                            onDismiss: () => vm.clearSelection(),
-                          ),
-                        ),
+                        buildSelectionToolbar(),
                       if (!b.showToolbar &&
                           !b.showSelection &&
                           !b.showSearch &&
                           !b.showCatalog &&
                           !b.showBookmarks)
-                        Positioned.fill(
-                          child: GestureDetector(
-                            onTapUp: (details) {
-                              final w = context.size?.width ?? 1;
-                              final third = w / 3;
-                              final isLeftZone =
-                                  details.localPosition.dx < third;
-                              final isRightZone =
-                                  details.localPosition.dx >= third * 2;
-                              late final bool goBack, goForward;
-                              switch (tapLayout) {
-                                case TapLayout.rightHanded:
-                                  goBack = isLeftZone;
-                                  goForward = isRightZone;
-                                case TapLayout.leftHanded:
-                                  goBack = isRightZone;
-                                  goForward = isLeftZone;
-                              }
-                              if (goBack && vm.pageIndex.value > 0) {
-                                vm.previousPage();
-                                hapticFeedback(HapticType.light);
-                              } else if (goForward &&
-                                  vm.pageIndex.value <
-                                      vm.totalPages.value - 1) {
-                                vm.nextPage();
-                                hapticFeedback(HapticType.light);
-                              } else if (!goBack && !goForward) {
-                                withTimer(() {
-                                  vm.toggleToolbar();
-                                  hapticFeedback(HapticType.selection);
-                                });
-                              }
-                            },
-                            onHorizontalDragEnd: (details) {
-                              if (details.primaryVelocity == null) return;
-                              if (details.primaryVelocity! < -30) {
-                                vm.nextPage();
-                                hapticFeedback(HapticType.light);
-                              } else if (details.primaryVelocity! > 30) {
-                                vm.previousPage();
-                                hapticFeedback(HapticType.light);
-                              }
-                            },
-                          ),
+                        TapZone(
+                          tapLayout: tapLayout,
+                          pageIndex: vm.pageIndex.value,
+                          totalPages: vm.totalPages.value,
+                          onPreviousPage: () {
+                            vm.previousPage();
+                            hapticFeedback(HapticType.light);
+                          },
+                          onNextPage: () {
+                            vm.nextPage();
+                            hapticFeedback(HapticType.light);
+                          },
+                          onCenterTap: () => withTimer(() {
+                            vm.toggleToolbar();
+                            hapticFeedback(HapticType.selection);
+                          }),
                         ),
                     ],
                   );
@@ -562,24 +540,31 @@ class ReaderPage extends HookWidget {
     final below = pos.dy + gap + 20;
     return below.clamp(0, screenHeight - h);
   }
-
   void _toggleTts(ReaderViewModel vm, TtsService ttsService) {
     final c = vm.chapterContent.value.value;
     if (c == null || c.isEmpty) return;
-    if (ttsService.isPlaying.value) {
-      ttsService.stop();
+    if (ttsService.isPlaying.value && !ttsService.isPaused.value) {
+      // Playing → Pause
+      ttsService.pause();
+    } else if (ttsService.isPaused.value) {
+      // Paused → Resume
+      ttsService.resume();
     } else {
-      ttsService.speak(c);
+      // Stopped → Start
+      _startTts(vm, ttsService);
     }
     hapticFeedback(HapticType.medium);
+  }
+
+  void _startTts(ReaderViewModel vm, TtsService ttsService) {
+    final c = vm.chapterContent.value.value;
+    if (c == null || c.isEmpty) return;
+    ttsService.speak(c);
   }
 
   Future<void> _loadVocabularyWords(Signal<Set<String>> out) async {
     final service = getIt<VocabularyMarkerService>();
     await service.ensureLoaded();
-    out.value = <String>{}
-      ..addAll(service.cet6)
-      ..addAll(service.ielts)
-      ..addAll(service.toefl);
+    out.value = service.allWords.toSet();
   }
 }

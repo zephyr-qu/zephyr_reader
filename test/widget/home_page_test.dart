@@ -132,7 +132,7 @@ void main() {
         MaterialApp(
           home: HookBuilder(
             builder: (context) {
-              final val = useSignalValue(counter);
+              final int val = useSignalValue(counter);
               return Text('count: $val', textDirection: TextDirection.ltr);
             },
           ),
@@ -150,7 +150,7 @@ void main() {
         MaterialApp(
           home: HookBuilder(
             builder: (context) {
-              final val = useSignalValue(counter);
+              final int val = useSignalValue(counter);
               return Text('count: $val', textDirection: TextDirection.ltr);
             },
           ),

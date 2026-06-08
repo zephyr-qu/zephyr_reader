@@ -22,6 +22,9 @@ pub enum AppError {
     #[error("File read error: {path} - {details}")]
     FileReadError { path: String, details: String },
 
+    #[error("File write error: {path} - {details}")]
+    FileWriteError { path: String, details: String },
+
     #[error("Unsupported file format: {format}")]
     UnsupportedFormat { format: String },
 
@@ -84,6 +87,15 @@ impl AppError {
         }
     }
 
+
+
+    /// 文件写入错误
+    pub fn file_write_error(path: impl Into<String>, details: impl Into<String>) -> Self {
+        Self::FileWriteError {
+            path: path.into(),
+            details: details.into(),
+        }
+    }
     /// 不支持的文件格式
     pub fn unsupported_format(format: impl Into<String>) -> Self {
         Self::UnsupportedFormat {
@@ -112,12 +124,6 @@ impl AppError {
         }
     }
 
-    /// 文件写入错误
-    pub fn file_write_error(path: impl Into<String>, details: impl Into<String>) -> Self {
-        Self::InternalError {
-            reason: format!("file write failed at {}: {}", path.into(), details.into()),
-        }
-    }
 
     /// 章节提取错误
     pub fn chapter_extract_error(index: i32, reason: impl Into<String>) -> Self {
@@ -188,40 +194,6 @@ impl AppError {
         Self::Other(reason.into())
     }
 
-    /// 获取错误码（用于 Flutter 展示）
-    pub fn code(&self) -> &'static str {
-        match self {
-            Self::FileNotFound { .. } => "FILE_NOT_FOUND",
-            Self::FileReadError { .. } => "FILE_READ_ERROR",
-            Self::UnsupportedFormat { .. } => "UNSUPPORTED_FORMAT",
-            Self::EpubParseError { .. } => "EPUB_PARSE_ERROR",
-            Self::PdfParseError { .. } => "PDF_PARSE_ERROR",
-            Self::ChapterExtractError { .. } => "CHAPTER_EXTRACT_ERROR",
-            Self::TypesetConfigError { .. } => "TYPESET_CONFIG_ERROR",
-            Self::DatabaseError { .. } => "DATABASE_ERROR",
-            Self::NotFound { .. } => "NOT_FOUND",
-            Self::StorageNotInitialized => "STORAGE_NOT_INITIALIZED",
-            Self::SearchError { .. } => "SEARCH_ERROR",
-            Self::SecurityError { .. } => "SECURITY_ERROR",
-            Self::InvalidInput { .. } => "INVALID_INPUT",
-            Self::InternalError { .. } => "INTERNAL_ERROR",
-            Self::TaskPanic { .. } => "TASK_PANIC",
-            Self::Other(_) => "OTHER_ERROR",
-        }
-    }
-
-    /// 获取错误消息（用于 Flutter 展示）
-    pub fn message(&self) -> String {
-        self.to_string()
-    }
-}
-
-impl From<anyhow::Error> for AppError {
-    fn from(err: anyhow::Error) -> Self {
-        Self::InternalError {
-            reason: err.to_string(),
-        }
-    }
 }
 
 impl From<sqlx::Error> for AppError {

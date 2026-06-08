@@ -7,8 +7,8 @@ class SettingsNavigationTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData? icon;
-  final Color iconColor;
-  final Color iconBackground;
+  final Color? iconColor;
+  final Color? iconBackground;
   final Widget? iconWidget;
   final Widget? trailing;
   final VoidCallback onTap;
@@ -18,8 +18,8 @@ class SettingsNavigationTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.icon,
-    this.iconColor = Colors.white,
-    this.iconBackground = Colors.blue,
+    this.iconColor,
+    this.iconBackground,
     this.iconWidget,
     this.trailing,
     required this.onTap,
@@ -28,6 +28,8 @@ class SettingsNavigationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final effectiveIconColor = iconColor ?? cs.onPrimaryContainer;
+    final effectiveIconBg = iconBackground ?? cs.primaryContainer;
 
     return InkWell(
       onTap: onTap,
@@ -40,7 +42,7 @@ class SettingsNavigationTile extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: iconBackground,
+                  color: effectiveIconBg,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: iconWidget,
@@ -50,10 +52,10 @@ class SettingsNavigationTile extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: iconBackground,
+                  color: effectiveIconBg,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, size: 16, color: iconColor),
+                child: Icon(icon, size: 16, color: effectiveIconColor),
               ),
             const SizedBox(width: 12),
             Expanded(

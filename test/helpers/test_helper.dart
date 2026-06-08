@@ -21,7 +21,7 @@ class TestHelper {
 
   /// 验证 AsyncState 是否为加载中
   static void expectLoading<T>(AsyncData<T> state) {
-    expect(state, equals(AsyncState.loading()));
+    expect(state, equals(AsyncState<T>.loading()));
     expect(state.isLoading, isTrue);
     expect(state.hasValue, isFalse);
     expect(state.hasError, isFalse);

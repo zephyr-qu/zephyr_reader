@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
@@ -14,8 +14,7 @@ import 'package:zephyr_reader/core/theme/theme_manager.dart';
 import 'package:zephyr_reader/features/profile/application/other_settings_view_model.dart';
 import 'package:zephyr_reader/features/profile/page/other/lang_option_tile.dart';
 import 'package:zephyr_reader/features/profile/page/other/version_footer.dart';
-import 'package:zephyr_reader/features/profile/page/privacy_policy_page.dart';
-import 'package:zephyr_reader/features/profile/page/user_agreement_page.dart';
+import 'package:zephyr_reader/features/profile/page/other/legal_section.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/presentation/widgets/confirm_action_dialog.dart';
 import 'package:zephyr_reader/core/presentation/widgets/danger_section.dart';
@@ -25,11 +24,11 @@ import 'package:zephyr_reader/core/presentation/widgets/danger_section.dart';
 /// 提供学习目标、日间模式、阅读时长提醒、用户协议和隐私政策等入口。
 /// 使用 [OtherSettingsViewModel] 管理设置状态。
 class OtherSettingsPage extends HookWidget {
-  late final OtherSettingsViewModel vm = getIt<OtherSettingsViewModel>();
-  OtherSettingsPage({super.key});
+  const OtherSettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final vm = useMemoized(() => getIt<OtherSettingsViewModel>());
     useEffect(() {
       vm.initialize();
       return null;
@@ -38,7 +37,10 @@ class OtherSettingsPage extends HookWidget {
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final String localeLabel = useSignalValue(vm.localeLabel);
+    final locale = useSignalValue<String?, Signal<String?>>(
+      ThemeManager.instance.locale,
+    );
+    final localeLabel = locale == 'en' ? 'English' : '简体中文';
     final String appVersion = useSignalValue(vm.appVersion);
 
     return Scaffold(
@@ -49,13 +51,13 @@ class OtherSettingsPage extends HookWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
         children: [
-          _buildBehaviorSection(context, cs, l10n, localeLabel),
+          _buildBehaviorSection(context, cs, l10n, localeLabel, vm),
           const SizedBox(height: 24),
-          _buildExperimentalSection(context, cs, l10n),
+          _buildExperimentalSection(context, cs, l10n, vm),
           const SizedBox(height: 24),
-          _buildLegalSection(context, cs, l10n),
+          LegalSection(appVersion: appVersion),
           const SizedBox(height: 24),
-          _buildDangerSection(context, cs, l10n),
+          _buildDangerSection(context, cs, l10n, vm),
           const SizedBox(height: 24),
           VersionFooter(
             appVersion: appVersion,
@@ -74,6 +76,7 @@ class OtherSettingsPage extends HookWidget {
     ColorScheme cs,
     AppLocalizations l10n,
     String localeLabel,
+    OtherSettingsViewModel vm,
   ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,6 +154,7 @@ class OtherSettingsPage extends HookWidget {
     BuildContext context,
     ColorScheme cs,
     AppLocalizations l10n,
+    OtherSettingsViewModel vm,
   ) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,81 +218,11 @@ class OtherSettingsPage extends HookWidget {
         .slideY(begin: 0.03, end: 0);
   }
 
-  Widget _buildLegalSection(
-    BuildContext context,
-    ColorScheme cs,
-    AppLocalizations l10n,
-  ) {
-    return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SectionLabel(label: l10n.otherLegal),
-            SettingsCard(
-              showDividers: true,
-              children: [
-                SettingsNavigationTile(
-                  icon: PhosphorIconsRegular.fileText,
-                  iconColor: MenuItemSemantic.legal.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.legal.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
-                  title: l10n.userAgreement,
-                  subtitle: '',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute<void>(
-                      builder: (_) => const UserAgreementPage(),
-                    ),
-                  ),
-                ),
-                SettingsNavigationTile(
-                  icon: PhosphorIconsRegular.shieldCheck,
-                  iconColor: MenuItemSemantic.legal.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.legal.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
-                  title: l10n.privacyPolicy,
-                  subtitle: '',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute<void>(
-                      builder: (_) => const PrivacyPolicyPage(),
-                    ),
-                  ),
-                ),
-                SettingsNavigationTile(
-                  icon: PhosphorIconsRegular.code,
-                  iconColor: MenuItemSemantic.legal.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.legal.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
-                  title: l10n.openSourceLicense,
-                  subtitle: l10n.openSourceLicenseDesc,
-                  onTap: () => showLicensePage(
-                    context: context,
-                    applicationName: 'Zephyr Reader',
-                    applicationVersion: vm.appVersion.value,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        )
-        .animate()
-        .fadeIn(duration: 300.ms, delay: 200.ms)
-        .slideY(begin: 0.03, end: 0);
-  }
-
   Widget _buildDangerSection(
     BuildContext context,
     ColorScheme cs,
     AppLocalizations l10n,
+    OtherSettingsViewModel vm,
   ) {
     return DangerSection(
           label: l10n.dangerZone,
@@ -297,13 +231,13 @@ class OtherSettingsPage extends HookWidget {
               icon: PhosphorIconsRegular.arrowCounterClockwise,
               title: l10n.resetAllSettings,
               description: l10n.resetAllSettingsDesc,
-              onTap: () => _confirmResetSettings(context, cs),
+              onTap: () => _confirmResetSettings(context, cs, vm),
             ),
             DangerItem(
-              icon: PhosphorIconsRegular.trash,
+              icon: PhosphorIconsRegular.broom,
               title: l10n.clearAllData,
               description: l10n.clearAllDataDesc,
-              onTap: () => _confirmClearData(context, cs),
+              onTap: () => _confirmClearData(context, cs, vm),
             ),
           ],
         )
@@ -335,36 +269,27 @@ class OtherSettingsPage extends HookWidget {
               const SizedBox(height: 16),
               LangOptionTile(
                 label: l10n.followSystem,
-                isSelected: vm.localeCode.value == null,
+                isSelected: ThemeManager.instance.locale.value == null,
                 onTap: () {
-                  final tm = ThemeManager.instance;
-                  tm.locale.value = null;
-                  vm.localeCode.value = null;
-                  vm.localeLabel.value = '简体中文';
+                  ThemeManager.instance.locale.value = null;
                   Navigator.pop(context);
                 },
               ),
               const SizedBox(height: 8),
               LangOptionTile(
                 label: l10n.chinese,
-                isSelected: vm.localeCode.value == 'zh',
+                isSelected: ThemeManager.instance.locale.value == 'zh',
                 onTap: () {
-                  final tm = ThemeManager.instance;
-                  tm.locale.value = 'zh';
-                  vm.localeCode.value = 'zh';
-                  vm.localeLabel.value = '简体中文';
+                  ThemeManager.instance.locale.value = 'zh';
                   Navigator.pop(context);
                 },
               ),
               const SizedBox(height: 8),
               LangOptionTile(
                 label: l10n.english,
-                isSelected: vm.localeCode.value == 'en',
+                isSelected: ThemeManager.instance.locale.value == 'en',
                 onTap: () {
-                  final tm = ThemeManager.instance;
-                  tm.locale.value = 'en';
-                  vm.localeCode.value = 'en';
-                  vm.localeLabel.value = 'English';
+                  ThemeManager.instance.locale.value = 'en';
                   Navigator.pop(context);
                 },
               ),
@@ -375,7 +300,11 @@ class OtherSettingsPage extends HookWidget {
     );
   }
 
-  void _confirmResetSettings(BuildContext context, ColorScheme cs) {
+  void _confirmResetSettings(
+    BuildContext context,
+    ColorScheme cs,
+    OtherSettingsViewModel vm,
+  ) {
     final l10n = AppLocalizations.of(context)!;
     showConfirmActionDialog(
       context,
@@ -386,7 +315,11 @@ class OtherSettingsPage extends HookWidget {
     );
   }
 
-  void _confirmClearData(BuildContext context, ColorScheme cs) {
+  void _confirmClearData(
+    BuildContext context,
+    ColorScheme cs,
+    OtherSettingsViewModel vm,
+  ) {
     final l10n = AppLocalizations.of(context)!;
     showConfirmActionDialog(
       context,

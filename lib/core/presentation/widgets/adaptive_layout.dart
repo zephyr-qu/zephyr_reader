@@ -79,13 +79,3 @@ class LayoutBreakpoints {
 // ============================================================================
 
 enum DeviceType { phone, tablet, desktop }
-
-// ============================================================================
-// 导航模式
-// ============================================================================
-
-enum NavigationMode {
-  bottomNavigationBar,
-  navigationRail,
-  permanentNavigationRail,
-}

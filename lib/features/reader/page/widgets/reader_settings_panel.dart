@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
@@ -34,6 +34,10 @@ class ReaderSettingsPanel extends HookWidget {
   final ValueChanged<TapLayout> onTapLayoutChanged;
   final bool followSystemFontScale;
   final ValueChanged<bool> onFollowSystemFontScale;
+  final bool autoScroll;
+  final int autoScrollSpeed;
+  final ValueChanged<bool> onAutoScrollChanged;
+  final ValueChanged<double> onAutoScrollSpeedChanged;
   final VoidCallback onClose;
 
   const ReaderSettingsPanel({
@@ -62,6 +66,10 @@ class ReaderSettingsPanel extends HookWidget {
     required this.onFollowSystemFontScale,
     required this.brightnessValue,
     required this.onBrightnessChanged,
+    required this.autoScroll,
+    required this.autoScrollSpeed,
+    required this.onAutoScrollChanged,
+    required this.onAutoScrollSpeedChanged,
     required this.onClose,
   });
 
@@ -111,6 +119,20 @@ class ReaderSettingsPanel extends HookWidget {
                     mutedColor: readerTheme.mutedColor,
                   ),
                   _buildModeSelector(readerTheme, l10n),
+                  const SizedBox(height: 8),
+                  _buildAutoScrollToggle(readerTheme, l10n),
+                  if (autoScroll)
+                    _buildSliderTile(
+                      label: l10n.autoScrollSpeed,
+                      value: autoScrollSpeed.toDouble(),
+                      min: 10,
+                      max: 120,
+                      divisions: 22,
+                      display: '${autoScrollSpeed}s',
+                      onChanged: (v) =>
+                          onAutoScrollSpeedChanged(v),
+                      readerTheme: readerTheme,
+                    ),
                   const Divider(height: 20, indent: 16, endIndent: 16),
                   _buildSectionHeader(
                     icon: PhosphorIconsRegular.paragraph,
@@ -710,6 +732,41 @@ class ReaderSettingsPanel extends HookWidget {
             child: Switch.adaptive(
               value: followSystemFontScale,
               onChanged: onFollowSystemFontScale,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAutoScrollToggle(
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      child: Row(
+        children: [
+          Icon(
+            PhosphorIconsRegular.playCircle,
+            size: 14,
+            color: autoScroll ? readerTheme.accentColor : readerTheme.mutedColor,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            l10n.autoScroll,
+            style: TextStyle(
+              color: readerTheme.textColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          const Spacer(),
+          SizedBox(
+            height: 24,
+            child: Switch.adaptive(
+              value: autoScroll,
+              onChanged: onAutoScrollChanged,
             ),
           ),
         ],

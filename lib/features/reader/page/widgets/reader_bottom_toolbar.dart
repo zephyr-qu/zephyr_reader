@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
@@ -13,6 +13,8 @@ class ReaderBottomToolbar extends StatelessWidget {
   final int totalPages;
   final ThemeMode themeMode;
   final bool isTtsPlaying;
+  final bool isTtsPaused;
+
 
   final VoidCallback? onShowCatalog;
   final VoidCallback? onShowNotes;
@@ -25,6 +27,7 @@ class ReaderBottomToolbar extends StatelessWidget {
     required this.totalPages,
     required this.themeMode,
     this.isTtsPlaying = false,
+    this.isTtsPaused = false,
     this.onShowCatalog,
     this.onShowNotes,
     this.onShowSettings,

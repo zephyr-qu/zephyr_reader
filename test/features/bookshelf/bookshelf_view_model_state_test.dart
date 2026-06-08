@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
+import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 void main() {
@@ -13,7 +14,8 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       prefs = await SharedPreferences.getInstance();
-      vm = BookshelfViewModel(prefs);
+      final catVM = CategoryViewModel();
+      vm = BookshelfViewModel(prefs, catVM);
     });
 
     // ── 初始状态 ──
@@ -22,7 +24,7 @@ void main() {
       expect(vm.isListView.value, isFalse);
       expect(vm.isSearching.value, isFalse);
       expect(vm.searchKeyword.value, isEmpty);
-      expect(vm.selectedCategory.value, isNull);
+      expect(vm.categoryVM.selectedCategory.value, isNull);
       expect(vm.selectedStatus.value, isNull);
       expect(vm.defaultSortType.value, BookshelfSortType.lastRead);
     });
@@ -60,7 +62,7 @@ void main() {
       );
       vm.selectCategory(cat);
 
-      expect(vm.selectedCategory.value, equals(cat));
+      expect(vm.categoryVM.selectedCategory.value, equals(cat));
       expect(vm.isSearching.value, isFalse);
       expect(vm.searchKeyword.value, isEmpty);
     });
@@ -81,10 +83,10 @@ void main() {
         isSystem: false,
       );
       vm.selectCategory(cat);
-      expect(vm.selectedCategory.value, isNotNull);
+      expect(vm.categoryVM.selectedCategory.value, isNotNull);
 
       vm.selectCategory(null);
-      expect(vm.selectedCategory.value, isNull);
+      expect(vm.categoryVM.selectedCategory.value, isNull);
     });
 
     // ── 排序 ──
@@ -118,7 +120,7 @@ void main() {
       );
       vm.selectCategory(cat);
 
-      expect(vm.selectedCategory.value!.name, '科幻');
+      expect(vm.categoryVM.selectedCategory.value!.name, '科幻');
       expect(
         vm.isSearching.value,
         isFalse,

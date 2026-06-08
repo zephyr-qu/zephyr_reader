@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/reader/application/cache_manage_view_model.dart';
-import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
+import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 缓存管理页面。
@@ -19,10 +18,7 @@ class CacheManagePage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final repo = useMemoized(() => getIt<ReaderRepository>());
-    final vm = useMemoized(
-      () => CacheManageViewModel(repo: repo, bookId: bookId),
-    );
+    final vm = useMemoized(() => CacheManageViewModel());
     useEffect(() {
       vm.load();
       return null;
@@ -36,12 +32,16 @@ class CacheManagePage extends HookWidget {
           AsyncState<List<BookWithProgress>>,
           AsyncSignal<List<BookWithProgress>>
         >(vm.progressList);
+    final AsyncState<IndexStats> indexStats =
+        useSignalValue<AsyncState<IndexStats>, Signal<AsyncState<IndexStats>>>(
+          vm.searchIndexStats,
+        );
 
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('缓存管理')),
-      body: _buildBody(context, theme, vm, books, progressList),
+      body: _buildBody(context, theme, vm, books, progressList, indexStats),
     );
   }
 
@@ -57,17 +57,13 @@ class CacheManagePage extends HookWidget {
     }
   }
 
-  void _clearProgressCache(BuildContext context, CacheManageViewModel vm) {
-    vm.clearProgressCache();
-    showInfoSnack(context, '已清除内存中的进度缓存');
-  }
-
   Widget _buildBody(
     BuildContext context,
     ThemeData theme,
     CacheManageViewModel vm,
     AsyncState<List<Book>> books,
     AsyncState<List<BookWithProgress>> progressList,
+    AsyncState<IndexStats> indexStats,
   ) {
     return books.map(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -108,7 +104,14 @@ class CacheManagePage extends HookWidget {
         return ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
-            _buildOverview(context, theme, vm, bookList, progressData),
+            _buildOverview(
+              context,
+              theme,
+              vm,
+              bookList,
+              progressData,
+              indexStats,
+            ),
             const SizedBox(height: 24),
             Text(
               '阅读进度',
@@ -166,6 +169,7 @@ class CacheManagePage extends HookWidget {
     CacheManageViewModel vm,
     List<Book> books,
     List<BookWithProgress> progressList,
+    AsyncState<IndexStats> indexStats,
   ) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -201,24 +205,58 @@ class CacheManagePage extends HookWidget {
             ],
           ),
           const SizedBox(height: 16),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _clearProgressCache(context, vm),
-              icon: const Icon(PhosphorIconsRegular.cpu, size: 18),
-              label: const Text('清除进度缓存'),
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildSearchIndexSection(theme),
+          _buildSearchIndexSection(theme, indexStats),
         ],
       ),
     );
   }
 
-  Widget _buildSearchIndexSection(ThemeData theme) {
-    return const SizedBox.shrink();
+  /// 搜索索引状态展示。
+  Widget _buildSearchIndexSection(
+    ThemeData theme,
+    AsyncState<IndexStats> indexStats,
+  ) {
+    return indexStats.map(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (Object err, _) => Row(
+        children: [
+          Icon(
+            PhosphorIconsRegular.warningCircle,
+            size: 14,
+            color: theme.colorScheme.error,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '索引加载失败',
+            style: TextStyle(fontSize: 12, color: theme.colorScheme.error),
+          ),
+        ],
+      ),
+      data: (stats) => Row(
+        children: [
+          _overviewItem(
+            theme,
+            '${stats.totalChunks}',
+            '索引块',
+            PhosphorIconsRegular.database,
+          ),
+          const SizedBox(width: 24),
+          _overviewItem(
+            theme,
+            '${stats.indexedBooks}',
+            '索引书籍',
+            PhosphorIconsRegular.bookOpenText,
+          ),
+          const SizedBox(width: 24),
+          _overviewItem(
+            theme,
+            '${stats.indexedChapters}',
+            '索引章节',
+            PhosphorIconsRegular.article,
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _overviewItem(

@@ -137,6 +137,13 @@ class _MockReaderConfig implements ReaderConfig {
   double get fontSizeValue => ReaderFontSize.fromSize(fontSize.value).size;
 
   @override
+  late final followSystemFontScale = persistedBool(
+    prefs,
+    '',
+    false,
+    debounce: Duration.zero,
+  );
+  @override
   Future<void> resetToDefault() async {
     theme.value = ReaderTheme.light;
     fontSize.value = ReaderFontSize.medium.size;
@@ -151,6 +158,9 @@ class _MockReaderConfig implements ReaderConfig {
     baselineAlign.value = true;
     tapLayout.value = TapLayout.rightHanded;
   }
+
+  @override
+  void dispose() {}
 }
 // ===== Mock ViewModel =====
 
@@ -194,7 +204,8 @@ class MockReaderViewModel extends Mock implements ReaderViewModel {
   @override
   final autoScrollTick = signal(0);
   @override
-  final highlights = signal<List<Note>>([]);
+  @override
+  final highlights = asyncSignal<List<Note>>(AsyncState.data([]));
   @override
   final searchQuery = signal('');
   @override

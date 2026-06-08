@@ -1,4 +1,4 @@
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
@@ -8,7 +8,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import '../../data/repositories/rust_reader_repository.dart';
-import '../../domain/services/highlight_painter.dart';
+import 'package:zephyr_reader/features/reader/page/widgets/highlight_painter.dart';
 import 'reader_render_config.dart';
 
 /// 滚动模式渲染器。

@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
+import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-extension _CategoryColor on Category {
+extension CategoryColor on Category {
   Color? get colorValue {
     if (color.isEmpty) return null;
     final hex = color.replaceFirst('#', '');
-    if (hex.length == 6) return Color(int.parse(hex, radix: 16) | 0xFF000000);
-    if (hex.length == 8) return Color(int.parse(hex, radix: 16));
-    return null;
+    try {
+      if (hex.length == 6) return Color(int.parse(hex, radix: 16) | 0xFF000000);
+      if (hex.length == 8) return Color(int.parse(hex, radix: 16));
+      return null;
+    } on FormatException {
+      return null;
+    }
   }
 }
 
@@ -46,7 +50,7 @@ class CategoryManagementPage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vm = useMemoized(() => getIt<BookshelfViewModel>());
+    final catVm = useMemoized(() => getIt<CategoryViewModel>());
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final nameController = useTextEditingController();
@@ -58,14 +62,14 @@ class CategoryManagementPage extends HookWidget {
           IconButton(
             icon: const Icon(PhosphorIconsRegular.plus),
             onPressed: () =>
-                _showAddCategoryDialog(context, nameController, theme, vm),
+                _showAddCategoryDialog(context, nameController, theme, catVm),
             tooltip: l10n.addCategory,
           ),
         ],
       ),
       body: SignalBuilder(
         builder: (context) {
-          final categories = vm.categories.value.value ?? [];
+          final categories = catVm.categories.value.value ?? [];
 
           if (categories.isEmpty) {
             return Center(
@@ -99,8 +103,8 @@ class CategoryManagementPage extends HookWidget {
           return ReorderableListView.builder(
             padding: EdgeInsets.all(DesignTokens.spacing(Spacing.md)),
             itemCount: categories.length,
-            onReorder: (oldIndex, newIndex) =>
-                _onReorder(oldIndex, newIndex, vm),
+            onReorderItem: (oldIndex, newIndex) =>
+                _onReorder(oldIndex, newIndex, catVm),
             itemBuilder: (context, index) {
               final category = categories[index];
               return _buildCategoryTile(
@@ -108,7 +112,7 @@ class CategoryManagementPage extends HookWidget {
                 category,
                 theme,
                 nameController,
-                vm,
+                catVm,
               );
             },
           );
@@ -122,7 +126,7 @@ class CategoryManagementPage extends HookWidget {
     Category category,
     ThemeData theme,
     TextEditingController nameController,
-    BookshelfViewModel vm,
+    CategoryViewModel catVm,
   ) {
     final l10n = AppLocalizations.of(context)!;
     return Card(
@@ -159,14 +163,14 @@ class CategoryManagementPage extends HookWidget {
                       category,
                       nameController,
                       theme,
-                      vm,
+                      catVm,
                     ),
                     tooltip: l10n.edit,
                   ),
                   IconButton(
                     icon: const Icon(PhosphorIconsRegular.trash),
                     onPressed: () =>
-                        _showDeleteConfirm(context, category, theme, vm),
+                        _showDeleteConfirm(context, category, theme, catVm),
                     tooltip: l10n.delete,
                     color: theme.colorScheme.error,
                   ),
@@ -179,9 +183,9 @@ class CategoryManagementPage extends HookWidget {
   Future<void> _onReorder(
     int oldIndex,
     int newIndex,
-    BookshelfViewModel vm,
+    CategoryViewModel catVm,
   ) async {
-    final categories = List<Category>.from(vm.categories.value.value ?? []);
+    final categories = List<Category>.from(catVm.categories.value.value ?? []);
     if (newIndex > oldIndex) {
       newIndex -= 1;
     }
@@ -199,7 +203,7 @@ class CategoryManagementPage extends HookWidget {
           isSystem: oldCategory.isSystem,
         );
         categories[i] = updated;
-        await vm.updateCategory(updated);
+        await catVm.updateCategory(updated);
       }
     }
   }
@@ -208,7 +212,7 @@ class CategoryManagementPage extends HookWidget {
     BuildContext context,
     TextEditingController nameController,
     ThemeData theme,
-    BookshelfViewModel vm,
+    CategoryViewModel catVm,
   ) {
     final l10n = AppLocalizations.of(context)!;
     nameController.clear();
@@ -292,10 +296,10 @@ class CategoryManagementPage extends HookWidget {
                   showInfoSnack(context, l10n.categoryNameRequired);
                   return;
                 }
-                final success = await vm.addCategory(
+                final success = await catVm.addCategory(
                   name: name,
                   color: selectedColor,
-                  sortOrder: (vm.categories.value.value ?? []).length,
+                  sortOrder: (catVm.categories.value.value ?? []).length,
                 );
                 if (!context.mounted) return;
                 Navigator.pop(context);
@@ -314,7 +318,7 @@ class CategoryManagementPage extends HookWidget {
     Category category,
     TextEditingController nameController,
     ThemeData theme,
-    BookshelfViewModel vm,
+    CategoryViewModel catVm,
   ) {
     final l10n = AppLocalizations.of(context)!;
     nameController.text = category.name;
@@ -404,7 +408,7 @@ class CategoryManagementPage extends HookWidget {
                   sortOrder: category.sortOrder,
                   isSystem: category.isSystem,
                 );
-                final success = await vm.updateCategory(updated);
+                final success = await catVm.updateCategory(updated);
                 if (!context.mounted) return;
                 Navigator.pop(context);
                 showInfoSnack(context, success ? l10n.success : l10n.failed);
@@ -421,7 +425,7 @@ class CategoryManagementPage extends HookWidget {
     BuildContext context,
     Category category,
     ThemeData theme,
-    BookshelfViewModel vm,
+    CategoryViewModel catVm,
   ) {
     final l10n = AppLocalizations.of(context)!;
     showDialog<void>(
@@ -437,7 +441,7 @@ class CategoryManagementPage extends HookWidget {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              final success = await vm.removeCategory(category.id);
+              final success = await catVm.removeCategory(category.id);
               if (!context.mounted) return;
               showInfoSnack(context, success ? l10n.success : l10n.failed);
             },

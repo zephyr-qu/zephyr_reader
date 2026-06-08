@@ -1,13 +1,17 @@
 //! 页面排版分页
 //! 提供分页流式处理，支持懒加载模式以减少大文件内存占用
 
-use crate::domain::{PageContent, PageOffset, TypesetConfig};
+use crate::domain::{LanguageType, PageContent, PageDescriptor, PageOffset, TypesetConfig};
 use crate::text::char_width::CharWidthTable;
-use crate::text::constants::is_start_avoid_punctuation;
+use crate::text::constants::{is_cjk_char, is_cjk_punctuation, is_start_avoid_punctuation};
+use crate::text::typeset::{optimize_punctuation, optimize_spaces};
 use flutter_rust_bridge::frb;
 
 /// 排版安全余量（像素），防止字符恰好贴边
 const SAFETY_MARGIN_PX: f32 = 2.0;
+/// 中西文自动间距比例（相对于 font_size）。
+/// 用于在 CJK↔Latin 边界产生视觉间隔，不影响存储的文本内容。
+const AUTO_SPACE_RATIO: f32 = 0.25;
 
 /// 使用预计算的 char_indices 计算行分割
 fn compute_line_breaks_from_indices(
@@ -16,6 +20,9 @@ fn compute_line_breaks_from_indices(
     para_end: usize,
     max_width_px: f32,
     width_table: &CharWidthTable,
+    auto_space_px: f32,
+    letter_spacing_px: f32,
+    punctuation_squeeze: bool,
 ) -> Vec<(usize, usize)> {
     let char_count = para_char_indices.len();
     let mut lines = Vec::new();
@@ -31,7 +38,29 @@ fn compute_line_breaks_from_indices(
 
         for offset in 0..(char_count - start) {
             let (_, ch) = para_char_indices[start + offset];
-            let char_width = width_table.char_width(ch);
+            let mut char_width = width_table.char_width(ch) + letter_spacing_px;
+            // 标点挤压: 连续 CJK 标点以 65% 宽度显示
+            if punctuation_squeeze && offset > 0 {
+                let prev_ch = para_char_indices[start + offset - 1].1;
+                let prev_is_punct = is_cjk_punctuation(prev_ch);
+                let curr_is_punct = is_cjk_punctuation(ch);
+                if prev_is_punct && curr_is_punct {
+                    char_width *= 0.65;
+                }
+            }
+
+            // 中西文自动间距
+            if offset > 0 {
+                let prev_ch = para_char_indices[start + offset - 1].1;
+                let prev_is_cjk = is_cjk_char(prev_ch);
+                let prev_is_latin = prev_ch.is_ascii_alphabetic() || prev_ch.is_ascii_digit();
+                let curr_is_cjk = is_cjk_char(ch);
+                let curr_is_latin = ch.is_ascii_alphabetic() || ch.is_ascii_digit();
+                if (prev_is_cjk && curr_is_latin) || (prev_is_latin && curr_is_cjk) {
+                    char_width += auto_space_px;
+                }
+            }
+
             if current_width + char_width <= max_width_px {
                 current_width += char_width;
                 end = start + offset + 1;
@@ -95,6 +124,13 @@ const LAZY_PAGINATION_CHAR_THRESHOLD: usize = 50_000;
 #[frb]
 impl PageStreamer {
     pub fn new(content: String, config: TypesetConfig) -> Self {
+        // 标点优化 + 空格优化（避头避尾、CJK/Latin 间距等）
+        let lang = match config.language {
+            LanguageType::Chinese => "zh",
+            LanguageType::English => "en",
+            LanguageType::Auto | LanguageType::Mixed => "auto",
+        };
+        let content = optimize_spaces(&optimize_punctuation(&content, lang), lang);
         let content_len = content.len();
         if content_len > LAZY_PAGINATION_CHAR_THRESHOLD {
             return Self::new_lazy(content, config);
@@ -124,6 +160,8 @@ impl PageStreamer {
         let indent_width = font_size * config.first_line_indent as f32;
         let effective_width = (page_width_px - SAFETY_MARGIN_PX).max(1.0);
         let max_line_width = effective_width - indent_width;
+
+        let auto_space_px = (font_size * AUTO_SPACE_RATIO).max(1.0);
 
         let width_table = CharWidthTable::from_calibration(
             config.calibration.as_ref().unwrap_or(&Default::default()),
@@ -163,16 +201,26 @@ impl PageStreamer {
             let para_indices = &full_char_indices[start_idx..end_idx];
 
             let line_breaks =
-                compute_line_breaks_from_indices(para_indices, para_start, para_end, max_line_width, &width_table);
-
+                compute_line_breaks_from_indices(para_indices, para_start, para_end, max_line_width, &width_table, auto_space_px, config.letter_spacing, config.punctuation_squeeze);
             for (i, (start, end)) in line_breaks.iter().enumerate() {
                 let line_start = global_offset + *start;
                 let line_end = global_offset + *end;
                 line_offsets.push((line_start, line_end));
                 first_of_paragraph.push(i == 0);
             }
-
             global_offset += line_with_ending.len();
+
+            // 段落间距：在两个**非空**段落之间添加空白行
+            if config.paragraph_spacing > 0.0
+                && !paragraph.is_empty()
+                && line_offsets.last().map(|(s, e)| s != e).unwrap_or(false)
+            {
+                let spacer_lines = (config.paragraph_spacing * line_spacing).round() as usize;
+                for _ in 0..spacer_lines {
+                    line_offsets.push((global_offset, global_offset));
+                    first_of_paragraph.push(false);
+                }
+            }
         }
 
         let total_lines = line_offsets.len();
@@ -250,13 +298,6 @@ impl PageStreamer {
             page_content.push_str(&self.content[s..e]);
         }
         page_content
-    }
-    fn extract_line(&self, line_idx: usize) -> &str {
-        if self.line_offsets.is_empty() {
-            return "";
-        }
-        let (start, end) = self.line_offsets[line_idx];
-        &self.content[start..end]
     }
 
     #[frb(sync)]
@@ -419,6 +460,63 @@ impl PageStreamer {
         }
 
         offsets
+    }
+
+    /// 获取所有页面的描述符（轻量级，不含文本内容）。
+    ///
+    /// Eager 模式基于预计算的 `line_offsets` 计算偏移量。
+    /// Lazy 模式基于 `char_boundaries` 估算偏移量。
+    #[frb(sync)]
+    pub fn get_descriptors(&self) -> Vec<PageDescriptor> {
+        if self.line_offsets.is_empty() {
+            return self.get_descriptors_lazy();
+        }
+        let total = self.total_pages();
+        let mut descriptors = Vec::with_capacity(total);
+        for page_idx in 0..total {
+            let start_line = page_idx * self.lines_per_page;
+            let end_line = (start_line + self.lines_per_page).min(self.total_lines);
+
+            let start_offset = self.line_offsets[start_line].0 as i32;
+            let end_offset = self.line_offsets[end_line.saturating_sub(1)].1 as i32;
+            let is_last_page = end_line >= self.total_lines;
+
+            descriptors.push(PageDescriptor {
+                page_index: page_idx as i32,
+                start_offset,
+                end_offset,
+                is_last_page,
+            });
+        }
+        descriptors
+    }
+
+    fn get_descriptors_lazy(&self) -> Vec<PageDescriptor> {
+        let total = self.total_pages();
+        let mut descriptors = Vec::with_capacity(total);
+        let chars_per_page = self.chars_per_line * self.lines_per_page;
+        let total_chars = self.total_chars();
+        for page_idx in 0..total {
+            let char_start = page_idx * chars_per_page;
+            let char_end = (char_start + chars_per_page).min(total_chars);
+
+            let byte_start = self.char_boundaries
+                .get(char_start)
+                .copied()
+                .unwrap_or(self.content.len());
+            let byte_end = self.char_boundaries
+                .get(char_end)
+                .copied()
+                .unwrap_or(self.content.len());
+
+            descriptors.push(PageDescriptor {
+                page_index: page_idx as i32,
+                start_offset: byte_start as i32,
+                end_offset: byte_end as i32,
+                is_last_page: char_end >= total_chars,
+            });
+        }
+        descriptors
     }
 }
 

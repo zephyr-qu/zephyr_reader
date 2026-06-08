@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_status_chip.dart';
-import 'package:zephyr_reader/core/utils/format_utils.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// A single vocabulary list item with swipe-to-delete and status popup menu.
@@ -224,6 +223,9 @@ class VocabListItemTile extends StatelessWidget {
           ],
         ),
       ),
-    ).animate().fadeIn(duration: 300.ms, delay: staggerDelay(index));
+    ).animate().fadeIn(
+      duration: 300.ms,
+      delay: Duration(milliseconds: 50 * index.clamp(0, 10)),
+    );
   }
 }

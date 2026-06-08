@@ -119,7 +119,7 @@ void main() {
       final config = ReaderConfig(prefs);
       config.fontSize.value = 18.0;
       // 等待 debounce 写入
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
 
       expect(config.fontSize.value, equals(18.0));
       expect(prefs.getDouble('reader_font_size'), equals(18.0));
@@ -128,7 +128,7 @@ void main() {
     test('setLineHeight 更新信号并持久化', () async {
       final config = ReaderConfig(prefs);
       config.lineHeight.value = 2.0;
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
 
       expect(config.lineHeight.value, equals(2.0));
       expect(prefs.getDouble('reader_line_height'), equals(2.0));
@@ -137,7 +137,7 @@ void main() {
     test('setParagraphSpacing 更新信号并持久化', () async {
       final config = ReaderConfig(prefs);
       config.paragraphSpacing.value = 24.0;
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
 
       expect(config.paragraphSpacing.value, equals(24.0));
       expect(prefs.getDouble('reader_paragraph_spacing'), equals(24.0));
@@ -146,7 +146,7 @@ void main() {
     test('setPadding 更新信号并持久化', () async {
       final config = ReaderConfig(prefs);
       config.padding.value = 32.0;
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
 
       expect(config.padding.value, equals(32.0));
       expect(prefs.getDouble('reader_padding'), equals(32.0));
@@ -155,7 +155,7 @@ void main() {
     test('setReaderBgColorIndex 更新信号并持久化', () async {
       final config = ReaderConfig(prefs);
       config.readerBgColorIndex.value = 3;
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
 
       expect(config.readerBgColorIndex.value, equals(3));
       expect(prefs.getInt('reader_bg_color_index'), equals(3));
@@ -173,7 +173,7 @@ void main() {
     test('setAutoScrollSpeed 更新信号并持久化', () async {
       final config = ReaderConfig(prefs);
       config.autoScrollSpeed.value = 60;
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
 
       expect(config.autoScrollSpeed.value, equals(60));
       expect(prefs.getInt('reader_auto_scroll_speed'), equals(60));
@@ -182,7 +182,7 @@ void main() {
     test('setLetterSpacing 更新信号并持久化', () async {
       final config = ReaderConfig(prefs);
       config.letterSpacing.value = 0.5;
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
 
       expect(config.letterSpacing.value, equals(0.5));
       expect(prefs.getDouble('reader_letter_spacing'), equals(0.5));
@@ -215,7 +215,7 @@ void main() {
       config.letterSpacing.value = 0.5;
 
       // 重置
-      await config.resetToDefault();
+      config.resetToDefault();
 
       // 验证信号复位
       expect(config.theme.value, equals(ReaderTheme.light));

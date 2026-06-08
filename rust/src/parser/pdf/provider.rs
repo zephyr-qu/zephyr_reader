@@ -1,5 +1,6 @@
 //! PDF 按需内容提供器
 //!
+//! TODO: Dart 侧尚未接入 PDF 阅读，此模块目前无活调用方
 //! `PdfContentProvider` 实现 `PagedContentProvider`，提供页面级按需访问。
 //! 每次 `get_page()` 调用打开 Pdfium 文档，提取单页文本并缓存。
 //! LRU 页面缓存避免相邻页面翻页时的重复提取开销。

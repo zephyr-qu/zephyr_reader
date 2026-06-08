@@ -1,4 +1,5 @@
 /// 用户协议页面。
+library;
 
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/legal_section_card.dart';

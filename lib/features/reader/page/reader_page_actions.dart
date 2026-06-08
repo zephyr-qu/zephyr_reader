@@ -113,6 +113,7 @@ Future<void> onBilingualHighlight(
   final targetText = targetLanguage == 'zh' ? seg.chinese : seg.english;
 
   await vm.createBilingualHighlight(
+    l10n: l10n,
     sourceBookId: vm.bookId.value,
     sourceChapterIndex: vm.chapterIndex.value,
     sourceCharOffset: startOffset,

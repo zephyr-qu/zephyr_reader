@@ -2,7 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/backup/application/backup_view_model.dart';
@@ -151,13 +151,11 @@ class BackupPage extends HookWidget {
   }
 
   Future<String?> _pickBackupFile() async {
-    final result = await FilePicker.pickFiles(
+    final result = await FilePicker.pickFile(
       dialogTitle: '选择备份文件',
       type: FileType.custom,
       allowedExtensions: ['db'],
-      allowMultiple: false,
     );
-    if (result == null || result.files.isEmpty) return null;
-    return result.files.single.path;
+    return result?.path;
   }
 }

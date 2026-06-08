@@ -65,7 +65,9 @@ class _SimpleRetryInterceptor extends Interceptor {
     err.requestOptions.extra['_retryCount'] = retryCount;
 
     // 指数退避: 500ms, 1s, 2s
-    await Future.delayed(Duration(milliseconds: 500 * (1 << (retryCount - 1))));
+    await Future<void>.delayed(
+      Duration(milliseconds: 500 * (1 << (retryCount - 1))),
+    );
 
     try {
       final response = await Dio().fetch<dynamic>(err.requestOptions);

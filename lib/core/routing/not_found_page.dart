@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 
 /// 404 页面
@@ -8,7 +8,6 @@ import 'package:zephyr_reader/core/routing/route_constants.dart';
 /// 当用户导航到不存在的路由时展示的错误页面。
 /// 显示未找到的路径并提供一个返回书架的按钮。
 class NotFoundPage extends StatelessWidget {
-
   final String path;
 
   const NotFoundPage({super.key, required this.path});

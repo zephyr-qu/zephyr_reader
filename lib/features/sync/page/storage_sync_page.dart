@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_navigation_tile.dart';
-import 'package:zephyr_reader/core/utils/date_formatters.dart';
+import 'package:zephyr_reader/core/utils/time_formatters.dart';
 import 'package:zephyr_reader/features/sync/application/storage_sync_view_model.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/features/sync/page/widgets/webdav_config_dialog.dart';
@@ -246,10 +246,10 @@ class StorageSyncPage extends HookWidget {
           label: l10n.dangerZone,
           children: [
             DangerItem(
-              icon: PhosphorIconsRegular.lightning,
+              icon: PhosphorIconsRegular.broom,
               title: l10n.clearAllData,
               description: l10n.clearAllDataDesc,
-              onTap: () => _confirmReset(cs, vm, context),
+              onTap: () => _confirmClearCache(vm, context),
             ),
           ],
         )
@@ -260,65 +260,27 @@ class StorageSyncPage extends HookWidget {
 
   // ==================== Dialogs ====================
 
-  void _confirmReset(
-    ColorScheme cs,
-    StorageSyncViewModel vm,
-    BuildContext context,
-  ) {
+  void _confirmClearCache(StorageSyncViewModel vm, BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     showConfirmActionDialog(
       context,
       title: l10n.clearAllDataTitle,
       content: l10n.clearAllDataContent,
-      confirmLabel: l10n.continueAction,
-      onConfirm: () => _showFinalConfirm(cs, context, vm),
+      confirmLabel: l10n.confirmClear,
+      onConfirm: () async {
+        vm.loading.value = true;
+        try {
+          await vm.clearCache();
+          if (!context.mounted) return;
+          showInfoSnack(context, l10n.dataCleared);
+        } catch (e) {
+          if (!context.mounted) return;
+          showInfoSnack(context, l10n.dataClearFailed(e.toString()));
+        } finally {
+          vm.loading.value = false;
+        }
+      },
     );
-  }
-
-  Future<void> _showFinalConfirm(
-    ColorScheme cs,
-    BuildContext context,
-    StorageSyncViewModel vm,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(l10n.confirmAgain, style: const TextStyle(fontSize: 18)),
-        content: const Text('请输入 RESET 以确认操作：'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(
-              l10n.cancel,
-              style: TextStyle(color: cs.onSurfaceVariant),
-            ),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: cs.error),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.confirmAgain),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-    if (!context.mounted) return;
-
-    // 开始清除数据
-    vm.loading.value = true;
-    try {
-      await vm.clearAllLocalData();
-      if (!context.mounted) return;
-      showInfoSnack(context, l10n.dataCleared);
-    } catch (e) {
-      if (!context.mounted) return;
-      showInfoSnack(context, l10n.dataClearFailed(e.toString()));
-    } finally {
-      vm.loading.value = false;
-    }
   }
 
   // ==================== Sync Action ====================

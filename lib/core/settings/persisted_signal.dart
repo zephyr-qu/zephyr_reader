@@ -20,6 +20,9 @@ class PersistedSignal<T> {
   final Future<void> Function(SharedPreferences, String, T) _write;
   bool _disposed = false;
 
+  /// 默认值（用于 reset 恢复）
+  final T defaultValue;
+
   /// 当前值
   T get value => _signal.value;
 
@@ -32,15 +35,12 @@ class PersistedSignal<T> {
 
   PersistedSignal._({
     required T initialValue,
+    required this.defaultValue,
     required this.key,
-    required SharedPreferences prefs,
-    required Future<void> Function(SharedPreferences, String, T) write,
-    Duration debounce = const Duration(milliseconds: 150),
-  }) : _signal = Signal<T>(initialValue),
-       _prefs = prefs,
-       _write = write,
-       _debounce = debounce;
-
+    required this._prefs,
+    required this._write,
+    this._debounce = const Duration(milliseconds: 150),
+  }) : _signal = Signal<T>(initialValue);
   void _scheduleSave() {
     _saveTimer?.cancel();
     if (_debounce == Duration.zero) {
@@ -70,6 +70,11 @@ class PersistedSignal<T> {
   /// 关联信号原值（用于 `useSignal`、`SignalBuilder` 等）
   Signal<T> get signal => _signal;
 
+  /// 重置为默认值
+  void reset() {
+    value = defaultValue;
+  }
+
   /// 取消待写入的 timer。不再使用此信号时调用
   void dispose() {
     _disposed = true;
@@ -88,6 +93,7 @@ PersistedSignal<bool> persistedBool(
 }) {
   return PersistedSignal<bool>._(
     initialValue: prefs.getBool(key) ?? defaultValue,
+    defaultValue: defaultValue,
     key: key,
     prefs: prefs,
     write: (p, k, v) => p.setBool(k, v),
@@ -104,6 +110,7 @@ PersistedSignal<int> persistedInt(
 }) {
   return PersistedSignal<int>._(
     initialValue: prefs.getInt(key) ?? defaultValue,
+    defaultValue: defaultValue,
     key: key,
     prefs: prefs,
     write: (p, k, v) => p.setInt(k, v),
@@ -120,6 +127,7 @@ PersistedSignal<double> persistedDouble(
 }) {
   return PersistedSignal<double>._(
     initialValue: prefs.getDouble(key) ?? defaultValue,
+    defaultValue: defaultValue,
     key: key,
     prefs: prefs,
     write: (p, k, v) => p.setDouble(k, v),
@@ -136,6 +144,7 @@ PersistedSignal<String> persistedString(
 }) {
   return PersistedSignal<String>._(
     initialValue: prefs.getString(key) ?? defaultValue,
+    defaultValue: defaultValue,
     key: key,
     prefs: prefs,
     write: (p, k, v) => p.setString(k, v),
@@ -152,6 +161,7 @@ PersistedSignal<String?> persistedNullableString(
 }) {
   return PersistedSignal<String?>._(
     initialValue: prefs.getString(key),
+    defaultValue: null,
     key: key,
     prefs: prefs,
     write: (p, k, v) {
@@ -174,6 +184,7 @@ PersistedSignal<int?> persistedNullableInt(
 }) {
   return PersistedSignal<int?>._(
     initialValue: prefs.getInt(key),
+    defaultValue: null,
     key: key,
     prefs: prefs,
     write: (p, k, v) {
@@ -197,6 +208,7 @@ PersistedSignal<T> persistedEnum<T extends Enum>(
 }) {
   return PersistedSignal<T>._(
     initialValue: _readEnum(prefs, key, defaultValue, parser),
+    defaultValue: defaultValue,
     key: key,
     prefs: prefs,
     write: (p, k, v) => p.setString(k, v.name),
@@ -215,6 +227,7 @@ PersistedSignal<T> persistedEnumCustom<T extends Enum>(
 }) {
   return PersistedSignal<T>._(
     initialValue: _readEnum(prefs, key, defaultValue, parser),
+    defaultValue: defaultValue,
     key: key,
     prefs: prefs,
     write: (p, k, v) => p.setString(k, serializer(v)),
@@ -248,6 +261,7 @@ PersistedSignal<Color?> persistedColor(
 }) {
   return PersistedSignal<Color?>._(
     initialValue: _readColor(prefs, key),
+    defaultValue: null,
     key: key,
     prefs: prefs,
     write: (p, k, v) {

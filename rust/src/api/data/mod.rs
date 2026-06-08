@@ -38,12 +38,7 @@ pub use crate::async_storage;
 #[macro_export]
 macro_rules! async_storage {
     ($op:expr) => {{
-        let pool = $crate::storage::ensure_storage()
-            .map_err(|_| $crate::domain::AppError::storage_not_initialized())?
-            .pool()
-            .map_err(|e| $crate::domain::AppError::database_error(e.to_string()))?;
-        $op(&pool)
-            .await
-            .map_err(|e| $crate::domain::AppError::from(e))
+        let pool = $crate::storage::ensure_storage()?.pool()?;
+        $op(&pool).await
     }};
 }

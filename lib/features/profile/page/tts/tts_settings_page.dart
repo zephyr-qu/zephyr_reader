@@ -3,19 +3,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
-import 'package:signals_hooks/signals_hooks.dart';
-import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
-import 'package:zephyr_reader/core/presentation/widgets/settings/settings_slider_tile.dart';
-import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/core/reader/tts_service.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
 import 'package:zephyr_reader/features/profile/page/tts/select_item_tile.dart';
 import 'package:zephyr_reader/features/profile/page/tts/tts_preview_card.dart';
+import 'package:zephyr_reader/features/profile/page/tts/playback_section.dart';
+import 'package:zephyr_reader/features/profile/page/tts/bilingual_section.dart';
+import 'package:zephyr_reader/features/profile/page/tts/behavior_section.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// TTS 语音朗读设置页面。
@@ -42,7 +40,6 @@ class TtsSettingsPage extends HookWidget {
       return null;
     }, []);
 
-    final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -62,11 +59,11 @@ class TtsSettingsPage extends HookWidget {
           const SizedBox(height: 24),
           _buildVoiceSection(context, tts, l10n),
           const SizedBox(height: 24),
-          _buildPlaybackSection(cs, vm, tts, l10n),
+          PlaybackSection(vm: vm, tts: tts, l10n: l10n),
           const SizedBox(height: 24),
-          _buildBilingualSection(context, cs, vm, l10n),
+          BilingualSection(vm: vm, l10n: l10n),
           const SizedBox(height: 24),
-          _buildBehaviorSection(context, cs, vm, l10n),
+          BehaviorSection(vm: vm, l10n: l10n),
         ],
       ),
     );
@@ -204,226 +201,6 @@ class TtsSettingsPage extends HookWidget {
         )
         .animate()
         .fadeIn(duration: 300.ms, delay: 100.ms)
-        .slideY(begin: 0.04, end: 0);
-  }
-
-  Widget _buildPlaybackSection(
-    ColorScheme cs,
-    TtsSettingsViewModel vm,
-    TtsService tts,
-    AppLocalizations l10n,
-  ) {
-    final speed = useSignalValue<double, Signal<double>>(vm.speed.signal);
-    final pitch = useSignalValue<double, Signal<double>>(vm.pitch.signal);
-    final pauseBetween = useSignalValue<int, Signal<int>>(
-      vm.pauseBetween.signal,
-    );
-    return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SectionLabel(label: l10n.ttsPlaybackParams),
-            SettingsCard(
-              children: [
-                SettingsSliderTile(
-                  label: l10n.ttsSpeed,
-                  value: '${speed.toStringAsFixed(1)}x',
-                  current: speed,
-                  min: 0.5,
-                  max: 2.0,
-                  onChanged: (v) {
-                    vm.speed.value = v;
-                    unawaited(tts.setSpeed(v));
-                  },
-                ),
-                SettingsSliderTile(
-                  label: l10n.ttsPitch,
-                  value: pitch.toStringAsFixed(1),
-                  current: pitch,
-                  min: 0.5,
-                  max: 2.0,
-                  onChanged: (v) {
-                    vm.pitch.value = v;
-                    unawaited(tts.setPitch(v));
-                  },
-                ),
-                SettingsSliderTile(
-                  label: l10n.ttsPauseBetween,
-                  value: '${pauseBetween}ms',
-                  current: pauseBetween.toDouble(),
-                  min: 0,
-                  max: 1000,
-                  onChanged: (v) {
-                    vm.pauseBetween.value = v.toInt();
-                    tts.setPauseBetween(v.toInt());
-                  },
-                  step: 50,
-                ),
-              ],
-            ),
-          ],
-        )
-        .animate()
-        .fadeIn(duration: 300.ms, delay: 150.ms)
-        .slideY(begin: 0.04, end: 0);
-  }
-
-  Widget _buildBilingualSection(
-    BuildContext context,
-    ColorScheme cs,
-    TtsSettingsViewModel vm,
-    AppLocalizations l10n,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionLabel(
-          label: l10n.ttsBilingualReading,
-          tag: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-            decoration: BoxDecoration(
-              color: cs.brightness == Brightness.dark
-                  ? const Color(0xFF4E2D0D)
-                  : const Color(0xFFFFF3E0),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              l10n.zephyrExclusive,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                color: cs.brightness == Brightness.dark
-                    ? const Color(0xFFFFCC80)
-                    : const Color(0xFFEF6C00),
-              ),
-            ),
-          ),
-        ),
-        SettingsCard(
-          showDividers: true,
-          children: [
-            SettingsToggleTile(
-              icon: PhosphorIconsRegular.arrowsLeftRight,
-              iconColor: MenuItemSemantic.reading.iconColor(
-                Theme.of(context).brightness,
-              ),
-              iconBackground: MenuItemSemantic.reading.iconBackground(
-                Theme.of(context).brightness,
-              ),
-              title: l10n.ttsBilingualAlternate,
-              subtitle: l10n.ttsBilingualAlternateDesc,
-              value: useSignalValue<bool, Signal<bool>>(
-                vm.bilingualAlternate.signal,
-              ),
-              onChanged: (v) => vm.bilingualAlternate.value = v,
-            ),
-            SettingsToggleTile(
-              icon: PhosphorIconsRegular.textAa,
-              iconColor: MenuItemSemantic.reading.iconColor(
-                Theme.of(context).brightness,
-              ),
-              iconBackground: MenuItemSemantic.reading.iconBackground(
-                Theme.of(context).brightness,
-              ),
-              title: l10n.ttsOriginalOnly,
-              subtitle: l10n.ttsOriginalOnlyDesc,
-              value: useSignalValue<bool, Signal<bool>>(vm.originalOnly.signal),
-              onChanged: (v) => vm.originalOnly.value = v,
-            ),
-            SettingsSliderTile(
-              label: l10n.ttsSwitchInterval,
-              value:
-                  '${useSignalValue<int, Signal<int>>(vm.switchInterval.signal)}ms',
-              current: useSignalValue<int, Signal<int>>(
-                vm.switchInterval.signal,
-              ).toDouble(),
-              min: 200,
-              max: 1500,
-              onChanged: (v) => vm.switchInterval.value = v.toInt(),
-              step: 100,
-            ),
-          ],
-        ),
-      ],
-    ).animate().fadeIn(duration: 300.ms, delay: 200.ms).slideY(begin: 0.04, end: 0);
-  }
-
-  Widget _buildBehaviorSection(
-    BuildContext context,
-    ColorScheme cs,
-    TtsSettingsViewModel vm,
-    AppLocalizations l10n,
-  ) {
-    return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SectionLabel(label: l10n.ttsBehavior),
-            SettingsCard(
-              showDividers: true,
-              children: [
-                SettingsToggleTile(
-                  icon: PhosphorIconsRegular.playCircle,
-                  iconColor: MenuItemSemantic.info.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.info.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
-                  title: l10n.ttsBackgroundPlay,
-                  subtitle: l10n.ttsBackgroundPlayDesc,
-                  value: useSignalValue<bool, Signal<bool>>(
-                    vm.backgroundPlay.signal,
-                  ),
-                  onChanged: (v) => vm.backgroundPlay.value = v,
-                ),
-                SettingsToggleTile(
-                  icon: PhosphorIconsRegular.arrowRight,
-                  iconColor: MenuItemSemantic.info.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.info.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
-                  title: l10n.ttsAutoPage,
-                  subtitle: l10n.ttsAutoPageDesc,
-                  value: useSignalValue<bool, Signal<bool>>(vm.autoPage.signal),
-                  onChanged: (v) => vm.autoPage.value = v,
-                ),
-                SettingsToggleTile(
-                  icon: PhosphorIconsRegular.highlighter,
-                  iconColor: MenuItemSemantic.info.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.info.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
-                  title: l10n.ttsHighlightFollow,
-                  subtitle: l10n.ttsHighlightFollowDesc,
-                  value: useSignalValue<bool, Signal<bool>>(
-                    vm.highlightFollow.signal,
-                  ),
-                  onChanged: (v) => vm.highlightFollow.value = v,
-                ),
-                SettingsToggleTile(
-                  icon: PhosphorIconsRegular.moon,
-                  iconColor: MenuItemSemantic.info.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.info.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
-                  title: l10n.ttsDimOnLock,
-                  subtitle: l10n.ttsDimOnLockDesc,
-                  value: useSignalValue<bool, Signal<bool>>(
-                    vm.dimOnLock.signal,
-                  ),
-                  onChanged: (v) => vm.dimOnLock.value = v,
-                ),
-              ],
-            ),
-          ],
-        )
-        .animate()
-        .fadeIn(duration: 300.ms, delay: 250.ms)
         .slideY(begin: 0.04, end: 0);
   }
 }

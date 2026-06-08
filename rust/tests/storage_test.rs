@@ -12,7 +12,7 @@ use tempfile::TempDir;
 
 static TEST_STORAGE: OnceLock<TempDir> = OnceLock::new();
 
-/// 初始化测试存储环境（全局只初始化一次）
+// 初始化测试存储环境（全局只初始化一次）
 async fn ensure_storage_initialized() {
     if TEST_STORAGE.get().is_some() {
         return;
@@ -32,7 +32,7 @@ async fn ensure_storage_initialized() {
     TEST_STORAGE.get_or_init(|| temp_dir);
 }
 
-/// 创建测试书籍
+// 创建测试书籍
 fn create_test_book(file_path: &str) -> Book {
     Book {
         book_id: uuid::Uuid::new_v4().to_string(),
@@ -60,7 +60,7 @@ fn create_test_book(file_path: &str) -> Book {
 // ==================== 书籍 CRUD 测试 ====================
 
 #[tokio::test]
-/// 测试创建书籍并获取，验证各字段正确性
+// 测试创建书籍并获取，验证各字段正确性
 async fn test_book_create_and_get() {
     ensure_storage_initialized().await;
 
@@ -87,7 +87,7 @@ async fn test_book_create_and_get() {
     println!("✓ 书籍创建和获取测试通过");
 }
 
-/// 测试更新书籍状态和标题，验证更新持久化
+// 测试更新书籍状态和标题，验证更新持久化
 #[tokio::test]
 async fn test_book_update() {
     ensure_storage_initialized().await;
@@ -119,7 +119,7 @@ async fn test_book_update() {
 
 #[tokio::test]
 async fn test_book_delete() {
-/// 测试删除书籍，验证删除后无法获取
+// 测试删除书籍，验证删除后无法获取
     ensure_storage_initialized().await;
 
     // 创建书籍
@@ -142,7 +142,7 @@ async fn test_book_delete() {
 
 #[tokio::test]
 async fn test_book_list_all() {
-/// 测试获取所有书籍列表，验证列表完整性
+// 测试获取所有书籍列表，验证列表完整性
     ensure_storage_initialized().await;
 
     // 创建多本书籍（使用唯一 ID 避免冲突）
@@ -165,7 +165,7 @@ async fn test_book_list_all() {
 
 #[tokio::test]
 async fn test_book_search() {
-/// 测试按书名关键词搜索书籍
+// 测试按书名关键词搜索书籍
     ensure_storage_initialized().await;
 
     // 创建测试书籍
@@ -191,7 +191,7 @@ async fn test_book_search() {
 
 #[tokio::test]
 async fn test_book_get_by_status() {
-/// 测试按阅读状态筛选书籍
+// 测试按阅读状态筛选书籍
     ensure_storage_initialized().await;
 
     // 创建不同状态的书籍
@@ -224,7 +224,7 @@ async fn test_book_get_by_status() {
 
 #[tokio::test]
 async fn test_bookmark_create_and_get() {
-/// 测试创建书签并获取，验证字段正确性
+// 测试创建书签并获取，验证字段正确性
     ensure_storage_initialized().await;
 
     // 先创建关联的书籍记录
@@ -258,7 +258,7 @@ async fn test_bookmark_create_and_get() {
 }
 
 #[tokio::test]
-/// 测试按书籍获取所有书签列表
+// 测试按书籍获取所有书签列表
 async fn test_bookmark_list_by_book() {
     ensure_storage_initialized().await;
 
@@ -274,7 +274,7 @@ async fn test_bookmark_list_by_book() {
         data::bookmark::create_bookmark(
             book_id.clone(),
             i as i32,
-            i as i64 * 100,
+            i * 100,
             format!("书签{}", i),
         )
         .await
@@ -293,7 +293,7 @@ async fn test_bookmark_list_by_book() {
 
 #[tokio::test]
 async fn test_bookmark_delete() {
-/// 测试删除书签，验证删除后无法获取
+// 测试删除书签，验证删除后无法获取
     ensure_storage_initialized().await;
 
     let book_id = "test_book_for_delete_unique".to_string();
@@ -325,7 +325,7 @@ async fn test_bookmark_delete() {
 
 #[tokio::test]
 async fn test_bookmark_clear_by_book() {
-/// 测试清除某本书的所有书签
+// 测试清除某本书的所有书签
     ensure_storage_initialized().await;
 
     let book_id = "test_book_for_clear_unique".to_string();
@@ -340,7 +340,7 @@ async fn test_bookmark_clear_by_book() {
         data::bookmark::create_bookmark(
             book_id.clone(),
             i as i32,
-            i as i64 * 100,
+            i * 100,
             format!("书签{}", i),
         )
         .await
@@ -363,7 +363,7 @@ async fn test_bookmark_clear_by_book() {
 
 #[tokio::test]
 async fn test_note_create_highlight() {
-/// 测试创建高亮笔记，验证类型和字段正确性
+// 测试创建高亮笔记，验证类型和字段正确性
     ensure_storage_initialized().await;
 
     let book_id = "test_book_for_highlight_unique".to_string();
@@ -399,7 +399,7 @@ async fn test_note_create_highlight() {
 
 #[tokio::test]
 async fn test_note_create_annotation() {
-/// 测试创建批注笔记，验证类型和字段正确性
+// 测试创建批注笔记，验证类型和字段正确性
     ensure_storage_initialized().await;
 
     let book_id = "test_book_for_annotation_unique".to_string();
@@ -433,7 +433,7 @@ async fn test_note_create_annotation() {
 
 #[tokio::test]
 async fn test_note_list_by_book() {
-/// 测试按书籍获取所有笔记列表，支持按类型筛选
+// 测试按书籍获取所有笔记列表，支持按类型筛选
     ensure_storage_initialized().await;
 
     let book_id = "test_book_for_notes_unique".to_string();
@@ -494,7 +494,7 @@ async fn test_note_list_by_book() {
 
 #[tokio::test]
 async fn test_note_list_by_type() {
-/// 测试按笔记类型筛选笔记
+// 测试按笔记类型筛选笔记
     ensure_storage_initialized().await;
 
     let book_id = "test_book_for_type_filter_unique".to_string();
@@ -543,7 +543,7 @@ async fn test_note_list_by_type() {
 
 #[tokio::test]
 async fn test_note_delete() {
-/// 测试删除笔记
+// 测试删除笔记
     ensure_storage_initialized().await;
 
     let book_id = "test_book_for_note_delete_unique".to_string();
@@ -578,7 +578,7 @@ async fn test_note_delete() {
 
 #[tokio::test]
 async fn test_note_clear_by_book() {
-/// 测试清除某本书的所有笔记
+// 测试清除某本书的所有笔记
     ensure_storage_initialized().await;
 
     let book_id = "test_book_for_note_clear_unique".to_string();
@@ -593,7 +593,7 @@ async fn test_note_clear_by_book() {
         data::note::create_highlight(
             book_id.clone(),
             0,
-            i as i64 * 100,
+            i * 100,
             50,
             format!("笔记{}", i),
             0xFFFF00,
@@ -620,7 +620,7 @@ async fn test_note_clear_by_book() {
 
 #[tokio::test]
 async fn test_book_and_bookmark_relation() {
-/// 测试删除书籍时级联删除关联书签
+// 测试删除书籍时级联删除关联书签
     ensure_storage_initialized().await;
 
     // 创建书籍
@@ -649,7 +649,7 @@ async fn test_book_and_bookmark_relation() {
 
 #[tokio::test]
 async fn test_book_and_note_relation() {
-/// 测试删除书籍时级联删除关联笔记
+// 测试删除书籍时级联删除关联笔记
     ensure_storage_initialized().await;
 
     // 创建书籍

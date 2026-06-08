@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:go_router/go_router.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:zephyr_reader/core/routing/route_constants.dart';
-import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import 'package:zephyr_reader/core/utils/format_utils.dart';
 import 'package:zephyr_reader/features/profile/application/profile_view_model.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import 'profile_header.dart';
-import 'profile_menu_widgets.dart';
+import 'package:zephyr_reader/features/profile/page/profile/profile_menu_sections.dart';
 import 'profile_stat_item.dart';
 
 /// 个人中心页面。
@@ -64,7 +60,7 @@ class ProfilePage extends HookWidget {
               const SizedBox(height: 24),
               _buildStatsRow(context, globalStats),
               const SizedBox(height: 28),
-              _buildMenuSections(context),
+              const ProfileMenuSections(),
               const SizedBox(height: 40),
               Center(
                 child: Text(
@@ -113,7 +109,6 @@ class ProfilePage extends HookWidget {
                   : 0;
               final chars = stats?.totalCharactersRead ?? 0;
               final completed = stats?.booksCompletedCount ?? 0;
-              final total = stats?.totalBooksCount ?? 0;
               return Row(
                 children: [
                   ProfileStatItem(
@@ -123,13 +118,16 @@ class ProfilePage extends HookWidget {
                   ),
                   _divider(),
                   ProfileStatItem(
-                    value: formatChars(chars, l10n),
+                    value: chars >= 1000
+                        ? '${(chars / 1000).toStringAsFixed(1)}K'
+                        : '$chars',
+                    unit: 'W',
                     label: l10n.readingWords,
                     icon: PhosphorIconsRegular.book,
                   ),
                   _divider(),
                   ProfileStatItem(
-                    value: total > 0 ? '$completed/$total' : '$completed',
+                    value: '$completed',
                     label: l10n.booksCompleted,
                     icon: PhosphorIconsRegular.checkCircle,
                   ),
@@ -148,104 +146,6 @@ class ProfilePage extends HookWidget {
       width: 1,
       height: 36,
       color: DesignTokens.warmAccent.withValues(alpha: 0.15),
-    );
-  }
-
-  Widget _buildMenuSections(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final sections = [
-      MenuSectionData(l10n.sectionStudyMgmt, [
-        MenuItemData(
-          PhosphorIconsRegular.bookmarkSimple,
-          l10n.vocabularyBook,
-          MenuItemSemantic.education,
-          () => context.push(RoutePaths.vocabulary),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.bookOpen,
-          l10n.learningNotes,
-          MenuItemSemantic.education,
-          () => context.push(RoutePaths.learningNotes),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.clockCounterClockwise,
-          l10n.readingSessions,
-          MenuItemSemantic.reading,
-          () => context.push(RoutePaths.readingSessions),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.hardDrives,
-          l10n.storageSync,
-          MenuItemSemantic.success,
-          () => context.push(RoutePaths.storageSync),
-        ),
-      ]),
-      MenuSectionData(l10n.sectionReadingExp, [
-        MenuItemData(
-          PhosphorIconsRegular.waveform,
-          l10n.ttsSettings,
-          MenuItemSemantic.info,
-          () => context.push(RoutePaths.ttsSettings),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.textB,
-          l10n.typographySettings,
-          MenuItemSemantic.typography,
-          () => context.push(RoutePaths.typographySettings),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.palette,
-          l10n.themeBrightness,
-          MenuItemSemantic.primary,
-          () => context.push(RoutePaths.themeBrightness),
-        ),
-      ]),
-      MenuSectionData(l10n.sectionSystem, [
-        MenuItemData(
-          PhosphorIconsRegular.hardDrive,
-          l10n.backupRestore,
-          MenuItemSemantic.success,
-          () => context.push(RoutePaths.localBackup),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.dotsThreeOutline,
-          l10n.otherSettings,
-          MenuItemSemantic.neutral,
-          () => context.push(RoutePaths.otherSettings),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.info,
-          l10n.about,
-          MenuItemSemantic.about,
-          () => context.push(RoutePaths.about),
-        ),
-      ]),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final section in sections) ...[
-          Padding(
-            padding: EdgeInsets.only(
-              left: 4,
-              bottom: 10,
-              top: sections.first == section ? 0 : 20,
-            ),
-            child: ProfileSectionLabel(label: section.label),
-          ),
-          ProfileSection(
-            children: section.items.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final item = entry.value;
-              return ProfileMenuItem(item: item, index: idx)
-                  .animate()
-                  .fadeIn(duration: 300.ms, delay: (150 + idx * 60).ms)
-                  .slideX(begin: 0.03, end: 0);
-            }).toList(),
-          ),
-        ],
-      ],
     );
   }
 }

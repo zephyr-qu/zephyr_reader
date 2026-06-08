@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:async/async.dart';
+import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/src/rust/api/search.dart' as search_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 import '../../../core/reader/reader_config.dart';
 import '../data/repositories/rust_reader_repository.dart';
@@ -57,13 +59,13 @@ class ChapterManager {
   // ==================== 布局参数 ====================
 
   /// 页面宽度（逻辑像素）
-  final pageWidth = signal<double>(400);
+  double pageWidth = 400;
 
   /// 页面高度（逻辑像素）
-  final pageHeight = signal<double>(600);
+  double pageHeight = 600;
 
   /// 设备像素比，用于 dp → px 转换
-  final devicePixelRatio = signal<double>(1.0);
+  double devicePixelRatio = 1.0;
 
   /// 字符宽度校准数据（首次排版前测量一次，缓存复用）
   final _calibration = signal<CalibrationData?>(null);
@@ -102,7 +104,7 @@ class ChapterManager {
     if (chapterIndex.value >= 0 && chapterIndex.value < chapterList.length) {
       return chapterList[chapterIndex.value].title;
     }
-    return '加载中...';
+    return '';
   });
 
   static const int _preloadCount = 3;
@@ -138,7 +140,7 @@ class ChapterManager {
         currentCharOffset.value = progress.charOffset;
       }
     } catch (e) {
-      Logging.error('加载阅读进度失败', exception: e);
+      Logging.error('Failed to load reading progress', exception: e);
     }
   }
 
@@ -160,88 +162,98 @@ class ChapterManager {
         chapterIndex,
       );
 
-      // 将章节内容索引到 FTS5（不阻塞 UI，取消上一个并发索引）
-      await _searchIndexOperation?.cancel();
-      _searchIndexOperation = CancelableOperation.fromFuture(
-        _indexForSearch(chapterIndex, content),
-        onCancel: () => Logging.debug('_searchIndexOperation cancelled'),
-      );
+      unawaited(_postLoadTasks(chapterIndex, content));
 
       // █ 字符宽度校准（仅首次执行，字体/字号/DPR 变化后重置） █
       if (_calibration.value == null) {
         _calibration.value = await calibrateSafely(
           fontSize: _config.fontSize.value,
-          devicePixelRatio: devicePixelRatio.value,
+          devicePixelRatio: devicePixelRatio,
           fontFamily: _fontFamily,
         );
       }
 
-      // █ 带 KV 缓存的分页排版 █
-      List<PageInfo> pages;
-      bool paginationFromCache = false;
-
-      final result = await _repo.getPaginatedChapterPages(
+      // █ 轻量级分页排版（仅页面描述符，文本按需加载） █
+      final total = await _repo.paginateChapter(
         bookId: bookId.value,
         chapterIndex: chapterIndex,
         fontSize: _config.fontSize.value,
         lineHeight: _config.lineHeight.value,
-        width: pageWidth.value,
-        height: pageHeight.value,
-        padding: 16,
-        devicePixelRatio: devicePixelRatio.value,
+        width: pageWidth,
+        height: pageHeight,
+        padding: _config.padding.value,
+        devicePixelRatio: devicePixelRatio,
         calibration: _calibration.value,
         fontFamily: _fontFamily,
+        letterSpacing: _config.letterSpacing.value,
+        paragraphSpacing: _config.paragraphSpacing.value,
+        punctuationSqueeze: _config.punctuationSqueeze.value,
       );
 
-      if (result.isFallback) {
+      final descriptors = _repo.descriptors;
+      if (total == 0 || descriptors == null || descriptors.isEmpty) {
+        // █ Rust 分页失败，回退到 Dart 估算分页 █
         Logging.warning(
           'loadChapter: Rust pagination fallback, using Dart approximate',
         );
-        pages = await _repo.calculatePages(
+        final pages = await _repo.calculatePages(
           bookId: bookId.value,
           chapterId: chapterIndex,
           fontSize: _config.fontSize.value,
           lineHeight: _config.lineHeight.value,
-          width: pageWidth.value,
-          height: pageHeight.value,
-          padding: 16,
+          width: pageWidth,
+          height: pageHeight,
+          padding: _config.padding.value,
+        );
+
+        chapterContent.value = AsyncState.data(content);
+        totalPages.value = pages.length;
+        this.chapterIndex.value = chapterIndex;
+        currentCharOffset.value = initialCharOffset.clamp(0, content.length);
+        pageIndex.value = resolvePageIndexFromPageInfo(pages, currentCharOffset.value);
+        pendingJumpCharOffset.value = currentCharOffset.value;
+        error.value = null;
+
+        Logging.debug(
+          'loadChapter (fallback): pages=${pages.length} '
+          'resolvePage=$pageIndex off=$currentCharOffset',
         );
       } else {
-        pages = result.pages;
-        paginationFromCache = result.cacheHit;
+        chapterContent.value = AsyncState.data(content);
+        totalPages.value = total;
+        this.chapterIndex.value = chapterIndex;
+        currentCharOffset.value = initialCharOffset.clamp(0, content.length);
+        pageIndex.value = resolvePageIndexForOffset(descriptors, currentCharOffset.value);
+        pendingJumpCharOffset.value = currentCharOffset.value;
+        error.value = null;
+
+        Logging.debug(
+          'loadChapter: pages=${descriptors.length} '
+          'resolvePage=$pageIndex off=$currentCharOffset',
+        );
       }
-
-      chapterContent.value = AsyncState.data(content);
-      totalPages.value = pages.length;
-
-      this.chapterIndex.value = chapterIndex;
-      currentCharOffset.value = initialCharOffset.clamp(0, content.length);
-      pageIndex.value = resolvePageIndexForOffset(
-        pages,
-        currentCharOffset.value,
-      );
-      pendingJumpCharOffset.value = currentCharOffset.value;
-      error.value = null;
-
-      Logging.debug(
-        'loadChapter: pages=${pages.length} cacheHit=$paginationFromCache '
-        'resolvePage=$pageIndex off=$currentCharOffset',
-      );
 
       // 回调：加载高亮等 VM 层数据
       if (onChapterLoaded != null) {
         await onChapterLoaded();
       }
-
-      // 预加载前后章节（限制并发，不阻塞 UI）
-      unawaited(_prefetchChapters(chapterIndex));
     } catch (e) {
       chapterContent.value = AsyncState.error(e);
-      error.value = '章节加载失败：$e';
+      error.value = AppErrorMapper.humanReadable(e);
       Logging.error('ChapterManager.loadChapter error', exception: e);
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// 章节内容加载完成后异步执行：搜索索引 + 预加载前后章节。
+  Future<void> _postLoadTasks(int chapterIndex, String content) async {
+    await _searchIndexOperation?.cancel();
+    _searchIndexOperation = CancelableOperation.fromFuture(
+      _indexForSearch(chapterIndex, content),
+      onCancel: () => Logging.debug('_searchIndexOperation cancelled'),
+    );
+    unawaited(_prefetchChapters(chapterIndex));
   }
 
   /// 加载指定页（不保存进度 — 由调用方负责）
@@ -251,10 +263,21 @@ class ChapterManager {
     }
 
     this.pageIndex.value = pageIndex;
-    final pages = _repo.currentPages;
-    if (pages != null && pageIndex < pages.length) {
-      currentCharOffset.value = pages[pageIndex].startOffset;
+
+    // 从新版 descriptors 获取偏移
+    final descriptors = _repo.descriptors;
+    if (descriptors != null && pageIndex < descriptors.length) {
+      currentCharOffset.value = descriptors[pageIndex].startOffset;
+    } else {
+      // 回退到旧版 currentPages
+      final pages = _repo.currentPages;
+      if (pages != null && pageIndex < pages.length) {
+        currentCharOffset.value = pages[pageIndex].startOffset;
+      }
     }
+
+    // 确保周围页面内容已缓存
+    _repo.ensurePageWindow(pageIndex);
   }
 
   /// 预加载前后章节到缓存（限制并发数为 2，避免堆积）。
@@ -302,7 +325,7 @@ class ChapterManager {
         content: content,
       );
     } catch (e) {
-      Logging.error('全文索引失败', exception: e);
+      Logging.error('Failed to build full-text search index', exception: e);
     }
   }
 
@@ -381,15 +404,38 @@ class ChapterManager {
 
   // ==================== 工具方法 ====================
 
-  int resolvePageIndexForOffset(List<PageInfo> pages, int charOffset) {
+  int resolvePageIndexFromPageInfo(List<PageInfo> pages, int charOffset) {
     if (pages.isEmpty) return 0;
-    for (int i = 0; i < pages.length; i++) {
-      final page = pages[i];
-      if (charOffset >= page.startOffset && charOffset < page.endOffset) {
-        return i;
+    int lo = 0, hi = pages.length - 1;
+    while (lo <= hi) {
+      final mid = (lo + hi) >> 1;
+      final page = pages[mid];
+      if (charOffset < page.startOffset) {
+        hi = mid - 1;
+      } else if (charOffset >= page.endOffset) {
+        lo = mid + 1;
+      } else {
+        return mid;
       }
     }
-    return pages.length - 1;
+    return charOffset < pages[0].startOffset ? 0 : pages.length - 1;
+  }
+
+  int resolvePageIndexForOffset(List<PageDescriptor> descriptors, int charOffset) {
+    if (descriptors.isEmpty) return 0;
+    int lo = 0, hi = descriptors.length - 1;
+    while (lo <= hi) {
+      final mid = (lo + hi) >> 1;
+      final page = descriptors[mid];
+      if (charOffset < page.startOffset) {
+        hi = mid - 1;
+      } else if (charOffset >= page.endOffset) {
+        lo = mid + 1;
+      } else {
+        return mid;
+      }
+    }
+    return charOffset < descriptors[0].startOffset ? 0 : descriptors.length - 1;
   }
 
   // ==================== 重置 ====================

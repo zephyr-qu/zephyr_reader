@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 /// 应用主题扩展
 ///
 /// 自定义 [ThemeExtension]，提供 Material 默认色板之外的语义化颜色和阴影。

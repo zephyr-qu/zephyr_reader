@@ -27,21 +27,20 @@ class SettingsCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
-        children: List.generate(children.length, (i) {
-          return Column(
-            children: [
-              if (i > 0 && showDividers)
-                Divider(
-                  height: 0.5,
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.15),
-                ),
-              if (showDividers)
-                children[i]
-              else
-                Padding(padding: const EdgeInsets.all(16), child: children[i]),
-            ],
-          );
-        }),
+        children: [
+          for (int i = 0; i < children.length; i++) ...[
+            if (i > 0 && showDividers)
+              Divider(
+                height: 0.5,
+                thickness: 0.5,
+                color: colorScheme.outlineVariant.withValues(alpha: 0.15),
+              ),
+            if (showDividers)
+              children[i]
+            else
+              Padding(padding: const EdgeInsets.all(16), child: children[i]),
+          ],
+        ],
       ),
     );
   }
