@@ -37,6 +37,9 @@ android {
             }
         }
         release {
+            ndk {
+                abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+            }
             // Signing configuration for release build
             // Note: Replace with your own keystore and credentials for production
             signingConfig = signingConfigs.getByName("debug")
@@ -44,7 +47,7 @@ android {
             // signingConfig = signingConfigs.getByName("release")
         }
     }
-    
+
     signingConfigs {
         create("release") {
             // Use debug signing for now, replace with production keystore
@@ -55,7 +58,11 @@ android {
         }
     }
 }
-
+//kotlin {
+//    compilerOptions {
+//        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+//    }
+//}
 flutter {
     source = "../.."
 }

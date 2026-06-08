@@ -4,7 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
@@ -13,13 +13,14 @@ import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
-import 'package:zephyr_reader/features/bookshelf/application/bookshelf_sort_type_ext.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
 import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_batch_toolbar.dart';
 import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_book_content.dart';
 import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_category_chips.dart';
 import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_status_tabs.dart';
+import 'package:zephyr_reader/features/bookshelf/page/shelf/menu_row.dart';
+import 'package:zephyr_reader/features/bookshelf/page/shelf/sort_setting_tile.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -55,7 +56,7 @@ class BookshelfPage extends HookWidget {
     });
 
     useEffect(() {
-      vm.loadCategories();
+      vm.categoryVM.loadCategories();
       vm.loadBooks();
       return null;
     }, []);
@@ -134,12 +135,14 @@ class BookshelfPage extends HookWidget {
                     _showSettingsSheet(context, vm);
                   case 'batch':
                     batchMode.value = true;
+                  case 'categories':
+                    context.push(RoutePaths.categoryManagement);
                 }
               },
               itemBuilder: (context) => [
                 PopupMenuItem(
                   value: 'import',
-                  child: _MenuRow(
+                  child: MenuRow(
                     icon: PhosphorIconsFill.uploadSimple,
                     label: l10n.importBook,
                     color: DesignTokens.warmAccent,
@@ -147,7 +150,7 @@ class BookshelfPage extends HookWidget {
                 ),
                 PopupMenuItem(
                   value: 'scan',
-                  child: _MenuRow(
+                  child: MenuRow(
                     icon: PhosphorIconsFill.folderOpen,
                     label: l10n.scanFolder,
                     color: DesignTokens.warmAccent,
@@ -156,22 +159,29 @@ class BookshelfPage extends HookWidget {
                 const PopupMenuDivider(),
                 PopupMenuItem(
                   value: 'batch',
-                  child: _MenuRow(
+                  child: MenuRow(
                     icon: PhosphorIconsFill.checkSquare,
                     label: l10n.batchManage,
                   ),
                 ),
                 PopupMenuItem(
                   value: 'search',
-                  child: _MenuRow(
+                  child: MenuRow(
                     icon: PhosphorIconsFill.magnifyingGlassPlus,
                     label: l10n.globalSearch,
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'categories',
+                  child: MenuRow(
+                    icon: PhosphorIconsFill.folders,
+                    label: l10n.categoryManagement,
                   ),
                 ),
                 const PopupMenuDivider(),
                 PopupMenuItem(
                   value: 'settings',
-                  child: _MenuRow(
+                  child: MenuRow(
                     icon: PhosphorIconsFill.sliders,
                     label: l10n.bookshelfSettings,
                     color: DesignTokens.warmAccent,
@@ -224,8 +234,9 @@ class BookshelfPage extends HookWidget {
               SignalBuilder(
                 builder: (_) {
                   return BookshelfCategoryChips(
-                    categories: vm.categories.value.value ?? [],
-                    selectedCategoryId: vm.selectedCategory.value?.id,
+                    categories: vm.categoryVM.categories.value.value ?? [],
+                    selectedCategoryId:
+                        vm.categoryVM.selectedCategory.value?.id,
                     onCategoryChanged: (category) =>
                         vm.selectCategory(category),
                   );
@@ -267,7 +278,7 @@ class BookshelfPage extends HookWidget {
       bottomNavigationBar: batchMode.value
           ? BookshelfBatchToolbar(
               selectedCount: selectedIds.value.length,
-              categories: vm.categories.value.value ?? [],
+              categories: vm.categoryVM.categories.value.value ?? [],
               onCancel: () {
                 selectedIds.value = {};
                 batchMode.value = false;
@@ -338,8 +349,8 @@ class BookshelfPage extends HookWidget {
       ),
     );
     if (result == 'category') {
-      final allCats = vm.categories.value.value ?? [];
-      final currentIds = await vm.getCategoryIds(book.bookId);
+      final allCats = vm.categoryVM.categories.value.value ?? [];
+      final currentIds = await vm.categoryVM.getCategoryIds(book.bookId);
       if (!context.mounted) return;
       final selected = await showCategorySelectionDialog(
         context,
@@ -367,17 +378,16 @@ class BookshelfPage extends HookWidget {
     BookshelfViewModel vm,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    final result = await FilePicker.pickFiles(
+    final result = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['txt', 'epub', 'pdf'],
-      allowMultiple: false,
     );
-    if (result == null || result.files.isEmpty || !context.mounted) return;
-    final filePath = result.files.single.path;
+    if (result == null || !context.mounted) return;
+    final filePath = result.path;
     if (filePath == null || !context.mounted) return;
     final ok = await vm.importBook(filePath);
     if (!context.mounted) return;
-    final fileName = result.files.single.name;
+    final fileName = result.name;
     if (ok) {
       showInfoSnack(context, l10n.bookImported(fileName));
     } else {
@@ -480,145 +490,18 @@ class BookshelfPage extends HookWidget {
                     height: 0.5,
                     color: cs.outlineVariant.withValues(alpha: 0.15),
                   ),
-                  _buildSortSetting(context, cs, vm),
+                  SortSettingTile(
+                    dialogTitle: l10n.sortDialogTitle,
+                    currentSortType: vm.defaultSortType.value,
+                    label: l10n.defaultSort,
+                    onChanged: (type) => vm.defaultSortType.value = type,
+                  ),
                 ],
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSortSetting(
-    BuildContext context,
-    ColorScheme cs,
-    BookshelfViewModel vm,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: MenuItemSemantic.neutral
-                  .iconColor(Theme.of(context).brightness)
-                  .withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              PhosphorIconsRegular.arrowsDownUp,
-              size: 16,
-              color: MenuItemSemantic.neutral.iconColor(
-                Theme.of(context).brightness,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            l10n.defaultSort,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: cs.onSurface,
-            ),
-          ),
-          const Spacer(),
-          Material(
-            color: DesignTokens.warmAccent.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () async {
-                final result = await showDialog<BookshelfSortType>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: Text(l10n.sortDialogTitle),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: BookshelfSortType.values.map((type) {
-                        return ListTile(
-                          title: Text(type.l10nLabel(l10n)),
-                          trailing: vm.defaultSortType.value == type
-                              ? Icon(
-                                  PhosphorIconsRegular.check,
-                                  color: Theme.of(ctx).colorScheme.primary,
-                                )
-                              : null,
-                          onTap: () => Navigator.pop(ctx, type),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                );
-                if (result != null) {
-                  vm.defaultSortType.value = result;
-                }
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      PhosphorIconsRegular.sortAscending,
-                      size: 14,
-                      color: DesignTokens.warmAccent,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      vm.defaultSortType.value.l10nLabel(l10n),
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: DesignTokens.warmAccent,
-                      ),
-                    ),
-                    Icon(
-                      PhosphorIconsLight.caretRight,
-                      size: 14,
-                      color: DesignTokens.warmAccent.withValues(alpha: 0.5),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MenuRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color? color;
-
-  const _MenuRow({required this.icon, required this.label, this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 20,
-          color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 12),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-      ],
     );
   }
 }

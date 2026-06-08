@@ -11,8 +11,7 @@ pub mod pagination;
 pub mod rich_text;
 pub mod typeset;
 
-pub use bilingual::{align_bilingual_content, simple_bilingual_align};
+pub use bilingual::align_bilingual_content;
 pub use chapter_detect::extract_chapters;
 pub use pagination::{PageStreamer, paginate_all};
 pub use rich_text::parse_html_to_rich_text;
-pub use typeset::typeset_content;

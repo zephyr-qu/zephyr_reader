@@ -105,10 +105,8 @@ pub async fn upsert_book(book: Book) -> Result<(), AppError> {
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn delete_book(book_id: String, covers_dir: String) -> Result<(), AppError> {
-    let storage = ensure_storage().map_err(|_| AppError::storage_not_initialized())?;
-    let pool = storage
-        .pool()
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+    let storage = ensure_storage()?;
+    let pool = storage.pool()?;
 
     // 删除封面文件
     if let Ok(Some(cover_path)) = BookRepository::find_cover_path(&pool, &book_id).await {
@@ -364,9 +362,7 @@ pub async fn batch_update_book_status(
     book_ids: Vec<String>,
     status: BookStatus,
 ) -> Result<(), AppError> {
-    let pool = crate::storage::ensure_storage()?
-        .pool()
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+    let pool = crate::storage::ensure_storage()?.pool()?;
     for book_id in &book_ids {
         BookRepository::update_status(&pool, book_id, status.clone()).await?;
     }
@@ -379,9 +375,7 @@ pub async fn batch_set_categories_for_books(
     book_ids: Vec<String>,
     category_ids: Vec<String>,
 ) -> Result<(), AppError> {
-    let pool = crate::storage::ensure_storage()?
-        .pool()
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+    let pool = crate::storage::ensure_storage()?.pool()?;
     use crate::storage::repos::category_repo::CategoryRepository;
     for book_id in &book_ids {
         CategoryRepository::set_by_book(&pool, book_id, &category_ids).await?;

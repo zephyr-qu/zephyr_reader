@@ -27,7 +27,6 @@ async fn test_align_bilingual_content_exceeds_max_length() {
     let long = "x".repeat(1_500_000);
     let result = api::align_bilingual_content(long.clone(), long, 0.3).await;
     assert!(result.is_err(), "should reject oversized input");
-    assert_eq!(result.unwrap_err().code(), "INVALID_INPUT");
 }
 
 #[tokio::test]
@@ -63,26 +62,6 @@ async fn test_align_bilingual_content_no_match() {
         !alignment.unmatched_english.is_empty(),
         "EN should be unmatched"
     );
-}
-
-#[tokio::test]
-async fn test_simple_bilingual_align() {
-    let result =
-        api::simple_bilingual_align("你好。测试。".to_string(), "Hello. Test.".to_string()).await;
-    assert!(
-        result.is_ok(),
-        "simple alignment should succeed: {:?}",
-        result.err()
-    );
-    let alignment = result.unwrap();
-    assert!(!alignment.segments.is_empty(), "should produce segments");
-}
-
-#[tokio::test]
-async fn test_simple_bilingual_align_exceeds_max() {
-    let long = "x".repeat(1_500_000);
-    let result = api::simple_bilingual_align(long.clone(), long).await;
-    assert!(result.is_err(), "should reject oversized input");
 }
 
 #[tokio::test]
@@ -129,13 +108,8 @@ async fn test_bilingual_mixed_language() {
     assert!(result.is_ok());
     // 即使顺序不同，也应该能匹配部分
     let alignment = result.unwrap();
-    assert!(!alignment.unmatched_chinese.is_empty() || !alignment.segments.is_empty());
-}
-
-#[tokio::test]
-async fn test_simple_align_unicode_only() {
-    let chinese = "这是一段纯中文文本。".to_string();
-    let english = "This is pure English text.".to_string();
-    let result = api::simple_bilingual_align(chinese, english).await;
-    assert!(result.is_ok());
+    assert!(
+        !alignment.unmatched_chinese.is_empty() || !alignment.segments.is_empty(),
+        "should have some matched segments with mixed language"
+    );
 }

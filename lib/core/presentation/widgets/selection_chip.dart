@@ -29,11 +29,11 @@ class SelectionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final color = activeColor ?? colorScheme.primary;
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: GestureDetector(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(borderRadius),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: padding,

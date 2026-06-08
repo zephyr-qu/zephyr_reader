@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/src/rust/storage/vocab_status_extension.dart';
 
 /// Semantic color for a VocabStatus, fully theme-aware.
 Color vocabStatusColor(VocabStatus status, ThemeData theme) => switch (status) {
@@ -13,7 +12,12 @@ Color vocabStatusColor(VocabStatus status, ThemeData theme) => switch (status) {
   VocabStatus.mastered => theme.colorScheme.primary,
 };
 String vocabStatusLabel(VocabStatus status, AppLocalizations l10n) =>
-    status.displayName(l10n);
+    switch (status) {
+      VocabStatus.unstarted => l10n.statusUnlearned,
+      VocabStatus.learning => l10n.statusLearning,
+      VocabStatus.mastered => l10n.statusMastered,
+      VocabStatus.ignored => l10n.statusIgnored,
+    };
 
 /// A small colored pill showing the vocabulary status label.
 ///

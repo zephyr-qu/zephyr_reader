@@ -31,7 +31,9 @@ class BookDetailProgressCard extends StatelessWidget {
       if (remainingSec > 0) {
         final rh = remainingSec ~/ 3600;
         final rm = (remainingSec % 3600) ~/ 60;
-        remainingStr = rh > 0 ? '约 ${rh}h ${rm}min' : '约 ${rm}min';
+        remainingStr = rh > 0
+            ? l10n.estimatedTime(rh, rm)
+            : l10n.estimatedTimeShort(rm);
       }
     }
 

@@ -20,6 +20,7 @@ use crate::storage::repos::DictionaryRepository;
 
 /// 创建词典记录（自动生成 UUID）
 #[frb]
+// TODO: 多词典管理页面（设置页），后续实现
 pub async fn create_dictionary(
     name: String,
     file_path: String,
@@ -42,24 +43,28 @@ pub async fn create_dictionary(
 }
 
 /// 新增或更新词典(upsert)
+// TODO: 多词典管理页面（设置页），后续实现
 #[frb]
 pub async fn upsert_dictionary(dict: Dictionary) -> Result<(), AppError> {
     crate::async_storage!(|pool| DictionaryRepository::save(pool, &dict)).map(|_| ())
 }
 
 /// 获取所有词典列表
+// TODO: 多词典管理页面（设置页），后续实现
 #[frb]
 pub async fn list_dictionaries() -> Result<Vec<Dictionary>, AppError> {
     crate::async_storage!(|pool| DictionaryRepository::find_all(pool))
 }
 
 /// 根据 ID 获取词典
+// TODO: 多词典管理页面（设置页），后续实现
 #[frb]
 pub async fn get_dictionary(id: String) -> Result<Option<Dictionary>, AppError> {
     crate::async_storage!(|pool| DictionaryRepository::find_by_id(pool, &id))
 }
 
 /// 删除词典
+// TODO: 多词典管理页面（设置页），后续实现
 #[frb]
 pub async fn delete_dictionary(id: String) -> Result<bool, AppError> {
     crate::async_storage!(|pool| DictionaryRepository::delete(pool, &id))
@@ -131,6 +136,7 @@ pub async fn lookup_mdict(word: String) -> Result<Option<DictSearchResult>, AppE
 /// # 参数
 /// - `prefix`: 输入前缀
 /// - `limit`: 最大返回数量（默认 10）
+// TODO: Dart 侧计划在查词面板顶部添加搜索输入框 + 自动补全时使用
 #[frb]
 pub async fn suggest_mdict(prefix: String, limit: i32) -> Result<Vec<String>, AppError> {
     tokio::task::spawn_blocking(move || {

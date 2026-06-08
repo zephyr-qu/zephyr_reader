@@ -3,8 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/core/theme/auto_theme_service.dart';
+import 'package:zephyr_reader/l10n/app_localizations_en.dart';
 
 class _MockSharedPreferences extends Mock implements SharedPreferences {}
+
+final _l10n = AppLocalizationsEn();
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -42,7 +45,7 @@ void main() {
         await service.enableAutoTheme();
 
         expect(service.autoThemeEnabled.value, isTrue);
-        await Future.delayed(const Duration(milliseconds: 200));
+        await Future<void>.delayed(const Duration(milliseconds: 200));
         verify(() => mockPrefs.setBool('auto_theme_enabled', true)).called(1);
       });
 
@@ -53,7 +56,7 @@ void main() {
 
         expect(service.autoThemeEnabled.value, isFalse);
         expect(service.themeMode.value, equals(ThemeMode.system));
-        await Future.delayed(const Duration(milliseconds: 200));
+        await Future<void>.delayed(const Duration(milliseconds: 200));
         verify(() => mockPrefs.setBool('auto_theme_enabled', false)).called(1);
       });
     });
@@ -65,7 +68,7 @@ void main() {
         expect(service.darkModeStartHour.value, equals(20));
         expect(service.darkModeEndHour.value, equals(7));
 
-        await Future.delayed(const Duration(milliseconds: 200));
+        await Future<void>.delayed(const Duration(milliseconds: 200));
         verify(() => mockPrefs.setInt('dark_mode_start_hour', 20)).called(1);
         verify(() => mockPrefs.setInt('dark_mode_end_hour', 7)).called(1);
       });
@@ -101,7 +104,7 @@ void main() {
       test('应从预设中正确选择', () {
         final preset = ThemeTimePreset.fromHours(18, 6);
         expect(preset, equals(ThemeTimePreset.sunsetToSunrise));
-        expect(preset.displayName, equals('日落到日出'));
+        expect(preset.l10nLabel(_l10n), equals('Sunset to Sunrise'));
       });
 
       test('应匹配 eveningToMorning', () {
@@ -116,7 +119,7 @@ void main() {
 
       test('所有预设应有显示名称', () {
         for (final preset in ThemeTimePreset.values) {
-          expect(preset.displayName, isNotEmpty);
+          expect(preset.l10nLabel(_l10n), isNotEmpty);
         }
       });
     });

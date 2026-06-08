@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
-import 'package:zephyr_reader/core/utils/date_formatters.dart';
-import 'package:zephyr_reader/core/utils/format_utils.dart';
+import 'package:zephyr_reader/core/utils/time_formatters.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// A single note card with left accent border, selected-text preview,
@@ -20,7 +19,7 @@ class NoteItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final note = item.note;
-    final animDelay = staggerDelay(index);
+    final animDelay = Duration(milliseconds: 50 * index.clamp(0, 10));
 
     return Container(
       decoration: BoxDecoration(

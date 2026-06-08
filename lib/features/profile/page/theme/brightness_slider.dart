@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
-/// 屏幕亮度滑动条组件。
-///
-/// 显示一个带有图标的亮度调节滑条，支持 0-100 的整数值调节。
-/// 用于主题与亮度设置页面中独立于系统亮度的阅读亮度控制。
 class BrightnessSlider extends StatelessWidget {
   final int value;
   final ValueChanged<int> onChanged;
@@ -14,7 +10,6 @@ class BrightnessSlider extends StatelessWidget {
     required this.value,
     required this.onChanged,
   });
-
 
   @override
   Widget build(BuildContext context) {

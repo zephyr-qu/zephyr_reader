@@ -41,6 +41,9 @@ abstract class RoutePaths {
   static const String ttsSettings = '/settings/tts';
 
   // 排版与字体设置
+  // 词典管理
+  static const String dictionarySettings = '/settings/dictionary';
+
   static const String typographySettings = '/settings/typography';
 
   // 主题与亮度
@@ -98,6 +101,7 @@ abstract class RouteNames {
 
   // TTS 朗读设置
   static const String ttsSettings = 'ttsSettings';
+  static const String dictionarySettings = 'dictionarySettings';
 
   // 排版与字体设置
   static const String typographySettings = 'typographySettings';

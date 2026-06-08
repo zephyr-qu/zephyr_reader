@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/reader/custom_font_service.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/reader_page_bindings.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../data/repositories/rust_reader_repository.dart';
 import 'bilingual_renderer.dart';
-import 'paginated_renderer.dart';
 import 'page_turn_painter.dart';
+import 'paginated_renderer.dart';
 import 'reader_render_config.dart';
 import 'scroll_mode_renderer.dart';
 
@@ -25,6 +26,7 @@ class ReaderContent extends HookWidget {
   final int chapterId;
   final int pageIndex;
   final int totalPages;
+  final ReaderRepository repo;
   final double fontSize;
   final double lineHeight;
   final ThemeMode themeMode;
@@ -54,6 +56,7 @@ class ReaderContent extends HookWidget {
   final WritingDirection writingDirection;
   final bool showVocabularyMark;
   final Set<String> vocabularyWords;
+  final bool baselineAlign;
   final bool showSentenceSplit;
   final int? jumpToCharOffset;
   final ValueChanged<int>? onPositionChanged;
@@ -61,6 +64,7 @@ class ReaderContent extends HookWidget {
 
   const ReaderContent({
     super.key,
+    required this.repo,
     required this.bookId,
     required this.chapterId,
     required this.pageIndex,
@@ -97,11 +101,12 @@ class ReaderContent extends HookWidget {
     this.jumpToCharOffset,
     this.onPositionChanged,
     this.onJumpHandled,
+    this.baselineAlign = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final repo = useMemoized(() => GetIt.I.get<ReaderRepository>());
+    final repo = this.repo;
     final pageController = usePageController();
     final scrollController = useScrollController();
     final textColor = _getTextColor(themeMode);
@@ -123,6 +128,7 @@ class ReaderContent extends HookWidget {
         searchMatchHighlight: searchMatchHighlight,
         showVocabularyMark: showVocabularyMark,
         vocabularyWords: vocabularyWords,
+        baselineAlign: baselineAlign,
       ),
       [
         textColor,
@@ -137,6 +143,7 @@ class ReaderContent extends HookWidget {
         searchMatchHighlight,
         showVocabularyMark,
         vocabularyWords,
+        baselineAlign,
       ],
     );
 
@@ -227,22 +234,42 @@ class ReaderContent extends HookWidget {
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (readingMode == ReadingMode.pagination) {
-          final pages = repo.currentPages;
-          if (pages != null && pages.isNotEmpty) {
+          // 新版：使用描述符
+          final descriptors = repo.descriptors;
+          if (descriptors != null && descriptors.isNotEmpty) {
             final targetIndex = (() {
-              for (int i = 0; i < pages.length; i++) {
-                if (jumpToCharOffset! >= pages[i].startOffset &&
-                    jumpToCharOffset! < pages[i].endOffset) {
+              for (int i = 0; i < descriptors.length; i++) {
+                if (jumpToCharOffset! >= descriptors[i].startOffset &&
+                    jumpToCharOffset! < descriptors[i].endOffset) {
                   return i;
                 }
               }
-              return pages.isEmpty ? 0 : pages.length - 1;
+              return descriptors.length - 1;
             })();
             if (pageController.hasClients) {
               pageController.jumpToPage(targetIndex);
             }
             onPageChanged?.call(targetIndex);
-            onPositionChanged?.call(pages[targetIndex].startOffset);
+            onPositionChanged?.call(descriptors[targetIndex].startOffset);
+          } else {
+            // 旧版：使用预计算的全量 PageInfo
+            final pages = repo.currentPages;
+            if (pages != null && pages.isNotEmpty) {
+              final targetIndex = (() {
+                for (int i = 0; i < pages.length; i++) {
+                  if (jumpToCharOffset! >= pages[i].startOffset &&
+                      jumpToCharOffset! < pages[i].endOffset) {
+                    return i;
+                  }
+                }
+                return pages.length - 1;
+              })();
+              if (pageController.hasClients) {
+                pageController.jumpToPage(targetIndex);
+              }
+              onPageChanged?.call(targetIndex);
+              onPositionChanged?.call(pages[targetIndex].startOffset);
+            }
           }
         } else if (scrollController.hasClients) {
           final maxExtent = scrollController.position.maxScrollExtent;
@@ -350,6 +377,8 @@ class ReaderContent extends HookWidget {
     List<BilingualHighlightPair> bilingualPairs,
     ReaderRenderConfig renderConfig,
   ) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -364,21 +393,19 @@ class ReaderContent extends HookWidget {
               size: 64,
               color: Colors.red[300],
             ),
-            const SizedBox(height: 16),
             Text(
-              error,
+              l10n.chapterLoadFailed(error),
               style: const TextStyle(fontSize: 16),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            ElevatedButton(onPressed: onRetry, child: const Text('重新加载')),
+            ElevatedButton(onPressed: onRetry, child: Text(l10n.retry)),
           ],
         ),
       );
     }
-
     if (content.isEmpty) {
-      return const Center(child: Text('内容为空'));
+      return Center(child: Text(l10n.contentEmpty));
     }
 
     if (readingMode == ReadingMode.scroll) {
@@ -412,6 +439,7 @@ class ReaderContent extends HookWidget {
           onHighlightTap: onHighlightTap,
           onSelectionChanged: onSelectionChanged,
           onSelectionGlobalPosition: onSelectionGlobalPosition,
+          writingDirection: writingDirection,
         ),
       );
     } else {
@@ -431,6 +459,7 @@ class ReaderContent extends HookWidget {
           onSelectionGlobalPosition: onSelectionGlobalPosition,
           onPageChanged: onPageChanged,
           onPositionChanged: onPositionChanged,
+          writingDirection: writingDirection,
         ),
       );
     }
@@ -489,10 +518,10 @@ class ReaderContentView extends HookWidget {
   Widget build(BuildContext context) {
     final b = useReaderContentBindings(vm);
     final fontFamily = useMemoized(
-      () => GetIt.I.get<FontRepository>(),
+      () => getIt<FontRepository>(),
     ).currentFontFamily;
-
     return ReaderContent(
+      repo: getIt<ReaderRepository>(),
       bookId: b.currentBookId,
       chapterId: b.chapterIndex,
       pageIndex: b.pageIndex,
@@ -530,6 +559,7 @@ class ReaderContentView extends HookWidget {
       paragraphSpacing: b.paragraphSpacing,
       pageMargin: b.pageMargin,
       writingDirection: b.writingDirection,
+      baselineAlign: b.baselineAlign,
       showVocabularyMark: true,
       vocabularyWords: vocabularyWords,
       showSentenceSplit: true,

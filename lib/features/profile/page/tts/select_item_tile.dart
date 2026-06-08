@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
-/// 选择项磁贴组件，显示标签和当前值，点击触发选择操作。
-///
-/// 用于 TTS 设置页面中引擎选择等场景，视觉上与设置列表项风格一致。
 class SelectItemTile extends StatelessWidget {
   final String label;
   final String value;
@@ -15,7 +12,6 @@ class SelectItemTile extends StatelessWidget {
     required this.value,
     required this.onTap,
   });
-
 
   @override
   Widget build(BuildContext context) {

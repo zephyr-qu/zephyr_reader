@@ -5,7 +5,7 @@ use std::sync::OnceLock;
 use jieba_rs::Jieba;
 use sqlx::{QueryBuilder, SqlitePool};
 
-use crate::domain::SearchResult;
+use crate::domain::{IndexStats, SearchResult};
 
 static JIEBA: OnceLock<Jieba> = OnceLock::new();
 
@@ -158,6 +158,43 @@ impl SearchEngine {
         .await
     }
 
+    /// 统计搜索匹配数
+    pub async fn count_matches(
+        &self,
+        book_id: &str,
+        query: &str,
+        chapter_index: Option<i32>,
+    ) -> Result<i64, sqlx::Error> {
+        let safe_query = escape_fts5_query(&tokenize_chinese_text(query));
+        if safe_query.is_empty() {
+            return Ok(0);
+        }
+
+        match chapter_index {
+            Some(ci) => {
+                sqlx::query_scalar::<_, i64>(
+                    "SELECT COUNT(*) FROM search_index \
+                     WHERE book_id = ? AND search_index MATCH ? AND chapter_index = ?",
+                )
+                .bind(book_id)
+                .bind(&safe_query)
+                .bind(ci)
+                .fetch_one(&self.pool)
+                .await
+            }
+            None => {
+                sqlx::query_scalar::<_, i64>(
+                    "SELECT COUNT(*) FROM search_index \
+                     WHERE book_id = ? AND search_index MATCH ?",
+                )
+                .bind(book_id)
+                .bind(&safe_query)
+                .fetch_one(&self.pool)
+                .await
+            }
+        }
+    }
+
     /// 搜索所有书籍
     pub async fn search_all_books(
         &self,
@@ -205,6 +242,18 @@ impl SearchEngine {
             .execute(&self.pool)
             .await?;
         Ok(())
+    }
+
+    /// 获取索引统计信息
+    pub async fn get_index_stats(&self) -> Result<IndexStats, sqlx::Error> {
+        sqlx::query_as::<_, IndexStats>(
+            "SELECT COUNT(*) as total_chunks, \
+                    COUNT(DISTINCT book_id) as indexed_books, \
+                    COUNT(DISTINCT book_id || ':' || chapter_index) as indexed_chapters \
+             FROM search_index",
+        )
+        .fetch_one(&self.pool)
+        .await
     }
 }
 

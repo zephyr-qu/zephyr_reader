@@ -526,7 +526,9 @@ pub struct Chapter {
     pub chapter_index: i64,
     pub cached_at: DateTime<Utc>,
     pub level: i64,
+    #[sqlx(default)]
     pub start_index: i64,
+    #[sqlx(default)]
     pub end_index: i64,
 }
 impl Chapter {

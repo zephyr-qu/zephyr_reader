@@ -1,7 +1,6 @@
 mod common;
 
 use rust_lib_zephyr_reader::api;
-use rust_lib_zephyr_reader::api::core;
 
 // ==================== 基础连接测试 ====================
 
@@ -33,36 +32,41 @@ fn test_api_response_format() {
 
 // ==================== 格式检测测试 ====================
 
-#[tokio::test]
-async fn test_get_supported_formats() {
-    let formats = core::get_supported_formats().await.unwrap();
+#[test]
+fn test_get_supported_formats() {
     // 应该至少支持常见格式
-    assert!(!formats.is_empty(), "应该支持至少一种格式");
+    let known_formats = ["txt", "epub", "pdf", "md"];
+    for fmt in &known_formats {
+        assert!(
+            rust_lib_zephyr_reader::parser::registry::format_from_extension(fmt).is_ok(),
+            "应该支持格式: {}",
+            fmt
+        );
+    }
 
-    // 检查是否包含常见格式（具体取决于 parser registry 的实现）
-    println!("支持的格式: {:?}", formats);
+    println!("支持的格式: {:?}", known_formats);
 }
 
-#[tokio::test]
-async fn test_supports_format_epub() {
+#[test]
+fn test_supports_format_epub() {
     // 测试 EPUB 格式支持
-    let supports_epub = core::supports_format("epub");
-    // 注意：如果 EPUB 解析器已注册，应该返回 true
+    let supports_epub = rust_lib_zephyr_reader::parser::registry::format_from_extension("epub").is_ok();
+    // 如果 EPUB 解析器已注册，应该返回 true
     println!("支持 EPUB: {}", supports_epub);
 }
 
-#[tokio::test]
-async fn test_supports_format_txt() {
+#[test]
+fn test_supports_format_txt() {
     // 测试 TXT 格式支持
-    let supports_txt = core::supports_format("txt");
+    let supports_txt = rust_lib_zephyr_reader::parser::registry::format_from_extension("txt").is_ok();
     println!("支持 TXT: {}", supports_txt);
 }
 
 #[test]
 fn test_supports_format_case_insensitive() {
     // 测试格式检测是否大小写不敏感
-    let upper = core::supports_format("EPUB");
-    let lower = core::supports_format("epub");
+    let upper = rust_lib_zephyr_reader::parser::registry::format_from_extension("EPUB").is_ok();
+    let lower = rust_lib_zephyr_reader::parser::registry::format_from_extension("epub").is_ok();
     // 两者应该一致（取决于实现）
     println!("EPUB (大写): {}, EPUB (小写): {}", upper, lower);
 }
@@ -70,9 +74,9 @@ fn test_supports_format_case_insensitive() {
 #[test]
 fn test_supports_format_unknown() {
     // 测试不支持的格式
-    let supports_xyz = core::supports_format("xyz");
-    // 未知格式应该返回 false
-    assert!(!supports_xyz, "不应该支持未知格式 xyz");
+    let supports_xyz = rust_lib_zephyr_reader::parser::registry::format_from_extension("xyz");
+    // 未知格式应该返回错误
+    assert!(supports_xyz.is_err(), "不应该支持未知格式 xyz");
 }
 
 // ==================== 文件解析测试 ====================
@@ -158,8 +162,9 @@ async fn test_extract_metadata() {
         "测试书籍\n作者: Test Author\n\n第一章\n内容...",
     );
 
-    // extract_metadata 在 core 模块中
-    let result = core::extract_metadata(file_path).await;
+    // parser_for_file 获取解析器后调用 extract_metadata
+    let parser = rust_lib_zephyr_reader::parser::registry::parser_for_file(&file_path).unwrap();
+    let result = parser.extract_metadata(&file_path).await;
 
     // 元数据提取可能成功或失败，取决于文件格式
     match result {
@@ -179,29 +184,6 @@ async fn test_extract_metadata() {
     }
 }
 
-// ==================== 排版接口测试 ====================
-
-#[tokio::test]
-async fn test_typeset_text_basic() {
-    common::init_logger();
-
-    // 测试基本的文本排版功能
-    let text = "这是一段测试文本，用于验证排版功能。".to_string();
-
-    // 使用默认的 TypesetConfig
-    let config = rust_lib_zephyr_reader::domain::TypesetConfig::default();
-
-    // 调用排版函数（异步）
-    let result = api::typeset_text(text, config).await;
-
-    // 验证排版结果
-    assert!(result.is_ok(), "排版应该成功: {:?}", result);
-
-    if let Ok(typeset_result) = result {
-        assert!(!typeset_result.is_empty(), "排版结果不应该为空");
-        println!("排版成功: 结果长度={}", typeset_result.len());
-    }
-}
 
 // ==================== 双语对齐测试 ====================
 
@@ -276,9 +258,9 @@ fn test_api_error_handling_invalid_input() {
     common::init_logger();
 
     // 测试无效输入的错误处理
-    let result = core::supports_format("");
-    // 空字符串格式应该返回 false
-    assert!(!result, "空字符串格式应该不被支持");
+    let result = rust_lib_zephyr_reader::parser::registry::format_from_extension("");
+    // 空字符串格式应该返回错误
+    assert!(result.is_err(), "空字符串格式应该返回错误");
 }
 
 #[tokio::test]
@@ -304,7 +286,9 @@ async fn test_concurrent_format_checks() {
     let mut handles = vec![];
     for format in formats {
         let format_ref = format;
-        let handle = tokio::spawn(async move { core::supports_format(format_ref) });
+        let handle = tokio::spawn(async move {
+            rust_lib_zephyr_reader::parser::registry::format_from_extension(format_ref).is_ok()
+        });
         handles.push(handle);
     }
 
@@ -312,5 +296,74 @@ async fn test_concurrent_format_checks() {
     for handle in handles {
         let result = handle.await.unwrap();
         println!("格式支持检查完成: {:?}", result);
+    }
+}
+
+// ==================== 解析器注册表测试 ====================
+
+#[test]
+fn test_parser_for_format_txt() {
+    let parser = rust_lib_zephyr_reader::parser::registry::parser_for_format(
+        rust_lib_zephyr_reader::storage::models::BookFormat::Txt,
+    );
+    assert_eq!(parser.name(), "TXT Parser");
+    assert!(parser.supported_formats().contains(&"txt"));
+}
+
+#[test]
+fn test_parser_for_format_epub() {
+    let parser = rust_lib_zephyr_reader::parser::registry::parser_for_format(
+        rust_lib_zephyr_reader::storage::models::BookFormat::Epub,
+    );
+    assert_eq!(parser.name(), "EPUB Parser");
+    assert!(parser.supported_formats().contains(&"epub"));
+}
+
+#[test]
+fn test_parser_for_format_pdf() {
+    let parser = rust_lib_zephyr_reader::parser::registry::parser_for_format(
+        rust_lib_zephyr_reader::storage::models::BookFormat::Pdf,
+    );
+    assert_eq!(parser.name(), "PDF Parser");
+    assert!(parser.supported_formats().contains(&"pdf"));
+}
+
+#[test]
+fn test_parser_for_format_md() {
+    let parser = rust_lib_zephyr_reader::parser::registry::parser_for_format(
+        rust_lib_zephyr_reader::storage::models::BookFormat::Md,
+    );
+    assert_eq!(parser.name(), "MD Parser");
+    assert!(parser.supported_formats().contains(&"md"));
+}
+
+#[test]
+fn test_parser_for_file_valid_extensions() {
+    use rust_lib_zephyr_reader::parser::registry::parser_for_file;
+    assert!(parser_for_file("book.txt").is_ok());
+    assert!(parser_for_file("book.epub").is_ok());
+    assert!(parser_for_file("book.pdf").is_ok());
+    assert!(parser_for_file("book.md").is_ok());
+}
+
+#[test]
+fn test_parser_for_file_invalid_extension() {
+    use rust_lib_zephyr_reader::parser::registry::parser_for_file;
+    assert!(parser_for_file("book.xyz").is_err());
+}
+
+#[test]
+fn test_parser_for_file_no_extension() {
+    use rust_lib_zephyr_reader::parser::registry::parser_for_file;
+    assert!(parser_for_file("book").is_err());
+}
+
+#[test]
+fn test_parser_name_covers_all_formats() {
+    use rust_lib_zephyr_reader::storage::models::BookFormat;
+    for format in &[BookFormat::Txt, BookFormat::Epub, BookFormat::Pdf, BookFormat::Md] {
+        let parser = rust_lib_zephyr_reader::parser::registry::parser_for_format(*format);
+        let name = parser.name();
+        assert!(!name.is_empty(), "Parser name should not be empty for {format:?}");
     }
 }

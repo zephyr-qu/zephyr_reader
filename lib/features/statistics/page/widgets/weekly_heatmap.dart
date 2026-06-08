@@ -12,7 +12,6 @@ class WeeklyHeatmap extends StatelessWidget {
 
   const WeeklyHeatmap({super.key, required this.records});
 
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -22,8 +21,12 @@ class WeeklyHeatmap extends StatelessWidget {
     final now = DateTime.now();
     final monthStart = DateTime(now.year, now.month, 1);
     final monthEnd = DateTime(now.year, now.month + 1, 0);
-    final gridStart = monthStart.subtract(Duration(days: monthStart.weekday - 1));
-    final gridEnd = monthEnd.add(Duration(days: DateTime.sunday - monthEnd.weekday));
+    final gridStart = monthStart.subtract(
+      Duration(days: monthStart.weekday - 1),
+    );
+    final gridEnd = monthEnd.add(
+      Duration(days: DateTime.sunday - monthEnd.weekday),
+    );
     final totalDays = gridEnd.difference(gridStart).inDays + 1;
     final rows = totalDays ~/ 7; // 4-6 行
 

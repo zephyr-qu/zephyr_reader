@@ -4,6 +4,7 @@
 /// 功能包括系统字体切换、本地 TTF/OTF/TTC 字体文件导入、
 /// 自定义字体管理和 URL 下载服务。
 /// 使用 signals_flutter 实现响应式字体状态管理。
+library;
 
 import 'dart:io';
 import 'dart:async';
@@ -297,21 +298,4 @@ class FontRepository {
     );
     return font.isBuiltIn;
   }
-}
-
-/// 字体推荐信息
-class FontRecommendation {
-  FontRecommendation({
-    required this.name,
-    required this.url,
-    required this.description,
-    required this.family,
-  });
-  final String name;
-  final String url;
-  final String description;
-  final String family;
-
-  /// 获取显示文本
-  String get displayText => '$name - $description';
 }

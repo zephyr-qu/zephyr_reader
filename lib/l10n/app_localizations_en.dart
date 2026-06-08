@@ -99,6 +99,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get estimatedRemaining => 'Est. Remaining';
 
   @override
+  String estimatedTime(Object hours, Object minutes) {
+    return 'About ${hours}h ${minutes}min';
+  }
+
+  @override
+  String estimatedTimeShort(Object minutes) {
+    return 'About ${minutes}min';
+  }
+
+  @override
   String get startReading => 'Start Reading';
 
   @override
@@ -533,11 +543,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Invalid sync config, please check WebDAV settings';
 
   @override
-  String get dataCleared => 'All local data cleared';
+  String get dataCleared => 'Cache cleared';
 
   @override
   String dataClearFailed(Object error) {
-    return 'Failed to clear data: $error';
+    return 'Failed to clear cache: $error';
   }
 
   @override
@@ -766,6 +776,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loadFailed => 'Failed to load';
+
+  @override
+  String get saveHighlightFailed => 'Failed to save highlight';
+
+  @override
+  String get saveAnnotationFailed => 'Failed to save note';
+
+  @override
+  String get deleteHighlightFailed => 'Failed to delete highlight';
+
+  @override
+  String get updateNoteFailed => 'Failed to update note';
+
+  @override
+  String get bilingualHighlightFailed => 'Failed to create bilingual highlight';
+
+  @override
+  String chapterLoadFailed(Object error) {
+    return 'Failed to load chapter: $error';
+  }
+
+  @override
+  String get contentEmpty => 'No content';
 
   @override
   String get appearanceSection => 'Appearance';
@@ -1165,6 +1198,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get appTheme => 'App Theme';
+
+  @override
+  String get autoTheme => 'Auto Theme';
+
+  @override
+  String get autoThemeDesc =>
+      'Automatically switch light/dark theme based on time';
+
+  @override
+  String get autoThemeSchedule => 'Time Schedule';
 
   @override
   String get bookFormat => 'Format';
@@ -1670,6 +1713,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Force uniform line height to prevent text jumping';
 
   @override
+  String get autoScroll => 'Auto Scroll';
+
+  @override
+  String get autoScrollSpeed => 'Scroll Interval';
+
+  @override
   String get verticalMode => 'Vertical Mode';
 
   @override
@@ -1802,10 +1851,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Reset typography, themes, sync to defaults';
 
   @override
-  String get clearAllData => 'Clear All Data';
+  String get clearAllData => 'Clear Cache';
 
   @override
-  String get clearAllDataDesc => 'Delete books, notes, vocabulary, records';
+  String get clearAllDataDesc =>
+      'Clear reading cache and temp files, no data loss';
 
   @override
   String get confirmReset => 'Confirm Reset';
@@ -1815,11 +1865,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'This will reset typography, theme, sync settings to defaults.\n\nBooks, notes and vocabulary won\'t be deleted.';
 
   @override
-  String get clearAllDataTitle => 'Clear All Data';
+  String get clearAllDataTitle => 'Clear Cache';
 
   @override
   String get clearAllDataContent =>
-      'This will delete all books, notes, vocabulary, reading progress and statistics.\n\nWe recommend backing up via WebDAV first.\n\nThis action cannot be undone.';
+      'This will clear reading cache and temporary files.\n\nBooks, notes and vocabulary won\'t be deleted.';
 
   @override
   String get confirmClear => 'Confirm Clear';

@@ -12,9 +12,6 @@ import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/sync/application/services/sync_models.dart';
 import 'package:zephyr_reader/features/sync/application/services/webdav_config_service.dart';
 import 'package:zephyr_reader/features/sync/application/services/webdav_sync_service.dart';
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
-import 'package:zephyr_reader/src/rust/api/search.dart';
 
 @injectable
 /// 存储同步 ViewModel。
@@ -64,7 +61,7 @@ class StorageSyncViewModel {
 
   /// 计算应用缓存、数据库和书籍文件的大小。
   Future<void> _calcStorage({int? knownCacheBytes}) async {
-    final cacheBytes = knownCacheBytes ?? await CacheManager.getCacheSize();
+    final cacheBytes = knownCacheBytes ?? await SystemCache.getCacheSize();
     cacheSize.value = cacheBytes;
 
     final appDir = await getApplicationDocumentsDirectory();
@@ -131,64 +128,8 @@ class StorageSyncViewModel {
 
   /// 清除应用缓存并重新计算存储用量。
   Future<void> clearCache() async {
-    await CacheManager.clearCache();
+    await SystemCache.clearCache();
     await _calcStorage(knownCacheBytes: 0);
-  }
-
-  /// 清除全部本地数据：删除所有书籍、笔记、生词本、缓存和同步配置。
-  Future<void> clearAllLocalData() async {
-    try {
-      // 1. 删除所有书籍（级联删除笔记/书签/进度）
-      final books = await book_api.listBooks();
-      final appDir = await getApplicationDocumentsDirectory();
-      final coversDir = p.join(appDir.path, 'covers');
-      for (final book in books) {
-        try {
-          await book_api.deleteBook(bookId: book.bookId, coversDir: coversDir);
-        } catch (e) {
-          Logging.error('删除书籍失败', exception: e);
-        }
-      }
-
-      // 2. 删除所有生词
-      final allVocab = await vocab_api.listVocabularyByStatus();
-      for (final word in allVocab) {
-        try {
-          await vocab_api.deleteVocabulary(id: word.id);
-        } catch (e) {
-          Logging.error('删除生词失败', exception: e);
-        }
-      }
-
-      // 3. 清除搜索索引
-      try {
-        await clearAll();
-      } catch (e) {
-        Logging.error('清除搜索索引失败', exception: e);
-      }
-
-      // 4. 清除缓存
-      await CacheManager.clearCache();
-
-      // 5. 清除 WebDAV 同步配置
-      await clearConfig();
-
-      // 6. 重置信号状态
-      lastSyncTime.value = null;
-      isConfigured.value = false;
-      serverUrl.value = '';
-      cacheSize.value = 0;
-      dbSize.value = 0;
-      booksSize.value = 0;
-      totalUsed.value = 0;
-      totalAvailable.value = 0;
-
-      // 7. 重新计算当前存储用量
-      await _calcStorage(knownCacheBytes: 0);
-    } catch (e) {
-      Logging.error('清除全部数据失败', exception: e);
-      rethrow;
-    }
   }
 
   /// Delegated to configService; exposed for dialog use.

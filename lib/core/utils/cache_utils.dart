@@ -1,7 +1,9 @@
-/// 缓存管理器
+/// 系统缓存管理器
 ///
-/// 提供应用缓存清理与大小统计的静态方法。
-/// 涵盖临时目录、应用缓存目录及日志目录。
+/// 管理 OS 级临时/缓存目录及日志目录的清理与统计。
+/// 不涉及业务数据（字体、封面、数据库等）。
+library;
+
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -9,8 +11,8 @@ import 'package:path_provider/path_provider.dart';
 
 import './logging.dart';
 
-class CacheManager {
-  /// 清理缓存
+class SystemCache {
+  /// 清理系统缓存
   ///
   /// 返回清理的字节数
   static Future<int> clearCache() async {
@@ -37,7 +39,7 @@ class CacheManager {
     return totalBytes;
   }
 
-  /// 计算缓存大小
+  /// 计算系统缓存大小
   ///
   /// 返回缓存总字节数
   static Future<int> getCacheSize() async {

@@ -56,65 +56,6 @@ class SkeletonWidget extends HookWidget {
   }
 }
 
-class SkeletonCard extends StatelessWidget {
-  final double? width;
-  final double? height;
-  final int lineCount;
-  final double lineHeight;
-  final double spacing;
-  final double borderRadius;
-
-  const SkeletonCard({
-    super.key,
-    this.width,
-    this.height,
-    this.lineCount = 3,
-    this.lineHeight = 14,
-    this.spacing = 10,
-    this.borderRadius = 8,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-          width: width,
-          height: height,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(borderRadius),
-            color: theme.colorScheme.surface,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SkeletonWidget(height: 18, borderRadius: 4),
-              const SizedBox(height: 12),
-              ...List.generate(
-                lineCount,
-                (i) => Padding(
-                  padding: EdgeInsets.only(
-                    bottom: i < lineCount - 1 ? spacing : 0,
-                  ),
-                  child: SkeletonWidget(
-                    height: lineHeight,
-                    width: i == lineCount - 1 ? 0.6 : 1.0,
-                    borderRadius: 4,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        )
-        .animate()
-        .then(delay: 0.ms, duration: 1500.ms)
-        .shimmer(
-          color: DesignTokens.warmAccent.withValues(alpha: 0.15),
-          size: 0.3,
-        );
-  }
-}
-
 class SkeletonGrid extends StatelessWidget {
   final int itemCount;
   final int crossAxisCount;

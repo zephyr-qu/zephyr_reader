@@ -12,7 +12,6 @@ import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_status_chip
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_list_item_tile.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_stats_row.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/src/rust/storage/vocab_status_extension.dart';
 
 final testL10n = AppLocalizationsEn();
 
@@ -62,14 +61,14 @@ void main() {
 
   group('VocabStatusChip', () {
     for (final status in VocabStatus.values) {
-      testWidgets('渲染 ${status.displayName} 标签', (tester) async {
+      testWidgets('渲染 ${vocabStatusLabel(status, testL10n)} 标签', (tester) async {
         await tester.pumpWidget(
           wrapWithTheme(
-            VocabStatusChip(status: status, theme: ThemeData(), l10n: testL10n),
+            VocabStatusChip(status: status),
           ),
         );
 
-        expect(find.text(status.displayName(testL10n)), findsOneWidget);
+        expect(find.text(vocabStatusLabel(status, testL10n)), findsOneWidget);
       });
     }
   });
@@ -83,8 +82,6 @@ void main() {
           VocabListItemTile(
             item: item,
             bookTitles: const {},
-            theme: ThemeData(),
-            l10n: testL10n,
             index: 0,
             onDismissed: () {},
             onUpdateStatus: (_) {},
@@ -106,8 +103,6 @@ void main() {
           VocabListItemTile(
             item: item,
             bookTitles: const {},
-            theme: ThemeData(),
-            l10n: testL10n,
             index: 0,
             onDismissed: () {},
             onUpdateStatus: (_) {},
@@ -127,8 +122,6 @@ void main() {
           VocabListItemTile(
             item: item,
             bookTitles: const {},
-            theme: ThemeData(),
-            l10n: testL10n,
             index: 0,
             onDismissed: () {},
             onUpdateStatus: (_) {},
@@ -148,8 +141,6 @@ void main() {
           VocabListItemTile(
             item: item,
             bookTitles: const {'book_1': '测试书籍'},
-            theme: ThemeData(),
-            l10n: testL10n,
             index: 0,
             onDismissed: () {},
             onUpdateStatus: (_) {},
@@ -169,8 +160,6 @@ void main() {
           VocabListItemTile(
             item: item,
             bookTitles: const {},
-            theme: ThemeData(),
-            l10n: testL10n,
             index: 0,
             onDismissed: () {},
             onUpdateStatus: (_) {},
@@ -192,8 +181,6 @@ void main() {
           VocabListItemTile(
             item: item,
             bookTitles: const {},
-            theme: ThemeData(),
-            l10n: testL10n,
             index: 0,
             onDismissed: () {},
             onUpdateStatus: (_) {},
@@ -217,8 +204,6 @@ void main() {
           VocabListItemTile(
             item: item,
             bookTitles: const {},
-            theme: ThemeData(),
-            l10n: testL10n,
             index: 0,
             onDismissed: () => dismissed = true,
             onUpdateStatus: (_) {},
@@ -265,8 +250,6 @@ void main() {
       await tester.pumpWidget(
         wrapWithTheme(
           VocabStatsRow(
-            theme: ThemeData(),
-            l10n: testL10n,
             stats: AsyncState.data(stats),
             filterStatus: null,
             filterWordList: null,
@@ -291,8 +274,6 @@ void main() {
       await tester.pumpWidget(
         wrapWithTheme(
           VocabStatsRow(
-            theme: ThemeData(),
-            l10n: testL10n,
             stats: AsyncState.loading(),
             filterStatus: null,
             filterWordList: null,
@@ -310,8 +291,6 @@ void main() {
       await tester.pumpWidget(
         wrapWithTheme(
           VocabStatsRow(
-            theme: ThemeData(),
-            l10n: testL10n,
             stats: AsyncState.data(stats),
             filterStatus: VocabStatus.learning,
             filterWordList: null,

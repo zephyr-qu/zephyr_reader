@@ -38,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
                     default_rust_auto_opaque = RustAutoOpaqueNom,
                 );
                 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1469070352;
+                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1279095700;
             
 
 // Section: executor
@@ -154,6 +154,12 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::data::book::count_books().await?;   Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__search__count_matches_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>,query: impl CstDecode<String>,chapter_index: impl CstDecode<Option<i32>>)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "count_matches", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_book_id = book_id.cst_decode();let api_query = query.cst_decode();let api_chapter_index = chapter_index.cst_decode(); move |context| async move {
+                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
+                         let output_ok = crate::api::search::count_matches(api_book_id, api_query, api_chapter_index).await?;   Ok(output_ok)
+                    })().await)
+                } })
             }fn wire__crate__api__data__note__count_notes_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<Option<String>>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "count_notes", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_book_id = book_id.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
@@ -238,6 +244,12 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::data::bookmark::delete_bookmark(api_bookmark_id).await?;   Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__data__bookmark__delete_bookmarks_impl(port_: flutter_rust_bridge::for_generated::MessagePort,bookmark_ids: impl CstDecode<Vec<String>>)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "delete_bookmarks", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_bookmark_ids = bookmark_ids.cst_decode(); move |context| async move {
+                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
+                         let output_ok = crate::api::data::bookmark::delete_bookmarks(api_bookmark_ids).await?;   Ok(output_ok)
+                    })().await)
+                } })
             }fn wire__crate__api__search__delete_by_book_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "delete_by_book", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_book_id = book_id.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
@@ -290,12 +302,6 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "extract_book_cover", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_file_path = file_path.cst_decode();let api_output_dir = output_dir.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::cover::extract_book_cover(api_file_path, api_output_dir).await?;   Ok(output_ok)
-                    })().await)
-                } })
-            }fn wire__crate__api__core__extract_metadata_impl(port_: flutter_rust_bridge::for_generated::MessagePort,file_path: impl CstDecode<String>)  {
-                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "extract_metadata", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_file_path = file_path.cst_decode(); move |context| async move {
-                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
-                         let output_ok = crate::api::core::extract_metadata(api_file_path).await?;   Ok(output_ok)
                     })().await)
                 } })
             }fn wire__crate__api__vocab_marker__get_all_vocabulary_words_impl() -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
@@ -391,6 +397,12 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                 transform_result_dco::<_, _, crate::domain::error::AppError>((move || {
                      let output_ok = crate::api::vocab_marker::get_ielts_words()?;   Ok(output_ok)
                 })()) })
+            }fn wire__crate__api__search__get_index_stats_impl(port_: flutter_rust_bridge::for_generated::MessagePort)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "get_index_stats", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {  move |context| async move {
+                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
+                         let output_ok = crate::api::search::get_index_stats().await?;   Ok(output_ok)
+                    })().await)
+                } })
             }fn wire__crate__api__md__get_md_chapter_rich_content_impl(port_: flutter_rust_bridge::for_generated::MessagePort,file_path: impl CstDecode<String>,chapter_index: impl CstDecode<i32>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "get_md_chapter_rich_content", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_file_path = file_path.cst_decode();let api_chapter_index = chapter_index.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
@@ -403,6 +415,11 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::data::note::get_note_stats(api_book_id).await?;   Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__core__get_page_content_impl(file_path: impl CstDecode<String>,chapter_index: impl CstDecode<i32>,config_hash: impl CstDecode<u64>,page_index: impl CstDecode<i32>) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::DcoCodec,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "get_page_content", port: None, mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync }, move || { let api_file_path = file_path.cst_decode();let api_chapter_index = chapter_index.cst_decode();let api_config_hash = config_hash.cst_decode();let api_page_index = page_index.cst_decode();
+                transform_result_dco::<_, _, ()>((move || {
+                     let output_ok = Result::<_,()>::Ok(crate::api::core::get_page_content(api_file_path, api_chapter_index, api_config_hash, api_page_index))?;   Ok(output_ok)
+                })()) })
             }fn wire__crate__api__core__get_paginated_chunk_impl(port_: flutter_rust_bridge::for_generated::MessagePort,file_path: impl CstDecode<String>,chapter_index: impl CstDecode<i32>,chunk_index: impl CstDecode<u32>,config: impl CstDecode<crate::domain::types::typeset::TypesetConfig>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "get_paginated_chunk", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_file_path = file_path.cst_decode();let api_chapter_index = chapter_index.cst_decode();let api_chunk_index = chunk_index.cst_decode();let api_config = config.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
@@ -443,12 +460,6 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "get_reading_stats_by_range", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_start_date = start_date.cst_decode();let api_end_date = end_date.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
                          let output_ok = crate::api::data::stats::get_reading_stats_by_range(api_start_date, api_end_date).await?;   Ok(output_ok)
-                    })().await)
-                } })
-            }fn wire__crate__api__core__get_supported_formats_impl(port_: flutter_rust_bridge::for_generated::MessagePort)  {
-                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "get_supported_formats", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {  move |context| async move {
-                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
-                         let output_ok = crate::api::core::get_supported_formats().await?;   Ok(output_ok)
                     })().await)
                 } })
             }fn wire__crate__api__data__stats__get_today_reading_stats_impl(port_: flutter_rust_bridge::for_generated::MessagePort)  {
@@ -672,6 +683,12 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::core::paginate_all_content(api_file_path, api_chapter_index, api_config).await?;   Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__core__paginate_chapter_impl(port_: flutter_rust_bridge::for_generated::MessagePort,file_path: impl CstDecode<String>,chapter_index: impl CstDecode<i32>,config: impl CstDecode<crate::domain::types::typeset::TypesetConfig>)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "paginate_chapter", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_file_path = file_path.cst_decode();let api_chapter_index = chapter_index.cst_decode();let api_config = config.cst_decode(); move |context| async move {
+                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
+                         let output_ok = crate::api::core::paginate_chapter(api_file_path, api_chapter_index, api_config).await?;   Ok(output_ok)
+                    })().await)
+                } })
             }fn wire__crate__api__core__parse_book_impl(port_: flutter_rust_bridge::for_generated::MessagePort,file_path: impl CstDecode<String>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "parse_book", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_file_path = file_path.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
@@ -736,12 +753,6 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                          let output_ok = crate::api::data::category::set_categories_for_book(api_book_id, api_category_ids).await?;   Ok(output_ok)
                     })().await)
                 } })
-            }fn wire__crate__api__bilingual__simple_bilingual_align_impl(port_: flutter_rust_bridge::for_generated::MessagePort,chinese_content: impl CstDecode<String>,english_content: impl CstDecode<String>)  {
-                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "simple_bilingual_align", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_chinese_content = chinese_content.cst_decode();let api_english_content = english_content.cst_decode(); move |context| async move {
-                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
-                         let output_ok = crate::api::bilingual::simple_bilingual_align(api_chinese_content, api_english_content).await?;   Ok(output_ok)
-                    })().await)
-                } })
             }fn wire__crate__api__dictionary__suggest_mdict_impl(port_: flutter_rust_bridge::for_generated::MessagePort,prefix: impl CstDecode<String>,limit: impl CstDecode<i32>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "suggest_mdict", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_prefix = prefix.cst_decode();let api_limit = limit.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
@@ -758,22 +769,11 @@ fn wire__crate__api__bilingual__align_bilingual_content_impl(port_: flutter_rust
                 transform_result_dco::<_, _, ()>((move || {
                      let output_ok = Result::<_,()>::Ok(crate::api::cover::supports_cover_extraction(api_file_path))?;   Ok(output_ok)
                 })()) })
-            }fn wire__crate__api__core__supports_format_impl(format: impl CstDecode<String>) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
-                FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::DcoCodec,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "supports_format", port: None, mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync }, move || { let api_format = format.cst_decode();
-                transform_result_dco::<_, _, ()>((move || {
-                     let output_ok = Result::<_,()>::Ok(crate::api::core::supports_format(&api_format))?;   Ok(output_ok)
-                })()) })
             }fn wire__crate__api__test_connection_impl() -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::DcoCodec,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "test_connection", port: None, mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync }, move || { 
                 transform_result_dco::<_, _, crate::domain::error::AppError>((move || {
                      let output_ok = crate::api::test_connection()?;   Ok(output_ok)
                 })()) })
-            }fn wire__crate__api__typeset__typeset_text_impl(port_: flutter_rust_bridge::for_generated::MessagePort,content: impl CstDecode<String>,config: impl CstDecode<crate::domain::types::typeset::TypesetConfig>)  {
-                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "typeset_text", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_content = content.cst_decode();let api_config = config.cst_decode(); move |context| async move {
-                    transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
-                         let output_ok = crate::api::typeset::typeset_text(api_content, api_config).await?;   Ok(output_ok)
-                    })().await)
-                } })
             }fn wire__crate__api__data__book__update_book_metadata_impl(port_: flutter_rust_bridge::for_generated::MessagePort,book_id: impl CstDecode<String>,title: impl CstDecode<Option<String>>,author: impl CstDecode<Option<String>>,description: impl CstDecode<Option<String>>)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "update_book_metadata", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_book_id = book_id.cst_decode();let api_title = title.cst_decode();let api_author = author.cst_decode();let api_description = description.cst_decode(); move |context| async move {
                     transform_result_dco::<_, _, crate::domain::error::AppError>((move || async move {
@@ -948,6 +948,11 @@ impl CstDecode<chrono::DateTime::<chrono::Utc>> for i64 {
             fn cst_decode(self) -> u32 {
                 self
             }
+        }impl CstDecode<u64> for u64 {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> u64 {
+                self
+            }
         }impl CstDecode<u8> for u8 {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> u8 {
@@ -1018,35 +1023,38 @@ return crate::domain::error::AppError::FileNotFound{path: var_path}; }
 1 => { let mut var_path = <String>::sse_decode(deserializer);
 let mut var_details = <String>::sse_decode(deserializer);
 return crate::domain::error::AppError::FileReadError{path: var_path, details: var_details}; }
-2 => { let mut var_format = <String>::sse_decode(deserializer);
+2 => { let mut var_path = <String>::sse_decode(deserializer);
+let mut var_details = <String>::sse_decode(deserializer);
+return crate::domain::error::AppError::FileWriteError{path: var_path, details: var_details}; }
+3 => { let mut var_format = <String>::sse_decode(deserializer);
 return crate::domain::error::AppError::UnsupportedFormat{format: var_format}; }
-3 => { let mut var_reason = <String>::sse_decode(deserializer);
-return crate::domain::error::AppError::EpubParseError{reason: var_reason}; }
 4 => { let mut var_reason = <String>::sse_decode(deserializer);
+return crate::domain::error::AppError::EpubParseError{reason: var_reason}; }
+5 => { let mut var_reason = <String>::sse_decode(deserializer);
 return crate::domain::error::AppError::PdfParseError{reason: var_reason}; }
-5 => { let mut var_index = <i32>::sse_decode(deserializer);
+6 => { let mut var_index = <i32>::sse_decode(deserializer);
 let mut var_reason = <String>::sse_decode(deserializer);
 return crate::domain::error::AppError::ChapterExtractError{index: var_index, reason: var_reason}; }
-6 => { let mut var_reason = <String>::sse_decode(deserializer);
-return crate::domain::error::AppError::TypesetConfigError{reason: var_reason}; }
 7 => { let mut var_reason = <String>::sse_decode(deserializer);
+return crate::domain::error::AppError::TypesetConfigError{reason: var_reason}; }
+8 => { let mut var_reason = <String>::sse_decode(deserializer);
 return crate::domain::error::AppError::DatabaseError{reason: var_reason}; }
-8 => { let mut var_entity = <String>::sse_decode(deserializer);
+9 => { let mut var_entity = <String>::sse_decode(deserializer);
 return crate::domain::error::AppError::NotFound{entity: var_entity}; }
-9 => { return crate::domain::error::AppError::StorageNotInitialized; }
-10 => { let mut var_reason = <String>::sse_decode(deserializer);
-return crate::domain::error::AppError::SearchError{reason: var_reason}; }
+10 => { return crate::domain::error::AppError::StorageNotInitialized; }
 11 => { let mut var_reason = <String>::sse_decode(deserializer);
+return crate::domain::error::AppError::SearchError{reason: var_reason}; }
+12 => { let mut var_reason = <String>::sse_decode(deserializer);
 let mut var_path = <String>::sse_decode(deserializer);
 return crate::domain::error::AppError::SecurityError{reason: var_reason, path: var_path}; }
-12 => { let mut var_reason = <String>::sse_decode(deserializer);
-return crate::domain::error::AppError::InvalidInput{reason: var_reason}; }
 13 => { let mut var_reason = <String>::sse_decode(deserializer);
+return crate::domain::error::AppError::InvalidInput{reason: var_reason}; }
+14 => { let mut var_reason = <String>::sse_decode(deserializer);
 return crate::domain::error::AppError::InternalError{reason: var_reason}; }
-14 => { let mut var_taskName = <String>::sse_decode(deserializer);
+15 => { let mut var_taskName = <String>::sse_decode(deserializer);
 let mut var_details = <String>::sse_decode(deserializer);
 return crate::domain::error::AppError::TaskPanic{task_name: var_taskName, details: var_details}; }
-15 => { let mut var_field0 = <String>::sse_decode(deserializer);
+16 => { let mut var_field0 = <String>::sse_decode(deserializer);
 return crate::domain::error::AppError::Other(var_field0); }
  _ => { unimplemented!(""); }}}
                 }
@@ -1152,22 +1160,6 @@ return crate::api::data::book::BookDetail{book: var_book, progress: var_progress
 3 => crate::storage::models::BookFormat::Md,
             _ => unreachable!("Invalid variant for BookFormat: {}", inner),
         };}
-                }
-                
-                impl SseDecode for crate::parser::book_parser::BookMetadata {
-                    // Codec=Sse (Serialization based), see doc to use other codecs
-                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_title = <String>::sse_decode(deserializer);
-let mut var_author = <String>::sse_decode(deserializer);
-let mut var_description = <Option<String>>::sse_decode(deserializer);
-let mut var_coverPath = <Option<String>>::sse_decode(deserializer);
-let mut var_publisher = <Option<String>>::sse_decode(deserializer);
-let mut var_translator = <Option<String>>::sse_decode(deserializer);
-let mut var_isbn = <Option<String>>::sse_decode(deserializer);
-let mut var_publishYear = <Option<i32>>::sse_decode(deserializer);
-let mut var_language = <Option<String>>::sse_decode(deserializer);
-let mut var_chapterCount = <i64>::sse_decode(deserializer);
-let mut var_totalCharacters = <i64>::sse_decode(deserializer);
-return crate::parser::book_parser::BookMetadata{title: var_title, author: var_author, description: var_description, cover_path: var_coverPath, publisher: var_publisher, translator: var_translator, isbn: var_isbn, publish_year: var_publishYear, language: var_language, chapter_count: var_chapterCount, total_characters: var_totalCharacters};}
                 }
                 
                 impl SseDecode for crate::storage::models::BookStatus {
@@ -1333,6 +1325,14 @@ return crate::storage::models::GlobalStats{total_reading_time_seconds: var_total
         };}
                 }
                 
+                impl SseDecode for crate::domain::types::pagination::IndexStats {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_totalChunks = <i64>::sse_decode(deserializer);
+let mut var_indexedBooks = <i64>::sse_decode(deserializer);
+let mut var_indexedChapters = <i64>::sse_decode(deserializer);
+return crate::domain::types::pagination::IndexStats{total_chunks: var_totalChunks, indexed_books: var_indexedBooks, indexed_chapters: var_indexedChapters};}
+                }
+                
                 impl SseDecode for crate::domain::types::typeset::LanguageType {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut inner = <i32>::sse_decode(deserializer);
@@ -1446,6 +1446,14 @@ return crate::storage::models::GlobalStats{total_reading_time_seconds: var_total
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = Vec::with_capacity(len_ as usize);
         for idx_ in 0..len_ { ans_.push(<crate::domain::types::pagination::PageContent>::sse_decode(deserializer)); }
+        return ans_;}
+                }
+                
+                impl SseDecode for Vec<crate::domain::types::pagination::PageDescriptor> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ { ans_.push(<crate::domain::types::pagination::PageDescriptor>::sse_decode(deserializer)); }
         return ans_;}
                 }
                 
@@ -1771,6 +1779,22 @@ let mut var_text = <String>::sse_decode(deserializer);
 return crate::parser::provider::PageData{page_index: var_pageIndex, text: var_text};}
                 }
                 
+                impl SseDecode for crate::domain::types::pagination::PageDescriptor {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_pageIndex = <i32>::sse_decode(deserializer);
+let mut var_startOffset = <i32>::sse_decode(deserializer);
+let mut var_endOffset = <i32>::sse_decode(deserializer);
+let mut var_isLastPage = <bool>::sse_decode(deserializer);
+return crate::domain::types::pagination::PageDescriptor{page_index: var_pageIndex, start_offset: var_startOffset, end_offset: var_endOffset, is_last_page: var_isLastPage};}
+                }
+                
+                impl SseDecode for crate::domain::types::pagination::PaginateResult {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_descriptors = <Vec<crate::domain::types::pagination::PageDescriptor>>::sse_decode(deserializer);
+let mut var_configHash = <u64>::sse_decode(deserializer);
+return crate::domain::types::pagination::PaginateResult{descriptors: var_descriptors, config_hash: var_configHash};}
+                }
+                
                 impl SseDecode for crate::domain::types::metadata::ParseResult {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_bookInfo = <crate::storage::models::Book>::sse_decode(deserializer);
@@ -1921,17 +1945,23 @@ let mut var_lineSpacing = <f32>::sse_decode(deserializer);
 let mut var_letterSpacing = <f32>::sse_decode(deserializer);
 let mut var_paragraphSpacing = <f32>::sse_decode(deserializer);
 let mut var_firstLineIndent = <u8>::sse_decode(deserializer);
+let mut var_punctuationSqueeze = <bool>::sse_decode(deserializer);
 let mut var_language = <crate::domain::types::typeset::LanguageType>::sse_decode(deserializer);
 let mut var_enableHyphenation = <bool>::sse_decode(deserializer);
 let mut var_hyphenationLanguage = <Option<String>>::sse_decode(deserializer);
 let mut var_fontFamily = <String>::sse_decode(deserializer);
 let mut var_calibration = <Option<crate::domain::types::typeset::TypesetCalibration>>::sse_decode(deserializer);
-return crate::domain::types::typeset::TypesetConfig{page_width: var_pageWidth, page_height: var_pageHeight, font_size: var_fontSize, line_spacing: var_lineSpacing, letter_spacing: var_letterSpacing, paragraph_spacing: var_paragraphSpacing, first_line_indent: var_firstLineIndent, language: var_language, enable_hyphenation: var_enableHyphenation, hyphenation_language: var_hyphenationLanguage, font_family: var_fontFamily, calibration: var_calibration};}
+return crate::domain::types::typeset::TypesetConfig{page_width: var_pageWidth, page_height: var_pageHeight, font_size: var_fontSize, line_spacing: var_lineSpacing, letter_spacing: var_letterSpacing, paragraph_spacing: var_paragraphSpacing, first_line_indent: var_firstLineIndent, punctuation_squeeze: var_punctuationSqueeze, language: var_language, enable_hyphenation: var_enableHyphenation, hyphenation_language: var_hyphenationLanguage, font_family: var_fontFamily, calibration: var_calibration};}
                 }
                 
                 impl SseDecode for u32 {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {deserializer.cursor.read_u32::<NativeEndian>().unwrap()}
+                }
+                
+                impl SseDecode for u64 {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {deserializer.cursor.read_u64::<NativeEndian>().unwrap()}
                 }
                 
                 impl SseDecode for u8 {
@@ -2069,35 +2099,38 @@ path.into_into_dart().into_dart()].into_dart() }
 crate::domain::error::AppError::FileReadError{path,details} => { [1.into_dart(),
 path.into_into_dart().into_dart(),
 details.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::UnsupportedFormat{format} => { [2.into_dart(),
+crate::domain::error::AppError::FileWriteError{path,details} => { [2.into_dart(),
+path.into_into_dart().into_dart(),
+details.into_into_dart().into_dart()].into_dart() }
+crate::domain::error::AppError::UnsupportedFormat{format} => { [3.into_dart(),
 format.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::EpubParseError{reason} => { [3.into_dart(),
+crate::domain::error::AppError::EpubParseError{reason} => { [4.into_dart(),
 reason.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::PdfParseError{reason} => { [4.into_dart(),
+crate::domain::error::AppError::PdfParseError{reason} => { [5.into_dart(),
 reason.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::ChapterExtractError{index,reason} => { [5.into_dart(),
+crate::domain::error::AppError::ChapterExtractError{index,reason} => { [6.into_dart(),
 index.into_into_dart().into_dart(),
 reason.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::TypesetConfigError{reason} => { [6.into_dart(),
+crate::domain::error::AppError::TypesetConfigError{reason} => { [7.into_dart(),
 reason.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::DatabaseError{reason} => { [7.into_dart(),
+crate::domain::error::AppError::DatabaseError{reason} => { [8.into_dart(),
 reason.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::NotFound{entity} => { [8.into_dart(),
+crate::domain::error::AppError::NotFound{entity} => { [9.into_dart(),
 entity.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::StorageNotInitialized => { [9.into_dart()].into_dart() }
-crate::domain::error::AppError::SearchError{reason} => { [10.into_dart(),
+crate::domain::error::AppError::StorageNotInitialized => { [10.into_dart()].into_dart() }
+crate::domain::error::AppError::SearchError{reason} => { [11.into_dart(),
 reason.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::SecurityError{reason,path} => { [11.into_dart(),
+crate::domain::error::AppError::SecurityError{reason,path} => { [12.into_dart(),
 reason.into_into_dart().into_dart(),
 path.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::InvalidInput{reason} => { [12.into_dart(),
+crate::domain::error::AppError::InvalidInput{reason} => { [13.into_dart(),
 reason.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::InternalError{reason} => { [13.into_dart(),
+crate::domain::error::AppError::InternalError{reason} => { [14.into_dart(),
 reason.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::TaskPanic{task_name,details} => { [14.into_dart(),
+crate::domain::error::AppError::TaskPanic{task_name,details} => { [15.into_dart(),
 task_name.into_into_dart().into_dart(),
 details.into_into_dart().into_dart()].into_dart() }
-crate::domain::error::AppError::Other(field0) => { [15.into_dart(),
+crate::domain::error::AppError::Other(field0) => { [16.into_dart(),
 field0.into_into_dart().into_dart()].into_dart() }
  _ => { unimplemented!(""); }}
                 }
@@ -2270,30 +2303,6 @@ Self::Md => 3.into_dart(),
             impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::storage::models::BookFormat {}
 impl flutter_rust_bridge::IntoIntoDart<crate::storage::models::BookFormat> for crate::storage::models::BookFormat {
             fn into_into_dart(self) -> crate::storage::models::BookFormat {
-                self
-            }
-        }
-// Codec=Dco (DartCObject based), see doc to use other codecs
-            impl flutter_rust_bridge::IntoDart for crate::parser::book_parser::BookMetadata {
-                fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-                    [
-                    self.title.into_into_dart().into_dart(),
-self.author.into_into_dart().into_dart(),
-self.description.into_into_dart().into_dart(),
-self.cover_path.into_into_dart().into_dart(),
-self.publisher.into_into_dart().into_dart(),
-self.translator.into_into_dart().into_dart(),
-self.isbn.into_into_dart().into_dart(),
-self.publish_year.into_into_dart().into_dart(),
-self.language.into_into_dart().into_dart(),
-self.chapter_count.into_into_dart().into_dart(),
-self.total_characters.into_into_dart().into_dart()
-                ].into_dart()
-                }
-            }
-            impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::parser::book_parser::BookMetadata {}
-impl flutter_rust_bridge::IntoIntoDart<crate::parser::book_parser::BookMetadata> for crate::parser::book_parser::BookMetadata {
-            fn into_into_dart(self) -> crate::parser::book_parser::BookMetadata {
                 self
             }
         }
@@ -2539,6 +2548,22 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::epub::ImageFormat> for crate:
             }
         }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+            impl flutter_rust_bridge::IntoDart for crate::domain::types::pagination::IndexStats {
+                fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+                    [
+                    self.total_chunks.into_into_dart().into_dart(),
+self.indexed_books.into_into_dart().into_dart(),
+self.indexed_chapters.into_into_dart().into_dart()
+                ].into_dart()
+                }
+            }
+            impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::domain::types::pagination::IndexStats {}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::types::pagination::IndexStats> for crate::domain::types::pagination::IndexStats {
+            fn into_into_dart(self) -> crate::domain::types::pagination::IndexStats {
+                self
+            }
+        }
+// Codec=Dco (DartCObject based), see doc to use other codecs
             impl flutter_rust_bridge::IntoDart for crate::domain::types::typeset::LanguageType {
                 fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
                     match self {
@@ -2661,6 +2686,38 @@ self.text.into_into_dart().into_dart()
             impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::parser::provider::PageData {}
 impl flutter_rust_bridge::IntoIntoDart<crate::parser::provider::PageData> for crate::parser::provider::PageData {
             fn into_into_dart(self) -> crate::parser::provider::PageData {
+                self
+            }
+        }
+// Codec=Dco (DartCObject based), see doc to use other codecs
+            impl flutter_rust_bridge::IntoDart for crate::domain::types::pagination::PageDescriptor {
+                fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+                    [
+                    self.page_index.into_into_dart().into_dart(),
+self.start_offset.into_into_dart().into_dart(),
+self.end_offset.into_into_dart().into_dart(),
+self.is_last_page.into_into_dart().into_dart()
+                ].into_dart()
+                }
+            }
+            impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::domain::types::pagination::PageDescriptor {}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::types::pagination::PageDescriptor> for crate::domain::types::pagination::PageDescriptor {
+            fn into_into_dart(self) -> crate::domain::types::pagination::PageDescriptor {
+                self
+            }
+        }
+// Codec=Dco (DartCObject based), see doc to use other codecs
+            impl flutter_rust_bridge::IntoDart for crate::domain::types::pagination::PaginateResult {
+                fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+                    [
+                    self.descriptors.into_into_dart().into_dart(),
+self.config_hash.into_into_dart().into_dart()
+                ].into_dart()
+                }
+            }
+            impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::domain::types::pagination::PaginateResult {}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::types::pagination::PaginateResult> for crate::domain::types::pagination::PaginateResult {
+            fn into_into_dart(self) -> crate::domain::types::pagination::PaginateResult {
                 self
             }
         }
@@ -2864,6 +2921,7 @@ self.line_spacing.into_into_dart().into_dart(),
 self.letter_spacing.into_into_dart().into_dart(),
 self.paragraph_spacing.into_into_dart().into_dart(),
 self.first_line_indent.into_into_dart().into_dart(),
+self.punctuation_squeeze.into_into_dart().into_dart(),
 self.language.into_into_dart().into_dart(),
 self.enable_hyphenation.into_into_dart().into_dart(),
 self.hyphenation_language.into_into_dart().into_dart(),
@@ -3002,35 +3060,38 @@ impl flutter_rust_bridge::IntoIntoDart<crate::storage::models::VocabStatus> for 
 crate::domain::error::AppError::FileReadError{path,details} => { <i32>::sse_encode(1, serializer); <String>::sse_encode(path, serializer);
 <String>::sse_encode(details, serializer);
  }
-crate::domain::error::AppError::UnsupportedFormat{format} => { <i32>::sse_encode(2, serializer); <String>::sse_encode(format, serializer);
- }
-crate::domain::error::AppError::EpubParseError{reason} => { <i32>::sse_encode(3, serializer); <String>::sse_encode(reason, serializer);
- }
-crate::domain::error::AppError::PdfParseError{reason} => { <i32>::sse_encode(4, serializer); <String>::sse_encode(reason, serializer);
- }
-crate::domain::error::AppError::ChapterExtractError{index,reason} => { <i32>::sse_encode(5, serializer); <i32>::sse_encode(index, serializer);
-<String>::sse_encode(reason, serializer);
- }
-crate::domain::error::AppError::TypesetConfigError{reason} => { <i32>::sse_encode(6, serializer); <String>::sse_encode(reason, serializer);
- }
-crate::domain::error::AppError::DatabaseError{reason} => { <i32>::sse_encode(7, serializer); <String>::sse_encode(reason, serializer);
- }
-crate::domain::error::AppError::NotFound{entity} => { <i32>::sse_encode(8, serializer); <String>::sse_encode(entity, serializer);
- }
-crate::domain::error::AppError::StorageNotInitialized => { <i32>::sse_encode(9, serializer);  }
-crate::domain::error::AppError::SearchError{reason} => { <i32>::sse_encode(10, serializer); <String>::sse_encode(reason, serializer);
- }
-crate::domain::error::AppError::SecurityError{reason,path} => { <i32>::sse_encode(11, serializer); <String>::sse_encode(reason, serializer);
-<String>::sse_encode(path, serializer);
- }
-crate::domain::error::AppError::InvalidInput{reason} => { <i32>::sse_encode(12, serializer); <String>::sse_encode(reason, serializer);
- }
-crate::domain::error::AppError::InternalError{reason} => { <i32>::sse_encode(13, serializer); <String>::sse_encode(reason, serializer);
- }
-crate::domain::error::AppError::TaskPanic{task_name,details} => { <i32>::sse_encode(14, serializer); <String>::sse_encode(task_name, serializer);
+crate::domain::error::AppError::FileWriteError{path,details} => { <i32>::sse_encode(2, serializer); <String>::sse_encode(path, serializer);
 <String>::sse_encode(details, serializer);
  }
-crate::domain::error::AppError::Other(field0) => { <i32>::sse_encode(15, serializer); <String>::sse_encode(field0, serializer);
+crate::domain::error::AppError::UnsupportedFormat{format} => { <i32>::sse_encode(3, serializer); <String>::sse_encode(format, serializer);
+ }
+crate::domain::error::AppError::EpubParseError{reason} => { <i32>::sse_encode(4, serializer); <String>::sse_encode(reason, serializer);
+ }
+crate::domain::error::AppError::PdfParseError{reason} => { <i32>::sse_encode(5, serializer); <String>::sse_encode(reason, serializer);
+ }
+crate::domain::error::AppError::ChapterExtractError{index,reason} => { <i32>::sse_encode(6, serializer); <i32>::sse_encode(index, serializer);
+<String>::sse_encode(reason, serializer);
+ }
+crate::domain::error::AppError::TypesetConfigError{reason} => { <i32>::sse_encode(7, serializer); <String>::sse_encode(reason, serializer);
+ }
+crate::domain::error::AppError::DatabaseError{reason} => { <i32>::sse_encode(8, serializer); <String>::sse_encode(reason, serializer);
+ }
+crate::domain::error::AppError::NotFound{entity} => { <i32>::sse_encode(9, serializer); <String>::sse_encode(entity, serializer);
+ }
+crate::domain::error::AppError::StorageNotInitialized => { <i32>::sse_encode(10, serializer);  }
+crate::domain::error::AppError::SearchError{reason} => { <i32>::sse_encode(11, serializer); <String>::sse_encode(reason, serializer);
+ }
+crate::domain::error::AppError::SecurityError{reason,path} => { <i32>::sse_encode(12, serializer); <String>::sse_encode(reason, serializer);
+<String>::sse_encode(path, serializer);
+ }
+crate::domain::error::AppError::InvalidInput{reason} => { <i32>::sse_encode(13, serializer); <String>::sse_encode(reason, serializer);
+ }
+crate::domain::error::AppError::InternalError{reason} => { <i32>::sse_encode(14, serializer); <String>::sse_encode(reason, serializer);
+ }
+crate::domain::error::AppError::TaskPanic{task_name,details} => { <i32>::sse_encode(15, serializer); <String>::sse_encode(task_name, serializer);
+<String>::sse_encode(details, serializer);
+ }
+crate::domain::error::AppError::Other(field0) => { <i32>::sse_encode(16, serializer); <String>::sse_encode(field0, serializer);
  }
  _ => { unimplemented!(""); }}}
                 }
@@ -3126,21 +3187,6 @@ crate::storage::models::BookFormat::Epub => { 1 }
 crate::storage::models::BookFormat::Pdf => { 2 }
 crate::storage::models::BookFormat::Md => { 3 }
  _ => { unimplemented!(""); }}, serializer);}
-                }
-                
-                impl SseEncode for crate::parser::book_parser::BookMetadata {
-                    // Codec=Sse (Serialization based), see doc to use other codecs
-                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<String>::sse_encode(self.title, serializer);
-<String>::sse_encode(self.author, serializer);
-<Option<String>>::sse_encode(self.description, serializer);
-<Option<String>>::sse_encode(self.cover_path, serializer);
-<Option<String>>::sse_encode(self.publisher, serializer);
-<Option<String>>::sse_encode(self.translator, serializer);
-<Option<String>>::sse_encode(self.isbn, serializer);
-<Option<i32>>::sse_encode(self.publish_year, serializer);
-<Option<String>>::sse_encode(self.language, serializer);
-<i64>::sse_encode(self.chapter_count, serializer);
-<i64>::sse_encode(self.total_characters, serializer);}
                 }
                 
                 impl SseEncode for crate::storage::models::BookStatus {
@@ -3289,6 +3335,13 @@ crate::api::epub::ImageFormat::Unknown => { 6 }
  _ => { unimplemented!(""); }}, serializer);}
                 }
                 
+                impl SseEncode for crate::domain::types::pagination::IndexStats {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i64>::sse_encode(self.total_chunks, serializer);
+<i64>::sse_encode(self.indexed_books, serializer);
+<i64>::sse_encode(self.indexed_chapters, serializer);}
+                }
+                
                 impl SseEncode for crate::domain::types::typeset::LanguageType {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(match self {crate::domain::types::typeset::LanguageType::Chinese => { 0 }
@@ -3374,6 +3427,12 @@ crate::domain::types::typeset::LanguageType::Auto => { 3 }
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(self.len() as _, serializer);
         for item in self { <crate::domain::types::pagination::PageContent>::sse_encode(item, serializer); }}
+                }
+                
+                impl SseEncode for Vec<crate::domain::types::pagination::PageDescriptor> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(self.len() as _, serializer);
+        for item in self { <crate::domain::types::pagination::PageDescriptor>::sse_encode(item, serializer); }}
                 }
                 
                 impl SseEncode for Vec<u8> {
@@ -3650,6 +3709,20 @@ crate::storage::models::NoteType::Annotation => { 1 }
 <String>::sse_encode(self.text, serializer);}
                 }
                 
+                impl SseEncode for crate::domain::types::pagination::PageDescriptor {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(self.page_index, serializer);
+<i32>::sse_encode(self.start_offset, serializer);
+<i32>::sse_encode(self.end_offset, serializer);
+<bool>::sse_encode(self.is_last_page, serializer);}
+                }
+                
+                impl SseEncode for crate::domain::types::pagination::PaginateResult {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<Vec<crate::domain::types::pagination::PageDescriptor>>::sse_encode(self.descriptors, serializer);
+<u64>::sse_encode(self.config_hash, serializer);}
+                }
+                
                 impl SseEncode for crate::domain::types::metadata::ParseResult {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<crate::storage::models::Book>::sse_encode(self.book_info, serializer);
@@ -3790,6 +3863,7 @@ crate::domain::types::rich_text::RichTextSpan::Link{text,url,font_size,color} =>
 <f32>::sse_encode(self.letter_spacing, serializer);
 <f32>::sse_encode(self.paragraph_spacing, serializer);
 <u8>::sse_encode(self.first_line_indent, serializer);
+<bool>::sse_encode(self.punctuation_squeeze, serializer);
 <crate::domain::types::typeset::LanguageType>::sse_encode(self.language, serializer);
 <bool>::sse_encode(self.enable_hyphenation, serializer);
 <Option<String>>::sse_encode(self.hyphenation_language, serializer);
@@ -3800,6 +3874,11 @@ crate::domain::types::rich_text::RichTextSpan::Link{text,url,font_size,color} =>
                 impl SseEncode for u32 {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {serializer.cursor.write_u32::<NativeEndian>(self).unwrap();}
+                }
+                
+                impl SseEncode for u64 {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {serializer.cursor.write_u64::<NativeEndian>(self).unwrap();}
                 }
                 
                 impl SseEncode for u8 {
@@ -3922,55 +4001,59 @@ impl CstDecode<PageStreamer> for usize {
                         crate::domain::error::AppError::FileReadError{path:  ans.path.cst_decode(),details:  ans.details.cst_decode()}
                     }
 2 => {
+                        let ans = unsafe { self.kind.FileWriteError };
+                        crate::domain::error::AppError::FileWriteError{path:  ans.path.cst_decode(),details:  ans.details.cst_decode()}
+                    }
+3 => {
                         let ans = unsafe { self.kind.UnsupportedFormat };
                         crate::domain::error::AppError::UnsupportedFormat{format:  ans.format.cst_decode()}
                     }
-3 => {
+4 => {
                         let ans = unsafe { self.kind.EpubParseError };
                         crate::domain::error::AppError::EpubParseError{reason:  ans.reason.cst_decode()}
                     }
-4 => {
+5 => {
                         let ans = unsafe { self.kind.PdfParseError };
                         crate::domain::error::AppError::PdfParseError{reason:  ans.reason.cst_decode()}
                     }
-5 => {
+6 => {
                         let ans = unsafe { self.kind.ChapterExtractError };
                         crate::domain::error::AppError::ChapterExtractError{index:  ans.index.cst_decode(),reason:  ans.reason.cst_decode()}
                     }
-6 => {
+7 => {
                         let ans = unsafe { self.kind.TypesetConfigError };
                         crate::domain::error::AppError::TypesetConfigError{reason:  ans.reason.cst_decode()}
                     }
-7 => {
+8 => {
                         let ans = unsafe { self.kind.DatabaseError };
                         crate::domain::error::AppError::DatabaseError{reason:  ans.reason.cst_decode()}
                     }
-8 => {
+9 => {
                         let ans = unsafe { self.kind.NotFound };
                         crate::domain::error::AppError::NotFound{entity:  ans.entity.cst_decode()}
                     }
-9 => crate::domain::error::AppError::StorageNotInitialized,
-10 => {
+10 => crate::domain::error::AppError::StorageNotInitialized,
+11 => {
                         let ans = unsafe { self.kind.SearchError };
                         crate::domain::error::AppError::SearchError{reason:  ans.reason.cst_decode()}
                     }
-11 => {
+12 => {
                         let ans = unsafe { self.kind.SecurityError };
                         crate::domain::error::AppError::SecurityError{reason:  ans.reason.cst_decode(),path:  ans.path.cst_decode()}
                     }
-12 => {
+13 => {
                         let ans = unsafe { self.kind.InvalidInput };
                         crate::domain::error::AppError::InvalidInput{reason:  ans.reason.cst_decode()}
                     }
-13 => {
+14 => {
                         let ans = unsafe { self.kind.InternalError };
                         crate::domain::error::AppError::InternalError{reason:  ans.reason.cst_decode()}
                     }
-14 => {
+15 => {
                         let ans = unsafe { self.kind.TaskPanic };
                         crate::domain::error::AppError::TaskPanic{task_name:  ans.task_name.cst_decode(),details:  ans.details.cst_decode()}
                     }
-15 => {
+16 => {
                         let ans = unsafe { self.kind.Other };
                         crate::domain::error::AppError::Other( ans.field0.cst_decode())
                     }
@@ -4011,11 +4094,6 @@ impl CstDecode<PageStreamer> for usize {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> crate::api::data::book::BookDetail {
                 crate::api::data::book::BookDetail{book:  self.book.cst_decode(),progress:  self.progress.cst_decode(),note_stats:  self.note_stats.cst_decode(),chapters:  self.chapters.cst_decode(),categories:  self.categories.cst_decode(),session_count:  self.session_count.cst_decode(),vocab_count:  self.vocab_count.cst_decode()}
-            }
-        }impl CstDecode<crate::parser::book_parser::BookMetadata> for wire_cst_book_metadata {
-            // Codec=Cst (C-struct based), see doc to use other codecs
-            fn cst_decode(self) -> crate::parser::book_parser::BookMetadata {
-                crate::parser::book_parser::BookMetadata{title:  self.title.cst_decode(),author:  self.author.cst_decode(),description:  self.description.cst_decode(),cover_path:  self.cover_path.cst_decode(),publisher:  self.publisher.cst_decode(),translator:  self.translator.cst_decode(),isbn:  self.isbn.cst_decode(),publish_year:  self.publish_year.cst_decode(),language:  self.language.cst_decode(),chapter_count:  self.chapter_count.cst_decode(),total_characters:  self.total_characters.cst_decode()}
             }
         }impl CstDecode<crate::storage::models::BookWithProgress> for wire_cst_book_with_progress {
             // Codec=Cst (C-struct based), see doc to use other codecs
@@ -4205,6 +4283,11 @@ impl CstDecode<PageStreamer> for usize {
             fn cst_decode(self) -> crate::storage::models::GlobalStats {
                 crate::storage::models::GlobalStats{total_reading_time_seconds:  self.total_reading_time_seconds.cst_decode(),total_characters_read:  self.total_characters_read.cst_decode(),books_read_count:  self.books_read_count.cst_decode(),books_completed_count:  self.books_completed_count.cst_decode(),consecutive_reading_days:  self.consecutive_reading_days.cst_decode(),today_reading_time_seconds:  self.today_reading_time_seconds.cst_decode(),today_characters_read:  self.today_characters_read.cst_decode(),average_reading_speed:  self.average_reading_speed.cst_decode(),total_books_count:  self.total_books_count.cst_decode(),total_notes_count:  self.total_notes_count.cst_decode(),total_bookmarks_count:  self.total_bookmarks_count.cst_decode()}
             }
+        }impl CstDecode<crate::domain::types::pagination::IndexStats> for wire_cst_index_stats {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> crate::domain::types::pagination::IndexStats {
+                crate::domain::types::pagination::IndexStats{total_chunks:  self.total_chunks.cst_decode(),indexed_books:  self.indexed_books.cst_decode(),indexed_chapters:  self.indexed_chapters.cst_decode()}
+            }
         }impl CstDecode<Vec<String>> for *mut wire_cst_list_String {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> Vec<String> {
@@ -4316,6 +4399,15 @@ impl CstDecode<PageStreamer> for usize {
         }impl CstDecode<Vec<crate::domain::types::pagination::PageContent>> for *mut wire_cst_list_page_content {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> Vec<crate::domain::types::pagination::PageContent> {
+                let vec = unsafe {
+        let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+        flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+    };
+    vec.into_iter().map(CstDecode::cst_decode).collect()
+            }
+        }impl CstDecode<Vec<crate::domain::types::pagination::PageDescriptor>> for *mut wire_cst_list_page_descriptor {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> Vec<crate::domain::types::pagination::PageDescriptor> {
                 let vec = unsafe {
         let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
         flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
@@ -4436,6 +4528,16 @@ impl CstDecode<PageStreamer> for usize {
             fn cst_decode(self) -> crate::parser::provider::PageData {
                 crate::parser::provider::PageData{page_index:  self.page_index.cst_decode(),text:  self.text.cst_decode()}
             }
+        }impl CstDecode<crate::domain::types::pagination::PageDescriptor> for wire_cst_page_descriptor {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> crate::domain::types::pagination::PageDescriptor {
+                crate::domain::types::pagination::PageDescriptor{page_index:  self.page_index.cst_decode(),start_offset:  self.start_offset.cst_decode(),end_offset:  self.end_offset.cst_decode(),is_last_page:  self.is_last_page.cst_decode()}
+            }
+        }impl CstDecode<crate::domain::types::pagination::PaginateResult> for wire_cst_paginate_result {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> crate::domain::types::pagination::PaginateResult {
+                crate::domain::types::pagination::PaginateResult{descriptors:  self.descriptors.cst_decode(),config_hash:  self.config_hash.cst_decode()}
+            }
         }impl CstDecode<crate::domain::types::metadata::ParseResult> for wire_cst_parse_result {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> crate::domain::types::metadata::ParseResult {
@@ -4523,7 +4625,7 @@ impl CstDecode<PageStreamer> for usize {
         }impl CstDecode<crate::domain::types::typeset::TypesetConfig> for wire_cst_typeset_config {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> crate::domain::types::typeset::TypesetConfig {
-                crate::domain::types::typeset::TypesetConfig{page_width:  self.page_width.cst_decode(),page_height:  self.page_height.cst_decode(),font_size:  self.font_size.cst_decode(),line_spacing:  self.line_spacing.cst_decode(),letter_spacing:  self.letter_spacing.cst_decode(),paragraph_spacing:  self.paragraph_spacing.cst_decode(),first_line_indent:  self.first_line_indent.cst_decode(),language:  self.language.cst_decode(),enable_hyphenation:  self.enable_hyphenation.cst_decode(),hyphenation_language:  self.hyphenation_language.cst_decode(),font_family:  self.font_family.cst_decode(),calibration:  self.calibration.cst_decode()}
+                crate::domain::types::typeset::TypesetConfig{page_width:  self.page_width.cst_decode(),page_height:  self.page_height.cst_decode(),font_size:  self.font_size.cst_decode(),line_spacing:  self.line_spacing.cst_decode(),letter_spacing:  self.letter_spacing.cst_decode(),paragraph_spacing:  self.paragraph_spacing.cst_decode(),first_line_indent:  self.first_line_indent.cst_decode(),punctuation_squeeze:  self.punctuation_squeeze.cst_decode(),language:  self.language.cst_decode(),enable_hyphenation:  self.enable_hyphenation.cst_decode(),hyphenation_language:  self.hyphenation_language.cst_decode(),font_family:  self.font_family.cst_decode(),calibration:  self.calibration.cst_decode()}
             }
         }impl CstDecode<crate::storage::models::Vocab> for wire_cst_vocab {
             // Codec=Cst (C-struct based), see doc to use other codecs
@@ -4674,25 +4776,6 @@ vocab_count: Default::default(), }
             fn default() -> Self {
                 Self::new_with_null_ptr()
             }
-        }impl NewWithNullPtr for wire_cst_book_metadata {
-            fn new_with_null_ptr() -> Self {
-                Self { title: core::ptr::null_mut(),
-author: core::ptr::null_mut(),
-description: core::ptr::null_mut(),
-cover_path: core::ptr::null_mut(),
-publisher: core::ptr::null_mut(),
-translator: core::ptr::null_mut(),
-isbn: core::ptr::null_mut(),
-publish_year: core::ptr::null_mut(),
-language: core::ptr::null_mut(),
-chapter_count: Default::default(),
-total_characters: Default::default(), }
-            }
-        }
-        impl Default for wire_cst_book_metadata {
-            fn default() -> Self {
-                Self::new_with_null_ptr()
-            }
         }impl NewWithNullPtr for wire_cst_book_with_progress {
             fn new_with_null_ptr() -> Self {
                 Self { book: Default::default(),
@@ -4838,6 +4921,17 @@ total_bookmarks_count: Default::default(), }
             fn default() -> Self {
                 Self::new_with_null_ptr()
             }
+        }impl NewWithNullPtr for wire_cst_index_stats {
+            fn new_with_null_ptr() -> Self {
+                Self { total_chunks: Default::default(),
+indexed_books: Default::default(),
+indexed_chapters: Default::default(), }
+            }
+        }
+        impl Default for wire_cst_index_stats {
+            fn default() -> Self {
+                Self::new_with_null_ptr()
+            }
         }impl NewWithNullPtr for wire_cst_note {
             fn new_with_null_ptr() -> Self {
                 Self { id: core::ptr::null_mut(),
@@ -4902,6 +4996,28 @@ text: core::ptr::null_mut(), }
             }
         }
         impl Default for wire_cst_page_data {
+            fn default() -> Self {
+                Self::new_with_null_ptr()
+            }
+        }impl NewWithNullPtr for wire_cst_page_descriptor {
+            fn new_with_null_ptr() -> Self {
+                Self { page_index: Default::default(),
+start_offset: Default::default(),
+end_offset: Default::default(),
+is_last_page: Default::default(), }
+            }
+        }
+        impl Default for wire_cst_page_descriptor {
+            fn default() -> Self {
+                Self::new_with_null_ptr()
+            }
+        }impl NewWithNullPtr for wire_cst_paginate_result {
+            fn new_with_null_ptr() -> Self {
+                Self { descriptors: core::ptr::null_mut(),
+config_hash: Default::default(), }
+            }
+        }
+        impl Default for wire_cst_paginate_result {
             fn default() -> Self {
                 Self::new_with_null_ptr()
             }
@@ -5052,6 +5168,7 @@ line_spacing: Default::default(),
 letter_spacing: Default::default(),
 paragraph_spacing: Default::default(),
 first_line_indent: Default::default(),
+punctuation_squeeze: Default::default(),
 language: Default::default(),
 enable_hyphenation: Default::default(),
 hyphenation_language: core::ptr::null_mut(),
@@ -5221,6 +5338,12 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__search__count_matches(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict, query: *mut wire_cst_list_prim_u_8_strict, chapter_index: *mut i32)  {
+                    wire__crate__api__search__count_matches_impl(port_, book_id, query, chapter_index)
+                }
+            
+
+                #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__note__count_notes(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict)  {
                     wire__crate__api__data__note__count_notes_impl(port_, book_id)
                 }
@@ -5305,6 +5428,12 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__bookmark__delete_bookmarks(port_: i64, bookmark_ids: *mut wire_cst_list_String)  {
+                    wire__crate__api__data__bookmark__delete_bookmarks_impl(port_, bookmark_ids)
+                }
+            
+
+                #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__search__delete_by_book(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict)  {
                     wire__crate__api__search__delete_by_book_impl(port_, book_id)
                 }
@@ -5355,12 +5484,6 @@ ignored_count: Default::default(), }
                 #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__cover__extract_book_cover(port_: i64, file_path: *mut wire_cst_list_prim_u_8_strict, output_dir: *mut wire_cst_list_prim_u_8_strict)  {
                     wire__crate__api__cover__extract_book_cover_impl(port_, file_path, output_dir)
-                }
-            
-
-                #[unsafe(no_mangle)]
-                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__core__extract_metadata(port_: i64, file_path: *mut wire_cst_list_prim_u_8_strict)  {
-                    wire__crate__api__core__extract_metadata_impl(port_, file_path)
                 }
             
 
@@ -5461,6 +5584,12 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__search__get_index_stats(port_: i64)  {
+                    wire__crate__api__search__get_index_stats_impl(port_)
+                }
+            
+
+                #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__md__get_md_chapter_rich_content(port_: i64, file_path: *mut wire_cst_list_prim_u_8_strict, chapter_index: i32)  {
                     wire__crate__api__md__get_md_chapter_rich_content_impl(port_, file_path, chapter_index)
                 }
@@ -5469,6 +5598,12 @@ ignored_count: Default::default(), }
                 #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__note__get_note_stats(port_: i64, book_id: *mut wire_cst_list_prim_u_8_strict)  {
                     wire__crate__api__data__note__get_note_stats_impl(port_, book_id)
+                }
+            
+
+                #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__core__get_page_content(file_path: *mut wire_cst_list_prim_u_8_strict, chapter_index: i32, config_hash: u64, page_index: i32) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+                    wire__crate__api__core__get_page_content_impl(file_path, chapter_index, config_hash, page_index)
                 }
             
 
@@ -5511,12 +5646,6 @@ ignored_count: Default::default(), }
                 #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__data__stats__get_reading_stats_by_range(port_: i64, start_date: *mut wire_cst_list_prim_u_8_strict, end_date: *mut wire_cst_list_prim_u_8_strict)  {
                     wire__crate__api__data__stats__get_reading_stats_by_range_impl(port_, start_date, end_date)
-                }
-            
-
-                #[unsafe(no_mangle)]
-                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__core__get_supported_formats(port_: i64)  {
-                    wire__crate__api__core__get_supported_formats_impl(port_)
                 }
             
 
@@ -5743,6 +5872,12 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__core__paginate_chapter(port_: i64, file_path: *mut wire_cst_list_prim_u_8_strict, chapter_index: i32, config: *mut wire_cst_typeset_config)  {
+                    wire__crate__api__core__paginate_chapter_impl(port_, file_path, chapter_index, config)
+                }
+            
+
+                #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__core__parse_book(port_: i64, file_path: *mut wire_cst_list_prim_u_8_strict)  {
                     wire__crate__api__core__parse_book_impl(port_, file_path)
                 }
@@ -5809,12 +5944,6 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
-                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__bilingual__simple_bilingual_align(port_: i64, chinese_content: *mut wire_cst_list_prim_u_8_strict, english_content: *mut wire_cst_list_prim_u_8_strict)  {
-                    wire__crate__api__bilingual__simple_bilingual_align_impl(port_, chinese_content, english_content)
-                }
-            
-
-                #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__dictionary__suggest_mdict(port_: i64, prefix: *mut wire_cst_list_prim_u_8_strict, limit: i32)  {
                     wire__crate__api__dictionary__suggest_mdict_impl(port_, prefix, limit)
                 }
@@ -5833,20 +5962,8 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
-                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__core__supports_format(format: *mut wire_cst_list_prim_u_8_strict) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
-                    wire__crate__api__core__supports_format_impl(format)
-                }
-            
-
-                #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__test_connection() -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
                     wire__crate__api__test_connection_impl()
-                }
-            
-
-                #[unsafe(no_mangle)]
-                pub extern "C" fn frbgen_zephyr_reader_wire__crate__api__typeset__typeset_text(port_: i64, content: *mut wire_cst_list_prim_u_8_strict, config: *mut wire_cst_typeset_config)  {
-                    wire__crate__api__typeset__typeset_text_impl(port_, content, config)
                 }
             
 
@@ -6164,6 +6281,13 @@ ignored_count: Default::default(), }
             
 
                 #[unsafe(no_mangle)]
+                pub extern "C" fn frbgen_zephyr_reader_cst_new_list_page_descriptor(len: i32) -> *mut wire_cst_list_page_descriptor {
+                    let wrap = wire_cst_list_page_descriptor { ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(<wire_cst_page_descriptor>::new_with_null_ptr(), len), len };
+                flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+                }
+            
+
+                #[unsafe(no_mangle)]
                 pub extern "C" fn frbgen_zephyr_reader_cst_new_list_prim_u_8_strict(len: i32) -> *mut wire_cst_list_prim_u_8_strict {
                     let ans = wire_cst_list_prim_u_8_strict { ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(Default::default(), len), len };
                     flutter_rust_bridge::for_generated::new_leak_box_ptr(ans)
@@ -6240,6 +6364,7 @@ english_position: usize }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_app_error { tag: i32, kind: AppErrorKind, }
 #[repr(C)] #[derive(Clone, Copy)] pub union AppErrorKind { FileNotFound: wire_cst_AppError_FileNotFound,
 FileReadError: wire_cst_AppError_FileReadError,
+FileWriteError: wire_cst_AppError_FileWriteError,
 UnsupportedFormat: wire_cst_AppError_UnsupportedFormat,
 EpubParseError: wire_cst_AppError_EpubParseError,
 PdfParseError: wire_cst_AppError_PdfParseError,
@@ -6256,6 +6381,8 @@ Other: wire_cst_AppError_Other,
 nil__: (), }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_AppError_FileNotFound { path: *mut wire_cst_list_prim_u_8_strict, }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_AppError_FileReadError { path: *mut wire_cst_list_prim_u_8_strict,
+details: *mut wire_cst_list_prim_u_8_strict, }
+#[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_AppError_FileWriteError { path: *mut wire_cst_list_prim_u_8_strict,
 details: *mut wire_cst_list_prim_u_8_strict, }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_AppError_UnsupportedFormat { format: *mut wire_cst_list_prim_u_8_strict, }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_AppError_EpubParseError { reason: *mut wire_cst_list_prim_u_8_strict, }
@@ -6329,17 +6456,6 @@ chapters: *mut wire_cst_list_chapter,
 categories: *mut wire_cst_list_category,
 session_count: i32,
 vocab_count: i32 }
-#[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_book_metadata { title: *mut wire_cst_list_prim_u_8_strict,
-author: *mut wire_cst_list_prim_u_8_strict,
-description: *mut wire_cst_list_prim_u_8_strict,
-cover_path: *mut wire_cst_list_prim_u_8_strict,
-publisher: *mut wire_cst_list_prim_u_8_strict,
-translator: *mut wire_cst_list_prim_u_8_strict,
-isbn: *mut wire_cst_list_prim_u_8_strict,
-publish_year: *mut i32,
-language: *mut wire_cst_list_prim_u_8_strict,
-chapter_count: i64,
-total_characters: i64 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_book_with_progress { book: wire_cst_book,
 progress: *mut wire_cst_reading_progress }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_bookmark { id: *mut wire_cst_list_prim_u_8_strict,
@@ -6402,6 +6518,9 @@ average_reading_speed: f32,
 total_books_count: i64,
 total_notes_count: i64,
 total_bookmarks_count: i64 }
+#[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_index_stats { total_chunks: i64,
+indexed_books: i64,
+indexed_chapters: i64 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_String { ptr: *mut *mut wire_cst_list_prim_u_8_strict,
 len: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_aligned_segment { ptr: *mut wire_cst_aligned_segment,
@@ -6427,6 +6546,8 @@ len: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_note_with_book { ptr: *mut wire_cst_note_with_book,
 len: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_page_content { ptr: *mut wire_cst_page_content,
+len: i32 }
+#[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_page_descriptor { ptr: *mut wire_cst_page_descriptor,
 len: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_list_prim_u_8_strict { ptr: *mut u8,
 len: i32 }
@@ -6475,6 +6596,12 @@ start_offset: i32,
 end_offset: i32 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_page_data { page_index: u32,
 text: *mut wire_cst_list_prim_u_8_strict }
+#[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_page_descriptor { page_index: i32,
+start_offset: i32,
+end_offset: i32,
+is_last_page: bool }
+#[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_paginate_result { descriptors: *mut wire_cst_list_page_descriptor,
+config_hash: u64 }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_parse_result { book_info: wire_cst_book,
 chapters: *mut wire_cst_list_chapter }
 #[repr(C)] #[derive(Clone, Copy)] pub struct wire_cst_reading_progress { book_id: *mut wire_cst_list_prim_u_8_strict,
@@ -6574,6 +6701,7 @@ line_spacing: f32,
 letter_spacing: f32,
 paragraph_spacing: f32,
 first_line_indent: u8,
+punctuation_squeeze: bool,
 language: i32,
 enable_hyphenation: bool,
 hyphenation_language: *mut wire_cst_list_prim_u_8_strict,
@@ -6648,20 +6776,21 @@ impl CstDecode<String> for String {
                 let self_ = self.unchecked_into::<flutter_rust_bridge::for_generated::js_sys::Array>();match self_.get(0).unchecked_into_f64() as _ {
                     0 => { crate::domain::error::AppError::FileNotFound{path:  self_.get(1).cst_decode()} },
 1 => { crate::domain::error::AppError::FileReadError{path:  self_.get(1).cst_decode(),details:  self_.get(2).cst_decode()} },
-2 => { crate::domain::error::AppError::UnsupportedFormat{format:  self_.get(1).cst_decode()} },
-3 => { crate::domain::error::AppError::EpubParseError{reason:  self_.get(1).cst_decode()} },
-4 => { crate::domain::error::AppError::PdfParseError{reason:  self_.get(1).cst_decode()} },
-5 => { crate::domain::error::AppError::ChapterExtractError{index:  self_.get(1).cst_decode(),reason:  self_.get(2).cst_decode()} },
-6 => { crate::domain::error::AppError::TypesetConfigError{reason:  self_.get(1).cst_decode()} },
-7 => { crate::domain::error::AppError::DatabaseError{reason:  self_.get(1).cst_decode()} },
-8 => { crate::domain::error::AppError::NotFound{entity:  self_.get(1).cst_decode()} },
-9 => crate::domain::error::AppError::StorageNotInitialized,
-10 => { crate::domain::error::AppError::SearchError{reason:  self_.get(1).cst_decode()} },
-11 => { crate::domain::error::AppError::SecurityError{reason:  self_.get(1).cst_decode(),path:  self_.get(2).cst_decode()} },
-12 => { crate::domain::error::AppError::InvalidInput{reason:  self_.get(1).cst_decode()} },
-13 => { crate::domain::error::AppError::InternalError{reason:  self_.get(1).cst_decode()} },
-14 => { crate::domain::error::AppError::TaskPanic{task_name:  self_.get(1).cst_decode(),details:  self_.get(2).cst_decode()} },
-15 => { crate::domain::error::AppError::Other( self_.get(1).cst_decode()) },
+2 => { crate::domain::error::AppError::FileWriteError{path:  self_.get(1).cst_decode(),details:  self_.get(2).cst_decode()} },
+3 => { crate::domain::error::AppError::UnsupportedFormat{format:  self_.get(1).cst_decode()} },
+4 => { crate::domain::error::AppError::EpubParseError{reason:  self_.get(1).cst_decode()} },
+5 => { crate::domain::error::AppError::PdfParseError{reason:  self_.get(1).cst_decode()} },
+6 => { crate::domain::error::AppError::ChapterExtractError{index:  self_.get(1).cst_decode(),reason:  self_.get(2).cst_decode()} },
+7 => { crate::domain::error::AppError::TypesetConfigError{reason:  self_.get(1).cst_decode()} },
+8 => { crate::domain::error::AppError::DatabaseError{reason:  self_.get(1).cst_decode()} },
+9 => { crate::domain::error::AppError::NotFound{entity:  self_.get(1).cst_decode()} },
+10 => crate::domain::error::AppError::StorageNotInitialized,
+11 => { crate::domain::error::AppError::SearchError{reason:  self_.get(1).cst_decode()} },
+12 => { crate::domain::error::AppError::SecurityError{reason:  self_.get(1).cst_decode(),path:  self_.get(2).cst_decode()} },
+13 => { crate::domain::error::AppError::InvalidInput{reason:  self_.get(1).cst_decode()} },
+14 => { crate::domain::error::AppError::InternalError{reason:  self_.get(1).cst_decode()} },
+15 => { crate::domain::error::AppError::TaskPanic{task_name:  self_.get(1).cst_decode(),details:  self_.get(2).cst_decode()} },
+16 => { crate::domain::error::AppError::Other( self_.get(1).cst_decode()) },
                     _ => unreachable!(),
                 }
             }
@@ -6713,13 +6842,6 @@ impl CstDecode<String> for String {
                 let self_ = self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap();
                 assert_eq!(self_.length(), 7, "Expected 7 elements, got {}", self_.length());
                 crate::api::data::book::BookDetail{book:  self_.get(0).cst_decode(),progress:  self_.get(1).cst_decode(),note_stats:  self_.get(2).cst_decode(),chapters:  self_.get(3).cst_decode(),categories:  self_.get(4).cst_decode(),session_count:  self_.get(5).cst_decode(),vocab_count:  self_.get(6).cst_decode()}
-            }
-        }impl CstDecode<crate::parser::book_parser::BookMetadata> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
-            // Codec=Cst (C-struct based), see doc to use other codecs
-            fn cst_decode(self) -> crate::parser::book_parser::BookMetadata {
-                let self_ = self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap();
-                assert_eq!(self_.length(), 11, "Expected 11 elements, got {}", self_.length());
-                crate::parser::book_parser::BookMetadata{title:  self_.get(0).cst_decode(),author:  self_.get(1).cst_decode(),description:  self_.get(2).cst_decode(),cover_path:  self_.get(3).cst_decode(),publisher:  self_.get(4).cst_decode(),translator:  self_.get(5).cst_decode(),isbn:  self_.get(6).cst_decode(),publish_year:  self_.get(7).cst_decode(),language:  self_.get(8).cst_decode(),chapter_count:  self_.get(9).cst_decode(),total_characters:  self_.get(10).cst_decode()}
             }
         }impl CstDecode<crate::storage::models::BookWithProgress> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
             // Codec=Cst (C-struct based), see doc to use other codecs
@@ -6800,6 +6922,13 @@ impl CstDecode<String> for String {
                 assert_eq!(self_.length(), 11, "Expected 11 elements, got {}", self_.length());
                 crate::storage::models::GlobalStats{total_reading_time_seconds:  self_.get(0).cst_decode(),total_characters_read:  self_.get(1).cst_decode(),books_read_count:  self_.get(2).cst_decode(),books_completed_count:  self_.get(3).cst_decode(),consecutive_reading_days:  self_.get(4).cst_decode(),today_reading_time_seconds:  self_.get(5).cst_decode(),today_characters_read:  self_.get(6).cst_decode(),average_reading_speed:  self_.get(7).cst_decode(),total_books_count:  self_.get(8).cst_decode(),total_notes_count:  self_.get(9).cst_decode(),total_bookmarks_count:  self_.get(10).cst_decode()}
             }
+        }impl CstDecode<crate::domain::types::pagination::IndexStats> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> crate::domain::types::pagination::IndexStats {
+                let self_ = self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap();
+                assert_eq!(self_.length(), 3, "Expected 3 elements, got {}", self_.length());
+                crate::domain::types::pagination::IndexStats{total_chunks:  self_.get(0).cst_decode(),indexed_books:  self_.get(1).cst_decode(),indexed_chapters:  self_.get(2).cst_decode()}
+            }
         }impl CstDecode<Vec<String>> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> Vec<String> {
@@ -6863,6 +6992,11 @@ impl CstDecode<String> for String {
         }impl CstDecode<Vec<crate::domain::types::pagination::PageContent>> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> Vec<crate::domain::types::pagination::PageContent> {
+                self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap().iter().map(CstDecode::cst_decode).collect()
+            }
+        }impl CstDecode<Vec<crate::domain::types::pagination::PageDescriptor>> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> Vec<crate::domain::types::pagination::PageDescriptor> {
                 self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap().iter().map(CstDecode::cst_decode).collect()
             }
         }impl CstDecode<Vec<u8>> for Box<[u8]> {
@@ -6960,6 +7094,20 @@ impl CstDecode<String> for String {
                 assert_eq!(self_.length(), 2, "Expected 2 elements, got {}", self_.length());
                 crate::parser::provider::PageData{page_index:  self_.get(0).cst_decode(),text:  self_.get(1).cst_decode()}
             }
+        }impl CstDecode<crate::domain::types::pagination::PageDescriptor> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> crate::domain::types::pagination::PageDescriptor {
+                let self_ = self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap();
+                assert_eq!(self_.length(), 4, "Expected 4 elements, got {}", self_.length());
+                crate::domain::types::pagination::PageDescriptor{page_index:  self_.get(0).cst_decode(),start_offset:  self_.get(1).cst_decode(),end_offset:  self_.get(2).cst_decode(),is_last_page:  self_.get(3).cst_decode()}
+            }
+        }impl CstDecode<crate::domain::types::pagination::PaginateResult> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> crate::domain::types::pagination::PaginateResult {
+                let self_ = self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap();
+                assert_eq!(self_.length(), 2, "Expected 2 elements, got {}", self_.length());
+                crate::domain::types::pagination::PaginateResult{descriptors:  self_.get(0).cst_decode(),config_hash:  self_.get(1).cst_decode()}
+            }
         }impl CstDecode<crate::domain::types::metadata::ParseResult> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> crate::domain::types::metadata::ParseResult {
@@ -7042,8 +7190,8 @@ impl CstDecode<String> for String {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> crate::domain::types::typeset::TypesetConfig {
                 let self_ = self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>().unwrap();
-                assert_eq!(self_.length(), 12, "Expected 12 elements, got {}", self_.length());
-                crate::domain::types::typeset::TypesetConfig{page_width:  self_.get(0).cst_decode(),page_height:  self_.get(1).cst_decode(),font_size:  self_.get(2).cst_decode(),line_spacing:  self_.get(3).cst_decode(),letter_spacing:  self_.get(4).cst_decode(),paragraph_spacing:  self_.get(5).cst_decode(),first_line_indent:  self_.get(6).cst_decode(),language:  self_.get(7).cst_decode(),enable_hyphenation:  self_.get(8).cst_decode(),hyphenation_language:  self_.get(9).cst_decode(),font_family:  self_.get(10).cst_decode(),calibration:  self_.get(11).cst_decode()}
+                assert_eq!(self_.length(), 13, "Expected 13 elements, got {}", self_.length());
+                crate::domain::types::typeset::TypesetConfig{page_width:  self_.get(0).cst_decode(),page_height:  self_.get(1).cst_decode(),font_size:  self_.get(2).cst_decode(),line_spacing:  self_.get(3).cst_decode(),letter_spacing:  self_.get(4).cst_decode(),paragraph_spacing:  self_.get(5).cst_decode(),first_line_indent:  self_.get(6).cst_decode(),punctuation_squeeze:  self_.get(7).cst_decode(),language:  self_.get(8).cst_decode(),enable_hyphenation:  self_.get(9).cst_decode(),hyphenation_language:  self_.get(10).cst_decode(),font_family:  self_.get(11).cst_decode(),calibration:  self_.get(12).cst_decode()}
             }
         }impl CstDecode<crate::storage::models::Vocab> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
             // Codec=Cst (C-struct based), see doc to use other codecs
@@ -7147,6 +7295,11 @@ impl CstDecode<String> for String {
             // Codec=Cst (C-struct based), see doc to use other codecs
             fn cst_decode(self) -> u32 {
                 self.unchecked_into_f64() as _
+            }
+        }impl CstDecode<u64> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
+            // Codec=Cst (C-struct based), see doc to use other codecs
+            fn cst_decode(self) -> u64 {
+                ::std::convert::TryInto::<u64>::try_into(self).unwrap() as _
             }
         }impl CstDecode<u8> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
             // Codec=Cst (C-struct based), see doc to use other codecs
@@ -7274,6 +7427,12 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
+                pub  fn wire__crate__api__search__count_matches(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String, query: String, chapter_index: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue)  {
+                    wire__crate__api__search__count_matches_impl(port_, book_id, query, chapter_index)
+                }
+            
+
+                #[wasm_bindgen]
                 pub  fn wire__crate__api__data__note__count_notes(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: Option<String>)  {
                     wire__crate__api__data__note__count_notes_impl(port_, book_id)
                 }
@@ -7358,6 +7517,12 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
+                pub  fn wire__crate__api__data__bookmark__delete_bookmarks(port_: flutter_rust_bridge::for_generated::MessagePort, bookmark_ids: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue)  {
+                    wire__crate__api__data__bookmark__delete_bookmarks_impl(port_, bookmark_ids)
+                }
+            
+
+                #[wasm_bindgen]
                 pub  fn wire__crate__api__search__delete_by_book(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String)  {
                     wire__crate__api__search__delete_by_book_impl(port_, book_id)
                 }
@@ -7408,12 +7573,6 @@ impl CstDecode<String> for String {
                 #[wasm_bindgen]
                 pub  fn wire__crate__api__cover__extract_book_cover(port_: flutter_rust_bridge::for_generated::MessagePort, file_path: String, output_dir: String)  {
                     wire__crate__api__cover__extract_book_cover_impl(port_, file_path, output_dir)
-                }
-            
-
-                #[wasm_bindgen]
-                pub  fn wire__crate__api__core__extract_metadata(port_: flutter_rust_bridge::for_generated::MessagePort, file_path: String)  {
-                    wire__crate__api__core__extract_metadata_impl(port_, file_path)
                 }
             
 
@@ -7514,6 +7673,12 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
+                pub  fn wire__crate__api__search__get_index_stats(port_: flutter_rust_bridge::for_generated::MessagePort)  {
+                    wire__crate__api__search__get_index_stats_impl(port_)
+                }
+            
+
+                #[wasm_bindgen]
                 pub  fn wire__crate__api__md__get_md_chapter_rich_content(port_: flutter_rust_bridge::for_generated::MessagePort, file_path: String, chapter_index: i32)  {
                     wire__crate__api__md__get_md_chapter_rich_content_impl(port_, file_path, chapter_index)
                 }
@@ -7522,6 +7687,12 @@ impl CstDecode<String> for String {
                 #[wasm_bindgen]
                 pub  fn wire__crate__api__data__note__get_note_stats(port_: flutter_rust_bridge::for_generated::MessagePort, book_id: String)  {
                     wire__crate__api__data__note__get_note_stats_impl(port_, book_id)
+                }
+            
+
+                #[wasm_bindgen]
+                pub  fn wire__crate__api__core__get_page_content(file_path: String, chapter_index: i32, config_hash: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue, page_index: i32) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+                    wire__crate__api__core__get_page_content_impl(file_path, chapter_index, config_hash, page_index)
                 }
             
 
@@ -7564,12 +7735,6 @@ impl CstDecode<String> for String {
                 #[wasm_bindgen]
                 pub  fn wire__crate__api__data__stats__get_reading_stats_by_range(port_: flutter_rust_bridge::for_generated::MessagePort, start_date: String, end_date: String)  {
                     wire__crate__api__data__stats__get_reading_stats_by_range_impl(port_, start_date, end_date)
-                }
-            
-
-                #[wasm_bindgen]
-                pub  fn wire__crate__api__core__get_supported_formats(port_: flutter_rust_bridge::for_generated::MessagePort)  {
-                    wire__crate__api__core__get_supported_formats_impl(port_)
                 }
             
 
@@ -7796,6 +7961,12 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
+                pub  fn wire__crate__api__core__paginate_chapter(port_: flutter_rust_bridge::for_generated::MessagePort, file_path: String, chapter_index: i32, config: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue)  {
+                    wire__crate__api__core__paginate_chapter_impl(port_, file_path, chapter_index, config)
+                }
+            
+
+                #[wasm_bindgen]
                 pub  fn wire__crate__api__core__parse_book(port_: flutter_rust_bridge::for_generated::MessagePort, file_path: String)  {
                     wire__crate__api__core__parse_book_impl(port_, file_path)
                 }
@@ -7862,12 +8033,6 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
-                pub  fn wire__crate__api__bilingual__simple_bilingual_align(port_: flutter_rust_bridge::for_generated::MessagePort, chinese_content: String, english_content: String)  {
-                    wire__crate__api__bilingual__simple_bilingual_align_impl(port_, chinese_content, english_content)
-                }
-            
-
-                #[wasm_bindgen]
                 pub  fn wire__crate__api__dictionary__suggest_mdict(port_: flutter_rust_bridge::for_generated::MessagePort, prefix: String, limit: i32)  {
                     wire__crate__api__dictionary__suggest_mdict_impl(port_, prefix, limit)
                 }
@@ -7886,20 +8051,8 @@ impl CstDecode<String> for String {
             
 
                 #[wasm_bindgen]
-                pub  fn wire__crate__api__core__supports_format(format: String) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
-                    wire__crate__api__core__supports_format_impl(format)
-                }
-            
-
-                #[wasm_bindgen]
                 pub  fn wire__crate__api__test_connection() -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
                     wire__crate__api__test_connection_impl()
-                }
-            
-
-                #[wasm_bindgen]
-                pub  fn wire__crate__api__typeset__typeset_text(port_: flutter_rust_bridge::for_generated::MessagePort, content: String, config: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue)  {
-                    wire__crate__api__typeset__typeset_text_impl(port_, content, config)
                 }
             
 

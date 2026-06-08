@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_extension.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
@@ -29,7 +29,6 @@ class MenuItemData {
 }
 
 // --- Widgets ---
-
 
 class ProfileMenuItem extends StatelessWidget {
   final MenuItemData item;

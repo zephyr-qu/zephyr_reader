@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::domain::AppError;
 use chrono::Utc;
 use sqlx::{QueryBuilder, SqlitePool};
 
@@ -9,11 +9,18 @@ pub struct VocabRepository;
 
 impl VocabRepository {
     /// 添加生词条目
-    pub async fn save(pool: &SqlitePool, vocab: &Vocab) -> Result<Vocab> {
+    pub async fn save(pool: &SqlitePool, vocab: &Vocab) -> Result<Vocab, AppError> {
         sqlx::query(
             "INSERT INTO vocabulary_words \
-             (id, word, pinyin, translation, context_sentence, book_id, chapter_index, char_offset, word_list, created_at, review_count, status, dict_source, dict_entry_hash) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 0, ?11, ?12, ?13)",
+             (id, word, pinyin, translation, context_sentence, book_id, chapter_index, char_offset, word_list, created_at, review_count, status, dict_source, dict_entry_hash, last_reviewed_at) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15) \
+             ON CONFLICT(id) DO UPDATE SET \
+             word = excluded.word, pinyin = excluded.pinyin, translation = excluded.translation, \
+             context_sentence = excluded.context_sentence, book_id = excluded.book_id, \
+             chapter_index = excluded.chapter_index, char_offset = excluded.char_offset, \
+             word_list = excluded.word_list, review_count = excluded.review_count, \
+             status = excluded.status, dict_source = excluded.dict_source, \
+             dict_entry_hash = excluded.dict_entry_hash, last_reviewed_at = excluded.last_reviewed_at",
         )
         .bind(&vocab.id)
         .bind(&vocab.word)
@@ -24,10 +31,12 @@ impl VocabRepository {
         .bind(vocab.chapter_index)
         .bind(vocab.char_offset)
         .bind(&vocab.word_list)
-        .bind(vocab.last_reviewed_at.map(|dt| dt.timestamp()))
+        .bind(vocab.created_at)
+        .bind(vocab.review_count)
         .bind(vocab.status.as_ref())
         .bind(&vocab.dict_source)
         .bind(&vocab.dict_entry_hash)
+        .bind(vocab.last_reviewed_at)
         .execute(pool)
         .await?;
 
@@ -40,7 +49,7 @@ impl VocabRepository {
         book_id: Option<&str>,
         status: Option<VocabStatus>,
         word_list: Option<&str>,
-    ) -> Result<Vec<Vocab>> {
+    ) -> Result<Vec<Vocab>, AppError> {
         let mut builder = QueryBuilder::<sqlx::Sqlite>::new("SELECT * FROM vocabulary_words");
 
         // 构建 WHERE 子句
@@ -84,7 +93,7 @@ impl VocabRepository {
     }
 
     /// 搜索生词（标题或翻译模糊匹配）
-    pub async fn search(pool: &SqlitePool, keyword: &str) -> Result<Vec<Vocab>> {
+    pub async fn search(pool: &SqlitePool, keyword: &str) -> Result<Vec<Vocab>, AppError> {
         if keyword.trim().is_empty() {
             return Ok(Vec::new());
         }
@@ -103,7 +112,7 @@ impl VocabRepository {
     }
 
     /// 更新生词状态
-    pub async fn update_by_status(pool: &SqlitePool, id: &str, status: VocabStatus) -> Result<()> {
+    pub async fn update_by_status(pool: &SqlitePool, id: &str, status: VocabStatus) -> Result<(), AppError> {
         sqlx::query("UPDATE vocabulary_words SET status = ?1, last_reviewed_at = ?2 WHERE id = ?3")
             .bind(status.as_ref())
             .bind(Utc::now().timestamp())
@@ -114,7 +123,7 @@ impl VocabRepository {
     }
 
     /// 删除生词
-    pub async fn delete_by_id(pool: &SqlitePool, id: &str) -> Result<()> {
+    pub async fn delete_by_id(pool: &SqlitePool, id: &str) -> Result<(), AppError> {
         sqlx::query("DELETE FROM vocabulary_words WHERE id = ?1")
             .bind(id)
             .execute(pool)
@@ -123,7 +132,7 @@ impl VocabRepository {
     }
 
     /// 获取生词本统计
-    pub async fn count(pool: &SqlitePool) -> Result<VocabStats> {
+    pub async fn count(pool: &SqlitePool) -> Result<VocabStats, AppError> {
     let stats: VocabStats = sqlx::query_as(
         "SELECT \
             COUNT(*) AS total_words, \
@@ -140,7 +149,7 @@ impl VocabRepository {
 }
 
     /// 获取指定书籍的生词数量
-    pub async fn count_by_book(pool: &SqlitePool, book_id: &str) -> Result<i32> {
+    pub async fn count_by_book(pool: &SqlitePool, book_id: &str) -> Result<i32, AppError> {
         let count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM vocabulary_words WHERE book_id = ?",
         )

@@ -57,6 +57,7 @@ pub struct PageData {
 
 /// 支持原生分页的格式（如 PDF）的页面级访问器
 ///
+/// TODO: Dart 侧尚未接入 PDF 阅读，此 trait 目前无活调用方
 /// PDF 不适合字节范围读取，应走此 trait 独立路径。
 pub trait PagedContentProvider: Send + Sync {
     /// 获取指定页面的文本内容

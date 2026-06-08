@@ -5,17 +5,7 @@
 
 ***
 
-## 变更记录
-
-| 日期         | 变更                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 2026-06-05 | 全面重审：新增 `localBackup` 路由缺失（P0）、`ReaderConfig` 中文 displayName、`FontRepository` 构造器 fire-and-forget、`FileStorage` 同步 listSync、`NavigationMode` 死枚举等 19 项发现；保留 2026-06-03 所有原有分析与优化清单                                                                                                                                                                                                                                 |
-| 2026-06-06 | 批量修复：`ColorScheme` 暗色模式色值（§3.2）、`ReaderTheme`/`ReaderFontSize` displayName 中文（§4.5）、`SnackUtils` 颜色硬编码（§3.6）、`DarkMode` 时间段重复（§4.3）、`FontRepository`/`TtsService` 构造器 fire-and-forget（§4.7/§4.8）、`ThemeManager` 初始化防重复（§6.1）、`localization/` 空目录（§6.1）、`AppConfig`/`NetworkStateService`/`BatteryStateService` 手动单例问题（§6.2/§6.3）、`AutoThemeService` 定时器精度（§4.4原文）、`SkeletonWidget` shimmer dispose 竞态（§6.1），共 14 项 |
-| 2026-06-03 | 初版：覆盖架构评价、P0-P3 问题、测试覆盖分析                                                                                                                                                                                                                                                                                                                                                                                          |
-
-***
-
-## 1. 架构总览
+1\. 架构总览
 
 ```
 lib/core/
@@ -87,7 +77,7 @@ GoRoute(
 
 (保留原有描述，增加 iOS 扩展建议)
 
-> **2026-06-06 复核**：`NavigationStateService` 类已从代码库中完全移除 ❌→✅。`NetworkStateService` 和 `BatteryStateService` 仍使用 `guardAndroid` 保护，iOS 平台会返回默认值。‼ 未解决。
+> **2026-06-07**：`guardAndroid` 已重构为 `guardPlatform`，同时支持 `isAndroid || isIOS` 两个平台，在线程安全执行后不再跨平台返回默认值。✅ 已解决。
 
 ### 3.4 `HelpItem` 使用 `Colors.blue` / `Colors.grey.shade600` 硬编码 ← 保留 2026-06-03 ❌
 

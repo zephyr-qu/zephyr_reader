@@ -278,6 +278,18 @@ abstract class AppLocalizations {
   /// **'预计剩余'**
   String get estimatedRemaining;
 
+  /// No description provided for @estimatedTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'约 {hours}小时{minutes}分钟'**
+  String estimatedTime(Object hours, Object minutes);
+
+  /// No description provided for @estimatedTimeShort.
+  ///
+  /// In zh, this message translates to:
+  /// **'约 {minutes}分钟'**
+  String estimatedTimeShort(Object minutes);
+
   /// No description provided for @startReading.
   ///
   /// In zh, this message translates to:
@@ -1133,13 +1145,13 @@ abstract class AppLocalizations {
   /// No description provided for @dataCleared.
   ///
   /// In zh, this message translates to:
-  /// **'已清除全部本地数据'**
+  /// **'已清理缓存'**
   String get dataCleared;
 
   /// No description provided for @dataClearFailed.
   ///
   /// In zh, this message translates to:
-  /// **'清除数据失败：{error}'**
+  /// **'清理缓存失败：{error}'**
   String dataClearFailed(Object error);
 
   /// No description provided for @lastSync.
@@ -1561,6 +1573,48 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'加载失败'**
   String get loadFailed;
+
+  /// No description provided for @saveHighlightFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存高亮失败'**
+  String get saveHighlightFailed;
+
+  /// No description provided for @saveAnnotationFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存笔记失败'**
+  String get saveAnnotationFailed;
+
+  /// No description provided for @deleteHighlightFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除高亮失败'**
+  String get deleteHighlightFailed;
+
+  /// No description provided for @updateNoteFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新笔记失败'**
+  String get updateNoteFailed;
+
+  /// No description provided for @bilingualHighlightFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'双语高亮创建失败'**
+  String get bilingualHighlightFailed;
+
+  /// No description provided for @chapterLoadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'章节加载失败：{error}'**
+  String chapterLoadFailed(Object error);
+
+  /// No description provided for @contentEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'内容为空'**
+  String get contentEmpty;
 
   /// No description provided for @appearanceSection.
   ///
@@ -2317,6 +2371,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'应用主题'**
   String get appTheme;
+
+  /// No description provided for @autoTheme.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动主题'**
+  String get autoTheme;
+
+  /// No description provided for @autoThemeDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'根据时间段自动切换深浅主题'**
+  String get autoThemeDesc;
+
+  /// No description provided for @autoThemeSchedule.
+  ///
+  /// In zh, this message translates to:
+  /// **'定时设置'**
+  String get autoThemeSchedule;
 
   /// No description provided for @bookFormat.
   ///
@@ -3200,6 +3272,18 @@ abstract class AppLocalizations {
   /// **'强制统一行高，避免混排时文字跳动'**
   String get baselineAlignDesc;
 
+  /// No description provided for @autoScroll.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动翻页'**
+  String get autoScroll;
+
+  /// No description provided for @autoScrollSpeed.
+  ///
+  /// In zh, this message translates to:
+  /// **'翻页间隔'**
+  String get autoScrollSpeed;
+
   /// No description provided for @verticalMode.
   ///
   /// In zh, this message translates to:
@@ -3455,13 +3539,13 @@ abstract class AppLocalizations {
   /// No description provided for @clearAllData.
   ///
   /// In zh, this message translates to:
-  /// **'清除全部本地数据'**
+  /// **'清理缓存'**
   String get clearAllData;
 
   /// No description provided for @clearAllDataDesc.
   ///
   /// In zh, this message translates to:
-  /// **'删除书籍、笔记、生词本、统计记录'**
+  /// **'清除阅读缓存和临时文件，不影响个人数据'**
   String get clearAllDataDesc;
 
   /// No description provided for @confirmReset.
@@ -3479,13 +3563,13 @@ abstract class AppLocalizations {
   /// No description provided for @clearAllDataTitle.
   ///
   /// In zh, this message translates to:
-  /// **'清除所有数据'**
+  /// **'清理缓存'**
   String get clearAllDataTitle;
 
   /// No description provided for @clearAllDataContent.
   ///
   /// In zh, this message translates to:
-  /// **'此操作将删除所有书籍、笔记、生词本、阅读进度和统计记录。\n\n建议先通过 WebDAV 备份数据。\n\n此操作不可撤销。'**
+  /// **'此操作将清除阅读缓存和临时文件。\n\n不会删除书籍、笔记和生词数据。'**
   String get clearAllDataContent;
 
   /// No description provided for @confirmClear.

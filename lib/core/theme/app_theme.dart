@@ -1,10 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/theme/theme_extension.dart';
-import 'package:zephyr_reader/core/utils/color_utils.dart';
-
 
 /// 应用主题工厂
 ///
@@ -30,7 +29,7 @@ class AppThemes {
 
   static ThemeData buildTheme(Brightness brightness, {Color? customPrimary}) {
     final primary = customPrimary ?? DesignTokens.primary;
-    final onPrimary = contrastingTextColor(primary);
+    final onPrimary = _contrastingTextColor(primary);
     final isDark = brightness == Brightness.dark;
 
     final Color scaffoldBg = isDark ? _bgDark : _bgLight;
@@ -45,10 +44,7 @@ class AppThemes {
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
           TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
         },
       ),
       scaffoldBackgroundColor: scaffoldBg,
@@ -253,8 +249,8 @@ class AppThemes {
     );
   }
 
-/// 构建应用文本主题，包含标题、正文、标签等各级文字样式
-static TextTheme _textTheme({
+  /// 构建应用文本主题，包含标题、正文、标签等各级文字样式
+  static TextTheme _textTheme({
     required Color onSurface,
     required Color onSurfaceVariant,
   }) {
@@ -309,4 +305,10 @@ static TextTheme _textTheme({
       ),
     );
   }
+}
+
+/// 根据背景色亮度返回白色或深色前景文字颜色。
+Color _contrastingTextColor(Color bg) {
+  final luminance = 0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b;
+  return luminance > 0.5 ? const Color(0xFF1A1C1E) : Colors.white;
 }

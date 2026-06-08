@@ -4,11 +4,8 @@ import 'package:flutter/material.dart';
 
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/utils/haptic.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
-/// 文本选择工具栏。
-///
-/// 选中文本后弹出的浮动工具栏，提供高亮、笔记、查词、加入生词本等操作。
 class SelectionToolbar extends StatelessWidget {
   final String selectedText;
   final VoidCallback onHighlight;

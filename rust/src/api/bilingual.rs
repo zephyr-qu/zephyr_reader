@@ -82,45 +82,6 @@ pub async fn align_bilingual_content(
     .map_err(|e| AppError::internal(format!("bilingual alignment failed: {}", e)))
 }
 
-#[frb]
-/// 简单的句子对齐（1:1 位置对齐）
-///
-/// 将中英文文本按句子分割后逐句配对，不进行相似度计算。
-/// 适用于已知中英文内容顺序一致的场景。
-///
-/// # 参数
-///
-/// * `chinese_content` - 中文文本内容
-/// * `english_content` - 英文文本内容
-///
-/// # 返回值
-///
-/// 返回对齐结果，句子按位置一一配对
-///
-/// # 长度限制
-///
-/// 中英文文本**合计**不得超过 2MB，超限返回错误。
-pub async fn simple_bilingual_align(
-    chinese_content: String,
-    english_content: String,
-) -> Result<BilingualAlignment, AppError> {
-    if chinese_content.len() + english_content.len() > MAX_BILINGUAL_LEN {
-        return Err(AppError::invalid_input(format!(
-            "bilingual alignment input too large: {} bytes (max {})",
-            chinese_content.len() + english_content.len(),
-            MAX_BILINGUAL_LEN,
-        )));
-    }
-
-    tokio::task::spawn_blocking(move || {
-        Ok(crate::text::bilingual::simple_bilingual_align(
-            chinese_content,
-            english_content,
-        ))
-    })
-    .await
-    .map_err(|e| AppError::task_panic("simple bilingual align", e.to_string()))?
-}
 
 /// 双语高亮配对
 #[derive(Debug, Clone, Serialize, Deserialize)]

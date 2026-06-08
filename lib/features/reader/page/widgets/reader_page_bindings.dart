@@ -45,6 +45,7 @@ class ReaderPageBindings {
   final double pageMargin;
   final WritingDirection writingDirection;
   final int? pendingJumpCharOffset;
+  final bool baselineAlign;
   final ThemeMode themeMode;
   final int effectiveTotalPages;
   final String progressText;
@@ -86,6 +87,7 @@ class ReaderPageBindings {
     required this.themeMode,
     required this.effectiveTotalPages,
     required this.progressText,
+    required this.baselineAlign,
     required this.currentChapterTitle,
   });
 }
@@ -163,6 +165,9 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
   final currentChapterTitle = useSignalValue<String, ReadonlySignal<String>>(
     vm.currentChapterTitle,
   );
+  final baselineAlign = useSignalValue<bool, Signal<bool>>(
+    vm.config.baselineAlign.signal,
+  );
 
   final themeMode = switch (readerTheme) {
     ReaderTheme.dark => ThemeMode.dark,
@@ -204,6 +209,7 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
     writingDirection: writingDirection,
     pendingJumpCharOffset: pendingJumpCharOffset,
     themeMode: themeMode,
+    baselineAlign: baselineAlign,
     effectiveTotalPages: math.max(1, totalPages),
     progressText: progressText,
     currentChapterTitle: currentChapterTitle,
@@ -262,6 +268,9 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
       useSignalValue<WritingDirection, Signal<WritingDirection>>(
         vm.config.writingDirection,
       );
+  final baselineAlign = useSignalValue<bool, Signal<bool>>(
+    vm.config.baselineAlign.signal,
+  );
   final pendingJumpCharOffset = useSignalValue<int?, Signal<int?>>(
     vm.pendingJumpCharOffset,
   );
@@ -302,6 +311,7 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
     searchMatchHighlight: searchCurrentIndex > 0,
     letterSpacing: letterSpacing,
     paragraphSpacing: paragraphSpacing,
+    baselineAlign: baselineAlign,
     pageMargin: pageMargin,
     writingDirection: writingDirection,
     pendingJumpCharOffset: pendingJumpCharOffset,
@@ -309,81 +319,5 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
     effectiveTotalPages: math.max(1, totalPages),
     progressText: '',
     currentChapterTitle: '',
-  );
-}
-
-/// UI-state-only binding — subscribes to signals controlling overlay visibility
-/// and progress display. Does NOT subscribe to content signals.
-ReaderPageBindings useReaderUiBindings(ReaderViewModel vm) {
-  final readerTheme = useSignalValue<ReaderTheme, Signal<ReaderTheme>>(
-    vm.config.theme.signal,
-  );
-  final showToolbar = useSignalValue<bool, Signal<bool>>(vm.showToolbar);
-  final showSettings = useSignalValue<bool, Signal<bool>>(vm.showSettings);
-  final showCatalog = useSignalValue<bool, Signal<bool>>(vm.showCatalog);
-  final showBookmarks = useSignalValue<bool, Signal<bool>>(vm.showBookmarks);
-  final showSelection = useSignalValue<bool, Signal<bool>>(
-    vm.showSelectionToolbar,
-  );
-  final showSearch = useSignalValue<bool, Signal<bool>>(vm.showSearch);
-  final bgIndex = useSignalValue<int, Signal<int>>(
-    vm.config.readerBgColorIndex.signal,
-  );
-  final brightness = useSignalValue<double, Signal<double>>(
-    vm.config.brightnessOverlay,
-  );
-  final pageIndex = useSignalValue<int, Signal<int>>(vm.pageIndex);
-  final totalPages = useSignalValue<int, Signal<int>>(vm.totalPages);
-  final autoScrollTick = useSignalValue<int, Signal<int>>(vm.autoScrollTick);
-  final progressText = useSignalValue<String, ReadonlySignal<String>>(
-    vm.progressText,
-  );
-  final currentChapterTitle = useSignalValue<String, ReadonlySignal<String>>(
-    vm.currentChapterTitle,
-  );
-
-  final themeMode = switch (readerTheme) {
-    ReaderTheme.dark => ThemeMode.dark,
-    ReaderTheme.sepia => ThemeMode.light,
-    ReaderTheme.light => ThemeMode.light,
-  };
-
-  return ReaderPageBindings(
-    readerTheme: readerTheme,
-    showToolbar: showToolbar,
-    showSettings: showSettings,
-    showCatalog: showCatalog,
-    showBookmarks: showBookmarks,
-    showSelection: showSelection,
-    showSearch: showSearch,
-    bgIndex: bgIndex,
-    brightness: brightness,
-    currentBookId: '',
-    chapterIndex: 0,
-    pageIndex: pageIndex,
-    totalPages: totalPages,
-    currentReadingMode: ReadingMode.pagination,
-    fontSize: 16,
-    lineHeight: 1.6,
-    content: '',
-    isLoading: false,
-    error: null,
-    bilingualAlign: null,
-    isBilingualLoading: false,
-    bilingualError: null,
-    autoScrollTick: autoScrollTick,
-    highlights: const [],
-    searchQuery: '',
-    searchCurrentIndex: 0,
-    searchMatchHighlight: false,
-    letterSpacing: 0,
-    paragraphSpacing: 0,
-    pageMargin: 0,
-    writingDirection: WritingDirection.horizontal,
-    pendingJumpCharOffset: null,
-    themeMode: themeMode,
-    effectiveTotalPages: math.max(1, totalPages),
-    progressText: progressText,
-    currentChapterTitle: currentChapterTitle,
   );
 }

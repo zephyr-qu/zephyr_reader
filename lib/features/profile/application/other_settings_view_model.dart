@@ -32,8 +32,6 @@ class OtherSettingsViewModel {
     false,
   );
 
-  final localeCode = signal<String?>(null);
-  final localeLabel = signal<String>('简体中文');
   final appVersion = signal<String>('');
 
   bool _initialized = false;
@@ -45,10 +43,6 @@ class OtherSettingsViewModel {
     if (_initialized) return;
     _initialized = true;
 
-    final tm = ThemeManager.instance;
-    localeCode.value = tm.locale.value;
-    localeLabel.value = tm.locale.value == 'en' ? 'English' : '简体中文';
-
     try {
       final info = await PackageInfo.fromPlatform();
       appVersion.value = 'v${info.version} (Build ${info.buildNumber})';
@@ -59,7 +53,7 @@ class OtherSettingsViewModel {
 
   /// 将所有设置恢复为默认值。
   Future<void> resetAllSettings() async {
-    await getIt<ReaderConfig>().resetToDefault();
+    getIt<ReaderConfig>().resetToDefault();
     notificationsEnabled.value = true;
     startupCheckEnabled.value = true;
     markdownPreview.value = false;
@@ -67,8 +61,6 @@ class OtherSettingsViewModel {
     // 重置语言到跟随系统
     final tm = ThemeManager.instance;
     tm.locale.value = null;
-    localeCode.value = null;
-    localeLabel.value = '简体中文';
 
     // 重置主题到跟随系统
     tm.themeType.value = AppThemeType.system;
@@ -79,7 +71,7 @@ class OtherSettingsViewModel {
 
   /// 清除所有本地缓存数据。
   Future<void> clearAllLocalData() async {
-    await CacheManager.clearCache();
+    await SystemCache.clearCache();
   }
 
   /// 释放所有 signal 资源。
@@ -87,8 +79,6 @@ class OtherSettingsViewModel {
     notificationsEnabled.dispose();
     startupCheckEnabled.dispose();
     markdownPreview.dispose();
-    localeCode.dispose();
-    localeLabel.dispose();
     appVersion.dispose();
   }
 }

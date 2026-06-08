@@ -2,7 +2,7 @@
 
 use std::sync::OnceLock;
 
-use crate::domain::{AppError, SearchResult};
+use crate::domain::{AppError, IndexStats, SearchResult};
 use crate::search::SearchEngine;
 use crate::storage::storage_pool;
 use flutter_rust_bridge::frb;
@@ -72,6 +72,21 @@ pub async fn search(
     Ok(results)
 }
 
+/// 统计搜索结果数量
+#[frb]
+pub async fn count_matches(
+    book_id: String,
+    query: String,
+    chapter_index: Option<i32>,
+) -> Result<i32, AppError> {
+    let engine = get_search_engine()?;
+    let count = engine
+        .count_matches(&book_id, &query, chapter_index)
+        .await
+        .map_err(|e| AppError::search_error(e.to_string()))?;
+    Ok(count as i32)
+}
+
 /// 搜索所有书籍内容
 #[frb]
 pub async fn search_all_books(
@@ -109,4 +124,14 @@ pub async fn delete_by_book(book_id: String) -> Result<(), AppError> {
         .await
         .map_err(|e| AppError::search_error(e.to_string()))?;
     Ok(())
+}
+
+/// 获取搜索索引统计信息
+#[frb]
+pub async fn get_index_stats() -> Result<IndexStats, AppError> {
+    let engine = get_search_engine()?;
+    engine
+        .get_index_stats()
+        .await
+        .map_err(|e| AppError::search_error(e.to_string()))
 }

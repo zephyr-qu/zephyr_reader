@@ -21,7 +21,6 @@ class ThemeModeOption extends StatelessWidget {
     required this.onTap,
   });
 
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;

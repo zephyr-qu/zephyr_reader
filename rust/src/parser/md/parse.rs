@@ -77,7 +77,7 @@ impl MdParser {
 
         let author = metadata::extract_author(&content).unwrap_or_default();
         let book_id = uuid::Uuid::new_v4().to_string();
-        let chapters = extract_chapters(&content, &book_id);
+        let chapters = extract_chapters_with_bounds(&content, &book_id);
 
         Ok(ParseResult {
             book_info: Book {
@@ -186,11 +186,71 @@ impl MdParser {
     }
 }
 
-fn extract_chapters(content: &str, book_id: &str) -> Vec<Chapter> {
-    let raw = extract_chapters_raw(content);
-    raw.iter()
+/// 分割章节并返回 (标题, 内容, 起始字节偏移, 结束字节偏移)
+fn extract_chapters_with_bounds(content: &str, book_id: &str) -> Vec<Chapter> {
+    struct RawChapter<'a> {
+        title: String,
+        lines: Vec<&'a str>,
+        first_line: Option<&'a str>, // first content line for offset calculation
+    }
+
+    let mut chapters: Vec<RawChapter> = Vec::new();
+    let mut current = RawChapter {
+        title: String::from("前言"),
+        lines: Vec::new(),
+        first_line: None,
+    };
+
+    let body_start = if content.trim().starts_with("---") {
+        content[3..].find("\n---").map(|pos| pos + 3 + 3)
+    } else {
+        Some(0)
+    };
+    let body_start = body_start.unwrap_or(0);
+
+    for line in content[body_start..].lines() {
+        let trimmed = line.trim();
+        if let Some(heading) = trimmed.strip_prefix("## ") {
+            if !current.lines.is_empty() {
+                chapters.push(current);
+            }
+            current = RawChapter {
+                title: heading.trim().to_string(),
+                lines: Vec::new(),
+                first_line: None,
+            };
+        } else {
+            if current.first_line.is_none() && !line.trim().is_empty() {
+                current.first_line = Some(line);
+            }
+            current.lines.push(line);
+        }
+    }
+
+    if !current.lines.is_empty() || chapters.is_empty() {
+        chapters.push(current);
+    }
+
+    // 计算字节偏移并生成 Chapter
+    chapters
+        .into_iter()
         .enumerate()
-        .map(|(i, (title, text))| Chapter::new(book_id, title, i as i64, 0, 0, text.len() as i64))
+        .map(|(i, ch)| {
+            let start_offset = ch
+                .first_line
+                .map(|slice| {
+                    // 计算切片相对于 content 起始的字节偏移
+                    let ptr = slice.as_ptr() as usize;
+                    let base = content.as_ptr() as usize;
+                    (ptr - base) as u64
+                })
+                .unwrap_or(0);
+
+            let text = ch.lines.join("\n");
+            let end_offset = start_offset + text.len() as u64;
+
+            Chapter::new(book_id, &ch.title, i as i64, 0, start_offset as i64, end_offset as i64)
+        })
         .collect()
 }
 

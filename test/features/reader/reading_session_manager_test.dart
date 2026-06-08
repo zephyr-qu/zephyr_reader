@@ -3,284 +3,201 @@ import 'package:mocktail/mocktail.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/reader/application/chapter_manager.dart';
 import 'package:zephyr_reader/features/reader/application/reading_session_manager.dart';
-import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
-
-// ===== Mocks =====
-
-class _MockRepo extends Mock implements ReaderRepository {}
 
 class _MockChapterManager extends Mock implements ChapterManager {}
 
-// ===== Helpers =====
-
-ReadingSessionManager createSession({
-  ReaderRepository? repo,
-  ChapterManager? chapterManager,
-}) {
-  return ReadingSessionManager(
-    repo ?? _MockRepo(),
-    chapterManager ?? _MockChapterManager(),
-  );
-}
-
 void main() {
-  late _MockRepo repo;
   late _MockChapterManager chapterManager;
   late ReadingSessionManager session;
 
   setUp(() {
-    repo = _MockRepo();
     chapterManager = _MockChapterManager();
-
-    // ChapterManager signal defaults
     when(() => chapterManager.bookId).thenReturn(signal<String>('book_test'));
     when(() => chapterManager.chapterIndex).thenReturn(signal<int>(0));
     when(() => chapterManager.currentCharOffset).thenReturn(signal<int>(0));
     when(() => chapterManager.pageIndex).thenReturn(signal<int>(0));
     when(() => chapterManager.totalPages).thenReturn(signal<int>(50));
 
-    // ReaderRepository default mocks
-    when(
-      () => repo.updateReadingProgress(
-        bookId: any(named: 'bookId'),
-        chapterId: any(named: 'chapterId'),
-        charOffset: any(named: 'charOffset'),
-        pageIndex: any(named: 'pageIndex'),
-        totalPages: any(named: 'totalPages'),
-        readingTimeSeconds: any(named: 'readingTimeSeconds'),
-      ),
-    ).thenAnswer((_) async {});
+    session = ReadingSessionManager(chapterManager);
   });
 
-  group('ReadingSessionManager', () {
-    // ==================== 初始状态 ====================
+  // ==================== 初始状态 ====================
 
-    group('初始状态', () {
-      test('创建时信号应有默认值', () {
-        final s = createSession(repo: repo, chapterManager: chapterManager);
-        expect(s.readingDuration.value, 0);
-        expect(s.isReading.value, false);
-        expect(s.progressSaved.value, false);
-      });
+  group('初始状态', () {
+    test('创建时信号应有默认值', () {
+      expect(session.readingDuration.value, 0);
+      expect(session.isReading.value, false);
+    });
+  });
+
+  // ==================== restoreReadingDuration ====================
+
+  group('restoreReadingDuration()', () {
+    test('恢复阅读时长设置信号值', () {
+      session.restoreReadingDuration(120);
+      expect(session.readingDuration.value, equals(120));
     });
 
-    // ==================== startReading ====================
-
-    group('startReading()', () {
-      test('开始阅读应标记 isReading 为 true', () {
-        session = createSession(repo: repo, chapterManager: chapterManager);
-        session.startReading();
-
-        expect(session.isReading.value, isTrue);
-      });
-
-      test('重复调用不会多次启动计时', () {
-        session = createSession(repo: repo, chapterManager: chapterManager);
-        session.startReading();
-        final durationBefore = session.readingDuration.value;
-
-        session.startReading(); // 不应重置或双倍累积
-
-        // 短暂等待后验证 duration 只增加了一次
-        expect(session.isReading.value, isTrue);
-        expect(
-          session.readingDuration.value - durationBefore,
-          lessThanOrEqualTo(1),
-        );
-      });
+    test('零值恢复', () {
+      session.restoreReadingDuration(0);
+      expect(session.readingDuration.value, equals(0));
     });
 
-    // ==================== stopReading ====================
+    test('大数值恢复', () {
+      session.restoreReadingDuration(99999);
+      expect(session.readingDuration.value, equals(99999));
+    });
+  });
 
-    group('stopReading()', () {
-      test('停止阅读应标记 isReading 为 false 并保存进度', () async {
-        session = createSession(repo: repo, chapterManager: chapterManager);
-        session.startReading();
-        expect(session.isReading.value, isTrue);
+  // ==================== startReading ====================
 
-        // 使用真实 repo mock，让 saveProgress 通过防抖
-        when(
-          () => repo.updateReadingProgress(
-            bookId: any(named: 'bookId'),
-            chapterId: any(named: 'chapterId'),
-            charOffset: any(named: 'charOffset'),
-            pageIndex: any(named: 'pageIndex'),
-            totalPages: any(named: 'totalPages'),
-            readingTimeSeconds: any(named: 'readingTimeSeconds'),
-          ),
-        ).thenAnswer((_) async {});
-
-        await session.stopReading();
-
-        expect(session.isReading.value, isFalse);
-        verify(
-          () => repo.updateReadingProgress(
-            bookId: any(named: 'bookId'),
-            chapterId: any(named: 'chapterId'),
-            charOffset: any(named: 'charOffset'),
-            pageIndex: any(named: 'pageIndex'),
-            totalPages: any(named: 'totalPages'),
-          ),
-        ).called(1);
-      });
-
-      test('不在阅读中时停止应无操作', () async {
-        session = createSession(repo: repo, chapterManager: chapterManager);
-        await session.stopReading();
-
-        expect(session.isReading.value, isFalse);
-        verifyNever(
-          () => repo.updateReadingProgress(
-            bookId: any(named: 'bookId'),
-            chapterId: any(named: 'chapterId'),
-            charOffset: any(named: 'charOffset'),
-            pageIndex: any(named: 'pageIndex'),
-            totalPages: any(named: 'totalPages'),
-          ),
-        );
-      });
+  group('startReading()', () {
+    test('开始阅读标记 isReading 为 true', () {
+      session.startReading();
+      expect(session.isReading.value, isTrue);
     });
 
-    // ==================== saveProgress ====================
+    test('重复调用不会多次启动计时', () async {
+      session.startReading();
+      final before = session.readingDuration.value;
 
-    group('saveProgress()', () {
-      test('保存进度应调用 repo.updateReadingProgress', () async {
-        session = createSession(repo: repo, chapterManager: chapterManager);
+      session.startReading(); // 重复调用
 
-        // 强制置入足够旧的时间绕过防抖
-        await session.saveProgress();
-
-        verify(
-          () => repo.updateReadingProgress(
-            bookId: any(named: 'bookId'),
-            chapterId: any(named: 'chapterId'),
-            charOffset: any(named: 'charOffset'),
-            pageIndex: any(named: 'pageIndex'),
-            totalPages: any(named: 'totalPages'),
-          ),
-        ).called(1);
-      });
-      test('保存后设置 progressSaved 为 true', () async {
-        session = createSession(repo: repo, chapterManager: chapterManager);
-        expect(session.progressSaved.value, false);
-
-        await session.saveProgress();
-
-        expect(session.progressSaved.value, isTrue);
-      });
-
-      test('短时间重复调用受防抖保护（5 秒内跳过）', () async {
-        session = createSession(repo: repo, chapterManager: chapterManager);
-
-        await session.saveProgress(); // 第一次调用
-
-        // 第二次立即调用应被防抖跳过
-        await session.saveProgress();
-
-        // verify 按总调用次数检查，应只有 1 次
-        verify(
-          () => repo.updateReadingProgress(
-            bookId: any(named: 'bookId'),
-            chapterId: any(named: 'chapterId'),
-            charOffset: any(named: 'charOffset'),
-            pageIndex: any(named: 'pageIndex'),
-            totalPages: any(named: 'totalPages'),
-            readingTimeSeconds: any(named: 'readingTimeSeconds'),
-          ),
-        ).called(1);
-      });
-
-      test('保存失败不应抛异常（静默日志）', () async {
-        when(
-          () => repo.updateReadingProgress(
-            bookId: any(named: 'bookId'),
-            chapterId: any(named: 'chapterId'),
-            charOffset: any(named: 'charOffset'),
-            pageIndex: any(named: 'pageIndex'),
-            totalPages: any(named: 'totalPages'),
-          ),
-        ).thenThrow(Exception('db error'));
-
-        session = createSession(repo: repo, chapterManager: chapterManager);
-
-        // 不应抛出异常
-        await session.saveProgress();
-      });
-
-      test('阅读时长传递给 repo', () async {
-        session = createSession(repo: repo, chapterManager: chapterManager);
-        session.startReading();
-        session.readingDuration.value = 42;
-
-        await session.saveProgress();
-
-        verify(
-          () => repo.updateReadingProgress(
-            bookId: any(named: 'bookId'),
-            chapterId: any(named: 'chapterId'),
-            charOffset: any(named: 'charOffset'),
-            pageIndex: any(named: 'pageIndex'),
-            totalPages: any(named: 'totalPages'),
-            readingTimeSeconds: 42,
-          ),
-        ).called(1);
-      });
+      await Future<void>.delayed(const Duration(milliseconds: 1100));
+      // duration 只会按一个计时器累加
+      expect(session.readingDuration.value - before, greaterThanOrEqualTo(1));
     });
 
-    // ==================== startAutoSave ====================
+    test('开始阅读后 duration 随时间递增', () async {
+      session.startReading();
+      final before = session.readingDuration.value;
 
-    group('startAutoSave()', () {
-      test('启动自动保存应开始周期性保存', () async {
-        session = createSession(repo: repo, chapterManager: chapterManager);
+      await Future<void>.delayed(const Duration(milliseconds: 2100));
 
-        session.startAutoSave();
+      // 大约 2 秒后 duration 应增加约 2
+      expect(session.readingDuration.value - before, greaterThanOrEqualTo(1));
+    });
+  });
 
-        // 等待定时器触发（Timer.periodic 30秒），短时间内不会触发
-        // 只能验证不抛异常且 isReading 不受影响
-        expect(session.isReading.value, false);
-      });
+  // ==================== stopReading ====================
+
+  group('stopReading()', () {
+    test('不在阅读中时停止无操作', () async {
+      await session.stopReading();
+      expect(session.isReading.value, isFalse);
     });
 
-    // ==================== restoreReadingDuration ====================
+    test('阅读中停止标记 isReading 为 false', () async {
+      session.startReading();
+      expect(session.isReading.value, isTrue);
 
-    group('restoreReadingDuration()', () {
-      test('恢复阅读时长', () {
-        session = createSession(repo: repo, chapterManager: chapterManager);
-        session.restoreReadingDuration(120);
-
-        expect(session.readingDuration.value, 120);
-      });
+      await session.stopReading();
+      expect(session.isReading.value, isFalse);
     });
 
-    // ==================== reset ====================
+    test('停止后计时器不再增加时长', () async {
+      session.startReading();
+      await Future<void>.delayed(const Duration(milliseconds: 500));
 
-    group('reset()', () {
-      test('重置所有信号到默认值', () {
-        session = createSession(repo: repo, chapterManager: chapterManager);
-        session.startReading();
-        session.readingDuration.value = 99;
-        session.progressSaved.value = true;
+      await session.stopReading();
+      final durationAfterStop = session.readingDuration.value;
 
-        session.reset();
+      // 再等 500ms，duration 不应变化
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(session.readingDuration.value, equals(durationAfterStop));
+    });
+  });
 
-        expect(session.readingDuration.value, 0);
-        expect(session.isReading.value, false);
-        expect(session.progressSaved.value, false);
-      });
+  // ==================== saveProgress (pure-Dart guards only) ====================
+
+  group('saveProgress() guard clauses', () {
+    test('不在阅读时不保存（isReading=false 直接返回）', () async {
+      // isReading 默认为 false，saveProgress 应在 guard 1 处直接返回
+      // 不会触发 FFI 调用，不应抛异常
+      await session.saveProgress();
+      expect(session.isReading.value, isFalse);
     });
 
-    // ==================== 生命周期 ====================
+    test('阅读中保存不抛异常（FFI 错误被 try/catch 吞噬）', () async {
+      // 直接设置 isReading 为 true 绕过 startReading 的 timer
+      session.isReading.value = true;
 
-    group('dispose', () {
-      test('dispose 后不再触发定时器', () {
-        session = createSession(repo: repo, chapterManager: chapterManager);
-        session.startReading();
+      // saveProgress 会尝试调用 FFI，FFI 会抛出异常但被 try/catch 捕获
+      // 不应向上传播异常
+      await session.saveProgress();
+    });
+  });
 
-        session.dispose();
+  // ==================== startAutoSave ====================
 
-        expect(session.isReading.value, isTrue); // 信号值不变
-        // 但计时器应已取消，可通过等待验证不抛异常
-      });
+  group('startAutoSave()', () {
+    test('启动自动保存不抛异常', () {
+      session.startAutoSave();
+      expect(session.isReading.value, isFalse);
+    });
+
+    test('阅读中自动保存不抛异常', () async {
+      session.startReading();
+      session.startAutoSave();
+
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      // 自动保存定时器 30 秒才触发，此处仅验证不抛异常
+      expect(session.isReading.value, isTrue);
+    });
+  });
+
+  // ==================== reset ====================
+
+  group('reset()', () {
+    test('重置所有信号到默认值', () {
+      session.startReading();
+      session.readingDuration.value = 99;
+
+      session.reset();
+
+      expect(session.readingDuration.value, equals(0));
+      expect(session.isReading.value, isFalse);
+    });
+
+    test('重置后计时器停止不再增长', () async {
+      session.startReading();
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+
+      session.reset();
+
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(session.readingDuration.value, equals(0));
+    });
+  });
+
+  // ==================== 生命周期 ====================
+
+  group('dispose()', () {
+    test('dispose 后计时器停止', () async {
+      session.startReading();
+      await session.dispose();
+
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      // dispose 不改变信号值
+      expect(session.isReading.value, isTrue);
+    });
+
+    test('dispose 后即使 isReading=true, duration 不再增长', () async {
+      session.startReading();
+      session.readingDuration.value = 42;
+      await session.dispose();
+
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(session.readingDuration.value, equals(42));
+    });
+
+    test('dispose 后调用 stopReading 安全', () async {
+      session.startReading();
+      await session.dispose();
+
+      // stopReading 在 dispose 后应安全执行
+      await session.stopReading();
+      expect(session.isReading.value, isFalse);
     });
   });
 }

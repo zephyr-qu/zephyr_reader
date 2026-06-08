@@ -3,8 +3,7 @@ use std::num::NonZeroUsize;
 use std::sync::{Arc, LazyLock};
 
 pub(crate) use crate::domain::{AppError, TypesetConfig};
-use crate::domain::{PageContent, ParseResult};
-use crate::parser::book_parser::BookMetadata;
+use crate::domain::{PageContent, PaginateResult, ParseResult};
 use crate::parser::pdf::provider::PdfContentProvider;
 use crate::parser::provider::{ChapterContentProvider, PageData, PagedContentProvider};
 use crate::parser::registry::parser_for_file;
@@ -50,28 +49,18 @@ type CacheKey = (String, i32);
 static PROVIDER_CACHE: LazyLock<Mutex<LruCache<CacheKey, Arc<dyn ChapterContentProvider>>>> =
     LazyLock::new(|| Mutex::new(LruCache::new(PROVIDER_CACHE_CAPACITY)));
 
-// ==================== 格式检测 ====================
+// ==================== PageStreamer LRU 缓存 ====================
 
-/// 获取所有支持的文件格式列表。
-///
-/// 返回格式扩展名字符串数组，如 `["txt", "epub", "pdf", "md"]`。
-#[frb]
-pub async fn get_supported_formats() -> Result<Vec<String>, AppError> {
-    let formats: &[&str] = &[
-        "txt", "text", "epub", "pdf", "md", "markdown", "mdown", "mkdn",
-    ];
-    Ok(formats.iter().map(|s| s.to_string()).collect())
-}
-/// 检查指定文件格式是否受支持。
-///
-/// 格式匹配不区分大小写。
-#[frb(sync)]
-pub fn supports_format(format: &str) -> bool {
-    matches!(
-        format.to_lowercase().as_str(),
-        "txt" | "text" | "epub" | "pdf" | "md" | "markdown" | "mdown" | "mkdn"
-    )
-}
+type StreamerKey = (String, i32, u64);
+
+const STREAMER_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(4) {
+    Some(v) => v,
+    None => unreachable!(),
+};
+
+static STREAMER_CACHE: LazyLock<Mutex<LruCache<StreamerKey, PageStreamer>>> =
+    LazyLock::new(|| Mutex::new(LruCache::new(STREAMER_CACHE_CAPACITY)));
+
 
 // ==================== 导入与解析 ====================
 
@@ -132,52 +121,6 @@ pub async fn parse_book(file_path: String) -> Result<ParseResult, AppError> {
     Ok(result)
 }
 
-/// 提取书籍元数据（标题、作者、语言等），不写入数据库。
-///
-/// 用于书籍详情页等只读场景。
-#[frb]
-pub async fn extract_metadata(file_path: String) -> Result<BookMetadata, AppError> {
-    let validated_path = validate_file_path_async(&file_path).await?;
-
-    if let Some(storage) = crate::storage::storage() {
-        let Ok(pool) = storage.pool() else {
-            return Err(AppError::database_error("Storage pool unavailable"));
-        };
-        if let Ok(Some(book)) = BookRepository::find_by_file_path(&pool, &validated_path).await {
-            if let Ok(metadata) = tokio::fs::metadata(&validated_path).await {
-                let size_match = book.file_size == metadata.len() as i64;
-                let mtime_match = book
-                    .file_mtime
-                    .and_then(|stored| {
-                        metadata.modified().ok().and_then(|m| {
-                            m.duration_since(std::time::UNIX_EPOCH)
-                                .ok()
-                                .map(|d| (d.as_secs() as i64) == stored)
-                        })
-                    })
-                    .unwrap_or(false);
-                if size_match && mtime_match {
-                    return Ok(BookMetadata {
-                        title: book.title,
-                        author: book.author.unwrap_or_default(),
-                        description: None,
-                        cover_path: None,
-                        publisher: book.publisher,
-                        translator: book.translator,
-                        isbn: book.isbn,
-                        publish_year: None,
-                        language: None,
-                        chapter_count: book.chapter_count,
-                        total_characters: book.total_characters,
-                    });
-                }
-            }
-        }
-    }
-
-    let parser = parser_for_file(&validated_path)?;
-    parser.extract_metadata(&validated_path).await
-}
 
 // ==================== 章节内容 ====================
 
@@ -544,6 +487,7 @@ pub async fn get_chapter(
 /// 创建分页流式读取器 [PageStreamer]。
 ///
 /// PageStreamer 支持按 chunk 分段读取章节内容，减少大章节的首屏等待时间。
+// DEAD CODE: Dart 侧无调用，当前走 paginateAllContent
 #[frb]
 pub async fn create_page_streamer(
     file_path: String,
@@ -575,13 +519,100 @@ pub async fn paginate_all_content(
         return Ok(pages);
     }
 
-    let content = extract_chapter_content(&validated_path, chapter_index).await?;
-    let pages = paginate_all(content, chapter_index, config);
+    // 优先使用 Provider LRU 路径（与 getChapter 共享解析器缓存，避免重复 I/O）
+    let format = format_from_extension(&validated_path);
+    let content = if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
+        let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
+        let content_len = provider.content_length();
+        let (start, end) = if format == BookFormat::Epub {
+            (0u64, content_len)
+        } else {
+            let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
+            (cs.max(0) as u64, (ce.max(0) as u64).min(content_len))
+        };
+        provider.read_text_range(start, end)?
+    } else {
+        // PDF 等格式回退到旧路径
+        extract_chapter_content(&validated_path, chapter_index).await?
+    };
+
+    let chapter_idx = chapter_index;
+    let pages = tokio::task::spawn_blocking(move || paginate_all(content, chapter_idx, config))
+        .await
+        .map_err(|e| AppError::task_panic("pagination", e.to_string()))?;
 
     // 写缓存
     try_save_cached_pages(&validated_path, chapter_index, config_hash, pages.clone()).await;
 
     Ok(pages)
+}
+
+// ==================== 轻量级分页排版 API ====================
+
+/// 轻量级分页排版（只返回页面描述符，不含文本内容）。
+///
+/// 创建 `PageStreamer` 并缓存到 LRU 缓存中，Dart 侧通过 `get_page_content` 按需获取页面内容。
+/// 与 `paginate_all_content` 相比，显著减少 FFI 数据量（只传偏移量，不传文本）。
+#[frb]
+pub async fn paginate_chapter(
+    file_path: String,
+    chapter_index: i32,
+    config: TypesetConfig,
+) -> Result<PaginateResult, AppError> {
+    let validated_path = validate_file_path_async(&file_path).await?;
+    let config = config.validate_and_fix();
+    let config_hash = config.config_hash();
+
+    // 提取章节文本（复用 PROVIDER_CACHE 避免重复 I/O）
+    let format = format_from_extension(&validated_path);
+    let content = if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
+        let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
+        let content_len = provider.content_length();
+        let (start, end) = if format == BookFormat::Epub {
+            (0u64, content_len)
+        } else {
+            let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
+            (cs.max(0) as u64, (ce.max(0) as u64).min(content_len))
+        };
+        provider.read_text_range(start, end)?
+    } else {
+        extract_chapter_content(&validated_path, chapter_index).await?
+    };
+
+    let streamer = PageStreamer::new(content, config);
+    let descriptors = streamer.get_descriptors();
+
+    // 缓存 PageStreamer 供后续按需获取页面内容
+    {
+        let mut cache = STREAMER_CACHE.lock();
+        cache.put((validated_path, chapter_index, config_hash), streamer);
+    }
+
+    Ok(PaginateResult {
+        descriptors,
+        config_hash,
+    })
+}
+
+/// 按需获取单页内容（同步，纯内存操作）。
+///
+/// 从 LRU 缓存中查找对应章节的 `PageStreamer`，调用 `get_page` 获取指定页的文本内容。
+/// 如果缓存中不存在（过期或被驱逐），返回空字符串，调用方应回退到 `paginate_all_content`。
+#[frb(sync)]
+pub fn get_page_content(
+    file_path: String,
+    chapter_index: i32,
+    config_hash: u64,
+    page_index: i32,
+) -> String {
+    let key = (file_path, chapter_index, config_hash);
+    let mut cache = STREAMER_CACHE.lock();
+    if let Some(streamer) = cache.get(&key) {
+        if let Some(page) = streamer.get_page(page_index as usize, chapter_index) {
+            return page.content;
+        }
+    }
+    String::new()
 }
 
 // ==================== Provider 管理 ====================
@@ -665,6 +696,7 @@ fn paginate_chunk(
 ///
 /// 偏移语义因格式而异：
 /// - TXT/MD：章节字节偏移（相对于文件的 start_index/end_index）
+// DEAD CODE: Dart 侧无调用
 /// - EPUB：0-based 纯文本偏移
 #[frb]
 pub async fn get_paginated_chunk(
@@ -744,6 +776,7 @@ pub async fn get_paginated_chunk(
 ///
 /// PDF 不走分块排版路径，直接返回单页文本。
 /// Flutter 端直接渲染，无需经过排版引擎。
+// TODO: Dart 侧尚未接入 PDF 阅读
 #[frb]
 pub async fn get_pdf_page(file_path: String, page_index: u32) -> Result<PageData, AppError> {
     let validated_path = validate_file_path_async(&file_path).await?;
@@ -757,6 +790,7 @@ pub async fn get_pdf_page(file_path: String, page_index: u32) -> Result<PageData
 
 /// 获取 PDF 总页数
 #[frb]
+// TODO: Dart 侧尚未接入 PDF 阅读
 pub async fn get_pdf_total_pages(file_path: String) -> Result<u32, AppError> {
     let validated_path = validate_file_path_async(&file_path).await?;
     tokio::task::spawn_blocking(move || {
@@ -768,6 +802,7 @@ pub async fn get_pdf_total_pages(file_path: String) -> Result<u32, AppError> {
 }
 
 /// 检查格式是否已实现分块排版 Provider
+// TODO: Dart 侧尚未接入 PDF 阅读
 #[frb(sync)]
 pub fn supports_chunked_pagination(file_path: String) -> bool {
     let format = format_from_extension(&file_path);
@@ -778,17 +813,6 @@ pub fn supports_chunked_pagination(file_path: String) -> bool {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_get_supported_formats() {
-        let _formats = get_supported_formats();
-        // assert!(!formats);
-    }
-
-    #[test]
-    fn test_supports_format() {
-        assert!(supports_format("txt") || supports_format("epub") || supports_format("pdf"));
-        assert!(!supports_format("unknown"));
-    }
 
     #[test]
     fn test_format_from_extension() {
@@ -839,5 +863,77 @@ mod tests {
         let pages = paginate_chunk(text, 100, 0, &config);
         assert!(pages.len() >= 1);
         assert!(pages[0].start_offset >= 100);
+    }
+
+    /// 诊断测试：验证内容提取管线
+    /// 
+    /// 创建临时 TXT 文件，执行 parse_book → get_chapter_bounds → read_text_range，
+    /// 验证每一步的输出。
+    #[tokio::test]
+    async fn diagnose_content_extraction_pipeline() {
+        use crate::storage::{STORAGE, db::StorageManager};
+        use tempfile::TempDir;
+
+        let tmp = TempDir::new().unwrap();
+        let mgr = StorageManager::new(tmp.path()).await.unwrap();
+        STORAGE.set(mgr).unwrap_or_else(|_| panic!("STORAGE already set"));
+        // 创建测试文件
+        let content = "第一章 混合内容\n\nToday was the day. 他站在窗前。\n";
+        let file_path_buf = tmp.path().join("test_book.txt");
+        std::fs::write(&file_path_buf, content).unwrap();
+        let file_path = file_path_buf.to_string_lossy().to_string();
+
+        // 解析
+        let parse_result = parse_book(file_path.clone()).await
+            .expect("parse_book should succeed");
+
+        eprintln!("[DIAG] parsed: title={}, chapters={}, chars={}",
+            parse_result.book_info.title,
+            parse_result.chapters.len(),
+            parse_result.book_info.total_characters,
+        );
+        for c in &parse_result.chapters {
+            eprintln!("[DIAG] chapter: idx={}, start={}, end={}",
+                c.chapter_index, c.start_index, c.end_index);
+        }
+
+        // 获取 validated path（与 parse_book 内部使用的相同）
+        let validated = validate_file_path_async(&file_path).await
+            .expect("validate should succeed");
+        eprintln!("[DIAG] original path: {}", file_path);
+        eprintln!("[DIAG] validated path: {}", validated);
+
+        // 直接调用 get_chapter_bounds（使用 validated path）
+        let bounds = get_chapter_bounds(&validated, 0).await
+            .expect("get_chapter_bounds should succeed");
+        eprintln!("[DIAG] chapter_bounds: start={}, end={}", bounds.0, bounds.1);
+
+        // 创建 provider
+        let format = format_from_extension(&validated);
+        eprintln!("[DIAG] format: {:?}", format);
+        let provider = get_or_create_provider(&validated, 0, &format).await
+            .expect("get_or_create_provider should succeed");
+        let content_len = provider.content_length();
+        eprintln!("[DIAG] provider content_len: {}", content_len);
+
+        let (start, end) = {
+            let (cs, ce) = bounds;
+            (cs.max(0) as u64, (ce.max(0) as u64).min(content_len))
+        };
+        eprintln!("[DIAG] read_range: start={}, end={}", start, end);
+
+        let text = provider.read_text_range(start, end)
+            .expect("read_text_range should succeed");
+        eprintln!("[DIAG] text.len()={}, text={:?}", text.len(),
+            &text[..text.len().min(80)]);
+
+        // 现在调用 paginate_all_content
+        let config = TypesetConfig::default();
+        let pages = paginate_all_content(file_path.clone(), 0, config).await
+            .expect("paginate_all_content should succeed");
+        eprintln!("[DIAG] pages.len()={}", pages.len());
+
+        assert!(!text.is_empty(), "Content extraction should return non-empty text");
+        assert!(!pages.is_empty(), "PaginateAllContent should produce at least 1 page");
     }
 }

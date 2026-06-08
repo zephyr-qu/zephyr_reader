@@ -31,10 +31,8 @@ pub async fn extract_and_save_cover(
     output_dir: String,
 ) -> Result<String, AppError> {
     let full_path = extract_book_cover(file_path, output_dir).await?;
-    let storage = ensure_storage().map_err(|_| AppError::storage_not_initialized())?;
-    let pool = storage
-        .pool()
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+    let storage = ensure_storage()?;
+    let pool = storage.pool()?;
 
     // 只存文件名（相对路径），不存绝对路径，保证数据库可移植
     let relative_path = Path::new(&full_path)

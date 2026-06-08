@@ -16,6 +16,7 @@ import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/category.dart' as category_api;
 import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart';
 
 /// 书架排序方式枚举。
 enum BookshelfSortType {
@@ -39,6 +40,7 @@ enum BookshelfSortType {
 @injectable
 class BookshelfViewModel {
   final SharedPreferences _prefs;
+  final CategoryViewModel _categoryVM;
 
   /// 自增世代计数器
   int _reloadGeneration = 0;
@@ -54,12 +56,7 @@ class BookshelfViewModel {
 
   /// 所有书籍
   final books = asyncSignal<List<Book>>(AsyncState.loading());
-
-  /// 所有分类（立即从缓存获取）
-  final categories = asyncSignal<List<Category>>(AsyncState.loading());
-
-  /// 当前选中的分类
-  final selectedCategory = signal<Category?>(null);
+  CategoryViewModel get categoryVM => _categoryVM;
 
   /// 当前选中的阅读状态
   final selectedStatus = signal<BookStatus?>(null);
@@ -101,22 +98,7 @@ class BookshelfViewModel {
   /// 瞬态反馈消息（Page 通过 useSignalEffect 消费）
   final feedback = signal<String?>(null);
 
-  BookshelfViewModel(this._prefs);
-
-  /// 加载所有分类列表。
-  Future<void> loadCategories() async {
-    try {
-      final data = await category_api.listCategories();
-      categories.value = AsyncState.data(data.cast<Category>());
-    } catch (e, stack) {
-      Logging.error(
-        'BookshelfViewModel._loadCategories error',
-        exception: e,
-        stackTrace: stack,
-      );
-      categories.value = AsyncState.error(e);
-    }
-  }
+  BookshelfViewModel(this._prefs, this._categoryVM);
 
   /// 加载书籍列表 + 排序（最常用的刷新）
   Future<void> reloadBooks() async {
@@ -128,7 +110,7 @@ class BookshelfViewModel {
       if (isSearching.value && searchKeyword.value.isNotEmpty) {
         data = await book_api.searchBooks(keyword: searchKeyword.value);
       } else {
-        final category = selectedCategory.value;
+        final category = _categoryVM.selectedCategory.value;
         final status = selectedStatus.value;
         if (category != null && status != null) {
           // Both filters: fetch by category, filter status in Dart
@@ -210,16 +192,6 @@ class BookshelfViewModel {
     await reloadProgress();
   }
 
-  /// 获取指定书籍关联的分类 ID 集合。
-  Future<Set<String>> getCategoryIds(String bookId) async {
-    try {
-      final cats = await category_api.listCategoriesByBook(bookId: bookId);
-      return cats.map((c) => c.id).toSet();
-    } catch (_) {
-      return {};
-    }
-  }
-
   /// 安全执行操作，捕获异常并记录日志，成功后可选执行回调。
   Future<bool> _safeAction(
     String label,
@@ -243,7 +215,7 @@ class BookshelfViewModel {
 
   /// 切换分类
   void selectCategory(Category? category) {
-    selectedCategory.value = category;
+    _categoryVM.selectCategory(category);
     isSearching.value = false;
     searchKeyword.value = '';
     reloadBooks();
@@ -288,53 +260,6 @@ class BookshelfViewModel {
     return await book_api.getBook(bookId: id);
   }
 
-  // ==================== 分类管理 ====================
-
-  /// 添加新分类。
-  Future<bool> addCategory({
-    required String name,
-    String color = '#FF5722',
-    int sortOrder = 0,
-  }) => _safeAction('addCategory', () async {
-    await category_api.upsertCategory(
-      name: name,
-      color: color,
-      sortOrder: sortOrder,
-    );
-    return true;
-  }, onSuccess: loadCategories);
-
-  /// 更新分类
-  Future<bool> updateCategory(Category category) =>
-      _safeAction('updateCategory', () async {
-        await category_api.upsertCategory(
-          name: category.name,
-          color: category.color,
-          sortOrder: category.sortOrder,
-          description: category.description,
-        );
-        return true;
-      }, onSuccess: loadCategories);
-
-  /// 删除分类
-  Future<bool> removeCategory(String id) => _safeAction(
-    'removeCategory',
-    () async {
-      final category = await category_api.getCategory(categoryId: id);
-      if (category == null) return false;
-      await category_api.deleteCategory(categoryId: id);
-      return true;
-    },
-    onSuccess: () async {
-      await loadCategories();
-      if (selectedCategory.value?.id == id) {
-        selectedCategory.value = (categories.value.value ?? []).isEmpty
-            ? null
-            : (categories.value.value ?? []).first;
-      }
-    },
-  );
-
   /// 更新书籍分类
   Future<bool> updateBookCategories(String bookId, List<String> categoryIds) =>
       _safeAction('updateBookCategories', () async {
@@ -367,9 +292,27 @@ class BookshelfViewModel {
     final ok = await _safeAction('importBook', () async {
       final parseResult = await core_api.parseBook(filePath: filePath);
       await book_api.upsertBook(book: parseResult.bookInfo);
+      // 导入后自动提取封面到磁盘
+      await _extractCover(parseResult.bookInfo.bookId, filePath);
       return true;
     }, onSuccess: loadBooks);
     return ok;
+  }
+
+  /// 提取书籍封面并保存到磁盘，失败不阻塞导入流程。
+  Future<void> _extractCover(String bookId, String filePath) async {
+    if (!cover_api.supportsCoverExtraction(filePath: filePath)) return;
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final coverDir = p.join(appDir.path, 'zephyr_reader', 'covers');
+      await cover_api.extractAndSaveCover(
+        bookId: bookId,
+        filePath: filePath,
+        outputDir: coverDir,
+      );
+    } catch (_) {
+      // 封面提取失败不影响导入结果
+    }
   }
 
   /// 并发上限
@@ -408,7 +351,9 @@ class BookshelfViewModel {
         (file) => sem.acquire(() async {
           try {
             final parseResult = await core_api.parseBook(filePath: file);
+            final bookId = parseResult.bookInfo.bookId;
             await book_api.upsertBook(book: parseResult.bookInfo);
+            await _extractCover(bookId, file);
             success++;
           } catch (e, stack) {
             fail++;

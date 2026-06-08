@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
@@ -17,6 +17,7 @@ import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/page/typography/font_tile.dart';
 import 'package:zephyr_reader/features/profile/page/typography/reset_button.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
+import 'package:zephyr_reader/features/profile/page/typography/typography_preview.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 排版设置页面。
@@ -37,7 +38,7 @@ class TypographySettingsPage extends HookWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
         children: [
-          _buildPreview(context, cs, config, fontRepo),
+          TypographyPreview(config: config, fontRepo: fontRepo),
           const SizedBox(height: 24),
           _buildFontGrid(context, cs, config, fontRepo),
           const SizedBox(height: 24),
@@ -54,17 +55,6 @@ class TypographySettingsPage extends HookWidget {
     );
   }
 
-  String _fontFamily(FontRepository fontRepo, String fontId) {
-    try {
-      final font = fontRepo.availableFonts.value.firstWhere(
-        (f) => f.id == fontId,
-      );
-      return fontRepo.familyNameFor(font);
-    } catch (_) {
-      return 'system-ui, sans-serif';
-    }
-  }
-
   /// 仅重置排版页面管理的设置项，不触及主题、自动滚动、点击区域等其他页面管理的配置。
   Future<void> _reset(ReaderConfig config, FontRepository fontRepo) async {
     config.fontSize.value = ReaderFontSize.medium.size;
@@ -76,103 +66,6 @@ class TypographySettingsPage extends HookWidget {
     config.baselineAlign.value = true;
     config.writingDirection.value = WritingDirection.horizontal;
     await fontRepo.setCurrentFont('system');
-  }
-
-  Widget _buildPreview(
-    BuildContext context,
-    ColorScheme cs,
-    ReaderConfig config,
-    FontRepository fontRepo,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    final fontSize = useSignalValue<double, Signal<double>>(
-      config.fontSize.signal,
-    );
-    final lineHeight = useSignalValue<double, Signal<double>>(
-      config.lineHeight.signal,
-    );
-    final paragraphSpacing = useSignalValue<double, Signal<double>>(
-      config.paragraphSpacing.signal,
-    );
-    final letterSpacing = useSignalValue<double, Signal<double>>(
-      config.letterSpacing.signal,
-    );
-    final margin = useSignalValue<double, Signal<double>>(
-      config.padding.signal,
-    );
-    final currentFontInfo = useSignalValue<FontInfo?, Signal<FontInfo?>>(
-      fontRepo.currentFont,
-    );
-    final fontId = currentFontInfo?.id ?? 'system';
-
-    return Container(
-      padding: EdgeInsets.fromLTRB(margin, 24, margin, 24),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: cs.onSurface.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Align(
-            alignment: Alignment.topRight,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: cs.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                l10n.livePreview,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: cs.primary,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '春风又绿江南岸，明月何时照我还。',
-                  style: TextStyle(
-                    fontFamily: _fontFamily(fontRepo, fontId),
-                    fontSize: fontSize * 1.05,
-                    height: lineHeight,
-                    letterSpacing: letterSpacing,
-                    color: cs.onSurface,
-                  ),
-                ),
-                SizedBox(height: paragraphSpacing),
-                Text(
-                  'The spring wind has greened the southern shore again.',
-                  style: TextStyle(
-                    fontFamily: _fontFamily(fontRepo, fontId),
-                    fontSize: fontSize * 0.9,
-                    height: lineHeight,
-                    letterSpacing: letterSpacing,
-                    color: cs.onSurface.withValues(alpha: 0.75),
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.04, end: 0);
   }
 
   Widget _buildFontGrid(

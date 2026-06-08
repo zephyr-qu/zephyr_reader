@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
-/// A danger zone section with a label and a bordered card of [DangerItem]s.
 class DangerSection extends StatelessWidget {
   final String label;
   final List<DangerItem> children;

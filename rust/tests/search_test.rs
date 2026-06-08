@@ -4,7 +4,6 @@
 mod common;
 
 use rust_lib_zephyr_reader::api::{self};
-use rust_lib_zephyr_reader::storage::models::Book;
 use std::sync::OnceLock;
 use tempfile::TempDir;
 
@@ -12,7 +11,7 @@ use tempfile::TempDir;
 
 static TEST_STORAGE: OnceLock<TempDir> = OnceLock::new();
 
-/// 初始化测试存储环境（全局只初始化一次）
+// 初始化测试存储环境（全局只初始化一次）
 async fn ensure_storage_initialized() {
     if TEST_STORAGE.get().is_some() {
         return;
@@ -39,25 +38,6 @@ async fn ensure_storage_initialized() {
     TEST_STORAGE.get_or_init(|| temp_dir);
 }
 
-/// 创建测试书籍
-fn create_test_book(file_path: &str) -> Book {
-    Book::new(
-        file_path,
-        0, // file_size
-        "测试书籍",
-        rust_lib_zephyr_reader::storage::models::BookFormat::Txt,
-        0,    // chapter_count
-        0,    // total_characters
-        None, // file_hash
-        None, // file_mtime
-        Some("测试作者"),
-        None, // cover_path
-        None, // description
-        None, // publisher
-        None, // translator
-        None, // isbn
-    )
-}
 
 // ==================== 索引测试 ====================
 
@@ -66,7 +46,6 @@ async fn test_index_single_chapter() {
     ensure_storage_initialized().await;
 
     let book_id = "test_index_single".to_string();
-
     // 创建章节内容
     let content = "这是一段测试内容。Rust 是一门系统编程语言。";
 
@@ -74,7 +53,7 @@ async fn test_index_single_chapter() {
     let result = api::search::index_chapter(
         book_id.clone(),
         "chapter_1".to_string(),
-        "0".to_string(),
+        0,
         "第一章".to_string(),
         content.to_string(),
     )
@@ -95,19 +74,19 @@ async fn test_index_multiple_chapters() {
     let chapters = vec![
         (
             "chapter_1",
-            "0",
+            0,
             "第一章",
             "这是第一章的内容。关于 Rust 编程语言的介绍。",
         ),
         (
             "chapter_2",
-            "1",
+            1,
             "第二章",
             "这是第二章的内容。Rust 的所有权和借用。",
         ),
         (
             "chapter_3",
-            "2",
+            2,
             "第三章",
             "这是第三章的内容。Rust 的生命周期。",
         ),
@@ -117,7 +96,7 @@ async fn test_index_multiple_chapters() {
         let result = api::search::index_chapter(
             book_id.clone(),
             chapter_id.to_string(),
-            chapter_index.to_string(),
+            chapter_index,
             chapter_title.to_string(),
             content.to_string(),
         )
@@ -134,13 +113,13 @@ async fn test_index_chapter_update() {
 
     let book_id = "test_index_update".to_string();
     let chapter_id = "chapter_1".to_string();
-    let chapter_index = "0".to_string();
+    let chapter_index = 0;
 
     // 第一次索引
     api::search::index_chapter(
         book_id.clone(),
         chapter_id.clone(),
-        chapter_index.clone(),
+        chapter_index,
         "第一章".to_string(),
         "这是旧内容。".to_string(),
     )
@@ -151,7 +130,7 @@ async fn test_index_chapter_update() {
     let result = api::search::index_chapter(
         book_id.clone(),
         chapter_id.clone(),
-        chapter_index.clone(),
+        chapter_index,
         "第一章".to_string(),
         "这是新内容。Rust 很强大。".to_string(),
     )
@@ -174,7 +153,7 @@ async fn test_search_in_book_basic() {
     api::search::index_chapter(
         book_id.clone(),
         "chapter_1".to_string(),
-        "0".to_string(),
+        0,
         "Rust 编程".to_string(),
         "Rust 是一门系统编程语言，专注于安全性和性能。Rust 支持函数式编程和面向对象编程。"
             .to_string(),
@@ -208,7 +187,7 @@ async fn test_search_chinese_text() {
     api::search::index_chapter(
         book_id.clone(),
         "chapter_1".to_string(),
-        "0".to_string(),
+        0,
         "中文测试".to_string(),
         "这本书介绍了 Rust 编程语言的基础知识。Rust 是一门现代编程语言，强调安全性和性能。"
             .to_string(),
@@ -236,7 +215,7 @@ async fn test_search_no_results() {
     api::search::index_chapter(
         book_id.clone(),
         "chapter_1".to_string(),
-        "0".to_string(),
+        0,
         "测试章节".to_string(),
         "这是一个测试章节，包含一些内容。".to_string(),
     )
@@ -264,7 +243,7 @@ async fn test_search_limit_results() {
         api::search::index_chapter(
             book_id.clone(),
             format!("chapter_{}", i),
-            i.to_string(),
+            i,
             format!("第{}章", i),
             format!("这是第{}章的内容。Rust 编程教程第{}部分。", i, i),
         )
@@ -293,7 +272,7 @@ async fn test_search_all_books() {
         api::search::index_chapter(
             book_id.clone(),
             "chapter_1".to_string(),
-            "0".to_string(),
+            0,
             "简介".to_string(),
             format!("这是第{}本书的内容。Rust 编程指南。", i),
         )
@@ -328,7 +307,7 @@ async fn test_delete_book_index() {
     api::search::index_chapter(
         book_id.clone(),
         "chapter_1".to_string(),
-        "0".to_string(),
+        0,
         "测试章节".to_string(),
         "这是待删除的书籍内容。Rust 很强大。".to_string(),
     )
@@ -362,7 +341,7 @@ async fn test_clear_all_index() {
         api::search::index_chapter(
             book_id.clone(),
             "chapter_1".to_string(),
-            "0".to_string(),
+            0,
             "测试".to_string(),
             format!("这是第{}本书的内容。", i),
         )
@@ -394,7 +373,7 @@ async fn test_search_relevance() {
     api::search::index_chapter(
         book_id.clone(),
         "chapter_1".to_string(),
-        "0".to_string(),
+        0,
         "高度相关".to_string(),
         "Rust Rust Rust Rust Rust".to_string(),
     )
@@ -404,7 +383,7 @@ async fn test_search_relevance() {
     api::search::index_chapter(
         book_id.clone(),
         "chapter_2".to_string(),
-        "1".to_string(),
+        1,
         "中等相关".to_string(),
         "Rust 是一门语言。".to_string(),
     )
@@ -414,7 +393,7 @@ async fn test_search_relevance() {
     api::search::index_chapter(
         book_id.clone(),
         "chapter_3".to_string(),
-        "2".to_string(),
+        2,
         "低相关".to_string(),
         "提到了一次 Rust。".to_string(),
     )
@@ -443,7 +422,7 @@ async fn test_search_special_characters() {
     api::search::index_chapter(
         book_id.clone(),
         "chapter_1".to_string(),
-        "0".to_string(),
+        0,
         "特殊字符".to_string(),
         "内容包含: C++ 和 Rust。还有 Python/JavaScript。".to_string(),
     )
@@ -474,7 +453,7 @@ async fn test_concurrent_indexing() {
             api::search::index_chapter(
                 book_id.clone(),
                 format!("chapter_{}", i),
-                i.to_string(),
+                i,
                 format!("第{}章", i),
                 format!("并发测试章节{}的内容。", i),
             )
@@ -502,7 +481,7 @@ async fn test_concurrent_search() {
     api::search::index_chapter(
         book_id.clone(),
         "chapter_1".to_string(),
-        "0".to_string(),
+        0,
         "测试".to_string(),
         "并发搜索测试内容。Rust 编程语言。".to_string(),
     )
@@ -527,4 +506,88 @@ async fn test_concurrent_search() {
     }
 
     println!("✓ 并发搜索测试通过");
+}
+
+#[tokio::test]
+async fn test_get_index_stats() {
+    ensure_storage_initialized().await;
+
+    // 记录当前统计基线（其他测试可能已建索引）
+    let before = api::search::get_index_stats()
+        .await
+        .expect("获取索引统计失败");
+
+    // 索引一本书的一个章节
+    api::search::index_chapter(
+        "test_stats_book_a".to_string(),
+        "ch_1".to_string(),
+        0,
+        "第一章".to_string(),
+        "这是第一章的内容。Rust 是一门系统编程语言。".to_string(),
+    )
+    .await
+    .expect("索引失败");
+
+    let mid = api::search::get_index_stats()
+        .await
+        .expect("获取索引统计失败");
+    assert!(mid.total_chunks > before.total_chunks, "索引后数据块应增加");
+    assert_eq!(
+        mid.indexed_books,
+        before.indexed_books + 1,
+        "应增加 1 本书",
+    );
+    assert_eq!(
+        mid.indexed_chapters,
+        before.indexed_chapters + 1,
+        "应增加 1 个章节",
+    );
+
+    // 索引同一本书的不同章节
+    api::search::index_chapter(
+        "test_stats_book_a".to_string(),
+        "ch_2".to_string(),
+        1,
+        "第二章".to_string(),
+        "这是第二章的内容。Rust 的所有权和借用机制。".to_string(),
+    )
+    .await
+    .expect("索引失败");
+
+    let mid2 = api::search::get_index_stats()
+        .await
+        .expect("获取索引统计失败");
+    assert_eq!(mid2.indexed_books, mid.indexed_books, "书籍数应不变");
+    assert_eq!(
+        mid2.indexed_chapters,
+        mid.indexed_chapters + 1,
+        "章节数应增加 1",
+    );
+
+    // 索引另一本书
+    api::search::index_chapter(
+        "test_stats_book_b".to_string(),
+        "ch_1".to_string(),
+        0,
+        "第一章".to_string(),
+        "另一本书的第一章。".to_string(),
+    )
+    .await
+    .expect("索引失败");
+
+    let after = api::search::get_index_stats()
+        .await
+        .expect("获取索引统计失败");
+    assert_eq!(
+        after.indexed_books,
+        mid2.indexed_books + 1,
+        "书籍数应增加 1",
+    );
+    assert_eq!(
+        after.indexed_chapters,
+        mid2.indexed_chapters + 1,
+        "章节数应增加 1",
+    );
+
+    println!("✓ 索引统计测试通过");
 }

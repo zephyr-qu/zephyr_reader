@@ -3,6 +3,7 @@
 /// 内部基于 [Logger] 实现，Release 模式下仅输出错误级别，
 /// Debug 模式下使用 [PrettyPrinter] 格式化输出。
 /// 项目中应统一使用此类，而非直接调用 `Logger`、`print` 或 `stderr`。
+library;
 
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:logger/logger.dart';

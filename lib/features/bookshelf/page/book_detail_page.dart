@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/features/bookshelf/application/book_detail_view_model.dart';
@@ -38,9 +38,7 @@ class BookDetailPage extends HookWidget {
     final int sessionCount = useSignalValue(vm.sessionCount);
     final int vocabCount = useSignalValue(vm.vocabCount);
     final showAll = useSignal<bool>(false);
-    final toggleShowAllChapters = useComputed(
-      () => showAll.value = !showAll.value,
-    );
+    void toggleShowAllChapters() => showAll.value = !showAll.value;
 
     // Widget body;
 
@@ -152,7 +150,28 @@ class BookDetailPage extends HookWidget {
               );
             }
           },
-          error: () {},
+          error: (e) => Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  PhosphorIconsRegular.warningCircle,
+                  size: 48,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  l10n.loadFailed,
+                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => vm.loadData(),
+                  child: Text(l10n.retry),
+                ),
+              ],
+            ),
+          ),
           loading: (() => const Center(child: CircularProgressIndicator())),
         ),
       ),

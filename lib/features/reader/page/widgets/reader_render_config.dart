@@ -16,6 +16,7 @@ class ReaderRenderConfig {
   final String searchQuery;
   final bool searchMatchHighlight;
   final bool showVocabularyMark;
+  final bool baselineAlign;
   final Set<String> vocabularyWords;
 
   const ReaderRenderConfig({
@@ -31,6 +32,7 @@ class ReaderRenderConfig {
     required this.searchMatchHighlight,
     required this.showVocabularyMark,
     required this.vocabularyWords,
+    this.baselineAlign = true,
   });
 
   Set<String> get effectiveVocabWords =>
@@ -68,7 +70,6 @@ class ReaderRenderConfig {
     );
   }
 
-  /// 构造阅读器正文字体的 StrutStyle。
   StrutStyle buildStrutStyle({
     String? fontFamily,
     bool useLatin = false,
@@ -79,7 +80,7 @@ class ReaderRenderConfig {
       fontFamilyFallback: fallbackStack,
       fontSize: fontSize * fontSizeMultiplier * 0.95,
       height: lineHeight,
-      forceStrutHeight: true,
+      forceStrutHeight: baselineAlign,
     );
   }
 

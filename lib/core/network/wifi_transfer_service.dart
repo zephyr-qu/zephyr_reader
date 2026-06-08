@@ -242,6 +242,12 @@ class WifiTransferService {
         'size': fileBytes.length,
         'message': '文件已接收，正在导入…',
       });
+
+      // 清理临时文件
+      try {
+        final file = File(savePath);
+        if (await file.exists()) await file.delete();
+      } catch (_) {} // 清理失败不影响上传流程
     } catch (e) {
       _log('上传失败: $e', isError: true);
       try {

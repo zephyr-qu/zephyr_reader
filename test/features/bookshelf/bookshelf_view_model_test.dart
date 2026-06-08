@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
+import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 void main() {
@@ -13,13 +14,14 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       prefs = await SharedPreferences.getInstance();
-      vm = BookshelfViewModel(prefs);
+      final catVM = CategoryViewModel();
+      vm = BookshelfViewModel(prefs, catVM);
     });
 
     test('initial state is correct', () {
       expect(vm.isSearching.value, isFalse);
       expect(vm.searchKeyword.value, isEmpty);
-      expect(vm.selectedCategory.value, isNull);
+      expect(vm.categoryVM.selectedCategory.value, isNull);
       expect(vm.selectedStatus.value, isNull);
     });
 
@@ -46,7 +48,7 @@ void main() {
         isSystem: false,
       );
       vm.selectCategory(category);
-      expect(vm.selectedCategory.value, equals(category));
+      expect(vm.categoryVM.selectedCategory.value, equals(category));
       expect(vm.isSearching.value, isFalse);
     });
 

@@ -89,7 +89,7 @@ Future<bool> showDeleteBookDialog(BuildContext context, Book book) async {
         coversDir: AppConfig.instance.coverDir,
       );
     } catch (e) {
-      Logging.error('删除书籍失败', exception: e);
+      Logging.error('Failed to delete book', exception: e);
       if (context.mounted) {
         showErrorSnack(context, l10n.deleteFailed(e.toString()));
       }
@@ -207,7 +207,7 @@ Future<Map<String, String>?> showEditMetadataDialog(
       await book_api.upsertBook(book: updated);
       return result;
     } catch (e) {
-      Logging.error('保存书籍信息失败', exception: e);
+      Logging.error('Failed to save book metadata', exception: e);
       return null;
     }
   }

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::domain::AppError;
 use sqlx::SqlitePool;
 
 use super::super::models::*;
@@ -8,7 +8,7 @@ pub struct DictionaryRepository;
 
 impl DictionaryRepository {
     /// 保存或更新词典配置
-    pub async fn save(pool: &SqlitePool, dict: &Dictionary) -> Result<Dictionary> {
+    pub async fn save(pool: &SqlitePool, dict: &Dictionary) -> Result<Dictionary, AppError> {
         sqlx::query(
             "INSERT INTO dictionaries (id, name, file_path, dict_type, lang_from, lang_to, is_enabled, word_count, added_at) \
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) \
@@ -29,14 +29,14 @@ impl DictionaryRepository {
         .bind(&dict.lang_to)
         .bind(dict.is_enabled)
         .bind(dict.word_count)
-        .bind(dict.added_at.timestamp())
+        .bind(dict.added_at)
         .execute(pool)
         .await?;
         Ok(dict.clone())
     }
 
     /// 获取所有词典（按添加时间倒序）
-    pub async fn find_all(pool: &SqlitePool) -> Result<Vec<Dictionary>> {
+    pub async fn find_all(pool: &SqlitePool) -> Result<Vec<Dictionary>, AppError> {
         Ok(
             sqlx::query_as::<_, Dictionary>("SELECT * FROM dictionaries ORDER BY added_at DESC")
                 .fetch_all(pool)
@@ -45,7 +45,7 @@ impl DictionaryRepository {
     }
 
     /// 按 ID 查找词典
-    pub async fn find_by_id(pool: &SqlitePool, id: &str) -> Result<Option<Dictionary>> {
+    pub async fn find_by_id(pool: &SqlitePool, id: &str) -> Result<Option<Dictionary>, AppError> {
         Ok(
             sqlx::query_as::<_, Dictionary>("SELECT * FROM dictionaries WHERE id = ?")
                 .bind(id)
@@ -58,7 +58,7 @@ impl DictionaryRepository {
     ///
     /// # 返回值
     /// 返回是否成功删除了记录
-    pub async fn delete(pool: &SqlitePool, id: &str) -> Result<bool> {
+    pub async fn delete(pool: &SqlitePool, id: &str) -> Result<bool, AppError> {
         let rows = sqlx::query("DELETE FROM dictionaries WHERE id = ?")
             .bind(id)
             .execute(pool)

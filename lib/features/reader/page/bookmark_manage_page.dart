@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
@@ -13,7 +13,6 @@ import '../../../../di/service_locator.dart';
 
 /// 书签排序类型。
 enum BookmarkSortType { createdAt, chapterIndex, position }
-
 
 class BookmarkManagePage extends HookWidget {
   final String bookId;
@@ -28,16 +27,9 @@ class BookmarkManagePage extends HookWidget {
     final selectedBookmarks = useSignal<Set<String>>({});
     final sortBy = useSignal<BookmarkSortType>(BookmarkSortType.createdAt);
     final ascending = useSignal(false);
-    final bookmarkStats = useSignal<int?>(null);
 
     useEffect(() {
       vm.loadBookmarks();
-      () async {
-        final count = (await bookmark_api.listBookmarksByBook(
-          bookId: bookId,
-        )).length;
-        bookmarkStats.value = count;
-      }();
       return null;
     }, []);
 
@@ -56,7 +48,7 @@ class BookmarkManagePage extends HookWidget {
                   ),
                 ),
                 style: TextStyle(color: theme.colorScheme.onSurface),
-                onChanged: (_) => vm.loadBookmarks(),
+                onChanged: (_) {},
               )
             : const Text('书签管理'),
         actions: [
@@ -211,7 +203,7 @@ class BookmarkManagePage extends HookWidget {
 
           return Column(
             children: [
-              if (bookmarkStats.value != null)
+              if (vm.bookmarks.value.value != null)
                 Container(
                   margin: EdgeInsets.fromLTRB(
                     20,
@@ -248,7 +240,7 @@ class BookmarkManagePage extends HookWidget {
                       ),
                       const Spacer(),
                       Text(
-                        '本书总计 ${bookmarkStats.value} 个',
+                        '本书总计 ${vm.bookmarks.value.value?.length ?? 0} 个',
                         style: TextStyle(
                           fontSize: 12,
                           color: theme.colorScheme.onSurfaceVariant,
@@ -349,12 +341,10 @@ class BookmarkManagePage extends HookWidget {
       ),
     );
     if (confirmed == true) {
-      var successCount = 0;
-      for (final id in bookmarkIds) {
-        if (await vm.deleteBookmark(id)) successCount++;
-      }
+      await bookmark_api.deleteBookmarks(bookmarkIds: bookmarkIds.toList());
+      await vm.loadBookmarks();
       if (context.mounted) {
-        showInfoSnack(context, '已删除 $successCount/${bookmarkIds.length} 个书签');
+        showInfoSnack(context, '已删除 ${bookmarkIds.length} 个书签');
       }
     }
   }
@@ -381,13 +371,10 @@ class BookmarkManagePage extends HookWidget {
       ),
     );
     if (confirmed == true) {
-      final bookmarks = vm.bookmarks.value.value ?? [];
-      var successCount = 0;
-      for (final b in bookmarks) {
-        if (await vm.deleteBookmark(b.id)) successCount++;
-      }
+      await bookmark_api.clearBookmarksByBook(bookId: bookId);
+      await vm.loadBookmarks();
       if (context.mounted) {
-        showInfoSnack(context, '已清空 $successCount 个书签');
+        showInfoSnack(context, '已清空所有书签');
       }
     }
   }

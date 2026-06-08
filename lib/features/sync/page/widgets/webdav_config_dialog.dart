@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/features/sync/application/services/sync_models.dart';
 import 'package:zephyr_reader/features/sync/application/services/webdav_config_service.dart';
 import 'package:zephyr_reader/features/sync/application/storage_sync_view_model.dart';

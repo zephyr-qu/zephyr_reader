@@ -27,6 +27,33 @@ pub struct PageContent {
     pub end_offset: i32,
 }
 
+// ==================== 页面描述符 ====================
+
+/// 页面描述符（轻量级，不含页面文本内容）
+/// 用于分页排版时仅返回页面偏移信息，按需获取页面内容。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
+#[frb(non_opaque)]
+pub struct PageDescriptor {
+    /// 页面索引（从 0 开始）
+    pub page_index: i32,
+    /// 此页在章节原文中的起始字节偏移
+    pub start_offset: i32,
+    /// 此页在章节原文中的结束字节偏移
+    pub end_offset: i32,
+    /// 是否为最后一页
+    pub is_last_page: bool,
+}
+
+/// 分页结果（包含页面描述符列表和配置哈希）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[frb(non_opaque)]
+pub struct PaginateResult {
+    /// 页面描述符列表
+    pub descriptors: Vec<PageDescriptor>,
+    /// 排版配置哈希，用于后续按需获取页面内容
+    pub config_hash: u64,
+}
+
 // ==================== 页面偏移量 ====================
 
 /// 页面偏移量
@@ -63,4 +90,16 @@ pub struct SearchResult {
     pub score: f32,
     /// 匹配所在的字符偏移（精确位置）
     pub char_offset: i32,
+}
+
+/// 搜索索引统计信息
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[frb]
+pub struct IndexStats {
+    /// 索引块总数（按 SEARCH_CHUNK_SIZE 分块后的文档数）
+    pub total_chunks: i64,
+    /// 已建索引的书籍数
+    pub indexed_books: i64,
+    /// 已建索引的章节数
+    pub indexed_chapters: i64,
 }

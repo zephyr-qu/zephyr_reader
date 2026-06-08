@@ -70,12 +70,10 @@ Chapter createTestChapter({
     bookId: bookId,
     title: title,
     chapterIndex: chapterIndex,
-    wordCount: 5000,
     cachedAt: DateTime.now(),
     level: level,
     startIndex: 0,
     endIndex: 5000,
-    contentLength: 5000,
   );
 }
 

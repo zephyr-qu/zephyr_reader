@@ -236,19 +236,19 @@ class ReaderConfig {
   ReaderConfig(this.prefs);
 
   /// 重置所有设置为默认值
-  Future<void> resetToDefault() async {
-    theme.value = ReaderTheme.light;
-    fontSize.value = ReaderFontSize.medium.size;
-    lineHeight.value = 1.6;
-    paragraphSpacing.value = 16.0;
-    padding.value = 16.0;
-    readerBgColorIndex.value = 0;
-    autoScroll.value = false;
-    autoScrollSpeed.value = 30;
-    letterSpacing.value = 0.0;
-    punctuationSqueeze.value = true;
-    baselineAlign.value = true;
-    tapLayout.value = TapLayout.rightHanded;
+  void resetToDefault() {
+    theme.reset();
+    fontSize.reset();
+    lineHeight.reset();
+    paragraphSpacing.reset();
+    padding.reset();
+    readerBgColorIndex.reset();
+    autoScroll.reset();
+    autoScrollSpeed.reset();
+    letterSpacing.reset();
+    punctuationSqueeze.reset();
+    baselineAlign.reset();
+    tapLayout.reset();
   }
 
   /// 释放所有 signal 资源。

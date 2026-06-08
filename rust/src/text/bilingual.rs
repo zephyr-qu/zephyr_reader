@@ -361,48 +361,6 @@ pub fn align_bilingual_content(
     Ok(aligner.align(&chinese_content, &english_content))
 }
 
-/// 简单的句子对齐（1:1 对齐）
-pub fn simple_bilingual_align(
-    chinese_content: String,
-    english_content: String,
-) -> BilingualAlignment {
-    let zh_sentences = SentenceSegmenter::segment_chinese(&chinese_content);
-    let en_sentences = SentenceSegmenter::segment_english(&english_content);
-
-    let mut segments = Vec::new();
-    let max_count = zh_sentences.len().min(en_sentences.len());
-
-    // 使用 zip 对齐两个语言的句子
-    for ((zh_text, zh_pos), (en_text, en_pos)) in zh_sentences
-        .iter()
-        .take(max_count)
-        .zip(en_sentences.iter().take(max_count))
-    {
-        segments.push(AlignedSegment {
-            chinese: zh_text.to_string(),
-            english: en_text.to_string(),
-            similarity_score: 1.0, // 简单对齐，假设完全匹配
-            chinese_position: *zh_pos,
-            english_position: *en_pos,
-        });
-    }
-
-    let mut unmatched_zh = Vec::new();
-    let mut unmatched_en = Vec::new();
-
-    for (text, _pos) in zh_sentences.iter().skip(max_count) {
-        unmatched_zh.push(text.to_string());
-    }
-    for (text, _pos) in en_sentences.iter().skip(max_count) {
-        unmatched_en.push(text.to_string());
-    }
-
-    BilingualAlignment {
-        segments,
-        unmatched_chinese: unmatched_zh,
-        unmatched_english: unmatched_en,
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -516,13 +474,6 @@ mod tests {
         assert!(result.segments.is_empty());
     }
 
-    #[test]
-    fn test_simple_bilingual_align() {
-        let zh = "第一句。第二句。";
-        let en = "Sentence one. Sentence two.";
-        let result = simple_bilingual_align(zh.to_string(), en.to_string());
-        assert_eq!(result.segments.len(), 2);
-    }
 
     #[test]
     fn test_levenshtein_graphemes() {

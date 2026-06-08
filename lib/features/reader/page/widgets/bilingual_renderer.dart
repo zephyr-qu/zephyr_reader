@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
-import 'package:zephyr_reader/features/reader/domain/services/highlight_painter.dart';
+import 'package:zephyr_reader/features/reader/page/widgets/highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'reader_render_config.dart';
 
 /// 双语对照模式渲染器。
@@ -21,6 +22,7 @@ class BilingualModeRenderer extends StatelessWidget {
   final void Function(Note)? onHighlightTap;
   final void Function(String text, int start, int end)? onSelectionChanged;
   final void Function(Offset?)? onSelectionGlobalPosition;
+  final WritingDirection writingDirection;
 
   const BilingualModeRenderer({
     super.key,
@@ -34,6 +36,7 @@ class BilingualModeRenderer extends StatelessWidget {
     this.onRequestTranslation,
     this.onHighlightTap,
     this.onSelectionChanged,
+    this.writingDirection = WritingDirection.horizontal,
     this.onSelectionGlobalPosition,
   });
 
@@ -155,13 +158,16 @@ class BilingualModeRenderer extends StatelessWidget {
       acc += seg.english.length;
     }
 
-    return ListView.builder(
+    final listView = ListView.builder(
       controller: scrollController,
       physics: adaptiveScrollPhysics(context),
       padding: EdgeInsets.symmetric(
         horizontal: config.pageMargin,
         vertical: 20,
       ),
+      scrollDirection: writingDirection == WritingDirection.vertical
+          ? Axis.horizontal
+          : Axis.vertical,
       itemCount: alignment.segments.length,
       itemBuilder: (context, index) {
         final seg = alignment.segments[index];
@@ -206,7 +212,7 @@ class BilingualModeRenderer extends StatelessWidget {
           vocabularyWords: config.effectiveVocabWords,
         );
 
-        return RepaintBoundary(
+        final segmentWidget = RepaintBoundary(
           child: Padding(
             padding: const EdgeInsets.only(bottom: 20),
             child: Column(
@@ -237,7 +243,23 @@ class BilingualModeRenderer extends StatelessWidget {
             ),
           ),
         );
+
+        if (writingDirection == WritingDirection.vertical) {
+          return SizedBox(
+            width: config.fontSize * 3.0,
+            child: segmentWidget,
+          );
+        }
+        return segmentWidget;
       },
     );
+
+    if (writingDirection == WritingDirection.vertical) {
+      return Directionality(
+        textDirection: TextDirection.rtl,
+        child: listView,
+      );
+    }
+    return listView;
   }
 }
