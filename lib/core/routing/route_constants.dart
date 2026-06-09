@@ -57,6 +57,9 @@ abstract class RoutePaths {
 
   // 本地备份恢复
   static const String localBackup = '/settings/local-backup';
+
+  // 翻译 API 设置
+  static const String translationApi = '/settings/translation-api';
 }
 
 /// 路由名称常量定义
@@ -117,4 +120,6 @@ abstract class RouteNames {
 
   // 本地备份恢复
   static const String localBackup = 'localBackup';
+  // 翻译 API
+  static const String translationApi = 'translationApi';
 }

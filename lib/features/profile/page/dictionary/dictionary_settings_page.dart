@@ -390,6 +390,7 @@ class DictionarySettingsPage extends HookWidget {
     try {
       await dict_api.deleteDictionary(id: dict.id);
       await _loadState(dictionaries, ValueNotifier(false));
+      if (!context.mounted) return;
       if (currentMdx.value == dict.filePath) {
         await _resetToBuiltin(context, prefs, currentMdx, dictionaries);
       }

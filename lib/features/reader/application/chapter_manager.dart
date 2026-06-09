@@ -210,7 +210,10 @@ class ChapterManager {
         totalPages.value = pages.length;
         this.chapterIndex.value = chapterIndex;
         currentCharOffset.value = initialCharOffset.clamp(0, content.length);
-        pageIndex.value = resolvePageIndexFromPageInfo(pages, currentCharOffset.value);
+        pageIndex.value = resolvePageIndexFromPageInfo(
+          pages,
+          currentCharOffset.value,
+        );
         pendingJumpCharOffset.value = currentCharOffset.value;
         error.value = null;
 
@@ -223,7 +226,10 @@ class ChapterManager {
         totalPages.value = total;
         this.chapterIndex.value = chapterIndex;
         currentCharOffset.value = initialCharOffset.clamp(0, content.length);
-        pageIndex.value = resolvePageIndexForOffset(descriptors, currentCharOffset.value);
+        pageIndex.value = resolvePageIndexForOffset(
+          descriptors,
+          currentCharOffset.value,
+        );
         pendingJumpCharOffset.value = currentCharOffset.value;
         error.value = null;
 
@@ -421,7 +427,10 @@ class ChapterManager {
     return charOffset < pages[0].startOffset ? 0 : pages.length - 1;
   }
 
-  int resolvePageIndexForOffset(List<PageDescriptor> descriptors, int charOffset) {
+  int resolvePageIndexForOffset(
+    List<PageDescriptor> descriptors,
+    int charOffset,
+  ) {
     if (descriptors.isEmpty) return 0;
     int lo = 0, hi = descriptors.length - 1;
     while (lo <= hi) {

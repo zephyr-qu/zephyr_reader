@@ -34,10 +34,16 @@ import 'package:zephyr_reader/features/profile/application/tts_settings_view_mod
     as _i136;
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart'
     as _i335;
+import 'package:zephyr_reader/features/reader/application/translation_config.dart'
+    as _i888;
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart'
     as _i1054;
+import 'package:zephyr_reader/features/reader/data/translation/translation_module.dart'
+    as _i1038;
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart'
     as _i880;
+import 'package:zephyr_reader/features/reader/domain/translation_service.dart'
+    as _i625;
 import 'package:zephyr_reader/features/search/application/search_view_model.dart'
     as _i1;
 import 'package:zephyr_reader/features/sync/application/storage_sync_view_model.dart'
@@ -52,6 +58,7 @@ extension GetItInjectableX on _i174.GetIt {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
     final appModule = _$AppModule();
     final networkModule = _$NetworkModule();
+    final translationModule = _$TranslationModule();
     await gh.factoryAsync<_i460.SharedPreferences>(
       () => appModule.prefs,
       preResolve: true,
@@ -98,10 +105,21 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i849.ReaderConfig>(
       () => _i849.ReaderConfig(gh<_i460.SharedPreferences>()),
     );
+    gh.singleton<_i888.TranslationConfig>(
+      () => _i888.TranslationConfig(gh<_i460.SharedPreferences>()),
+    );
+    gh.lazySingleton<_i625.TranslationService>(
+      () => translationModule.translationService(
+        gh<_i888.TranslationConfig>(),
+        gh<_i361.Dio>(),
+      ),
+    );
     gh.lazySingleton<_i335.ReaderViewModel>(
       () => _i335.ReaderViewModel(
         gh<_i1054.ReaderRepository>(),
         gh<_i849.ReaderConfig>(),
+        gh<_i888.TranslationConfig>(),
+        gh<_i625.TranslationService>(),
       ),
     );
     return this;
@@ -111,3 +129,5 @@ extension GetItInjectableX on _i174.GetIt {
 class _$AppModule extends _i431.AppModule {}
 
 class _$NetworkModule extends _i510.NetworkModule {}
+
+class _$TranslationModule extends _i1038.TranslationModule {}

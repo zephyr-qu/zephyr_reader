@@ -24,7 +24,8 @@ void main() {
                 speakTexts.add(methodCall.arguments as String);
               } else if (methodCall.arguments is Map) {
                 speakTexts.add(
-                    (methodCall.arguments as Map)['text'] as String? ?? '');
+                  (methodCall.arguments as Map)['text'] as String? ?? '',
+                );
               } else {
                 speakTexts.add(methodCall.arguments.toString());
               }
@@ -199,7 +200,6 @@ void main() {
       expect(speakTexts, contains('Hello world.'));
       expect(speakTexts, isNot(contains('')));
     });
-
 
     test('play → pause → resume 完整循环（模拟 _toggleTts 调用模式）', () async {
       // Start (像 _toggleTts 一样调用 speak)

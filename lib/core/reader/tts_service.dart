@@ -71,6 +71,7 @@ class TtsService {
       _sentenceQueue.clear();
     }
   }
+
   /// 朗读当前索引位置的句子。
   Future<void> _speakCurrentSentence() async {
     if (_sentenceQueue.isEmpty ||
@@ -155,9 +156,7 @@ class TtsService {
     for (final s in sentences) {
       if (s.length > 500) {
         for (int i = 0; i < s.length; i += 500) {
-          result.add(
-            s.substring(i, (i + 500).clamp(0, s.length)),
-          );
+          result.add(s.substring(i, (i + 500).clamp(0, s.length)));
         }
       } else {
         result.add(s);
@@ -174,6 +173,7 @@ class TtsService {
       isPaused.value = true;
     }
   }
+
   /// 恢复朗读。从中断的句子重新朗读（非跳过）。
   Future<void> resume() async {
     await _ready.future;

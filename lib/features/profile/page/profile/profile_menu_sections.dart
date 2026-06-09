@@ -60,6 +60,12 @@ class ProfileMenuSections extends StatelessWidget {
           () => context.push(RoutePaths.dictionarySettings),
         ),
         MenuItemData(
+          PhosphorIconsRegular.translate,
+          l10n.translationApi,
+          MenuItemSemantic.info,
+          () => context.push(RoutePaths.translationApi),
+        ),
+        MenuItemData(
           PhosphorIconsRegular.palette,
           l10n.themeBrightness,
           MenuItemSemantic.primary,

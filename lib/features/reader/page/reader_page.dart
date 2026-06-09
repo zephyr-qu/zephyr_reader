@@ -190,12 +190,18 @@ class ReaderPage extends HookWidget {
             error: b.error,
             bilingualAlignment: b.bilingualAlign,
             isBilingualLoading: b.isBilingualLoading,
-            bilingualError: b.bilingualError,
             onRequestTranslation: () => showDialog<void>(
               context: context,
-              builder: (_) =>
-                  ReaderTranslationDialog(onChanged: vm.setTranslationContent),
+              builder: (_) => ReaderTranslationDialog(
+                onChanged: vm.setTranslationContent,
+                translationConfigured: vm.isTranslationConfigured,
+                onTranslateWithApi: () {
+                  Navigator.of(context).pop();
+                  unawaited(vm.translateChapter());
+                },
+              ),
             ),
+            onRetryTranslation: () => unawaited(vm.translateChapter()),
             onPageChanged: vm.loadPage,
             onRetry: () => vm.loadChapter(
               b.chapterIndex,
@@ -244,6 +250,7 @@ class ReaderPage extends HookWidget {
             jumpToCharOffset: b.pendingJumpCharOffset,
             onPositionChanged: vm.updateCurrentCharOffset,
             onJumpHandled: vm.consumePendingJumpOffset,
+            onReachEnd: () => unawaited(vm.nextChapter()),
           ),
         ),
         BrightnessMask(
@@ -481,6 +488,7 @@ class ReaderPage extends HookWidget {
               child: Builder(
                 builder: (context) {
                   return Stack(
+                    clipBehavior: Clip.hardEdge,
                     children: [
                       ...buildContentArea(),
                       if (b.showSearch) buildSearchBar(),
@@ -541,6 +549,7 @@ class ReaderPage extends HookWidget {
     final below = pos.dy + gap + 20;
     return below.clamp(0, screenHeight - h);
   }
+
   void _toggleTts(ReaderViewModel vm, TtsService ttsService) {
     final c = vm.chapterContent.value.value;
     if (c == null || c.isEmpty) return;

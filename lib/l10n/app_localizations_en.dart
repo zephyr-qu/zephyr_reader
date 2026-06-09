@@ -1873,4 +1873,62 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirmClear => 'Confirm Clear';
+
+  @override
+  String get translationApi => 'Translation API';
+
+  @override
+  String get translationProvider => 'Provider';
+
+  @override
+  String get translationApiUrl => 'API URL';
+
+  @override
+  String get translationApiKey => 'API Key';
+
+  @override
+  String get translationModel => 'Model';
+
+  @override
+  String get translationSourceLang => 'Source Language';
+
+  @override
+  String get translationTargetLang => 'Target Language';
+
+  @override
+  String get translationAutoDetect => 'Auto Detect';
+
+  @override
+  String get translationTimeout => 'Timeout (s)';
+
+  @override
+  String get translationTest => 'Test Connection';
+  @override
+  String get translationTranslateWithApi => 'Translate with API';
+
+
+  @override
+  String get translationTestSuccess => 'Connection successful';
+
+  @override
+  String translationTestFailed(Object error) {
+    return 'Connection failed: $error';
+  }
+
+  @override
+  String get translationApiNotConfigured => 'Translation API not configured';
+
+  @override
+  String get translating => 'Translating…';
+
+  @override
+  String translationFailed(Object error) {
+    return 'Translation failed: $error';
+  }
+
+  @override
+  String get translationRetry => 'Retry';
+
+  @override
+  String get translationManualPaste => 'Paste Manually';
 }
