@@ -5,10 +5,7 @@ class BatteryState {
   final int batteryLevel;
   final bool isCharging;
 
-  const BatteryState({
-    required this.batteryLevel,
-    required this.isCharging,
-  });
+  const BatteryState({required this.batteryLevel, required this.isCharging});
 }
 
 /// 电池状态服务
@@ -39,7 +36,8 @@ class BatteryStateService {
     final state = results[1] as battery_plus.BatteryState;
     return BatteryState(
       batteryLevel: level,
-      isCharging: state == battery_plus.BatteryState.charging ||
+      isCharging:
+          state == battery_plus.BatteryState.charging ||
           state == battery_plus.BatteryState.full,
     );
   }
@@ -47,11 +45,14 @@ class BatteryStateService {
   /// 监听电池充电状态变化（不包含电量值变化）
   void listen(void Function(BatteryState state) callback) {
     _battery.onBatteryStateChanged.listen((state) {
-      callback(BatteryState(
-        batteryLevel: 0, // 流事件不含当前电量，需额外查询
-        isCharging: state == battery_plus.BatteryState.charging ||
-            state == battery_plus.BatteryState.full,
-      ));
+      callback(
+        BatteryState(
+          batteryLevel: 0, // 流事件不含当前电量，需额外查询
+          isCharging:
+              state == battery_plus.BatteryState.charging ||
+              state == battery_plus.BatteryState.full,
+        ),
+      );
     });
   }
 }

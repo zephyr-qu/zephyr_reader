@@ -82,7 +82,6 @@ class ReaderRepository {
   /// 公开 getter：页面描述符列表
   List<PageDescriptor>? get descriptors => _descriptors;
 
-
   /// 带 KV 缓存的分页排版
   ///
   /// 返回 (pages, cacheHit, isFallback)。
@@ -226,7 +225,11 @@ class ReaderRepository {
   /// 同步获取单页内容并写入缓存。
   void _fetchPageSync(int pageIndex) {
     if (_pageCache.containsKey(pageIndex)) return;
-    if (_filePath == null || _chapterIndex == null || _configHash == null || _descriptors == null) return;
+    if (_filePath == null ||
+        _chapterIndex == null ||
+        _configHash == null ||
+        _descriptors == null)
+      return;
     if (pageIndex < 0 || pageIndex >= _descriptors!.length) return;
 
     try {

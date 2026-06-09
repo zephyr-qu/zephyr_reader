@@ -121,7 +121,7 @@ class FileStorage {
   Future<bool> clearTemp() async {
     try {
       final dir = await tempDirectory;
-      final files = dir.listSync();
+      final files = await dir.list().toList();
       for (var file in files) {
         await file.delete(recursive: true);
       }
@@ -151,7 +151,7 @@ class FileStorage {
   /// 获取目录 使用空间（KB）
   Future<int> _getDirSize(Directory dir) async {
     int total = 0;
-    final files = dir.listSync(recursive: true, followLinks: false);
+    final files = await dir.list(recursive: true, followLinks: false).toList();
     for (var file in files) {
       if (file is File) {
         total += await file.length();

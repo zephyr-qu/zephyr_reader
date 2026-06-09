@@ -15,7 +15,6 @@ class ReaderBottomToolbar extends StatelessWidget {
   final bool isTtsPlaying;
   final bool isTtsPaused;
 
-
   final VoidCallback? onShowCatalog;
   final VoidCallback? onShowNotes;
   final VoidCallback? onShowSettings;
@@ -81,8 +80,8 @@ class ReaderBottomToolbar extends StatelessWidget {
                     icon: isTtsPaused
                         ? PhosphorIconsLight.pause
                         : isTtsPlaying
-                            ? PhosphorIconsLight.speakerHigh
-                            : PhosphorIconsLight.speakerNone,
+                        ? PhosphorIconsLight.speakerHigh
+                        : PhosphorIconsLight.speakerNone,
                     onTap: onTtsToggle,
                     color: isTtsPlaying || isTtsPaused
                         ? readerTheme.ttsActiveColor

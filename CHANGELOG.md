@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### 新增
+- **翻译 API**：双语模式支持自动翻译（#feat/translation-service）
+  - 新增 `TranslationService` 抽象接口，支持 OpenAI-compatible 和自定义 API 适配器
+  - 新增 `TranslationConfig` 持久化配置（Provider、API URL、Key、模型、语言、超时）
+  - 切换双语模式时自动调用配置的翻译 API，无需手动粘贴译文
+  - 翻译结果按章节内容哈希缓存，避免重复请求
+  - 支持取消进行中的翻译（切换章节/模式时自动取消）
+  - 配置入口：Profile → 阅读体验 → 翻译 API
+  - 配套单元测试 23 项，覆盖配置、缓存、OpenAI/Custom 适配器
+
 ### 重构
 - **Vocab 功能从 learning_notes 迁移至 vocabulary 模块**
   - `lib/features/learning_notes/` 缩减为纯笔记（notes-only）页面

@@ -129,8 +129,7 @@ class ReaderSettingsPanel extends HookWidget {
                       max: 120,
                       divisions: 22,
                       display: '${autoScrollSpeed}s',
-                      onChanged: (v) =>
-                          onAutoScrollSpeedChanged(v),
+                      onChanged: (v) => onAutoScrollSpeedChanged(v),
                       readerTheme: readerTheme,
                     ),
                   const Divider(height: 20, indent: 16, endIndent: 16),
@@ -750,7 +749,9 @@ class ReaderSettingsPanel extends HookWidget {
           Icon(
             PhosphorIconsRegular.playCircle,
             size: 14,
-            color: autoScroll ? readerTheme.accentColor : readerTheme.mutedColor,
+            color: autoScroll
+                ? readerTheme.accentColor
+                : readerTheme.mutedColor,
           ),
           const SizedBox(width: 6),
           Text(

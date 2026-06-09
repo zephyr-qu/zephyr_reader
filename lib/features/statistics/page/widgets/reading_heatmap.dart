@@ -31,9 +31,10 @@ class ReadingHeatmap extends StatelessWidget {
         const gap = 4.0;
         const hPadding = 32.0; // EdgeInsets.all(16) × 2
         const maxCell = 32.0;
-        final cellSize = ((constraints.maxWidth - hPadding - (cols - 1) * gap) / cols)
-            .clamp(0, maxCell)
-            .toDouble();
+        final cellSize =
+            ((constraints.maxWidth - hPadding - (cols - 1) * gap) / cols)
+                .clamp(0, maxCell)
+                .toDouble();
 
         return ClipRRect(
           borderRadius: BorderRadius.circular(14),
@@ -113,9 +114,7 @@ class ReadingHeatmap extends StatelessWidget {
         '$dayNumber',
         style: TextStyle(
           fontSize: 10,
-          color: isFuture
-              ? cs.onSurface.withValues(alpha: 0.25)
-              : cs.onSurface,
+          color: isFuture ? cs.onSurface.withValues(alpha: 0.25) : cs.onSurface,
         ),
       ),
     );

@@ -19,6 +19,7 @@ import 'package:zephyr_reader/features/profile/page/dictionary/dictionary_settin
 import 'package:zephyr_reader/features/profile/page/theme/theme_brightness_page.dart';
 import 'package:zephyr_reader/features/profile/page/other/other_settings_page.dart';
 import 'package:zephyr_reader/features/backup/page/backup_page.dart';
+import 'package:zephyr_reader/features/reader/page/widgets/translation_settings_page.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page.dart';
 import 'package:zephyr_reader/features/reader/page/bookmark_manage_page.dart';
 import 'package:zephyr_reader/features/search/page/search_page.dart';
@@ -142,6 +143,11 @@ final router = GoRouter(
           name: RouteNames.localBackup,
           path: RoutePaths.localBackup,
           builder: (_, _) => const BackupPage(),
+        ),
+        GoRoute(
+          name: RouteNames.translationApi,
+          path: RoutePaths.translationApi,
+          builder: (_, _) => const TranslationSettingsPage(),
         ),
       ],
     ),

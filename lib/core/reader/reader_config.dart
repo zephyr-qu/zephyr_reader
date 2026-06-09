@@ -61,13 +61,6 @@ enum ReaderFontSize {
   final double size;
 
   const ReaderFontSize(this.size);
-
-  static ReaderFontSize fromSize(double size) {
-    return ReaderFontSize.values.firstWhere(
-      (fontSize) => fontSize.size == size,
-      orElse: () => ReaderFontSize.medium,
-    );
-  }
 }
 
 extension ReaderThemeX on ReaderTheme {
@@ -75,15 +68,6 @@ extension ReaderThemeX on ReaderTheme {
     ReaderTheme.light => l10n.readerThemeLight,
     ReaderTheme.dark => l10n.readerThemeDark,
     ReaderTheme.sepia => l10n.readerThemeSepia,
-  };
-}
-
-extension ReaderFontSizeX on ReaderFontSize {
-  String l10nLabel(AppLocalizations l10n) => switch (this) {
-    ReaderFontSize.small => l10n.readerFontSizeSmall,
-    ReaderFontSize.medium => l10n.readerFontSizeMedium,
-    ReaderFontSize.large => l10n.readerFontSizeLarge,
-    ReaderFontSize.xLarge => l10n.readerFontSizeXLarge,
   };
 }
 
@@ -229,9 +213,6 @@ class ReaderConfig {
 
   /// 页边距兼容别名（→ padding）
   double get pageMargin => padding.value;
-
-  /// 获取实际 [ReaderFontSize] 的尺寸（将存储的 double 四舍五入到最近的档位）
-  double get fontSizeValue => ReaderFontSize.fromSize(fontSize.value).size;
 
   ReaderConfig(this.prefs);
 

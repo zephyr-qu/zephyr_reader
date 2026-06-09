@@ -1846,4 +1846,62 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get confirmClear => '确认清除';
+
+  @override
+  String get translationApi => '翻译 API';
+
+  @override
+  String get translationProvider => '翻译服务';
+
+  @override
+  String get translationApiUrl => 'API 地址';
+
+  @override
+  String get translationApiKey => 'API 密钥';
+
+  @override
+  String get translationModel => '模型';
+
+  @override
+  String get translationSourceLang => '源语言';
+
+  @override
+  String get translationTargetLang => '目标语言';
+
+  @override
+  String get translationAutoDetect => '自动检测';
+
+  @override
+  String get translationTimeout => '超时（秒）';
+
+  @override
+  String get translationTest => '测试连接';
+  @override
+  String get translationTranslateWithApi => '使用API翻译';
+
+
+  @override
+  String get translationTestSuccess => '连接测试成功';
+
+  @override
+  String translationTestFailed(Object error) {
+    return '连接测试失败：$error';
+  }
+
+  @override
+  String get translationApiNotConfigured => '未配置翻译 API';
+
+  @override
+  String get translating => '正在翻译…';
+
+  @override
+  String translationFailed(Object error) {
+    return '翻译失败：$error';
+  }
+
+  @override
+  String get translationRetry => '重试';
+
+  @override
+  String get translationManualPaste => '手动粘贴';
 }

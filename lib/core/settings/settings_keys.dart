@@ -134,4 +134,27 @@ abstract final class SettingsKeys {
 
   /// Markdown 预览
   static const otherMarkdownPreview = 'feature.markdown_preview';
+
+  // ==================== 翻译 API ====================
+
+  /// 翻译服务提供商 ("openai" | "custom")
+  static const translationProvider = 'translation.provider';
+
+  /// API 端点地址
+  static const translationApiUrl = 'translation.api_url';
+
+  /// API 密钥
+  static const translationApiKey = 'translation.api_key';
+
+  /// 模型名（仅 OpenAI）
+  static const translationModel = 'translation.model';
+
+  /// 目标语言
+  static const translationTargetLang = 'translation.target_lang';
+
+  /// 源语言 ("auto" | "zh" | "en")
+  static const translationSourceLang = 'translation.source_lang';
+
+  /// 超时秒数
+  static const translationTimeout = 'translation.timeout';
 }

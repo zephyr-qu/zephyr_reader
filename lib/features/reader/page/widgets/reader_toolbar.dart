@@ -34,6 +34,9 @@ class ReaderToolbar extends HookWidget {
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: Container(
+          decoration: BoxDecoration(
+            color: readerTheme.surfaceColor.withValues(alpha: 0.7),
+          ),
           padding: const EdgeInsets.only(top: 4, bottom: 4),
           child: SafeArea(
             bottom: false,

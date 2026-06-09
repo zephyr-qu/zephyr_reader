@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-import 'package:zephyr_reader/core/reader/custom_font_service.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
-import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
-import 'package:zephyr_reader/features/reader/page/widgets/reader_page_bindings.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -41,6 +37,7 @@ class ReaderContent extends HookWidget {
   final ValueChanged<int>? onPageChanged;
   final VoidCallback? onRequestTranslation;
   final VoidCallback? onRetry;
+  final VoidCallback? onRetryTranslation;
   final int? autoScrollTick;
   final List<Note> highlights;
   final void Function(String text, int start, int end)? onSelectionChanged;
@@ -60,6 +57,8 @@ class ReaderContent extends HookWidget {
   final bool showSentenceSplit;
   final int? jumpToCharOffset;
   final ValueChanged<int>? onPositionChanged;
+  final VoidCallback? onReachEnd;
+
   final VoidCallback? onJumpHandled;
 
   const ReaderContent({
@@ -81,6 +80,7 @@ class ReaderContent extends HookWidget {
     this.bilingualError,
     this.onPageChanged,
     this.onRequestTranslation,
+    this.onRetryTranslation,
     this.onRetry,
     this.autoScrollTick,
     this.highlights = const [],
@@ -101,6 +101,7 @@ class ReaderContent extends HookWidget {
     this.jumpToCharOffset,
     this.onPositionChanged,
     this.onJumpHandled,
+    this.onReachEnd,
     this.baselineAlign = true,
   });
 
@@ -177,6 +178,13 @@ class ReaderContent extends HookWidget {
       return null;
     }, [bookId, chapterId, readingMode]);
 
+    // Guard against repeated reach-end triggers (auto-next-chapter)
+    final reachEndTriggered = useRef(false);
+    useEffect(() {
+      reachEndTriggered.value = false;
+      return null;
+    }, [chapterId]);
+
     useEffect(() {
       if (autoScrollTick == null) return null;
 
@@ -189,6 +197,11 @@ class ReaderContent extends HookWidget {
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
           );
+        } else if (onReachEnd != null &&
+            !isLoading &&
+            !reachEndTriggered.value) {
+          reachEndTriggered.value = true;
+          onReachEnd?.call();
         }
       } else if (readingMode == ReadingMode.pagination &&
           pageController.hasClients) {
@@ -222,11 +235,22 @@ class ReaderContent extends HookWidget {
           content.length,
         );
         onPositionChanged?.call(offset);
+
+        // Auto-next-chapter: detect near bottom of scroll
+        if (onReachEnd != null && !isLoading) {
+          final threshold = fontSize * lineHeight * 1.5;
+          if (scrollController.offset >= maxExtent - threshold) {
+            if (!reachEndTriggered.value) {
+              reachEndTriggered.value = true;
+              onReachEnd?.call();
+            }
+          }
+        }
       }
 
       scrollController.addListener(handleScroll);
       return () => scrollController.removeListener(handleScroll);
-    }, [scrollController, readingMode, content]);
+    }, [scrollController, readingMode, content, isLoading, onReachEnd]);
 
     useEffect(() {
       if (jumpToCharOffset == null) {
@@ -292,7 +316,10 @@ class ReaderContent extends HookWidget {
     final prevPageIndex = useRef(pageIndex);
 
     // pageTurn mode: bypass AnimatedSwitcher, use interactive PageCurlWidget
-    if (readingMode == ReadingMode.pageTurn && !isLoading && error == null && content.isNotEmpty) {
+    if (readingMode == ReadingMode.pageTurn &&
+        !isLoading &&
+        error == null &&
+        content.isNotEmpty) {
       final descriptors = repo.descriptors;
       Widget pageBuilder(int idx) {
         final startOffset = (descriptors != null && idx < descriptors.length)
@@ -463,6 +490,7 @@ class ReaderContent extends HookWidget {
           bilingualAlignment: bilingualAlignment,
           highlights: highlights,
           onRequestTranslation: onRequestTranslation,
+          onRetryTranslation: onRetryTranslation,
           onHighlightTap: onHighlightTap,
           onSelectionChanged: onSelectionChanged,
           onSelectionGlobalPosition: onSelectionGlobalPosition,
@@ -511,89 +539,5 @@ class ReaderContent extends HookWidget {
         final presets = ReaderBgColors.presets;
         return presets[bgIndex.clamp(0, presets.length - 1)];
     }
-  }
-}
-
-/// 阅读内容视图组件（ViewModel 绑定层）。
-///
-/// 与 [ReaderViewModel] 直接绑定，通过 bindings 自动响应信号变化。
-/// 处理文本选择、高亮交互、跳转偏移消费等阅读器高级交互逻辑。
-
-class ReaderContentView extends HookWidget {
-  final ReaderViewModel vm;
-  final VoidCallback? onRequestTranslation;
-  final ValueChanged<int>? onPositionChanged;
-  final VoidCallback? onJumpHandled;
-  final void Function(String text, int start, int end)? onSelectionChanged;
-  final ValueChanged<Offset?>? onSelectionGlobalPosition;
-  final void Function(Note)? onHighlightTap;
-  final Set<String> vocabularyWords;
-
-  const ReaderContentView({
-    super.key,
-    required this.vm,
-    this.onRequestTranslation,
-    this.onPositionChanged,
-    this.onJumpHandled,
-    this.onSelectionChanged,
-    this.onSelectionGlobalPosition,
-    this.onHighlightTap,
-    this.vocabularyWords = const {},
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final b = useReaderContentBindings(vm);
-    final fontFamily = useMemoized(
-      () => getIt<FontRepository>(),
-    ).currentFontFamily;
-    return ReaderContent(
-      repo: getIt<ReaderRepository>(),
-      bookId: b.currentBookId,
-      chapterId: b.chapterIndex,
-      pageIndex: b.pageIndex,
-      totalPages: b.totalPages,
-      fontSize: b.fontSize,
-      lineHeight: b.lineHeight,
-      themeMode: b.themeMode,
-      readingMode: b.currentReadingMode,
-      content: b.content,
-      isLoading: b.isLoading,
-      error: b.error,
-      bilingualAlignment: b.bilingualAlign,
-      isBilingualLoading: b.isBilingualLoading,
-      bilingualError: b.bilingualError,
-      onRequestTranslation: onRequestTranslation ?? () {},
-      onPageChanged: vm.loadPage,
-      onRetry: () => vm.loadChapter(
-        b.chapterIndex,
-        initialCharOffset: vm.currentCharOffset.value,
-        restartSession: false,
-      ),
-      autoScrollTick: b.autoScrollTick,
-      highlights: b.highlights,
-      onSelectionChanged: onSelectionChanged,
-      onSelectionGlobalPosition: onSelectionGlobalPosition,
-      onHighlightTap: (note) {
-        if (onHighlightTap != null) {
-          onHighlightTap!(note);
-        }
-      },
-      fontFamily: fontFamily,
-      searchQuery: b.searchQuery,
-      searchMatchHighlight: b.searchMatchHighlight,
-      letterSpacing: b.letterSpacing,
-      paragraphSpacing: b.paragraphSpacing,
-      pageMargin: b.pageMargin,
-      writingDirection: b.writingDirection,
-      baselineAlign: b.baselineAlign,
-      showVocabularyMark: true,
-      vocabularyWords: vocabularyWords,
-      showSentenceSplit: true,
-      bgIndex: 0,
-      jumpToCharOffset: b.pendingJumpCharOffset,
-      onPositionChanged: onPositionChanged ?? vm.updateCurrentCharOffset,
-      onJumpHandled: onJumpHandled ?? vm.consumePendingJumpOffset,
-    );
   }
 }

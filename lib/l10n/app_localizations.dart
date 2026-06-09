@@ -3577,6 +3577,114 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'确认清除'**
   String get confirmClear;
+
+  /// No description provided for @translationApi.
+  ///
+  /// In zh, this message translates to:
+  /// **'翻译 API'**
+  String get translationApi;
+
+  /// No description provided for @translationProvider.
+  ///
+  /// In zh, this message translates to:
+  /// **'翻译服务'**
+  String get translationProvider;
+
+  /// No description provided for @translationApiUrl.
+  ///
+  /// In zh, this message translates to:
+  /// **'API 地址'**
+  String get translationApiUrl;
+
+  /// No description provided for @translationApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'API 密钥'**
+  String get translationApiKey;
+
+  /// No description provided for @translationModel.
+  ///
+  /// In zh, this message translates to:
+  /// **'模型'**
+  String get translationModel;
+
+  /// No description provided for @translationSourceLang.
+  ///
+  /// In zh, this message translates to:
+  /// **'源语言'**
+  String get translationSourceLang;
+
+  /// No description provided for @translationTargetLang.
+  ///
+  /// In zh, this message translates to:
+  /// **'目标语言'**
+  String get translationTargetLang;
+
+  /// No description provided for @translationAutoDetect.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动检测'**
+  String get translationAutoDetect;
+
+  /// No description provided for @translationTimeout.
+  ///
+  /// In zh, this message translates to:
+  /// **'超时（秒）'**
+  String get translationTimeout;
+
+  /// No description provided for @translationTest.
+  ///
+  /// In zh, this message translates to:
+  /// **'测试连接'**
+  String get translationTest;
+
+  /// No description provided for @translationTranslateWithApi.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用API翻译'**
+  String get translationTranslateWithApi;
+
+  /// No description provided for @translationTestSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接测试成功'**
+  String get translationTestSuccess;
+
+  /// No description provided for @translationTestFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接测试失败：{error}'**
+  String translationTestFailed(Object error);
+
+  /// No description provided for @translationApiNotConfigured.
+  ///
+  /// In zh, this message translates to:
+  /// **'未配置翻译 API'**
+  String get translationApiNotConfigured;
+
+  /// No description provided for @translating.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在翻译…'**
+  String get translating;
+
+  /// No description provided for @translationFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'翻译失败：{error}'**
+  String translationFailed(Object error);
+
+  /// No description provided for @translationRetry.
+  ///
+  /// In zh, this message translates to:
+  /// **'重试'**
+  String get translationRetry;
+
+  /// No description provided for @translationManualPaste.
+  ///
+  /// In zh, this message translates to:
+  /// **'手动粘贴'**
+  String get translationManualPaste;
 }
 
 class _AppLocalizationsDelegate

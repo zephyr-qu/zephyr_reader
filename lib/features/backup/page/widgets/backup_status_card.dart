@@ -28,24 +28,24 @@ class BackupStatusCard extends HookWidget {
     final (icon, color, statusText) = switch (status) {
       BackupStatus.exporting => (
         PhosphorIconsRegular.arrowsClockwise,
-        Colors.blue,
+        cs.primary,
         '备份中…',
       ),
       BackupStatus.restoring => (
         PhosphorIconsRegular.arrowsClockwise,
-        Colors.orange,
+        cs.tertiary,
         '恢复中…',
       ),
       BackupStatus.error => (
         PhosphorIconsRegular.warningCircle,
-        Colors.red,
+        cs.error,
         '操作失败：${errorMsg ?? "未知错误"}',
       ),
       _ => (
         lastAt != null
             ? PhosphorIconsRegular.cloudCheck
             : PhosphorIconsRegular.cloudSlash,
-        lastAt != null ? Colors.green : cs.onSurfaceVariant,
+        lastAt != null ? cs.primary : cs.onSurfaceVariant,
         lastAt != null ? '上次备份：${_formatAgo(lastAt)}' : '尚未进行过备份',
       ),
     };

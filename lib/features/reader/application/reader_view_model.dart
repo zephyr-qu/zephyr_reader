@@ -8,6 +8,10 @@ import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
+import 'package:dio/dio.dart';
+import 'package:zephyr_reader/features/reader/domain/translation_service.dart';
+import 'package:zephyr_reader/features/reader/data/translation/translation_cache.dart';
+import 'package:zephyr_reader/features/reader/application/translation_config.dart';
 import 'package:zephyr_reader/src/rust/api/search.dart' as search_api;
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/api/data/bookmark.dart' as bookmark_api;
@@ -28,6 +32,10 @@ import 'reading_session_manager.dart';
 class ReaderViewModel {
   final ReaderRepository _repo;
   final ReaderConfig _config;
+  final TranslationConfig _translateConfig;
+  final TranslationService _translateService;
+  final TranslationCache _translateCache;
+  CancelToken? _translateCancelToken;
 
   Timer? _reloadDebounce;
 
@@ -95,6 +103,8 @@ class ReaderViewModel {
   final showSelectionToolbar = signal<bool>(false);
   final highlights = asyncSignal<List<Note>>(AsyncState.data([]));
 
+  /// 翻译 API 是否已配置。
+  bool get isTranslationConfigured => _translateConfig.isConfigured;
   // ==================== 双语 信号 ====================
 
   final bilingualAlignment = asyncSignal<BilingualAlignment?>(
@@ -120,7 +130,12 @@ class ReaderViewModel {
   late final ChapterManager chapterManager;
   late final ReadingSessionManager sessionManager;
 
-  ReaderViewModel(this._repo, this._config) {
+  ReaderViewModel(
+    this._repo,
+    this._config,
+    this._translateConfig,
+    this._translateService,
+  ) : _translateCache = TranslationCache() {
     chapterManager = ChapterManager(_repo, _config);
     sessionManager = ReadingSessionManager(chapterManager);
   }
@@ -529,20 +544,101 @@ class ReaderViewModel {
     _debounceReloadChapter();
   }
 
-  /// 设置阅读模式（分页/滚动/双语），双语模式下自动触发对齐。
+  /// 设置阅读模式（分页/滚动/双语）。
+  ///
+  /// 切换到双语模式时:
+  /// - 已有翻译内容 → 直接对齐
+  /// - 已配置翻译 API → 自动翻译当前章节
+  /// - 均无 → 渲染器显示"无译文"占位，用户可手动粘贴
   void setReadingMode(ReadingMode mode) {
     readingMode.value = mode;
     if (mode == ReadingMode.bilingual) {
-      _runBilingualAlignment();
+      if (translationContent.value.isNotEmpty) {
+        _runBilingualAlignment();
+      } else if (_translateConfig.isConfigured) {
+        unawaited(translateChapter());
+      }
     }
   }
 
-  /// 设置翻译内容，双语模式下自动触发对齐。
+  /// 设置翻译内容（用户手动粘贴），同时取消进行中的 API 翻译。
   void setTranslationContent(String content) {
+    _translateCancelToken?.cancel();
     translationContent.value = content;
     if (readingMode.value == ReadingMode.bilingual) {
       _runBilingualAlignment();
     }
+  }
+
+  /// 使用配置的翻译 API 翻译当前章节内容。
+  ///
+  /// 自动处理: 缓存命中、取消前次请求、错误回退。
+  Future<void> translateChapter() async {
+    final content = chapterContent.value.value ?? '';
+    if (content.isEmpty) return;
+
+    final idx = chapterIndex.value;
+
+    // 缓存命中
+    final cached = _translateCache.get(idx, content);
+    if (cached != null) {
+      translationContent.value = cached;
+      _runBilingualAlignment();
+      return;
+    }
+
+    // 取消前次翻译
+    _translateCancelToken?.cancel();
+    _translateCancelToken = CancelToken();
+
+    bilingualAlignment.value = AsyncState.loading();
+
+    try {
+      final result = await _translateService.translate(
+        text: content,
+        sourceLang: _translateConfig.sourceLang.value == 'auto'
+            ? null
+            : _translateConfig.sourceLang.value,
+        targetLang: _translateConfig.targetLang.value,
+        cancelToken: _translateCancelToken,
+      );
+
+      if (_translateCancelToken?.isCancelled ?? false) return;
+
+      if (result.text.isEmpty) {
+        throw const TranslationException('翻译结果为空');
+      }
+
+      _translateCache.put(idx, content, result.text);
+      translationContent.value = result.text;
+      await _runBilingualAlignment();
+    } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) return;
+      final msg = _translateErrorMessage(e);
+      bilingualAlignment.value = AsyncState.error(TranslationException(msg));
+    } on TranslationException catch (e) {
+      bilingualAlignment.value = AsyncState.error(e);
+    } catch (e) {
+      bilingualAlignment.value = AsyncState.error(
+        TranslationException('翻译失败: $e'),
+      );
+    }
+  }
+
+  /// 将 Dio 异常转为用户可读的错误消息。
+  String _translateErrorMessage(DioException e) {
+    return switch (e.type) {
+      DioExceptionType.connectionTimeout => '连接超时，请检查网络或 API 地址',
+      DioExceptionType.receiveTimeout => '响应超时，请检查 API 地址或延长超时',
+      DioExceptionType.connectionError => '无法连接服务器，请检查网络',
+      DioExceptionType.badResponse => switch (e.response?.statusCode) {
+        401 => 'API 密钥无效，请检查设置',
+        403 => 'API 密钥无权限',
+        429 => '请求过于频繁，请稍后重试',
+        _ => '服务端错误 (${e.response?.statusCode})',
+      },
+      _ => '网络请求失败: ${e.message}',
+    };
   }
 
   /// 运行双语对齐（将中文内容与英文翻译逐段对齐）。
@@ -611,6 +707,9 @@ class ReaderViewModel {
 
   /// 重置阅读器状态，清理定时器和信号，为切换书籍做准备。
   void resetForNewBook() {
+    _translateCancelToken?.cancel();
+    _translateCancelToken = null;
+    _translateCache.clear();
     _reloadDebounce?.cancel();
     for (final disposer in _disposers) {
       disposer();
@@ -636,5 +735,7 @@ class ReaderViewModel {
     _highlightsCache.clear();
     showSelectionToolbar.value = false;
     highlights.value = AsyncState.data([]);
+    translationContent.value = '';
+    bilingualAlignment.value = AsyncState.data(null);
   }
 }

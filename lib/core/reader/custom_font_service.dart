@@ -58,7 +58,6 @@ class FontRepository {
   /// 已注册到 Flutter 的字体系列名
   final _registeredFamilies = <String>{};
 
-
   /// 获取当前字体的系列名（用于 TextStyle.fontFamily）
   String get currentFontFamily {
     final font = currentFont.value;
@@ -141,7 +140,8 @@ class FontRepository {
       final fontDir = Directory('${dir.path}/fonts');
 
       if (await fontDir.exists()) {
-        final files = fontDir.listSync().whereType<File>().where(
+        final entities = await fontDir.list().toList();
+        final files = entities.whereType<File>().where(
           (f) =>
               f.path.endsWith('.ttf') ||
               f.path.endsWith('.otf') ||

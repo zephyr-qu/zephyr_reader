@@ -38,14 +38,15 @@ class _PageCurlWidgetState extends State<PageCurlWidget>
   void initState() {
     super.initState();
     _direction = widget.isForward ? 1 : -1;
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    )
-      ..addListener(() => setState(() {}))
-      ..addStatusListener((status) {
-        if (status == AnimationStatus.completed) _onTurnCompleted();
-      });
+    _ctrl =
+        AnimationController(
+            vsync: this,
+            duration: const Duration(milliseconds: 300),
+          )
+          ..addListener(() => setState(() {}))
+          ..addStatusListener((status) {
+            if (status == AnimationStatus.completed) _onTurnCompleted();
+          });
   }
 
   @override
@@ -132,9 +133,7 @@ class _PageCurlWidgetState extends State<PageCurlWidget>
   void _onTurnCompleted() {
     if (!_committed) return;
     _committed = false;
-    final newPage = _isForward
-        ? widget.pageIndex + 1
-        : widget.pageIndex - 1;
+    final newPage = _isForward ? widget.pageIndex + 1 : widget.pageIndex - 1;
     widget.onPageChanged(newPage);
     if (mounted) {
       setState(() {
@@ -152,9 +151,7 @@ class _PageCurlWidgetState extends State<PageCurlWidget>
 
     Widget? nextPage;
     if (showCurl) {
-      final next = _isForward
-          ? widget.pageIndex + 1
-          : widget.pageIndex - 1;
+      final next = _isForward ? widget.pageIndex + 1 : widget.pageIndex - 1;
       if (next >= 0 && next < widget.totalPages) {
         nextPage = widget.pageBuilder(next);
       }
@@ -170,8 +167,7 @@ class _PageCurlWidgetState extends State<PageCurlWidget>
         child: Stack(
           children: [
             // Next page (bottom layer)
-            if (nextPage != null)
-              Positioned.fill(child: nextPage),
+            if (nextPage != null) Positioned.fill(child: nextPage),
             // Current page with clip & transform
             if (showCurl)
               ClipPath(
@@ -185,9 +181,9 @@ class _PageCurlWidgetState extends State<PageCurlWidget>
                       : Alignment.centerLeft,
                   transform: Matrix4.identity()
                     ..setEntry(3, 2, 0.001)
-                    ..rotateY(_isForward
-                        ? (progress - 1) * 0.3
-                        : (1 - progress) * 0.3),
+                    ..rotateY(
+                      _isForward ? (progress - 1) * 0.3 : (1 - progress) * 0.3,
+                    ),
                   child: currentPage,
                 ),
               )
@@ -221,10 +217,7 @@ class _PageCurlClipper extends CustomClipper<Path> {
   final double progress;
   final bool isForward;
 
-  const _PageCurlClipper({
-    required this.progress,
-    required this.isForward,
-  });
+  const _PageCurlClipper({required this.progress, required this.isForward});
 
   @override
   Path getClip(Size size) {
@@ -263,10 +256,7 @@ class _CurlShadowPainter extends CustomPainter {
   final double progress;
   final bool isForward;
 
-  const _CurlShadowPainter({
-    required this.progress,
-    required this.isForward,
-  });
+  const _CurlShadowPainter({required this.progress, required this.isForward});
 
   @override
   void paint(Canvas canvas, Size size) {

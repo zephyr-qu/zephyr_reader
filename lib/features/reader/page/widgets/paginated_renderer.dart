@@ -146,7 +146,12 @@ class PaginatedModeRenderer extends StatelessWidget {
           vocabularyWords: config.effectiveVocabWords,
         );
         return _renderPageContent(
-          context, pageContent, painted, textStyle, strutStyle, pageStart,
+          context,
+          pageContent,
+          painted,
+          textStyle,
+          strutStyle,
+          pageStart,
         );
       },
     );
@@ -157,11 +162,7 @@ class PaginatedModeRenderer extends StatelessWidget {
     final descriptors = repo.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
       final index = pageIndex.clamp(0, descriptors.length - 1);
-      return _buildPageContent(
-        context,
-        index,
-        descriptors[index].startOffset,
-      );
+      return _buildPageContent(context, index, descriptors[index].startOffset);
     }
     // 旧版：使用预计算的全量 PageInfo
     final cachedPages = repo.currentPages;
@@ -180,7 +181,12 @@ class PaginatedModeRenderer extends StatelessWidget {
         vocabularyWords: config.effectiveVocabWords,
       );
       return _renderPageContent(
-        context, page.content, paintedSpan, textStyle, strutStyle, page.startOffset,
+        context,
+        page.content,
+        paintedSpan,
+        textStyle,
+        strutStyle,
+        page.startOffset,
       );
     }
     return _buildFallbackPagination(context);
@@ -188,13 +194,14 @@ class PaginatedModeRenderer extends StatelessWidget {
 
   /// 构建页面内容组件（描述符模式）。
   /// 如果内容未缓存（null），显示占位符。
-  Widget _buildPageContent(BuildContext context, int pageIndex, int startOffset) {
+  Widget _buildPageContent(
+    BuildContext context,
+    int pageIndex,
+    int startOffset,
+  ) {
     final pageContent = repo.getPageContent(pageIndex);
     if (pageContent == null) {
-      return const SizedBox(
-        width: double.infinity,
-        height: 600,
-      );
+      return const SizedBox(width: double.infinity, height: 600);
     }
     final textStyle = config.buildTextStyle();
     final strutStyle = config.buildStrutStyle();
@@ -208,7 +215,12 @@ class PaginatedModeRenderer extends StatelessWidget {
       vocabularyWords: config.effectiveVocabWords,
     );
     return _renderPageContent(
-      context, pageContent, paintedSpan, textStyle, strutStyle, startOffset,
+      context,
+      pageContent,
+      paintedSpan,
+      textStyle,
+      strutStyle,
+      startOffset,
     );
   }
 
@@ -247,9 +259,7 @@ class PaginatedModeRenderer extends StatelessWidget {
               vocabularyWords: config.effectiveVocabWords,
             );
             return Padding(
-              padding: EdgeInsets.only(
-                left: paragraphs.length > 1 ? 8 : 0,
-              ),
+              padding: EdgeInsets.only(left: paragraphs.length > 1 ? 8 : 0),
               child: SizedBox(
                 width: charWidth,
                 child: SelectableText.rich(
@@ -280,7 +290,12 @@ class PaginatedModeRenderer extends StatelessWidget {
   ) {
     if (writingDirection == WritingDirection.vertical) {
       return _buildPageContentVertical(
-        context, pageContent, paintedSpan, textStyle, strutStyle, startOffset,
+        context,
+        pageContent,
+        paintedSpan,
+        textStyle,
+        strutStyle,
+        startOffset,
       );
     }
     return RepaintBoundary(
@@ -346,7 +361,12 @@ class PaginatedModeRenderer extends StatelessWidget {
             vocabularyWords: config.effectiveVocabWords,
           );
           return _renderPageContent(
-            context, page.content, paintedSpan, textStyle, strutStyle, page.startOffset,
+            context,
+            page.content,
+            paintedSpan,
+            textStyle,
+            strutStyle,
+            page.startOffset,
           );
         },
       );
@@ -425,9 +445,7 @@ Widget _buildPageContentVerticalStandalone(
             vocabularyWords: config.effectiveVocabWords,
           );
           return Padding(
-            padding: EdgeInsets.only(
-              left: paragraphs.length > 1 ? 8 : 0,
-            ),
+            padding: EdgeInsets.only(left: paragraphs.length > 1 ? 8 : 0),
             child: SizedBox(
               width: charWidth,
               child: SelectableText.rich(
@@ -435,11 +453,14 @@ Widget _buildPageContentVerticalStandalone(
                 style: textStyle,
                 strutStyle: strutStyle,
                 textAlign: TextAlign.start,
-                onSelectionChanged: (sel, cause) =>
-                    _handlePageContentSelection(
-                      sel, para, startOffset, context,
-                      onSelectionChanged, onSelectionGlobalPosition,
-                    ),
+                onSelectionChanged: (sel, cause) => _handlePageContentSelection(
+                  sel,
+                  para,
+                  startOffset,
+                  context,
+                  onSelectionChanged,
+                  onSelectionGlobalPosition,
+                ),
                 contextMenuBuilder: (_, _) => const SizedBox.shrink(),
               ),
             ),
@@ -466,10 +487,7 @@ Widget buildSinglePageContent({
 }) {
   final pageContent = repo.getPageContent(pageIndex);
   if (pageContent == null) {
-    return const SizedBox(
-      width: double.infinity,
-      height: 600,
-    );
+    return const SizedBox(width: double.infinity, height: 600);
   }
   final textStyle = config.buildTextStyle();
   final strutStyle = config.buildStrutStyle();
@@ -485,9 +503,16 @@ Widget buildSinglePageContent({
 
   if (writingDirection == WritingDirection.vertical) {
     return _buildPageContentVerticalStandalone(
-      context, pageContent, textStyle, strutStyle, startOffset,
-      config, highlights, onHighlightTap,
-      onSelectionChanged, onSelectionGlobalPosition,
+      context,
+      pageContent,
+      textStyle,
+      strutStyle,
+      startOffset,
+      config,
+      highlights,
+      onHighlightTap,
+      onSelectionChanged,
+      onSelectionGlobalPosition,
     );
   }
 
@@ -501,11 +526,14 @@ Widget buildSinglePageContent({
         paintedSpan,
         strutStyle: strutStyle,
         textAlign: TextAlign.justify,
-        onSelectionChanged: (sel, cause) =>
-            _handlePageContentSelection(
-              sel, pageContent, startOffset, context,
-              onSelectionChanged, onSelectionGlobalPosition,
-            ),
+        onSelectionChanged: (sel, cause) => _handlePageContentSelection(
+          sel,
+          pageContent,
+          startOffset,
+          context,
+          onSelectionChanged,
+          onSelectionGlobalPosition,
+        ),
         contextMenuBuilder: (_, _) => const SizedBox.shrink(),
       ),
     ),

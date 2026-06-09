@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/highlight_painter.dart';
@@ -21,6 +22,7 @@ class BilingualModeRenderer extends StatelessWidget {
   final VoidCallback? onRequestTranslation;
   final void Function(Note)? onHighlightTap;
   final void Function(String text, int start, int end)? onSelectionChanged;
+  final VoidCallback? onRetryTranslation;
   final void Function(Offset?)? onSelectionGlobalPosition;
   final WritingDirection writingDirection;
 
@@ -36,6 +38,7 @@ class BilingualModeRenderer extends StatelessWidget {
     this.onRequestTranslation,
     this.onHighlightTap,
     this.onSelectionChanged,
+    this.onRetryTranslation,
     this.writingDirection = WritingDirection.horizontal,
     this.onSelectionGlobalPosition,
   });
@@ -86,6 +89,19 @@ class BilingualModeRenderer extends StatelessWidget {
             Text(
               bilingualError!,
               style: TextStyle(fontSize: 16, color: config.textColor),
+            ),
+            const SizedBox(height: 20),
+            if (onRetryTranslation != null)
+              OutlinedButton.icon(
+                onPressed: onRetryTranslation,
+                icon: const Icon(PhosphorIconsRegular.arrowClockwise),
+                label: Text(AppLocalizations.of(context)!.translationRetry),
+              ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: onRequestTranslation,
+              icon: const Icon(PhosphorIconsRegular.pencil),
+              label: Text(AppLocalizations.of(context)!.translationManualPaste),
             ),
           ],
         ),
@@ -245,20 +261,14 @@ class BilingualModeRenderer extends StatelessWidget {
         );
 
         if (writingDirection == WritingDirection.vertical) {
-          return SizedBox(
-            width: config.fontSize * 3.0,
-            child: segmentWidget,
-          );
+          return SizedBox(width: config.fontSize * 3.0, child: segmentWidget);
         }
         return segmentWidget;
       },
     );
 
     if (writingDirection == WritingDirection.vertical) {
-      return Directionality(
-        textDirection: TextDirection.rtl,
-        child: listView,
-      );
+      return Directionality(textDirection: TextDirection.rtl, child: listView);
     }
     return listView;
   }
