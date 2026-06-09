@@ -10,7 +10,6 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:flutter/services.dart';
-import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,14 +22,12 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 /// 字体仓库
 ///
 /// 管理阅读器自定义字体的加载、切换和持久化
-@injectable
 class FontRepository {
   final SharedPreferences _prefs;
   final Completer<void> _ready = Completer<void>();
 
   FontRepository(this._prefs);
 
-  @PostConstruct()
   Future<void> init() async {
     try {
       await loadFonts();

@@ -3,6 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/legal_section_card.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 用户协议页面
 class UserAgreementPage extends StatelessWidget {
@@ -13,7 +14,7 @@ class UserAgreementPage extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('用户协议')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.userAgreement)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

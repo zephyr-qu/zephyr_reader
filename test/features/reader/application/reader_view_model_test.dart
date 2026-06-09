@@ -38,40 +38,106 @@ class _TestConfig implements ReaderConfig {
 
   @override
   late final theme = persistedEnum<ReaderTheme>(
-    prefs, '', ReaderTheme.light, ReaderTheme.fromId, debounce: Duration.zero,
-  );
-  @override
-  late final fontSize = persistedDouble(prefs, '', 16.0, debounce: Duration.zero);
-  @override
-  late final lineHeight = persistedDouble(prefs, '', 1.6, debounce: Duration.zero);
-  @override
-  late final paragraphSpacing = persistedDouble(prefs, '', 16.0, debounce: Duration.zero);
-  @override
-  late final padding = persistedDouble(prefs, '', 16.0, debounce: Duration.zero);
-  @override
-  late final readerBgColorIndex = persistedInt(prefs, '', 0, debounce: Duration.zero);
-  @override
-  late final autoScroll = persistedBool(prefs, '', false, debounce: Duration.zero);
-  @override
-  late final autoScrollSpeed = persistedInt(prefs, '', 30, debounce: Duration.zero);
-  @override
-  late final letterSpacing = persistedDouble(prefs, '', 0.0, debounce: Duration.zero);
-  @override
-  late final punctuationSqueeze = persistedBool(prefs, '', true, debounce: Duration.zero);
-  @override
-  late final baselineAlign = persistedBool(prefs, '', true, debounce: Duration.zero);
-  @override
-  late final tapLayout = persistedEnum<TapLayout>(
-    prefs, '', TapLayout.rightHanded,
-    (name) => TapLayout.values.firstWhere((e) => e.name == name, orElse: () => TapLayout.rightHanded),
+    prefs,
+    '',
+    ReaderTheme.light,
+    ReaderTheme.fromId,
     debounce: Duration.zero,
   );
   @override
-  final writingDirection = signal<WritingDirection>(WritingDirection.horizontal);
+  late final fontSize = persistedDouble(
+    prefs,
+    '',
+    16.0,
+    debounce: Duration.zero,
+  );
+  @override
+  late final lineHeight = persistedDouble(
+    prefs,
+    '',
+    1.6,
+    debounce: Duration.zero,
+  );
+  @override
+  late final paragraphSpacing = persistedDouble(
+    prefs,
+    '',
+    16.0,
+    debounce: Duration.zero,
+  );
+  @override
+  late final padding = persistedDouble(
+    prefs,
+    '',
+    16.0,
+    debounce: Duration.zero,
+  );
+  @override
+  late final readerBgColorIndex = persistedInt(
+    prefs,
+    '',
+    0,
+    debounce: Duration.zero,
+  );
+  @override
+  late final autoScroll = persistedBool(
+    prefs,
+    '',
+    false,
+    debounce: Duration.zero,
+  );
+  @override
+  late final autoScrollSpeed = persistedInt(
+    prefs,
+    '',
+    30,
+    debounce: Duration.zero,
+  );
+  @override
+  late final letterSpacing = persistedDouble(
+    prefs,
+    '',
+    0.0,
+    debounce: Duration.zero,
+  );
+  @override
+  late final punctuationSqueeze = persistedBool(
+    prefs,
+    '',
+    true,
+    debounce: Duration.zero,
+  );
+  @override
+  late final baselineAlign = persistedBool(
+    prefs,
+    '',
+    true,
+    debounce: Duration.zero,
+  );
+  @override
+  late final tapLayout = persistedEnum<TapLayout>(
+    prefs,
+    '',
+    TapLayout.rightHanded,
+    (name) => TapLayout.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => TapLayout.rightHanded,
+    ),
+    debounce: Duration.zero,
+  );
+  @override
+  final writingDirection = signal<WritingDirection>(
+    WritingDirection.horizontal,
+  );
   @override
   final brightnessOverlay = signal<double>(0.0);
   @override
-  late final followSystemFontScale = persistedBool(prefs, '', false, debounce: Duration.zero);
+  late final followSystemFontScale = persistedBool(
+    prefs,
+    '',
+    false,
+    debounce: Duration.zero,
+  );
   @override
   double get pageMargin => padding.value;
   @override

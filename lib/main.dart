@@ -20,6 +20,7 @@ Future<void> main() async {
 
       await RustLib.init();
       final appDir = await getApplicationDocumentsDirectory();
+      await Logging.init();
       await initStorage(dataDir: '${appDir.path}/zephyr_reader/data');
 
       try {

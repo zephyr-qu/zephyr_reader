@@ -8,6 +8,7 @@ import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/network/wifi_transfer_service.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// WiFi 传书页面。
@@ -89,13 +90,7 @@ class WifiTransferPage extends HookWidget {
             },
           ),
           const SizedBox(height: 24),
-          Text(
-            l10n.wifiTransferLog,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
+          SectionLabel(label: l10n.wifiTransferLog),
           if (logs.value.isEmpty)
             Center(
               child: Padding(

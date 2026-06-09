@@ -87,9 +87,9 @@ class MainLayout extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final currentRoute = GoRouterState.of(context).uri.path;
-    final deviceType = LayoutBreakpoints.getDeviceType(context);
+    final deviceType = LayoutBreakpoints.getScreenSizeClass(context);
     final isTabletOrDesktop =
-        deviceType == DeviceType.tablet || deviceType == DeviceType.desktop;
+        deviceType == ScreenSizeClass.medium || deviceType == ScreenSizeClass.expanded;
     final theme = Theme.of(context);
 
     final currentIndex = _calculateSelectedIndex(currentRoute);
@@ -123,11 +123,11 @@ class MainLayout extends HookWidget {
   /// 构建侧边栏（平板/桌面端自适应导航）
   Widget _buildSideBar(
     BuildContext context,
-    DeviceType deviceType,
+    ScreenSizeClass deviceType,
     int currentIndex,
     ThemeData theme,
   ) {
-    final isExtended = deviceType == DeviceType.desktop;
+    final isExtended = deviceType == ScreenSizeClass.expanded;
 
     return Container(
       width: isExtended ? 200 : 72,
@@ -168,10 +168,10 @@ class MainLayout extends HookWidget {
   /// 构建侧边栏顶部的应用 Logo
   Widget _buildLogo(
     BuildContext context,
-    DeviceType deviceType,
+    ScreenSizeClass deviceType,
     ThemeData theme,
   ) {
-    final isExtended = deviceType == DeviceType.desktop;
+    final isExtended = deviceType == ScreenSizeClass.expanded;
 
     return Padding(
       padding: EdgeInsets.symmetric(

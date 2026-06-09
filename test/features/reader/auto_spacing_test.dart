@@ -13,7 +13,11 @@ import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import '../../helpers/integration_test_helper.dart';
 
 /// 构建排版配置
-TypesetConfig _makeConfig({required int fontSize, int width = 800, int height = 600}) {
+TypesetConfig _makeConfig({
+  required int fontSize,
+  int width = 800,
+  int height = 600,
+}) {
   return TypesetConfig(
     pageWidth: width,
     pageHeight: height,
@@ -143,8 +147,11 @@ of cultural fusion, 传统与现代交相辉映的美。
           config: _makeConfig(fontSize: size),
         );
         for (int i = 0; i < pages.length; i++) {
-          expect(pages[i].content, isNotEmpty,
-              reason: 'page $i at fontSize=$size is empty');
+          expect(
+            pages[i].content,
+            isNotEmpty,
+            reason: 'page $i at fontSize=$size is empty',
+          );
         }
       }
     });
@@ -185,18 +192,21 @@ of cultural fusion, 传统与现代交相辉映的美。
       expect(allText, contains('rhythm and energy'));
     });
 
-    test('no artificially inserted spaces within CJK consecutive characters', () async {
-      final pages = await core_api.paginateAllContent(
-        filePath: pureFilePath,
-        chapterIndex: 0,
-        config: _makeConfig(fontSize: 16),
-      );
-      final allText = pages.map((p) => p.content).join('');
-      expect(allText, contains('城市'));
-      expect(allText, contains('故事'));
-      expect(allText, contains('清晨'));
-      expect(allText, contains('现代'));
-      expect(allText, contains('艺术'));
-    });
+    test(
+      'no artificially inserted spaces within CJK consecutive characters',
+      () async {
+        final pages = await core_api.paginateAllContent(
+          filePath: pureFilePath,
+          chapterIndex: 0,
+          config: _makeConfig(fontSize: 16),
+        );
+        final allText = pages.map((p) => p.content).join('');
+        expect(allText, contains('城市'));
+        expect(allText, contains('故事'));
+        expect(allText, contains('清晨'));
+        expect(allText, contains('现代'));
+        expect(allText, contains('艺术'));
+      },
+    );
   });
 }

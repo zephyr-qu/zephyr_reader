@@ -39,11 +39,11 @@ class TypographySettingsPage extends HookWidget {
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
         children: [
           TypographyPreview(config: config, fontRepo: fontRepo),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           _buildFontGrid(context, cs, config, fontRepo),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           _buildSliders(context, cs, config),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           _buildAdvancedCjk(context, cs, config),
           const SizedBox(height: 12),
           ResetButton(
@@ -57,7 +57,7 @@ class TypographySettingsPage extends HookWidget {
 
   /// 仅重置排版页面管理的设置项，不触及主题、自动滚动、点击区域等其他页面管理的配置。
   Future<void> _reset(ReaderConfig config, FontRepository fontRepo) async {
-    config.fontSize.value = ReaderFontSize.medium.size;
+    config.fontSize.value = 16.0;
     config.lineHeight.value = 1.6;
     config.paragraphSpacing.value = 16.0;
     config.padding.value = 16.0;

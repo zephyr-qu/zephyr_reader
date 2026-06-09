@@ -10,7 +10,7 @@ void main() {
         height: 640,
         fontSize: 16,
         lineHeight: 1.5,
-        paragraphSpacing: 32,  // 32/16 = 2.0
+        paragraphSpacing: 32, // 32/16 = 2.0
       );
 
       expect(config.pageWidth, equals(360)); // 360 * 1.0 ≈ 360

@@ -357,7 +357,7 @@ class ScrollModeRenderer extends HookWidget {
                   width: maxWidth,
                   fit: BoxFit.contain,
                   cacheWidth:
-                      (maxWidth * MediaQuery.of(context).devicePixelRatio)
+                      (maxWidth * MediaQuery.devicePixelRatioOf(context))
                           .ceil(),
                   errorBuilder: (_, e, s) => Container(
                     height: 100,

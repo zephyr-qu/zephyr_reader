@@ -76,8 +76,7 @@ void main() {
       expect(changedTo, equals(1));
     });
 
-    testWidgets('tap left third calls onPageChanged backward',
-        (tester) async {
+    testWidgets('tap left third calls onPageChanged backward', (tester) async {
       int? changedTo;
       await tester.pumpWidget(
         _buildCurlApp(
@@ -167,7 +166,11 @@ void main() {
       // Drag from right side to left, covering 60% of width
       final start = topLeft + Offset(size.width * 0.9, size.height / 2);
       final offset = Offset(-size.width * 0.6, 0);
-      await tester.timedDragFrom(start, offset, const Duration(milliseconds: 200));
+      await tester.timedDragFrom(
+        start,
+        offset,
+        const Duration(milliseconds: 200),
+      );
       await tester.pump();
       await tester.pumpAndSettle();
 
@@ -188,7 +191,11 @@ void main() {
       // Drag from left side to right, covering 60% of width
       final start = topLeft + Offset(size.width * 0.1, size.height / 2);
       final offset = Offset(size.width * 0.6, 0);
-      await tester.timedDragFrom(start, offset, const Duration(milliseconds: 200));
+      await tester.timedDragFrom(
+        start,
+        offset,
+        const Duration(milliseconds: 200),
+      );
       await tester.pump();
       await tester.pumpAndSettle();
 
@@ -210,7 +217,11 @@ void main() {
       // Drag right → left covering only 20% of width
       final start = topLeft + Offset(size.width * 0.5, size.height / 2);
       final offset = Offset(-size.width * 0.2, 0);
-      await tester.timedDragFrom(start, offset, const Duration(milliseconds: 200));
+      await tester.timedDragFrom(
+        start,
+        offset,
+        const Duration(milliseconds: 200),
+      );
       await tester.pump();
       await tester.pumpAndSettle();
 
@@ -231,7 +242,11 @@ void main() {
       final (topLeft, size) = _getWidgetGeometry(tester);
       final start = topLeft + Offset(size.width * 0.9, size.height / 2);
       final offset = Offset(-size.width * 0.6, 0);
-      await tester.timedDragFrom(start, offset, const Duration(milliseconds: 200));
+      await tester.timedDragFrom(
+        start,
+        offset,
+        const Duration(milliseconds: 200),
+      );
       await tester.pump();
       await tester.pumpAndSettle();
 
@@ -251,7 +266,11 @@ void main() {
       final (topLeft, size) = _getWidgetGeometry(tester);
       final start = topLeft + Offset(size.width * 0.1, size.height / 2);
       final offset = Offset(size.width * 0.6, 0);
-      await tester.timedDragFrom(start, offset, const Duration(milliseconds: 200));
+      await tester.timedDragFrom(
+        start,
+        offset,
+        const Duration(milliseconds: 200),
+      );
       await tester.pump();
       await tester.pumpAndSettle();
 
@@ -276,14 +295,11 @@ void main() {
 
       expect(find.text('Page 2'), findsOneWidget);
       expect(find.text('Page 0'), findsNothing);
-
     });
 
     // ── 下一页在卷曲时渲染 ──
     testWidgets('next page appears beneath during curl', (tester) async {
-      await tester.pumpWidget(
-        _buildCurlApp(pageIndex: 0, totalPages: 5),
-      );
+      await tester.pumpWidget(_buildCurlApp(pageIndex: 0, totalPages: 5));
 
       // Initially only current page is visible
       expect(find.text('Page 0'), findsOneWidget);
@@ -293,7 +309,11 @@ void main() {
       // Drag just enough to see next page peek through
       final start = topLeft + Offset(size.width * 0.9, size.height / 2);
       final offset = Offset(-size.width * 0.3, 0);
-      await tester.timedDragFrom(start, offset, const Duration(milliseconds: 150));
+      await tester.timedDragFrom(
+        start,
+        offset,
+        const Duration(milliseconds: 150),
+      );
       await tester.pump();
 
       // During drag, page 1 should appear in the Stack

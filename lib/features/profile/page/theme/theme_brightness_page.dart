@@ -5,12 +5,14 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
 import 'package:zephyr_reader/features/profile/page/theme/bg_color_picker.dart';
 import 'package:zephyr_reader/features/profile/page/theme/brightness_slider.dart';
 import 'package:zephyr_reader/features/profile/page/theme/theme_preview_card.dart';
+import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
 import 'package:zephyr_reader/features/profile/page/theme/theme_mode_option.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
@@ -26,7 +28,6 @@ class ThemeBrightnessPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final vm = useMemoized(() => getIt<ThemeBrightnessViewModel>());
-    final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final int bgIndex = useSignalValue(
       getIt<ReaderConfig>().readerBgColorIndex.signal,
@@ -40,31 +41,22 @@ class ThemeBrightnessPage extends HookWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          l10n.themeBrightness,
-          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-          ),
-        ),
-      ),
+      appBar: SettingsAppBar(title: l10n.themeBrightness),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
         children: [
           ThemePreviewCard(bgIndex: bgIndex),
-          _buildAppThemeSection(cs, themeType, l10n, vm),
-          const SizedBox(height: 24),
-          _buildBgColorSection(cs, bgIndex, vm),
-          const SizedBox(height: 24),
+          _buildAppThemeSection(themeType, l10n, vm),
+          const SizedBox(height: 16),
+          _buildBgColorSection(bgIndex, vm),
+          const SizedBox(height: 16),
           _buildBrightnessSection(
             context,
-            cs,
             brightness,
             useSystemBrightness,
             vm,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           // 高级选项部分（reduceWhitePoint 已移除）
         ],
       ),
@@ -72,24 +64,17 @@ class ThemeBrightnessPage extends HookWidget {
   }
 
   Widget _buildAppThemeSection(
-    ColorScheme cs,
     AppThemeType themeType,
     AppLocalizations l10n,
     ThemeBrightnessViewModel vm,
   ) {
     return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionLabel(label: l10n.appTheme),
+        SettingsCard(
           children: [
-            SectionLabel(label: l10n.appTheme),
-            Container(
-              decoration: BoxDecoration(
-                color: cs.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: cs.outlineVariant.withValues(alpha: 0.2),
-                  width: 0.5,
-                ),
-              ),
+            Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
@@ -120,14 +105,15 @@ class ThemeBrightnessPage extends HookWidget {
               ),
             ),
           ],
-        )
-        .animate()
-        .fadeIn(duration: 300.ms, delay: 100.ms)
-        .slideY(begin: 0.03, end: 0);
+        ),
+      ],
+    )
+    .animate()
+    .fadeIn(duration: 300.ms, delay: 100.ms)
+    .slideY(begin: 0.03, end: 0);
   }
 
   Widget _buildBgColorSection(
-    ColorScheme cs,
     int activeIdx,
     ThemeBrightnessViewModel vm,
   ) {
@@ -135,20 +121,13 @@ class ThemeBrightnessPage extends HookWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SectionLabel(label: '阅读背景色'),
-            Container(
-              decoration: BoxDecoration(
-                color: cs.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: cs.outlineVariant.withValues(alpha: 0.2),
-                  width: 0.5,
+            SettingsCard(
+              children: [
+                BgColorPicker(
+                  activeIndex: activeIdx,
+                  onSelected: vm.setReaderBgColorIndex,
                 ),
-              ),
-              padding: const EdgeInsets.all(16),
-              child: BgColorPicker(
-                activeIndex: activeIdx,
-                onSelected: vm.setReaderBgColorIndex,
-              ),
+              ],
             ),
           ],
         )
@@ -159,7 +138,6 @@ class ThemeBrightnessPage extends HookWidget {
 
   Widget _buildBrightnessSection(
     BuildContext context,
-    ColorScheme cs,
     int brightness,
     bool useSystemBrightness,
     ThemeBrightnessViewModel vm,
@@ -168,37 +146,28 @@ class ThemeBrightnessPage extends HookWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SectionLabel(label: '亮度调节'),
-            Container(
-              decoration: BoxDecoration(
-                color: cs.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: cs.outlineVariant.withValues(alpha: 0.2),
-                  width: 0.5,
+            SettingsCard(
+              showDividers: true,
+              children: [
+                BrightnessSlider(
+                  value: brightness,
+                  onChanged: vm.setBrightness,
                 ),
-              ),
-              child: Column(
-                children: [
-                  BrightnessSlider(
-                    value: brightness,
-                    onChanged: vm.setBrightness,
+                SettingsToggleTile(
+                  icon: PhosphorIconsRegular.sunHorizon,
+                  iconColor: MenuItemSemantic.warning.iconColor(
+                    Theme.of(context).brightness,
                   ),
-                  SettingsToggleTile(
-                    icon: PhosphorIconsRegular.sunHorizon,
-                    iconColor: MenuItemSemantic.warning.iconColor(
-                      Theme.of(context).brightness,
-                    ),
-                    iconBackground: MenuItemSemantic.warning.iconBackground(
-                      Theme.of(context).brightness,
-                    ),
-                    title: '使用系统亮度',
-                    subtitle: '关闭后可独立调节阅读器亮度',
-                    value: useSystemBrightness,
-                    onChanged: (v) => vm.setUseSystemBrightness(v),
+                  iconBackground: MenuItemSemantic.warning.iconBackground(
+                    Theme.of(context).brightness,
                   ),
-                  // lowBatteryDim 设置已移除（对应 BatteryStateService 已删除）
-                ],
-              ),
+                  title: '使用系统亮度',
+                  subtitle: '关闭后可独立调节阅读器亮度',
+                  value: useSystemBrightness,
+                  onChanged: (v) => vm.setUseSystemBrightness(v),
+                ),
+                // lowBatteryDim 设置已移除（对应 BatteryStateService 已删除）
+              ],
             ),
           ],
         )

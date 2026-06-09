@@ -44,7 +44,7 @@ class _MockConfig implements ReaderConfig {
   late final fontSize = persistedDouble(
     prefs,
     '',
-    ReaderFontSize.medium.size,
+    16.0,
     debounce: Duration.zero,
   );
 
@@ -151,12 +151,9 @@ class _MockConfig implements ReaderConfig {
   double get pageMargin => padding.value;
 
   @override
-  double get fontSizeValue => ReaderFontSize.fromSize(fontSize.value).size;
-
-  @override
   Future<void> resetToDefault() async {
     theme.value = ReaderTheme.light;
-    fontSize.value = ReaderFontSize.medium.size;
+    fontSize.value = 16.0;
     lineHeight.value = 1.6;
     paragraphSpacing.value = 16.0;
     padding.value = 16.0;
@@ -178,6 +175,7 @@ class _MockConfig implements ReaderConfig {
 ChapterManager createManager({ReaderRepository? repo, ReaderConfig? config}) {
   return ChapterManager(repo ?? _MockRepo(), config ?? _MockConfig());
 }
+
 /// Mock 设置 `paginateChapter` 成功返回 2 页。
 void _setupPaginateChapter(_MockRepo repo, {bool isFallback = false}) {
   when(
@@ -216,7 +214,6 @@ void _setupPaginateChapter(_MockRepo repo, {bool isFallback = false}) {
 }
 
 void _registerFallbackValues() {
-  registerFallbackValue(ReaderFontSize.medium);
   registerFallbackValue(ReadingMode.pagination);
 }
 

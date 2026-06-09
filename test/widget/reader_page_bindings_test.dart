@@ -46,7 +46,7 @@ class _MockReaderConfig implements ReaderConfig {
   late final fontSize = persistedDouble(
     prefs,
     '',
-    ReaderFontSize.medium.size,
+    16.0,
     debounce: Duration.zero,
   );
   @override
@@ -134,9 +134,6 @@ class _MockReaderConfig implements ReaderConfig {
   double get pageMargin => padding.value;
 
   @override
-  double get fontSizeValue => ReaderFontSize.fromSize(fontSize.value).size;
-
-  @override
   late final followSystemFontScale = persistedBool(
     prefs,
     '',
@@ -146,7 +143,7 @@ class _MockReaderConfig implements ReaderConfig {
   @override
   Future<void> resetToDefault() async {
     theme.value = ReaderTheme.light;
-    fontSize.value = ReaderFontSize.medium.size;
+    fontSize.value = 16.0;
     lineHeight.value = 1.6;
     paragraphSpacing.value = 16.0;
     padding.value = 16.0;

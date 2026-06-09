@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_slider_tile.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
 import 'package:zephyr_reader/features/reader/application/translation_config.dart';
 import 'package:zephyr_reader/features/reader/domain/translation_service.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 翻译 API 设置页面。
 ///
-/// 允许用户配置翻译服务提供商、API 地址、密钥等。
-/// 支持 OpenAI-compatible 和自定义 API。
+/// 遵循设置页面统一布局规范：
+/// SettingsAppBar + [SectionLabel / SettingsCard] + 入场动画。
 class TranslationSettingsPage extends HookWidget {
   const TranslationSettingsPage({super.key});
 
@@ -20,274 +25,619 @@ class TranslationSettingsPage extends HookWidget {
     final l10n = AppLocalizations.of(context)!;
     final config = useMemoized(() => getIt<TranslationConfig>());
 
-    final String provider = useSignalValue(config.provider.signal) as String;
-    final String apiUrl = useSignalValue(config.apiUrl.signal) as String;
-    final String apiKey = useSignalValue(config.apiKey.signal) as String;
-    final String model = useSignalValue(config.model.signal) as String;
+    final String provider =
+        useSignalValue(config.provider.signal) as String;
+    final String apiUrl =
+        useSignalValue(config.apiUrl.signal) as String;
+    final String apiKey =
+        useSignalValue(config.apiKey.signal) as String;
+    final String model =
+        useSignalValue(config.model.signal) as String;
     final String sourceLang =
         useSignalValue(config.sourceLang.signal) as String;
     final String targetLang =
         useSignalValue(config.targetLang.signal) as String;
-    final int timeout = useSignalValue(config.timeoutSeconds.signal) as int;
+    final int timeout =
+        useSignalValue(config.timeoutSeconds.signal) as int;
 
     final testResult = useState<String?>(null);
     final isTesting = useState(false);
+    final isTestSuccess = useState<bool?>(null);
 
-    Future<void> testConnection() async {
+    Future<void> onTestConnection() async {
       isTesting.value = true;
       testResult.value = null;
+      isTestSuccess.value = null;
       try {
         final service = getIt<TranslationService>();
         await service.translate(
-          text: 'Hello, how are you?',
-          sourceLang: 'en',
+          text: 'Hello',
           targetLang: targetLang,
+          sourceLang: sourceLang == 'auto' ? null : sourceLang,
         );
         testResult.value = l10n.translationTestSuccess;
+        isTestSuccess.value = true;
       } catch (e) {
-        testResult.value = l10n.translationTestFailed(e.toString());
+        testResult.value = l10n.translationTestFailed(e);
+        isTestSuccess.value = false;
       } finally {
         isTesting.value = false;
       }
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.translationApi),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            tooltip: '翻译 API 说明',
-            onPressed: () => _showHelp(context, l10n),
+      appBar: SettingsAppBar(title: l10n.translationApi),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+        children: [
+          _ProviderSection(
+            config: config,
+            provider: provider,
+            l10n: l10n,
           ),
+          const SizedBox(height: 16),
+          _ApiSection(
+            config: config,
+            apiUrl: apiUrl,
+            apiKey: apiKey,
+            model: model,
+            provider: provider,
+            l10n: l10n,
+          ),
+          const SizedBox(height: 16),
+          _LangSection(
+            config: config,
+            sourceLang: sourceLang,
+            targetLang: targetLang,
+            l10n: l10n,
+          ),
+          const SizedBox(height: 16),
+          _TimeoutSection(
+            config: config,
+            timeout: timeout,
+            l10n: l10n,
+          ),
+          const SizedBox(height: 16),
+          _TestSection(
+            l10n: l10n,
+            isTesting: isTesting.value,
+            testResult: testResult.value,
+            isTestSuccess: isTestSuccess.value,
+            onTest: onTestConnection,
+          ),
+          const SizedBox(height: 40),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        children: [
-          // 服务提供商
-          SectionLabel(label: l10n.translationProvider),
-          SettingsCard(
-            children: [
-              _buildDropdown(
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Section widgets
+// ══════════════════════════════════════════════════════════════════════════════
+
+class _ProviderSection extends StatelessWidget {
+  final TranslationConfig config;
+  final String provider;
+  final AppLocalizations l10n;
+
+  const _ProviderSection({
+    required this.config,
+    required this.provider,
+    required this.l10n,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionLabel(label: l10n.translationProvider),
+        SettingsCard(
+          children: [
+            _SelectTile(
+              icon: PhosphorIconsRegular.cloud,
+              label: l10n.translationProvider,
+              value: provider == 'openai' ? 'OpenAI' : l10nCustom,
+              onTap: () => _showSheet(
                 context,
-                value: provider,
-                items: const ['openai', 'custom'],
-                labels: const ['OpenAI', l10nCustom],
-                onChanged: (v) => config.provider.value = v,
+                title: l10n.translationProvider,
+                options: [
+                  ('OpenAI', 'openai', PhosphorIconsRegular.cloud),
+                  (l10nCustom, 'custom', PhosphorIconsRegular.code),
+                ],
+                current: provider,
+                onSelected: (v) => config.provider.value = v,
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
+            ),
+          ],
+        ),
+      ],
+    ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.03, end: 0);
+  }
+}
 
-          // API 地址
-          SectionLabel(label: l10n.translationApiUrl),
-          SettingsCard(
-            children: [
-              _buildTextField(
-                controller: useTextEditingController(text: apiUrl),
-                hint: 'https://api.openai.com',
-                enabled: true,
+class _ApiSection extends StatelessWidget {
+  final TranslationConfig config;
+  final String apiUrl;
+  final String apiKey;
+  final String model;
+  final String provider;
+  final AppLocalizations l10n;
+
+  const _ApiSection({
+    required this.config,
+    required this.apiUrl,
+    required this.apiKey,
+    required this.model,
+    required this.provider,
+    required this.l10n,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionLabel(label: l10n.translationApiUrl),
+        SettingsCard(
+          showDividers: true,
+          children: [
+            _InputTile(
+              icon: PhosphorIconsRegular.link,
+              label: l10n.translationApiUrl,
+              hint: 'https://api.openai.com',
+              initialValue: apiUrl,
+              obscureText: false,
+              onChanged: (v) => config.apiUrl.value = v,
+            ),
+            _InputTile(
+              icon: PhosphorIconsRegular.key,
+              label: l10n.translationApiKey,
+              hint: 'sk-...',
+              initialValue: apiKey,
+              obscureText: true,
+              onChanged: (v) => config.apiKey.value = v,
+            ),
+            if (provider == 'openai')
+              _InputTile(
+                icon: PhosphorIconsRegular.magicWand,
+                label: l10n.translationModel,
+                hint: 'gpt-4o-mini',
+                initialValue: model,
                 obscureText: false,
-                onChanged: (v) => config.apiUrl.value = v,
+                onChanged: (v) => config.model.value = v,
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
+          ],
+        ),
+      ],
+    ).animate().fadeIn(duration: 300.ms, delay: 60.ms).slideY(
+      begin: 0.03,
+      end: 0,
+    );
+  }
+}
 
-          // API Key
-          SectionLabel(label: l10n.translationApiKey),
-          SettingsCard(
-            children: [
-              _buildTextField(
-                controller: useTextEditingController(text: apiKey),
-                hint: 'sk-...',
-                enabled: true,
-                obscureText: true,
-                onChanged: (v) => config.apiKey.value = v,
+class _LangSection extends StatelessWidget {
+  final TranslationConfig config;
+  final String sourceLang;
+  final String targetLang;
+  final AppLocalizations l10n;
+
+  const _LangSection({
+    required this.config,
+    required this.sourceLang,
+    required this.targetLang,
+    required this.l10n,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sourceLabel = switch (sourceLang) {
+      'zh' => '中文',
+      'en' => 'English',
+      _ => l10n.translationAutoDetect,
+    };
+    final targetLabel = targetLang == 'zh' ? '中文' : 'English';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionLabel(label: l10n.translationSourceLang),
+        SettingsCard(
+          showDividers: true,
+          children: [
+            _SelectTile(
+              icon: PhosphorIconsRegular.arrowLeft,
+              label: l10n.translationSourceLang,
+              value: sourceLabel,
+              onTap: () => _showSheet(
+                context,
+                title: l10n.translationSourceLang,
+                options: [
+                  (l10n.translationAutoDetect, 'auto',
+                      PhosphorIconsRegular.arrowLeft),
+                  ('中文', 'zh', PhosphorIconsRegular.arrowLeft),
+                  ('English', 'en', PhosphorIconsRegular.arrowLeft),
+                ],
+                current: sourceLang,
+                onSelected: (v) => config.sourceLang.value = v,
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
+            ),
+            _SelectTile(
+              icon: PhosphorIconsRegular.arrowRight,
+              label: l10n.translationTargetLang,
+              value: targetLabel,
+              onTap: () => _showSheet(
+                context,
+                title: l10n.translationTargetLang,
+                options: [
+                  ('中文', 'zh', PhosphorIconsRegular.arrowRight),
+                  ('English', 'en', PhosphorIconsRegular.arrowRight),
+                ],
+                current: targetLang,
+                onSelected: (v) => config.targetLang.value = v,
+              ),
+            ),
+          ],
+        ),
+      ],
+    ).animate().fadeIn(duration: 300.ms, delay: 120.ms).slideY(
+      begin: 0.03,
+      end: 0,
+    );
+  }
+}
 
-          // 模型（仅 OpenAI）
-          if (provider == 'openai') ...[
-            SectionLabel(label: l10n.translationModel),
-            SettingsCard(
+class _TimeoutSection extends StatelessWidget {
+  final TranslationConfig config;
+  final int timeout;
+  final AppLocalizations l10n;
+
+  const _TimeoutSection({
+    required this.config,
+    required this.timeout,
+    required this.l10n,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionLabel(label: l10n.translationTimeout),
+        SettingsCard(
+          children: [
+            SettingsSliderTile(
+              label: l10n.translationTimeout,
+              value: '${timeout}s',
+              current: timeout.toDouble(),
+              min: 5,
+              max: 120,
+              step: 5,
+              onChanged: (v) => config.timeoutSeconds.value = v.toInt(),
+            ),
+          ],
+        ),
+      ],
+    ).animate().fadeIn(duration: 300.ms, delay: 180.ms).slideY(
+      begin: 0.03,
+      end: 0,
+    );
+  }
+}
+
+class _TestSection extends StatelessWidget {
+  final AppLocalizations l10n;
+  final bool isTesting;
+  final String? testResult;
+  final bool? isTestSuccess;
+  final VoidCallback onTest;
+
+  const _TestSection({
+    required this.l10n,
+    required this.isTesting,
+    this.testResult,
+    this.isTestSuccess,
+    required this.onTest,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: isTesting ? null : onTest,
+            icon: isTesting
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(PhosphorIconsRegular.translate, size: 18),
+            label: Text(l10n.translationTest),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  DesignTokens.radius(RadiusSize.md),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (testResult != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildTextField(
-                  controller: useTextEditingController(text: model),
-                  hint: 'gpt-4o-mini',
-                  enabled: true,
-                  obscureText: false,
-                  onChanged: (v) => config.model.value = v,
+                Icon(
+                  isTestSuccess == true
+                      ? PhosphorIconsFill.checkCircle
+                      : PhosphorIconsFill.warningCircle,
+                  size: 14,
+                  color: isTestSuccess == true
+                      ? DesignTokens.success
+                      : DesignTokens.error,
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    testResult!,
+                    style: TextStyle(
+                      color: isTestSuccess == true
+                          ? DesignTokens.success
+                          : DesignTokens.error,
+                      fontSize: 13,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-          ],
-
-          // 源语言
-          SectionLabel(label: l10n.translationSourceLang),
-          SettingsCard(
-            children: [
-              _buildDropdown(
-                context,
-                value: sourceLang,
-                items: const ['auto', 'zh', 'en'],
-                labels: [l10n.translationAutoDetect, '中文', 'English'],
-                onChanged: (v) => config.sourceLang.value = v,
-              ),
-            ],
           ),
-          const SizedBox(height: 12),
+      ],
+    ).animate().fadeIn(duration: 300.ms, delay: 240.ms).slideY(
+      begin: 0.03,
+      end: 0,
+    );
+  }
+}
 
-          // 目标语言
-          SectionLabel(label: l10n.translationTargetLang),
-          SettingsCard(
-            children: [
-              _buildDropdown(
-                context,
-                value: targetLang,
-                items: const ['zh', 'en'],
-                labels: const ['中文', 'English'],
-                onChanged: (v) => config.targetLang.value = v,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
+// ══════════════════════════════════════════════════════════════════════════════
+// Shared widgets
+// ══════════════════════════════════════════════════════════════════════════════
 
-          // 超时
-          SectionLabel(label: l10n.translationTimeout),
-          SettingsCard(
-            children: [
-              _buildTextField(
-                controller: useTextEditingController(text: timeout.toString()),
-                hint: '30',
-                enabled: true,
-                obscureText: false,
-                keyboardType: TextInputType.number,
-                onChanged: (v) {
-                  final sec = int.tryParse(v);
-                  if (sec != null && sec > 0) {
-                    config.timeoutSeconds.value = sec;
-                  }
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
+/// 图标 + 标题 + 当前值 + 右箭头 → 点击弹起底部面板。
+class _SelectTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final VoidCallback onTap;
 
-          // 测试连接
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: isTesting.value ? null : testConnection,
-              icon: isTesting.value
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.translate),
-              label: Text(l10n.translationTest),
-            ),
-          ),
-          if (testResult.value != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
+  const _SelectTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            _iconBox(context, icon, cs),
+            const SizedBox(width: 12),
+            Expanded(
               child: Text(
-                testResult.value!,
+                label,
                 style: TextStyle(
-                  color: testResult.value == l10n.translationTestSuccess
-                      ? Colors.green
-                      : Colors.red[400],
-                  fontSize: 13,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: cs.onSurface,
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDropdown(
-    BuildContext context, {
-    required String value,
-    required List<String> items,
-    required List<String> labels,
-    required ValueChanged<String> onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      initialValue: items.contains(value) ? value : items.first,
-      decoration: const InputDecoration(border: InputBorder.none),
-      items: List.generate(items.length, (i) {
-        return DropdownMenuItem(value: items[i], child: Text(labels[i]));
-      }),
-      onChanged: (v) {
-        if (v != null) onChanged(v);
-      },
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hint,
-    required bool enabled,
-    required bool obscureText,
-    required ValueChanged<String> onChanged,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return TextField(
-      controller: controller,
-      enabled: enabled,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        border: InputBorder.none,
-        hintText: hint,
-        isDense: true,
-      ),
-      onChanged: onChanged,
-    );
-  }
-
-  void _showHelp(BuildContext context, AppLocalizations l10n) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('翻译 API 配置说明'),
-        content: const SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('支持的翻译服务：'),
-              SizedBox(height: 8),
-              Text('• OpenAI：兼容任何 OpenAI API 格式的服务'),
-              Text('  （包括 Azure OpenAI、本地 LLM 等）'),
-              SizedBox(height: 4),
-              Text('• 自定义：通用 REST API，需自行拼接请求'),
-              SizedBox(height: 12),
-              Text('使用提示：'),
-              SizedBox(height: 8),
-              Text('• 建议使用 gpt-4o-mini，性价比高'),
-              Text('• API Key 仅存储在本地设备'),
-              Text('• 翻译仅供阅读参考，质量取决于 API'),
-            ],
-          ),
+            Text(
+              value,
+              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              PhosphorIconsRegular.caretRight,
+              size: 14,
+              color: cs.onSurfaceVariant.withValues(alpha: 0.4),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('知道了'),
+      ),
+    );
+  }
+}
+
+/// 图标 + 标签 + 内联文本输入。
+class _InputTile extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final String hint;
+  final String initialValue;
+  final bool obscureText;
+  final ValueChanged<String> onChanged;
+
+  const _InputTile({
+    required this.icon,
+    required this.label,
+    required this.hint,
+    required this.initialValue,
+    required this.obscureText,
+    required this.onChanged,
+  });
+
+  @override
+  State<_InputTile> createState() => _InputTileState();
+}
+
+class _InputTileState extends State<_InputTile> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void didUpdateWidget(_InputTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialValue != oldWidget.initialValue &&
+        widget.initialValue != _controller.text) {
+      _controller.text = widget.initialValue;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          _iconBox(context, widget.icon, cs),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              obscureText: widget.obscureText,
+              decoration: InputDecoration(
+                labelText: widget.label,
+                hintText: widget.hint,
+                border: InputBorder.none,
+                isDense: true,
+                labelStyle: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: cs.onSurface,
+                ),
+                hintStyle: TextStyle(
+                  fontSize: 14,
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
+              ),
+              style: TextStyle(fontSize: 14, color: cs.onSurface),
+              onChanged: widget.onChanged,
+            ),
           ),
         ],
       ),
     );
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Helpers
+// ══════════════════════════════════════════════════════════════════════════════
+
+Widget _iconBox(BuildContext context, IconData icon, ColorScheme cs) {
+  return Container(
+    width: 32,
+    height: 32,
+    decoration: BoxDecoration(
+      color: cs.primaryContainer,
+      borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.sm)),
+    ),
+    child: Icon(icon, size: 16, color: cs.onPrimaryContainer),
+  );
+}
+
+void _showSheet(
+  BuildContext context, {
+  required String title,
+  required List<(String label, String value, IconData icon)> options,
+  required String current,
+  required ValueChanged<String> onSelected,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    builder: (ctx) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 8),
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Theme.of(ctx)
+                  .colorScheme
+                  .onSurfaceVariant
+                  .withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+          for (final (label, value, icon) in options)
+            InkWell(
+              onTap: () {
+                onSelected(value);
+                Navigator.pop(ctx);
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      icon,
+                      size: 20,
+                      color: value == current
+                          ? Theme.of(ctx).colorScheme.primary
+                          : Theme.of(ctx).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: value == current
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: value == current
+                            ? Theme.of(ctx).colorScheme.primary
+                            : Theme.of(ctx).colorScheme.onSurface,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (value == current)
+                      Icon(
+                        PhosphorIconsFill.checkCircle,
+                        size: 20,
+                        color: Theme.of(ctx).colorScheme.primary,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    ),
+  );
 }
 
 /// 占位，避免编译问题；实际从 l10n 取

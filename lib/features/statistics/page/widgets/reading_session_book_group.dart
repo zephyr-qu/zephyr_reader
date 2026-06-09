@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:zephyr_reader/core/presentation/widgets/confirm_action_dialog.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/utils/format_utils.dart';
 import 'package:zephyr_reader/core/utils/time_formatters.dart';
@@ -60,7 +61,13 @@ class ReadingSessionBookGroup extends StatelessWidget {
               ),
               InkWell(
                 borderRadius: BorderRadius.circular(18),
-                onTap: onDelete,
+                onTap: () => showConfirmActionDialog(
+                  context,
+                  title: l10n.deleteSessionTitle,
+                  content: l10n.deleteSessionConfirm,
+                  confirmLabel: l10n.delete,
+                  onConfirm: onDelete,
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(4),
                   child: Icon(

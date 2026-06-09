@@ -51,17 +51,6 @@ enum ReaderTheme {
   }
 }
 
-/// 阅读器字体大小
-enum ReaderFontSize {
-  small(14),
-  medium(16),
-  large(18),
-  xLarge(20);
-
-  final double size;
-
-  const ReaderFontSize(this.size);
-}
 
 extension ReaderThemeX on ReaderTheme {
   String l10nLabel(AppLocalizations l10n) => switch (this) {
@@ -110,11 +99,11 @@ class ReaderConfig {
     debounce: Duration.zero,
   );
 
-  /// 字体大小（存储为 double，通过 [fontSizeValue] 获取实际 [ReaderFontSize] 尺寸）
+  /// 字体大小
   late final fontSize = persistedDouble(
     prefs,
     SettingsKeys.readerFontSize,
-    ReaderFontSize.medium.size,
+    16.0,
   );
 
   /// 行间距

@@ -79,8 +79,9 @@ class CustomTranslator implements TranslationService {
     if (data is! Map) return null;
 
     // 常见格式 1: translated_text
-    if (data['translated_text'] is String)
+    if (data['translated_text'] is String) {
       return data['translated_text'] as String;
+    }
 
     // 常见格式 2: data.translations[0].translatedText
     if (data['data'] is Map) {

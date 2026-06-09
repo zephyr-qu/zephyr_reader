@@ -1903,9 +1903,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get translationTest => 'Test Connection';
+
   @override
   String get translationTranslateWithApi => 'Translate with API';
-
 
   @override
   String get translationTestSuccess => 'Connection successful';
@@ -1931,4 +1931,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get translationManualPaste => 'Paste Manually';
+
+  @override
+  String get readingMode => 'Reading Mode';
+
+  @override
+  String get themeSwitch => 'Switch Theme';
 }

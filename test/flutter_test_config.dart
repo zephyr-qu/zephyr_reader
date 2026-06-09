@@ -13,7 +13,6 @@ bool _isFfiSupported() {
       Platform.isWindows;
 }
 
-
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   // 确保 Flutter 测试绑定初始化
   TestWidgetsFlutterBinding.ensureInitialized();

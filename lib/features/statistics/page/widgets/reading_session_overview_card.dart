@@ -4,7 +4,7 @@ import 'package:zephyr_reader/core/utils/time_formatters.dart';
 
 /// 阅读会话总览卡片。
 ///
-/// 渐变背景，左侧显示总阅读时长，右侧显示总会话次数。
+/// 左侧显示总阅读时长，右侧显示总会话次数。
 class ReadingSessionOverviewCard extends StatelessWidget {
   final int totalSessions;
   final int totalDuration;
@@ -19,16 +19,16 @@ class ReadingSessionOverviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final cs = theme.colorScheme;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primaryContainer,
-            theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-          ],
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: cs.outlineVariant.withValues(alpha: 0.2),
+          width: 0.5,
         ),
-        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
@@ -41,16 +41,14 @@ class ReadingSessionOverviewCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
-                    color: theme.colorScheme.onPrimaryContainer,
+                    color: cs.onSurface,
                   ),
                 ),
                 Text(
                   l10n.totalReadingTime,
                   style: TextStyle(
                     fontSize: 12,
-                    color: theme.colorScheme.onPrimaryContainer.withValues(
-                      alpha: 0.7,
-                    ),
+                    color: cs.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -64,16 +62,14 @@ class ReadingSessionOverviewCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
-                  color: theme.colorScheme.onPrimaryContainer,
+                  color: cs.onSurface,
                 ),
               ),
               Text(
                 l10n.sessionsCount,
                 style: TextStyle(
                   fontSize: 12,
-                  color: theme.colorScheme.onPrimaryContainer.withValues(
-                    alpha: 0.7,
-                  ),
+                  color: cs.onSurfaceVariant,
                 ),
               ),
             ],

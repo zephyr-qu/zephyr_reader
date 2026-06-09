@@ -10,7 +10,7 @@ class TranslationCache {
   // Linked-hash-map 风格：插入/访问时更新顺序
   final _cache = <String, _CacheEntry>{};
 
-  TranslationCache({int maxEntries = 20}) : _maxEntries = maxEntries;
+  TranslationCache({this._maxEntries = 20});
 
   /// 生成缓存键。
   String _key(int chapterIndex, String content) {

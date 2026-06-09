@@ -30,16 +30,15 @@ class ReaderSearchBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    return Container(
-      color: theme.colorScheme.surfaceContainerHigh,
-      padding: EdgeInsets.only(
-        top: MediaQuery.paddingOf(context).top,
-        left: DesignTokens.spacing(Spacing.sm),
-        right: DesignTokens.spacing(Spacing.sm),
-        bottom: DesignTokens.spacing(Spacing.xs),
-      ),
-      child: SafeArea(
-        bottom: false,
+    return SafeArea(
+      bottom: false,
+      child: Container(
+        color: theme.colorScheme.surfaceContainerHigh,
+          padding: EdgeInsets.only(
+            left: DesignTokens.spacing(Spacing.sm),
+            right: DesignTokens.spacing(Spacing.sm),
+            bottom: DesignTokens.spacing(Spacing.xs),
+          ),
         child: Row(
           children: [
             IconButton(

@@ -68,8 +68,8 @@ Future<CalibrationData?> calibrateSafely({
   required double fontSize,
   required double devicePixelRatio,
   String fontFamily = 'Noto Sans SC',
-  int maxRetries = 5,
-  Duration retryDelay = const Duration(milliseconds: 200),
+  int maxRetries = 2,
+  Duration retryDelay = const Duration(milliseconds: 100),
 }) async {
   for (int attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -80,8 +80,9 @@ Future<CalibrationData?> calibrateSafely({
       );
 
       // 防御性校验：CJK 宽度明显异常 => 字体未就绪
-      final expectedCjk = fontSize * devicePixelRatio;
-      final ratio = result.cjkWidth / expectedCjk;
+      // cjkWidth 是 Flutter 逻辑像素（maxIntrinsicWidth / char count），
+      // fontSize 也是逻辑像素 — CJK 字符宽度 ≈ fontSize，比例应 ~1.0
+      final ratio = result.cjkWidth / fontSize;
       if (ratio < 0.5 || ratio > 1.5) {
         if (attempt < maxRetries) {
           Logging.info(

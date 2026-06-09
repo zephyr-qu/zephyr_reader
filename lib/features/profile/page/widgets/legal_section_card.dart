@@ -13,29 +13,35 @@ class LegalSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...content.map(
-              (text) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(text, style: theme.textTheme.bodyMedium),
-              ),
-            ),
-          ],
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: cs.outlineVariant.withValues(alpha: 0.2),
+          width: 0.5,
         ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: cs.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...content.map(
+            (text) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+            ),
+          ),
+        ],
       ),
     );
   }
