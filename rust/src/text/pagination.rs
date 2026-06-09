@@ -635,4 +635,85 @@ mod tests {
             assert!(!page.unwrap().content.is_empty(), "page {} content should not be empty", i);
         }
     }
+
+    #[test]
+    fn test_letter_spacing_reduces_chars_per_line() {
+        let content = "ABCDEFGHIJ".to_string();
+        let mut config_no = TypesetConfig::default();
+        config_no.font_size = 20;
+        config_no.page_width = 100;
+        config_no.page_height = 800;
+        config_no.letter_spacing = 0.0;
+
+        let mut config_yes = TypesetConfig::default();
+        config_yes.font_size = 20;
+        config_yes.page_width = 100;
+        config_yes.page_height = 800;
+        config_yes.letter_spacing = 6.0;
+
+        let lines_no = PageStreamer::new(content.clone(), config_no).total_lines();
+        let lines_yes = PageStreamer::new(content, config_yes).total_lines();
+
+        assert!(
+            lines_yes > lines_no,
+            "letter_spacing=6 should produce more lines than letter_spacing=0 \
+             (got {} vs {})",
+            lines_yes,
+            lines_no,
+        );
+    }
+
+    #[test]
+    fn test_punctuation_squeeze_reduces_lines() {
+        let content = "你好！！！\n你好！！！\n你好！！！\n你好！！！".to_string();
+        let mut config_no = TypesetConfig::default();
+        config_no.font_size = 20;
+        config_no.page_width = 100;
+        config_no.page_height = 600;
+        config_no.punctuation_squeeze = false;
+
+        let mut config_yes = TypesetConfig::default();
+        config_yes.font_size = 20;
+        config_yes.page_width = 100;
+        config_yes.page_height = 600;
+        config_yes.punctuation_squeeze = true;
+
+        let lines_no = PageStreamer::new(content.clone(), config_no).total_lines();
+        let lines_yes = PageStreamer::new(content, config_yes).total_lines();
+
+        assert!(
+            lines_yes <= lines_no,
+            "punctuation_squeeze=true should not produce more lines than squeeze=false \
+             (got {} vs {})",
+            lines_yes,
+            lines_no,
+        );
+    }
+
+    #[test]
+    fn test_paragraph_spacing_inserts_blank_lines() {
+        let content = "第一段\n第二段\n第三段".to_string();
+        let mut config_no = TypesetConfig::default();
+        config_no.font_size = 20;
+        config_no.page_width = 400;
+        config_no.page_height = 800;
+        config_no.paragraph_spacing = 0.0;
+
+        let mut config_yes = TypesetConfig::default();
+        config_yes.font_size = 20;
+        config_yes.page_width = 400;
+        config_yes.page_height = 800;
+        config_yes.paragraph_spacing = 1.0;
+
+        let lines_no = PageStreamer::new(content.clone(), config_no).total_lines();
+        let lines_yes = PageStreamer::new(content, config_yes).total_lines();
+
+        assert!(
+            lines_yes > lines_no,
+            "paragraph_spacing=1.0 should produce more lines than paragraph_spacing=0 \
+             (got {} vs {})",
+            lines_yes,
+            lines_no,
+        );
+    }
 }

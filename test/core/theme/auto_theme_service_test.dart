@@ -50,7 +50,9 @@ void main() {
       });
 
       test('disableAutoTheme 应禁用并重置为系统主题', () async {
-        when(() => mockPrefs.getBool('auto_theme_enabled')).thenReturn(true);
+        // 先启用，确保信号值与目标值不同，触发持久化写入
+        service.autoThemeEnabled.value = true;
+        await Future<void>.delayed(const Duration(milliseconds: 200));
 
         await service.disableAutoTheme();
 

@@ -28,8 +28,17 @@ class FontRepository {
   final SharedPreferences _prefs;
   final Completer<void> _ready = Completer<void>();
 
-  FontRepository(this._prefs) {
-    _initialize();
+  FontRepository(this._prefs);
+
+  @PostConstruct()
+  Future<void> init() async {
+    try {
+      await loadFonts();
+      await _registerFonts();
+      isLoaded.value = true;
+    } finally {
+      _ready.complete();
+    }
   }
 
   late final _currentFontId = persistedNullableString(
@@ -49,16 +58,6 @@ class FontRepository {
   /// 已注册到 Flutter 的字体系列名
   final _registeredFamilies = <String>{};
 
-  /// 初始化字体服务
-  Future<void> _initialize() async {
-    try {
-      await loadFonts();
-      await _registerFonts();
-      isLoaded.value = true;
-    } finally {
-      _ready.complete();
-    }
-  }
 
   /// 获取当前字体的系列名（用于 TextStyle.fontFamily）
   String get currentFontFamily {

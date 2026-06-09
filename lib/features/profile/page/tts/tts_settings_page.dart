@@ -12,8 +12,6 @@ import 'package:zephyr_reader/features/profile/application/tts_settings_view_mod
 import 'package:zephyr_reader/features/profile/page/tts/select_item_tile.dart';
 import 'package:zephyr_reader/features/profile/page/tts/tts_preview_card.dart';
 import 'package:zephyr_reader/features/profile/page/tts/playback_section.dart';
-import 'package:zephyr_reader/features/profile/page/tts/bilingual_section.dart';
-import 'package:zephyr_reader/features/profile/page/tts/behavior_section.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// TTS 语音朗读设置页面。
@@ -61,9 +59,6 @@ class TtsSettingsPage extends HookWidget {
           const SizedBox(height: 24),
           PlaybackSection(vm: vm, tts: tts, l10n: l10n),
           const SizedBox(height: 24),
-          BilingualSection(vm: vm, l10n: l10n),
-          const SizedBox(height: 24),
-          BehaviorSection(vm: vm, l10n: l10n),
         ],
       ),
     );
@@ -183,14 +178,14 @@ class TtsSettingsPage extends HookWidget {
                 ),
                 SelectItemTile(
                   label: l10n.ttsEnglishVoice,
-                  value: 'Google US English',
+                  value: l10n.systemDefault,
                   onTap: () {
                     _showVoicePicker(context, l10n, tts, 'en');
                   },
                 ),
                 SelectItemTile(
                   label: l10n.ttsChineseVoice,
-                  value: '讯飞小燕',
+                  value: l10n.systemDefault,
                   onTap: () {
                     _showVoicePicker(context, l10n, tts, 'zh');
                   },

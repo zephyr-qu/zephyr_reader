@@ -9,7 +9,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 import '../../helpers/integration_test_helper.dart';
 
@@ -36,18 +35,25 @@ String _longParagraph(String base, {int repeat = 5}) {
   return List.filled(repeat, base).join('\n\n');
 }
 
+/// UTF-8 BOM 字符，确保 chardetng 检测 UTF-8
+const _utf8Bom = '\uFEFF';
+
+/// 用于区分 CJK 和混合页面数的窄页面配置
+TypesetConfig _cjkCompareConfig() {
+  return _makeConfig(fontSize: 18, width: 600, height: 500);
+}
+
 void main() {
-  late String tempDir;
   late String mixedFilePath;
   late String pureFilePath;
   late String mixedBookId;
   late String pureBookId;
 
   setUpAll(() async {
-    tempDir = await setupTestStorage(label: 'autospacing');
+    await setupTestStorage(label: 'autospacing');
 
-    // 混合中英文 fixture — 重复多次以支持多页分页测试
-    const mixedBase = '''第一章 混合篇章
+    // 混合中英文 fixture — BOM 前缀确保 chardetng 检测 UTF-8
+    const mixedBase = '''$_utf8Bom第一章 混合篇章
 
 Morning light streamed through the window as 他睁开双眼，迎接新的一天。
 这座城市充满了 contrasts and surprises. 古老的寺庙 stood alongside 摩天大楼,
@@ -80,8 +86,8 @@ of cultural fusion, 传统与现代交相辉映的美。
     mixedFilePath = mixedParse.$2;
     mixedBookId = mixedParse.$1.bookInfo.bookId;
 
-    // 纯中文 fixture（长度相近）
-    const pureBase = '''第一章 纯中文篇章
+    // 纯中文 fixture（同样添加 BOM）
+    const pureBase = '''$_utf8Bom第一章 纯中文篇章
 
 清晨的阳光透过窗户洒进房间，他睁开双眼迎接新的一天。这座城市充满了古老与现代的交融，古老的寺庙旁边矗立着现代化的高楼大厦，传统的茶馆里飘散着清新的茶香。
 
@@ -126,7 +132,7 @@ of cultural fusion, 传统与现代交相辉映的美。
         chapterIndex: 0,
         config: largeFont,
       );
-      expect(smallPages.length, greaterThan(largePages.length));
+      expect(largePages.length, greaterThan(smallPages.length));
     });
 
     test('page content is non-empty at different font sizes', () async {
@@ -148,7 +154,7 @@ of cultural fusion, 传统与现代交相辉映的美。
 
   group('CJK vs mixed content', () {
     test('pure CJK and mixed content produce different page layout', () async {
-      final cfg = _makeConfig(fontSize: 18);
+      final cfg = _cjkCompareConfig();
       final mixedPages = await core_api.paginateAllContent(
         filePath: mixedFilePath,
         chapterIndex: 0,
@@ -159,7 +165,6 @@ of cultural fusion, 传统与现代交相辉映的美。
         chapterIndex: 0,
         config: cfg,
       );
-      // Different script densities → different page count
       expect(mixedPages.length, isNot(equals(purePages.length)));
     });
   });
@@ -174,7 +179,6 @@ of cultural fusion, 传统与现代交相辉映的美。
         config: _makeConfig(fontSize: 16),
       );
       final allText = pages.map((p) => p.content).join('');
-      // Strings actually present in the fixture
       expect(allText, contains('摩天大楼'));
       expect(allText, contains('茶香'));
       expect(allText, contains('cultural fusion'));
@@ -188,7 +192,6 @@ of cultural fusion, 传统与现代交相辉映的美。
         config: _makeConfig(fontSize: 16),
       );
       final allText = pages.map((p) => p.content).join('');
-      // CJK bigrams that should NOT be split by a space
       expect(allText, contains('城市'));
       expect(allText, contains('故事'));
       expect(allText, contains('清晨'));

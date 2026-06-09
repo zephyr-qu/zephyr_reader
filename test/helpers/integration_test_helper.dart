@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/init.dart';
+import 'package:zephyr_reader/src/rust/frb_generated.dart';
 import 'package:zephyr_reader/src/rust/domain/types/metadata.dart';
 
 /// 当前活动的临时目录，由 [setupTestStorage] 创建。
@@ -102,12 +103,21 @@ Future<void> deleteTestBook(String bookId) async {
     // 删除失败不影响后续清理
   }
 }
-
-/// 检查 FFI 是否可用（宿主平台 + 已初始化）。
+/// 检查 FFI 是否可用（宿主平台 + RustLib 已初始化）。
+///
+/// 如果 Rust 原生库未加载（如 `flutter test` 无原生编译），返回 false。
+/// 通过尝试创建无意义临时调用来探测 FFI 通道是否通畅。
 bool isFfiAvailable() {
-  return Platform.isWindows ||
-      Platform.isMacOS ||
-      Platform.isLinux ||
-      Platform.isAndroid ||
-      Platform.isIOS;
+  if (!(Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+    return false;
+  }
+  // 通过尝试访问 FRB 内部状态来验证初始化
+  // BaseEntrypoint 在未初始化时 _state 会抛出 StateError
+  try {
+    // ignore: invalid_use_of_internal_member
+    RustLib.instance.api; // throws StateError if not initialized
+    return true;
+  } catch (_) {
+    return false;
+  }
 }

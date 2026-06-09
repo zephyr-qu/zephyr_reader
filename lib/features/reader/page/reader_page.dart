@@ -502,7 +502,8 @@ class ReaderPage extends HookWidget {
                           !b.showSelection &&
                           !b.showSearch &&
                           !b.showCatalog &&
-                          !b.showBookmarks)
+                          !b.showBookmarks &&
+                          b.currentReadingMode != ReadingMode.pageTurn)
                         TapZone(
                           tapLayout: tapLayout,
                           pageIndex: vm.pageIndex.value,

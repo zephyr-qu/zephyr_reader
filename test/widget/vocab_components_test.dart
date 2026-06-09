@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/l10n/app_localizations_en.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_status_chip.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_list_item_tile.dart';
@@ -17,6 +18,8 @@ final testL10n = AppLocalizationsEn();
 
 Widget wrapWithTheme(Widget child) {
   return MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue)),
     home: Scaffold(body: child),
   );

@@ -146,8 +146,8 @@ void main() {
   });
 
   group('常量', () {
-    test('chineseFont 应为 Noto Sans SC', () {
-      expect(ReaderRenderConfig.chineseFont, equals('Noto Sans SC'));
+    test('chineseFont 应为 Noto Serif SC', () {
+      expect(ReaderRenderConfig.chineseFont, equals('Noto Serif SC'));
     });
 
     test('latinFont 应为 Roboto', () {

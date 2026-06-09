@@ -12,7 +12,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../data/repositories/rust_reader_repository.dart';
 import 'bilingual_renderer.dart';
-import 'page_turn_painter.dart';
+import 'page_curl_widget.dart';
 import 'paginated_renderer.dart';
 import 'reader_render_config.dart';
 import 'scroll_mode_renderer.dart';
@@ -288,6 +288,42 @@ class ReaderContent extends HookWidget {
       });
       return null;
     }, [jumpToCharOffset, readingMode, bookId, chapterId, content]);
+    // Must call useRef unconditionally (hook ordering rule).
+    final prevPageIndex = useRef(pageIndex);
+
+    // pageTurn mode: bypass AnimatedSwitcher, use interactive PageCurlWidget
+    if (readingMode == ReadingMode.pageTurn && !isLoading && error == null && content.isNotEmpty) {
+      final descriptors = repo.descriptors;
+      Widget pageBuilder(int idx) {
+        final startOffset = (descriptors != null && idx < descriptors.length)
+            ? descriptors[idx].startOffset
+            : 0;
+        return buildSinglePageContent(
+          context: context,
+          pageIndex: idx,
+          startOffset: startOffset,
+          repo: repo,
+          config: renderConfig,
+          highlights: highlights,
+          writingDirection: writingDirection,
+          onHighlightTap: onHighlightTap,
+          onSelectionChanged: onSelectionChanged,
+          onSelectionGlobalPosition: onSelectionGlobalPosition,
+        );
+      }
+
+      return PageCurlWidget(
+        pageIndex: pageIndex,
+        totalPages: totalPages,
+        pageBuilder: pageBuilder,
+        onPageChanged: (index) {
+          onPageChanged?.call(index);
+          if (descriptors != null && index < descriptors.length) {
+            onPositionChanged?.call(descriptors[index].startOffset);
+          }
+        },
+      );
+    }
 
     final contentWidget = _buildContent(
       context,
@@ -303,7 +339,6 @@ class ReaderContent extends HookWidget {
       renderConfig,
     );
 
-    final prevPageIndex = useRef(pageIndex);
     final isForward = pageIndex >= prevPageIndex.value;
     prevPageIndex.value = pageIndex;
 
@@ -347,16 +382,8 @@ class ReaderContent extends HookWidget {
                     ),
                 child: child,
               );
-            case ReadingMode.scroll:
+            default:
               return FadeTransition(opacity: animation, child: child);
-            case ReadingMode.bilingual:
-              return FadeTransition(opacity: animation, child: child);
-            case ReadingMode.pageTurn:
-              return PageTurnTransitionBuilder(
-                animation: animation,
-                isForward: isForward,
-                child: child,
-              );
           }
         },
         child: KeyedSubtree(key: contentKey, child: contentWidget),

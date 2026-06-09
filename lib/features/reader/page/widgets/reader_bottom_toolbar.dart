@@ -78,11 +78,13 @@ class ReaderBottomToolbar extends StatelessWidget {
                     tooltip: l10n.settings,
                   ),
                   _BarButton(
-                    icon: isTtsPlaying
-                        ? PhosphorIconsLight.speakerHigh
-                        : PhosphorIconsLight.speakerNone,
+                    icon: isTtsPaused
+                        ? PhosphorIconsLight.pause
+                        : isTtsPlaying
+                            ? PhosphorIconsLight.speakerHigh
+                            : PhosphorIconsLight.speakerNone,
                     onTap: onTtsToggle,
-                    color: isTtsPlaying
+                    color: isTtsPlaying || isTtsPaused
                         ? readerTheme.ttsActiveColor
                         : textColor,
                     tooltip: l10n.readAloud,
