@@ -113,7 +113,7 @@ class ReaderContent extends HookWidget {
     final textColor = _getTextColor(themeMode);
     final backgroundColor = _getBackgroundColor(themeMode);
     final bilingualPairs = useState<List<BilingualHighlightPair>>([]);
-    final disableAnim = MediaQuery.of(context).disableAnimations;
+    final disableAnim = MediaQuery.disableAnimationsOf(context);
 
     final renderConfig = useMemoized(
       () => ReaderRenderConfig(
@@ -149,17 +149,18 @@ class ReaderContent extends HookWidget {
     );
 
     useEffect(() {
-      if (readingMode == ReadingMode.pagination &&
-          pageController.hasClients &&
-          !disableAnim) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (readingMode != ReadingMode.pagination || disableAnim) {
+        return null;
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (pageController.hasClients) {
           pageController.animateToPage(
             pageIndex,
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
           );
-        });
-      }
+        }
+      });
       return null;
     }, [pageIndex, readingMode, disableAnim]);
 

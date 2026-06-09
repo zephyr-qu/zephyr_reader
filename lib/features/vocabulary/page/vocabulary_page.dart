@@ -7,6 +7,7 @@ import 'package:zephyr_reader/features/vocabulary/application/vocabulary_view_mo
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_word_list_view.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_stats_row.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 生词本页面。
 ///
@@ -18,6 +19,7 @@ class VocabularyPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final VocabularyViewModel vm = useMemoized(() => VocabularyViewModel());
+    final l10n = AppLocalizations.of(context)!;
 
     // Load on mount
     useEffect(() {
@@ -48,14 +50,14 @@ class VocabularyPage extends HookWidget {
         leading: IconButton(
           icon: const Icon(PhosphorIconsRegular.caretLeft),
           onPressed: () => context.pop(),
-          tooltip: '返回',
+          tooltip: l10n.back,
         ),
-        title: const Text('生词本'),
+        title: Text(l10n.vocabularyBook),
         actions: [
           IconButton(
             icon: const Icon(PhosphorIconsRegular.arrowsClockwise),
             onPressed: () => vm.refresh(),
-            tooltip: '刷新',
+            tooltip: l10n.refresh,
           ),
         ],
       ),

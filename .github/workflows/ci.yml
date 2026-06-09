@@ -30,9 +30,116 @@ jobs:
         working-directory: rust
       - run: cargo test
         working-directory: rust
-      - run: cargo bench -- --output-format bencher
+      - name: Restore benchmark baseline
+        id: bench-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: rust/.bench-baseline
+          key: bench-${{ github.base_ref || github.ref_name }}-${{ hashFiles('rust/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: |
+            bench-${{ github.base_ref || github.ref_name }}-${{ hashFiles('rust/Cargo.lock') }}-
+            bench-main-${{ hashFiles('rust/Cargo.lock') }}-
+            bench-main-
+
+      - name: Run benchmarks
+        run: cargo bench -- --output-format bencher > target/bench_output.txt 2>&1 || true
         working-directory: rust
-        continue-on-error: true
+
+      - name: Parse and compare benchmark results
+        run: |
+          python3 << 'PYEOF'
+          import json, os, re, sys
+
+          BENCH_DIR = ".bench-baseline"
+          CUR_FILE = os.path.join(BENCH_DIR, "current.json")
+          PREV_FILE = os.path.join(BENCH_DIR, "previous.json")
+          os.makedirs(BENCH_DIR, exist_ok=True)
+
+          # Parse bencher output
+          try:
+              with open("target/bench_output.txt") as f:
+                  data = f.read()
+          except FileNotFoundError:
+              print("No benchmark output found. Skipping.")
+              sys.exit(0)
+
+          results = {}
+          for m in re.finditer(r'test\s+(\S+)\s+...\s*bench:\s*(\d+)\s+ns/iter', data):
+              results[m.group(1)] = int(m.group(2))
+
+          if not results:
+              print("No benchmark results parsed. Skipping comparison.")
+              sys.exit(0)
+
+          with open(CUR_FILE, "w") as f:
+              json.dump(results, f, indent=2)
+          print(f"Parsed {len(results)} benchmark results.")
+
+          # Compare with baseline
+          if not os.path.exists(PREV_FILE):
+              with open(PREV_FILE, "w") as f:
+                  json.dump(results, f, indent=2)
+              print("No previous baseline. Saved current as baseline.")
+              sys.exit(0)
+
+          with open(PREV_FILE) as f:
+              prev = json.load(f)
+
+          regressions = []
+          for test, curr_val in sorted(results.items()):
+              prev_val = prev.get(test)
+              if prev_val is None:
+                  continue
+              ratio = curr_val / prev_val
+              delta = (ratio - 1) * 100
+              if ratio > 1.05:
+                  regressions.append((test, prev_val, curr_val, delta))
+
+          # Print for step log
+          print()
+          if regressions:
+              print("## Performance Regressions (>5%)")
+              for test, prev_val, curr_val, delta in regressions:
+                  print(f"  - {test}")
+                  print(f"    {prev_val} -> {curr_val} ns/iter (+{delta:.1f}%)")
+          else:
+              print("All benchmarks within 5% threshold.")
+
+          # Write step summary
+          summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary:
+              with open(summary, "a") as f:
+                  f.write("## 📊 Benchmark Results\n\n")
+                  if regressions:
+                      f.write("### ❌ Regressions (>5%)\n\n")
+                      f.write("| Test | Before | After | Change |\n")
+                      f.write("|---|---|---|---|\n")
+                      for test, prev_val, curr_val, delta in regressions:
+                          test_short = test.replace("_", "\\_").replace("/", "/")
+                          f.write(f"| {test_short} | {prev_val} ns/iter | {curr_val} ns/iter | **+{delta:.1f}%** |\n")
+                      f.write("\n")
+                  else:
+                      f.write("✅ All benchmarks within 5% threshold.\n\n")
+                  f.write("| Test | ns/iter |\n|---|---|\n")
+                  for test, val in sorted(results.items())[:30]:
+                      test_short = test.replace("_", "\\_").replace("/", "/")
+                      f.write(f"| {test_short} | {val} |\n")
+                  f.write("\n")
+
+          # Exit with error if regressions found
+          if regressions:
+              print("::error::Performance regressions detected (>5%)")
+              sys.exit(1)
+          PYEOF
+        working-directory: rust
+
+      - name: Save benchmark baseline
+        if: github.event_name == 'push' && steps.bench-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: rust/.bench-baseline
+          key: bench-${{ github.ref_name }}-${{ hashFiles('rust/Cargo.lock') }}-${{ github.sha }}
+
       - run: cargo fmt --all -- --check
         working-directory: rust
 

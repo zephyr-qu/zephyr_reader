@@ -60,20 +60,22 @@ void main() {
       when(() => repo.getPageContent(any())).thenReturn(null);
 
       await tester.pumpWidget(
-        _buildInApp(Builder(
-          builder: (context) => buildSinglePageContent(
-            context: context,
-            pageIndex: 0,
-            startOffset: 0,
-            repo: repo,
-            config: _config(),
-            highlights: const [],
-            writingDirection: WritingDirection.horizontal,
-            onHighlightTap: null,
-            onSelectionChanged: null,
-            onSelectionGlobalPosition: null,
+        _buildInApp(
+          Builder(
+            builder: (context) => buildSinglePageContent(
+              context: context,
+              pageIndex: 0,
+              startOffset: 0,
+              repo: repo,
+              config: _config(),
+              highlights: const [],
+              writingDirection: WritingDirection.horizontal,
+              onHighlightTap: null,
+              onSelectionChanged: null,
+              onSelectionGlobalPosition: null,
+            ),
           ),
-        )),
+        ),
       );
 
       expect(find.byType(SizedBox), findsOneWidget);
@@ -87,20 +89,22 @@ void main() {
       when(() => repo.getPageContent(0)).thenReturn('Hello world.');
 
       await tester.pumpWidget(
-        _buildInApp(Builder(
-          builder: (context) => buildSinglePageContent(
-            context: context,
-            pageIndex: 0,
-            startOffset: 0,
-            repo: repo,
-            config: _config(),
-            highlights: const [],
-            writingDirection: WritingDirection.horizontal,
-            onHighlightTap: null,
-            onSelectionChanged: null,
-            onSelectionGlobalPosition: null,
+        _buildInApp(
+          Builder(
+            builder: (context) => buildSinglePageContent(
+              context: context,
+              pageIndex: 0,
+              startOffset: 0,
+              repo: repo,
+              config: _config(),
+              highlights: const [],
+              writingDirection: WritingDirection.horizontal,
+              onHighlightTap: null,
+              onSelectionChanged: null,
+              onSelectionGlobalPosition: null,
+            ),
           ),
-        )),
+        ),
       );
 
       expect(find.byType(SelectableText), findsOneWidget);
@@ -111,20 +115,22 @@ void main() {
       when(() => repo.getPageContent(0)).thenReturn('竖排\n测试');
 
       await tester.pumpWidget(
-        _buildInApp(Builder(
-          builder: (context) => buildSinglePageContent(
-            context: context,
-            pageIndex: 0,
-            startOffset: 0,
-            repo: repo,
-            config: _config(),
-            highlights: const [],
-            writingDirection: WritingDirection.vertical,
-            onHighlightTap: null,
-            onSelectionChanged: null,
-            onSelectionGlobalPosition: null,
+        _buildInApp(
+          Builder(
+            builder: (context) => buildSinglePageContent(
+              context: context,
+              pageIndex: 0,
+              startOffset: 0,
+              repo: repo,
+              config: _config(),
+              highlights: const [],
+              writingDirection: WritingDirection.vertical,
+              onHighlightTap: null,
+              onSelectionChanged: null,
+              onSelectionGlobalPosition: null,
+            ),
           ),
-        )),
+        ),
       );
 
       final directionalities = tester.widgetList<Directionality>(
@@ -138,20 +144,22 @@ void main() {
       when(() => repo.getPageContent(0)).thenReturn('');
 
       await tester.pumpWidget(
-        _buildInApp(Builder(
-          builder: (context) => buildSinglePageContent(
-            context: context,
-            pageIndex: 0,
-            startOffset: 0,
-            repo: repo,
-            config: _config(),
-            highlights: const [],
-            writingDirection: WritingDirection.horizontal,
-            onHighlightTap: null,
-            onSelectionChanged: null,
-            onSelectionGlobalPosition: null,
+        _buildInApp(
+          Builder(
+            builder: (context) => buildSinglePageContent(
+              context: context,
+              pageIndex: 0,
+              startOffset: 0,
+              repo: repo,
+              config: _config(),
+              highlights: const [],
+              writingDirection: WritingDirection.horizontal,
+              onHighlightTap: null,
+              onSelectionChanged: null,
+              onSelectionGlobalPosition: null,
+            ),
           ),
-        )),
+        ),
       );
 
       expect(find.byType(SelectableText), findsOneWidget);
@@ -163,57 +171,67 @@ void main() {
   // ========================
 
   group('PaginatedModeRenderer', () {
-    testWidgets('pageTurn 模式+descriptors 走 _buildPageTurn 分支',
-        (tester) async {
+    testWidgets('pageTurn 模式+descriptors 走 _buildPageTurn 分支', (tester) async {
       final repo = _MockRepo();
       when(() => repo.descriptors).thenReturn([
         const PageDescriptor(
-          pageIndex: 0, startOffset: 0, endOffset: 10, isLastPage: false,
+          pageIndex: 0,
+          startOffset: 0,
+          endOffset: 10,
+          isLastPage: false,
         ),
       ]);
       when(() => repo.getPageContent(0)).thenReturn('Page content.');
 
-      await tester.pumpWidget(_buildInApp(
-        PaginatedModeRenderer(
-          config: _config(),
-          pageController: PageController(),
-          repo: repo,
-          bookId: 'test_book',
-          chapterId: 0,
-          pageIndex: 0,
-          content: 'Page content.',
-          highlights: const [],
-          readingMode: ReadingMode.pageTurn,
+      await tester.pumpWidget(
+        _buildInApp(
+          PaginatedModeRenderer(
+            config: _config(),
+            pageController: PageController(),
+            repo: repo,
+            bookId: 'test_book',
+            chapterId: 0,
+            pageIndex: 0,
+            content: 'Page content.',
+            highlights: const [],
+            readingMode: ReadingMode.pageTurn,
+          ),
         ),
-      ));
+      );
 
       expect(find.byType(PageView), findsNothing);
       expect(find.byType(SelectableText), findsOneWidget);
     });
 
-    testWidgets('非 pageTurn 模式+descriptors 渲染 PageView.builder',
-        (tester) async {
+    testWidgets('非 pageTurn 模式+descriptors 渲染 PageView.builder', (
+      tester,
+    ) async {
       final repo = _MockRepo();
       when(() => repo.descriptors).thenReturn([
         const PageDescriptor(
-          pageIndex: 0, startOffset: 0, endOffset: 10, isLastPage: false,
+          pageIndex: 0,
+          startOffset: 0,
+          endOffset: 10,
+          isLastPage: false,
         ),
       ]);
       when(() => repo.getPageContent(0)).thenReturn('Page content.');
 
-      await tester.pumpWidget(_buildInApp(
-        PaginatedModeRenderer(
-          config: _config(),
-          pageController: PageController(),
-          repo: repo,
-          bookId: 'test_book',
-          chapterId: 0,
-          pageIndex: 0,
-          content: '',
-          highlights: const [],
-          readingMode: ReadingMode.pagination,
+      await tester.pumpWidget(
+        _buildInApp(
+          PaginatedModeRenderer(
+            config: _config(),
+            pageController: PageController(),
+            repo: repo,
+            bookId: 'test_book',
+            chapterId: 0,
+            pageIndex: 0,
+            content: '',
+            highlights: const [],
+            readingMode: ReadingMode.pagination,
+          ),
         ),
-      ));
+      );
 
       expect(find.byType(PageView), findsOneWidget);
     });
@@ -223,47 +241,53 @@ void main() {
       when(() => repo.descriptors).thenReturn(null);
       when(() => repo.currentPages).thenReturn([
         PageInfo(
-          pageIndex: 0, content: 'Old page content.', startOffset: 0, endOffset: 18,
+          pageIndex: 0,
+          content: 'Old page content.',
+          startOffset: 0,
+          endOffset: 18,
         ),
       ]);
 
-      await tester.pumpWidget(_buildInApp(
-        PaginatedModeRenderer(
-          config: _config(),
-          pageController: PageController(),
-          repo: repo,
-          bookId: 'test_book',
-          chapterId: 0,
-          pageIndex: 0,
-          content: '',
-          highlights: const [],
-          readingMode: ReadingMode.pagination,
+      await tester.pumpWidget(
+        _buildInApp(
+          PaginatedModeRenderer(
+            config: _config(),
+            pageController: PageController(),
+            repo: repo,
+            bookId: 'test_book',
+            chapterId: 0,
+            pageIndex: 0,
+            content: '',
+            highlights: const [],
+            readingMode: ReadingMode.pagination,
+          ),
         ),
-      ));
+      );
 
       expect(find.byType(PageView), findsOneWidget);
       expect(find.text('Old page content.'), findsOneWidget);
     });
 
-    testWidgets('无 descriptors 无 currentPages 走 fallback 分页',
-        (tester) async {
+    testWidgets('无 descriptors 无 currentPages 走 fallback 分页', (tester) async {
       final repo = _MockRepo();
       when(() => repo.descriptors).thenReturn(null);
       when(() => repo.currentPages).thenReturn(null);
 
-      await tester.pumpWidget(_buildInApp(
-        PaginatedModeRenderer(
-          config: _config(),
-          pageController: PageController(),
-          repo: repo,
-          bookId: 'test_book',
-          chapterId: 0,
-          pageIndex: 0,
-          content: 'A long text for fallback pagination in the test.',
-          highlights: const [],
-          readingMode: ReadingMode.pagination,
+      await tester.pumpWidget(
+        _buildInApp(
+          PaginatedModeRenderer(
+            config: _config(),
+            pageController: PageController(),
+            repo: repo,
+            bookId: 'test_book',
+            chapterId: 0,
+            pageIndex: 0,
+            content: 'A long text for fallback pagination in the test.',
+            highlights: const [],
+            readingMode: ReadingMode.pagination,
+          ),
         ),
-      ));
+      );
 
       expect(find.byType(PageView), findsOneWidget);
       expect(find.byType(SelectableText), findsOneWidget);

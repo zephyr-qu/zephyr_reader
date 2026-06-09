@@ -66,7 +66,6 @@ void main() {
       expect(vocabService.isVocabularyWord('ABANDON'), isTrue);
       expect(vocabService.isVocabularyWord('Abandon'), isTrue);
     });
-
   });
 
   group('E2E - 书架到阅读流程', () {

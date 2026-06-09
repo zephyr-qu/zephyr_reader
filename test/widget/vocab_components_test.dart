@@ -64,12 +64,10 @@ void main() {
 
   group('VocabStatusChip', () {
     for (final status in VocabStatus.values) {
-      testWidgets('渲染 ${vocabStatusLabel(status, testL10n)} 标签', (tester) async {
-        await tester.pumpWidget(
-          wrapWithTheme(
-            VocabStatusChip(status: status),
-          ),
-        );
+      testWidgets('渲染 ${vocabStatusLabel(status, testL10n)} 标签', (
+        tester,
+      ) async {
+        await tester.pumpWidget(wrapWithTheme(VocabStatusChip(status: status)));
 
         expect(find.text(vocabStatusLabel(status, testL10n)), findsOneWidget);
       });

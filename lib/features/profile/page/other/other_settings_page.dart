@@ -46,19 +46,18 @@ class OtherSettingsPage extends HookWidget {
     return Scaffold(
       appBar: SettingsAppBar(
         title: l10n.otherSettings,
-        fontWeight: FontWeight.w800,
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
         children: [
           _buildBehaviorSection(context, cs, l10n, localeLabel, vm),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           _buildExperimentalSection(context, cs, l10n, vm),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           LegalSection(appVersion: appVersion),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           _buildDangerSection(context, cs, l10n, vm),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           VersionFooter(
             appVersion: appVersion,
             checkUpdateLabel: l10n.checkUpdate,

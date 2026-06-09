@@ -1876,9 +1876,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get translationTest => '测试连接';
+
   @override
   String get translationTranslateWithApi => '使用API翻译';
-
 
   @override
   String get translationTestSuccess => '连接测试成功';
@@ -1904,4 +1904,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get translationManualPaste => '手动粘贴';
+
+  @override
+  String get readingMode => '阅读模式';
+
+  @override
+  String get themeSwitch => '主题切换';
 }

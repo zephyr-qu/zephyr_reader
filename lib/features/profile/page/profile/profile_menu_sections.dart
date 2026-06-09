@@ -2,122 +2,157 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_navigation_tile.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
-import 'package:zephyr_reader/features/profile/page/profile/profile_menu_widgets.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+/// 个人中心菜单区域。
 class ProfileMenuSections extends StatelessWidget {
   const ProfileMenuSections({super.key});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final brightness = Theme.of(context).brightness;
+
     final sections = [
-      MenuSectionData(l10n.sectionStudyMgmt, [
-        MenuItemData(
-          PhosphorIconsRegular.bookmarkSimple,
-          l10n.vocabularyBook,
-          MenuItemSemantic.education,
-          () => context.push(RoutePaths.vocabulary),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.bookOpen,
-          l10n.learningNotes,
-          MenuItemSemantic.education,
-          () => context.push(RoutePaths.learningNotes),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.clockCounterClockwise,
-          l10n.readingSessions,
-          MenuItemSemantic.reading,
-          () => context.push(RoutePaths.readingSessions),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.hardDrives,
-          l10n.storageSync,
-          MenuItemSemantic.success,
-          () => context.push(RoutePaths.storageSync),
-        ),
-      ]),
-      MenuSectionData(l10n.sectionReadingExp, [
-        MenuItemData(
-          PhosphorIconsRegular.waveform,
-          l10n.ttsSettings,
-          MenuItemSemantic.info,
-          () => context.push(RoutePaths.ttsSettings),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.textB,
-          l10n.typographySettings,
-          MenuItemSemantic.typography,
-          () => context.push(RoutePaths.typographySettings),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.bookOpen,
-          l10n.dictionary,
-          MenuItemSemantic.primary,
-          () => context.push(RoutePaths.dictionarySettings),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.translate,
-          l10n.translationApi,
-          MenuItemSemantic.info,
-          () => context.push(RoutePaths.translationApi),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.palette,
-          l10n.themeBrightness,
-          MenuItemSemantic.primary,
-          () => context.push(RoutePaths.themeBrightness),
-        ),
-      ]),
-      MenuSectionData(l10n.sectionSystem, [
-        MenuItemData(
-          PhosphorIconsRegular.hardDrive,
-          l10n.backupRestore,
-          MenuItemSemantic.success,
-          () => context.push(RoutePaths.localBackup),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.dotsThreeOutline,
-          l10n.otherSettings,
-          MenuItemSemantic.neutral,
-          () => context.push(RoutePaths.otherSettings),
-        ),
-        MenuItemData(
-          PhosphorIconsRegular.info,
-          l10n.about,
-          MenuItemSemantic.about,
-          () => context.push(RoutePaths.about),
-        ),
-      ]),
+      _SectionData(
+        label: l10n.sectionStudyMgmt,
+        items: [
+          _SectionItem(
+            icon: PhosphorIconsRegular.bookmarkSimple,
+            title: l10n.vocabularyBook,
+            semantic: MenuItemSemantic.education,
+            onTap: () => context.push(RoutePaths.vocabulary),
+          ),
+          _SectionItem(
+            icon: PhosphorIconsRegular.bookOpen,
+            title: l10n.learningNotes,
+            semantic: MenuItemSemantic.education,
+            onTap: () => context.push(RoutePaths.learningNotes),
+          ),
+          _SectionItem(
+            icon: PhosphorIconsRegular.clockCounterClockwise,
+            title: l10n.readingSessions,
+            semantic: MenuItemSemantic.reading,
+            onTap: () => context.push(RoutePaths.readingSessions),
+          ),
+          _SectionItem(
+            icon: PhosphorIconsRegular.hardDrives,
+            title: l10n.storageSync,
+            semantic: MenuItemSemantic.success,
+            onTap: () => context.push(RoutePaths.storageSync),
+          ),
+        ],
+      ),
+      _SectionData(
+        label: l10n.sectionReadingExp,
+        items: [
+          _SectionItem(
+            icon: PhosphorIconsRegular.waveform,
+            title: l10n.ttsSettings,
+            semantic: MenuItemSemantic.info,
+            onTap: () => context.push(RoutePaths.ttsSettings),
+          ),
+          _SectionItem(
+            icon: PhosphorIconsRegular.textB,
+            title: l10n.typographySettings,
+            semantic: MenuItemSemantic.typography,
+            onTap: () => context.push(RoutePaths.typographySettings),
+          ),
+          _SectionItem(
+            icon: PhosphorIconsRegular.bookOpen,
+            title: l10n.dictionary,
+            semantic: MenuItemSemantic.primary,
+            onTap: () => context.push(RoutePaths.dictionarySettings),
+          ),
+          _SectionItem(
+            icon: PhosphorIconsRegular.translate,
+            title: l10n.translationApi,
+            semantic: MenuItemSemantic.info,
+            onTap: () => context.push(RoutePaths.translationApi),
+          ),
+          _SectionItem(
+            icon: PhosphorIconsRegular.palette,
+            title: l10n.themeBrightness,
+            semantic: MenuItemSemantic.primary,
+            onTap: () => context.push(RoutePaths.themeBrightness),
+          ),
+        ],
+      ),
+      _SectionData(
+        label: l10n.sectionSystem,
+        items: [
+          _SectionItem(
+            icon: PhosphorIconsRegular.hardDrive,
+            title: l10n.backupRestore,
+            semantic: MenuItemSemantic.success,
+            onTap: () => context.push(RoutePaths.localBackup),
+          ),
+          _SectionItem(
+            icon: PhosphorIconsRegular.dotsThreeOutline,
+            title: l10n.otherSettings,
+            semantic: MenuItemSemantic.neutral,
+            onTap: () => context.push(RoutePaths.otherSettings),
+          ),
+          _SectionItem(
+            icon: PhosphorIconsRegular.info,
+            title: l10n.about,
+            semantic: MenuItemSemantic.about,
+            onTap: () => context.push(RoutePaths.about),
+          ),
+        ],
+      ),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (final section in sections) ...[
-          Padding(
-            padding: EdgeInsets.only(
-              left: 4,
-              bottom: 10,
-              top: sections.first == section ? 0 : 20,
-            ),
-            child: ProfileSectionLabel(label: section.label),
-          ),
-          ProfileSection(
+          const SizedBox(height: 24),
+          SectionLabel(label: section.label),
+          SettingsCard(
+            showDividers: true,
             children: section.items.asMap().entries.map((entry) {
               final idx = entry.key;
               final item = entry.value;
-              return ProfileMenuItem(item: item, index: idx)
-                  .animate()
-                  .fadeIn(duration: 300.ms, delay: (150 + idx * 60).ms)
-                  .slideX(begin: 0.03, end: 0);
+              return SettingsNavigationTile(
+                icon: item.icon,
+                iconColor: item.semantic.iconColor(brightness),
+                iconBackground: item.semantic.iconBackground(brightness),
+                title: item.title,
+                subtitle: '',
+                onTap: item.onTap,
+              ).animate().fadeIn(
+                duration: 300.ms,
+                delay: (150 + idx * 60).ms,
+              ).slideX(begin: 0.03, end: 0);
             }).toList(),
           ),
         ],
       ],
     );
   }
+}
+
+class _SectionData {
+  final String label;
+  final List<_SectionItem> items;
+  const _SectionData({required this.label, required this.items});
+}
+
+class _SectionItem {
+  final IconData icon;
+  final String title;
+  final MenuItemSemantic semantic;
+  final VoidCallback onTap;
+  const _SectionItem({
+    required this.icon,
+    required this.title,
+    required this.semantic,
+    required this.onTap,
+  });
 }

@@ -81,8 +81,11 @@ void main() {
   test('parseBook chapter bounds are valid', () {
     final c0 = parseResult.chapters.firstWhere((c) => c.chapterIndex == 0);
     expect(c0.startIndex, greaterThanOrEqualTo(0));
-    expect(c0.endIndex, greaterThan(c0.startIndex),
-        reason: 'Chapter 0: startIndex=${c0.startIndex}, endIndex=${c0.endIndex}');
+    expect(
+      c0.endIndex,
+      greaterThan(c0.startIndex),
+      reason: 'Chapter 0: startIndex=${c0.startIndex}, endIndex=${c0.endIndex}',
+    );
   });
 
   // ==================== paginateChapter (lightweight descriptors) ====================
@@ -104,12 +107,20 @@ void main() {
 
     test('descriptors have monotonic byte offsets', () {
       for (final d in paginateResult.descriptors) {
-        expect(d.startOffset, lessThanOrEqualTo(d.endOffset),
-            reason: 'Page ${d.pageIndex}: start=${d.startOffset}, end=${d.endOffset}');
+        expect(
+          d.startOffset,
+          lessThanOrEqualTo(d.endOffset),
+          reason:
+              'Page ${d.pageIndex}: start=${d.startOffset}, end=${d.endOffset}',
+        );
         if (d.pageIndex > 0) {
           final prev = paginateResult.descriptors[d.pageIndex - 1];
-          expect(d.startOffset, greaterThanOrEqualTo(prev.endOffset),
-              reason: 'Page ${d.pageIndex} start ${d.startOffset} < prev end ${prev.endOffset}');
+          expect(
+            d.startOffset,
+            greaterThanOrEqualTo(prev.endOffset),
+            reason:
+                'Page ${d.pageIndex} start ${d.startOffset} < prev end ${prev.endOffset}',
+          );
         }
       }
     });
@@ -144,8 +155,11 @@ void main() {
 
     test('pages have non-empty text content', () {
       for (final p in pages) {
-        expect(p.content, isNotEmpty,
-            reason: 'Page ${p.pageIndex} text is empty');
+        expect(
+          p.content,
+          isNotEmpty,
+          reason: 'Page ${p.pageIndex} text is empty',
+        );
       }
     });
 
@@ -242,178 +256,192 @@ void main() {
       expect(allText.length, greaterThan(100));
     });
 
-    test('page content of chapter 1 (韩文版自序) is non-empty and contains Korean preface', () async {
-      final pages = await core_api.paginateAllContent(
-        filePath: huozhePath,
-        chapterIndex: 1,
-        config: _defaultConfig(),
+    test(
+      'page content of chapter 1 (韩文版自序) is non-empty and contains Korean preface',
+      () async {
+        final pages = await core_api.paginateAllContent(
+          filePath: huozhePath,
+          chapterIndex: 1,
+          config: _defaultConfig(),
+        );
+        expect(pages.length, greaterThanOrEqualTo(1));
+        final allText = pages.map((p) => p.content).join('');
+        expect(allText, contains('自序'));
+        expect(allText.length, greaterThan(100));
+      },
+    );
+
+    // ==================== Real-book pipeline (using 活着.epub) ====================
+
+    group('Real book (活着.epub)', () {
+      late String huozheEpubPath;
+      late ParseResult huozheEpubResult;
+      late String huozheEpubBookId;
+
+      setUpAll(() async {
+        huozheEpubPath = await copyFixtureFile('活着.epub');
+        final result = await parseTestBook(huozheEpubPath);
+        huozheEpubResult = result.$1;
+        huozheEpubPath = result.$2;
+        huozheEpubBookId = huozheEpubResult.bookInfo.bookId;
+      });
+
+      tearDownAll(() async {
+        await deleteTestBook(huozheEpubBookId);
+      });
+
+      test('parses without error and has valid metadata', () {
+        expect(huozheEpubResult.bookInfo.title, isNotEmpty);
+        expect(huozheEpubResult.chapters.length, greaterThanOrEqualTo(1));
+      });
+
+      test('chapter bounds are valid', () {
+        for (final c in huozheEpubResult.chapters) {
+          expect(c.startIndex, greaterThanOrEqualTo(0));
+          expect(
+            c.endIndex,
+            greaterThanOrEqualTo(c.startIndex),
+            reason:
+                'Chapter ${c.chapterIndex}: start=${c.startIndex}, end=${c.endIndex}',
+          );
+        }
+      });
+
+      test('paginateChapter produces at least 1 descriptor', () async {
+        final result = await core_api.paginateChapter(
+          filePath: huozheEpubPath,
+          chapterIndex: 0,
+          config: _defaultConfig(),
+        );
+        expect(result.descriptors.length, greaterThanOrEqualTo(1));
+        for (final d in result.descriptors) {
+          expect(d.startOffset, lessThan(d.endOffset));
+        }
+        expect(result.descriptors.last.isLastPage, isTrue);
+      });
+
+      test('paginateAllContent returns non-empty pages', () async {
+        final pages = await core_api.paginateAllContent(
+          filePath: huozheEpubPath,
+          chapterIndex: 0,
+          config: _defaultConfig(),
+        );
+        expect(pages.length, greaterThanOrEqualTo(1));
+        for (final p in pages) {
+          expect(p.content, isNotEmpty);
+        }
+      });
+
+      test('page content contains real Chinese text from the EPUB', () async {
+        final pages = await core_api.paginateAllContent(
+          filePath: huozheEpubPath,
+          chapterIndex: 0,
+          config: _defaultConfig(),
+        );
+        final allText = pages.map((p) => p.content).join('');
+        expect(allText, contains('自序'));
+        expect(allText, isNotEmpty);
+        expect(allText.length, greaterThan(100));
+      });
+    });
+
+    // ==================== Real-book pipeline (using mixed_content.md) ====================
+
+    group('Real book (mixed_content.md)', () {
+      late String mdPath;
+      late ParseResult mdResult;
+      late String mdBookId;
+
+      setUpAll(() async {
+        mdPath = await copyFixtureFile('mixed_content.md');
+        final result = await parseTestBook(mdPath);
+        mdResult = result.$1;
+        mdPath = result.$2;
+        mdBookId = mdResult.bookInfo.bookId;
+      });
+
+      tearDownAll(() async {
+        await deleteTestBook(mdBookId);
+      });
+
+      test('parses without error and has valid metadata', () {
+        expect(mdResult.bookInfo.title, isNotEmpty);
+        expect(mdResult.chapters.length, greaterThanOrEqualTo(1));
+      });
+
+      test('chapter bounds are valid', () {
+        for (final c in mdResult.chapters) {
+          expect(c.startIndex, greaterThanOrEqualTo(0));
+          expect(
+            c.endIndex,
+            greaterThanOrEqualTo(c.startIndex),
+            reason:
+                'Chapter ${c.chapterIndex}: start=${c.startIndex}, end=${c.endIndex}',
+          );
+        }
+      });
+
+      test('chapter titles match H2 headings', () {
+        final titles = mdResult.chapters.map((c) => c.title).toList();
+        expect(titles.length, 5);
+        expect(titles[0], '前言');
+        expect(titles[1], '代码块示例');
+        expect(titles[2], '中英文混合段落');
+        expect(titles[3], '表格示例');
+        expect(titles[4], '结语');
+      });
+
+      test('paginateChapter produces at least 1 descriptor', () async {
+        final result = await core_api.paginateChapter(
+          filePath: mdPath,
+          chapterIndex: 0,
+          config: _defaultConfig(),
+        );
+        expect(result.descriptors.length, greaterThanOrEqualTo(1));
+        for (final d in result.descriptors) {
+          expect(d.startOffset, lessThan(d.endOffset));
+        }
+        expect(result.descriptors.last.isLastPage, isTrue);
+      });
+
+      test('paginateAllContent returns non-empty pages', () async {
+        final pages = await core_api.paginateAllContent(
+          filePath: mdPath,
+          chapterIndex: 0,
+          config: _defaultConfig(),
+        );
+        expect(pages.length, greaterThanOrEqualTo(1));
+        for (final p in pages) {
+          expect(p.content, isNotEmpty);
+        }
+      });
+
+      test('paginate chapter 1 (代码块示例) contains code block content', () async {
+        final pages = await core_api.paginateAllContent(
+          filePath: mdPath,
+          chapterIndex: 1,
+          config: _defaultConfig(),
+        );
+        final allText = pages.map((p) => p.content).join('');
+        expect(allText, contains('下面是一个 Python 代码块'));
+        expect(allText, contains('def hello'));
+        expect(allText, contains('Welcome to the future'));
+      });
+
+      test(
+        'paginate chapter 2 (中英文混合段落) contains CJK and Latin content',
+        () async {
+          final pages = await core_api.paginateAllContent(
+            filePath: mdPath,
+            chapterIndex: 2,
+            config: _defaultConfig(),
+          );
+          final allText = pages.map((p) => p.content).join('');
+          expect(allText, contains('敏捷的棕色狐狸'));
+          expect(allText, contains('The quick brown fox'));
+          expect(allText, contains('删除线'));
+        },
       );
-      expect(pages.length, greaterThanOrEqualTo(1));
-      final allText = pages.map((p) => p.content).join('');
-      expect(allText, contains('自序'));
-      expect(allText.length, greaterThan(100));
     });
-
-  // ==================== Real-book pipeline (using 活着.epub) ====================
-
-  group('Real book (活着.epub)', () {
-    late String huozheEpubPath;
-    late ParseResult huozheEpubResult;
-    late String huozheEpubBookId;
-
-    setUpAll(() async {
-      huozheEpubPath = await copyFixtureFile('活着.epub');
-      final result = await parseTestBook(huozheEpubPath);
-      huozheEpubResult = result.$1;
-      huozheEpubPath = result.$2;
-      huozheEpubBookId = huozheEpubResult.bookInfo.bookId;
-    });
-
-    tearDownAll(() async {
-      await deleteTestBook(huozheEpubBookId);
-    });
-
-    test('parses without error and has valid metadata', () {
-      expect(huozheEpubResult.bookInfo.title, isNotEmpty);
-      expect(huozheEpubResult.chapters.length, greaterThanOrEqualTo(1));
-    });
-
-    test('chapter bounds are valid', () {
-      for (final c in huozheEpubResult.chapters) {
-        expect(c.startIndex, greaterThanOrEqualTo(0));
-        expect(c.endIndex, greaterThanOrEqualTo(c.startIndex),
-            reason: 'Chapter ${c.chapterIndex}: start=${c.startIndex}, end=${c.endIndex}');
-      }
-    });
-
-    test('paginateChapter produces at least 1 descriptor', () async {
-      final result = await core_api.paginateChapter(
-        filePath: huozheEpubPath,
-        chapterIndex: 0,
-        config: _defaultConfig(),
-      );
-      expect(result.descriptors.length, greaterThanOrEqualTo(1));
-      for (final d in result.descriptors) {
-        expect(d.startOffset, lessThan(d.endOffset));
-      }
-      expect(result.descriptors.last.isLastPage, isTrue);
-    });
-
-    test('paginateAllContent returns non-empty pages', () async {
-      final pages = await core_api.paginateAllContent(
-        filePath: huozheEpubPath,
-        chapterIndex: 0,
-        config: _defaultConfig(),
-      );
-      expect(pages.length, greaterThanOrEqualTo(1));
-      for (final p in pages) {
-        expect(p.content, isNotEmpty);
-      }
-    });
-
-    test('page content contains real Chinese text from the EPUB', () async {
-      final pages = await core_api.paginateAllContent(
-        filePath: huozheEpubPath,
-        chapterIndex: 0,
-        config: _defaultConfig(),
-      );
-      final allText = pages.map((p) => p.content).join('');
-      expect(allText, contains('自序'));
-      expect(allText, isNotEmpty);
-      expect(allText.length, greaterThan(100));
-    });
-  });
-
-  // ==================== Real-book pipeline (using mixed_content.md) ====================
-
-  group('Real book (mixed_content.md)', () {
-    late String mdPath;
-    late ParseResult mdResult;
-    late String mdBookId;
-
-    setUpAll(() async {
-      mdPath = await copyFixtureFile('mixed_content.md');
-      final result = await parseTestBook(mdPath);
-      mdResult = result.$1;
-      mdPath = result.$2;
-      mdBookId = mdResult.bookInfo.bookId;
-    });
-
-    tearDownAll(() async {
-      await deleteTestBook(mdBookId);
-    });
-
-    test('parses without error and has valid metadata', () {
-      expect(mdResult.bookInfo.title, isNotEmpty);
-      expect(mdResult.chapters.length, greaterThanOrEqualTo(1));
-    });
-
-    test('chapter bounds are valid', () {
-      for (final c in mdResult.chapters) {
-        expect(c.startIndex, greaterThanOrEqualTo(0));
-        expect(c.endIndex, greaterThanOrEqualTo(c.startIndex),
-            reason: 'Chapter ${c.chapterIndex}: start=${c.startIndex}, end=${c.endIndex}');
-      }
-    });
-
-    test('chapter titles match H2 headings', () {
-      final titles = mdResult.chapters.map((c) => c.title).toList();
-      expect(titles.length, 5);
-      expect(titles[0], '前言');
-      expect(titles[1], '代码块示例');
-      expect(titles[2], '中英文混合段落');
-      expect(titles[3], '表格示例');
-      expect(titles[4], '结语');
-    });
-
-    test('paginateChapter produces at least 1 descriptor', () async {
-      final result = await core_api.paginateChapter(
-        filePath: mdPath,
-        chapterIndex: 0,
-        config: _defaultConfig(),
-      );
-      expect(result.descriptors.length, greaterThanOrEqualTo(1));
-      for (final d in result.descriptors) {
-        expect(d.startOffset, lessThan(d.endOffset));
-      }
-      expect(result.descriptors.last.isLastPage, isTrue);
-    });
-
-    test('paginateAllContent returns non-empty pages', () async {
-      final pages = await core_api.paginateAllContent(
-        filePath: mdPath,
-        chapterIndex: 0,
-        config: _defaultConfig(),
-      );
-      expect(pages.length, greaterThanOrEqualTo(1));
-      for (final p in pages) {
-        expect(p.content, isNotEmpty);
-      }
-    });
-
-    test('paginate chapter 1 (代码块示例) contains code block content', () async {
-      final pages = await core_api.paginateAllContent(
-        filePath: mdPath,
-        chapterIndex: 1,
-        config: _defaultConfig(),
-      );
-      final allText = pages.map((p) => p.content).join('');
-      expect(allText, contains('下面是一个 Python 代码块'));
-      expect(allText, contains('def hello'));
-      expect(allText, contains('Welcome to the future'));
-    });
-
-    test('paginate chapter 2 (中英文混合段落) contains CJK and Latin content', () async {
-      final pages = await core_api.paginateAllContent(
-        filePath: mdPath,
-        chapterIndex: 2,
-        config: _defaultConfig(),
-      );
-      final allText = pages.map((p) => p.content).join('');
-      expect(allText, contains('敏捷的棕色狐狸'));
-      expect(allText, contains('The quick brown fox'));
-      expect(allText, contains('删除线'));
-    });
-  });
   });
 }

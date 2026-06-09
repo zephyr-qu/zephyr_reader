@@ -51,98 +51,100 @@ class HomePage extends HookWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: switch (LayoutBreakpoints.getDeviceType(context)) {
-                DeviceType.desktop => LayoutBreakpoints.desktopMin,
-                _ => LayoutBreakpoints.phoneMax,
-              },
-            ),
-            child: CustomScrollView(
-              physics: adaptiveScrollPhysics(
-                context,
-              ).applyTo(const AlwaysScrollableScrollPhysics()),
-              slivers: [
-                HomeHeaderSliver(greeting: greeting),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    DesignTokens.spacing(Spacing.md),
-                    DesignTokens.spacing(Spacing.lg),
-                    DesignTokens.spacing(Spacing.md),
-                    0,
-                  ),
-                  sliver: const SliverToBoxAdapter(child: DailyQuote()),
-                ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    DesignTokens.spacing(Spacing.md),
-                    DesignTokens.spacing(Spacing.md),
-                    DesignTokens.spacing(Spacing.md),
-                    0,
-                  ),
-                  sliver: SliverToBoxAdapter(
-                    child: recentBooks.map(
-                      loading: () => const SizedBox.shrink(),
-                      error: (Object error, StackTrace? stack) => HomeErrorView(
-                        errorMessage: error.toString(),
-                        onRetry: () => vm.loadData(),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth >= LayoutBreakpoints.expandedMin
+                ? LayoutBreakpoints.expandedMin
+                : LayoutBreakpoints.compactMax;
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: CustomScrollView(
+                  physics: adaptiveScrollPhysics(
+                    context,
+                  ).applyTo(const AlwaysScrollableScrollPhysics()),
+                  slivers: [
+                    HomeHeaderSliver(greeting: greeting),
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(
+                        DesignTokens.spacing(Spacing.md),
+                        DesignTokens.spacing(Spacing.lg),
+                        DesignTokens.spacing(Spacing.md),
+                        0,
                       ),
-                      data: (List<Book> value) => HomeHeroSection(
-                        book: value.isNotEmpty ? value[0] : null,
+                      sliver: const SliverToBoxAdapter(child: DailyQuote()),
+                    ),
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(
+                        DesignTokens.spacing(Spacing.md),
+                        DesignTokens.spacing(Spacing.md),
+                        DesignTokens.spacing(Spacing.md),
+                        0,
+                      ),
+                      sliver: SliverToBoxAdapter(
+                        child: recentBooks.map(
+                          loading: () => const SizedBox.shrink(),
+                          error: (Object error, StackTrace? stack) => HomeErrorView(
+                            errorMessage: error.toString(),
+                            onRetry: () => vm.loadData(),
+                          ),
+                          data: (List<Book> value) => HomeHeroSection(
+                            book: value.isNotEmpty ? value[0] : null,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    DesignTokens.spacing(Spacing.md),
-                    DesignTokens.spacing(Spacing.lg),
-                    DesignTokens.spacing(Spacing.md),
-                    0,
-                  ),
-                  sliver: SliverToBoxAdapter(
-                    child: dailyRecords.map(
-                      loading: () => const SizedBox.shrink(),
-                      error: (Object error, StackTrace? stack) => HomeErrorView(
-                        errorMessage: error.toString(),
-                        onRetry: () => vm.loadData(),
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(
+                        DesignTokens.spacing(Spacing.md),
+                        DesignTokens.spacing(Spacing.lg),
+                        DesignTokens.spacing(Spacing.md),
+                        0,
                       ),
-                      data: (List<ReadingStats> value) =>
-                          ReadingTrend(dailyRecords: value),
+                      sliver: SliverToBoxAdapter(
+                        child: dailyRecords.map(
+                          loading: () => const SizedBox.shrink(),
+                          error: (Object error, StackTrace? stack) => HomeErrorView(
+                            errorMessage: error.toString(),
+                            onRetry: () => vm.loadData(),
+                          ),
+                          data: (List<ReadingStats> value) =>
+                              ReadingTrend(dailyRecords: value),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                SliverPadding(
-                  padding: EdgeInsets.only(
-                    top: DesignTokens.spacing(Spacing.xl),
-                  ),
-                ),
-                recentBooks.map(
-                  loading: () =>
-                      const SliverToBoxAdapter(child: SizedBox.shrink()),
-                  error: (Object error, StackTrace? stack) =>
-                      SliverToBoxAdapter(
+                    SliverPadding(
+                      padding: EdgeInsets.only(
+                        top: DesignTokens.spacing(Spacing.xl),
+                      ),
+                    ),
+                    recentBooks.map(
+                      loading: () =>
+                          const SliverToBoxAdapter(child: SizedBox.shrink()),
+                      error: (Object error, StackTrace? stack) =>
+                          SliverToBoxAdapter(
                         child: HomeErrorView(
                           errorMessage: error.toString(),
                           onRetry: () => vm.loadData(),
                         ),
                       ),
-                  data: (List<Book> value) => SliverPadding(
-                    padding: EdgeInsets.fromLTRB(
-                      DesignTokens.spacing(Spacing.md),
-                      0,
-                      DesignTokens.spacing(Spacing.md),
-                      0,
+                      data: (List<Book> value) => SliverPadding(
+                        padding: EdgeInsets.fromLTRB(
+                          DesignTokens.spacing(Spacing.md),
+                          0,
+                          DesignTokens.spacing(Spacing.md),
+                          0,
+                        ),
+                        sliver: SliverToBoxAdapter(
+                          child: HomeRecentList(books: value),
+                        ),
+                      ),
                     ),
-                    sliver: SliverToBoxAdapter(
-                      child: HomeRecentList(books: value),
-                    ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );

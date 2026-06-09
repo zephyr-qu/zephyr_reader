@@ -5,6 +5,7 @@ import 'package:zephyr_reader/core/presentation/widgets/skeleton_widget.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
+import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/book_cover.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -103,87 +104,104 @@ class BookshelfBookContent extends StatelessWidget {
     }
     return RefreshIndicator(
       onRefresh: () async => onRefresh(),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          DesignTokens.spacing(Spacing.lg),
-          20,
-          DesignTokens.spacing(Spacing.lg),
-          batchMode ? 80 : 0,
-        ),
-        child: GridView.builder(
-          itemCount: books.length,
-          physics: adaptiveScrollPhysics(
-            context,
-            physics: const AlwaysScrollableScrollPhysics(),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: switch (LayoutBreakpoints.getScreenSizeClass(context)) {
+              ScreenSizeClass.expanded => 1200,
+              _ => LayoutBreakpoints.expandedMin,
+            },
           ),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: 0.62,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 18,
-          ),
-          itemBuilder: (context, index) {
-            final book = books[index];
-            final selected = selectedIds.contains(book.bookId);
-            return RepaintBoundary(
-              child: InkWell(
-                onTap: batchMode
-                    ? () {
-                        if (selected) {
-                          onSelectionChanged(
-                            selectedIds
-                                .where((id) => id != book.bookId)
-                                .toSet(),
-                          );
-                        } else {
-                          onSelectionChanged({...selectedIds, book.bookId});
-                        }
-                      }
-                    : () => onBookTap(book),
-                onLongPress: () {
-                  if (!batchMode) {
-                    hapticFeedback(HapticType.medium);
-                    onBookLongPress(book);
-                  }
-                },
-                child:
-                    Stack(
-                          children: [
-                            BookCover(
-                              book: book,
-                              statusLabel: _statusLabel(
-                                context,
-                                book.status.name,
-                              ),
-                              progress: readingProgress[book.bookId],
-                            ),
-                            if (batchMode)
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: Icon(
-                                  selected
-                                      ? PhosphorIconsFill.checkCircle
-                                      : PhosphorIconsRegular.circle,
-                                  color: selected
-                                      ? theme.colorScheme.primary
-                                      : Colors.white.withValues(alpha: 0.6),
-                                  size: 22,
-                                ),
-                              ),
-                          ],
-                        )
-                        .animate(delay: (index * 80).ms)
-                        .fadeIn(duration: 400.ms, curve: Curves.easeOutCubic)
-                        .slideY(
-                          begin: 0.1,
-                          end: 0,
-                          duration: 400.ms,
-                          curve: Curves.easeOutCubic,
-                        ),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              DesignTokens.spacing(Spacing.lg),
+              20,
+              DesignTokens.spacing(Spacing.lg),
+              batchMode ? 80 : 0,
+            ),
+            child: GridView.builder(
+              itemCount: books.length,
+              physics: adaptiveScrollPhysics(
+                context,
+                physics: const AlwaysScrollableScrollPhysics(),
               ),
-            );
-          },
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                childAspectRatio: 0.62,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 18,
+              ),
+              itemBuilder: (context, index) {
+                final book = books[index];
+                final selected = selectedIds.contains(book.bookId);
+                return RepaintBoundary(
+                  child: InkWell(
+                    onTap: batchMode
+                        ? () {
+                            if (selected) {
+                              onSelectionChanged(
+                                selectedIds
+                                    .where((id) => id != book.bookId)
+                                    .toSet(),
+                              );
+                            } else {
+                              onSelectionChanged(
+                                {...selectedIds, book.bookId},
+                              );
+                            }
+                          }
+                        : () => onBookTap(book),
+                    onLongPress: () {
+                      if (!batchMode) {
+                        hapticFeedback(HapticType.medium);
+                        onBookLongPress(book);
+                      }
+                    },
+                    child:
+                        Stack(
+                              children: [
+                                BookCover(
+                                  book: book,
+                                  statusLabel: _statusLabel(
+                                    context,
+                                    book.status.name,
+                                  ),
+                                  progress: readingProgress[book.bookId],
+                                ),
+                                if (batchMode)
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: Icon(
+                                      selected
+                                          ? PhosphorIconsFill.checkCircle
+                                          : PhosphorIconsRegular.circle,
+                                      color: selected
+                                          ? theme.colorScheme.primary
+                                          : Colors.white.withValues(alpha: 0.6),
+                                      size: 22,
+                                    ),
+                                  ),
+                              ],
+                            )
+                            .animate(
+                              delay: (index * 80).ms,
+                            )
+                            .fadeIn(
+                              duration: 400.ms,
+                              curve: Curves.easeOutCubic,
+                            )
+                            .slideY(
+                              begin: 0.1,
+                              end: 0,
+                              duration: 400.ms,
+                              curve: Curves.easeOutCubic,
+                            ),
+                  ),
+                );
+              },
+            ),
+          ),
         ),
       ),
     );

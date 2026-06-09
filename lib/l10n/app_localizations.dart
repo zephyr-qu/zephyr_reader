@@ -3685,6 +3685,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'手动粘贴'**
   String get translationManualPaste;
+
+  /// No description provided for @readingMode.
+  ///
+  /// In zh, this message translates to:
+  /// **'阅读模式'**
+  String get readingMode;
+
+  /// No description provided for @themeSwitch.
+  ///
+  /// In zh, this message translates to:
+  /// **'主题切换'**
+  String get themeSwitch;
 }
 
 class _AppLocalizationsDelegate

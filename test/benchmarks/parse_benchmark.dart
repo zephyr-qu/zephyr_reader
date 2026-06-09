@@ -17,9 +17,9 @@ import '../helpers/integration_test_helper.dart';
 import '../helpers/test_helper.dart';
 
 const _fixtures = {
-  'txt': 'small.txt',   // 4.5 KB
-  'txt_xl': '活着.txt',  // 284 KB
-  'epub': '活着.epub',   // 185 KB
+  'txt': 'small.txt', // 4.5 KB
+  'txt_xl': '活着.txt', // 284 KB
+  'epub': '活着.epub', // 185 KB
 };
 
 void main() {

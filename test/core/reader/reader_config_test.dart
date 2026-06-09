@@ -38,30 +38,6 @@ void main() {
     });
   });
 
-  group('ReaderFontSize', () {
-    test('values 应有 4 个大小', () {
-      expect(ReaderFontSize.values.length, equals(4));
-    });
-
-    test('各档位大小值正确', () {
-      expect(ReaderFontSize.small.size, equals(14));
-      expect(ReaderFontSize.medium.size, equals(16));
-      expect(ReaderFontSize.large.size, equals(18));
-      expect(ReaderFontSize.xLarge.size, equals(20));
-    });
-
-    test('fromSize 已知大小返回对应档位', () {
-      expect(ReaderFontSize.fromSize(14), equals(ReaderFontSize.small));
-      expect(ReaderFontSize.fromSize(16), equals(ReaderFontSize.medium));
-      expect(ReaderFontSize.fromSize(18), equals(ReaderFontSize.large));
-      expect(ReaderFontSize.fromSize(20), equals(ReaderFontSize.xLarge));
-    });
-
-    test('fromSize 未知大小返回 medium', () {
-      expect(ReaderFontSize.fromSize(15), equals(ReaderFontSize.medium));
-      expect(ReaderFontSize.fromSize(999), equals(ReaderFontSize.medium));
-    });
-  });
 
   group('ReaderConfig', () {
     late SharedPreferences prefs;
@@ -219,7 +195,7 @@ void main() {
 
       // 验证信号复位
       expect(config.theme.value, equals(ReaderTheme.light));
-      expect(config.fontSize.value, equals(ReaderFontSize.medium.size));
+      expect(config.fontSize.value, equals(16.0));
       expect(config.autoScroll.value, isFalse);
       expect(config.letterSpacing.value, equals(0.0));
       // 验证 SharedPreferences 同步写回

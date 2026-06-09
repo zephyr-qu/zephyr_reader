@@ -598,5 +598,7 @@
   "translating": "Translating…",
   "translationFailed": "Translation failed: {error}",
   "translationRetry": "Retry",
-  "translationManualPaste": "Paste Manually"
+  "translationManualPaste": "Paste Manually",
+  "readingMode": "Reading Mode",
+  "themeSwitch": "Switch Theme"
 }

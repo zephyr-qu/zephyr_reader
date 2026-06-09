@@ -8,6 +8,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
@@ -34,12 +35,6 @@ class BookshelfPage extends HookWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final deviceType = LayoutBreakpoints.getDeviceType(context);
-    final crossAxisCount = deviceType == DeviceType.desktop
-        ? 4
-        : deviceType == DeviceType.tablet
-        ? 4
-        : 3;
     final vm = useMemoized(() => getIt<BookshelfViewModel>());
     final isSearching = useSignal(false);
     final searchController = useTextEditingController();
@@ -192,88 +187,97 @@ class BookshelfPage extends HookWidget {
           ],
         ],
       ),
-      body: Stack(
-        children: [
-          // Warm decorative wash
-          Positioned(
-            top: -60,
-            left: -40,
-            child: Container(
-              width: 240,
-              height: 240,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    DesignTokens.warmAccent.withValues(alpha: 0.07),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final crossAxisCount = constraints.maxWidth >= LayoutBreakpoints.expandedMin
+              ? 4
+              : constraints.maxWidth >= LayoutBreakpoints.compactMax
+              ? 4
+              : 3;
+          return Stack(
             children: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  DesignTokens.spacing(Spacing.lg),
-                  12,
-                  DesignTokens.spacing(Spacing.lg),
-                  0,
-                ),
-                child: SignalBuilder(
-                  builder: (_) {
-                    return BookshelfStatusTabs(
-                      selectedStatus: vm.selectedStatus.value,
-                      onStatusChanged: (status) => vm.selectStatus(status),
-                    );
-                  },
+              Positioned(
+                top: -60,
+                left: -40,
+                child: Container(
+                  width: 240,
+                  height: 240,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        DesignTokens.warmAccent.withValues(alpha: 0.07),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              SignalBuilder(
-                builder: (_) {
-                  return BookshelfCategoryChips(
-                    categories: vm.categoryVM.categories.value.value ?? [],
-                    selectedCategoryId:
-                        vm.categoryVM.selectedCategory.value?.id,
-                    onCategoryChanged: (category) =>
-                        vm.selectCategory(category),
-                  );
-                },
-              ),
-              const Divider(height: 0.5),
-              Expanded(
-                child: SignalBuilder(
-                  builder: (_) {
-                    final async = vm.books.value;
-                    return BookshelfBookContent(
-                      isLoading: async.isLoading,
-                      hasError: async.hasError,
-                      books: async.value ?? [],
-                      crossAxisCount: crossAxisCount,
-                      batchMode: batchMode.value,
-                      selectedIds: selectedIds.value,
-                      readingProgress: vm.readingProgress.value.value ?? {},
-                      onRetry: vm.loadBooks,
-                      onImportTap: () => _showImportDialog(context, vm),
-                      onRefresh: vm.loadBooks,
-                      onSelectionChanged: (ids) {
-                        selectedIds.value = ids;
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      DesignTokens.spacing(Spacing.lg),
+                      12,
+                      DesignTokens.spacing(Spacing.lg),
+                      0,
+                    ),
+                    child: SignalBuilder(
+                      builder: (_) {
+                        return BookshelfStatusTabs(
+                          selectedStatus: vm.selectedStatus.value,
+                          onStatusChanged: (status) => vm.selectStatus(status),
+                        );
                       },
-                      onBookTap: (book) => context.pushNamed(
-                        RouteNames.bookDetail,
-                        pathParameters: {'id': book.bookId},
-                      ),
-                      onBookLongPress: (book) =>
-                          _showBookActions(context, vm, book),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                  SignalBuilder(
+                    builder: (_) {
+                      return BookshelfCategoryChips(
+                        categories: vm.categoryVM.categories.value.value ?? [],
+                        selectedCategoryId:
+                            vm.categoryVM.selectedCategory.value?.id,
+                        onCategoryChanged: (category) =>
+                            vm.selectCategory(category),
+                      );
+                    },
+                  ),
+                  const Divider(height: 0.5),
+                  Expanded(
+                    child: SignalBuilder(
+                      builder: (_) {
+                        final async = vm.books.value;
+                        return BookshelfBookContent(
+                          isLoading: async.isLoading,
+                          hasError: async.hasError,
+                          books: async.value ?? [],
+                          crossAxisCount: crossAxisCount,
+                          batchMode: batchMode.value,
+                          selectedIds: selectedIds.value,
+                          readingProgress:
+                              vm.readingProgress.value.value ?? {},
+                          onRetry: vm.loadBooks,
+                          onImportTap: () => _showImportDialog(context, vm),
+                          onRefresh: vm.loadBooks,
+                          onSelectionChanged: (ids) {
+                            selectedIds.value = ids;
+                          },
+                          onBookTap: (book) => context.pushNamed(
+                            RouteNames.bookDetail,
+                            pathParameters: {'id': book.bookId},
+                          ),
+                          onBookLongPress: (book) =>
+                              _showBookActions(context, vm, book),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ],
-          ),
-        ],
+          );
+        },
       ),
       bottomNavigationBar: batchMode.value
           ? BookshelfBatchToolbar(
@@ -462,42 +466,28 @@ class BookshelfPage extends HookWidget {
               ],
             ),
             const SizedBox(height: 20),
-            Container(
-              decoration: BoxDecoration(
-                color: cs.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: cs.outlineVariant.withValues(alpha: 0.4),
-                  width: 0.5,
+            SettingsCard(
+              showDividers: true,
+              children: [
+                SettingsToggleTile(
+                  icon: PhosphorIconsRegular.gauge,
+                  iconColor: MenuItemSemantic.info.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.info.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
+                  title: l10n.showReadingProgress,
+                  value: vm.showReadingProgress.value,
+                  onChanged: (v) => vm.showReadingProgress.value = v,
                 ),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  SettingsToggleTile(
-                    icon: PhosphorIconsRegular.gauge,
-                    iconColor: MenuItemSemantic.info.iconColor(
-                      Theme.of(context).brightness,
-                    ),
-                    iconBackground: MenuItemSemantic.info.iconBackground(
-                      Theme.of(context).brightness,
-                    ),
-                    title: l10n.showReadingProgress,
-                    value: vm.showReadingProgress.value,
-                    onChanged: (v) => vm.showReadingProgress.value = v,
-                  ),
-                  Divider(
-                    height: 0.5,
-                    color: cs.outlineVariant.withValues(alpha: 0.15),
-                  ),
-                  SortSettingTile(
-                    dialogTitle: l10n.sortDialogTitle,
-                    currentSortType: vm.defaultSortType.value,
-                    label: l10n.defaultSort,
-                    onChanged: (type) => vm.defaultSortType.value = type,
-                  ),
-                ],
-              ),
+                SortSettingTile(
+                  dialogTitle: l10n.sortDialogTitle,
+                  currentSortType: vm.defaultSortType.value,
+                  label: l10n.defaultSort,
+                  onChanged: (type) => vm.defaultSortType.value = type,
+                ),
+              ],
             ),
           ],
         ),

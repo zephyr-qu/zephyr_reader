@@ -29,7 +29,7 @@ import 'widgets/tap_zone.dart';
 import 'widgets/reader_note_sidebar.dart';
 import 'widgets/reader_page_bindings.dart';
 import 'widgets/reader_search_bar.dart';
-import 'widgets/reader_settings_panel.dart';
+import 'widgets/reader_settings_overlay.dart';
 import 'widgets/reader_toolbar.dart';
 import 'widgets/reader_annotation_dialog.dart';
 import 'widgets/reader_highlight_sheet.dart';
@@ -68,6 +68,7 @@ class ReaderPage extends HookWidget {
     final vocabWords = useSignal<Set<String>>({});
     final selectionGlobalPos = useSignal<Offset?>(null);
     final autoHideTimer = useRef<Timer?>(null);
+    final activePanel = useState<ReaderPanelType?>(null);
 
     // Toast → SnackBar
     useSignalEffect(() {
@@ -140,14 +141,14 @@ class ReaderPage extends HookWidget {
 
     void resetHideTimer() {
       autoHideTimer.value?.cancel();
+      if (!context.mounted) return;
       autoHideTimer.value = Timer(const Duration(seconds: 4), () {
         if (!context.mounted) return;
-        if (b.showToolbar && !b.showSettings && !b.showSearch) {
+        if (b.showToolbar && activePanel.value == null && !b.showSearch) {
           vm.showToolbar.value = false;
         }
       });
     }
-
     /// 执行 [action] 后重置自动隐藏计时器。
     void withTimer(VoidCallback action) {
       action();
@@ -258,7 +259,7 @@ class ReaderPage extends HookWidget {
           readingMode: b.currentReadingMode,
           onDoubleTap: cycleBrightness,
         ),
-        const Positioned(bottom: 12, right: 0, child: BatteryIndicator()),
+        Positioned(bottom: 12, right: 0, child: BatteryIndicator(progressText: b.progressText)),
       ];
     }
 
@@ -299,6 +300,11 @@ class ReaderPage extends HookWidget {
               context.pop();
             },
             onToggleToolbar: () => withTimer(vm.toggleToolbar),
+            onToggleMore: () => withTimer(() {
+              activePanel.value = activePanel.value == ReaderPanelType.more
+                  ? null
+                  : ReaderPanelType.more;
+            }),
           ),
         ),
       );
@@ -314,78 +320,97 @@ class ReaderPage extends HookWidget {
             visible: b.showToolbar,
             slideBeginY: 1,
             child: ReaderBottomToolbar(
-              currentPageIndex: vm.pageIndex.value,
-              totalPages: vm.totalPages.value,
-              themeMode: b.themeMode,
-              onShowSettings: () => withTimer(vm.toggleSettings),
-              onTtsToggle: () => withTimer(() => _toggleTts(vm, ttsService)),
-              isTtsPlaying: ttsService.isPlaying.value,
-              isTtsPaused: ttsService.isPaused.value,
               onShowCatalog: () =>
                   withTimer(() => scaffoldKey.currentState?.openDrawer()),
               onShowNotes: () =>
                   withTimer(() => scaffoldKey.currentState?.openEndDrawer()),
+              onToggleTypesetting: () => withTimer(() {
+                activePanel.value = activePanel.value == ReaderPanelType.typesetting
+                    ? null
+                    : ReaderPanelType.typesetting;
+              }),
+              onToggleDisplay: () => withTimer(() {
+                activePanel.value = activePanel.value == ReaderPanelType.display
+                    ? null
+                    : ReaderPanelType.display;
+              }),
+              onToggleTts: () => withTimer(() {
+                activePanel.value = activePanel.value == ReaderPanelType.tts
+                    ? null
+                    : ReaderPanelType.tts;
+              }),
             ),
           ),
         ),
-        if (b.showSettings)
+        if (activePanel.value != null)
           Positioned.fill(
             child: GestureDetector(
-              onTap: () => vm.toggleSettings(),
+              onTap: () => activePanel.value = null,
               onVerticalDragEnd: (details) {
                 if (details.primaryVelocity != null &&
                     details.primaryVelocity! > 300) {
-                  vm.toggleSettings();
+                  activePanel.value = null;
                 }
               },
               child: Container(color: Colors.black.withValues(alpha: 0.3)),
             ),
           ),
         AnimatedSlide(
-          offset: b.showSettings ? Offset.zero : const Offset(0, 1),
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeOutBack,
+          offset: activePanel.value != null ? Offset.zero : const Offset(0, 1),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
           child: Align(
             alignment: Alignment.bottomCenter,
-            child: ReaderSettingsPanel(
-              themeMode: b.themeMode,
-              readingMode: b.currentReadingMode,
-              fontSize: vm.config.fontSize.value,
-              lineHeight: vm.config.lineHeight.value,
-              letterSpacing: vm.config.letterSpacing.value,
-              paragraphSpacing: vm.config.paragraphSpacing.value,
-              pageMargin: vm.config.pageMargin,
-              writingDirection: vm.config.writingDirection.value,
-              onReadingModeChanged: vm.setReadingMode,
-              onFontSizeChanged: vm.setFontSize,
-              onLineHeightChanged: vm.setLineHeight,
-              onThemeChanged: (tm) => config.theme.value = tm == ThemeMode.dark
-                  ? ReaderTheme.dark
-                  : ReaderTheme.light,
-              onLetterSpacingChanged: (v) => config.letterSpacing.value = v,
-              onParagraphSpacingChanged: (v) =>
-                  config.paragraphSpacing.value = v,
-              onPageMarginChanged: (m) => config.padding.value = m,
-              onWritingDirectionChanged: (d) =>
-                  vm.config.writingDirection.value = d,
-              onClose: vm.toggleSettings,
-              readerBgColorIndex: vm.config.readerBgColorIndex.value,
-              onReaderBgColorChanged: (v) =>
-                  config.readerBgColorIndex.value = v,
-              brightnessValue: vm.config.brightnessOverlay.value,
-              onBrightnessChanged: (v) =>
-                  vm.config.brightnessOverlay.value = v.clamp(0.0, 1.0),
-              tapLayout: config.tapLayout.value,
-              onTapLayoutChanged: (layout) => config.tapLayout.value = layout,
-              followSystemFontScale: config.followSystemFontScale.value,
-              onFollowSystemFontScale: (v) =>
-                  config.followSystemFontScale.value = v,
-              autoScroll: config.autoScroll.value,
-              autoScrollSpeed: config.autoScrollSpeed.value,
-              onAutoScrollChanged: (v) => config.autoScroll.value = v,
-              onAutoScrollSpeedChanged: (v) =>
-                  config.autoScrollSpeed.value = v.round(),
-            ),
+            child: activePanel.value != null
+                ? ReaderSettingsOverlay(
+                    panelType: activePanel.value!,
+                    themeMode: b.themeMode,
+                    readingMode: b.currentReadingMode,
+                    fontSize: vm.config.fontSize.value,
+                    lineHeight: vm.config.lineHeight.value,
+                    letterSpacing: vm.config.letterSpacing.value,
+                    paragraphSpacing: vm.config.paragraphSpacing.value,
+                    pageMargin: vm.config.pageMargin,
+                    writingDirection: vm.config.writingDirection.value,
+                    onReadingModeChanged: vm.setReadingMode,
+                    onFontSizeChanged: vm.setFontSize,
+                    onLineHeightChanged: vm.setLineHeight,
+                    onThemeChanged: (tm) =>
+                        config.theme.value = tm == ThemeMode.dark
+                            ? ReaderTheme.dark
+                            : ReaderTheme.light,
+                    onLetterSpacingChanged: (v) =>
+                        config.letterSpacing.value = v,
+                    onParagraphSpacingChanged: (v) =>
+                        config.paragraphSpacing.value = v,
+                    onPageMarginChanged: (m) => config.padding.value = m,
+                    onWritingDirectionChanged: (d) =>
+                        vm.config.writingDirection.value = d,
+                    onClose: () => activePanel.value = null,
+                    readerBgColorIndex: vm.config.readerBgColorIndex.value,
+                    onReaderBgColorChanged: (v) =>
+                        config.readerBgColorIndex.value = v,
+                    brightnessValue: vm.config.brightnessOverlay.value,
+                    onBrightnessChanged: (v) =>
+                        vm.config.brightnessOverlay.value = v.clamp(0.0, 1.0),
+                    tapLayout: config.tapLayout.value,
+                    onTapLayoutChanged: (layout) =>
+                        config.tapLayout.value = layout,
+                    followSystemFontScale:
+                        config.followSystemFontScale.value,
+                    onFollowSystemFontScale: (v) =>
+                        config.followSystemFontScale.value = v,
+                    autoScroll: config.autoScroll.value,
+                    autoScrollSpeed: config.autoScrollSpeed.value,
+                    onAutoScrollChanged: (v) =>
+                        config.autoScroll.value = v,
+                    onAutoScrollSpeedChanged: (v) =>
+                        config.autoScrollSpeed.value = v.round(),
+                    isTtsPlaying: ttsService.isPlaying.value,
+                    isTtsPaused: ttsService.isPaused.value,
+                    onTtsToggle: () => _toggleTts(vm, ttsService),
+                  )
+                : const SizedBox.shrink(),
           ),
         ),
       ];
@@ -484,55 +509,60 @@ class ReaderPage extends HookWidget {
                     0,
                     ReaderBgColors.presets.length - 1,
                   )],
-            child: SafeArea(
-              child: Builder(
-                builder: (context) {
-                  return Stack(
-                    clipBehavior: Clip.hardEdge,
-                    children: [
-                      ...buildContentArea(),
-                      if (b.showSearch) buildSearchBar(),
-                      buildTopToolbar(),
-                      PageIndicator(
-                        pageIndex: b.pageIndex,
-                        totalPages: b.effectiveTotalPages,
-                        visible:
-                            !b.showToolbar &&
-                            !b.showSearch &&
-                            !b.showCatalog &&
-                            !b.showBookmarks,
+            child: Builder(
+              builder: (context) {
+                return Stack(
+                  clipBehavior: Clip.hardEdge,
+                  children: [
+                    SafeArea(
+                      child: Stack(
+                        clipBehavior: Clip.hardEdge,
+                        children: [
+                          ...buildContentArea(),
+                          PageIndicator(
+                            pageIndex: b.pageIndex,
+                            totalPages: b.effectiveTotalPages,
+                            visible: false,
+                          ),
+                          ...buildBottomArea(),
+                          if (b.showSelection &&
+                              vm.selectedText.value.isNotEmpty)
+                            buildSelectionToolbar(),
+                        ],
                       ),
-                      ...buildBottomArea(),
-                      if (b.showBookmarks) buildBookmarks(),
-                      if (b.showSelection && vm.selectedText.value.isNotEmpty)
-                        buildSelectionToolbar(),
-                      if (!b.showToolbar &&
-                          !b.showSelection &&
-                          !b.showSearch &&
-                          !b.showCatalog &&
-                          !b.showBookmarks &&
-                          b.currentReadingMode != ReadingMode.pageTurn)
-                        TapZone(
-                          tapLayout: tapLayout,
-                          pageIndex: vm.pageIndex.value,
-                          totalPages: vm.totalPages.value,
-                          onPreviousPage: () {
-                            vm.previousPage();
-                            hapticFeedback(HapticType.light);
-                          },
-                          onNextPage: () {
-                            vm.nextPage();
-                            hapticFeedback(HapticType.light);
-                          },
-                          onCenterTap: () => withTimer(() {
-                            vm.toggleToolbar();
-                            hapticFeedback(HapticType.selection);
-                          }),
-                        ),
-                    ],
-                  );
-                },
-              ),
+                    ),
+                    if (b.showSearch) buildSearchBar(),
+                    buildTopToolbar(),
+                    if (b.showBookmarks)
+                      Positioned.fill(
+                        child: SafeArea(child: buildBookmarks()),
+                      ),
+                    if (!b.showToolbar &&
+                        !b.showSelection &&
+                        !b.showSearch &&
+                        !b.showCatalog &&
+                        !b.showBookmarks &&
+                        b.currentReadingMode != ReadingMode.pageTurn)
+                      TapZone(
+                        tapLayout: tapLayout,
+                        pageIndex: vm.pageIndex.value,
+                        totalPages: vm.totalPages.value,
+                        onPreviousPage: () {
+                          unawaited(vm.previousPage());
+                          hapticFeedback(HapticType.light);
+                        },
+                        onNextPage: () {
+                          unawaited(vm.nextPage());
+                          hapticFeedback(HapticType.light);
+                        },
+                        onCenterTap: () => withTimer(() {
+                          vm.toggleToolbar();
+                          hapticFeedback(HapticType.selection);
+                        }),
+                      ),
+                  ],
+                );
+              },
             ),
           ),
         ),

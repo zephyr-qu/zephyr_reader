@@ -103,6 +103,7 @@ Future<void> deleteTestBook(String bookId) async {
     // 删除失败不影响后续清理
   }
 }
+
 /// 检查 FFI 是否可用（宿主平台 + RustLib 已初始化）。
 ///
 /// 如果 Rust 原生库未加载（如 `flutter test` 无原生编译），返回 false。

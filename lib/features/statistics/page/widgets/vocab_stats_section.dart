@@ -26,7 +26,7 @@ class VocabStatsSection extends StatelessWidget {
     final total = vocabUnstarted + vocabLearning + vocabMastered + vocabIgnored;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(16),
         color: cs.surface,

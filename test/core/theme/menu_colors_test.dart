@@ -78,7 +78,10 @@ void main() {
       for (final semantic in MenuItemSemantic.values) {
         test('${semantic.name} 背景色 alpha 为 0.12', () {
           final bg = semantic.iconBackground(Brightness.light);
-          expect((bg.a * 255.0).round().clamp(0, 255), equals((0.12 * 255).round()));
+          expect(
+            (bg.a * 255.0).round().clamp(0, 255),
+            equals((0.12 * 255).round()),
+          );
         });
       }
 

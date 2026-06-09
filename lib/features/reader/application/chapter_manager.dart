@@ -153,27 +153,37 @@ class ChapterManager {
     bool restartSession = true,
     Future<void> Function()? onChapterLoaded,
   }) async {
+    final sw = Stopwatch()..start();
     chapterContent.value = AsyncState.loading();
     isLoading.value = true;
 
     try {
-      final content = await _repo.loadChapterContent(
+      // █ 并发启动：内容加载 + 字符宽度校准 █
+      final contentFuture = _repo.loadChapterContent(
         bookId.value,
         chapterIndex,
       );
 
-      unawaited(_postLoadTasks(chapterIndex, content));
+      final calibFuture = _calibration.value != null
+          ? Future<CalibrationData?>.value(_calibration.value)
+          : calibrateSafely(
+              fontSize: _config.fontSize.value,
+              devicePixelRatio: devicePixelRatio,
+              fontFamily: _fontFamily,
+            );
 
-      // █ 字符宽度校准（仅首次执行，字体/字号/DPR 变化后重置） █
-      if (_calibration.value == null) {
-        _calibration.value = await calibrateSafely(
-          fontSize: _config.fontSize.value,
-          devicePixelRatio: devicePixelRatio,
-          fontFamily: _fontFamily,
-        );
-      }
+      // _postLoadTasks 不阻塞关键路径，内容就绪立即触发
+      unawaited(contentFuture.then((c) => _postLoadTasks(chapterIndex, c)));
+
+      final results = await Future.wait([contentFuture, calibFuture]);
+      final tConcurrent = sw.elapsedMilliseconds;
+      Logging.info('[Timing] concurrent (content+calibration): ${tConcurrent}ms');
+
+      final content = results[0] as String;
+      _calibration.value ??= results[1] as CalibrationData?;
 
       // █ 轻量级分页排版（仅页面描述符，文本按需加载） █
+      final tBeforePaginate = sw.elapsedMilliseconds;
       final total = await _repo.paginateChapter(
         bookId: bookId.value,
         chapterIndex: chapterIndex,
@@ -189,6 +199,8 @@ class ChapterManager {
         paragraphSpacing: _config.paragraphSpacing.value,
         punctuationSqueeze: _config.punctuationSqueeze.value,
       );
+      final tPaginate = sw.elapsedMilliseconds;
+      Logging.info('[Timing] paginateChapter: ${tPaginate - tBeforePaginate}ms (cumulative: ${tPaginate}ms)');
 
       final descriptors = _repo.descriptors;
       if (total == 0 || descriptors == null || descriptors.isEmpty) {
@@ -238,6 +250,9 @@ class ChapterManager {
           'resolvePage=$pageIndex off=$currentCharOffset',
         );
       }
+
+      final tDone = sw.elapsedMilliseconds;
+      Logging.info('[Timing] loadChapter total: ${tDone}ms');
 
       // 回调：加载高亮等 VM 层数据
       if (onChapterLoaded != null) {
@@ -366,17 +381,21 @@ class ChapterManager {
 
   // ==================== 页面导航 ====================
 
-  /// 上一页
-  void previousPage() {
+  /// 上一页（支持跨章节连续翻页）
+  Future<void> previousPage() async {
     if (pageIndex.value > 0) {
       loadPage(pageIndex.value - 1);
+    } else {
+      await previousChapter();
     }
   }
 
-  /// 下一页
-  void nextPage() {
+  /// 下一页（支持跨章节连续翻页）
+  Future<void> nextPage() async {
     if (pageIndex.value < totalPages.value - 1) {
       loadPage(pageIndex.value + 1);
+    } else {
+      await nextChapter();
     }
   }
 

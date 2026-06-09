@@ -170,12 +170,14 @@ class ReaderRepository {
     double paragraphSpacing = 16,
     bool punctuationSqueeze = true,
   }) async {
+    final sw = Stopwatch()..start();
     try {
       final book = await book_api.getBook(bookId: bookId);
       if (book == null || book.filePath.isEmpty) {
         Logging.error('paginateChapter: book not found for bookId=$bookId');
         return 0;
       }
+      final tGetBook = sw.elapsedMilliseconds;
 
       final config = buildTypesetConfig(
         width: width,
@@ -190,11 +192,18 @@ class ReaderRepository {
         paragraphSpacing: paragraphSpacing,
         punctuationSqueeze: punctuationSqueeze,
       );
+      final tBuildConfig = sw.elapsedMilliseconds;
 
       final result = await core_api.paginateChapter(
         filePath: book.filePath,
         chapterIndex: chapterIndex,
         config: config,
+      );
+      final tRustPaginate = sw.elapsedMilliseconds;
+      Logging.info(
+        '[Timing] paginateChapter: getBook=${tGetBook}ms '
+        'buildConfig=${tBuildConfig - tGetBook}ms '
+        'rustPaginate=${tRustPaginate - tBuildConfig}ms',
       );
 
       _filePath = book.filePath;
@@ -207,6 +216,12 @@ class ReaderRepository {
       final preloadCount = 5.clamp(0, result.descriptors.length);
       for (int i = 0; i < preloadCount; i++) {
         _fetchPageSync(i);
+      }
+      final tPreload = sw.elapsedMilliseconds;
+      if (tPreload - tRustPaginate > 10) {
+        Logging.info(
+          '[Timing] paginateChapter: preloadFirst5Pages=${tPreload - tRustPaginate}ms',
+        );
       }
 
       return result.descriptors.length;
@@ -228,8 +243,9 @@ class ReaderRepository {
     if (_filePath == null ||
         _chapterIndex == null ||
         _configHash == null ||
-        _descriptors == null)
+        _descriptors == null) {
       return;
+    }
     if (pageIndex < 0 || pageIndex >= _descriptors!.length) return;
 
     try {
@@ -284,11 +300,13 @@ class ReaderRepository {
   // ===== From ChapterContentService =====
 
   Future<String> loadChapterContent(String bookId, int chapterId) async {
+    final sw = Stopwatch()..start();
     try {
       final book = await book_api.getBook(bookId: bookId);
       if (book == null || book.filePath.isEmpty) {
         throw Exception('Book not found: $bookId');
       }
+      final tGetBook = sw.elapsedMilliseconds;
 
       final filePath = book.filePath;
 
@@ -296,6 +314,11 @@ class ReaderRepository {
       final chapterContent = await core_api.getChapter(
         filePath: filePath,
         chapterIndex: chapterId,
+      );
+      final tGetChapter = sw.elapsedMilliseconds;
+      Logging.info(
+        '[Timing] loadChapterContent: getBook=${tGetBook}ms '
+        'getChapter=${tGetChapter - tGetBook}ms',
       );
 
       var content = chapterContent.when(
@@ -353,6 +376,12 @@ class ReaderRepository {
       if (content.isEmpty) {
         throw Exception('Chapter content is empty');
       }
+
+      final tTotal = sw.elapsedMilliseconds;
+      Logging.info(
+        '[Timing] loadChapterContent total: ${tTotal}ms '
+        '(EPUB=$isEpub MD=$isMd)',
+      );
 
       return content;
     } catch (e) {

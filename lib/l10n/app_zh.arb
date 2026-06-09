@@ -598,5 +598,7 @@
   "translating": "正在翻译…",
   "translationFailed": "翻译失败：{error}",
   "translationRetry": "重试",
-  "translationManualPaste": "手动粘贴"
+  "translationManualPaste": "手动粘贴",
+  "readingMode": "阅读模式",
+  "themeSwitch": "主题切换"
 }

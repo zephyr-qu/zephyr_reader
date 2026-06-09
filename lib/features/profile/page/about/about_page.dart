@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/features/profile/page/about/feature_card.dart';
+import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
 import 'package:zephyr_reader/features/profile/page/about/links_section.dart';
 import 'package:zephyr_reader/features/profile/page/about/tech_chip.dart';
 import 'package:zephyr_reader/features/profile/page/about/about_header.dart';
@@ -81,17 +83,7 @@ class AboutPage extends HookWidget {
     final build = packageInfo.data?.buildNumber ?? '';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          l10n.aboutTitle,
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-            color: cs.onSurface,
-            letterSpacing: -0.5,
-          ),
-        ),
-      ),
+      appBar: SettingsAppBar(title: l10n.aboutTitle),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(0, 0, 0, 40),
         children: [
@@ -114,36 +106,18 @@ class AboutPage extends HookWidget {
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           // ── Features ───────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.only(left: 24, bottom: 10),
-            child: Text(
-              l10n.aboutSectionFeatures,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: cs.outline,
-                letterSpacing: 0.4,
-              ),
-            ),
-          ),
+          SectionLabel(label: l10n.aboutSectionFeatures),
           ..._buildFeatures(
             l10n,
           ).map((e) => FeatureCard(icon: e.$1, title: e.$2, subtitle: e.$3)),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           // ── Tech Stack ─────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.only(left: 24, bottom: 10),
-            child: Text(
-              l10n.aboutSectionTechStack,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: cs.outline,
-                letterSpacing: 0.4,
-              ),
-            ),
-          ),
+          SectionLabel(label: l10n.aboutSectionTechStack),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: SettingsCard(
@@ -161,19 +135,10 @@ class AboutPage extends HookWidget {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           // ── Links ──────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.only(left: 24, bottom: 10),
-            child: Text(
-              l10n.aboutSectionLinks,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: cs.outline,
-                letterSpacing: 0.4,
-              ),
-            ),
-          ),
+          SectionLabel(label: l10n.aboutSectionLinks),
           LinksSection(links: _buildLinks(l10n), version: version),
 
           const SizedBox(height: 32),

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/backup.dart' as backup_api;
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/features/backup/application/backup_view_model.dart';
 
 /// 备份状态卡片。
 ///
-/// 显示当前数据库的行数统计概览。
+/// 显示当前备份状态和数据库行数统计概览。
 class BackupStatusCard extends HookWidget {
   final BackupViewModel vm;
 
@@ -17,6 +18,7 @@ class BackupStatusCard extends HookWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final DateTime? lastAt = useSignalValue(vm.lastBackupAt);
     final BackupStatus status = useSignalValue(vm.status);
     final String? errorMsg = useSignalValue<String?, Signal<String?>>(
@@ -29,35 +31,37 @@ class BackupStatusCard extends HookWidget {
       BackupStatus.exporting => (
         PhosphorIconsRegular.arrowsClockwise,
         cs.primary,
-        '备份中…',
+        l10n.backingUp,
       ),
       BackupStatus.restoring => (
         PhosphorIconsRegular.arrowsClockwise,
         cs.tertiary,
-        '恢复中…',
+        l10n.restoring,
       ),
       BackupStatus.error => (
         PhosphorIconsRegular.warningCircle,
         cs.error,
-        '操作失败：${errorMsg ?? "未知错误"}',
+        l10n.operationFailed(errorMsg ?? l10n.unknownError),
       ),
       _ => (
         lastAt != null
             ? PhosphorIconsRegular.cloudCheck
             : PhosphorIconsRegular.cloudSlash,
         lastAt != null ? cs.primary : cs.onSurfaceVariant,
-        lastAt != null ? '上次备份：${_formatAgo(lastAt)}' : '尚未进行过备份',
+        lastAt != null
+            ? l10n.lastBackup(_formatAgo(lastAt, l10n))
+            : l10n.neverBackedUp,
       ),
     };
 
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [color.withValues(alpha: 0.8), color.withValues(alpha: 0.5)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: cs.outlineVariant.withValues(alpha: 0.2),
+          width: 0.5,
         ),
-        borderRadius: BorderRadius.circular(16),
       ),
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -66,10 +70,10 @@ class BackupStatusCard extends HookWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.25),
-              borderRadius: BorderRadius.circular(22),
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, size: 20, color: Colors.white),
+            child: Icon(icon, size: 20, color: color),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -78,21 +82,23 @@ class BackupStatusCard extends HookWidget {
               children: [
                 Text(
                   statusText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: cs.onSurface,
                   ),
                 ),
                 if (status == BackupStatus.idle && lastAt != null)
                   const SizedBox(height: 2),
                 if (status == BackupStatus.idle && lastAt != null)
                   Text(
-                    '数据量：${currentStats.value?.books ?? "?"} 本书 · '
-                    '${currentStats.value?.notes ?? "?"} 条笔记',
+                    l10n.dataSummary(
+                      '${currentStats.value?.books ?? "?"}',
+                      '${currentStats.value?.notes ?? "?"}',
+                    ),
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: cs.onSurfaceVariant,
                     ),
                   ),
               ],
@@ -103,12 +109,12 @@ class BackupStatusCard extends HookWidget {
     );
   }
 
-  String _formatAgo(DateTime dt) {
+  String _formatAgo(DateTime dt, AppLocalizations l10n) {
     final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inHours < 1) return '${diff.inMinutes} 分钟前';
-    if (diff.inDays < 1) return '${diff.inHours} 小时前';
-    if (diff.inDays < 30) return '${diff.inDays} 天前';
-    return '${(diff.inDays / 30).floor()} 个月前';
+    if (diff.inMinutes < 1) return l10n.backupSubtitleJustNow;
+    if (diff.inHours < 1) return l10n.timeMinutesAgo(diff.inMinutes);
+    if (diff.inDays < 1) return l10n.timeHoursAgo(diff.inHours);
+    if (diff.inDays < 30) return l10n.timeDaysAgo(diff.inDays);
+    return l10n.timeMonthsAgo((diff.inDays / 30).floor());
   }
 }

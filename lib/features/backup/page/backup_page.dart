@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/backup/application/backup_view_model.dart';
 import 'package:zephyr_reader/features/backup/page/widgets/backup_action_tile.dart';
@@ -42,36 +43,43 @@ class BackupPage extends HookWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            children: [
-              BackupStatusCard(vm: vm),
-              const SizedBox(height: 20),
-              BackupActionTile(
-                icon: PhosphorIconsRegular.cloudArrowUp,
-                iconBackground: cs.primaryContainer,
-                iconColor: cs.onPrimaryContainer,
-                title: l10n.backup,
-                subtitle: _backupSubtitle(lastBackupAt, l10n),
-                onTap: () => _performBackup(context, vm),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxWidth = constraints.maxWidth >= LayoutBreakpoints.expandedMin
+              ? LayoutBreakpoints.expandedMin
+              : LayoutBreakpoints.compactMax;
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                children: [
+                  BackupStatusCard(vm: vm),
+                  const SizedBox(height: 20),
+                  BackupActionTile(
+                    icon: PhosphorIconsRegular.cloudArrowUp,
+                    iconBackground: cs.primaryContainer,
+                    iconColor: cs.onPrimaryContainer,
+                    title: l10n.backup,
+                    subtitle: _backupSubtitle(lastBackupAt, l10n),
+                    onTap: () => _performBackup(context, vm),
+                  ),
+                  const SizedBox(height: 8),
+                  BackupActionTile(
+                    icon: PhosphorIconsRegular.cloudArrowDown,
+                    iconBackground: cs.secondaryContainer,
+                    iconColor: cs.onSecondaryContainer,
+                    title: l10n.restoreTitle,
+                    subtitle: l10n.restoreSubtitle,
+                    onTap: () => _performRestore(context, vm),
+                  ),
+                  const SizedBox(height: 20),
+                  BackupStatsSection(stats: currentStats.value),
+                ].animate().fadeIn(duration: 300.ms),
               ),
-              const SizedBox(height: 8),
-              BackupActionTile(
-                icon: PhosphorIconsRegular.cloudArrowDown,
-                iconBackground: cs.secondaryContainer,
-                iconColor: cs.onSecondaryContainer,
-                title: l10n.restoreTitle,
-                subtitle: l10n.restoreSubtitle,
-                onTap: () => _performRestore(context, vm),
-              ),
-              const SizedBox(height: 20),
-              BackupStatsSection(stats: currentStats.value),
-            ].animate().fadeIn(duration: 300.ms),
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

@@ -38,7 +38,10 @@ class SettingsCard extends StatelessWidget {
             if (showDividers)
               children[i]
             else
-              Padding(padding: const EdgeInsets.all(16), child: children[i]),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: children[i],
+              ),
           ],
         ],
       ),

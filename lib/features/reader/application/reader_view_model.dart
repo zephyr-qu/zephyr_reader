@@ -238,11 +238,11 @@ class ReaderViewModel {
   /// 切换到下一章。
   Future<void> nextChapter() => chapterManager.nextChapter();
 
-  /// 翻到上一页。
-  void previousPage() => chapterManager.previousPage();
+  /// 翻到上一页（支持跨章节连续翻页）。
+  Future<void> previousPage() => chapterManager.previousPage();
 
-  /// 翻到下一页。
-  void nextPage() => chapterManager.nextPage();
+  /// 翻到下一页（支持跨章节连续翻页）。
+  Future<void> nextPage() => chapterManager.nextPage();
 
   /// 更新当前阅读的字符偏移位置。
   void updateCurrentCharOffset(int charOffset) =>
@@ -583,7 +583,7 @@ class ReaderViewModel {
     final cached = _translateCache.get(idx, content);
     if (cached != null) {
       translationContent.value = cached;
-      _runBilingualAlignment();
+      await _runBilingualAlignment();
       return;
     }
 
