@@ -354,3 +354,160 @@ class PaginatedModeRenderer extends StatelessWidget {
     return _buildFallbackPagination(context);
   }
 }
+
+// ── Standalone page builder (shared with PageCurlWidget) ──
+
+void _reportSelectionPositionStandalone(
+  BuildContext context,
+  void Function(Offset?)? onSelectionGlobalPosition,
+) {
+  if (onSelectionGlobalPosition == null) return;
+  final box = context.findRenderObject() as RenderBox?;
+  if (box == null || !box.hasSize || !box.attached) return;
+  onSelectionGlobalPosition(box.localToGlobal(Offset.zero));
+}
+
+void _handlePageContentSelection(
+  TextSelection sel,
+  String paragraphText,
+  int offset,
+  BuildContext context,
+  void Function(String text, int start, int end)? onSelectionChanged,
+  void Function(Offset?)? onSelectionGlobalPosition,
+) {
+  if (!sel.isValid || sel.isCollapsed) {
+    onSelectionChanged?.call('', 0, 0);
+    return;
+  }
+  final start = sel.start;
+  final end = sel.end;
+  final text = paragraphText.substring(start, end);
+  onSelectionChanged?.call(text, offset + start, offset + end);
+  _reportSelectionPositionStandalone(context, onSelectionGlobalPosition);
+}
+
+Widget _buildPageContentVerticalStandalone(
+  BuildContext context,
+  String pageContent,
+  TextStyle textStyle,
+  StrutStyle strutStyle,
+  int startOffset,
+  ReaderRenderConfig config,
+  List<Note> highlights,
+  void Function(Note)? onHighlightTap,
+  void Function(String text, int start, int end)? onSelectionChanged,
+  void Function(Offset?)? onSelectionGlobalPosition,
+) {
+  final charWidth = config.fontSize * 1.2;
+  final paragraphs = pageContent
+      .split('\n')
+      .where((p) => p.trim().isNotEmpty)
+      .toList();
+
+  return Directionality(
+    textDirection: TextDirection.rtl,
+    child: SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: EdgeInsets.symmetric(
+        horizontal: config.pageMargin,
+        vertical: 20,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: paragraphs.map((para) {
+          final painted = HighlightPainter.paintPlain(
+            para,
+            textStyle,
+            highlights,
+            onHighlightTap: onHighlightTap,
+            searchQuery: config.searchQuery,
+            searchMatchHighlight: config.searchMatchHighlight,
+            vocabularyWords: config.effectiveVocabWords,
+          );
+          return Padding(
+            padding: EdgeInsets.only(
+              left: paragraphs.length > 1 ? 8 : 0,
+            ),
+            child: SizedBox(
+              width: charWidth,
+              child: SelectableText.rich(
+                painted,
+                style: textStyle,
+                strutStyle: strutStyle,
+                textAlign: TextAlign.start,
+                onSelectionChanged: (sel, cause) =>
+                    _handlePageContentSelection(
+                      sel, para, startOffset, context,
+                      onSelectionChanged, onSelectionGlobalPosition,
+                    ),
+                contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    ),
+  );
+}
+
+/// Builds a single page widget for a given page index.
+/// Used by [PageCurlWidget] to render page content on demand.
+Widget buildSinglePageContent({
+  required BuildContext context,
+  required int pageIndex,
+  required int startOffset,
+  required ReaderRepository repo,
+  required ReaderRenderConfig config,
+  required List<Note> highlights,
+  required WritingDirection writingDirection,
+  required void Function(Note)? onHighlightTap,
+  required void Function(String text, int start, int end)? onSelectionChanged,
+  required void Function(Offset?)? onSelectionGlobalPosition,
+}) {
+  final pageContent = repo.getPageContent(pageIndex);
+  if (pageContent == null) {
+    return const SizedBox(
+      width: double.infinity,
+      height: 600,
+    );
+  }
+  final textStyle = config.buildTextStyle();
+  final strutStyle = config.buildStrutStyle();
+  final paintedSpan = HighlightPainter.paintPlain(
+    pageContent,
+    textStyle,
+    highlights,
+    onHighlightTap: onHighlightTap,
+    searchQuery: config.searchQuery,
+    searchMatchHighlight: config.searchMatchHighlight,
+    vocabularyWords: config.effectiveVocabWords,
+  );
+
+  if (writingDirection == WritingDirection.vertical) {
+    return _buildPageContentVerticalStandalone(
+      context, pageContent, textStyle, strutStyle, startOffset,
+      config, highlights, onHighlightTap,
+      onSelectionChanged, onSelectionGlobalPosition,
+    );
+  }
+
+  return RepaintBoundary(
+    child: SingleChildScrollView(
+      padding: EdgeInsets.symmetric(
+        horizontal: config.pageMargin,
+        vertical: 20,
+      ),
+      child: SelectableText.rich(
+        paintedSpan,
+        strutStyle: strutStyle,
+        textAlign: TextAlign.justify,
+        onSelectionChanged: (sel, cause) =>
+            _handlePageContentSelection(
+              sel, pageContent, startOffset, context,
+              onSelectionChanged, onSelectionGlobalPosition,
+            ),
+        contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+      ),
+    ),
+  );
+}

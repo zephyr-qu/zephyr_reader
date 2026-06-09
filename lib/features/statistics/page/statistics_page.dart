@@ -7,7 +7,7 @@ import 'package:zephyr_reader/features/statistics/page/widgets/reading_trend_cha
 import 'package:zephyr_reader/features/statistics/page/widgets/streak_card.dart';
 import 'package:zephyr_reader/features/statistics/page/widgets/today_reading_card.dart';
 import 'package:zephyr_reader/features/statistics/page/widgets/vocab_stats_section.dart';
-import 'package:zephyr_reader/features/statistics/page/widgets/weekly_heatmap.dart';
+import 'package:zephyr_reader/features/statistics/page/widgets/reading_heatmap.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -89,7 +89,7 @@ class StatisticsPage extends HookWidget {
             records: records.value ?? [],
           ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
           const SizedBox(height: 28),
-          WeeklyHeatmap(
+          ReadingHeatmap(
             records: records.value ?? [],
           ).animate().fadeIn(duration: 400.ms, delay: 400.ms),
           const SizedBox(height: 28),

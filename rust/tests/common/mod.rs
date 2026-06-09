@@ -1,9 +1,13 @@
 #[allow(dead_code)]
 use std::sync::Once;
+#[allow(dead_code)]
 use tempfile::TempDir;
 
+#[allow(dead_code)]
 static INIT: Once = Once::new();
 
+/// 初始化 tracing 日志（仅在集成测试中启动一次）
+#[allow(dead_code)]
 pub fn init_logger() {
     INIT.call_once(|| {
         let _ = tracing_subscriber::fmt()
@@ -12,6 +16,8 @@ pub fn init_logger() {
     });
 }
 
+/// 创建临时文件并返回路径（文件随 TempDir drop 自动清理）
+#[allow(dead_code)]
 pub fn create_temp_file(name: &str, content: &str) -> (TempDir, String) {
     let dir = TempDir::new().expect("failed to create temp dir");
     let path = dir.path().join(name);
@@ -19,11 +25,3 @@ pub fn create_temp_file(name: &str, content: &str) -> (TempDir, String) {
     let path_str = path.to_str().unwrap().to_string();
     (dir, path_str)
 }
-
-// pub async fn ensure_storage(dir: &TempDir) -> String {
-//     let data_dir = dir.path().to_str().unwrap().to_string();
-//     rust_lib_zephyr_reader::api::init_storage(data_dir.clone())
-//         .await
-//         .expect("failed to init storage");
-//     data_dir
-// }

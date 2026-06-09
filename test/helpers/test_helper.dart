@@ -78,7 +78,8 @@ class TestHelper {
   // ===== 性能测试辅助 =====
 
   /// 测量异步操作耗时
-  static Future<T> measure<T>(
+  /// 测量异步操作耗时，返回 (结果, 耗时)
+  static Future<(T, Duration)> measure<T>(
     String testName,
     Future<T> Function() action,
   ) async {
@@ -93,7 +94,7 @@ class TestHelper {
       Logging.warning('⚠️ 警告: $testName 超过1秒');
     }
 
-    return result;
+    return (result, stopwatch.elapsed);
   }
 
   /// 测试并发操作的性能

@@ -24,7 +24,7 @@ rust/target/
 .trae/
 .env
 integration_test
-
+test/fixtures/*
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
@@ -61,9 +61,30 @@ rust_builder/cargokit/build_output/include
 
 rust/ENGINE_AUDIT_REPORT.md
 
+
+# Generated analysis reports & junk files
+skills-lock.json
+EVALUATION_REPORT.md
+PACKAGE_SIZE_REPORT.md
+signals_audit_report.md
+system_state.md
+TEST_FINDINGS.md
+theme_l10n_param_audit.md
+widget_param_spec.md
+TTS_REVIEW.md
+.metadata
+test/BROKEN_TESTS_ANALYSIS.md
+BENCHMARK_GAP_ANALYSIS.md
+lib/core/CORE_ANALYSIS.md
+lib/features/*/*_ANALYSIS.md
+lib/features/*/REVIEW_*.md
+lib/FLUTTER_CONVENTIONS.md
+lib/StatelessWidget_to_SignalWidget_analysis.md
+lib/features/reader/READER_RESIDUAL.md
+rust/REDUNDANCY_ANALYSIS.md
 # FRB auto-generated files
 rust/src/frb_generated*
 lib/src/rust/**
- 
+
 # Worktrees
 .worktrees/

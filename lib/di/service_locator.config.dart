@@ -79,9 +79,10 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i82.WifiTransferService>(
       () => _i82.WifiTransferService(gh<_i460.SharedPreferences>()),
     );
-    gh.factory<_i851.FontRepository>(
-      () => _i851.FontRepository(gh<_i460.SharedPreferences>()),
-    );
+    gh.factoryAsync<_i851.FontRepository>(() {
+      final i = _i851.FontRepository(gh<_i460.SharedPreferences>());
+      return i.init().then((_) => i);
+    });
     gh.factory<_i362.OtherSettingsViewModel>(
       () => _i362.OtherSettingsViewModel(gh<_i460.SharedPreferences>()),
     );

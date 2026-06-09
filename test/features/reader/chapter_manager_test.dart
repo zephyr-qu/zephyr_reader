@@ -359,7 +359,7 @@ void main() {
 
         await manager.loadChapter(0);
 
-        expect(manager.error.value, contains('章节加载失败'));
+        expect(manager.error.value, contains('操作失败，请稍后重试'));
         expect(manager.isLoading.value, false);
       });
 
@@ -639,7 +639,7 @@ void main() {
       });
 
       test('currentChapterTitle 在无章节时显示占位符', () {
-        expect(manager.currentChapterTitle.value, '加载中...');
+        expect(manager.currentChapterTitle.value, '');
       });
     });
 

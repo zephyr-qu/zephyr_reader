@@ -34,7 +34,7 @@ The past few weeks had been challenging, but he knew that every setback was real
 ''';
 
 TypesetConfig _defaultConfig() {
-  return TypesetConfig(
+  return const TypesetConfig(
     pageWidth: 800,
     pageHeight: 600,
     fontSize: 16,
@@ -51,13 +51,12 @@ TypesetConfig _defaultConfig() {
 }
 
 void main() {
-  late String tempDir;
   late String filePath;
   late ParseResult parseResult;
   late String bookId;
 
   setUpAll(() async {
-    tempDir = await setupTestStorage(label: 'pagination');
+    await setupTestStorage(label: 'pagination');
     filePath = await createTestFile(_fixtureFileName, _fixtureContent);
     final result = await parseTestBook(filePath);
     parseResult = result.$1;

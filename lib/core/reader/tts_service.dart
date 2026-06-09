@@ -52,7 +52,7 @@ class TtsService {
   }
 
   /// 单句朗读完成回调：自动进入下一句，或标记播放结束。
-  void _onSentenceComplete() {
+  Future<void> _onSentenceComplete() async {
     if (_sentenceQueue.isEmpty) {
       isPlaying.value = false;
       isPaused.value = false;
@@ -61,8 +61,8 @@ class TtsService {
     final nextIndex = currentSentenceIndex.value + 1;
     if (nextIndex < _sentenceQueue.length) {
       currentSentenceIndex.value = nextIndex;
-      _tts.setSilence(currentPauseBetween.value);
-      _speakCurrentSentence();
+      await _tts.setSilence(currentPauseBetween.value);
+      await _speakCurrentSentence();
     } else {
       // 队列播完
       isPlaying.value = false;
@@ -71,9 +71,8 @@ class TtsService {
       _sentenceQueue.clear();
     }
   }
-
   /// 朗读当前索引位置的句子。
-  void _speakCurrentSentence() {
+  Future<void> _speakCurrentSentence() async {
     if (_sentenceQueue.isEmpty ||
         currentSentenceIndex.value >= _sentenceQueue.length) {
       isPlaying.value = false;
@@ -82,11 +81,10 @@ class TtsService {
     }
     final text = _sentenceQueue[currentSentenceIndex.value];
     currentText.value = text;
-    _tts.speak(text);
+    await _tts.speak(text);
   }
 
   /// 向后兼容的单文本朗读入口：自动分句后委托给 [speakSentences]。
-  @override
   Future<void> speak(String text) async {
     await _ready.future;
     await stop();
@@ -105,7 +103,7 @@ class TtsService {
     currentSentenceIndex.value = 0;
     isPlaying.value = true;
     isPaused.value = false;
-    _speakCurrentSentence();
+    await _speakCurrentSentence();
   }
 
   /// 将文本按句末标点切分为句子列表。
@@ -169,7 +167,6 @@ class TtsService {
     return result;
   }
 
-  @override
   Future<void> pause() async {
     await _ready.future;
     if (isPlaying.value && !isPaused.value) {
@@ -177,18 +174,15 @@ class TtsService {
       isPaused.value = true;
     }
   }
-
   /// 恢复朗读。从中断的句子重新朗读（非跳过）。
-  @override
   Future<void> resume() async {
     await _ready.future;
     if (isPaused.value && _sentenceQueue.isNotEmpty) {
       isPaused.value = false;
-      _speakCurrentSentence();
+      await _speakCurrentSentence();
     }
   }
 
-  @override
   Future<void> stop() async {
     await _ready.future;
     await _tts.stop();
@@ -199,7 +193,6 @@ class TtsService {
     isPaused.value = false;
   }
 
-  @override
   Future<void> setSpeed(double rate) async {
     await _ready.future;
     currentSpeed.value = rate.clamp(0.5, 2.0);
@@ -212,7 +205,6 @@ class TtsService {
     await _tts.setSpeechRate(_normalizedRate.clamp(0.0, 1.0));
   }
 
-  @override
   Future<void> setPitch(double pitch) async {
     await _ready.future;
     currentPitch.value = pitch.clamp(0.5, 2.0);
@@ -223,7 +215,6 @@ class TtsService {
     await _tts.setPitch(currentPitch.value.clamp(0.5, 2.0));
   }
 
-  @override
   Future<void> setLanguage(String lang) async {
     await _ready.future;
     currentLanguage.value = lang;
@@ -232,7 +223,6 @@ class TtsService {
 
   /// 设置语音（通过 `flutter_tts` 的 `setVoice`）。
   /// [voice] 是 [getVoices] 返回的条目，至少需包含 `"name"` 键。
-  @override
   Future<void> setVoice(Map<String, String> voice) async {
     await _ready.future;
     await _tts.setVoice(voice);
@@ -246,13 +236,11 @@ class TtsService {
     _tts.setSilence(ms);
   }
 
-  @override
   Future<List<dynamic>> getVoices() async {
     await _ready.future;
     return (await _tts.getVoices) as List<dynamic>? ?? [];
   }
 
-  @override
   Future<Set<String>> getLanguages() async {
     await _ready.future;
     final langs = await _tts.getLanguages as List<dynamic>?;

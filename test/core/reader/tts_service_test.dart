@@ -7,7 +7,12 @@ void main() {
 
   late TtsService service;
 
+  /// Track speak() arguments sent to the platform channel.
+  final speakTexts = <String>[];
+
   setUp(() {
+    speakTexts.clear();
+
     // Mock the flutter_tts platform channel
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(const MethodChannel('flutter_tts'), (
@@ -15,12 +20,22 @@ void main() {
         ) async {
           switch (methodCall.method) {
             case 'speak':
+              if (methodCall.arguments is String) {
+                speakTexts.add(methodCall.arguments as String);
+              } else if (methodCall.arguments is Map) {
+                speakTexts.add(
+                    (methodCall.arguments as Map)['text'] as String? ?? '');
+              } else {
+                speakTexts.add(methodCall.arguments.toString());
+              }
+              return null;
             case 'stop':
             case 'pause':
             case 'setVolume':
             case 'setSpeechRate':
             case 'setPitch':
             case 'setLanguage':
+            case 'setSilence':
             case 'setCompletionHandler':
             case 'setErrorHandler':
               return null;
@@ -65,6 +80,18 @@ void main() {
 
     test('currentLanguage 初始为 zh-CN', () {
       expect(service.currentLanguage.value, equals('zh-CN'));
+    });
+
+    test('voiceName 初始为空', () {
+      expect(service.voiceName.value, equals(''));
+    });
+
+    test('currentSentenceIndex 初始为 0', () {
+      expect(service.currentSentenceIndex.value, equals(0));
+    });
+
+    test('currentText 初始为空', () {
+      expect(service.currentText.value, equals(''));
     });
   });
 
@@ -129,10 +156,25 @@ void main() {
     });
   });
 
-  group('speak/pause/resume/stop', () {
+  group('speak / speakSentences / pause / resume / stop', () {
     test('speak 设置 isPlaying 为 true', () async {
       await service.speak('test');
       expect(service.isPlaying.value, isTrue);
+    });
+
+    test('speak 将文本分句后调用 speakSentences', () async {
+      await service.speak('Hello world. Goodbye world.');
+      expect(service.isPlaying.value, isTrue);
+      // speakSentences 只朗读第一句，后续句在 completion 回调后朗读
+      expect(speakTexts, contains('Hello world.'));
+    });
+
+    test('speakSentences 朗读第一句并设置 currentText', () async {
+      await service.speakSentences(['First sentence.', 'Second sentence.']);
+      expect(service.isPlaying.value, isTrue);
+      expect(service.currentSentenceIndex.value, equals(0));
+      expect(service.currentText.value, equals('First sentence.'));
+      expect(speakTexts, contains('First sentence.'));
     });
 
     test('pause 设置 isPaused 为 true', () async {
@@ -142,11 +184,82 @@ void main() {
       expect(service.isPlaying.value, isTrue);
     });
 
-    test('stop 重置播放状态', () async {
-      await service.speak('test');
+    test('resume 从中断句子继续朗读（不调用 speak("")）', () async {
+      await service.speakSentences(['Hello world.', 'Next sentence.']);
+      speakTexts.clear();
+
+      await service.pause();
+      expect(service.isPaused.value, isTrue);
+
+      await service.resume();
+      expect(service.isPaused.value, isFalse);
+      expect(service.isPlaying.value, isTrue);
+      // resume 重新朗读当前句子，而不是调用 speak('')
+      expect(speakTexts, isNotEmpty);
+      expect(speakTexts, contains('Hello world.'));
+      expect(speakTexts, isNot(contains('')));
+    });
+
+
+    test('play → pause → resume 完整循环（模拟 _toggleTts 调用模式）', () async {
+      // Start (像 _toggleTts 一样调用 speak)
+      await service.speak('Hello world.');
+      expect(service.isPlaying.value, isTrue);
+      expect(service.isPaused.value, isFalse);
+
+      // Pause
+      await service.pause();
+      expect(service.isPaused.value, isTrue);
+      expect(service.isPlaying.value, isTrue);
+
+      // Resume
+      await service.resume();
+      expect(service.isPaused.value, isFalse);
+      expect(service.isPlaying.value, isTrue);
+      expect(speakTexts.last, isNot(''));
+
+      // Stop
       await service.stop();
       expect(service.isPlaying.value, isFalse);
       expect(service.isPaused.value, isFalse);
+    });
+    test('多次调用 resume 安全（非暂停状态不下发）', () async {
+      await service.speak('test');
+      await service.resume();
+      // 非暂停状态 resume 不操作
+      expect(service.isPlaying.value, isTrue);
+      expect(service.isPaused.value, isFalse);
+    });
+
+    test('stop 重置播放状态并清空队列', () async {
+      await service.speakSentences(['A.', 'B.', 'C.']);
+      await service.stop();
+      expect(service.isPlaying.value, isFalse);
+      expect(service.isPaused.value, isFalse);
+      expect(service.currentSentenceIndex.value, equals(0));
+      expect(service.currentText.value, equals(''));
+    });
+
+    test('空文本 speakSentences 不操作', () async {
+      await service.speakSentences([]);
+      expect(service.isPlaying.value, isFalse);
+    });
+  });
+
+  group('setVoice', () {
+    test('设置语音后 voiceName 更新', () async {
+      await service.setVoice({'name': 'Google US English', 'locale': 'en-US'});
+      expect(service.voiceName.value, equals('Google US English'));
+    });
+
+    test('voiceName 在 name 缺失时使用 locale', () async {
+      await service.setVoice({'locale': 'zh-CN'});
+      expect(service.voiceName.value, equals('zh-CN'));
+    });
+
+    test('voiceName 在 name 和 locale 都缺失时为空', () async {
+      await service.setVoice(<String, String>{});
+      expect(service.voiceName.value, equals(''));
     });
   });
 

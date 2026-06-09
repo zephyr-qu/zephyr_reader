@@ -38,38 +38,58 @@ class ZephyrReaderApp extends HookWidget {
       }
     });
 
-    return SignalBuilder(
-      builder: (context) {
-        return MaterialApp.router(
-          routerConfig: router,
-          debugShowCheckedModeBanner: false,
-          theme: AppThemes.buildTheme(
-            Brightness.light,
-            customPrimary: themeManager.customPrimaryColor.value,
-          ),
-          darkTheme: AppThemes.buildTheme(
-            Brightness.dark,
-            customPrimary: themeManager.customPrimaryColor.value,
-          ),
-          themeMode: themeManager.themeMode,
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: themeManager.appLocale,
-          localeResolutionCallback: (locale, supportedLocales) {
-            if (locale == null) return null;
-            for (final supported in supportedLocales) {
-              if (supported.languageCode == locale.languageCode) {
-                return supported;
-              }
-            }
-            return const Locale('zh');
-          },
-        );
+    // 监听信号变化
+    final customPrimary = useSignalValue<Color?, Signal<Color?>>(themeManager.customPrimaryColor);
+    final themeType = useSignalValue<AppThemeType, Signal<AppThemeType>>(themeManager.themeType);
+    final localeStr = useSignalValue<String?, Signal<String?>>(themeManager.locale);
+
+    // 缓存 ThemeData，仅在 customPrimary 变化时重建
+    final theme = useMemoized(
+      () => AppThemes.buildTheme(Brightness.light, customPrimary: customPrimary),
+      [customPrimary],
+    );
+    final darkTheme = useMemoized(
+      () => AppThemes.buildTheme(Brightness.dark, customPrimary: customPrimary),
+      [customPrimary],
+    );
+
+    // 导出 Material 值
+    final themeMode = useMemoized(
+      () => switch (themeType) {
+        AppThemeType.light => ThemeMode.light,
+        AppThemeType.dark => ThemeMode.dark,
+        AppThemeType.system => ThemeMode.system,
+      },
+      [themeType],
+    );
+
+    final appLocale = useMemoized(
+      () => localeStr != null ? Locale(localeStr) : null,
+      [localeStr],
+    );
+
+    return MaterialApp.router(
+      routerConfig: router,
+      debugShowCheckedModeBanner: false,
+      theme: theme,
+      darkTheme: darkTheme,
+      themeMode: themeMode,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: appLocale,
+      localeResolutionCallback: (locale, supportedLocales) {
+        if (locale == null) return null;
+        for (final supported in supportedLocales) {
+          if (supported.languageCode == locale.languageCode) {
+            return supported;
+          }
+        }
+        return const Locale('zh');
       },
     );
   }

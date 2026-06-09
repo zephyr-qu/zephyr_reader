@@ -10,17 +10,19 @@ void main() {
         height: 640,
         fontSize: 16,
         lineHeight: 1.5,
+        paragraphSpacing: 32,  // 32/16 = 2.0
       );
 
       expect(config.pageWidth, equals(360)); // 360 * 1.0 ≈ 360
       expect(config.pageHeight, equals(640)); // 640 * 1.0 ≈ 640
       expect(config.fontSize, equals(16));
       expect(config.lineSpacing, equals(1.5));
-      expect(config.paragraphSpacing, equals(1.5));
+      expect(config.paragraphSpacing, equals(2.0));
       expect(config.letterSpacing, equals(0));
       expect(config.firstLineIndent, equals(2));
       expect(config.language, equals(LanguageType.mixed));
       expect(config.enableHyphenation, isFalse);
+      expect(config.punctuationSqueeze, isTrue);
       expect(config.fontFamily, equals('Noto Sans SC'));
       expect(config.calibration, isNull);
     });
