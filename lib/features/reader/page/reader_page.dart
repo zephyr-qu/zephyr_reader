@@ -12,6 +12,7 @@ import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
+import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page_actions.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
@@ -599,7 +600,15 @@ class ReaderPage extends HookWidget {
   void _startTts(ReaderViewModel vm, TtsService ttsService) {
     final c = vm.chapterContent.value.value;
     if (c == null || c.isEmpty) return;
-    ttsService.speak(c);
+    final ttsSettings = getIt<TtsSettingsViewModel>();
+    final autoPage = ttsSettings.autoPage.value;
+    ttsService.speak(
+      c,
+      originalOnly: ttsSettings.originalOnly.value,
+      bilingualAlternate: ttsSettings.bilingualAlternate.value,
+      switchIntervalMs: ttsSettings.switchInterval.value,
+      onComplete: autoPage ? () => vm.nextPage() : null,
+    );
   }
 
   Future<void> _loadVocabularyWords(Signal<Set<String>> out) async {

@@ -5,6 +5,9 @@
 
 use crate::domain::{AppError, EpubMetadata, RichParagraph, TypesetConfig};
 use crate::utils::security::validate_file_path_async;
+use lru::LruCache;
+use std::num::NonZeroUsize;
+use std::sync::{LazyLock, Mutex};
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 
@@ -125,6 +128,16 @@ pub async fn get_epub_metadata(file_path: String) -> Result<EpubMetadata, AppErr
 /// # 返回值
 /// * `Ok(Vec<RichParagraph>)` - 排版后的富文本段落
 /// * `Err(AppError)` - 解析失败
+const RICH_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(8) {
+    Some(v) => v,
+    None => unreachable!(),
+};
+
+type RichCacheKey = (String, i32, u64);
+
+static RICH_CONTENT_CACHE: LazyLock<Mutex<LruCache<RichCacheKey, Vec<RichParagraph>>>> =
+    LazyLock::new(|| Mutex::new(LruCache::new(RICH_CACHE_CAPACITY)));
+
 #[frb]
 pub async fn get_epub_chapter_rich_content(
     file_path: String,
@@ -133,11 +146,29 @@ pub async fn get_epub_chapter_rich_content(
 ) -> Result<Vec<RichParagraph>, AppError> {
     let config = config.validate_and_fix();
     let validated_path = validate_file_path_async(&file_path).await?;
-    crate::parser::epub::parse::get_chapter_content_rich_with_typeset(
+    let cache_key = (validated_path.clone(), chapter_index, config.config_hash());
+
+    // 检查 LRU 缓存
+    {
+        let mut cache = RICH_CONTENT_CACHE.lock().unwrap();
+        if let Some(cached) = cache.get(&cache_key) {
+            return Ok(cached.clone());
+        }
+    }
+
+    let result = crate::parser::epub::parse::get_chapter_content_rich_with_typeset(
         &validated_path,
         chapter_index,
         &config,
-    )
+    )?;
+
+    // 写入 LRU 缓存
+    {
+        let mut cache = RICH_CONTENT_CACHE.lock().unwrap();
+        cache.put(cache_key, result.clone());
+    }
+
+    Ok(result)
 }
 
 #[cfg(test)]

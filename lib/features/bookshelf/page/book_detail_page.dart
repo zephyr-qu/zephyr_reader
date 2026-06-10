@@ -76,12 +76,6 @@ class BookDetailPage extends HookWidget {
               final currentChapterIndex = progress.value?.chapterIndex ?? -1;
               final hasProgress =
                   progress.value != null && (progress.value!.progress) > 0;
-              final chapterTitle =
-                  hasProgress &&
-                      currentChapterIndex >= 0 &&
-                      currentChapterIndex < chapters.value!.length
-                  ? chapters.value![currentChapterIndex].title
-                  : null;
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.only(bottom: 100),
@@ -91,7 +85,6 @@ class BookDetailPage extends HookWidget {
                     BookDetailHero(book: book, categories: categories.value!),
                     BookDetailActions(
                       hasProgress: hasProgress,
-                      currentChapterTitle: chapterTitle,
                       onContinueReading: () => context.pushNamed(
                         RouteNames.reader,
                         pathParameters: {

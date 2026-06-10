@@ -189,11 +189,8 @@ class BookshelfPage extends HookWidget {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final crossAxisCount = constraints.maxWidth >= LayoutBreakpoints.expandedMin
-              ? 4
-              : constraints.maxWidth >= LayoutBreakpoints.compactMax
-              ? 4
-              : 3;
+          final crossAxisCount =
+              LayoutBreakpoints.getGridCrossAxisCount(constraints.maxWidth);
           return Stack(
             children: [
               Positioned(

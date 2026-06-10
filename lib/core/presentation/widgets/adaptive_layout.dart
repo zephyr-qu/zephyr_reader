@@ -43,10 +43,14 @@ class LayoutBreakpoints {
     return ScreenSizeClass.expanded;
   }
 
-  static int getGridCrossAxisCount(BuildContext context) {
-    final type = getScreenSizeClass(context);
+  /// 根据给定宽度返回网格跨列数。
+  ///
+  /// 可与 [LayoutBuilder] 配合使用，用 [constraints.maxWidth] 替代窗口宽度，
+  /// 使网格响应实际可用空间（例如侧边栏打开时）。
+  static int getGridCrossAxisCount(double width) {
+    final type = classifyWidth(width);
     return switch (type) {
-      ScreenSizeClass.compact => 2,
+      ScreenSizeClass.compact => 3,
       ScreenSizeClass.medium => 4,
       ScreenSizeClass.expanded => 6,
     };
