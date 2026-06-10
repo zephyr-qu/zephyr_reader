@@ -229,6 +229,9 @@ class ChapterManager {
         pendingJumpCharOffset.value = currentCharOffset.value;
         error.value = null;
 
+        // 确保当前页内容已缓存（pageTurn 模式依赖 _pageCache）
+        _repo.ensurePageWindow(pageIndex.value);
+
         Logging.debug(
           'loadChapter (fallback): pages=${pages.length} '
           'resolvePage=$pageIndex off=$currentCharOffset',
@@ -244,6 +247,9 @@ class ChapterManager {
         );
         pendingJumpCharOffset.value = currentCharOffset.value;
         error.value = null;
+
+        // 确保当前页内容已缓存（pageTurn 模式依赖 _pageCache）
+        _repo.ensurePageWindow(pageIndex.value);
 
         Logging.debug(
           'loadChapter: pages=${descriptors.length} '

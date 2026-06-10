@@ -1,5 +1,6 @@
 import 'package:flutter_tts/flutter_tts.dart';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
@@ -32,6 +33,10 @@ class TtsService {
   /// 当前正在朗读的句子文本。
   final currentText = signal<String>('');
 
+  bool _bilingualAlternate = false;
+  int _switchIntervalMs = 500;
+  VoidCallback? _onComplete;
+
   TtsService() {
     _init();
   }
@@ -56,12 +61,19 @@ class TtsService {
     if (_sentenceQueue.isEmpty) {
       isPlaying.value = false;
       isPaused.value = false;
+      _onComplete?.call();
       return;
     }
     final nextIndex = currentSentenceIndex.value + 1;
     if (nextIndex < _sentenceQueue.length) {
       currentSentenceIndex.value = nextIndex;
-      await _tts.setSilence(currentPauseBetween.value);
+      final pause = _bilingualAlternate && _isSwitchLanguage(
+        _sentenceQueue[nextIndex - 1],
+        _sentenceQueue[nextIndex],
+      )
+          ? _switchIntervalMs
+          : currentPauseBetween.value;
+      await _tts.setSilence(pause);
       await _speakCurrentSentence();
     } else {
       // 队列播完
@@ -69,6 +81,7 @@ class TtsService {
       isPaused.value = false;
       currentSentenceIndex.value = 0;
       _sentenceQueue.clear();
+      _onComplete?.call();
     }
   }
 
@@ -86,25 +99,83 @@ class TtsService {
   }
 
   /// 向后兼容的单文本朗读入口：自动分句后委托给 [speakSentences]。
-  Future<void> speak(String text) async {
+  ///
+  /// [originalOnly] — 仅朗读原文（跳过翻译句子，基于 CJK 字符检测）。
+  /// [bilingualAlternate] — 语言切换时插入额外停顿。
+  /// [switchIntervalMs] — 语言切换停顿毫秒数（仅 [bilingualAlternate] 时生效）。
+  /// [onComplete] — 队列全部朗读完毕后的回调。
+  Future<void> speak(
+    String text, {
+    bool originalOnly = false,
+    bool bilingualAlternate = false,
+    int switchIntervalMs = 500,
+    VoidCallback? onComplete,
+  }) async {
     await _ready.future;
     await stop();
     final sentences = _splitSentences(text);
-    await speakSentences(sentences);
+    await speakSentences(
+      sentences,
+      originalOnly: originalOnly,
+      bilingualAlternate: bilingualAlternate,
+      switchIntervalMs: switchIntervalMs,
+      onComplete: onComplete,
+    );
   }
 
   /// 朗读句子列表。暂停后调用 [resume] 可从中断句子继续。
-  Future<void> speakSentences(List<String> sentences) async {
+  ///
+  /// [originalOnly] — 仅朗读原文（跳过翻译句子，基于 CJK 字符检测）。
+  /// [bilingualAlternate] — 语言切换时插入额外停顿。
+  /// [switchIntervalMs] — 语言切换停顿毫秒数（仅 [bilingualAlternate] 时生效）。
+  /// [onComplete] — 队列全部朗读完毕后的回调。
+  Future<void> speakSentences(
+    List<String> sentences, {
+    bool originalOnly = false,
+    bool bilingualAlternate = false,
+    int switchIntervalMs = 500,
+    VoidCallback? onComplete,
+  }) async {
     await _ready.future;
     await stop();
     if (sentences.isEmpty) return;
+
+    var filtered = sentences;
+    if (originalOnly) {
+      filtered = _filterOriginalOnly(sentences);
+    }
+    if (filtered.isEmpty) return;
+
     _sentenceQueue
       ..clear()
-      ..addAll(sentences);
+      ..addAll(filtered);
     currentSentenceIndex.value = 0;
+    _bilingualAlternate = bilingualAlternate;
+    _switchIntervalMs = switchIntervalMs.clamp(200, 1500);
+    _onComplete = onComplete;
     isPlaying.value = true;
     isPaused.value = false;
     await _speakCurrentSentence();
+  }
+
+  /// 检测字符串是否包含 CJK 字符。
+  static bool _isCjk(String text) {
+    return text.runes.any((r) =>
+        (r >= 0x4E00 && r <= 0x9FFF) || // CJK 统一表意文字
+        (r >= 0x3400 && r <= 0x4DBF)); // CJK 扩展 A
+  }
+
+  /// 判断前后两句是否发生了语言切换。
+  bool _isSwitchLanguage(String prev, String next) {
+    return _isCjk(prev) != _isCjk(next);
+  }
+
+  /// 过滤掉翻译语言句子，仅保留原文。
+  ///
+  /// 当句子内容以 CJK 字符为主时判定为中文，否则判定为英文。
+  /// 在双语内容中，保留英文句子作为"原文"。
+  List<String> _filterOriginalOnly(List<String> sentences) {
+    return sentences.where((s) => !_isCjk(s)).toList();
   }
 
   /// 将文本按句末标点切分为句子列表。

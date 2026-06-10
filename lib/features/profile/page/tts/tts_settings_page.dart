@@ -12,6 +12,8 @@ import 'package:zephyr_reader/features/profile/application/tts_settings_view_mod
 import 'package:zephyr_reader/features/profile/page/tts/select_item_tile.dart';
 import 'package:zephyr_reader/features/profile/page/tts/tts_preview_card.dart';
 import 'package:zephyr_reader/features/profile/page/tts/playback_section.dart';
+import 'package:zephyr_reader/features/profile/page/tts/bilingual_section.dart';
+import 'package:zephyr_reader/features/profile/page/tts/behavior_section.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// TTS 语音朗读设置页面。
@@ -29,13 +31,16 @@ class TtsSettingsPage extends HookWidget {
   Widget build(BuildContext context) {
     final vm = useMemoized(() => getIt<TtsSettingsViewModel>(), []);
     final tts = useMemoized(() => getIt<TtsService>(), []);
-
     // 页面首次构建时将持久化设置应用到 TTS 引擎
+    final alive = useRef(true);
     useEffect(() {
-      unawaited(tts.setSpeed(vm.speed.value));
-      unawaited(tts.setPitch(vm.pitch.value));
+      Future.microtask(() async {
+        await tts.setSpeed(vm.speed.value);
+        if (!alive.value) return;
+        await tts.setPitch(vm.pitch.value);
+      });
       tts.setPauseBetween(vm.pauseBetween.value);
-      return null;
+      return () => alive.value = false;
     }, []);
 
     final l10n = AppLocalizations.of(context)!;
@@ -57,6 +62,9 @@ class TtsSettingsPage extends HookWidget {
           const SizedBox(height: 16),
           _buildVoiceSection(context, tts, l10n),
           const SizedBox(height: 16),
+          BilingualSection(vm: vm, l10n: l10n),
+          const SizedBox(height: 16),
+          BehaviorSection(vm: vm, l10n: l10n),
           PlaybackSection(vm: vm, tts: tts, l10n: l10n),
           const SizedBox(height: 16),
         ],

@@ -26,6 +26,7 @@ class SearchResultsView extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     return ListView(
+      key: const Key('search_results'),
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       children: [
         if (results.books.isNotEmpty)

@@ -3,14 +3,12 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 继续阅读 / 从头开始 按钮行
 class BookDetailActions extends StatelessWidget {
-  final String? currentChapterTitle;
   final bool hasProgress;
   final VoidCallback onContinueReading;
   final VoidCallback onReadFromBeginning;
 
   const BookDetailActions({
     super.key,
-    this.currentChapterTitle,
     required this.hasProgress,
     required this.onContinueReading,
     required this.onReadFromBeginning,
@@ -40,7 +38,7 @@ class BookDetailActions extends StatelessWidget {
                 onPressed: onContinueReading,
                 child: Text(
                   hasProgress
-                      ? '${l10n.continueReading}${currentChapterTitle != null ? ' · $currentChapterTitle' : ''}'
+                      ? l10n.continueReading
                       : l10n.startReading,
                   style: const TextStyle(
                     fontSize: 15,

@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/features/reader/data/rich_text_converter.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
@@ -78,6 +79,8 @@ class ReaderRepository {
   final Map<int, String> _pageCache = {};
 
   ReaderRepository();
+
+  final _richTextConverter = const RichTextConverter();
 
   /// 公开 getter：页面描述符列表
   List<PageDescriptor>? get descriptors => _descriptors;
@@ -231,10 +234,15 @@ class ReaderRepository {
     }
   }
 
-  /// 获取页面内容（优先从缓存查找）。
-  /// 返回 `null` 表示内容尚未缓存，渲染器应显示占位符。
   String? getPageContent(int pageIndex) {
-    return _pageCache[pageIndex];
+    if (_pageCache.containsKey(pageIndex)) {
+      return _pageCache[pageIndex];
+    }
+    // 回退到 currentPages（Dart 估算分页的降级路径）
+    if (currentPages != null && pageIndex < currentPages!.length) {
+      return currentPages![pageIndex].content;
+    }
+    return null;
   }
 
   /// 同步获取单页内容并写入缓存。
@@ -306,46 +314,53 @@ class ReaderRepository {
       if (book == null || book.filePath.isEmpty) {
         throw Exception('Book not found: $bookId');
       }
-      final tGetBook = sw.elapsedMilliseconds;
 
       final filePath = book.filePath;
 
-      // 1. 通过 Rust core API 获取章节内容（统一处理 EPUB/TXT/MD）
-      final chapterContent = await core_api.getChapter(
-        filePath: filePath,
-        chapterIndex: chapterId,
-      );
-      final tGetChapter = sw.elapsedMilliseconds;
-      Logging.info(
-        '[Timing] loadChapterContent: getBook=${tGetBook}ms '
-        'getChapter=${tGetChapter - tGetBook}ms',
-      );
+      // 2. 并行启动：getChapter（纯文本）和 EPUB 富文本（如果适用）
+      final isEpub = filePath.toLowerCase().endsWith('.epub');
 
-      var content = chapterContent.when(
+      // 同步构建 TypesetConfig（无 FFI 调用，不阻塞）
+      Future<List<RichParagraph>>? epubRichFuture;
+      if (isEpub) {
+        final config = buildTypesetConfig(
+          width: 400,
+          height: 600,
+          fontSize: 16,
+          lineHeight: 1.6,
+          padding: 20,
+          devicePixelRatio: 1.0,
+          fontFamily: 'Noto Sans SC',
+        );
+        epubRichFuture = epub_api.getEpubChapterRichContent(
+          filePath: filePath,
+          chapterIndex: chapterId,
+          config: config,
+        ).catchError((_) => <RichParagraph>[]);
+      }
+
+      // 两个 Future 同时发出 — 无顺序依赖
+      final results = await Future.wait([
+        core_api.getChapter(
+          filePath: filePath,
+          chapterIndex: chapterId,
+        ),
+        if (epubRichFuture != null)
+          epubRichFuture
+        else
+          Future<Object?>.value(null),
+      ]);
+      var content = (results[0] as core_api.ChapterContent).when(
         raw: (text) => text,
         pages: (pages) => pages.map((p) => p.content).join('\n\n'),
       );
 
-      // 2. 对 EPUB 额外获取富文本排版内容
-      final isEpub = filePath.toLowerCase().endsWith('.epub');
-      if (isEpub) {
+      // 处理 EPUB 富文本结果
+      if (epubRichFuture != null && results[1] is List<RichParagraph>) {
         try {
-          final config = buildTypesetConfig(
-            width: 400,
-            height: 600,
-            fontSize: 16,
-            lineHeight: 1.6,
-            padding: 20,
-            devicePixelRatio: 1.0,
-            fontFamily: 'Noto Sans SC',
-          );
-          final paragraphs = await epub_api.getEpubChapterRichContent(
-            filePath: filePath,
-            chapterIndex: chapterId,
-            config: config,
-          );
+          final paragraphs = results[1] as List<RichParagraph>;
           if (paragraphs.isNotEmpty) {
-            final result = _richParagraphsToRichText(paragraphs);
+            final result = _richTextConverter.toTextSpan(paragraphs);
             content = result.$2;
             currentRichContent = result.$1;
             currentRichParagraphs = paragraphs;
@@ -354,7 +369,8 @@ class ReaderRepository {
           Logging.error('loadChapterContent EPUB rich typeset failed: $e');
         }
       }
-      // 3. 对 MD 额外获取富文本排版内容
+
+      // 3. 对 MD 额外获取富文本排版内容（需等待 content 就绪，保持顺序）
       final isMd = filePath.toLowerCase().endsWith('.md');
       if (isMd) {
         try {
@@ -363,7 +379,7 @@ class ReaderRepository {
             chapterIndex: chapterId,
           );
           if (paragraphs.isNotEmpty) {
-            final result = _richParagraphsToRichText(paragraphs);
+            final result = _richTextConverter.toTextSpan(paragraphs);
             content = result.$2;
             currentRichContent = result.$1;
             currentRichParagraphs = paragraphs;
@@ -390,117 +406,6 @@ class ReaderRepository {
     }
   }
 
-  TextStyle _spanToStyle(RichTextSpan span) {
-    final base = span.when(
-      plain: (text, fontSize, color) => const TextStyle(),
-      bold: (text, fontSize, color) =>
-          const TextStyle(fontWeight: FontWeight.bold),
-      italic: (text, fontSize, color) =>
-          const TextStyle(fontStyle: FontStyle.italic),
-      boldItalic: (text, fontSize, color) => const TextStyle(
-        fontWeight: FontWeight.bold,
-        fontStyle: FontStyle.italic,
-      ),
-      underline: (text, fontSize, color) =>
-          const TextStyle(decoration: TextDecoration.underline),
-      strikethrough: (text, fontSize, color) =>
-          const TextStyle(decoration: TextDecoration.lineThrough),
-      code: (text, fontSize, color) => const TextStyle(fontFamily: 'monospace'),
-      link: (text, url, fontSize, color) =>
-          const TextStyle(decoration: TextDecoration.underline),
-    );
-    if (span.fontSize == null && span.color == null) return base;
-    return base.copyWith(
-      fontSize: span.fontSize,
-      color: span.color != null ? _parseCssColor(span.color!) : null,
-    );
-  }
-
-  Color? _parseCssColor(String hex) {
-    try {
-      final h = hex.replaceFirst('#', '');
-      if (h.length == 6) {
-        final r = int.parse(h.substring(0, 2), radix: 16);
-        final g = int.parse(h.substring(2, 4), radix: 16);
-        final b = int.parse(h.substring(4, 6), radix: 16);
-        return Color.fromARGB(255, r, g, b);
-      }
-      if (h.length == 3) {
-        final r = int.parse(h[0] * 2, radix: 16);
-        final g = int.parse(h[1] * 2, radix: 16);
-        final b = int.parse(h[2] * 2, radix: 16);
-        return Color.fromARGB(255, r, g, b);
-      }
-    } catch (e) {
-      Logging.error('解析颜色失败', exception: e);
-    }
-    return null;
-  }
-
-  /// 生成段落级样式（CSS block 属性 + 标题回退）
-  TextStyle _paragraphBlockStyle(
-    RichParagraph p, {
-    required double baseFontSize,
-    required double baseLineHeight,
-  }) {
-    TextStyle style = TextStyle(fontSize: baseFontSize, height: baseLineHeight);
-    if (p.lineHeight != null) {
-      style = style.copyWith(height: p.lineHeight);
-    }
-    if (p.isHeading && p.headingLevel > 0) {
-      final headingFs = switch (p.headingLevel) {
-        1 => 24.0,
-        2 => 20.0,
-        3 => 18.0,
-        4 => 16.0,
-        _ => 14.0,
-      };
-      if (style.fontSize == null || style.fontSize == baseFontSize) {
-        style = style.copyWith(fontSize: headingFs);
-      }
-      style = style.copyWith(fontWeight: FontWeight.bold);
-    }
-    return style;
-  }
-
-  /// 将 RichParagraph 列表转换为 TextSpan 树（保留样式），同时返回纯文本
-  (TextSpan, String) _richParagraphsToRichText(
-    List<RichParagraph> paragraphs, {
-    double baseFontSize = 16,
-    double baseLineHeight = 1.6,
-  }) {
-    final children = <InlineSpan>[];
-    final plainParts = <String>[];
-    for (int i = 0; i < paragraphs.length; i++) {
-      final p = paragraphs[i];
-      if (p.isImage) continue;
-
-      final paraText = p.spans.map((s) => s.text).join();
-      if (paraText.isEmpty) continue;
-
-      final blockStyle = _paragraphBlockStyle(
-        p,
-        baseFontSize: baseFontSize,
-        baseLineHeight: baseLineHeight,
-      );
-      final spanChildren = p.spans
-          .map((s) => TextSpan(text: s.text, style: _spanToStyle(s)))
-          .toList();
-
-      if (blockStyle != const TextStyle()) {
-        children.add(TextSpan(style: blockStyle, children: spanChildren));
-      } else {
-        children.addAll(spanChildren);
-      }
-      plainParts.add(paraText);
-
-      if (i < paragraphs.length - 1) {
-        children.add(const TextSpan(text: '\n\n'));
-      }
-    }
-    final plain = plainParts.where((t) => t.isNotEmpty).join('\n\n');
-    return (TextSpan(children: children), plain);
-  }
 
   Future<List<PageInfo>> calculatePages({
     required String bookId,

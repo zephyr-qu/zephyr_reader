@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
+import 'package:zephyr_reader/src/rust/api/data/session.dart' as session_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import 'chapter_manager.dart';
@@ -33,6 +34,12 @@ class ReadingSessionManager {
   DateTime? _lastSaveTime;
 
   // ==================== 方法 ====================
+  /// 本次阅读会话的起始字符偏移（用于创建 session）
+  int _sessionStartOffset = 0;
+
+  /// 本次阅读会话的开始时间
+  DateTime _sessionStartTime = DateTime.now();
+
 
   /// 加载上次的阅读时长（从进度中恢复）
   void restoreReadingDuration(int seconds) {
@@ -44,17 +51,32 @@ class ReadingSessionManager {
     if (isReading.value) return;
     isReading.value = true;
 
+    _sessionStartOffset = _chapterManager.currentCharOffset.value;
+    _sessionStartTime = DateTime.now();
+
     _readingTimer?.cancel();
     _readingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       readingDuration.value++;
     });
   }
 
-  /// 停止阅读计时并保存进度
+  /// 停止阅读计时并保存进度，同时记录本次阅读会话
   Future<void> stopReading() async {
     if (!isReading.value) return;
     isReading.value = false;
     _readingTimer?.cancel();
+
+    try {
+      await session_api.createSession(
+        bookId: _chapterManager.bookId.value,
+        chapterIndex: _chapterManager.chapterIndex.value,
+        startCharOffset: _sessionStartOffset,
+        endCharOffset: _chapterManager.currentCharOffset.value,
+        startedAt: _sessionStartTime.millisecondsSinceEpoch ~/ 1000,
+      );
+    } catch (e) {
+      Logging.warning('记录阅读会话失败: $e');
+    }
 
     await saveProgress();
   }
@@ -112,8 +134,22 @@ class ReadingSessionManager {
   Future<void> dispose() async {
     _readingTimer?.cancel();
     _saveTimer?.cancel();
-    if (isReading.value) {
-      await saveProgress();
+    if (!isReading.value) return;
+    isReading.value = false;
+
+    // 记录本次阅读会话
+    try {
+      await session_api.createSession(
+        bookId: _chapterManager.bookId.value,
+        chapterIndex: _chapterManager.chapterIndex.value,
+        startCharOffset: _sessionStartOffset,
+        endCharOffset: _chapterManager.currentCharOffset.value,
+        startedAt: _sessionStartTime.millisecondsSinceEpoch ~/ 1000,
+      );
+    } catch (e) {
+      Logging.warning('记录阅读会话失败: $e');
     }
+
+    await saveProgress();
   }
 }

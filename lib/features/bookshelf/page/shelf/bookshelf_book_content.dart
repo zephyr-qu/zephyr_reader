@@ -120,6 +120,7 @@ class BookshelfBookContent extends StatelessWidget {
               batchMode ? 80 : 0,
             ),
             child: GridView.builder(
+              key: const Key('bookshelf_grid'),
               itemCount: books.length,
               physics: adaptiveScrollPhysics(
                 context,
@@ -135,6 +136,7 @@ class BookshelfBookContent extends StatelessWidget {
                 final book = books[index];
                 final selected = selectedIds.contains(book.bookId);
                 return RepaintBoundary(
+                  key: ValueKey('book_${book.bookId}'),
                   child: InkWell(
                     onTap: batchMode
                         ? () {

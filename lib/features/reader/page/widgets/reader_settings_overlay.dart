@@ -40,7 +40,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
   final int autoScrollSpeed;
   final bool isTtsPlaying;
   final bool isTtsPaused;
-
   final ValueChanged<ReadingMode> onReadingModeChanged;
   final ValueChanged<double> onFontSizeChanged;
   final ValueChanged<double> onLineHeightChanged;
