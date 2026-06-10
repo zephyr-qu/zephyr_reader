@@ -600,5 +600,83 @@
   "translationRetry": "重试",
   "translationManualPaste": "手动粘贴",
   "readingMode": "阅读模式",
-  "themeSwitch": "主题切换"
+  "themeSwitch": "主题切换",
+  "bookmarkManage": "书签管理",
+  "searchBookmarkHint": "搜索书签...",
+  "clearAll": "清空所有",
+  "deleteSelected": "删除选中",
+  "sortByTime": "按时间排序",
+  "sortByChapter": "按章节排序",
+  "sortByPosition": "按位置排序",
+  "totalBookmarks": "共 {count} 个书签",
+  "@totalBookmarks": {
+    "description": "书签总数统计",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "bookTotalBookmarks": "本书总计 {count} 个",
+  "@bookTotalBookmarks": {
+    "description": "本书书签总数",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "reload": "重新加载",
+  "noBookmarksFound": "未找到相关书签",
+  "addBookmarkHint": "阅读时点击右上角添加书签",
+  "deleteBookmark": "删除书签",
+  "confirmDeleteBookmark": "确定要删除\"{title}\"吗？",
+  "@confirmDeleteBookmark": {
+    "description": "确认删除单个书签",
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "confirmDeleteBookmarkSimple": "确定要删除此书签吗？",
+  "batchDelete": "批量删除",
+  "confirmBatchDelete": "确定要删除选中的 {count} 个书签吗？",
+  "@confirmBatchDelete": {
+    "description": "确认批量删除书签",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "deletedBookmarks": "已删除 {count} 个书签",
+  "@deletedBookmarks": {
+    "description": "删除书签成功提示",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "clearAllBookmarks": "清空书签",
+  "confirmAddBookmark": "确定要在这里添加书签吗？",
+  "bookmarkAdded": "书签已添加",
+  "add": "添加",
+  "bookmarkDeleted": "书签已删除",
+  "jumpTo": "跳转",
+  "charOffset": "偏移",
+  "notesAndHighlights": "笔记与标注",
+  "refreshTooltip": "刷新",
+  "confirmClearAllBookmarks": "确定要清空本书的所有书签吗？此操作不可恢复",
+  "cacheManage": "缓存管理",
+  "clearedProgress": "已清除《{title}》阅读进度",
+  "@clearedProgress": {
+    "description": "清除阅读进度提示",
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "noProgressData": "暂无阅读进度数据",
+  "cacheInfoTip": "缓存包含已加载的章节内容。清空后需重新加载，不影响书籍文件和阅读进度",
+  "bookCount": "书籍数",
+  "withProgress": "有进度",
+  "labelTotalChapters": "总章节",
+  "indexLoadFailed": "索引加载失败",
+  "indexChunks": "索引块",
+  "indexBooks": "索引书籍",
+  "indexChapters": "索引章节",
+  "clearProgress": "清除进度",
+  "clearedAllBookmarks": "已清空所有书签",
+  "themePreviewSampleText": "春风又绿江南岸，明月何时照我还。"
 }

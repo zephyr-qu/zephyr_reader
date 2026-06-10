@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -25,6 +26,7 @@ class ReaderNoteSidebar extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final notes = useState<List<Note>>([]);
     final loading = useState<bool>(true);
@@ -63,7 +65,7 @@ class ReaderNoteSidebar extends HookWidget {
               child: Row(
                 children: [
                   Text(
-                    '笔记与标注',
+                    l10n.notesAndHighlights,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -77,12 +79,12 @@ class ReaderNoteSidebar extends HookWidget {
                       size: 20,
                     ),
                     onPressed: loadNotes,
-                    tooltip: '刷新',
+                    tooltip: l10n.refreshTooltip,
                   ),
                   IconButton(
                     icon: const Icon(PhosphorIconsLight.x, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
-                    tooltip: '关闭',
+                    tooltip: l10n.close,
                   ),
                 ],
               ),
@@ -103,7 +105,7 @@ class ReaderNoteSidebar extends HookWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '暂无笔记',
+                            l10n.noNotes,
                             style: TextStyle(
                               fontSize: 14,
                               color: theme.colorScheme.onSurface,
@@ -192,7 +194,7 @@ class ReaderNoteSidebar extends HookWidget {
                                         ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        '第 ${note.chapterIndex + 1} 章',
+                                        l10n.chapterN(note.chapterIndex + 1),
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: theme

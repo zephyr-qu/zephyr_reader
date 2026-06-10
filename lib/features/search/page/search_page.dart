@@ -5,6 +5,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/search/application/search_view_model.dart';
 import 'package:zephyr_reader/features/search/application/services/search_history_service.dart';
@@ -128,6 +129,7 @@ class SearchPage extends HookWidget {
     required VoidCallback onClear,
     required ValueChanged<String> onSearch,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
@@ -150,7 +152,7 @@ class SearchPage extends HookWidget {
                 focusNode: focusNode,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: '搜索书籍、笔记、生词...',
+                  hintText: l10n.searchHint,
                   hintStyle: TextStyle(
                     color: theme.colorScheme.onSurfaceVariant.withValues(
                       alpha: 0.5,
@@ -190,7 +192,7 @@ class SearchPage extends HookWidget {
           GestureDetector(
             onTap: () => context.pop(),
             child: Text(
-              '取消',
+              l10n.cancel,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -215,6 +217,7 @@ class SearchPage extends HookWidget {
     SearchHistoryService history,
     TextEditingController controller,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -229,15 +232,14 @@ class SearchPage extends HookWidget {
               size: 40,
               color: theme.colorScheme.error.withValues(alpha: 0.4),
             ),
-            const SizedBox(height: 12),
             Text(
-              '搜索出错',
+              l10n.searchError,
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => vm.doFullSearch(controller.text.trim()),
-              child: const Text('重试'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -254,17 +256,15 @@ class SearchPage extends HookWidget {
               size: 40,
               color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
             ),
-            const SizedBox(height: 12),
             Text(
-              '未找到相关结果',
+              l10n.searchNoResults,
               style: TextStyle(
                 fontSize: 14,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 4),
             Text(
-              '试试其他关键词',
+              l10n.searchTryOtherKeywords,
               style: theme.textTheme.labelLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant.withValues(
                   alpha: 0.6,

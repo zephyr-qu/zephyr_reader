@@ -1910,4 +1910,142 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get themeSwitch => '主题切换';
+
+  @override
+  String get bookmarkManage => '书签管理';
+
+  @override
+  String get searchBookmarkHint => '搜索书签...';
+
+  @override
+  String get clearAll => '清空所有';
+
+  @override
+  String get deleteSelected => '删除选中';
+
+  @override
+  String get sortByTime => '按时间排序';
+
+  @override
+  String get sortByChapter => '按章节排序';
+
+  @override
+  String get sortByPosition => '按位置排序';
+
+  @override
+  String totalBookmarks(int count) {
+    return '共 $count 个书签';
+  }
+
+  @override
+  String bookTotalBookmarks(int count) {
+    return '本书总计 $count 个';
+  }
+
+  @override
+  String get reload => '重新加载';
+
+  @override
+  String get noBookmarksFound => '未找到相关书签';
+
+  @override
+  String get addBookmarkHint => '阅读时点击右上角添加书签';
+
+  @override
+  String get deleteBookmark => '删除书签';
+
+  @override
+  String confirmDeleteBookmark(String title) {
+    return '确定要删除\"$title\"吗？';
+  }
+
+  @override
+  String get confirmDeleteBookmarkSimple => '确定要删除此书签吗？';
+
+  @override
+  String get batchDelete => '批量删除';
+
+  @override
+  String confirmBatchDelete(int count) {
+    return '确定要删除选中的 $count 个书签吗？';
+  }
+
+  @override
+  String deletedBookmarks(int count) {
+    return '已删除 $count 个书签';
+  }
+
+  @override
+  String get clearAllBookmarks => '清空书签';
+
+  @override
+  String get confirmAddBookmark => '确定要在这里添加书签吗？';
+
+  @override
+  String get bookmarkAdded => '书签已添加';
+
+  @override
+  String get add => '添加';
+
+  @override
+  String get bookmarkDeleted => '书签已删除';
+
+  @override
+  String get jumpTo => '跳转';
+
+  @override
+  String get charOffset => '偏移';
+
+  @override
+  String get notesAndHighlights => '笔记与标注';
+
+  @override
+  String get refreshTooltip => '刷新';
+
+  @override
+  String get confirmClearAllBookmarks => '确定要清空本书的所有书签吗？此操作不可恢复';
+
+  @override
+  String get cacheManage => '缓存管理';
+
+  @override
+  String clearedProgress(String title) {
+    return '已清除《$title》阅读进度';
+  }
+
+  @override
+  String get noProgressData => '暂无阅读进度数据';
+
+  @override
+  String get cacheInfoTip => '缓存包含已加载的章节内容。清空后需重新加载，不影响书籍文件和阅读进度';
+
+  @override
+  String get bookCount => '书籍数';
+
+  @override
+  String get withProgress => '有进度';
+
+  @override
+  String get labelTotalChapters => '总章节';
+
+  @override
+  String get indexLoadFailed => '索引加载失败';
+
+  @override
+  String get indexChunks => '索引块';
+
+  @override
+  String get indexBooks => '索引书籍';
+
+  @override
+  String get indexChapters => '索引章节';
+
+  @override
+  String get clearProgress => '清除进度';
+
+  @override
+  String get clearedAllBookmarks => '已清空所有书签';
+
+  @override
+  String get themePreviewSampleText => '春风又绿江南岸，明月何时照我还。';
 }

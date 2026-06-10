@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -40,6 +41,7 @@ class BookmarkWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final textColor = _getTextColor(themeMode);
     final backgroundColor = _getBackgroundColor(themeMode);
 
@@ -62,7 +64,7 @@ class BookmarkWidget extends StatelessWidget {
               child: Row(
                 children: [
                   Text(
-                    '书签',
+                    l10n.addBookmark,
                     style: TextStyle(
                       color: textColor,
                       fontSize: 18,
@@ -74,16 +76,16 @@ class BookmarkWidget extends StatelessWidget {
                     icon: Icon(PhosphorIconsRegular.plus, color: textColor),
                     onPressed: () {
                       if (onAddBookmark != null) {
-                        _showAddBookmarkDialog(context, textColor);
+                        _showAddBookmarkDialog(context, textColor, l10n);
                       }
                     },
-                    tooltip: '添加书签',
+                    tooltip: l10n.addBookmark,
                   ),
                   SizedBox(width: DesignTokens.spacing(Spacing.md)),
                   IconButton(
                     icon: Icon(PhosphorIconsLight.x, color: textColor),
                     onPressed: onClose,
-                    tooltip: '关闭',
+                    tooltip: l10n.close,
                   ),
                 ],
               ),
@@ -91,12 +93,12 @@ class BookmarkWidget extends StatelessWidget {
             // 书签列表
             Expanded(
               child: bookmarks.isEmpty
-                  ? _buildEmptyState(textColor)
+                  ? _buildEmptyState(textColor, l10n)
                   : ListView.builder(
                       itemCount: bookmarks.length,
                       itemBuilder: (context, index) {
                         final bookmark = bookmarks[index];
-                        return _buildBookmarkItem(bookmark, textColor);
+                        return _buildBookmarkItem(bookmark, textColor, l10n);
                       },
                     ),
             ),
@@ -106,7 +108,7 @@ class BookmarkWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(Color textColor) {
+  Widget _buildEmptyState(Color textColor, AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -118,7 +120,7 @@ class BookmarkWidget extends StatelessWidget {
           ),
           SizedBox(height: DesignTokens.spacing(Spacing.md)),
           Text(
-            '暂无书签',
+            l10n.noBookmarks,
             style: TextStyle(
               color: textColor.withValues(alpha: 0.6),
               fontSize: 16,
@@ -126,7 +128,7 @@ class BookmarkWidget extends StatelessWidget {
           ),
           SizedBox(height: DesignTokens.spacing(Spacing.sm)),
           Text(
-            '点击右上角添加书签',
+            l10n.addBookmarkHint,
             style: TextStyle(
               color: textColor.withValues(alpha: 0.4),
               fontSize: 14,
@@ -137,7 +139,7 @@ class BookmarkWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildBookmarkItem(Bookmark bookmark, Color textColor) {
+  Widget _buildBookmarkItem(Bookmark bookmark, Color textColor, AppLocalizations l10n) {
     return Card(
       margin: EdgeInsets.symmetric(
         horizontal: DesignTokens.spacing(Spacing.md),
@@ -149,21 +151,21 @@ class BookmarkWidget extends StatelessWidget {
           color: Colors.blue,
         ),
         title: Text(
-          bookmark.title.isNotEmpty ? bookmark.title : '书签',
+          bookmark.title.isNotEmpty ? bookmark.title : l10n.addBookmark,
           style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '章节 ${bookmark.chapterIndex + 1}',
+              l10n.chapterN(bookmark.chapterIndex + 1),
               style: TextStyle(
                 color: textColor.withValues(alpha: 0.4),
                 fontSize: 12,
               ),
             ),
             Text(
-              '偏移: ${bookmark.charOffset}',
+              '${l10n.charOffset}: ${bookmark.charOffset}',
               style: TextStyle(
                 color: textColor.withValues(alpha: 0.4),
                 fontSize: 12,
@@ -180,13 +182,13 @@ class BookmarkWidget extends StatelessWidget {
                 color: Colors.blue,
               ),
               onPressed: () => onBookmarkSelected(bookmark),
-              tooltip: '跳转',
+              tooltip: l10n.jumpTo,
             ),
             Builder(
               builder: (context) => IconButton(
                 icon: const Icon(PhosphorIconsRegular.trash, color: Colors.red),
-                onPressed: () => _showDeleteConfirm(context, bookmark),
-                tooltip: '删除',
+                onPressed: () => _showDeleteConfirm(context, bookmark, l10n),
+                tooltip: l10n.delete,
               ),
             ),
           ],
@@ -195,57 +197,55 @@ class BookmarkWidget extends StatelessWidget {
     );
   }
 
-  void _showAddBookmarkDialog(BuildContext context, Color textColor) {
+  void _showAddBookmarkDialog(BuildContext context, Color textColor, AppLocalizations l10n) {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('添加书签'),
-        content: const Text('确定要在这里添加书签吗？'),
+        title: Text(l10n.addBookmark),
+        content: Text(l10n.confirmAddBookmark),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('取消', style: TextStyle(color: textColor)),
+            child: Text(l10n.cancel, style: TextStyle(color: textColor)),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               onAddBookmark?.call();
               hapticFeedback(HapticType.medium);
-              // 显示成功提示
-              showInfoSnack(context, '书签已添加');
+              showInfoSnack(context, l10n.bookmarkAdded);
             },
-            child: const Text('添加'),
+            child: Text(l10n.add),
           ),
         ],
       ),
     );
   }
 
-  void _showDeleteConfirm(BuildContext context, Bookmark bookmark) {
+  void _showDeleteConfirm(BuildContext context, Bookmark bookmark, AppLocalizations l10n) {
     final textColor = _getTextColor(themeMode);
 
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('确认删除'),
-        content: const Text('确定要删除这个书签吗？'),
+        title: Text(l10n.confirmDelete),
+        content: Text(l10n.confirmDeleteBookmarkSimple),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('取消', style: TextStyle(color: textColor)),
+            child: Text(l10n.cancel, style: TextStyle(color: textColor)),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               onDeleteBookmark(bookmark.id);
-              // 显示成功提示
-              showInfoSnack(context, '书签已删除');
+              showInfoSnack(context, l10n.bookmarkDeleted);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('删除'),
+            child: Text(l10n.delete),
           ),
         ],
       ),

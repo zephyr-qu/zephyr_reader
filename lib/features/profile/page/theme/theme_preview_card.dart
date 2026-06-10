@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import 'package:zephyr_reader/l10n/app_localizations.dart';
+
 const _previewColors = <(Color, Color)>[
   (Color(0xFFFFFFFF), Color(0xFF1D1D1F)),
   (Color(0xFFF5E6C8), Color(0xFF3E2723)),
@@ -17,6 +19,7 @@ class ThemePreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final colors = _previewColors[bgIndex.clamp(0, _previewColors.length - 1)];
     final bg = colors.$1;
@@ -42,7 +45,7 @@ class ThemePreviewCard extends StatelessWidget {
             children: [
               const SizedBox(height: 4),
               Text(
-                '春风又绿江南岸，明月何时照我还。',
+                l10n.themePreviewSampleText,
                 style: TextStyle(fontSize: 16, height: 1.8, color: fg),
               ),
               const SizedBox(height: 4),
@@ -67,7 +70,7 @@ class ThemePreviewCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                '实时预览',
+                l10n.livePreview,
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,

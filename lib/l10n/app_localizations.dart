@@ -3697,6 +3697,258 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'主题切换'**
   String get themeSwitch;
+
+  /// No description provided for @bookmarkManage.
+  ///
+  /// In zh, this message translates to:
+  /// **'书签管理'**
+  String get bookmarkManage;
+
+  /// No description provided for @searchBookmarkHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索书签...'**
+  String get searchBookmarkHint;
+
+  /// No description provided for @clearAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'清空所有'**
+  String get clearAll;
+
+  /// No description provided for @deleteSelected.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除选中'**
+  String get deleteSelected;
+
+  /// No description provided for @sortByTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'按时间排序'**
+  String get sortByTime;
+
+  /// No description provided for @sortByChapter.
+  ///
+  /// In zh, this message translates to:
+  /// **'按章节排序'**
+  String get sortByChapter;
+
+  /// No description provided for @sortByPosition.
+  ///
+  /// In zh, this message translates to:
+  /// **'按位置排序'**
+  String get sortByPosition;
+
+  /// 书签总数统计
+  ///
+  /// In zh, this message translates to:
+  /// **'共 {count} 个书签'**
+  String totalBookmarks(int count);
+
+  /// 本书书签总数
+  ///
+  /// In zh, this message translates to:
+  /// **'本书总计 {count} 个'**
+  String bookTotalBookmarks(int count);
+
+  /// No description provided for @reload.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新加载'**
+  String get reload;
+
+  /// No description provided for @noBookmarksFound.
+  ///
+  /// In zh, this message translates to:
+  /// **'未找到相关书签'**
+  String get noBookmarksFound;
+
+  /// No description provided for @addBookmarkHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'阅读时点击右上角添加书签'**
+  String get addBookmarkHint;
+
+  /// No description provided for @deleteBookmark.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除书签'**
+  String get deleteBookmark;
+
+  /// 确认删除单个书签
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要删除\"{title}\"吗？'**
+  String confirmDeleteBookmark(String title);
+
+  /// No description provided for @confirmDeleteBookmarkSimple.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要删除此书签吗？'**
+  String get confirmDeleteBookmarkSimple;
+
+  /// No description provided for @batchDelete.
+  ///
+  /// In zh, this message translates to:
+  /// **'批量删除'**
+  String get batchDelete;
+
+  /// 确认批量删除书签
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要删除选中的 {count} 个书签吗？'**
+  String confirmBatchDelete(int count);
+
+  /// 删除书签成功提示
+  ///
+  /// In zh, this message translates to:
+  /// **'已删除 {count} 个书签'**
+  String deletedBookmarks(int count);
+
+  /// No description provided for @clearAllBookmarks.
+  ///
+  /// In zh, this message translates to:
+  /// **'清空书签'**
+  String get clearAllBookmarks;
+
+  /// No description provided for @confirmAddBookmark.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要在这里添加书签吗？'**
+  String get confirmAddBookmark;
+
+  /// No description provided for @bookmarkAdded.
+  ///
+  /// In zh, this message translates to:
+  /// **'书签已添加'**
+  String get bookmarkAdded;
+
+  /// No description provided for @add.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加'**
+  String get add;
+
+  /// No description provided for @bookmarkDeleted.
+  ///
+  /// In zh, this message translates to:
+  /// **'书签已删除'**
+  String get bookmarkDeleted;
+
+  /// No description provided for @jumpTo.
+  ///
+  /// In zh, this message translates to:
+  /// **'跳转'**
+  String get jumpTo;
+
+  /// No description provided for @charOffset.
+  ///
+  /// In zh, this message translates to:
+  /// **'偏移'**
+  String get charOffset;
+
+  /// No description provided for @notesAndHighlights.
+  ///
+  /// In zh, this message translates to:
+  /// **'笔记与标注'**
+  String get notesAndHighlights;
+
+  /// No description provided for @refreshTooltip.
+  ///
+  /// In zh, this message translates to:
+  /// **'刷新'**
+  String get refreshTooltip;
+
+  /// No description provided for @confirmClearAllBookmarks.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要清空本书的所有书签吗？此操作不可恢复'**
+  String get confirmClearAllBookmarks;
+
+  /// No description provided for @cacheManage.
+  ///
+  /// In zh, this message translates to:
+  /// **'缓存管理'**
+  String get cacheManage;
+
+  /// 清除阅读进度提示
+  ///
+  /// In zh, this message translates to:
+  /// **'已清除《{title}》阅读进度'**
+  String clearedProgress(String title);
+
+  /// No description provided for @noProgressData.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无阅读进度数据'**
+  String get noProgressData;
+
+  /// No description provided for @cacheInfoTip.
+  ///
+  /// In zh, this message translates to:
+  /// **'缓存包含已加载的章节内容。清空后需重新加载，不影响书籍文件和阅读进度'**
+  String get cacheInfoTip;
+
+  /// No description provided for @bookCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'书籍数'**
+  String get bookCount;
+
+  /// No description provided for @withProgress.
+  ///
+  /// In zh, this message translates to:
+  /// **'有进度'**
+  String get withProgress;
+
+  /// No description provided for @labelTotalChapters.
+  ///
+  /// In zh, this message translates to:
+  /// **'总章节'**
+  String get labelTotalChapters;
+
+  /// No description provided for @indexLoadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'索引加载失败'**
+  String get indexLoadFailed;
+
+  /// No description provided for @indexChunks.
+  ///
+  /// In zh, this message translates to:
+  /// **'索引块'**
+  String get indexChunks;
+
+  /// No description provided for @indexBooks.
+  ///
+  /// In zh, this message translates to:
+  /// **'索引书籍'**
+  String get indexBooks;
+
+  /// No description provided for @indexChapters.
+  ///
+  /// In zh, this message translates to:
+  /// **'索引章节'**
+  String get indexChapters;
+
+  /// No description provided for @clearProgress.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除进度'**
+  String get clearProgress;
+
+  /// No description provided for @clearedAllBookmarks.
+  ///
+  /// In zh, this message translates to:
+  /// **'已清空所有书签'**
+  String get clearedAllBookmarks;
+
+  /// No description provided for @themePreviewSampleText.
+  ///
+  /// In zh, this message translates to:
+  /// **'春风又绿江南岸，明月何时照我还。'**
+  String get themePreviewSampleText;
 }
 
 class _AppLocalizationsDelegate
