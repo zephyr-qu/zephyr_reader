@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
+import 'package:zephyr_reader/l10n/app_localizations.dart';
+
 class BrightnessSlider extends StatelessWidget {
   final int value;
   final ValueChanged<int> onChanged;
@@ -13,6 +15,7 @@ class BrightnessSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -24,7 +27,7 @@ class BrightnessSlider extends StatelessWidget {
               Icon(PhosphorIconsRegular.sun, size: 20, color: cs.onSurface),
               const SizedBox(width: 6),
               Text(
-                '屏幕亮度',
+                l10n.brightness,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,

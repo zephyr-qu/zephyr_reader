@@ -1937,4 +1937,145 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeSwitch => 'Switch Theme';
+
+  @override
+  String get bookmarkManage => 'Bookmark Management';
+
+  @override
+  String get searchBookmarkHint => 'Search bookmarks...';
+
+  @override
+  String get clearAll => 'Clear All';
+
+  @override
+  String get deleteSelected => 'Delete Selected';
+
+  @override
+  String get sortByTime => 'Sort by Time';
+
+  @override
+  String get sortByChapter => 'Sort by Chapter';
+
+  @override
+  String get sortByPosition => 'Sort by Position';
+
+  @override
+  String totalBookmarks(int count) {
+    return '$count bookmarks';
+  }
+
+  @override
+  String bookTotalBookmarks(int count) {
+    return '$count in this book';
+  }
+
+  @override
+  String get reload => 'Reload';
+
+  @override
+  String get noBookmarksFound => 'No matching bookmarks';
+
+  @override
+  String get addBookmarkHint => 'Tap the bookmark icon while reading';
+
+  @override
+  String get deleteBookmark => 'Delete Bookmark';
+
+  @override
+  String confirmDeleteBookmark(String title) {
+    return 'Delete \"$title\"?';
+  }
+
+  @override
+  String get confirmDeleteBookmarkSimple => 'Delete this bookmark?';
+
+  @override
+  String get batchDelete => 'Batch Delete';
+
+  @override
+  String confirmBatchDelete(int count) {
+    return 'Delete $count selected bookmarks?';
+  }
+
+  @override
+  String deletedBookmarks(int count) {
+    return 'Deleted $count bookmarks';
+  }
+
+  @override
+  String get clearAllBookmarks => 'Clear All Bookmarks';
+
+  @override
+  String get confirmAddBookmark => 'Add a bookmark here?';
+
+  @override
+  String get bookmarkAdded => 'Bookmark added';
+
+  @override
+  String get add => 'Add';
+
+  @override
+  String get bookmarkDeleted => 'Bookmark deleted';
+
+  @override
+  String get jumpTo => 'Jump To';
+
+  @override
+  String get charOffset => 'Offset';
+
+  @override
+  String get notesAndHighlights => 'Notes & Highlights';
+
+  @override
+  String get refreshTooltip => 'Refresh';
+
+  @override
+  String get confirmClearAllBookmarks =>
+      'Clear all bookmarks in this book? This cannot be undone.';
+
+  @override
+  String get cacheManage => 'Cache Management';
+
+  @override
+  String clearedProgress(String title) {
+    return 'Cleared reading progress for $title';
+  }
+
+  @override
+  String get noProgressData => 'No reading progress data';
+
+  @override
+  String get cacheInfoTip =>
+      'Cache contains loaded chapter content. Clearing requires reloading. Book files and reading progress are unaffected.';
+
+  @override
+  String get bookCount => 'Books';
+
+  @override
+  String get withProgress => 'In Progress';
+
+  @override
+  String get labelTotalChapters => 'Total Chapters';
+
+  @override
+  String get indexLoadFailed => 'Index load failed';
+
+  @override
+  String get indexChunks => 'Index Chunks';
+
+  @override
+  String get indexBooks => 'Indexed Books';
+
+  @override
+  String get indexChapters => 'Indexed Chapters';
+
+  @override
+  String get clearProgress => 'Clear Progress';
+
+  @override
+  String get clearedAllBookmarks => 'All bookmarks cleared';
+
+  @override
+  String get themePreviewSampleText =>
+      'The spring wind has greened the southern shore again.';
 }

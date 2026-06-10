@@ -3,6 +3,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/core/utils/time_formatters.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
@@ -21,6 +23,7 @@ class BookmarkManagePage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final vm = useMemoized(() => getIt<ReaderViewModel>());
     final searchController = useTextEditingController();
     final isSearchMode = useSignal(false);
@@ -40,7 +43,7 @@ class BookmarkManagePage extends HookWidget {
                 controller: searchController,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: '搜索书签...',
+                  hintText: l10n.searchBookmarkHint,
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.zero,
                   hintStyle: TextStyle(
@@ -50,13 +53,13 @@ class BookmarkManagePage extends HookWidget {
                 style: TextStyle(color: theme.colorScheme.onSurface),
                 onChanged: (_) {},
               )
-            : const Text('书签管理'),
+            : Text(l10n.bookmarkManage),
         actions: [
           if (!isSearchMode.value)
             IconButton(
               icon: const Icon(PhosphorIconsRegular.magnifyingGlass),
               onPressed: () => isSearchMode.value = true,
-              tooltip: '搜索',
+              tooltip: l10n.search,
             )
           else
             IconButton(
@@ -66,7 +69,7 @@ class BookmarkManagePage extends HookWidget {
                 searchController.clear();
                 vm.loadBookmarks();
               },
-              tooltip: '关闭搜索',
+              tooltip: l10n.closeSearch,
             ),
           PopupMenuButton<BookmarkSortType>(
             icon: const Icon(PhosphorIconsRegular.sortAscending),
@@ -75,17 +78,17 @@ class BookmarkManagePage extends HookWidget {
               ascending.value = !ascending.value;
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: BookmarkSortType.createdAt,
-                child: Text('按时间排序'),
+                child: Text(l10n.sortByTime),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: BookmarkSortType.chapterIndex,
-                child: Text('按章节排序'),
+                child: Text(l10n.sortByChapter),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: BookmarkSortType.position,
-                child: Text('按位置排序'),
+                child: Text(l10n.sortByPosition),
               ),
             ],
           ),
@@ -97,13 +100,13 @@ class BookmarkManagePage extends HookWidget {
               ),
               onPressed: () =>
                   _batchDelete(context, vm, selectedBookmarks.value),
-              tooltip: '删除选中',
+              tooltip: l10n.deleteSelected,
             )
           else
             IconButton(
               icon: const Icon(PhosphorIconsRegular.trashSimple),
               onPressed: () => _confirmClearBookmarks(context, vm),
-              tooltip: '清空所有',
+              tooltip: l10n.clearAll,
             ),
         ],
       ),
@@ -126,14 +129,13 @@ class BookmarkManagePage extends HookWidget {
                   ),
                   SizedBox(height: DesignTokens.spacing(Spacing.md)),
                   Text(
-                    '加载失败',
+                    l10n.loadFailed,
                     style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                   ),
                   SizedBox(height: DesignTokens.spacing(Spacing.md)),
                   FilledButton.icon(
                     onPressed: () => vm.loadBookmarks(),
-                    icon: const Icon(PhosphorIconsRegular.arrowsClockwise),
-                    label: const Text('重新加载'),
+                    label: Text(l10n.reload),
                   ),
                 ],
               ),
@@ -180,7 +182,7 @@ class BookmarkManagePage extends HookWidget {
                   ),
                   SizedBox(height: DesignTokens.spacing(Spacing.md)),
                   Text(
-                    isSearchMode.value ? '未找到相关书签' : '暂无书签',
+                    isSearchMode.value ? l10n.noBookmarksFound : l10n.noBookmarks,
                     style: TextStyle(
                       fontSize: 16,
                       color: theme.colorScheme.onSurface,
@@ -189,7 +191,7 @@ class BookmarkManagePage extends HookWidget {
                   if (!isSearchMode.value) ...[
                     SizedBox(height: DesignTokens.spacing(Spacing.sm)),
                     Text(
-                      '阅读时点击右上角添加书签',
+                      l10n.addBookmarkHint,
                       style: TextStyle(
                         fontSize: 14,
                         color: theme.colorScheme.onSurfaceVariant,
@@ -232,7 +234,7 @@ class BookmarkManagePage extends HookWidget {
                       ),
                       SizedBox(width: DesignTokens.spacing(Spacing.sm)),
                       Text(
-                        '共 ${bookmarkList.length} 个书签',
+                        l10n.totalBookmarks(bookmarkList.length),
                         style: TextStyle(
                           fontSize: 13,
                           color: theme.colorScheme.onSurface,
@@ -240,7 +242,7 @@ class BookmarkManagePage extends HookWidget {
                       ),
                       const Spacer(),
                       Text(
-                        '本书总计 ${vm.bookmarks.value.value?.length ?? 0} 个',
+                        l10n.bookTotalBookmarks(vm.bookmarks.value.value?.length ?? 0),
                         style: TextStyle(
                           fontSize: 12,
                           color: theme.colorScheme.onSurfaceVariant,
@@ -271,16 +273,16 @@ class BookmarkManagePage extends HookWidget {
                         final confirmed = await showDialog<bool>(
                           context: context,
                           builder: (c) => AlertDialog(
-                            title: const Text('删除书签'),
-                            content: Text('确定要删除"${bookmark.title}"吗？'),
+                            title: Text(l10n.deleteBookmark),
+                            content: Text(l10n.confirmDeleteBookmark(bookmark.title)),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(c, false),
-                                child: const Text('取消'),
+                                child: Text(l10n.cancel),
                               ),
                               FilledButton(
                                 onPressed: () => Navigator.pop(c, true),
-                                child: const Text('删除'),
+                                child: Text(l10n.delete),
                               ),
                             ],
                           ),
@@ -323,19 +325,20 @@ class BookmarkManagePage extends HookWidget {
     ReaderViewModel vm,
     Set<String> bookmarkIds,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('批量删除'),
-        content: Text('确定要删除选中的 ${bookmarkIds.length} 个书签吗？'),
+        title: Text(l10n.batchDelete),
+        content: Text(l10n.confirmBatchDelete(bookmarkIds.length)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: const Text('删除'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -344,7 +347,7 @@ class BookmarkManagePage extends HookWidget {
       await bookmark_api.deleteBookmarks(bookmarkIds: bookmarkIds.toList());
       await vm.loadBookmarks();
       if (context.mounted) {
-        showInfoSnack(context, '已删除 ${bookmarkIds.length} 个书签');
+        showInfoSnack(context, l10n.deletedBookmarks(bookmarkIds.length));
       }
     }
   }
@@ -353,19 +356,20 @@ class BookmarkManagePage extends HookWidget {
     BuildContext context,
     ReaderViewModel vm,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('清空书签'),
-        content: const Text('确定要清空本书的所有书签吗？此操作不可恢复'),
+        title: Text(l10n.clearAllBookmarks),
+        content: Text(l10n.confirmClearAllBookmarks),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: const Text('清空'),
+            child: Text(l10n.clearAll),
           ),
         ],
       ),
@@ -374,7 +378,7 @@ class BookmarkManagePage extends HookWidget {
       await bookmark_api.clearBookmarksByBook(bookId: bookId);
       await vm.loadBookmarks();
       if (context.mounted) {
-        showInfoSnack(context, '已清空所有书签');
+        showInfoSnack(context, l10n.clearedAllBookmarks);
       }
     }
   }
@@ -396,10 +400,10 @@ class _BookmarkTile extends StatelessWidget {
     required this.onLongPress,
     required this.onToggleSelect,
   });
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Dismissible(
       key: Key(bookmark.id),
       direction: DismissDirection.endToStart,
@@ -417,16 +421,16 @@ class _BookmarkTile extends StatelessWidget {
         return await showDialog<bool>(
               context: context,
               builder: (c) => AlertDialog(
-                title: const Text('删除书签'),
-                content: const Text('确定要删除此书签吗？'),
+                title: Text(l10n.deleteBookmark),
+                content: Text(l10n.confirmDeleteBookmarkSimple),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(c, false),
-                    child: const Text('取消'),
+                    child: Text(l10n.cancel),
                   ),
                   FilledButton(
                     onPressed: () => Navigator.pop(c, true),
-                    child: const Text('删除'),
+                    child: Text(l10n.delete),
                   ),
                 ],
               ),
@@ -478,7 +482,7 @@ class _BookmarkTile extends StatelessWidget {
                     ),
                     SizedBox(height: DesignTokens.spacing(Spacing.xs)),
                     Text(
-                      '第 ${bookmark.chapterIndex} 章',
+                      l10n.chapterN(bookmark.chapterIndex),
                       style: TextStyle(
                         fontSize: 12,
                         color: theme.colorScheme.onSurfaceVariant,
@@ -490,7 +494,7 @@ class _BookmarkTile extends StatelessWidget {
             ),
             SizedBox(width: DesignTokens.spacing(Spacing.sm)),
             Text(
-              _formatDate(bookmark.createdAt),
+              formatRelativeTime(bookmark.createdAt, l10n),
               style: TextStyle(
                 fontSize: 12,
                 color: theme.colorScheme.onSurfaceVariant,
@@ -502,12 +506,4 @@ class _BookmarkTile extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
-    final diff = DateTime.now().difference(date);
-    if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inHours == 0) return '${diff.inMinutes}分钟前';
-    if (diff.inDays == 0) return '${diff.inHours}小时前';
-    if (diff.inDays < 7) return '${diff.inDays}天前';
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-  }
 }

@@ -600,5 +600,83 @@
   "translationRetry": "Retry",
   "translationManualPaste": "Paste Manually",
   "readingMode": "Reading Mode",
-  "themeSwitch": "Switch Theme"
+  "themeSwitch": "Switch Theme",
+  "bookmarkManage": "Bookmark Management",
+  "searchBookmarkHint": "Search bookmarks...",
+  "clearAll": "Clear All",
+  "deleteSelected": "Delete Selected",
+  "sortByTime": "Sort by Time",
+  "sortByChapter": "Sort by Chapter",
+  "sortByPosition": "Sort by Position",
+  "totalBookmarks": "{count} bookmarks",
+  "@totalBookmarks": {
+    "description": "Total bookmark count",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "bookTotalBookmarks": "{count} in this book",
+  "@bookTotalBookmarks": {
+    "description": "Bookmark count for this book",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "reload": "Reload",
+  "noBookmarksFound": "No matching bookmarks",
+  "addBookmarkHint": "Tap the bookmark icon while reading",
+  "deleteBookmark": "Delete Bookmark",
+  "confirmDeleteBookmark": "Delete \"{title}\"?",
+  "@confirmDeleteBookmark": {
+    "description": "Confirm single bookmark deletion",
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "confirmDeleteBookmarkSimple": "Delete this bookmark?",
+  "batchDelete": "Batch Delete",
+  "confirmBatchDelete": "Delete {count} selected bookmarks?",
+  "@confirmBatchDelete": {
+    "description": "Confirm batch bookmark deletion",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "deletedBookmarks": "Deleted {count} bookmarks",
+  "@deletedBookmarks": {
+    "description": "Bookmark deletion success message",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "clearAllBookmarks": "Clear All Bookmarks",
+  "confirmClearAllBookmarks": "Clear all bookmarks in this book? This cannot be undone.",
+  "confirmAddBookmark": "Add a bookmark here?",
+  "bookmarkAdded": "Bookmark added",
+  "add": "Add",
+  "bookmarkDeleted": "Bookmark deleted",
+  "jumpTo": "Jump To",
+  "charOffset": "Offset",
+  "notesAndHighlights": "Notes & Highlights",
+  "refreshTooltip": "Refresh",
+  "cacheManage": "Cache Management",
+  "clearedProgress": "Cleared reading progress for {title}",
+  "@clearedProgress": {
+    "description": "Clear reading progress snackbar",
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "noProgressData": "No reading progress data",
+  "cacheInfoTip": "Cache contains loaded chapter content. Clearing requires reloading. Book files and reading progress are unaffected.",
+  "bookCount": "Books",
+  "withProgress": "In Progress",
+  "labelTotalChapters": "Total Chapters",
+  "indexLoadFailed": "Index load failed",
+  "indexChunks": "Index Chunks",
+  "indexBooks": "Indexed Books",
+  "indexChapters": "Indexed Chapters",
+  "clearProgress": "Clear Progress",
+  "clearedAllBookmarks": "All bookmarks cleared",
+  "themePreviewSampleText": "The spring wind has greened the southern shore again."
 }

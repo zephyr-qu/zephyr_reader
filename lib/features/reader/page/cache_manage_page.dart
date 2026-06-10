@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/features/reader/application/cache_manage_view_model.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
@@ -38,9 +39,10 @@ class CacheManagePage extends HookWidget {
         );
 
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('缓存管理')),
+      appBar: AppBar(title: Text(l10n.cacheManage)),
       body: _buildBody(context, theme, vm, books, progressList, indexStats),
     );
   }
@@ -51,9 +53,10 @@ class CacheManagePage extends HookWidget {
     String title,
     CacheManageViewModel vm,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     await vm.clearProgress(bookId);
     if (context.mounted) {
-      showInfoSnack(context, '已清除《$title》阅读进度');
+      showInfoSnack(context, l10n.clearedProgress(title));
     }
   }
 
@@ -65,6 +68,7 @@ class CacheManagePage extends HookWidget {
     AsyncState<List<BookWithProgress>> progressList,
     AsyncState<IndexStats> indexStats,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return books.map(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (Object err, _) => Center(
@@ -78,9 +82,8 @@ class CacheManagePage extends HookWidget {
                 size: 48,
                 color: theme.colorScheme.error,
               ),
-              const SizedBox(height: 16),
               Text(
-                '加载失败',
+                l10n.loadFailed,
                 style: TextStyle(
                   fontSize: 16,
                   color: theme.colorScheme.onSurface,
@@ -112,9 +115,8 @@ class CacheManagePage extends HookWidget {
               progressData,
               indexStats,
             ),
-            const SizedBox(height: 24),
             Text(
-              '阅读进度',
+              l10n.readingProgress,
               style: TextStyle(
                 fontSize: 12,
                 color: theme.colorScheme.onSurfaceVariant,
@@ -127,7 +129,7 @@ class CacheManagePage extends HookWidget {
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Center(
                   child: Text(
-                    '暂无阅读进度数据',
+                    l10n.noProgressData,
                     style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                   ),
                 ),
@@ -148,7 +150,7 @@ class CacheManagePage extends HookWidget {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    '缓存包含已加载的章节内容。清空后需重新加载，不影响书籍文件和阅读进度',
+                    l10n.cacheInfoTip,
                     style: TextStyle(
                       fontSize: 12,
                       color: theme.colorScheme.onSurfaceVariant,
@@ -171,6 +173,7 @@ class CacheManagePage extends HookWidget {
     List<BookWithProgress> progressList,
     AsyncState<IndexStats> indexStats,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -185,37 +188,38 @@ class CacheManagePage extends HookWidget {
               _overviewItem(
                 theme,
                 '${books.length}',
-                '书籍数',
+                l10n.bookCount,
                 PhosphorIconsRegular.bookOpenText,
               ),
               const SizedBox(width: 24),
               _overviewItem(
                 theme,
                 '${progressList.length}',
-                '有进度',
+                l10n.withProgress,
                 PhosphorIconsRegular.trendUp,
               ),
               const SizedBox(width: 24),
               _overviewItem(
                 theme,
                 '${books.fold<int>(0, (s, b) => s + (b.chapterCount))}',
-                '总章节',
+                l10n.labelTotalChapters,
                 PhosphorIconsRegular.article,
               ),
             ],
           ),
           const SizedBox(height: 16),
-          _buildSearchIndexSection(theme, indexStats),
+          _buildSearchIndexSection(context, theme, indexStats),
         ],
       ),
     );
   }
 
-  /// 搜索索引状态展示。
   Widget _buildSearchIndexSection(
+    BuildContext context,
     ThemeData theme,
     AsyncState<IndexStats> indexStats,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return indexStats.map(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (Object err, _) => Row(
@@ -227,7 +231,7 @@ class CacheManagePage extends HookWidget {
           ),
           const SizedBox(width: 6),
           Text(
-            '索引加载失败',
+            l10n.indexLoadFailed,
             style: TextStyle(fontSize: 12, color: theme.colorScheme.error),
           ),
         ],
@@ -237,29 +241,28 @@ class CacheManagePage extends HookWidget {
           _overviewItem(
             theme,
             '${stats.totalChunks}',
-            '索引块',
+            l10n.indexChunks,
             PhosphorIconsRegular.database,
           ),
           const SizedBox(width: 24),
           _overviewItem(
             theme,
             '${stats.indexedBooks}',
-            '索引书籍',
+            l10n.indexBooks,
             PhosphorIconsRegular.bookOpenText,
           ),
           const SizedBox(width: 24),
           _overviewItem(
             theme,
             '${stats.indexedChapters}',
-            '索引章节',
+            l10n.indexChapters,
             PhosphorIconsRegular.article,
           ),
         ],
       ),
     );
   }
-
-  Widget _overviewItem(
+Widget _overviewItem(
     ThemeData theme,
     String value,
     String label,
@@ -297,6 +300,7 @@ class CacheManagePage extends HookWidget {
     BookWithProgress item,
     CacheManageViewModel vm,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final progress = item.progress;
     final book = item.book;
     final bookTitle = book.title;
@@ -331,7 +335,7 @@ class CacheManagePage extends HookWidget {
                 if (progress != null) const SizedBox(height: 2),
                 if (progress != null)
                   Text(
-                    '第 ${progress.chapterIndex} 章 · $dateStr',
+                    '${l10n.chapterN(progress.chapterIndex)} · $dateStr',
                     style: TextStyle(
                       fontSize: 12,
                       color: theme.colorScheme.onSurfaceVariant,
@@ -348,7 +352,7 @@ class CacheManagePage extends HookWidget {
             ),
             onPressed: () =>
                 _clearProgress(context, book.bookId, bookTitle, vm),
-            tooltip: '清除进度',
+            tooltip: l10n.clearProgress,
           ),
         ],
       ),
