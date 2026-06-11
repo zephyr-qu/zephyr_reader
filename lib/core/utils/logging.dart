@@ -54,19 +54,18 @@ class Logging {
     );
   }
 
-  static Logger get _instance =>
-      _logger ??= Logger(
-        printer: kReleaseMode
-            ? null
-            : PrettyPrinter(
-                methodCount: 0,
-                errorMethodCount: 8,
-                lineLength: 120,
-                colors: true,
-                printEmojis: true,
-                dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
-              ),
-      );
+  static Logger get _instance => _logger ??= Logger(
+    printer: kReleaseMode
+        ? null
+        : PrettyPrinter(
+            methodCount: 0,
+            errorMethodCount: 8,
+            lineLength: 120,
+            colors: true,
+            printEmojis: true,
+            dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+          ),
+  );
 
   /// 记录信息级别日志。
   ///

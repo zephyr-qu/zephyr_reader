@@ -262,7 +262,8 @@ class CacheManagePage extends HookWidget {
       ),
     );
   }
-Widget _overviewItem(
+
+  Widget _overviewItem(
     ThemeData theme,
     String value,
     String label,

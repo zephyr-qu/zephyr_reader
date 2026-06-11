@@ -53,7 +53,8 @@ class HomePage extends HookWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final maxWidth = constraints.maxWidth >= LayoutBreakpoints.expandedMin
+            final maxWidth =
+                constraints.maxWidth >= LayoutBreakpoints.expandedMin
                 ? LayoutBreakpoints.expandedMin
                 : LayoutBreakpoints.compactMax;
             return Center(
@@ -84,10 +85,11 @@ class HomePage extends HookWidget {
                       sliver: SliverToBoxAdapter(
                         child: recentBooks.map(
                           loading: () => const SizedBox.shrink(),
-                          error: (Object error, StackTrace? stack) => HomeErrorView(
-                            errorMessage: error.toString(),
-                            onRetry: () => vm.loadData(),
-                          ),
+                          error: (Object error, StackTrace? stack) =>
+                              HomeErrorView(
+                                errorMessage: error.toString(),
+                                onRetry: () => vm.loadData(),
+                              ),
                           data: (List<Book> value) => HomeHeroSection(
                             book: value.isNotEmpty ? value[0] : null,
                           ),
@@ -104,10 +106,11 @@ class HomePage extends HookWidget {
                       sliver: SliverToBoxAdapter(
                         child: dailyRecords.map(
                           loading: () => const SizedBox.shrink(),
-                          error: (Object error, StackTrace? stack) => HomeErrorView(
-                            errorMessage: error.toString(),
-                            onRetry: () => vm.loadData(),
-                          ),
+                          error: (Object error, StackTrace? stack) =>
+                              HomeErrorView(
+                                errorMessage: error.toString(),
+                                onRetry: () => vm.loadData(),
+                              ),
                           data: (List<ReadingStats> value) =>
                               ReadingTrend(dailyRecords: value),
                         ),
@@ -123,11 +126,11 @@ class HomePage extends HookWidget {
                           const SliverToBoxAdapter(child: SizedBox.shrink()),
                       error: (Object error, StackTrace? stack) =>
                           SliverToBoxAdapter(
-                        child: HomeErrorView(
-                          errorMessage: error.toString(),
-                          onRetry: () => vm.loadData(),
-                        ),
-                      ),
+                            child: HomeErrorView(
+                              errorMessage: error.toString(),
+                              onRetry: () => vm.loadData(),
+                            ),
+                          ),
                       data: (List<Book> value) => SliverPadding(
                         padding: EdgeInsets.fromLTRB(
                           DesignTokens.spacing(Spacing.md),

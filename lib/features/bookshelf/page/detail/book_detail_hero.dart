@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/book_cover.dart';
-import 'package:zephyr_reader/core/utils/format_utils.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/utils/cover_utils.dart';
@@ -77,11 +76,25 @@ class BookDetailHero extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  book.author ?? l10n.unknownAuthor,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: theme.colorScheme.onSurfaceVariant,
+                Text.rich(
+                  TextSpan(
+                    text: book.author ?? l10n.unknownAuthor,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    children: [
+                      if (book.translator != null &&
+                          book.translator!.isNotEmpty)
+                        TextSpan(
+                          text: ' · 译 ${book.translator}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.7),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -114,15 +127,21 @@ class BookDetailHero extends StatelessWidget {
                         )
                         .toList(),
                   ),
-                const SizedBox(height: 10),
-                // File info
-                Text(
-                  '${formatFileSize(book.fileSize.toInt())}${book.isbn != null ? '  ·  ${book.isbn}' : ''}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: theme.colorScheme.onSurfaceVariant,
+                // Description preview
+                if (book.description != null && book.description!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      book.description!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.5,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
               ],
             ),
           ),

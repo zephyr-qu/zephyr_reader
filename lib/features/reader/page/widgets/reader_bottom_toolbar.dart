@@ -33,36 +33,46 @@ class ReaderBottomToolbar extends StatelessWidget {
         top: false,
         child: Row(
           children: [
-            Expanded(child: _buildButton(
-              icon: PhosphorIconsLight.listBullets,
-              label: l10n.chapterList,
-              onTap: onShowCatalog,
-              color: readerTheme.textColor,
-            )),
-            Expanded(child: _buildButton(
-              icon: PhosphorIconsLight.notePencil,
-              label: l10n.selectionNote,
-              onTap: onShowNotes,
-              color: readerTheme.textColor,
-            )),
-            Expanded(child: _buildButton(
-              icon: PhosphorIconsLight.textT,
-              label: l10n.typographySection,
-              onTap: onToggleTypesetting,
-              color: readerTheme.textColor,
-            )),
-            Expanded(child: _buildButton(
-              icon: PhosphorIconsLight.palette,
-              label: l10n.appearanceSection,
-              onTap: onToggleDisplay,
-              color: readerTheme.textColor,
-            )),
-            Expanded(child: _buildButton(
-              icon: PhosphorIconsLight.speakerHigh,
-              label: l10n.readAloud,
-              onTap: onToggleTts,
-              color: readerTheme.textColor,
-            )),
+            Expanded(
+              child: _buildButton(
+                icon: PhosphorIconsLight.listBullets,
+                label: l10n.chapterList,
+                onTap: onShowCatalog,
+                color: readerTheme.textColor,
+              ),
+            ),
+            Expanded(
+              child: _buildButton(
+                icon: PhosphorIconsLight.notePencil,
+                label: l10n.selectionNote,
+                onTap: onShowNotes,
+                color: readerTheme.textColor,
+              ),
+            ),
+            Expanded(
+              child: _buildButton(
+                icon: PhosphorIconsLight.textT,
+                label: l10n.typographySection,
+                onTap: onToggleTypesetting,
+                color: readerTheme.textColor,
+              ),
+            ),
+            Expanded(
+              child: _buildButton(
+                icon: PhosphorIconsLight.palette,
+                label: l10n.appearanceSection,
+                onTap: onToggleDisplay,
+                color: readerTheme.textColor,
+              ),
+            ),
+            Expanded(
+              child: _buildButton(
+                icon: PhosphorIconsLight.speakerHigh,
+                label: l10n.readAloud,
+                onTap: onToggleTts,
+                color: readerTheme.textColor,
+              ),
+            ),
           ],
         ),
       ),

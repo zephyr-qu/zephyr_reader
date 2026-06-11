@@ -34,11 +34,11 @@ class ReaderSearchBar extends StatelessWidget {
       bottom: false,
       child: Container(
         color: theme.colorScheme.surfaceContainerHigh,
-          padding: EdgeInsets.only(
-            left: DesignTokens.spacing(Spacing.sm),
-            right: DesignTokens.spacing(Spacing.sm),
-            bottom: DesignTokens.spacing(Spacing.xs),
-          ),
+        padding: EdgeInsets.only(
+          left: DesignTokens.spacing(Spacing.sm),
+          right: DesignTokens.spacing(Spacing.sm),
+          bottom: DesignTokens.spacing(Spacing.xs),
+        ),
         child: Row(
           children: [
             IconButton(

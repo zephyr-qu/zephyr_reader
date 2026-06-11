@@ -3,12 +3,14 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/bookshelf/application/book_detail_view_model.dart';
+import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_actions.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_bottom_actions.dart';
-import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_desc_section.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_hero.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_info_section.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_note_stats.dart';
@@ -127,15 +129,29 @@ class BookDetailPage extends HookWidget {
                       book: book,
                       categories: categories.value!,
                     ),
-                    if (book.description?.isNotEmpty == true)
-                      BookDetailDescSection(description: book.description!),
                     BookDetailBottomActions(
                       onEditMetadata: () => _onEditMetadata(context, vm, book),
                       onExportNotes: () =>
                           context.pushNamed(RouteNames.learningNotes),
                       onDeleteBook: () async {
+                        Logging.debug(
+                          '[DetailPage] onDeleteBook start, bookId=${book.bookId}',
+                        );
                         final ok = await showDeleteBookDialog(context, book);
-                        if (ok && context.mounted) context.pop();
+                        Logging.debug(
+                          '[DetailPage] showDeleteBookDialog returned ok=$ok',
+                        );
+                        if (ok) {
+                          final bookshelfVm = getIt<BookshelfViewModel>();
+                          Logging.debug(
+                            '[DetailPage] got BookshelfVM instance, calling loadBooks()',
+                          );
+                          await bookshelfVm.loadBooks();
+                          Logging.debug(
+                            '[DetailPage] loadBooks completed, now popping',
+                          );
+                          if (context.mounted) context.pop();
+                        }
                       },
                     ),
                   ],

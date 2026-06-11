@@ -51,6 +51,14 @@ pub fn extract_chapters_from_epub(epub_file: &mut EpubFile, book_id: &str) -> Ve
     chapters
 }
 
+/// Maximum spine items per chapter before splitting into sub-chapters.
+///
+/// Some EPUBs have a flat TOC with one entry covering the entire book.
+/// Without splitting, the chapter loads all spine items at once,
+/// causing 30+ second freezes. This constant limits each chapter's
+/// spine range so no single chapter has too many items.
+const MAX_SPINE_ITEMS_PER_CHAPTER: i64 = 30;
+
 fn extract_toc_items(
     epub_file: &EpubFile,
     items: &[(String, String, i32)],
@@ -67,20 +75,9 @@ fn extract_toc_items(
             .find_spine_index_by_toc_href(pure_href)
             .unwrap_or(*chapter_id as usize);
 
-        chapters.push(Chapter::new(book_id, title, *chapter_id  as i64, *level  as i64, index as i64, 0)
-        //   {
-        //     id: uuid::Uuid::new_v4().to_string(),
-        //     book_id: book_id.to_string(),
-        //     title: title.to_string(),
-        //     start_index: index as i64,
-        //     end_index: 0,
-        //     // content_length: 0,
-        //     chapter_index: *chapter_id  as i64,
-        //     level: *level  as i64,
-        //     word_count: 0,
-        //     cached_at: chrono::Utc::now(),
-        // }
-      );
+        chapters.push(Chapter::new(
+            book_id, title, *chapter_id as i64, *level as i64, index as i64, 0,
+        ));
 
         *chapter_id += 1;
     }
@@ -100,6 +97,48 @@ fn extract_toc_items(
         };
         chapters[idx].end_index = end;
     }
+
+    // ── 分割超大章节 ──────────────────────────────────────────
+    // 如果有章节覆盖的 spine 过多（如整本书只有一个 TOC 条目），
+    // 按 MAX_SPINE_ITEMS_PER_CHAPTER 拆分成多个子章节。
+    // 这确保后续阅读时的初始化时间可控。
+    let mut split: Vec<Chapter> = Vec::with_capacity(chapters.len());
+    for ch in chapters.drain(..) {
+        let range = ch.end_index - ch.start_index;
+        if range > MAX_SPINE_ITEMS_PER_CHAPTER {
+            let num = (range + MAX_SPINE_ITEMS_PER_CHAPTER - 1) / MAX_SPINE_ITEMS_PER_CHAPTER;
+            tracing::info!(
+                "[extract_toc_items] splitting oversized chapter idx={} title={:?} \
+                 ({} spines → {} sub-chapters)",
+                ch.chapter_index, ch.title, range, num,
+            );
+            for i in 0..num {
+                let cs = ch.start_index + i * MAX_SPINE_ITEMS_PER_CHAPTER;
+                let ce = (cs + MAX_SPINE_ITEMS_PER_CHAPTER).min(ch.end_index);
+                // First sub-chapter keeps the original chapter_index so the DB
+                // reference stays valid. Subsequent sub-chapters get new indices.
+                let sub_index = if i == 0 {
+                    ch.chapter_index
+                } else {
+                    let idx = *chapter_id as i64;
+                    *chapter_id += 1;
+                    idx
+                };
+                let sub_title = format!("{} ({}/{})", ch.title, i + 1, num);
+                split.push(Chapter::new(
+                    &ch.book_id,
+                    &sub_title,
+                    sub_index,
+                    ch.level,
+                    cs,
+                    ce,
+                ));
+            }
+        } else {
+            split.push(ch);
+        }
+    }
+    *chapters = split;
 }
 
 /// 从 spine 生成简单章节

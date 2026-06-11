@@ -76,7 +76,7 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i880.VocabularyMarkerService(),
     );
     gh.lazySingleton<_i1.SearchViewModel>(() => _i1.SearchViewModel());
-    gh.factory<_i790.BookshelfViewModel>(
+    gh.lazySingleton<_i790.BookshelfViewModel>(
       () => _i790.BookshelfViewModel(
         gh<_i460.SharedPreferences>(),
         gh<_i5.CategoryViewModel>(),

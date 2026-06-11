@@ -118,14 +118,19 @@ class ReaderSettingsOverlay extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                 children: [
                   ...switch (panelType) {
-                    ReaderPanelType.typesetting =>
-                      _buildTypesettingSection(readerTheme, l10n),
-                    ReaderPanelType.display =>
-                      _buildDisplaySection(readerTheme, l10n),
-                    ReaderPanelType.more =>
-                      _buildMoreSection(readerTheme, l10n),
-                    ReaderPanelType.tts =>
-                      _buildTtsSection(readerTheme, l10n),
+                    ReaderPanelType.typesetting => _buildTypesettingSection(
+                      readerTheme,
+                      l10n,
+                    ),
+                    ReaderPanelType.display => _buildDisplaySection(
+                      readerTheme,
+                      l10n,
+                    ),
+                    ReaderPanelType.more => _buildMoreSection(
+                      readerTheme,
+                      l10n,
+                    ),
+                    ReaderPanelType.tts => _buildTtsSection(readerTheme, l10n),
                   },
                 ],
               ),
@@ -364,10 +369,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
             width: 72,
             child: Text(
               label,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: textColor, fontSize: 13),
             ),
           ),
           Expanded(
@@ -378,12 +380,8 @@ class ReaderSettingsOverlay extends StatelessWidget {
                 thumbColor: accentColor,
                 overlayColor: accentColor.withValues(alpha: 0.1),
                 trackHeight: 3,
-                thumbShape: const RoundSliderThumbShape(
-                  enabledThumbRadius: 6,
-                ),
-                overlayShape: const RoundSliderOverlayShape(
-                  overlayRadius: 18,
-                ),
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
               ),
               child: Slider(
                 value: value.clamp(min, max),
@@ -469,8 +467,9 @@ class ReaderSettingsOverlay extends StatelessWidget {
                     style: TextStyle(
                       color: isSelected ? accentColor : readerTheme.textColor,
                       fontSize: 12,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                     ),
                   ),
                 ],
@@ -524,8 +523,9 @@ class ReaderSettingsOverlay extends StatelessWidget {
                       Icon(
                         t.$3,
                         size: 14,
-                        color:
-                            isSelected ? accentColor : readerTheme.mutedColor,
+                        color: isSelected
+                            ? accentColor
+                            : readerTheme.mutedColor,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -535,8 +535,9 @@ class ReaderSettingsOverlay extends StatelessWidget {
                               ? accentColor
                               : readerTheme.textColor,
                           fontSize: 12,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                         ),
                       ),
                     ],
@@ -567,10 +568,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.followSystemFontScale,
-              style: TextStyle(
-                color: readerTheme.textColor,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: readerTheme.textColor, fontSize: 13),
             ),
           ),
           Switch(
@@ -632,8 +630,9 @@ class ReaderSettingsOverlay extends StatelessWidget {
                       Icon(
                         l.$3,
                         size: 14,
-                        color:
-                            isSelected ? accentColor : readerTheme.mutedColor,
+                        color: isSelected
+                            ? accentColor
+                            : readerTheme.mutedColor,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -643,8 +642,9 @@ class ReaderSettingsOverlay extends StatelessWidget {
                               ? accentColor
                               : readerTheme.textColor,
                           fontSize: 12,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                         ),
                       ),
                     ],
@@ -703,8 +703,9 @@ class ReaderSettingsOverlay extends StatelessWidget {
                       Icon(
                         d.$3,
                         size: 14,
-                        color:
-                            isSelected ? accentColor : readerTheme.mutedColor,
+                        color: isSelected
+                            ? accentColor
+                            : readerTheme.mutedColor,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -714,8 +715,9 @@ class ReaderSettingsOverlay extends StatelessWidget {
                               ? accentColor
                               : readerTheme.textColor,
                           fontSize: 12,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                         ),
                       ),
                     ],
@@ -789,10 +791,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.autoScroll,
-              style: TextStyle(
-                color: readerTheme.textColor,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: readerTheme.textColor, fontSize: 13),
             ),
           ),
           Switch(
@@ -805,10 +804,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
     );
   }
 
-  Widget _ttsTile(
-    ReaderThemeExtension readerTheme,
-    AppLocalizations l10n,
-  ) {
+  Widget _ttsTile(ReaderThemeExtension readerTheme, AppLocalizations l10n) {
     final textColor = readerTheme.textColor;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -827,10 +823,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.readAloud,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: textColor, fontSize: 13),
             ),
           ),
           TextButton(

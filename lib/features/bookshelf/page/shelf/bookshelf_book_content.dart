@@ -147,9 +147,7 @@ class BookshelfBookContent extends StatelessWidget {
                                     .toSet(),
                               );
                             } else {
-                              onSelectionChanged(
-                                {...selectedIds, book.bookId},
-                              );
+                              onSelectionChanged({...selectedIds, book.bookId});
                             }
                           }
                         : () => onBookTap(book),
@@ -186,9 +184,7 @@ class BookshelfBookContent extends StatelessWidget {
                                   ),
                               ],
                             )
-                            .animate(
-                              delay: (index * 80).ms,
-                            )
+                            .animate(delay: (index * 80).ms)
                             .fadeIn(
                               duration: 400.ms,
                               curve: Curves.easeOutCubic,

@@ -32,7 +32,6 @@ class LearningNotesPage extends HookWidget {
       vm.filterBookTitles,
     );
 
-
     return noteList.map(
       data: (List<NoteWithBook> noteList) => Scaffold(
         appBar: SettingsAppBar(title: l10n.selectionNote),

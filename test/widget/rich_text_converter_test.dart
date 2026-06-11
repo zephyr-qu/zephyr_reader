@@ -22,7 +22,7 @@ void main() {
     test('single plain text paragraph', () {
       final (span, text) = converter.toTextSpan([
         RichParagraph(
-          spans: [RichTextSpan.plain(text: 'Hello world')],
+          spans: [const RichTextSpan.plain(text: 'Hello world')],
           indent: 0,
           isHeading: false,
           headingLevel: 0,
@@ -48,7 +48,7 @@ void main() {
           imageData: Uint8List(0),
         ),
         RichParagraph(
-          spans: [RichTextSpan.plain(text: 'After image')],
+          spans: [const RichTextSpan.plain(text: 'After image')],
           indent: 0,
           isHeading: false,
           headingLevel: 0,
@@ -63,7 +63,7 @@ void main() {
     test('paragraphs separated by double newline', () {
       final (span, text) = converter.toTextSpan([
         RichParagraph(
-          spans: [RichTextSpan.plain(text: 'First')],
+          spans: [const RichTextSpan.plain(text: 'First')],
           indent: 0,
           isHeading: false,
           headingLevel: 0,
@@ -71,7 +71,7 @@ void main() {
           imageData: Uint8List(0),
         ),
         RichParagraph(
-          spans: [RichTextSpan.plain(text: 'Second')],
+          spans: [const RichTextSpan.plain(text: 'Second')],
           indent: 0,
           isHeading: false,
           headingLevel: 0,
@@ -86,7 +86,7 @@ void main() {
     test('empty text paragraph is skipped', () {
       final (span, text) = converter.toTextSpan([
         RichParagraph(
-          spans: [RichTextSpan.plain(text: '')],
+          spans: [const RichTextSpan.plain(text: '')],
           indent: 0,
           isHeading: false,
           headingLevel: 0,
@@ -101,49 +101,51 @@ void main() {
 
   group('spanToStyle', () {
     test('plain text has default style', () {
-      final style = converter.spanToStyle(RichTextSpan.plain(text: 'a'));
+      final style = converter.spanToStyle(const RichTextSpan.plain(text: 'a'));
       expect(style.fontWeight, isNull);
       expect(style.fontStyle, isNull);
       expect(style.decoration, isNull);
     });
 
     test('bold text has bold weight', () {
-      final style = converter.spanToStyle(RichTextSpan.bold(text: 'b'));
+      final style = converter.spanToStyle(const RichTextSpan.bold(text: 'b'));
       expect(style.fontWeight, FontWeight.bold);
     });
 
     test('italic text has italic style', () {
-      final style = converter.spanToStyle(RichTextSpan.italic(text: 'i'));
+      final style = converter.spanToStyle(const RichTextSpan.italic(text: 'i'));
       expect(style.fontStyle, FontStyle.italic);
     });
 
     test('underline text has underline decoration', () {
-      final style = converter.spanToStyle(RichTextSpan.underline(text: 'u'));
+      final style = converter.spanToStyle(
+        const RichTextSpan.underline(text: 'u'),
+      );
       expect(style.decoration, TextDecoration.underline);
     });
 
     test('strikethrough text has lineThrough decoration', () {
       final style = converter.spanToStyle(
-        RichTextSpan.strikethrough(text: 's'),
+        const RichTextSpan.strikethrough(text: 's'),
       );
       expect(style.decoration, TextDecoration.lineThrough);
     });
 
     test('code text has monospace font', () {
-      final style = converter.spanToStyle(RichTextSpan.code(text: 'c'));
+      final style = converter.spanToStyle(const RichTextSpan.code(text: 'c'));
       expect(style.fontFamily, 'monospace');
     });
 
     test('link text has underline decoration', () {
       final style = converter.spanToStyle(
-        RichTextSpan.link(text: 'link', url: 'https://example.com'),
+        const RichTextSpan.link(text: 'link', url: 'https://example.com'),
       );
       expect(style.decoration, TextDecoration.underline);
     });
 
     test('span with fontSize overrides base style', () {
       final style = converter.spanToStyle(
-        RichTextSpan.bold(text: 'b', fontSize: 20),
+        const RichTextSpan.bold(text: 'b', fontSize: 20),
       );
       expect(style.fontWeight, FontWeight.bold);
       expect(style.fontSize, 20);
@@ -151,7 +153,7 @@ void main() {
 
     test('span with color parses hex', () {
       final style = converter.spanToStyle(
-        RichTextSpan.plain(text: 'a', color: '#FF0000'),
+        const RichTextSpan.plain(text: 'a', color: '#FF0000'),
       );
       expect(style.color, const Color(0xFFFF0000));
     });
@@ -164,7 +166,7 @@ void main() {
       double? lineHeight,
     }) {
       return RichParagraph(
-        spans: [RichTextSpan.plain(text: 'p')],
+        spans: [const RichTextSpan.plain(text: 'p')],
         indent: 0,
         isHeading: isHeading,
         headingLevel: headingLevel,

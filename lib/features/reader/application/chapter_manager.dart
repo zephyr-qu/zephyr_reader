@@ -177,7 +177,9 @@ class ChapterManager {
 
       final results = await Future.wait([contentFuture, calibFuture]);
       final tConcurrent = sw.elapsedMilliseconds;
-      Logging.info('[Timing] concurrent (content+calibration): ${tConcurrent}ms');
+      Logging.info(
+        '[Timing] concurrent (content+calibration): ${tConcurrent}ms',
+      );
 
       final content = results[0] as String;
       _calibration.value ??= results[1] as CalibrationData?;
@@ -200,7 +202,9 @@ class ChapterManager {
         punctuationSqueeze: _config.punctuationSqueeze.value,
       );
       final tPaginate = sw.elapsedMilliseconds;
-      Logging.info('[Timing] paginateChapter: ${tPaginate - tBeforePaginate}ms (cumulative: ${tPaginate}ms)');
+      Logging.info(
+        '[Timing] paginateChapter: ${tPaginate - tBeforePaginate}ms (cumulative: ${tPaginate}ms)',
+      );
 
       final descriptors = _repo.descriptors;
       if (total == 0 || descriptors == null || descriptors.isEmpty) {

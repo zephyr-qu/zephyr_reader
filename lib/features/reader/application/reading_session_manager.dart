@@ -40,7 +40,6 @@ class ReadingSessionManager {
   /// 本次阅读会话的开始时间
   DateTime _sessionStartTime = DateTime.now();
 
-
   /// 加载上次的阅读时长（从进度中恢复）
   void restoreReadingDuration(int seconds) {
     readingDuration.value = seconds;
@@ -60,12 +59,16 @@ class ReadingSessionManager {
     });
   }
 
-  /// 停止阅读计时并保存进度，同时记录本次阅读会话
+  /// 停止阅读计时并保存进度，同时记录本次阅读会话。
   Future<void> stopReading() async {
     if (!isReading.value) return;
-    isReading.value = false;
     _readingTimer?.cancel();
 
+    // 先保存进度（saveProgress 依赖 isReading=true 的 guard）
+    await saveProgress();
+
+    // 再记录会话并标记结束
+    isReading.value = false;
     try {
       await session_api.createSession(
         bookId: _chapterManager.bookId.value,
@@ -77,8 +80,6 @@ class ReadingSessionManager {
     } catch (e) {
       Logging.warning('记录阅读会话失败: $e');
     }
-
-    await saveProgress();
   }
 
   /// 启动定时保存（每 30 秒）

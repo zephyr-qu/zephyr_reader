@@ -29,11 +29,7 @@ import 'pages/search_page.dart';
 ///
 /// 返回已导入的书籍标题列表，便于测试验证。
 Future<List<String>> _seedFixtures() async {
-  final fixtures = [
-    'small.txt',
-    '活着.txt',
-    'mixed_content.md',
-  ];
+  final fixtures = ['small.txt', '活着.txt', 'mixed_content.md'];
   final titles = <String>[];
   for (final name in fixtures) {
     final path = await copyFixtureFile(name);
@@ -125,8 +121,7 @@ void main() {
 
       // 等待网格渲染完成
       await bookshelf.waitForReady();
-      expect(bookshelf.hasBooks, isTrue,
-          reason: '书架应显示已导入的 fixture 书籍');
+      expect(bookshelf.hasBooks, isTrue, reason: '书架应显示已导入的 fixture 书籍');
     });
 
     testWidgets('书架网格显示已导入的书籍', (tester) async {
@@ -138,10 +133,12 @@ void main() {
       await bookshelf.navigateToBookshelf();
       await bookshelf.waitForReady();
 
-      expect(bookshelf.bookCount, greaterThanOrEqualTo(2),
-          reason: '应显示至少 2 本已导入的书籍');
-      expect(bookshelf.bookExists('活着'), isTrue,
-          reason: '导入的《活着》应出现在书架');
+      expect(
+        bookshelf.bookCount,
+        greaterThanOrEqualTo(2),
+        reason: '应显示至少 2 本已导入的书籍',
+      );
+      expect(bookshelf.bookExists('活着'), isTrue, reason: '导入的《活着》应出现在书架');
     });
 
     testWidgets('点击书籍 → 进入阅读页', (tester) async {
@@ -268,8 +265,11 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
 
       // 应返回匹配的书籍结果
-      expect(search.hasResults, isTrue,
-          reason: '搜索 "测试" 应匹配 small.txt/mixed_content.md 的内容');
+      expect(
+        search.hasResults,
+        isTrue,
+        reason: '搜索 "测试" 应匹配 small.txt/mixed_content.md 的内容',
+      );
     });
 
     testWidgets('输入中文关键词不应崩溃', (tester) async {
@@ -299,10 +299,7 @@ void main() {
       // 搜索 TTS 按钮是否存在（阅读页底部工具栏）
       // 此测试仅验证 UI 元素存在，不依赖实际导航
       // 读按钮文本在 l10n 中为 '朗读' 或 'Read Aloud'
-      expect(
-        find.text('朗读').last,
-        findsWidgets,
-      );
+      expect(find.text('朗读').last, findsWidgets);
     });
   });
 }

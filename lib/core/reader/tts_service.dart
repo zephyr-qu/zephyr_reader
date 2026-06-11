@@ -67,10 +67,12 @@ class TtsService {
     final nextIndex = currentSentenceIndex.value + 1;
     if (nextIndex < _sentenceQueue.length) {
       currentSentenceIndex.value = nextIndex;
-      final pause = _bilingualAlternate && _isSwitchLanguage(
-        _sentenceQueue[nextIndex - 1],
-        _sentenceQueue[nextIndex],
-      )
+      final pause =
+          _bilingualAlternate &&
+              _isSwitchLanguage(
+                _sentenceQueue[nextIndex - 1],
+                _sentenceQueue[nextIndex],
+              )
           ? _switchIntervalMs
           : currentPauseBetween.value;
       await _tts.setSilence(pause);
@@ -160,9 +162,11 @@ class TtsService {
 
   /// 检测字符串是否包含 CJK 字符。
   static bool _isCjk(String text) {
-    return text.runes.any((r) =>
-        (r >= 0x4E00 && r <= 0x9FFF) || // CJK 统一表意文字
-        (r >= 0x3400 && r <= 0x4DBF)); // CJK 扩展 A
+    return text.runes.any(
+      (r) =>
+          (r >= 0x4E00 && r <= 0x9FFF) || // CJK 统一表意文字
+          (r >= 0x3400 && r <= 0x4DBF),
+    ); // CJK 扩展 A
   }
 
   /// 判断前后两句是否发生了语言切换。

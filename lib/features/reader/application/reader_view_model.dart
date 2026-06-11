@@ -716,8 +716,9 @@ class ReaderViewModel {
     }
     _disposers.clear();
 
+    // 先记录阅读会话（需要 bookId 等当前值），再重置章节状态
+    unawaited(sessionManager.stopReading());
     chapterManager.reset();
-    sessionManager.reset();
 
     toastMessage.value = '';
     showCatalog.value = false;

@@ -332,19 +332,18 @@ class ReaderRepository {
           devicePixelRatio: 1.0,
           fontFamily: 'Noto Sans SC',
         );
-        epubRichFuture = epub_api.getEpubChapterRichContent(
-          filePath: filePath,
-          chapterIndex: chapterId,
-          config: config,
-        ).catchError((_) => <RichParagraph>[]);
+        epubRichFuture = epub_api
+            .getEpubChapterRichContent(
+              filePath: filePath,
+              chapterIndex: chapterId,
+              config: config,
+            )
+            .catchError((_) => <RichParagraph>[]);
       }
 
       // 两个 Future 同时发出 — 无顺序依赖
       final results = await Future.wait([
-        core_api.getChapter(
-          filePath: filePath,
-          chapterIndex: chapterId,
-        ),
+        core_api.getChapter(filePath: filePath, chapterIndex: chapterId),
         if (epubRichFuture != null)
           epubRichFuture
         else
@@ -356,7 +355,17 @@ class ReaderRepository {
       );
 
       // 处理 EPUB 富文本结果
-      if (epubRichFuture != null && results[1] is List<RichParagraph>) {
+      // 如果章节内容过大（>500KB 纯文本），丢弃富文本排版结果：
+      // 富文本对超大章节的排版样式收益远小于内存与计算开销，
+      // 且此类章节通常因 TOC 缺乏章节划分导致（导入时已自动拆分）。
+      if (isEpub && content.length > 500 * 1024) {
+        Logging.warning(
+          'loadChapterContent: content too large (${content.length} bytes), '
+          'discarding rich text typesetting result',
+        );
+        currentRichContent = null;
+        currentRichParagraphs = null;
+      } else if (epubRichFuture != null && results[1] is List<RichParagraph>) {
         try {
           final paragraphs = results[1] as List<RichParagraph>;
           if (paragraphs.isNotEmpty) {
@@ -405,7 +414,6 @@ class ReaderRepository {
       throw Exception('Failed to load chapter content: $e');
     }
   }
-
 
   Future<List<PageInfo>> calculatePages({
     required String bookId,

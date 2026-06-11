@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/battery/battery_state_service.dart';
+import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 
 /// 阅读页右下角电量和阅读进度指示器。
 ///
@@ -16,6 +17,10 @@ class BatteryIndicator extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final readerTheme = Theme.of(context).extension<ReaderThemeExtension>();
+    final muted =
+        readerTheme?.mutedColor ?? Colors.white.withValues(alpha: 0.7);
+
     final level = useState<int>(100);
     final isCharging = useState<bool>(false);
     final supported = useState<bool>(true);
@@ -30,11 +35,11 @@ class BatteryIndicator extends HookWidget {
 
     if (!supported.value) return const SizedBox.shrink();
 
-    final batteryColor = isCharging.value
+    final batColor = isCharging.value
         ? const Color(0xFF4CAF50)
         : level.value > 20
-            ? Colors.white.withValues(alpha: 0.7)
-            : const Color(0xFFE53935);
+        ? muted
+        : const Color(0xFFE53935);
 
     return Padding(
       padding: const EdgeInsets.only(right: 12),
@@ -47,7 +52,7 @@ class BatteryIndicator extends HookWidget {
               child: Text(
                 progressText,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
+                  color: muted,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),
@@ -56,7 +61,7 @@ class BatteryIndicator extends HookWidget {
           Text(
             '${level.value}%',
             style: TextStyle(
-              color: batteryColor,
+              color: batColor,
               fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
@@ -67,7 +72,7 @@ class BatteryIndicator extends HookWidget {
                 ? PhosphorIconsRegular.lightning
                 : PhosphorIconsRegular.batteryFull,
             size: 14,
-            color: batteryColor,
+            color: batColor,
           ),
         ],
       ),

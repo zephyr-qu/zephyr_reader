@@ -44,9 +44,7 @@ class OtherSettingsPage extends HookWidget {
     final String appVersion = useSignalValue(vm.appVersion);
 
     return Scaffold(
-      appBar: SettingsAppBar(
-        title: l10n.otherSettings,
-      ),
+      appBar: SettingsAppBar(title: l10n.otherSettings),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
         children: [

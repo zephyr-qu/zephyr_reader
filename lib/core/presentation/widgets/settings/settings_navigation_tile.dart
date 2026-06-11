@@ -75,7 +75,10 @@ class SettingsNavigationTile extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 1),
                       child: Text(
                         subtitle,
-                        style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: cs.onSurfaceVariant,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -93,5 +96,5 @@ class SettingsNavigationTile extends StatelessWidget {
         ),
       ),
     );
-}
+  }
 }
