@@ -139,7 +139,11 @@ class BookmarkWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildBookmarkItem(Bookmark bookmark, Color textColor, AppLocalizations l10n) {
+  Widget _buildBookmarkItem(
+    Bookmark bookmark,
+    Color textColor,
+    AppLocalizations l10n,
+  ) {
     return Card(
       margin: EdgeInsets.symmetric(
         horizontal: DesignTokens.spacing(Spacing.md),
@@ -197,7 +201,11 @@ class BookmarkWidget extends StatelessWidget {
     );
   }
 
-  void _showAddBookmarkDialog(BuildContext context, Color textColor, AppLocalizations l10n) {
+  void _showAddBookmarkDialog(
+    BuildContext context,
+    Color textColor,
+    AppLocalizations l10n,
+  ) {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -222,7 +230,11 @@ class BookmarkWidget extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirm(BuildContext context, Bookmark bookmark, AppLocalizations l10n) {
+  void _showDeleteConfirm(
+    BuildContext context,
+    Bookmark bookmark,
+    AppLocalizations l10n,
+  ) {
     final textColor = _getTextColor(themeMode);
 
     showDialog<void>(

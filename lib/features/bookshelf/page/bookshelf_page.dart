@@ -7,12 +7,13 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
-import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
+import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
@@ -36,6 +37,9 @@ class BookshelfPage extends HookWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final vm = useMemoized(() => getIt<BookshelfViewModel>());
+    Logging.debug(
+      '[BookshelfPage] build vm=$vm books_loading=${vm.books.value.isLoading} books_count=${(vm.books.value.value ?? []).length}',
+    );
     final isSearching = useSignal(false);
     final searchController = useTextEditingController();
     final batchMode = useSignal(false);
@@ -49,10 +53,9 @@ class BookshelfPage extends HookWidget {
         vm.feedback.value = null;
       }
     });
-
     useEffect(() {
-      vm.categoryVM.loadCategories();
       vm.loadBooks();
+      vm.categoryVM.loadCategories();
       return null;
     }, []);
 
@@ -189,8 +192,9 @@ class BookshelfPage extends HookWidget {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final crossAxisCount =
-              LayoutBreakpoints.getGridCrossAxisCount(constraints.maxWidth);
+          final crossAxisCount = LayoutBreakpoints.getGridCrossAxisCount(
+            constraints.maxWidth,
+          );
           return Stack(
             children: [
               Positioned(
@@ -252,8 +256,7 @@ class BookshelfPage extends HookWidget {
                           crossAxisCount: crossAxisCount,
                           batchMode: batchMode.value,
                           selectedIds: selectedIds.value,
-                          readingProgress:
-                              vm.readingProgress.value.value ?? {},
+                          readingProgress: vm.readingProgress.value.value ?? {},
                           onRetry: vm.loadBooks,
                           onImportTap: () => _showImportDialog(context, vm),
                           onRefresh: vm.loadBooks,
@@ -425,6 +428,7 @@ class BookshelfPage extends HookWidget {
     final l10n = AppLocalizations.of(context)!;
     // ignore: inference_failure_on_function_invocation
     showModalBottomSheet(
+      backgroundColor: cs.surface,
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),

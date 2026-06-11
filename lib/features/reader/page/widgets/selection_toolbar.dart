@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import 'package:zephyr_reader/l10n/app_localizations.dart';
@@ -37,9 +36,7 @@ class SelectionToolbar extends StatelessWidget {
             .withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: (isDark ? Colors.white : Colors.black).withValues(
-            alpha: 0.08,
-          ),
+          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
           width: 0.5,
         ),
         boxShadow: [

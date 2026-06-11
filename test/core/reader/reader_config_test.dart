@@ -38,7 +38,6 @@ void main() {
     });
   });
 
-
   group('ReaderConfig', () {
     late SharedPreferences prefs;
 

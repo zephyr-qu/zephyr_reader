@@ -37,9 +37,7 @@ class BookDetailActions extends StatelessWidget {
                 ),
                 onPressed: onContinueReading,
                 child: Text(
-                  hasProgress
-                      ? l10n.continueReading
-                      : l10n.startReading,
+                  hasProgress ? l10n.continueReading : l10n.startReading,
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,

@@ -182,7 +182,9 @@ class BookmarkManagePage extends HookWidget {
                   ),
                   SizedBox(height: DesignTokens.spacing(Spacing.md)),
                   Text(
-                    isSearchMode.value ? l10n.noBookmarksFound : l10n.noBookmarks,
+                    isSearchMode.value
+                        ? l10n.noBookmarksFound
+                        : l10n.noBookmarks,
                     style: TextStyle(
                       fontSize: 16,
                       color: theme.colorScheme.onSurface,
@@ -242,7 +244,9 @@ class BookmarkManagePage extends HookWidget {
                       ),
                       const Spacer(),
                       Text(
-                        l10n.bookTotalBookmarks(vm.bookmarks.value.value?.length ?? 0),
+                        l10n.bookTotalBookmarks(
+                          vm.bookmarks.value.value?.length ?? 0,
+                        ),
                         style: TextStyle(
                           fontSize: 12,
                           color: theme.colorScheme.onSurfaceVariant,
@@ -274,7 +278,9 @@ class BookmarkManagePage extends HookWidget {
                           context: context,
                           builder: (c) => AlertDialog(
                             title: Text(l10n.deleteBookmark),
-                            content: Text(l10n.confirmDeleteBookmark(bookmark.title)),
+                            content: Text(
+                              l10n.confirmDeleteBookmark(bookmark.title),
+                            ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(c, false),
@@ -505,5 +511,4 @@ class _BookmarkTile extends StatelessWidget {
       ),
     );
   }
-
 }

@@ -50,12 +50,7 @@ class ThemeBrightnessPage extends HookWidget {
           const SizedBox(height: 16),
           _buildBgColorSection(bgIndex, vm),
           const SizedBox(height: 16),
-          _buildBrightnessSection(
-            context,
-            brightness,
-            useSystemBrightness,
-            vm,
-          ),
+          _buildBrightnessSection(context, brightness, useSystemBrightness, vm),
           const SizedBox(height: 16),
           // 高级选项部分（reduceWhitePoint 已移除）
         ],
@@ -69,54 +64,51 @@ class ThemeBrightnessPage extends HookWidget {
     ThemeBrightnessViewModel vm,
   ) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionLabel(label: l10n.appTheme),
-        SettingsCard(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  ThemeModeOption(
-                    label: l10n.themeLight,
-                    icon: PhosphorIconsRegular.sun,
-                    type: AppThemeType.light,
-                    currentTheme: themeType,
-                    onTap: () => vm.setThemeType(AppThemeType.light),
+            SectionLabel(label: l10n.appTheme),
+            SettingsCard(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      ThemeModeOption(
+                        label: l10n.themeLight,
+                        icon: PhosphorIconsRegular.sun,
+                        type: AppThemeType.light,
+                        currentTheme: themeType,
+                        onTap: () => vm.setThemeType(AppThemeType.light),
+                      ),
+                      const SizedBox(width: 12),
+                      ThemeModeOption(
+                        label: l10n.themeDark,
+                        icon: PhosphorIconsRegular.moon,
+                        type: AppThemeType.dark,
+                        currentTheme: themeType,
+                        onTap: () => vm.setThemeType(AppThemeType.dark),
+                      ),
+                      const SizedBox(width: 12),
+                      ThemeModeOption(
+                        label: l10n.themeSystem,
+                        icon: PhosphorIconsRegular.desktop,
+                        type: AppThemeType.system,
+                        currentTheme: themeType,
+                        onTap: () => vm.setThemeType(AppThemeType.system),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  ThemeModeOption(
-                    label: l10n.themeDark,
-                    icon: PhosphorIconsRegular.moon,
-                    type: AppThemeType.dark,
-                    currentTheme: themeType,
-                    onTap: () => vm.setThemeType(AppThemeType.dark),
-                  ),
-                  const SizedBox(width: 12),
-                  ThemeModeOption(
-                    label: l10n.themeSystem,
-                    icon: PhosphorIconsRegular.desktop,
-                    type: AppThemeType.system,
-                    currentTheme: themeType,
-                    onTap: () => vm.setThemeType(AppThemeType.system),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
-        ),
-      ],
-    )
-    .animate()
-    .fadeIn(duration: 300.ms, delay: 100.ms)
-    .slideY(begin: 0.03, end: 0);
+        )
+        .animate()
+        .fadeIn(duration: 300.ms, delay: 100.ms)
+        .slideY(begin: 0.03, end: 0);
   }
 
-  Widget _buildBgColorSection(
-    int activeIdx,
-    ThemeBrightnessViewModel vm,
-  ) {
+  Widget _buildBgColorSection(int activeIdx, ThemeBrightnessViewModel vm) {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

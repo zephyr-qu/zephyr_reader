@@ -150,6 +150,7 @@ class ReaderPage extends HookWidget {
         }
       });
     }
+
     /// 执行 [action] 后重置自动隐藏计时器。
     void withTimer(VoidCallback action) {
       action();
@@ -260,7 +261,11 @@ class ReaderPage extends HookWidget {
           readingMode: b.currentReadingMode,
           onDoubleTap: cycleBrightness,
         ),
-        Positioned(bottom: 12, right: 0, child: BatteryIndicator(progressText: b.progressText)),
+        Positioned(
+          bottom: 12,
+          right: 0,
+          child: BatteryIndicator(progressText: b.progressText),
+        ),
       ];
     }
 
@@ -326,7 +331,8 @@ class ReaderPage extends HookWidget {
               onShowNotes: () =>
                   withTimer(() => scaffoldKey.currentState?.openEndDrawer()),
               onToggleTypesetting: () => withTimer(() {
-                activePanel.value = activePanel.value == ReaderPanelType.typesetting
+                activePanel.value =
+                    activePanel.value == ReaderPanelType.typesetting
                     ? null
                     : ReaderPanelType.typesetting;
               }),
@@ -378,8 +384,8 @@ class ReaderPage extends HookWidget {
                     onLineHeightChanged: vm.setLineHeight,
                     onThemeChanged: (tm) =>
                         config.theme.value = tm == ThemeMode.dark
-                            ? ReaderTheme.dark
-                            : ReaderTheme.light,
+                        ? ReaderTheme.dark
+                        : ReaderTheme.light,
                     onLetterSpacingChanged: (v) =>
                         config.letterSpacing.value = v,
                     onParagraphSpacingChanged: (v) =>
@@ -397,14 +403,12 @@ class ReaderPage extends HookWidget {
                     tapLayout: config.tapLayout.value,
                     onTapLayoutChanged: (layout) =>
                         config.tapLayout.value = layout,
-                    followSystemFontScale:
-                        config.followSystemFontScale.value,
+                    followSystemFontScale: config.followSystemFontScale.value,
                     onFollowSystemFontScale: (v) =>
                         config.followSystemFontScale.value = v,
                     autoScroll: config.autoScroll.value,
                     autoScrollSpeed: config.autoScrollSpeed.value,
-                    onAutoScrollChanged: (v) =>
-                        config.autoScroll.value = v,
+                    onAutoScrollChanged: (v) => config.autoScroll.value = v,
                     onAutoScrollSpeedChanged: (v) =>
                         config.autoScrollSpeed.value = v.round(),
                     isTtsPlaying: ttsService.isPlaying.value,
@@ -535,9 +539,7 @@ class ReaderPage extends HookWidget {
                     if (b.showSearch) buildSearchBar(),
                     buildTopToolbar(),
                     if (b.showBookmarks)
-                      Positioned.fill(
-                        child: SafeArea(child: buildBookmarks()),
-                      ),
+                      Positioned.fill(child: SafeArea(child: buildBookmarks())),
                     if (!b.showToolbar &&
                         !b.showSelection &&
                         !b.showSearch &&

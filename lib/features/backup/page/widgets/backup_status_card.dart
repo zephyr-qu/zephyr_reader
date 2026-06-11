@@ -96,10 +96,7 @@ class BackupStatusCard extends HookWidget {
                       '${currentStats.value?.books ?? "?"}',
                       '${currentStats.value?.notes ?? "?"}',
                     ),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: cs.onSurfaceVariant,
-                    ),
+                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
                   ),
               ],
             ),

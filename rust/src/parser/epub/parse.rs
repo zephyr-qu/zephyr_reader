@@ -145,6 +145,12 @@ fn read_chapter_content(epub_file: &mut EpubFile, chapter: &Chapter) -> Result<S
     let end = (chapter.end_index as usize).min(spine.len());
     let end = end.max(start + 1);
 
+    // ── 安全上限 ──────────────────────────────────────────
+    // 与 `EpubContentProvider::MAX_SPINE_ITEMS`（20）保持一致，
+    // 避免单章 spine 过多时 html5ever 解析全本 HTML 导致冻结。
+    const MAX_SPINE_ITEMS: usize = 20;
+    let end = end.min(start + MAX_SPINE_ITEMS);
+
     let mut contents = Vec::new();
     for i in start..end {
         let href = spine.get(i).ok_or_else(|| {
@@ -219,6 +225,24 @@ pub fn get_chapter_content_rich(
         "[get_chapter_content_rich] HTML content length: {} bytes",
         html_content.len()
     );
+
+    // ── 内容过大保护 ─────────────────────────────────────
+    // 单章 HTML > 100KB 时跳过 html5ever 解析（耗时可达 20+ 秒），
+    // 直接回退到纯文本路径。此类章节通常因 HTML 文件过大导致，
+    // 富文本排版收益有限，不值得等待。
+    const MAX_HTML_SIZE: usize = 100 * 1024;
+    if html_content.len() > MAX_HTML_SIZE {
+        tracing::warn!(
+            "[get_chapter_content_rich] HTML too large ({} bytes), \
+             skipping rich text parsing, fallback to plain text",
+            html_content.len(),
+        );
+        return Ok(RichChapterContent {
+            chapter_id: chapter.id.clone(),
+            paragraphs: Vec::new(),
+            total_characters: 0,
+        });
+    }
     tracing::debug!(
         "[get_chapter_content_rich] HTML first 200 chars: {:?}",
         &html_content.chars().take(200).collect::<String>()

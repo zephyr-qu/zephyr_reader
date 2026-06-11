@@ -120,16 +120,16 @@ class ProfileMenuSections extends StatelessWidget {
               final idx = entry.key;
               final item = entry.value;
               return SettingsNavigationTile(
-                icon: item.icon,
-                iconColor: item.semantic.iconColor(brightness),
-                iconBackground: item.semantic.iconBackground(brightness),
-                title: item.title,
-                subtitle: '',
-                onTap: item.onTap,
-              ).animate().fadeIn(
-                duration: 300.ms,
-                delay: (150 + idx * 60).ms,
-              ).slideX(begin: 0.03, end: 0);
+                    icon: item.icon,
+                    iconColor: item.semantic.iconColor(brightness),
+                    iconBackground: item.semantic.iconBackground(brightness),
+                    title: item.title,
+                    subtitle: '',
+                    onTap: item.onTap,
+                  )
+                  .animate()
+                  .fadeIn(duration: 300.ms, delay: (150 + idx * 60).ms)
+                  .slideX(begin: 0.03, end: 0);
             }).toList(),
           ),
         ],

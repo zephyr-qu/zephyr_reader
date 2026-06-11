@@ -30,6 +30,15 @@ pub struct EpubContentProvider {
 }
 
 impl EpubContentProvider {
+    /// Maximum spine items to load per chapter.
+    ///
+    /// Safety net for already-imported books whose chapter spans
+    /// the entire spine. New imports are split at import time in
+    /// `extract_toc_items`, but existing books still have the
+    /// oversized chapter. This cap bounds per-chapter spine items
+    /// so no single chapter takes more than ~1-2s to load.
+    const MAX_SPINE_ITEMS: usize = 20;
+
     /// 打开 EPUB 文件并绑定到指定章节
     ///
     /// # 参数
@@ -41,7 +50,7 @@ impl EpubContentProvider {
 
         let chapter = chapters
             .iter()
-            .find(|c| c.chapter_index == chapter_index  as i64)
+            .find(|c| c.chapter_index == chapter_index as i64)
             .ok_or_else(|| {
                 AppError::chapter_extract_error(
                     chapter_index,
@@ -51,7 +60,14 @@ impl EpubContentProvider {
 
         let spine = epub.spine();
         let start = chapter.start_index as usize;
-        let end = (chapter.end_index as usize).min(spine.len()).max(start + 1);
+        let end = (chapter.end_index as usize)
+            .min(spine.len())
+            .max(start + 1);
+
+        // ── Safety cap ──────────────────────────────────────
+        // Bound the number of spine items loaded at once to
+        // prevent multi-second freeze on oversized chapters.
+        let end = end.min(start + Self::MAX_SPINE_ITEMS);
 
         let spine_hrefs: Vec<String> = spine[start..end].to_vec();
         let count = spine_hrefs.len();
@@ -63,7 +79,6 @@ impl EpubContentProvider {
             spine_offsets: OnceLock::new(),
         })
     }
-
     /// 确保指定 spine index 的纯文本已缓存，返回其引用
     ///
     /// 在 spine 文本后追加 `\n` 分隔符（最后一个 spine 除外），

@@ -89,7 +89,8 @@ class MainLayout extends HookWidget {
     final currentRoute = GoRouterState.of(context).uri.path;
     final deviceType = LayoutBreakpoints.getScreenSizeClass(context);
     final isTabletOrDesktop =
-        deviceType == ScreenSizeClass.medium || deviceType == ScreenSizeClass.expanded;
+        deviceType == ScreenSizeClass.medium ||
+        deviceType == ScreenSizeClass.expanded;
     final theme = Theme.of(context);
 
     final currentIndex = _calculateSelectedIndex(currentRoute);

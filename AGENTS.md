@@ -28,6 +28,15 @@ Drop this file in your project root. Claude Code / Codex / Cursor / Hermes all r
 - Lint: Rust 侧 `cargo clippy -- -D warnings`；Dart 侧 `dart analyze --fatal-infos`，CI 前必须双端通过
 - Rust规范: rust 代码规范查看[RUST_ENGINE_SPEC](rust/RUST_ENGINE_SPEC.md)
 
+## Launching Dart and Flutter Applications
+
+- Always pass the `--print-dtd` flag to `dart` or `flutter` when spawning an
+  application.
+- For `dart` applications, always pass the `--observe` flag to enable the app to
+  be connected to.
+- Both `--print-dtd` and `--observe` must come before the script name or path
+  when spawning `dart` applications: `dart --observe --print-dtd bin/main.dart`.
+
 ## Verification checklist
 
 Before returning a task as done:

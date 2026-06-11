@@ -32,7 +32,7 @@ class LayoutBreakpoints {
   static ScreenSizeClass getScreenSizeClass(BuildContext context) {
     return classifyWidth(MediaQuery.sizeOf(context).width);
   }
-  
+
   /// 根据给定的原始宽度值返回屏幕尺寸分类。
   ///
   /// 可与 [LayoutBuilder] 配合使用，使布局响应实际父级分配的空间，

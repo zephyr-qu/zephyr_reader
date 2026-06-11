@@ -37,10 +37,12 @@ enum BookshelfSortType {
   }
 }
 
-@injectable
+@lazySingleton
 class BookshelfViewModel {
   final SharedPreferences _prefs;
   final CategoryViewModel _categoryVM;
+  static int _instanceCounter = 0;
+  final int _instanceId;
 
   /// 自增世代计数器
   int _reloadGeneration = 0;
@@ -98,11 +100,19 @@ class BookshelfViewModel {
   /// 瞬态反馈消息（Page 通过 useSignalEffect 消费）
   final feedback = signal<String?>(null);
 
-  BookshelfViewModel(this._prefs, this._categoryVM);
+  BookshelfViewModel(this._prefs, this._categoryVM)
+    : _instanceId = ++_instanceCounter;
+  @override
+  String toString() => 'BookshelfVM#$_instanceId';
 
   /// 加载书籍列表 + 排序（最常用的刷新）
   Future<void> reloadBooks() async {
     final gen = ++_reloadGeneration;
+    final cacheDirty = _cacheDirty;
+    final cachedCount = _cachedBooks?.length ?? -1;
+    Logging.debug(
+      '[$this] reloadBooks() gen=$gen category=${_categoryVM.selectedCategory.value?.id} status=${selectedStatus.value?.name} cacheDirty=$cacheDirty cachedCount=$cachedCount',
+    );
     books.value = AsyncState.loading();
     try {
       List<Book> data;
@@ -163,6 +173,9 @@ class BookshelfViewModel {
 
       if (gen != _reloadGeneration) return;
       books.value = AsyncState.data(data);
+      Logging.debug(
+        '[$this] reloadBooks() gen=$gen SUCCESS count=${data.length}',
+      );
     } catch (e) {
       if (gen != _reloadGeneration) return;
       books.value = AsyncState.error(e);
@@ -187,9 +200,13 @@ class BookshelfViewModel {
 
   /// 加载书籍列表和阅读进度。
   Future<void> loadBooks() async {
+    Logging.debug('[$this] loadBooks() called');
     _invalidateCache();
     await reloadBooks();
     await reloadProgress();
+    Logging.debug(
+      '[$this] loadBooks() completed, books count=${(books.value.value ?? []).length}',
+    );
   }
 
   /// 安全执行操作，捕获异常并记录日志，成功后可选执行回调。

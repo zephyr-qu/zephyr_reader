@@ -52,7 +52,10 @@ class BackupPage extends HookWidget {
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: maxWidth),
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 children: [
                   BackupStatusCard(vm: vm),
                   const SizedBox(height: 20),

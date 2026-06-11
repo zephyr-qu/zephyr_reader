@@ -51,7 +51,6 @@ enum ReaderTheme {
   }
 }
 
-
 extension ReaderThemeX on ReaderTheme {
   String l10nLabel(AppLocalizations l10n) => switch (this) {
     ReaderTheme.light => l10n.readerThemeLight,

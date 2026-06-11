@@ -11,6 +11,7 @@ import 'bilingual_renderer.dart';
 import 'page_curl_widget.dart';
 import 'paginated_renderer.dart';
 import 'reader_render_config.dart';
+import 'reader_skeleton.dart';
 import 'scroll_mode_renderer.dart';
 
 /// 阅读内容容器组件。
@@ -108,7 +109,10 @@ class ReaderContent extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final repo = this.repo;
-    final pageController = usePageController();
+    final pageController = useMemoized(
+      () => PageController(initialPage: pageIndex),
+      [chapterId],
+    );
     final scrollController = useScrollController();
     final textColor = _getTextColor(themeMode);
     final backgroundColor = _getBackgroundColor(themeMode);
@@ -365,6 +369,8 @@ class ReaderContent extends HookWidget {
       repo,
       bilingualPairs.value,
       renderConfig,
+      themeMode == ThemeMode.dark ? Brightness.dark : Brightness.light,
+      pageMargin,
     );
 
     final isForward = pageIndex >= prevPageIndex.value;
@@ -431,11 +437,19 @@ class ReaderContent extends HookWidget {
     ReaderRepository repo,
     List<BilingualHighlightPair> bilingualPairs,
     ReaderRenderConfig renderConfig,
+    Brightness brightness,
+    double pageMargin,
   ) {
     final l10n = AppLocalizations.of(context)!;
 
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return ReaderSkeleton(
+        backgroundColor: backgroundColor,
+        pageMargin: pageMargin,
+        fontSize: renderConfig.fontSize,
+        lineHeight: renderConfig.lineHeight,
+        brightness: brightness,
+      );
     }
 
     if (error != null) {

@@ -25,20 +25,15 @@ class TranslationSettingsPage extends HookWidget {
     final l10n = AppLocalizations.of(context)!;
     final config = useMemoized(() => getIt<TranslationConfig>());
 
-    final String provider =
-        useSignalValue(config.provider.signal) as String;
-    final String apiUrl =
-        useSignalValue(config.apiUrl.signal) as String;
-    final String apiKey =
-        useSignalValue(config.apiKey.signal) as String;
-    final String model =
-        useSignalValue(config.model.signal) as String;
+    final String provider = useSignalValue(config.provider.signal) as String;
+    final String apiUrl = useSignalValue(config.apiUrl.signal) as String;
+    final String apiKey = useSignalValue(config.apiKey.signal) as String;
+    final String model = useSignalValue(config.model.signal) as String;
     final String sourceLang =
         useSignalValue(config.sourceLang.signal) as String;
     final String targetLang =
         useSignalValue(config.targetLang.signal) as String;
-    final int timeout =
-        useSignalValue(config.timeoutSeconds.signal) as int;
+    final int timeout = useSignalValue(config.timeoutSeconds.signal) as int;
 
     final testResult = useState<String?>(null);
     final isTesting = useState(false);
@@ -70,11 +65,7 @@ class TranslationSettingsPage extends HookWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
         children: [
-          _ProviderSection(
-            config: config,
-            provider: provider,
-            l10n: l10n,
-          ),
+          _ProviderSection(config: config, provider: provider, l10n: l10n),
           const SizedBox(height: 16),
           _ApiSection(
             config: config,
@@ -92,11 +83,7 @@ class TranslationSettingsPage extends HookWidget {
             l10n: l10n,
           ),
           const SizedBox(height: 16),
-          _TimeoutSection(
-            config: config,
-            timeout: timeout,
-            l10n: l10n,
-          ),
+          _TimeoutSection(config: config, timeout: timeout, l10n: l10n),
           const SizedBox(height: 16),
           _TestSection(
             l10n: l10n,
@@ -177,44 +164,44 @@ class _ApiSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionLabel(label: l10n.translationApiUrl),
-        SettingsCard(
-          showDividers: true,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _InputTile(
-              icon: PhosphorIconsRegular.link,
-              label: l10n.translationApiUrl,
-              hint: 'https://api.openai.com',
-              initialValue: apiUrl,
-              obscureText: false,
-              onChanged: (v) => config.apiUrl.value = v,
+            SectionLabel(label: l10n.translationApiUrl),
+            SettingsCard(
+              showDividers: true,
+              children: [
+                _InputTile(
+                  icon: PhosphorIconsRegular.link,
+                  label: l10n.translationApiUrl,
+                  hint: 'https://api.openai.com',
+                  initialValue: apiUrl,
+                  obscureText: false,
+                  onChanged: (v) => config.apiUrl.value = v,
+                ),
+                _InputTile(
+                  icon: PhosphorIconsRegular.key,
+                  label: l10n.translationApiKey,
+                  hint: 'sk-...',
+                  initialValue: apiKey,
+                  obscureText: true,
+                  onChanged: (v) => config.apiKey.value = v,
+                ),
+                if (provider == 'openai')
+                  _InputTile(
+                    icon: PhosphorIconsRegular.magicWand,
+                    label: l10n.translationModel,
+                    hint: 'gpt-4o-mini',
+                    initialValue: model,
+                    obscureText: false,
+                    onChanged: (v) => config.model.value = v,
+                  ),
+              ],
             ),
-            _InputTile(
-              icon: PhosphorIconsRegular.key,
-              label: l10n.translationApiKey,
-              hint: 'sk-...',
-              initialValue: apiKey,
-              obscureText: true,
-              onChanged: (v) => config.apiKey.value = v,
-            ),
-            if (provider == 'openai')
-              _InputTile(
-                icon: PhosphorIconsRegular.magicWand,
-                label: l10n.translationModel,
-                hint: 'gpt-4o-mini',
-                initialValue: model,
-                obscureText: false,
-                onChanged: (v) => config.model.value = v,
-              ),
           ],
-        ),
-      ],
-    ).animate().fadeIn(duration: 300.ms, delay: 60.ms).slideY(
-      begin: 0.03,
-      end: 0,
-    );
+        )
+        .animate()
+        .fadeIn(duration: 300.ms, delay: 60.ms)
+        .slideY(begin: 0.03, end: 0);
   }
 }
 
@@ -241,51 +228,54 @@ class _LangSection extends StatelessWidget {
     final targetLabel = targetLang == 'zh' ? '中文' : 'English';
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionLabel(label: l10n.translationSourceLang),
-        SettingsCard(
-          showDividers: true,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _SelectTile(
-              icon: PhosphorIconsRegular.arrowLeft,
-              label: l10n.translationSourceLang,
-              value: sourceLabel,
-              onTap: () => _showSheet(
-                context,
-                title: l10n.translationSourceLang,
-                options: [
-                  (l10n.translationAutoDetect, 'auto',
-                      PhosphorIconsRegular.arrowLeft),
-                  ('中文', 'zh', PhosphorIconsRegular.arrowLeft),
-                  ('English', 'en', PhosphorIconsRegular.arrowLeft),
-                ],
-                current: sourceLang,
-                onSelected: (v) => config.sourceLang.value = v,
-              ),
-            ),
-            _SelectTile(
-              icon: PhosphorIconsRegular.arrowRight,
-              label: l10n.translationTargetLang,
-              value: targetLabel,
-              onTap: () => _showSheet(
-                context,
-                title: l10n.translationTargetLang,
-                options: [
-                  ('中文', 'zh', PhosphorIconsRegular.arrowRight),
-                  ('English', 'en', PhosphorIconsRegular.arrowRight),
-                ],
-                current: targetLang,
-                onSelected: (v) => config.targetLang.value = v,
-              ),
+            SectionLabel(label: l10n.translationSourceLang),
+            SettingsCard(
+              showDividers: true,
+              children: [
+                _SelectTile(
+                  icon: PhosphorIconsRegular.arrowLeft,
+                  label: l10n.translationSourceLang,
+                  value: sourceLabel,
+                  onTap: () => _showSheet(
+                    context,
+                    title: l10n.translationSourceLang,
+                    options: [
+                      (
+                        l10n.translationAutoDetect,
+                        'auto',
+                        PhosphorIconsRegular.arrowLeft,
+                      ),
+                      ('中文', 'zh', PhosphorIconsRegular.arrowLeft),
+                      ('English', 'en', PhosphorIconsRegular.arrowLeft),
+                    ],
+                    current: sourceLang,
+                    onSelected: (v) => config.sourceLang.value = v,
+                  ),
+                ),
+                _SelectTile(
+                  icon: PhosphorIconsRegular.arrowRight,
+                  label: l10n.translationTargetLang,
+                  value: targetLabel,
+                  onTap: () => _showSheet(
+                    context,
+                    title: l10n.translationTargetLang,
+                    options: [
+                      ('中文', 'zh', PhosphorIconsRegular.arrowRight),
+                      ('English', 'en', PhosphorIconsRegular.arrowRight),
+                    ],
+                    current: targetLang,
+                    onSelected: (v) => config.targetLang.value = v,
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-      ],
-    ).animate().fadeIn(duration: 300.ms, delay: 120.ms).slideY(
-      begin: 0.03,
-      end: 0,
-    );
+        )
+        .animate()
+        .fadeIn(duration: 300.ms, delay: 120.ms)
+        .slideY(begin: 0.03, end: 0);
   }
 }
 
@@ -303,27 +293,27 @@ class _TimeoutSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionLabel(label: l10n.translationTimeout),
-        SettingsCard(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SettingsSliderTile(
-              label: l10n.translationTimeout,
-              value: '${timeout}s',
-              current: timeout.toDouble(),
-              min: 5,
-              max: 120,
-              step: 5,
-              onChanged: (v) => config.timeoutSeconds.value = v.toInt(),
+            SectionLabel(label: l10n.translationTimeout),
+            SettingsCard(
+              children: [
+                SettingsSliderTile(
+                  label: l10n.translationTimeout,
+                  value: '${timeout}s',
+                  current: timeout.toDouble(),
+                  min: 5,
+                  max: 120,
+                  step: 5,
+                  onChanged: (v) => config.timeoutSeconds.value = v.toInt(),
+                ),
+              ],
             ),
           ],
-        ),
-      ],
-    ).animate().fadeIn(duration: 300.ms, delay: 180.ms).slideY(
-      begin: 0.03,
-      end: 0,
-    );
+        )
+        .animate()
+        .fadeIn(duration: 300.ms, delay: 180.ms)
+        .slideY(begin: 0.03, end: 0);
   }
 }
 
@@ -345,65 +335,65 @@ class _TestSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: isTesting ? null : onTest,
-            icon: isTesting
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(PhosphorIconsRegular.translate, size: 18),
-            label: Text(l10n.translationTest),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                  DesignTokens.radius(RadiusSize.md),
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: isTesting ? null : onTest,
+                icon: isTesting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(PhosphorIconsRegular.translate, size: 18),
+                label: Text(l10n.translationTest),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      DesignTokens.radius(RadiusSize.md),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
-        if (testResult != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  isTestSuccess == true
-                      ? PhosphorIconsFill.checkCircle
-                      : PhosphorIconsFill.warningCircle,
-                  size: 14,
-                  color: isTestSuccess == true
-                      ? DesignTokens.success
-                      : DesignTokens.error,
-                ),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    testResult!,
-                    style: TextStyle(
+            if (testResult != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      isTestSuccess == true
+                          ? PhosphorIconsFill.checkCircle
+                          : PhosphorIconsFill.warningCircle,
+                      size: 14,
                       color: isTestSuccess == true
                           ? DesignTokens.success
                           : DesignTokens.error,
-                      fontSize: 13,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        testResult!,
+                        style: TextStyle(
+                          color: isTestSuccess == true
+                              ? DesignTokens.success
+                              : DesignTokens.error,
+                          fontSize: 13,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-      ],
-    ).animate().fadeIn(duration: 300.ms, delay: 240.ms).slideY(
-      begin: 0.03,
-      end: 0,
-    );
+              ),
+          ],
+        )
+        .animate()
+        .fadeIn(duration: 300.ms, delay: 240.ms)
+        .slideY(begin: 0.03, end: 0);
   }
 }
 
@@ -581,10 +571,9 @@ void _showSheet(
             width: 36,
             height: 4,
             decoration: BoxDecoration(
-              color: Theme.of(ctx)
-                  .colorScheme
-                  .onSurfaceVariant
-                  .withValues(alpha: 0.2),
+              color: Theme.of(
+                ctx,
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),

@@ -46,10 +46,7 @@ class ReadingSessionOverviewCard extends StatelessWidget {
                 ),
                 Text(
                   l10n.totalReadingTime,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: cs.onSurfaceVariant,
-                  ),
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                 ),
               ],
             ),
@@ -67,10 +64,7 @@ class ReadingSessionOverviewCard extends StatelessWidget {
               ),
               Text(
                 l10n.sessionsCount,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: cs.onSurfaceVariant,
-                ),
+                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
               ),
             ],
           ),
