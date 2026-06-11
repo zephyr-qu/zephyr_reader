@@ -24,6 +24,13 @@ pub enum ChapterContent {
     Pages(Vec<PageContent>),
 }
 
+/// 首段 spine 快速提取结果
+#[derive(Debug, Clone)]
+#[frb]
+pub struct FirstSpineResult {
+    /// 首个 spine 的前 2000 字符纯文本
+    pub text: String,
+}
 /// 构造 Pages 变体，当页数 > 100 时记录警告（防止偶发大章节 FFI 序列化瓶颈）
 fn chapter_content_pages(pages: Vec<PageContent>) -> ChapterContent {
     if pages.len() > 100 {
@@ -402,6 +409,66 @@ async fn get_or_create_provider(
         cache.put(cache_key, p.clone());
     }
     Ok(p)
+}
+
+/// 快速获取章节首段文本（仅读第一个 spine，不做分页）。
+///
+/// Dart 侧用于快速渲染第 0 页，全文和分页后台异步补齐。
+/// EPUB: 只读第一个 spine 的 HTML → 截断为 8KB → html_to_plain_text → 再截断 2000 字符
+/// TXT/MD: 读文件前 2000 字符
+#[frb]
+pub async fn get_chapter_first_spine_only(
+    file_path: String,
+    chapter_index: i32,
+) -> Result<FirstSpineResult, AppError> {
+    let validated_path = validate_file_path_async(&file_path).await?;
+    let format = format_from_extension(&validated_path);
+
+    let text = if format == BookFormat::Epub {
+        let path = validated_path.clone();
+        let idx = chapter_index;
+        tokio::task::spawn_blocking(move || -> Result<String, AppError> {
+            let mut epub =
+                crate::parser::epub::unzip::EpubFile::open(&path)
+                    .map_err(|e| AppError::chapter_extract_error(idx, e.to_string()))?;
+            let chapters =
+                crate::parser::epub::toc::extract_chapters_from_epub(&mut epub, "");
+            let chapter = chapters
+                .iter()
+                .find(|c| c.chapter_index == idx as i64)
+                .ok_or_else(|| {
+                    AppError::chapter_extract_error(idx, "chapter not found")
+                })?;
+
+            let spine = epub.spine();
+            let start = chapter.start_index as usize;
+            if start >= spine.len() {
+                return Ok(String::new()); // empty chapter
+            }
+
+            let href = &spine[start];
+            let html = epub
+                .read_resource(href)
+                .map_err(|e| AppError::chapter_extract_error(idx, e.to_string()))?;
+
+            // 截断 HTML 到 8KB 避免 html_to_plain_text 处理大文件
+            let truncated: String = html.chars().take(8 * 1024).collect();
+            let plain =
+                crate::parser::epub::provider::html_to_plain_text(&truncated);
+            // 只取前 2000 字符用作首屏
+            Ok(plain.chars().take(2000).collect())
+        })
+        .await
+        .map_err(|e| AppError::task_panic("first_spine", e.to_string()))??
+    } else {
+        // TXT/MD: 读前 2000 字符
+        let content = tokio::fs::read_to_string(&validated_path)
+            .await
+            .map_err(|e| AppError::file_read_error(&validated_path, e.to_string()))?;
+        content.chars().take(2000).collect()
+    };
+
+    Ok(FirstSpineResult { text })
 }
 
 /// 获取指定章节的原始文本内容。

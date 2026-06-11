@@ -544,6 +544,24 @@ class ReaderViewModel {
     _debounceReloadChapter();
   }
 
+  /// 设置字间距（立即更新信号值，防抖重载章节）。
+  void setLetterSpacing(double value) {
+    _config.letterSpacing.value = value;
+    _debounceReloadChapter();
+  }
+
+  /// 设置段间距（立即更新信号值，防抖重载章节）。
+  void setParagraphSpacing(double value) {
+    _config.paragraphSpacing.value = value;
+    _debounceReloadChapter();
+  }
+
+  /// 设置页边距（立即更新信号值，防抖重载章节）。
+  void setPageMargin(double value) {
+    _config.padding.value = value;
+    _debounceReloadChapter();
+  }
+
   /// 设置阅读模式（分页/滚动/双语）。
   ///
   /// 切换到双语模式时:

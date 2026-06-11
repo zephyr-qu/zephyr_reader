@@ -305,6 +305,22 @@ class ReaderRepository {
   Future<List<Chapter>> getChapters(String bookId) async {
     return chapter_api.listChaptersByBook(bookId: bookId);
   }
+
+  /// 快速获取章节首段文本（只读第一个 spine，不做分页）。
+  ///
+  /// 用于分段读取的首屏渲染，通常在 ~100ms 内完成。
+  /// 返回文本通常是章节前 2000 字符，用于第 0 页的近似渲染。
+  Future<String> loadChapterFirstSpine(String bookId, int chapterId) async {
+    final book = await book_api.getBook(bookId: bookId);
+    if (book == null || book.filePath.isEmpty) {
+      throw Exception('Book not found: $bookId');
+    }
+    final result = await core_api.getChapterFirstSpineOnly(
+      filePath: book.filePath,
+      chapterIndex: chapterId,
+    );
+    return result.text;
+  }
   // ===== From ChapterContentService =====
 
   Future<String> loadChapterContent(String bookId, int chapterId) async {
@@ -530,5 +546,29 @@ class ReaderRepository {
       lastReadAt: rp.lastReadAt,
     );
     return _currentProgress;
+  }
+
+  /// 对任意文本做近似分页（用于首屏快速估算）。
+  List<PageInfo> paginateApproximate(
+    String content, {
+    required double fontSize,
+    required double lineHeight,
+    required double width,
+    required double height,
+    required double padding,
+  }) {
+    return _paginateApproximate(
+      content,
+      fontSize: fontSize,
+      lineHeight: lineHeight,
+      width: width,
+      height: height,
+      padding: padding,
+    );
+  }
+
+  /// 手动预热单个页面缓存（用于分段读取首屏）。
+  void warmPageCache(int pageIndex, String content) {
+    _pageCache[pageIndex] = content;
   }
 }
