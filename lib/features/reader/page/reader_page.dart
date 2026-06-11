@@ -386,11 +386,9 @@ class ReaderPage extends HookWidget {
                         config.theme.value = tm == ThemeMode.dark
                         ? ReaderTheme.dark
                         : ReaderTheme.light,
-                    onLetterSpacingChanged: (v) =>
-                        config.letterSpacing.value = v,
-                    onParagraphSpacingChanged: (v) =>
-                        config.paragraphSpacing.value = v,
-                    onPageMarginChanged: (m) => config.padding.value = m,
+                    onLetterSpacingChanged: (v) => vm.setLetterSpacing(v),
+                    onParagraphSpacingChanged: (v) => vm.setParagraphSpacing(v),
+                    onPageMarginChanged: (m) => vm.setPageMargin(m),
                     onWritingDirectionChanged: (d) =>
                         vm.config.writingDirection.value = d,
                     onClose: () => activePanel.value = null,

@@ -239,6 +239,33 @@ void main() {
     ).thenAnswer((_) async => 'A' * 100);
     _setupPaginateChapter(repo);
     when(() => repo.loadReadingProgress(any())).thenAnswer((_) async => null);
+    when(
+      () => repo.loadChapterFirstSpine(any(), any()),
+    ).thenAnswer((_) async => 'A' * 100);
+    when(
+      () => repo.paginateApproximate(
+        any(),
+        fontSize: any(named: 'fontSize'),
+        lineHeight: any(named: 'lineHeight'),
+        width: any(named: 'width'),
+        height: any(named: 'height'),
+        padding: any(named: 'padding'),
+      ),
+    ).thenReturn([
+      PageInfo(
+        pageIndex: 0,
+        content: 'A' * 50,
+        startOffset: 0,
+        endOffset: 50,
+      ),
+      PageInfo(
+        pageIndex: 1,
+        content: 'A' * 50,
+        startOffset: 50,
+        endOffset: 100,
+      ),
+    ]);
+    when(() => repo.warmPageCache(any(), any())).thenReturn(null);
     when(() => repo.currentPages).thenReturn(null);
     when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {});
     when(() => repo.ensurePageWindow(any())).thenReturn(null);

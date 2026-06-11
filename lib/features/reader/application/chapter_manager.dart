@@ -158,7 +158,7 @@ class ChapterManager {
     isLoading.value = true;
 
     try {
-      // █ 并发启动：内容加载 + 字符宽度校准 █
+      // █ 启动后台 futures（不等待）█
       final contentFuture = _repo.loadChapterContent(
         bookId.value,
         chapterIndex,
@@ -175,10 +175,49 @@ class ChapterManager {
       // _postLoadTasks 不阻塞关键路径，内容就绪立即触发
       unawaited(contentFuture.then((c) => _postLoadTasks(chapterIndex, c)));
 
+      // █ 快速读取首屏（~100ms）█
+      final firstText = await _repo.loadChapterFirstSpine(
+        bookId.value,
+        chapterIndex,
+      );
+
+      // █ 首屏就绪 → 立即渲染 █
+      final firstPages = _repo.paginateApproximate(
+        firstText,
+        fontSize: _config.fontSize.value,
+        lineHeight: _config.lineHeight.value,
+        width: pageWidth,
+        height: pageHeight,
+        padding: _config.padding.value,
+      );
+
+      _repo.currentPages = firstPages;
+      if (firstPages.isNotEmpty) {
+        _repo.warmPageCache(firstPages[0].pageIndex, firstPages[0].content);
+      }
+
+      chapterContent.value = AsyncState.data(firstText);
+      totalPages.value = firstPages.length;
+      this.chapterIndex.value = chapterIndex;
+      currentCharOffset.value = initialCharOffset.clamp(0, firstText.length);
+      pageIndex.value = resolvePageIndexFromPageInfo(
+        firstPages,
+        currentCharOffset.value,
+      );
+      pendingJumpCharOffset.value = currentCharOffset.value;
+      error.value = null;
+
+      // 取消骨架屏
+      isLoading.value = false;
+
+      final tFast = sw.elapsedMilliseconds;
+      Logging.info('[Timing] firstSpine: ${tFast}ms');
+
+      // █ 等待后台：全文 + 校准 █
       final results = await Future.wait([contentFuture, calibFuture]);
       final tConcurrent = sw.elapsedMilliseconds;
       Logging.info(
-        '[Timing] concurrent (content+calibration): ${tConcurrent}ms',
+        '[Timing] concurrent (content+calibration): ${tConcurrent - tFast}ms',
       );
 
       final content = results[0] as String;
@@ -224,7 +263,6 @@ class ChapterManager {
 
         chapterContent.value = AsyncState.data(content);
         totalPages.value = pages.length;
-        this.chapterIndex.value = chapterIndex;
         currentCharOffset.value = initialCharOffset.clamp(0, content.length);
         pageIndex.value = resolvePageIndexFromPageInfo(
           pages,
@@ -233,7 +271,7 @@ class ChapterManager {
         pendingJumpCharOffset.value = currentCharOffset.value;
         error.value = null;
 
-        // 确保当前页内容已缓存（pageTurn 模式依赖 _pageCache）
+        // 确保当前页内容已缓存
         _repo.ensurePageWindow(pageIndex.value);
 
         Logging.debug(
@@ -243,7 +281,6 @@ class ChapterManager {
       } else {
         chapterContent.value = AsyncState.data(content);
         totalPages.value = total;
-        this.chapterIndex.value = chapterIndex;
         currentCharOffset.value = initialCharOffset.clamp(0, content.length);
         pageIndex.value = resolvePageIndexForOffset(
           descriptors,
@@ -252,7 +289,7 @@ class ChapterManager {
         pendingJumpCharOffset.value = currentCharOffset.value;
         error.value = null;
 
-        // 确保当前页内容已缓存（pageTurn 模式依赖 _pageCache）
+        // 确保当前页内容已缓存
         _repo.ensurePageWindow(pageIndex.value);
 
         Logging.debug(

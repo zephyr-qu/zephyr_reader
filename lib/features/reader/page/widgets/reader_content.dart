@@ -11,7 +11,6 @@ import 'bilingual_renderer.dart';
 import 'page_curl_widget.dart';
 import 'paginated_renderer.dart';
 import 'reader_render_config.dart';
-import 'reader_skeleton.dart';
 import 'scroll_mode_renderer.dart';
 
 /// 阅读内容容器组件。
@@ -443,13 +442,9 @@ class ReaderContent extends HookWidget {
     final l10n = AppLocalizations.of(context)!;
 
     if (isLoading) {
-      return ReaderSkeleton(
-        backgroundColor: backgroundColor,
-        pageMargin: pageMargin,
-        fontSize: renderConfig.fontSize,
-        lineHeight: renderConfig.lineHeight,
-        brightness: brightness,
-      );
+      // 分段读取模式下首屏文字在 ~100ms 内到达，
+      // 骨架屏仅闪烁一帧反而影响体验，直接占位。
+      return const SizedBox.shrink();
     }
 
     if (error != null) {

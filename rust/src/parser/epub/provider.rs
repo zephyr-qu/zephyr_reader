@@ -183,7 +183,7 @@ impl ChapterContentProvider for EpubContentProvider {
 /// 4. 移除剩余所有 HTML 标签
 /// 5. 解码 HTML 实体
 /// 6. 清理多余的换行符
-fn html_to_plain_text(html: &str) -> String {
+pub(crate) fn html_to_plain_text(html: &str) -> String {
     // 1. 移除 <script> 和 <style> 块
     let no_scripts = remove_tag_blocks(html, "script");
     let no_styles = remove_tag_blocks(&no_scripts, "style");
