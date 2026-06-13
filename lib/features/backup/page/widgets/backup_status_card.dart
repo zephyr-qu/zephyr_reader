@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/api/backup.dart' as backup_api;
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/features/backup/application/backup_view_model.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:zephyr_reader/src/rust/api/backup.dart' as backup_api;
 
 /// 备份状态卡片。
 ///
@@ -21,9 +21,7 @@ class BackupStatusCard extends HookWidget {
     final l10n = AppLocalizations.of(context)!;
     final DateTime? lastAt = useSignalValue(vm.lastBackupAt);
     final BackupStatus status = useSignalValue(vm.status);
-    final String? errorMsg = useSignalValue<String?, Signal<String?>>(
-      vm.errorMessage,
-    );
+    final String? errorMsg = useSignalValue(vm.errorMessage);
     final AsyncState<backup_api.BackupStats?> currentStats = useSignalValue(
       vm.currentStats,
     );

@@ -28,6 +28,7 @@ class ReaderBottomToolbar extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Container(
+      color: readerTheme.surfaceColor,
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: SafeArea(
         top: false,

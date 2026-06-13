@@ -1640,12 +1640,6 @@ abstract class AppLocalizations {
   /// **'文字排版'**
   String get typographySection;
 
-  /// No description provided for @searchInChapterHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'在章节内搜索...'**
-  String get searchInChapterHint;
-
   /// No description provided for @previous.
   ///
   /// In zh, this message translates to:
@@ -3949,6 +3943,36 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'春风又绿江南岸，明月何时照我还。'**
   String get themePreviewSampleText;
+
+  /// No description provided for @textAlign.
+  ///
+  /// In zh, this message translates to:
+  /// **'文字对齐'**
+  String get textAlign;
+
+  /// No description provided for @textAlignJustify.
+  ///
+  /// In zh, this message translates to:
+  /// **'两端对齐'**
+  String get textAlignJustify;
+
+  /// No description provided for @textAlignStart.
+  ///
+  /// In zh, this message translates to:
+  /// **'左对齐'**
+  String get textAlignStart;
+
+  /// No description provided for @textAlignCenter.
+  ///
+  /// In zh, this message translates to:
+  /// **'居中'**
+  String get textAlignCenter;
+
+  /// No description provided for @textAlignEnd.
+  ///
+  /// In zh, this message translates to:
+  /// **'右对齐'**
+  String get textAlignEnd;
 }
 
 class _AppLocalizationsDelegate

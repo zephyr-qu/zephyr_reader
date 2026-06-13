@@ -258,7 +258,6 @@
   "readingModeSection": "Reading Mode",
   "layoutSection": "Layout",
   "typographySection": "Typography",
-  "searchInChapterHint": "Search in chapter...",
   "previous": "Previous",
   "next": "Next",
   "currentlyReading": "Currently Reading",
@@ -678,5 +677,10 @@
   "indexChapters": "Indexed Chapters",
   "clearProgress": "Clear Progress",
   "clearedAllBookmarks": "All bookmarks cleared",
-  "themePreviewSampleText": "The spring wind has greened the southern shore again."
+  "themePreviewSampleText": "The spring wind has greened the southern shore again.",
+  "textAlign": "Text Alignment",
+  "textAlignJustify": "Justified",
+  "textAlignStart": "Left-aligned",
+  "textAlignCenter": "Centered",
+  "textAlignEnd": "Right-aligned"
 }

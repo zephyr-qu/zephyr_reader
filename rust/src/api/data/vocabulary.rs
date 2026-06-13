@@ -34,6 +34,7 @@ pub async fn create_vocabulary_word(
     char_offset: Option<i64>,
     word_list: Option<String>,
 ) -> Result<Vocab, AppError> {
+    tracing::info!("[vocab] create_vocabulary_word: word={}", word);
     let vocab = Vocab::new(
         &word,
         &pinyin,
@@ -81,6 +82,7 @@ pub async fn list_vocabulary_by_status(
 /// 匹配关键词的生词列表
 #[frb]
 pub async fn search_vocabulary_words(query: String) -> Result<Vec<Vocab>, AppError> {
+    tracing::debug!("[vocab] search_vocabulary_words: query={}", query);
     async_storage!(|pool| VocabRepository::search(pool, &query))
 }
 
@@ -94,6 +96,7 @@ pub async fn search_vocabulary_words(query: String) -> Result<Vec<Vocab>, AppErr
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn update_vocabulary_status(id: String, status: VocabStatus) -> Result<(), AppError> {
+    tracing::debug!("[vocab] update_vocabulary_status: id={}, status={:?}", id, status);
     async_storage!(|pool| VocabRepository::update_by_status(pool, &id, status))
 }
 
@@ -106,6 +109,7 @@ pub async fn update_vocabulary_status(id: String, status: VocabStatus) -> Result
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn delete_vocabulary(id: String) -> Result<(), AppError> {
+    tracing::info!("[vocab] delete_vocabulary: id={}", id);
     async_storage!(|pool| VocabRepository::delete_by_id(pool, &id))
 }
 
@@ -115,6 +119,7 @@ pub async fn delete_vocabulary(id: String) -> Result<(), AppError> {
 /// 生词统计汇总数据
 #[frb]
 pub async fn get_vocabulary_stats() -> Result<VocabStats, AppError> {
+    tracing::debug!("[vocab] get_vocabulary_stats");
     async_storage!(|pool| VocabRepository::count(pool))
 }
 

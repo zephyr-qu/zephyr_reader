@@ -17,6 +17,7 @@ pub use crate::storage::models::{GlobalStats, ReadingStats};
 /// 今日的阅读统计数据列表
 #[frb]
 pub async fn get_today_reading_stats() -> Result<Vec<ReadingStats>, AppError> {
+    tracing::debug!("[stats] get_today_reading_stats");
     async_storage!(|pool| StatsRepository::find_by_today(pool))
 }
 
@@ -47,6 +48,7 @@ pub async fn get_reading_stats_by_range(
 /// 全局阅读统计汇总信息
 #[frb]
 pub async fn get_global_reading_stats() -> Result<GlobalStats, AppError> {
+    tracing::debug!("[stats] get_global_reading_stats");
     async_storage!(|pool| StatsRepository::find_by_global(pool))
 }
 
@@ -59,6 +61,7 @@ pub async fn get_global_reading_stats() -> Result<GlobalStats, AppError> {
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn update_daily_stats(stats: ReadingStats) -> Result<(), AppError> {
+    tracing::info!("[stats] update_daily_stats: date={}", stats.date);
     async_storage!(|pool| StatsRepository::update_by_daily(pool, &stats))
 }
 

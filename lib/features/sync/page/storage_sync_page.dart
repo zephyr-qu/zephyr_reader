@@ -14,6 +14,9 @@ import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/features/sync/page/widgets/webdav_config_dialog.dart';
 import 'package:zephyr_reader/core/presentation/widgets/confirm_action_dialog.dart';
 import 'package:zephyr_reader/core/presentation/widgets/danger_section.dart';
+import 'package:zephyr_reader/core/theme/menu_colors.dart';
+import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:go_router/go_router.dart';
 
 /// 存储同步页面。
 ///
@@ -63,6 +66,8 @@ class StorageSyncPage extends HookWidget {
               _buildStatusHeader(cs, vm, context, l10n),
               const SizedBox(height: 20),
               _buildSyncConfigSection(cs, vm, context),
+              const SizedBox(height: 24),
+              _buildDataManagementSection(cs, l10n, context),
               const SizedBox(height: 24),
               _buildDangerZone(cs, vm, context),
             ],
@@ -234,6 +239,38 @@ class StorageSyncPage extends HookWidget {
 
   // ==================== Data Management Section ====================
 
+  Widget _buildDataManagementSection(
+    ColorScheme cs,
+    AppLocalizations l10n,
+    BuildContext context,
+  ) {
+    return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SectionLabel(label: '数据管理'),
+            SettingsCard(
+              showDividers: false,
+              children: [
+                SettingsNavigationTile(
+                  icon: PhosphorIconsRegular.broom,
+                  iconColor: MenuItemSemantic.info.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.info.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
+                  title: l10n.cacheManage,
+                  subtitle: l10n.cacheInfoTip,
+                  onTap: () => context.push(RoutePaths.cacheManage),
+                ),
+              ],
+            ),
+          ],
+        )
+        .animate()
+        .fadeIn(duration: 300.ms, delay: 200.ms)
+        .slideY(begin: 0.03, end: 0);
+  }
   // ==================== Danger Zone ====================
 
   Widget _buildDangerZone(

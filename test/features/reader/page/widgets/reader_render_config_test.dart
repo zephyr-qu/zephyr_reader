@@ -18,8 +18,6 @@ ReaderRenderConfig _config({
     letterSpacing: letterSpacing,
     paragraphSpacing: 12,
     pageMargin: 16,
-    searchQuery: '',
-    searchMatchHighlight: false,
     showVocabularyMark: false,
     vocabularyWords: const {},
   );

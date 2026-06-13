@@ -85,7 +85,7 @@ class HomePage extends HookWidget {
                       sliver: SliverToBoxAdapter(
                         child: recentBooks.map(
                           loading: () => const SizedBox.shrink(),
-                          error: (Object error, StackTrace? stack) =>
+                          error: (dynamic error, dynamic stack) =>
                               HomeErrorView(
                                 errorMessage: error.toString(),
                                 onRetry: () => vm.loadData(),
@@ -106,7 +106,7 @@ class HomePage extends HookWidget {
                       sliver: SliverToBoxAdapter(
                         child: dailyRecords.map(
                           loading: () => const SizedBox.shrink(),
-                          error: (Object error, StackTrace? stack) =>
+                          error: (dynamic error, dynamic stack) =>
                               HomeErrorView(
                                 errorMessage: error.toString(),
                                 onRetry: () => vm.loadData(),
@@ -124,7 +124,7 @@ class HomePage extends HookWidget {
                     recentBooks.map(
                       loading: () =>
                           const SliverToBoxAdapter(child: SizedBox.shrink()),
-                      error: (Object error, StackTrace? stack) =>
+                      error: (dynamic error, dynamic stack) =>
                           SliverToBoxAdapter(
                             child: HomeErrorView(
                               errorMessage: error.toString(),

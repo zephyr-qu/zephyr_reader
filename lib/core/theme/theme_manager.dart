@@ -79,6 +79,7 @@ class ThemeManager {
 
   Future<void> _doInit() async {
     _prefs = await SharedPreferences.getInstance();
+    final p = _prefs!;
 
     // 加载主题类型
     final int themeIndex =
@@ -107,16 +108,16 @@ class ThemeManager {
     // 设置自动持久化 watcher
     _disposers.add(
       effect(() {
-        _prefs!.setInt(SettingsKeys.themeType, themeType.value.index);
+        p.setInt(SettingsKeys.themeType, themeType.value.index);
       }),
     );
     _disposers.add(
       effect(() {
         final v = customPrimaryColor.value;
         if (v != null) {
-          _prefs!.setInt(SettingsKeys.customPrimaryColor, v.toARGB32());
+          p.setInt(SettingsKeys.customPrimaryColor, v.toARGB32());
         } else {
-          _prefs!.remove(SettingsKeys.customPrimaryColor);
+          p.remove(SettingsKeys.customPrimaryColor);
         }
       }),
     );
@@ -124,9 +125,9 @@ class ThemeManager {
       effect(() {
         final v = currentPresetId.value;
         if (v != null) {
-          _prefs!.setString(SettingsKeys.currentPresetId, v);
+          p.setString(SettingsKeys.currentPresetId, v);
         } else {
-          _prefs!.remove(SettingsKeys.currentPresetId);
+          p.remove(SettingsKeys.currentPresetId);
         }
       }),
     );
@@ -134,9 +135,9 @@ class ThemeManager {
       effect(() {
         final v = locale.value;
         if (v != null) {
-          _prefs!.setString(SettingsKeys.locale, v);
+          p.setString(SettingsKeys.locale, v);
         } else {
-          _prefs!.remove(SettingsKeys.locale);
+          p.remove(SettingsKeys.locale);
         }
       }),
     );
@@ -169,5 +170,6 @@ class ThemeManager {
     }
     _disposers.clear();
     _initialized = false;
+    _prefs = null;
   }
 }

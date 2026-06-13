@@ -35,9 +35,7 @@ class BehaviorSection extends HookWidget {
                   ),
                   title: l10n.ttsBackgroundPlay,
                   subtitle: l10n.ttsBackgroundPlayDesc,
-                  value: useSignalValue<bool, Signal<bool>>(
-                    vm.backgroundPlay.signal,
-                  ),
+                  value: useSignalValue(vm.backgroundPlay.signal),
                   onChanged: (v) => vm.backgroundPlay.value = v,
                 ),
                 SettingsToggleTile(
@@ -50,7 +48,7 @@ class BehaviorSection extends HookWidget {
                   ),
                   title: l10n.ttsAutoPage,
                   subtitle: l10n.ttsAutoPageDesc,
-                  value: useSignalValue<bool, Signal<bool>>(vm.autoPage.signal),
+                  value: useSignalValue(vm.autoPage.signal),
                   onChanged: (v) => vm.autoPage.value = v,
                 ),
                 SettingsToggleTile(
@@ -63,9 +61,7 @@ class BehaviorSection extends HookWidget {
                   ),
                   title: l10n.ttsHighlightFollow,
                   subtitle: l10n.ttsHighlightFollowDesc,
-                  value: useSignalValue<bool, Signal<bool>>(
-                    vm.highlightFollow.signal,
-                  ),
+                  value: useSignalValue(vm.highlightFollow.signal),
                   onChanged: (v) => vm.highlightFollow.value = v,
                 ),
                 SettingsToggleTile(
@@ -78,9 +74,7 @@ class BehaviorSection extends HookWidget {
                   ),
                   title: l10n.ttsDimOnLock,
                   subtitle: l10n.ttsDimOnLockDesc,
-                  value: useSignalValue<bool, Signal<bool>>(
-                    vm.dimOnLock.signal,
-                  ),
+                  value: useSignalValue(vm.dimOnLock.signal),
                   onChanged: (v) => vm.dimOnLock.value = v,
                 ),
               ],

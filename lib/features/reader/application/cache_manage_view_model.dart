@@ -13,7 +13,7 @@ class CacheManageViewModel {
   final progressList = asyncSignal<List<BookWithProgress>>(
     AsyncState.loading(),
   );
-  final searchIndexStats = signal<AsyncState<IndexStats>>(AsyncState.loading());
+  final searchIndexStats = asyncSignal<IndexStats>(AsyncState.loading());
 
   /// 加载书籍列表、阅读进度和搜索索引统计。
   Future<void> load() async {

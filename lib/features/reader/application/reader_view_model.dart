@@ -2,45 +2,46 @@ import 'dart:async';
 
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/core/utils/async_utils.dart';
-import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
+import 'package:zephyr_reader/core/utils/haptic.dart';
+import 'package:zephyr_reader/src/rust/api/bilingual.dart';
+import 'package:zephyr_reader/features/reader/application/translation_config.dart';
+import 'package:zephyr_reader/features/reader/domain/translation_service.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/api/bilingual.dart';
-import 'package:dio/dio.dart';
-import 'package:zephyr_reader/features/reader/domain/translation_service.dart';
-import 'package:zephyr_reader/features/reader/data/translation/translation_cache.dart';
-import 'package:zephyr_reader/features/reader/application/translation_config.dart';
-import 'package:zephyr_reader/src/rust/api/search.dart' as search_api;
-import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
-import 'package:zephyr_reader/src/rust/api/data/bookmark.dart' as bookmark_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../../core/reader/reader_config.dart';
 import '../data/repositories/rust_reader_repository.dart';
-import 'package:zephyr_reader/features/reader/page/widgets/highlight_painter.dart';
 import 'chapter_manager.dart';
 import 'reading_session_manager.dart';
+import 'bookmark_controller.dart';
+import 'annotation_controller.dart';
+import 'translation_controller.dart';
 
 /// 阅读器视图模型 — Facade
 ///
 /// 轻量协调层：持有各 Controller，代理信号访问，处理跨 Controller 的编排逻辑。
-/// 所有书籍/章节状态和分页逻辑委托给 ChapterManager。
-/// 所有阅读计时和进度保存委托给 ReadingSessionManager。
+/// 书籍/章节状态和分页 → ChapterManager。
+/// 阅读计时和进度保存 → ReadingSessionManager。
+/// 书签 → BookmarkController。
+/// 划词批注 → AnnotationController。
+/// 翻译/双语 → TranslationController。
 @lazySingleton
 class ReaderViewModel {
   final ReaderRepository _repo;
   final ReaderConfig _config;
-  final TranslationConfig _translateConfig;
-  final TranslationService _translateService;
-  final TranslationCache _translateCache;
-  CancelToken? _translateCancelToken;
-
-  Timer? _reloadDebounce;
 
   /// 阅读配置
   ReaderConfig get config => _config;
+
+  // ==================== 控制器 ====================
+
+  late final ChapterManager chapterManager;
+  late final ReadingSessionManager sessionManager;
+  late final BookmarkController _bookmarks;
+  late final AnnotationController _annotations;
+  late final TranslationController _translation;
 
   // ==================== 快捷 getter（ChapterManager） ====================
 
@@ -72,83 +73,66 @@ class ReaderViewModel {
     () => _config.fontSize.value,
   );
 
-  // ==================== 搜索 信号 ====================
+  // ==================== 书签 getter ====================
 
-  final showSearch = signal<bool>(false);
-  final searchQuery = signal<String>('');
-  final searchMatches = signal<int>(0);
-  final searchCurrentIndex = signal<int>(0);
-  final searchMatchParagraph = signal<int>(-1);
+  AsyncSignal<List<Bookmark>> get bookmarks => _bookmarks.bookmarks;
 
-  // ==================== 书签 信号 ====================
+  // ==================== 批注 getter ====================
 
-  /// 书签位置索引（chapterIndex:charOffset → Bookmark），O(1) 查找。
-  late final ReadonlySignal<Map<String, Bookmark>> _bookmarkIndex = computed(
-    () {
-      final list = bookmarks.value.value ?? [];
-      final map = <String, Bookmark>{};
-      for (final b in list) {
-        map['${b.chapterIndex}:${b.charOffset}'] = b;
-      }
-      return map;
-    },
-  );
-  final bookmarks = asyncSignal<List<Bookmark>>(AsyncState.data([]));
+  Signal<String> get selectedText => _annotations.selectedText;
+  Signal<int> get selectionStart => _annotations.selectionStart;
+  Signal<int> get selectionEnd => _annotations.selectionEnd;
+  AsyncSignal<List<Note>> get highlights => _annotations.highlights;
 
-  // ==================== 批注 信号 ====================
+  // ==================== 翻译/双语 getter ====================
 
-  final selectedText = signal<String>('');
-  final selectionStart = signal<int>(0);
-  final selectionEnd = signal<int>(0);
-  final showSelectionToolbar = signal<bool>(false);
-  final highlights = asyncSignal<List<Note>>(AsyncState.data([]));
+  bool get isTranslationConfigured => _translation.isConfigured;
+  AsyncSignal<BilingualAlignment?> get bilingualAlignment =>
+      _translation.bilingualAlignment;
+  Signal<String> get translationContent => _translation.translationContent;
 
-  /// 翻译 API 是否已配置。
-  bool get isTranslationConfigured => _translateConfig.isConfigured;
-  // ==================== 双语 信号 ====================
+  // ==================== 跨切面信号 ====================
 
-  final bilingualAlignment = asyncSignal<BilingualAlignment?>(
-    AsyncState.data(null),
-  );
-  final translationContent = signal<String>('');
-
-  // ==================== UI 面板状态 ====================
-
-  final showCatalog = signal<bool>(false);
-  final showBookmarks = signal<bool>(false);
-  final showToolbar = signal<bool>(false);
-  final showSettings = signal<bool>(false);
   final toastMessage = signal<String>('');
 
   // ==================== 定时器 ====================
 
+  Timer? _reloadDebounce;
   final List<void Function()> _disposers = [];
-
-  /// 高亮/笔记缓存（按章节索引）。
-  /// 切换回已访问章节时避免重复 API 调用。
-  final Map<int, List<Note>> _highlightsCache = {};
-  late final ChapterManager chapterManager;
-  late final ReadingSessionManager sessionManager;
 
   ReaderViewModel(
     this._repo,
     this._config,
-    this._translateConfig,
-    this._translateService,
-  ) : _translateCache = TranslationCache() {
+    TranslationConfig translateConfig,
+    TranslationService translateService,
+  ) {
     chapterManager = ChapterManager(_repo, _config);
     sessionManager = ReadingSessionManager(chapterManager);
+
+    _bookmarks = BookmarkController(
+      chapterManager.bookId,
+      chapterManager.chapterIndex,
+      chapterManager.currentCharOffset,
+    );
+    _annotations = AnnotationController(
+      chapterManager.bookId,
+      chapterManager.chapterIndex,
+    );
+    _translation = TranslationController(
+      chapterManager.bookId,
+      chapterManager.chapterIndex,
+      chapterManager.chapterContent,
+      chapterManager.readingMode,
+      translateConfig,
+      translateService,
+    );
   }
 
   // ==================== 编排方法 ====================
 
   /// 初始化阅读器，加载章节列表、恢复阅读进度、加载书签并开始计时。
-  Future<void> initialize(
-    String bookId, {
-    int initialChapterId = 0,
-    int initialPageIndex = 0,
-  }) async {
-    resetForNewBook();
+  Future<void> initialize(String bookId, {int initialChapterId = 0}) async {
+    await resetForNewBook();
     chapterManager.bookId.value = bookId;
     chapterManager.currentCharOffset.value = 0;
 
@@ -184,11 +168,11 @@ class ReaderViewModel {
           targetChapterIndex,
           initialCharOffset: targetCharOffset,
           restartSession: false,
-          onChapterLoaded: loadHighlights,
+          onChapterLoaded: _annotations.loadHighlights,
         );
       }
 
-      await loadBookmarks();
+      await _bookmarks.loadBookmarks();
       sessionManager.startReading();
       sessionManager.startAutoSave();
     } catch (e) {
@@ -199,9 +183,8 @@ class ReaderViewModel {
     }
   }
 
-  // ==================== 章节导航（VM 包装） ====================
+  // ==================== 章节导航 ====================
 
-  /// 加载章节内容（包装 ChapterManager + 加载高亮）
   Future<void> loadChapter(
     int chapterIndex, {
     int initialCharOffset = 0,
@@ -211,313 +194,108 @@ class ReaderViewModel {
       chapterIndex,
       initialCharOffset: initialCharOffset,
       restartSession: restartSession,
-      onChapterLoaded: loadHighlights,
+      onChapterLoaded: _annotations.loadHighlights,
     );
   }
 
-  /// 加载指定页（不阻塞进度保存）。
   Future<void> loadPage(int pageIndex) async {
     chapterManager.loadPage(pageIndex);
     unawaited(sessionManager.saveProgress());
   }
 
-  /// 跳转到指定章节（包装 ChapterManager + 隐藏目录）
   Future<void> jumpToChapter(int chapterIndex) async {
     await chapterManager.jumpToChapter(chapterIndex);
-    showCatalog.value = false;
   }
 
-  /// 跳转到指定章节的字符偏移位置。
   Future<void> jumpToPosition(int chapterIndex, int charOffset) async {
     await chapterManager.jumpToPosition(chapterIndex, charOffset);
   }
 
-  /// 切换到上一章。
   Future<void> previousChapter() => chapterManager.previousChapter();
-
-  /// 切换到下一章。
   Future<void> nextChapter() => chapterManager.nextChapter();
-
-  /// 翻到上一页（支持跨章节连续翻页）。
   Future<void> previousPage() => chapterManager.previousPage();
-
-  /// 翻到下一页（支持跨章节连续翻页）。
   Future<void> nextPage() => chapterManager.nextPage();
 
-  /// 更新当前阅读的字符偏移位置。
   void updateCurrentCharOffset(int charOffset) =>
       chapterManager.updateCurrentCharOffset(charOffset);
 
-  /// 消费待处理的跳转偏移（跳转完成后清除标记）。
   void consumePendingJumpOffset() => chapterManager.consumePendingJumpOffset();
 
-  /// 更新阅读器的字体。
   void updateFont(String fontFamily) => chapterManager.updateFont(fontFamily);
 
-  // ==================== UI 面板切换 ====================
+  // ==================== 书签（代理到 BookmarkController） ====================
 
-  /// 切换目录面板的显示状态。
-  void toggleCatalog() {
-    showCatalog.value = !showCatalog.value;
-    showBookmarks.value = false;
-  }
+  Future<void> loadBookmarks() => _bookmarks.loadBookmarks();
+  Future<bool> addBookmark() => _bookmarks.addBookmark();
+  Future<bool> deleteBookmark(String bookmarkId) =>
+      _bookmarks.deleteBookmark(bookmarkId);
 
-  /// 切换书签面板的显示状态。
-  void toggleBookmarks() {
-    showBookmarks.value = !showBookmarks.value;
-    showCatalog.value = false;
-  }
-
-  /// 切换底部工具栏的显示状态。
-  void toggleToolbar() => showToolbar.value = !showToolbar.value;
-
-  /// 切换设置面板的显示状态（同时显示工具栏）。
-  void toggleSettings() {
-    showSettings.value = !showSettings.value;
-    showToolbar.value = showSettings.value;
-  }
-
-  // ==================== 搜索 ====================
-
-  /// 切换搜索面板的显示状态，关闭时重置搜索状态。
-  void toggleSearch() {
-    showSearch.value = !showSearch.value;
-    if (!showSearch.value) {
-      searchQuery.value = '';
-      searchMatches.value = 0;
-      searchCurrentIndex.value = 0;
-      searchMatchParagraph.value = -1;
-    }
-  }
-
-  /// 更新搜索查询、匹配数量和当前匹配项。
-  void updateSearch(
-    String query, {
-    int matches = 0,
-    int currentIndex = 0,
-    int paragraphIndex = -1,
-  }) {
-    searchQuery.value = query;
-    HighlightPainter.invalidateCache();
-    searchMatches.value = matches;
-    searchCurrentIndex.value = currentIndex.clamp(
-      0,
-      (matches - 1).clamp(0, 999999),
-    );
-    searchMatchParagraph.value = paragraphIndex;
-  }
-
-  /// 用户输入搜索查询时触发。
-  ///
-  /// 优先通过 FTS5 索引获取匹配数（异步），索引未就绪时降级为 `updateSearch` 占位。
-  /// 匹配位置在 Rust 侧由 `search()` 返回，Dart 侧不再全文扫描。
-  Future<void> onSearchChanged(String query) async {
-    if (query.isEmpty) {
-      updateSearch('', matches: 0, currentIndex: 0, paragraphIndex: -1);
-      return;
-    }
-    try {
-      final count = await search_api.countMatches(
-        bookId: bookId.value,
-        query: query,
-        chapterIndex: chapterIndex.value,
-      );
-      updateSearch(query, matches: count);
-    } catch (_) {
-      // FTS5 索引未就绪时静默降级（匹配数显示为 0，下次输入重试）
-      updateSearch(query, matches: 0);
-    }
-  }
-
-  /// 跳转到下一个搜索匹配项。
-  void nextSearchMatch() {
-    if (searchMatches.value <= 0) return;
-    searchCurrentIndex.value =
-        (searchCurrentIndex.value + 1) % searchMatches.value;
-  }
-
-  /// 跳转到上一个搜索匹配项。
-  void prevSearchMatch() {
-    if (searchMatches.value <= 0) return;
-    searchCurrentIndex.value =
-        (searchCurrentIndex.value - 1 + searchMatches.value) %
-        searchMatches.value;
-  }
-
-  // ==================== 书签 ====================
-
-  /// 加载当前书籍的所有书签。
-  Future<void> loadBookmarks() async {
-    await bookmarks.loadAsync(
-      () => bookmark_api.listBookmarksByBook(bookId: bookId.value),
-      label: 'loadBookmarks',
-    );
-  }
-
-  /// 在当前阅读位置添加书签。
-  Future<bool> addBookmark() async {
-    try {
-      await bookmark_api.createBookmark(
-        bookId: bookId.value,
-        chapterIndex: chapterIndex.value,
-        charOffset: currentCharOffset.value,
-        title: '书签',
-      );
-      await loadBookmarks();
-      return true;
-    } catch (e) {
-      Logging.error('addBookmark error', exception: e);
-      return false;
-    }
-  }
-
-  /// 删除指定书签。
-  Future<bool> deleteBookmark(String bookmarkId) async {
-    try {
-      await bookmark_api.deleteBookmark(bookmarkId: bookmarkId);
-      await loadBookmarks();
-      return true;
-    } catch (e) {
-      Logging.error('deleteBookmark error', exception: e);
-      return false;
-    }
-  }
-
-  /// 跳转到指定书签位置并关闭书签面板。
   Future<void> jumpToBookmark(Bookmark bookmark) async {
     await jumpToPosition(bookmark.chapterIndex, bookmark.charOffset.toInt());
-    showBookmarks.value = false;
   }
 
-  /// 当前阅读位置是否存在书签。
-  bool get hasBookmarkAtCurrentPosition {
-    final key = '${chapterIndex.value}:${currentCharOffset.value}';
-    return _bookmarkIndex.value.containsKey(key);
-  }
+  bool get hasBookmarkAtCurrentPosition =>
+      _bookmarks.hasBookmarkAtCurrentPosition;
+  Bookmark? get currentBookmark => _bookmarks.currentBookmark;
 
-  /// 获取当前阅读位置的书签（如果存在）。
-  Bookmark? get currentBookmark {
-    final key = '${chapterIndex.value}:${currentCharOffset.value}';
-    return _bookmarkIndex.value[key];
-  }
-
-  /// 切换当前阅读位置的书签状态（添加/删除）。
   Future<bool> toggleBookmarkAtCurrentPosition() async {
     final existing = currentBookmark;
     if (existing != null) {
-      return await deleteBookmark(existing.id);
+      return await _bookmarks.deleteBookmark(existing.id);
     } else {
-      return await addBookmark();
+      return await _bookmarks.addBookmark();
     }
   }
 
-  // ==================== 划词批注 ====================
+  // ==================== 划词批注（代理到 AnnotationController） ====================
 
-  /// 加载当前章节的全部高亮和笔记。
-  ///
-  /// [forceRefresh] 为 `true` 时绕过缓存，强制从 API 重新获取。
-  Future<void> loadHighlights({bool forceRefresh = false}) async {
-    final idx = chapterIndex.value;
-    if (!forceRefresh) {
-      final cached = _highlightsCache[idx];
-      if (cached != null) {
-        highlights.value = AsyncState.data(cached);
-        return;
-      }
-    }
-    try {
-      final notes = await note_api.listNotesInChapter(
-        bookId: bookId.value,
-        chapterIndex: idx,
-      );
-      _highlightsCache[idx] = notes;
-      highlights.value = AsyncState.data(notes);
-    } catch (_) {
-      highlights.value = AsyncState.data([]);
-    }
-    HighlightPainter.invalidateCache();
-  }
+  Future<void> loadHighlights({bool forceRefresh = false}) =>
+      _annotations.loadHighlights(forceRefresh: forceRefresh);
 
-  /// 更新当前选中的文本范围和内容。
-  void updateSelection(String text, int start, int end) {
-    selectedText.value = text;
-    selectionStart.value = start;
-    selectionEnd.value = end;
-    showSelectionToolbar.value = text.isNotEmpty;
-  }
+  void updateSelection(String text, int start, int end) =>
+      _annotations.updateSelection(text, start, end);
 
-  /// 清除当前选中文本并隐藏工具栏。
-  void clearSelection() {
-    selectedText.value = '';
-    selectionStart.value = 0;
-    selectionEnd.value = 0;
-    showSelectionToolbar.value = false;
-  }
+  void clearSelection() => _annotations.clearSelection();
 
-  /// 保存当前选中的文本为高亮。
   Future<void> saveHighlight(AppLocalizations l10n) async {
-    if (selectedText.value.isEmpty) return;
     try {
-      await note_api.createHighlight(
-        bookId: bookId.value,
-        chapterIndex: chapterIndex.value,
-        charOffset: selectionStart.value,
-        length: selectionEnd.value - selectionStart.value,
-        selectedText: selectedText.value,
-        color: 0xFFFFEB3B,
-      );
-      await loadHighlights(forceRefresh: true);
-      clearSelection();
-    } catch (e) {
+      await _annotations.saveHighlight();
+    } catch (_) {
       toastMessage.value = l10n.saveHighlightFailed;
     }
   }
 
-  /// 保存当前选中的文本为笔记。
   Future<void> saveAnnotation(
     String annotationContent,
     AppLocalizations l10n,
   ) async {
-    if (selectedText.value.isEmpty || annotationContent.isEmpty) return;
     try {
-      await note_api.createAnnotation(
-        bookId: bookId.value,
-        chapterIndex: chapterIndex.value,
-        charOffset: selectionStart.value,
-        content: annotationContent,
-        selectedText: selectedText.value,
-      );
-      await loadHighlights(forceRefresh: true);
-      clearSelection();
-    } catch (e) {
+      await _annotations.saveAnnotation(annotationContent);
+    } catch (_) {
       toastMessage.value = l10n.saveAnnotationFailed;
     }
   }
 
-  /// 删除指定笔记或高亮。
   Future<void> deleteNote(String noteId, AppLocalizations l10n) async {
     try {
-      await deleteBilingualHighlightPair(noteId: noteId);
+      await _translation.deleteBilingualPair(noteId: noteId);
       hapticFeedback(HapticType.heavy);
-      await loadHighlights(forceRefresh: true);
-    } catch (e) {
+      await _annotations.loadHighlights(forceRefresh: true);
+    } catch (_) {
       toastMessage.value = l10n.deleteHighlightFailed;
     }
   }
 
-  /// 更新笔记内容。
   Future<void> updateNote(Note note, AppLocalizations l10n) async {
     try {
-      await note_api.upsertNote(note: note);
-      await loadHighlights(forceRefresh: true);
-    } catch (e) {
+      await _annotations.updateNote(note);
+    } catch (_) {
       toastMessage.value = l10n.updateNoteFailed;
     }
   }
 
   // ==================== 设置变更 ====================
 
-  /// 防抖重载当前章节（滑块拖拽时延迟触发，避免连续拖动触发多次重载）。
   void _debounceReloadChapter() {
     _reloadDebounce?.cancel();
     _reloadDebounce = Timer(const Duration(milliseconds: 300), () {
@@ -526,157 +304,51 @@ class ReaderViewModel {
           chapterIndex.value,
           initialCharOffset: currentCharOffset.value,
           restartSession: false,
-          onChapterLoaded: loadHighlights,
+          onChapterLoaded: _annotations.loadHighlights,
         ),
       );
     });
   }
 
-  /// 设置阅读器字体大小（立即更新信号值，防抖重载章节）。
   void setFontSize(double size) {
     _config.fontSize.value = size;
     _debounceReloadChapter();
   }
 
-  /// 设置阅读器行高（立即更新信号值，防抖重载章节）。
   void setLineHeight(double height) {
     _config.lineHeight.value = height;
     _debounceReloadChapter();
   }
 
-  /// 设置字间距（立即更新信号值，防抖重载章节）。
   void setLetterSpacing(double value) {
     _config.letterSpacing.value = value;
     _debounceReloadChapter();
   }
 
-  /// 设置段间距（立即更新信号值，防抖重载章节）。
   void setParagraphSpacing(double value) {
     _config.paragraphSpacing.value = value;
     _debounceReloadChapter();
   }
 
-  /// 设置页边距（立即更新信号值，防抖重载章节）。
   void setPageMargin(double value) {
     _config.padding.value = value;
     _debounceReloadChapter();
   }
 
-  /// 设置阅读模式（分页/滚动/双语）。
-  ///
-  /// 切换到双语模式时:
-  /// - 已有翻译内容 → 直接对齐
-  /// - 已配置翻译 API → 自动翻译当前章节
-  /// - 均无 → 渲染器显示"无译文"占位，用户可手动粘贴
   void setReadingMode(ReadingMode mode) {
     readingMode.value = mode;
     if (mode == ReadingMode.bilingual) {
-      if (translationContent.value.isNotEmpty) {
-        _runBilingualAlignment();
-      } else if (_translateConfig.isConfigured) {
-        unawaited(translateChapter());
-      }
+      _translation.onEnterBilingualMode();
     }
   }
 
-  /// 设置翻译内容（用户手动粘贴），同时取消进行中的 API 翻译。
-  void setTranslationContent(String content) {
-    _translateCancelToken?.cancel();
-    translationContent.value = content;
-    if (readingMode.value == ReadingMode.bilingual) {
-      _runBilingualAlignment();
-    }
-  }
+  void setTranslationContent(String content) =>
+      _translation.setTranslationContent(content);
 
-  /// 使用配置的翻译 API 翻译当前章节内容。
-  ///
-  /// 自动处理: 缓存命中、取消前次请求、错误回退。
-  Future<void> translateChapter() async {
-    final content = chapterContent.value.value ?? '';
-    if (content.isEmpty) return;
-
-    final idx = chapterIndex.value;
-
-    // 缓存命中
-    final cached = _translateCache.get(idx, content);
-    if (cached != null) {
-      translationContent.value = cached;
-      await _runBilingualAlignment();
-      return;
-    }
-
-    // 取消前次翻译
-    _translateCancelToken?.cancel();
-    _translateCancelToken = CancelToken();
-
-    bilingualAlignment.value = AsyncState.loading();
-
-    try {
-      final result = await _translateService.translate(
-        text: content,
-        sourceLang: _translateConfig.sourceLang.value == 'auto'
-            ? null
-            : _translateConfig.sourceLang.value,
-        targetLang: _translateConfig.targetLang.value,
-        cancelToken: _translateCancelToken,
-      );
-
-      if (_translateCancelToken?.isCancelled ?? false) return;
-
-      if (result.text.isEmpty) {
-        throw const TranslationException('翻译结果为空');
-      }
-
-      _translateCache.put(idx, content, result.text);
-      translationContent.value = result.text;
-      await _runBilingualAlignment();
-    } on DioException catch (e) {
-      if (CancelToken.isCancel(e)) return;
-      final msg = _translateErrorMessage(e);
-      bilingualAlignment.value = AsyncState.error(TranslationException(msg));
-    } on TranslationException catch (e) {
-      bilingualAlignment.value = AsyncState.error(e);
-    } catch (e) {
-      bilingualAlignment.value = AsyncState.error(
-        TranslationException('翻译失败: $e'),
-      );
-    }
-  }
-
-  /// 将 Dio 异常转为用户可读的错误消息。
-  String _translateErrorMessage(DioException e) {
-    return switch (e.type) {
-      DioExceptionType.connectionTimeout => '连接超时，请检查网络或 API 地址',
-      DioExceptionType.receiveTimeout => '响应超时，请检查 API 地址或延长超时',
-      DioExceptionType.connectionError => '无法连接服务器，请检查网络',
-      DioExceptionType.badResponse => switch (e.response?.statusCode) {
-        401 => 'API 密钥无效，请检查设置',
-        403 => 'API 密钥无权限',
-        429 => '请求过于频繁，请稍后重试',
-        _ => '服务端错误 (${e.response?.statusCode})',
-      },
-      _ => '网络请求失败: ${e.message}',
-    };
-  }
-
-  /// 运行双语对齐（将中文内容与英文翻译逐段对齐）。
-  Future<void> _runBilingualAlignment() async {
-    final content = chapterContent.value.value ?? '';
-    final translation = translationContent.value;
-    if (translation.isEmpty) return;
-    await bilingualAlignment.loadAsync(
-      () => alignBilingualContent(
-        chineseContent: content,
-        englishContent: translation,
-        minSimilarity: 0.5,
-      ),
-      label: '双语对齐',
-    );
-  }
+  Future<void> translateChapter() => _translation.translateChapter();
 
   // ==================== 双语高亮 ====================
 
-  /// 创建双语对照高亮（同时高亮原文和译文中对应的文本）。
   Future<void> createBilingualHighlight({
     required AppLocalizations l10n,
     required String sourceBookId,
@@ -694,8 +366,8 @@ class ReaderViewModel {
     int highlightColor = 0xFFE91E63,
   }) async {
     try {
-      await createBilingualHighlightPair(
-        params: BilingualHighlightParams(
+      await _translation.createBilingualHighlight(
+        BilingualHighlightParams(
           sourceBookId: sourceBookId,
           sourceChapterIndex: sourceChapterIndex,
           sourceCharOffset: sourceCharOffset,
@@ -723,38 +395,20 @@ class ReaderViewModel {
 
   // ==================== 重置 ====================
 
-  /// 重置阅读器状态，清理定时器和信号，为切换书籍做准备。
-  void resetForNewBook() {
-    _translateCancelToken?.cancel();
-    _translateCancelToken = null;
-    _translateCache.clear();
+  Future<void> resetForNewBook() async {
     _reloadDebounce?.cancel();
     for (final disposer in _disposers) {
       disposer();
     }
     _disposers.clear();
 
-    // 先记录阅读会话（需要 bookId 等当前值），再重置章节状态
-    unawaited(sessionManager.stopReading());
+    await sessionManager.stopReading();
     chapterManager.reset();
 
+    _bookmarks.reset();
+    _annotations.reset();
+    await _translation.reset();
+
     toastMessage.value = '';
-    showCatalog.value = false;
-    showBookmarks.value = false;
-    showToolbar.value = false;
-    showSettings.value = false;
-    showSearch.value = false;
-    searchQuery.value = '';
-    searchMatches.value = 0;
-    searchCurrentIndex.value = 0;
-    searchMatchParagraph.value = -1;
-    selectedText.value = '';
-    selectionStart.value = 0;
-    selectionEnd.value = 0;
-    _highlightsCache.clear();
-    showSelectionToolbar.value = false;
-    highlights.value = AsyncState.data([]);
-    translationContent.value = '';
-    bilingualAlignment.value = AsyncState.data(null);
   }
 }

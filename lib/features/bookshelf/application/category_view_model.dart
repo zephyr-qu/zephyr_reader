@@ -115,6 +115,7 @@ class CategoryViewModel {
 
   /// 释放所有 signal 资源。
   void dispose() {
-    // 异步 signal 无需手动 dispose
+    categories.dispose();
+    selectedCategory.dispose();
   }
 }

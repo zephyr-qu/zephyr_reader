@@ -16,31 +16,17 @@ class ReadingStatsViewModel {
   /// 近 N 天阅读记录
   final dailyRecords = asyncSignal<List<ReadingStats>>(AsyncState.loading());
 
-  /// 每日阅读分钟数（图表数据，派生自 dailyRecords）
-  // UNUSED: computed 信号已定义但没有任何页面/组件读取 .value
-  late final dailyMinutes = computed(
-    () =>
-        dailyRecords.value.value
-            ?.map((r) => r.readingTimeSeconds.toInt() / 60.0)
-            .toList() ??
-        [],
-  );
-
-  /// 当前选中时段
-  final selectedPeriod = signal<StatisticsPeriod>(StatisticsPeriod.today);
-
-  /// 每日阅读目标（分钟）
-  final goalMinutes = signal(60);
-
   final vocabUnstarted = signal(0);
   final vocabLearning = signal(0);
   final vocabMastered = signal(0);
   final vocabIgnored = signal(0);
 
   /// 按时段加载统计数据（全局统计、每日阅读记录、生词统计）。
-  Future<void> loadData({StatisticsPeriod? period}) async {
-    if (period != null) selectedPeriod.value = period;
-    final days = switch (selectedPeriod.value) {
+  Future<void> loadData({
+    required StatisticsPeriod period,
+    required int goalMinutes,
+  }) async {
+    final days = switch (period) {
       StatisticsPeriod.today => 1,
       StatisticsPeriod.week => 7,
       StatisticsPeriod.month => 30,
@@ -71,5 +57,14 @@ class ReadingStatsViewModel {
     } catch (e) {
       dailyRecords.value = AsyncState<List<ReadingStats>>.error(e);
     }
+  }
+
+  void dispose() {
+    globalStats.dispose();
+    dailyRecords.dispose();
+    vocabUnstarted.dispose();
+    vocabLearning.dispose();
+    vocabMastered.dispose();
+    vocabIgnored.dispose();
   }
 }

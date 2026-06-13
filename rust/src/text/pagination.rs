@@ -73,7 +73,7 @@ fn compute_line_breaks_from_indices(
             end = start + 1;
         }
 
-        if end < char_count && end > start {
+        if end < char_count && end > start + 1 {
             let next_char = para_char_indices[end].1;
             if is_start_avoid_punctuation(next_char) {
                 end -= 1;
@@ -131,8 +131,7 @@ impl PageStreamer {
             LanguageType::Auto | LanguageType::Mixed => "auto",
         };
         let content = optimize_spaces(&optimize_punctuation(&content, lang), lang);
-        let content_len = content.len();
-        if content_len > LAZY_PAGINATION_CHAR_THRESHOLD {
+        if content.chars().count() > LAZY_PAGINATION_CHAR_THRESHOLD {
             return Self::new_lazy(content, config);
         }
         Self::new_eager(content, config)
@@ -159,7 +158,7 @@ impl PageStreamer {
 
         let indent_width = font_size * config.first_line_indent as f32;
         let effective_width = (page_width_px - SAFETY_MARGIN_PX).max(1.0);
-        let max_line_width = effective_width - indent_width;
+        let max_line_width = (effective_width - indent_width).max(font_size);
 
         let auto_space_px = (font_size * AUTO_SPACE_RATIO).max(1.0);
 
@@ -612,9 +611,8 @@ mod tests {
 
     #[test]
     fn test_lazy_mode_large_chinese_text_no_panic() {
-        // Create >50K bytes of Chinese text to trigger lazy mode
-        // Each Chinese character is 3 bytes in UTF-8: 20,000 chars = 60,000 bytes
-        let content = "中".repeat(20_000);
+        // 50K+ characters to trigger lazy mode
+        let content = "中".repeat(60_000);
         let mut config = TypesetConfig::default();
         // Force small pages to have multiple pages
         config.font_size = 100;

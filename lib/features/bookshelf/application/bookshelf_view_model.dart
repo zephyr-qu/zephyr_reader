@@ -1,22 +1,17 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:injectable/injectable.dart';
-import 'package:zephyr_reader/core/app_config.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/app_config.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
-import 'package:zephyr_reader/src/rust/api/cover.dart' as cover_api;
+import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/category.dart' as category_api;
 import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart';
 
 /// 书架排序方式枚举。
 enum BookshelfSortType {
@@ -86,11 +81,14 @@ class BookshelfViewModel {
   );
 
   /// 是否使用列表视图（false=网格视图）
-  late final isListView = persistedBool(
+  late final _isListView = persistedBool(
     _prefs,
     SettingsKeys.bookshelfIsListView,
     false,
   );
+
+  /// 列表/网格视图模式（持久化）。页面消费此信号。
+  Signal<bool> get isListView => _isListView.signal;
 
   /// 阅读进度映射 (bookId -> progress 0.0~1.0)
   final readingProgress = asyncSignal<Map<String, double>>(
@@ -287,111 +285,6 @@ class BookshelfViewModel {
         return true;
       }, onSuccess: loadBooks);
 
-  /// 重新提取并保存书籍封面。
-  Future<bool> reExtractCover(String bookId, String filePath) async {
-    if (!cover_api.supportsCoverExtraction(filePath: filePath)) {
-      return false;
-    }
-    return _safeAction('reExtractCover', () async {
-      final appDir = await getApplicationDocumentsDirectory();
-      final coverDir = p.join(appDir.path, 'zephyr_reader', 'covers');
-      final coverPath = await cover_api.extractAndSaveCover(
-        bookId: bookId,
-        filePath: filePath,
-        outputDir: coverDir,
-      );
-      return coverPath.isNotEmpty;
-    }, onSuccess: loadBooks);
-  }
-
-  /// 从文件导入书籍（解析并存入数据库）。
-  Future<bool> importBook(String filePath) async {
-    final ok = await _safeAction('importBook', () async {
-      final parseResult = await core_api.parseBook(filePath: filePath);
-      await book_api.upsertBook(book: parseResult.bookInfo);
-      // 导入后自动提取封面到磁盘
-      await _extractCover(parseResult.bookInfo.bookId, filePath);
-      return true;
-    }, onSuccess: loadBooks);
-    return ok;
-  }
-
-  /// 提取书籍封面并保存到磁盘，失败不阻塞导入流程。
-  Future<void> _extractCover(String bookId, String filePath) async {
-    if (!cover_api.supportsCoverExtraction(filePath: filePath)) return;
-    try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final coverDir = p.join(appDir.path, 'zephyr_reader', 'covers');
-      await cover_api.extractAndSaveCover(
-        bookId: bookId,
-        filePath: filePath,
-        outputDir: coverDir,
-      );
-    } catch (_) {
-      // 封面提取失败不影响导入结果
-    }
-  }
-
-  /// 并发上限
-  static const int _scanConcurrency = 4;
-
-  /// 扫描文件夹并将发现的书籍文件导入数据库。
-  ///
-  /// [onProgress] 可选进度回调，接收 (done, total) 用于 UI 展示。
-  /// 返回 (successCount, failCount)。
-  Future<(int, int)> scanFolder(
-    String folderPath, {
-    void Function(int done, int total)? onProgress,
-  }) async {
-    final extensions = {'.txt', '.epub', '.pdf'};
-    final dir = Directory(folderPath);
-    final files = await dir
-        .list(recursive: true)
-        .where((e) => e is File)
-        .cast<File>()
-        .where((f) => extensions.contains(p.extension(f.path).toLowerCase()))
-        .map((f) => f.path)
-        .toList();
-    if (files.isEmpty) {
-      return (0, 0);
-    }
-
-    final total = files.length;
-    var done = 0;
-    var success = 0;
-    var fail = 0;
-    onProgress?.call(0, total);
-
-    final sem = _Semaphore(_scanConcurrency);
-    await Future.wait(
-      files.map(
-        (file) => sem.acquire(() async {
-          try {
-            final parseResult = await core_api.parseBook(filePath: file);
-            final bookId = parseResult.bookInfo.bookId;
-            await book_api.upsertBook(book: parseResult.bookInfo);
-            await _extractCover(bookId, file);
-            success++;
-          } catch (e, stack) {
-            fail++;
-            Logging.error(
-              'scanFolder error: $file',
-              exception: e,
-              stackTrace: stack,
-            );
-          } finally {
-            done++;
-            onProgress?.call(done, total);
-          }
-        }),
-      ),
-    );
-
-    _invalidateCache();
-    await reloadBooks();
-    return (success, fail);
-  }
-
   /// 批量更新书籍阅读状态。
   Future<void> batchUpdateStatus(
     Iterable<String> bookIds,
@@ -438,45 +331,13 @@ class BookshelfViewModel {
 
   /// 切换列表/网格视图模式。
   void toggleViewMode() {
-    isListView.value = !isListView.value;
+    _isListView.value = !_isListView.value;
   }
 
   /// 释放所有 signal 资源。
   void dispose() {
     showReadingProgress.dispose();
     defaultSortType.dispose();
-    isListView.dispose();
-  }
-}
-
-/// 简单信号量，限制并发数。
-class _Semaphore {
-  final int _max;
-  int _count = 0;
-  final _queue = <Completer<void>>[];
-
-  _Semaphore(this._max);
-
-  Future<T> acquire<T>(Future<T> Function() fn) async {
-    if (_count < _max) {
-      _count++;
-      try {
-        return await fn();
-      } finally {
-        _release();
-      }
-    }
-    final completer = Completer<void>();
-    _queue.add(completer);
-    await completer.future;
-    return acquire(fn);
-  }
-
-  void _release() {
-    if (_queue.isNotEmpty) {
-      _queue.removeAt(0).complete();
-    } else {
-      _count--;
-    }
+    _isListView.dispose();
   }
 }

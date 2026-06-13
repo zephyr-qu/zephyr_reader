@@ -13,6 +13,8 @@ class ReaderToolbar extends HookWidget {
   final VoidCallback? onClose;
   final VoidCallback? onToggleToolbar;
   final VoidCallback? onToggleMore;
+  final VoidCallback? onSearchBook;
+  final VoidCallback? onToggleBookmarks;
 
   const ReaderToolbar({
     super.key,
@@ -22,6 +24,8 @@ class ReaderToolbar extends HookWidget {
     this.onClose,
     this.onToggleToolbar,
     this.onToggleMore,
+    this.onSearchBook,
+    this.onToggleBookmarks,
   });
 
   @override
@@ -82,12 +86,35 @@ class ReaderToolbar extends HookWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 4),
+            if (onSearchBook != null)
+              GestureDetector(
+                onTap: onSearchBook,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Icon(
+                    PhosphorIconsLight.magnifyingGlass,
+                    size: 20,
+                    color: textColor,
+                  ),
+                ),
+              ),
+            if (onToggleBookmarks != null)
+              GestureDetector(
+                onTap: onToggleBookmarks,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Icon(
+                    PhosphorIconsLight.bookmarkSimple,
+                    size: 20,
+                    color: textColor,
+                  ),
+                ),
+              ),
             if (onToggleMore != null)
               GestureDetector(
                 onTap: onToggleMore,
                 child: Padding(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(10),
                   child: Icon(
                     PhosphorIconsLight.dotsThreeOutline,
                     size: 20,
@@ -95,7 +122,6 @@ class ReaderToolbar extends HookWidget {
                   ),
                 ),
               ),
-            const SizedBox(width: 4),
           ],
         ),
       ),

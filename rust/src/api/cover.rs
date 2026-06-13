@@ -15,6 +15,7 @@ use std::path::Path;
 /// 自动检测文件类型并提取封面图片，保存到指定目录。
 #[frb]
 pub async fn extract_book_cover(file_path: String, output_dir: String) -> Result<String, AppError> {
+    tracing::info!("[cover] extract_book_cover: file_path={}", file_path);
     let validated_path = validate_file_path_async(&file_path).await?;
     let registry = get_cover_registry();
     registry.extract_cover(&validated_path, &output_dir)
@@ -30,6 +31,7 @@ pub async fn extract_and_save_cover(
     file_path: String,
     output_dir: String,
 ) -> Result<String, AppError> {
+    tracing::info!("[cover] extract_and_save_cover: book_id={}", book_id);
     let full_path = extract_book_cover(file_path, output_dir).await?;
     let storage = ensure_storage()?;
     let pool = storage.pool()?;

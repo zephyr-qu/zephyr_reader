@@ -5,10 +5,12 @@
 // ReaderViewModel 是 @lazySingleton，内部创建 ChapterManager（已单独测试）。
 // 此处测试 ViewModel 层对 ChapterManager 的委托和信号传播是否正确。
 
+import 'dart:ui';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:signals_flutter/signals_flutter.dart';
+import 'package:signals_flutter/signals_flutter.dart' hide PersistedSignal;
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
@@ -144,6 +146,10 @@ class _TestConfig implements ReaderConfig {
   Future<void> resetToDefault() async {}
   @override
   void dispose() {}
+
+  @override
+  // TODO: implement textAlign
+  PersistedSignal<TextAlign> get textAlign => throw UnimplementedError();
 }
 
 ReaderViewModel createVm({

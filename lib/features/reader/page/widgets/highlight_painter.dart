@@ -20,7 +20,6 @@ class HighlightPainter {
   static int _lastPlainVersion = -1;
   static String _lastPlainContent = '';
   static List<Note> _lastPlainHighlights = [];
-  static String _lastPlainSearchQuery = '';
   static Set<String> _lastPlainVocab = const {};
   static TextSpan? _cachedPlainResult;
 
@@ -28,7 +27,6 @@ class HighlightPainter {
   static TextSpan? _lastRichSpan;
   static int _lastRichContentStart = 0;
   static List<Note> _lastRichHighlights = [];
-  static String _lastRichSearchQuery = '';
   static Set<String> _lastRichVocab = const {};
   static TextSpan? _cachedRichResult;
 
@@ -38,12 +36,9 @@ class HighlightPainter {
     TextStyle baseStyle,
     List<Note> highlights, {
     void Function(Note)? onHighlightTap,
-    String? searchQuery,
-    bool searchMatchHighlight = false,
     Set<String> vocabularyWords = const {},
   }) {
-    if ((highlights.isEmpty && (searchQuery == null || searchQuery.isEmpty)) ||
-        content.isEmpty) {
+    if (highlights.isEmpty || content.isEmpty) {
       if (vocabularyWords.isNotEmpty) {
         return _paintVocabulary(
           content,
@@ -56,14 +51,13 @@ class HighlightPainter {
     if (_paintVersion == _lastPlainVersion &&
         _lastPlainContent == content &&
         _listEquals(_lastPlainHighlights, highlights) &&
-        _lastPlainSearchQuery == (searchQuery ?? '') &&
         _setEquals(_lastPlainVocab, vocabularyWords)) {
       return _cachedPlainResult!;
     }
     final spans = <InlineSpan>[];
     final offset = 0;
 
-    // Build regions: highlight spans + search matches
+    // Build regions: highlight spans
     final regions = <_Region>[];
 
     // Highlight regions
@@ -101,20 +95,6 @@ class HighlightPainter {
       regions.add(_Region.text(content, baseStyle));
     }
 
-    // Apply search highlighting on top of existing regions
-    if (searchQuery != null && searchQuery.isNotEmpty) {
-      return _paintVocabulary(
-        content,
-        _applySearchHighlight(
-          regions,
-          searchQuery,
-          searchMatchHighlight,
-          baseStyle,
-        ),
-        vocabularyWords,
-      );
-    }
-
     for (final r in regions) {
       if (r.isHighlight) {
         spans.add(
@@ -142,50 +122,9 @@ class HighlightPainter {
     _lastPlainVersion = _paintVersion;
     _lastPlainContent = content;
     _lastPlainHighlights = List.from(highlights);
-    _lastPlainSearchQuery = searchQuery ?? '';
     _lastPlainVocab = Set.from(vocabularyWords);
     _cachedPlainResult = result;
     return result;
-  }
-
-  static TextSpan _applySearchHighlight(
-    List<_Region> regions,
-    String query,
-    bool highlightCurrent,
-    TextStyle baseStyle,
-  ) {
-    final result = <TextSpan>[];
-    for (final region in regions) {
-      final text = region.text;
-      var pos = 0;
-      final lower = text.toLowerCase();
-      final qLower = query.toLowerCase();
-      while (pos < text.length) {
-        final idx = lower.indexOf(qLower, pos);
-        if (idx == -1) {
-          result.add(TextSpan(text: text.substring(pos), style: region.style));
-          break;
-        }
-        if (idx > pos) {
-          result.add(
-            TextSpan(text: text.substring(pos, idx), style: region.style),
-          );
-        }
-        result.add(
-          TextSpan(
-            text: text.substring(idx, idx + query.length),
-            style: region.style.copyWith(
-              background: Paint()
-                ..color = (highlightCurrent && idx == 0
-                    ? Colors.orange.withAlpha(150)
-                    : Colors.yellow.withAlpha(120)),
-            ),
-          ),
-        );
-        pos = idx + query.length;
-      }
-    }
-    return TextSpan(children: result);
   }
 
   static TextSpan _paintVocabulary(
@@ -274,25 +213,21 @@ class HighlightPainter {
     int contentStart,
     List<Note> highlights, {
     void Function(Note)? onHighlightTap,
-    String? searchQuery,
-    bool searchMatchHighlight = false,
     Set<String> vocabularyWords = const {},
   }) {
     if (_paintVersion == _lastRichVersion &&
         _lastRichSpan == span &&
         _lastRichContentStart == contentStart &&
         _listEquals(_lastRichHighlights, highlights) &&
-        _lastRichSearchQuery == (searchQuery ?? '') &&
         _setEquals(_lastRichVocab, vocabularyWords)) {
       return _cachedRichResult!;
     }
-    if (highlights.isEmpty && (searchQuery == null || searchQuery.isEmpty)) {
+    if (highlights.isEmpty) {
       if (vocabularyWords.isNotEmpty && span.text != null) {
         _lastRichVersion = _paintVersion;
         _lastRichSpan = span;
         _lastRichContentStart = contentStart;
         _lastRichHighlights = List.from(highlights);
-        _lastRichSearchQuery = searchQuery ?? '';
         _lastRichVocab = Set.from(vocabularyWords);
         _cachedRichResult = _paintVocabulary(span.text!, span, vocabularyWords);
         return _cachedRichResult!;
@@ -301,7 +236,6 @@ class HighlightPainter {
       _lastRichSpan = span;
       _lastRichContentStart = contentStart;
       _lastRichHighlights = List.from(highlights);
-      _lastRichSearchQuery = searchQuery ?? '';
       _lastRichVocab = Set.from(vocabularyWords);
       _cachedRichResult = span;
       return span;
@@ -318,8 +252,6 @@ class HighlightPainter {
               childOffset,
               highlights,
               onHighlightTap: onHighlightTap,
-              searchQuery: searchQuery,
-              searchMatchHighlight: searchMatchHighlight,
               vocabularyWords: vocabularyWords,
             ),
           );
@@ -332,7 +264,6 @@ class HighlightPainter {
       _lastRichSpan = span;
       _lastRichContentStart = contentStart;
       _lastRichHighlights = List.from(highlights);
-      _lastRichSearchQuery = searchQuery ?? '';
       _lastRichVocab = Set.from(vocabularyWords);
       _cachedRichResult = TextSpan(children: children, style: span.style);
       return _cachedRichResult!;
@@ -383,7 +314,6 @@ class HighlightPainter {
         _lastRichSpan = span;
         _lastRichContentStart = contentStart;
         _lastRichHighlights = List.from(highlights);
-        _lastRichSearchQuery = searchQuery ?? '';
         _lastRichVocab = Set.from(vocabularyWords);
         _cachedRichResult = _paintVocabulary(text, span, vocabularyWords);
         return _cachedRichResult!;
@@ -392,41 +322,9 @@ class HighlightPainter {
       _lastRichSpan = span;
       _lastRichContentStart = contentStart;
       _lastRichHighlights = List.from(highlights);
-      _lastRichSearchQuery = searchQuery ?? '';
       _lastRichVocab = Set.from(vocabularyWords);
       _cachedRichResult = span;
       return span;
-    }
-
-    if (searchQuery != null && searchQuery.isNotEmpty) {
-      final searchResult = _applySearchHighlight(
-        regions,
-        searchQuery,
-        searchMatchHighlight,
-        baseStyle,
-      );
-      if (vocabularyWords.isNotEmpty) {
-        _lastRichVersion = _paintVersion;
-        _lastRichSpan = span;
-        _lastRichContentStart = contentStart;
-        _lastRichHighlights = List.from(highlights);
-        _lastRichSearchQuery = searchQuery;
-        _lastRichVocab = Set.from(vocabularyWords);
-        _cachedRichResult = _paintVocabulary(
-          text,
-          searchResult,
-          vocabularyWords,
-        );
-        return _cachedRichResult!;
-      }
-      _lastRichVersion = _paintVersion;
-      _lastRichSpan = span;
-      _lastRichContentStart = contentStart;
-      _lastRichHighlights = List.from(highlights);
-      _lastRichSearchQuery = searchQuery;
-      _lastRichVocab = Set.from(vocabularyWords);
-      _cachedRichResult = searchResult;
-      return searchResult;
     }
 
     for (final r in regions) {
@@ -457,7 +355,6 @@ class HighlightPainter {
     _lastRichSpan = span;
     _lastRichContentStart = contentStart;
     _lastRichHighlights = List.from(highlights);
-    _lastRichSearchQuery = searchQuery ?? '';
     _lastRichVocab = Set.from(vocabularyWords);
     _cachedRichResult = finalSpan;
     return finalSpan;

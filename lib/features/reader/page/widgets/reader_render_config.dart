@@ -13,11 +13,10 @@ class ReaderRenderConfig {
   final double letterSpacing;
   final double paragraphSpacing;
   final double pageMargin;
-  final String searchQuery;
-  final bool searchMatchHighlight;
   final bool showVocabularyMark;
   final bool baselineAlign;
   final Set<String> vocabularyWords;
+  final TextAlign textAlign;
 
   const ReaderRenderConfig({
     required this.textColor,
@@ -28,10 +27,9 @@ class ReaderRenderConfig {
     required this.letterSpacing,
     required this.paragraphSpacing,
     required this.pageMargin,
-    required this.searchQuery,
-    required this.searchMatchHighlight,
     required this.showVocabularyMark,
     required this.vocabularyWords,
+    this.textAlign = TextAlign.justify,
     this.baselineAlign = true,
   });
 

@@ -86,8 +86,10 @@ pub fn is_cjk_punctuation(c: char) -> bool {
     || (0xFE30..=0xFE4F).contains(&cp)
     // Vertical Forms (U+FE10–FE1F)
     || (0xFE10..=0xFE1F).contains(&cp)
-    // Fullwidth ASCII variants (U+FF00–FFEF): ！＂＃＄％＆＇（）＊＋，－．／：；＜＝＞？＠［＼］＾＿｀｛｜｝～
+    // Fullwidth ASCII variants (U+FF00–FFEF), excluding fullwidth Latin letters (U+FF21–FF3A, U+FF41–FF5A)
     || (0xFF00..=0xFFEF).contains(&cp)
+        && !(0xFF21..=0xFF3A).contains(&cp)
+        && !(0xFF41..=0xFF5A).contains(&cp)
     // Common CJK punctuation outside these blocks
     || matches!(c, '·' | '～' | '×' | '÷')
 }

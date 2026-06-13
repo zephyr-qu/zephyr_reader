@@ -48,8 +48,10 @@ class BilingualModeRenderer extends StatelessWidget {
       onSelectionGlobalPosition?.call(null);
       return;
     }
-    final box = context.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize || !box.attached) return;
+    final renderObject = context.findRenderObject();
+    if (renderObject is! RenderBox) return;
+    final box = renderObject;
+    if (!box.hasSize || !box.attached) return;
     onSelectionGlobalPosition?.call(box.localToGlobal(Offset.zero));
   }
 
@@ -204,8 +206,6 @@ class BilingualModeRenderer extends StatelessWidget {
           chineseStyle,
           cnSegHighlights,
           onHighlightTap: onHighlightTap,
-          searchQuery: config.searchQuery,
-          searchMatchHighlight: config.searchMatchHighlight,
           vocabularyWords: config.effectiveVocabWords,
         );
 
@@ -223,8 +223,6 @@ class BilingualModeRenderer extends StatelessWidget {
           englishStyle,
           enSegHighlights,
           onHighlightTap: onHighlightTap,
-          searchQuery: config.searchQuery,
-          searchMatchHighlight: config.searchMatchHighlight,
           vocabularyWords: config.effectiveVocabWords,
         );
 

@@ -51,6 +51,14 @@ class BookDetailViewModel {
     );
   }
 
+  /// 更新书籍元数据（标题、作者、描述等）。
+  void updateMetadata(Book Function(Book) updater) {
+    final current = book.value;
+    if (current is AsyncData<Book>) {
+      book.value = AsyncState.data(updater(current.value));
+    }
+  }
+
   /// 释放所有 signal 资源。
   void dispose() {
     book.dispose();

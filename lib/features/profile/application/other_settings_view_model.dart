@@ -1,7 +1,5 @@
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:injectable/injectable.dart';
-import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
@@ -32,8 +30,6 @@ class OtherSettingsViewModel {
     false,
   );
 
-  final appVersion = signal<String>('');
-
   bool _initialized = false;
 
   OtherSettingsViewModel(this._prefs);
@@ -42,13 +38,6 @@ class OtherSettingsViewModel {
   Future<void> initialize() async {
     if (_initialized) return;
     _initialized = true;
-
-    try {
-      final info = await PackageInfo.fromPlatform();
-      appVersion.value = 'v${info.version} (Build ${info.buildNumber})';
-    } catch (_) {
-      appVersion.value = '';
-    }
   }
 
   /// 将所有设置恢复为默认值。
@@ -79,6 +68,5 @@ class OtherSettingsViewModel {
     notificationsEnabled.dispose();
     startupCheckEnabled.dispose();
     markdownPreview.dispose();
-    appVersion.dispose();
   }
 }

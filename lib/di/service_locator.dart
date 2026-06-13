@@ -1,7 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:zephyr_reader/core/reader/custom_font_service.dart';
 import 'package:zephyr_reader/features/sync/application/services/webdav_sync_service.dart';
 

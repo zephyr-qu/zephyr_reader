@@ -28,8 +28,11 @@ class ZephyrReaderApp extends HookWidget {
     // 从 DI 获取 SharedPreferences 单例
     final prefs = useMemoized(() => getIt<SharedPreferences>());
 
-    // 使用 useSignalEffect 监听自动主题切换逻辑
     final autoTheme = useMemoized(() => AutoThemeService(prefs));
+    // 监听自动主题切换（根据时间切换亮/暗主题）
+    // 安全说明：autoThemeEnabled 和 isDarkModeTime 变化时重运行效应，
+    // 写入 themeType 不会触发回路——themeType 不被 autoTheme 读取，
+    // 且 isDarkModeTime 基于系统时间（独立于 themeType）。
     useSignalEffect(() {
       if (autoTheme.autoThemeEnabled.value) {
         themeManager.themeType.value = autoTheme.isDarkModeTime
@@ -39,15 +42,11 @@ class ZephyrReaderApp extends HookWidget {
     });
 
     // 监听信号变化
-    final customPrimary = useSignalValue<Color?, Signal<Color?>>(
+    final Color? customPrimary = useSignalValue(
       themeManager.customPrimaryColor,
     );
-    final themeType = useSignalValue<AppThemeType, Signal<AppThemeType>>(
-      themeManager.themeType,
-    );
-    final localeStr = useSignalValue<String?, Signal<String?>>(
-      themeManager.locale,
-    );
+    final AppThemeType themeType = useSignalValue(themeManager.themeType);
+    final String? localeStr = useSignalValue(themeManager.locale);
 
     // 缓存 ThemeData，仅在 customPrimary 变化时重建
     final theme = useMemoized(

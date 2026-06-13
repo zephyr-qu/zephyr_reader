@@ -20,10 +20,16 @@ class ReadingSessionManager {
   // ==================== 信号 ====================
 
   /// 阅读时长（秒）
-  final readingDuration = signal<int>(0);
+  final _readingDuration = signal<int>(0);
 
   /// 是否正在阅读（计时）
-  final isReading = signal<bool>(false);
+  final _isReading = signal<bool>(false);
+
+  /// 阅读时长（秒，只读）
+  Signal<int> get readingDuration => _readingDuration;
+
+  /// 是否正在阅读（只读）
+  Signal<bool> get isReading => _isReading;
 
   // ==================== 定时器 ====================
 
@@ -42,33 +48,33 @@ class ReadingSessionManager {
 
   /// 加载上次的阅读时长（从进度中恢复）
   void restoreReadingDuration(int seconds) {
-    readingDuration.value = seconds;
+    _readingDuration.value = seconds;
   }
 
   /// 开始阅读计时
   void startReading() {
-    if (isReading.value) return;
-    isReading.value = true;
+    if (_isReading.value) return;
+    _isReading.value = true;
 
     _sessionStartOffset = _chapterManager.currentCharOffset.value;
     _sessionStartTime = DateTime.now();
 
     _readingTimer?.cancel();
     _readingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      readingDuration.value++;
+      _readingDuration.value++;
     });
   }
 
   /// 停止阅读计时并保存进度，同时记录本次阅读会话。
   Future<void> stopReading() async {
-    if (!isReading.value) return;
+    if (!_isReading.value) return;
     _readingTimer?.cancel();
 
     // 先保存进度（saveProgress 依赖 isReading=true 的 guard）
     await saveProgress();
 
     // 再记录会话并标记结束
-    isReading.value = false;
+    _isReading.value = false;
     try {
       await session_api.createSession(
         bookId: _chapterManager.bookId.value,
@@ -86,14 +92,14 @@ class ReadingSessionManager {
   void startAutoSave() {
     _saveTimer?.cancel();
     _saveTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      if (!isReading.value) return;
+      if (!_isReading.value) return;
       saveProgress();
     });
   }
 
   /// 保存阅读进度
   Future<void> saveProgress() async {
-    if (!isReading.value) return;
+    if (!_isReading.value) return;
     final now = DateTime.now();
     if (_lastSaveTime != null && now.difference(_lastSaveTime!).inSeconds < 5) {
       return;
@@ -114,7 +120,7 @@ class ReadingSessionManager {
           pageIndex: cm.pageIndex.value,
           totalPages: totalPages,
           progress: pct,
-          readingTimeSeconds: readingDuration.value,
+          readingTimeSeconds: _readingDuration.value,
           lastReadAt: now,
           isCompleted: pct >= 1.0,
         ),
@@ -128,15 +134,14 @@ class ReadingSessionManager {
   void reset() {
     _readingTimer?.cancel();
     _saveTimer?.cancel();
-    readingDuration.value = 0;
-    isReading.value = false;
+    _readingDuration.value = 0;
+    _isReading.value = false;
   }
 
   Future<void> dispose() async {
     _readingTimer?.cancel();
     _saveTimer?.cancel();
-    if (!isReading.value) return;
-    isReading.value = false;
+    if (!_isReading.value) return;
 
     // 记录本次阅读会话
     try {
@@ -152,5 +157,6 @@ class ReadingSessionManager {
     }
 
     await saveProgress();
+    _isReading.value = false;
   }
 }

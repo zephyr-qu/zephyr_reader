@@ -212,6 +212,7 @@ fn bench_chapter_pagination(c: &mut Criterion) {
                         black_box(p.clone()),
                         0,
                         black_box(config.clone()),
+                        None,
                     )
                     .await;
                 })
@@ -240,9 +241,9 @@ fn bench_page_fetch(c: &mut Criterion) {
         path_str.clone(),
         0,
         config,
+        None,
     ))
     .unwrap();
-
     let mut group = c.benchmark_group("page_fetch");
     group.sample_size(10);
     group.measurement_time(Duration::from_secs(30));

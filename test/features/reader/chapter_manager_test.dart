@@ -1,3 +1,5 @@
+import 'dart:ui' show TextAlign;
+
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +10,7 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/features/reader/application/chapter_manager.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -148,6 +151,17 @@ class _MockConfig implements ReaderConfig {
   );
 
   @override
+  late final textAlign = persistedEnum<TextAlign>(
+    prefs,
+    '',
+    TextAlign.justify,
+    (name) => TextAlign.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => TextAlign.justify,
+    ),
+    debounce: Duration.zero,
+  );
+  @override
   double get pageMargin => padding.value;
 
   @override
@@ -162,6 +176,7 @@ class _MockConfig implements ReaderConfig {
     autoScrollSpeed.value = 30;
     letterSpacing.value = 0.0;
     punctuationSqueeze.value = true;
+
     baselineAlign.value = true;
     tapLayout.value = TapLayout.rightHanded;
   }
@@ -213,6 +228,26 @@ void _setupPaginateChapter(_MockRepo repo, {bool isFallback = false}) {
   }
 }
 
+void _setupPaginateChapterPartial(_MockRepo repo) {
+  when(
+    () => repo.paginateChapterPartial(
+      bookId: any(named: 'bookId'),
+      chapterIndex: any(named: 'chapterIndex'),
+      fontSize: any(named: 'fontSize'),
+      lineHeight: any(named: 'lineHeight'),
+      width: any(named: 'width'),
+      height: any(named: 'height'),
+      padding: any(named: 'padding'),
+      devicePixelRatio: any(named: 'devicePixelRatio'),
+      calibration: any(named: 'calibration'),
+      fontFamily: any(named: 'fontFamily'),
+      letterSpacing: any(named: 'letterSpacing'),
+      paragraphSpacing: any(named: 'paragraphSpacing'),
+      punctuationSqueeze: any(named: 'punctuationSqueeze'),
+    ),
+  ).thenAnswer((_) async => 2);
+}
+
 void _registerFallbackValues() {
   registerFallbackValue(ReadingMode.pagination);
 }
@@ -238,6 +273,8 @@ void main() {
       () => repo.loadChapterContent(any(), any()),
     ).thenAnswer((_) async => 'A' * 100);
     _setupPaginateChapter(repo);
+    // paginateChapterPartial 也使用相同的结果（首 N 字符分页和全部分页返回一致的前几页）
+    _setupPaginateChapterPartial(repo);
     when(() => repo.loadReadingProgress(any())).thenAnswer((_) async => null);
     when(
       () => repo.loadChapterFirstSpine(any(), any()),
@@ -252,12 +289,7 @@ void main() {
         padding: any(named: 'padding'),
       ),
     ).thenReturn([
-      PageInfo(
-        pageIndex: 0,
-        content: 'A' * 50,
-        startOffset: 0,
-        endOffset: 50,
-      ),
+      PageInfo(pageIndex: 0, content: 'A' * 50, startOffset: 0, endOffset: 50),
       PageInfo(
         pageIndex: 1,
         content: 'A' * 50,
@@ -527,7 +559,7 @@ void main() {
 
     group('resolvePageIndexFromPageInfo', () {
       test('空列表返回 0', () {
-        expect(manager.resolvePageIndexFromPageInfo([], 50), 0);
+        expect(PaginationEngine.resolvePageIndexFromPageInfo([], 50), 0);
       });
 
       test('offset 落在第0页范围内', () {
@@ -539,7 +571,7 @@ void main() {
             endOffset: 50,
           ),
         ];
-        expect(manager.resolvePageIndexFromPageInfo(pages, 25), 0);
+        expect(PaginationEngine.resolvePageIndexFromPageInfo(pages, 25), 0);
       });
 
       test('offset 落在第1页范围内', () {
@@ -557,7 +589,7 @@ void main() {
             endOffset: 100,
           ),
         ];
-        expect(manager.resolvePageIndexFromPageInfo(pages, 75), 1);
+        expect(PaginationEngine.resolvePageIndexFromPageInfo(pages, 75), 1);
       });
 
       test('offset 超范围时返回最后一页', () {
@@ -575,7 +607,7 @@ void main() {
             endOffset: 100,
           ),
         ];
-        expect(manager.resolvePageIndexFromPageInfo(pages, 999), 1);
+        expect(PaginationEngine.resolvePageIndexFromPageInfo(pages, 999), 1);
       });
     });
 
@@ -583,7 +615,10 @@ void main() {
 
     group('resolvePageIndexForOffset', () {
       test('空列表返回 0', () {
-        expect(manager.resolvePageIndexForOffset(<PageDescriptor>[], 50), 0);
+        expect(
+          PaginationEngine.resolvePageIndexForOffset(<PageDescriptor>[], 50),
+          0,
+        );
       });
 
       test('offset 落在第0页范围内', () {
@@ -595,7 +630,7 @@ void main() {
             isLastPage: false,
           ),
         ];
-        expect(manager.resolvePageIndexForOffset(descriptors, 25), 0);
+        expect(PaginationEngine.resolvePageIndexForOffset(descriptors, 25), 0);
       });
 
       test('offset 落在第1页范围内', () {
@@ -613,7 +648,7 @@ void main() {
             isLastPage: true,
           ),
         ];
-        expect(manager.resolvePageIndexForOffset(descriptors, 75), 1);
+        expect(PaginationEngine.resolvePageIndexForOffset(descriptors, 75), 1);
       });
 
       test('offset 超范围时返回最后一页', () {
@@ -631,7 +666,7 @@ void main() {
             isLastPage: true,
           ),
         ];
-        expect(manager.resolvePageIndexForOffset(descriptors, 999), 1);
+        expect(PaginationEngine.resolvePageIndexForOffset(descriptors, 999), 1);
       });
     });
 

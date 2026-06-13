@@ -43,16 +43,11 @@ void main() {
     test('markdownPreview defaults to false', () {
       expect(vm.markdownPreview.value, false);
     });
-
-    test('appVersion starts empty', () {
-      expect(vm.appVersion.value, '');
-    });
   });
 
   group('OtherSettingsViewModel initialize', () {
     test('initialize does not throw in test environment', () {
-      // PackageInfo.fromPlatform() 会在测试环境中抛异常，
-      // ViewModel 应安全捕获并使 appVersion 保持空字符串
+      // initialize 不再加载 PackageInfo
       expect(vm.initialize(), completes);
     });
 

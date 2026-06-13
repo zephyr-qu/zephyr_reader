@@ -8,6 +8,7 @@ import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/data/rich_text_converter.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/chapter.dart' as chapter_api;
@@ -17,20 +18,6 @@ import 'package:zephyr_reader/src/rust/api/md.dart' as md_api;
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-
-/// 分页信息
-class PageInfo {
-  final int pageIndex;
-  final String content;
-  final int startOffset;
-  final int endOffset;
-  PageInfo({
-    required this.pageIndex,
-    required this.content,
-    required this.startOffset,
-    required this.endOffset,
-  });
-}
 
 /// 阅读进度数据
 class ReadingProgressData {
@@ -78,80 +65,87 @@ class ReaderRepository {
   /// 页面内容缓存（页码 → 文本内容）
   final Map<int, String> _pageCache = {};
 
+  final _pagination = PaginationEngine();
+
+  /// 书籍对象缓存 — 避免同一阅读会话中重复通过 FFI 查询 DB。
+  String? _cachedBookId;
+  Book? _cachedBook;
+
+  /// 预加载的下一章首页内容缓存
+  int? _preloadedNextChapterIdx;
+  String? _preloadedNextPageContent;
+
+  /// 每次预加载完成时递增，供 UI 监听重建。
+  final preloadGeneration = ValueNotifier<int>(0);
+
+  /// 是否有预加载的下一章首页
+  bool get hasPreloadedNextChapter =>
+      _preloadedNextChapterIdx != null && _preloadedNextPageContent != null;
+
+  /// 获取预加载的下一章指定页内容（[pageIndex] 相对下一章首页 0）
+  String? getPreloadedNextChapterContent(
+    int chapterIndex, {
+    int pageIndex = 0,
+  }) {
+    if (_preloadedNextChapterIdx == chapterIndex && pageIndex == 0) {
+      return _preloadedNextPageContent;
+    }
+    return null;
+  }
+
+  /// 预加载下一章节的首页文本，用于跨章节翻页动画。
+  Future<void> preloadNextChapterFirstPage(
+    String bookId,
+    int chapterIndex, {
+    double fontSize = 16,
+    double lineHeight = 1.6,
+    double width = 400,
+    double height = 600,
+    double padding = 20,
+  }) async {
+    try {
+      final text = await loadChapterFirstSpine(bookId, chapterIndex);
+      final pages = paginateApproximate(
+        text,
+        fontSize: fontSize,
+        lineHeight: lineHeight,
+        width: width,
+        height: height,
+        padding: padding,
+      );
+      _preloadedNextChapterIdx = chapterIndex;
+      _preloadedNextPageContent = pages.isNotEmpty ? pages[0].content : text;
+      preloadGeneration.value++; // 通知 UI 重建以使用新的预加载内容
+    } catch (e) {
+      Logging.debug('[Preload] next chapter first page failed: $e');
+    }
+  }
+
+  void clearPreloadedNextChapter() {
+    _preloadedNextChapterIdx = null;
+    _preloadedNextPageContent = null;
+  }
+
   ReaderRepository();
 
   final _richTextConverter = const RichTextConverter();
 
+  /// 获取书籍元数据，优先返回缓存对象。
+  Future<Book> _getBook(String bookId) async {
+    if (_cachedBookId == bookId && _cachedBook != null) {
+      return _cachedBook!;
+    }
+    final book = await book_api.getBook(bookId: bookId);
+    if (book == null) throw Exception('Book not found: $bookId');
+    _cachedBook = book;
+    _cachedBookId = bookId;
+    _filePath = book.filePath;
+    return book;
+  }
+
   /// 公开 getter：页面描述符列表
   List<PageDescriptor>? get descriptors => _descriptors;
 
-  /// 带 KV 缓存的分页排版
-  ///
-  /// 返回 (pages, cacheHit, isFallback)。
-  /// isFallback 时 pages 为空，调用方应回退到 _paginateApproximate。
-  Future<({List<PageInfo> pages, bool cacheHit, bool isFallback})>
-  getPaginatedChapterPages({
-    required String bookId,
-    required int chapterIndex,
-    required double fontSize,
-    required double lineHeight,
-    required double width,
-    required double height,
-    required double padding,
-    double devicePixelRatio = 1.0,
-    CalibrationData? calibration,
-    String fontFamily = 'Noto Sans SC',
-    double letterSpacing = 0,
-    double paragraphSpacing = 16,
-    bool punctuationSqueeze = true,
-  }) async {
-    try {
-      final book = await book_api.getBook(bookId: bookId);
-      if (book == null || book.filePath.isEmpty) {
-        Logging.error(
-          'getPaginatedChapterPages: book not found for bookId=$bookId',
-        );
-        return (pages: <PageInfo>[], cacheHit: false, isFallback: true);
-      }
-
-      final config = buildTypesetConfig(
-        width: width,
-        height: height,
-        fontSize: fontSize,
-        lineHeight: lineHeight,
-        padding: padding,
-        devicePixelRatio: devicePixelRatio,
-        calibration: calibration,
-        fontFamily: fontFamily,
-        letterSpacing: letterSpacing,
-        paragraphSpacing: paragraphSpacing,
-        punctuationSqueeze: punctuationSqueeze,
-      );
-
-      final pageContents = await core_api.paginateAllContent(
-        filePath: book.filePath,
-        chapterIndex: chapterIndex,
-        config: config,
-      );
-
-      final pages = pageContents
-          .map(
-            (pc) => PageInfo(
-              pageIndex: pc.pageIndex,
-              content: pc.content,
-              startOffset: pc.startOffset.toInt(),
-              endOffset: pc.endOffset.toInt(),
-            ),
-          )
-          .toList();
-
-      currentPages = pages;
-      return (pages: pages, cacheHit: false, isFallback: false);
-    } catch (e) {
-      Logging.error('getPaginatedChapterPages error: $e');
-      return (pages: <PageInfo>[], cacheHit: false, isFallback: true);
-    }
-  }
 
   /// 轻量级分页排版（只获取页面描述符，文本按需加载）。
   ///
@@ -173,14 +167,74 @@ class ReaderRepository {
     double paragraphSpacing = 16,
     bool punctuationSqueeze = true,
   }) async {
-    final sw = Stopwatch()..start();
     try {
-      final book = await book_api.getBook(bookId: bookId);
-      if (book == null || book.filePath.isEmpty) {
+      final book = await _getBook(bookId);
+      if (book.filePath.isEmpty) {
         Logging.error('paginateChapter: book not found for bookId=$bookId');
         return 0;
       }
-      final tGetBook = sw.elapsedMilliseconds;
+      final config = buildTypesetConfig(
+        width: width,
+        height: height,
+        fontSize: fontSize,
+        lineHeight: lineHeight,
+        padding: padding,
+        devicePixelRatio: devicePixelRatio,
+        calibration: calibration,
+        fontFamily: fontFamily,
+        letterSpacing: letterSpacing,
+        paragraphSpacing: paragraphSpacing,
+        punctuationSqueeze: punctuationSqueeze,
+      );
+
+      final result = await _pagination.paginateChapter(
+        filePath: book.filePath,
+        chapterIndex: chapterIndex,
+        config: config,
+      );
+
+      _filePath = book.filePath;
+      _chapterIndex = chapterIndex;
+      _descriptors = result.descriptors;
+      _configHash = result.configHash;
+      _pageCache.clear();
+
+      // 预加载前 5 页到缓存
+      final preloadCount = 5.clamp(0, result.descriptors.length);
+      for (int i = 0; i < preloadCount; i++) {
+        _fetchPageSync(i);
+      }
+
+      return result.descriptors.length;
+    } catch (e) {
+      Logging.error('paginateChapter error: $e');
+      return 0;
+    }
+  }
+
+  /// 快速分页：只读取前 N 字符进行惰性分页（只转换必要的 spine）。
+  ///
+  /// 相比完整 `paginateChapter`（可能需 5s+），此方法在 ~300ms 内返回
+  /// 最初的 ~100-200 页的真实描述符，让用户可以立即翻页。
+  /// 后续应调用完整 `paginateChapter` 获得全部分页。
+  Future<int> paginateChapterPartial({
+    required String bookId,
+    required int chapterIndex,
+    required double fontSize,
+    required double lineHeight,
+    required double width,
+    required double height,
+    required double padding,
+    double devicePixelRatio = 1.0,
+    CalibrationData? calibration,
+    String fontFamily = 'Noto Sans SC',
+    double letterSpacing = 0,
+    double paragraphSpacing = 16,
+    bool punctuationSqueeze = true,
+  }) async {
+    try {
+      final book = await _getBook(bookId);
+      if (book.filePath.isEmpty) return 0;
 
       final config = buildTypesetConfig(
         width: width,
@@ -195,18 +249,11 @@ class ReaderRepository {
         paragraphSpacing: paragraphSpacing,
         punctuationSqueeze: punctuationSqueeze,
       );
-      final tBuildConfig = sw.elapsedMilliseconds;
 
-      final result = await core_api.paginateChapter(
+      final result = await _pagination.paginateChapterPartial(
         filePath: book.filePath,
         chapterIndex: chapterIndex,
         config: config,
-      );
-      final tRustPaginate = sw.elapsedMilliseconds;
-      Logging.info(
-        '[Timing] paginateChapter: getBook=${tGetBook}ms '
-        'buildConfig=${tBuildConfig - tGetBook}ms '
-        'rustPaginate=${tRustPaginate - tBuildConfig}ms',
       );
 
       _filePath = book.filePath;
@@ -215,21 +262,15 @@ class ReaderRepository {
       _configHash = result.configHash;
       _pageCache.clear();
 
-      // 预加载前 5 页到缓存
+      // 预加载前 5 页
       final preloadCount = 5.clamp(0, result.descriptors.length);
       for (int i = 0; i < preloadCount; i++) {
         _fetchPageSync(i);
       }
-      final tPreload = sw.elapsedMilliseconds;
-      if (tPreload - tRustPaginate > 10) {
-        Logging.info(
-          '[Timing] paginateChapter: preloadFirst5Pages=${tPreload - tRustPaginate}ms',
-        );
-      }
 
       return result.descriptors.length;
     } catch (e) {
-      Logging.error('paginateChapter error: $e');
+      Logging.error('paginateChapterPartial error: $e');
       return 0;
     }
   }
@@ -311,8 +352,8 @@ class ReaderRepository {
   /// 用于分段读取的首屏渲染，通常在 ~100ms 内完成。
   /// 返回文本通常是章节前 2000 字符，用于第 0 页的近似渲染。
   Future<String> loadChapterFirstSpine(String bookId, int chapterId) async {
-    final book = await book_api.getBook(bookId: bookId);
-    if (book == null || book.filePath.isEmpty) {
+    final book = await _getBook(bookId);
+    if (book.filePath.isEmpty) {
       throw Exception('Book not found: $bookId');
     }
     final result = await core_api.getChapterFirstSpineOnly(
@@ -326,8 +367,8 @@ class ReaderRepository {
   Future<String> loadChapterContent(String bookId, int chapterId) async {
     final sw = Stopwatch()..start();
     try {
-      final book = await book_api.getBook(bookId: bookId);
-      if (book == null || book.filePath.isEmpty) {
+      final book = await _getBook(bookId);
+      if (book.filePath.isEmpty) {
         throw Exception('Book not found: $bookId');
       }
 
@@ -463,62 +504,14 @@ class ReaderRepository {
     required double height,
     required double padding,
   }) {
-    final maxWidth = width - padding * 2;
-    final availableHeight = height - padding * 2;
-    final charsPerLine = (maxWidth / fontSize).floor().clamp(10, 200);
-    final linesPerPage = (availableHeight / (fontSize * lineHeight))
-        .floor()
-        .clamp(1, 100);
-    final charsPerPage = charsPerLine * linesPerPage;
-
-    final pages = <PageInfo>[];
-    var offset = 0;
-    var pageIndex = 0;
-
-    while (offset < content.length) {
-      var end = offset + charsPerPage;
-      if (end >= content.length) {
-        end = content.length;
-      } else {
-        // 在段落边界处断开，避免断词
-        final searchStart = (end - (charsPerLine ~/ 2)).clamp(
-          0,
-          content.length,
-        );
-        final newlinePos = content.lastIndexOf('\n', end);
-        if (newlinePos > searchStart) {
-          end = newlinePos + 1;
-        } else {
-          final paraBreak = content.lastIndexOf('\n\n', end);
-          if (paraBreak > searchStart) {
-            end = paraBreak + 2;
-          }
-        }
-      }
-
-      pages.add(
-        PageInfo(
-          pageIndex: pageIndex,
-          content: content.substring(offset, end),
-          startOffset: offset,
-          endOffset: end,
-        ),
-      );
-      offset = end;
-      pageIndex++;
-    }
-
-    if (pages.isEmpty) {
-      pages.add(
-        PageInfo(
-          pageIndex: 0,
-          content: content,
-          startOffset: 0,
-          endOffset: content.length,
-        ),
-      );
-    }
-    return pages;
+    return PaginationEngine.paginateApproximate(
+      content,
+      fontSize: fontSize,
+      lineHeight: lineHeight,
+      width: width,
+      height: height,
+      padding: padding,
+    );
   }
 
   /// 预加载章节内容（静默失败）

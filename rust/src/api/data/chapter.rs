@@ -19,6 +19,7 @@ pub use crate::storage::models::Chapter;
 /// 该书籍的所有章节列表
 #[frb]
 pub async fn list_chapters_by_book(book_id: String) -> Result<Vec<Chapter>, AppError> {
+    tracing::debug!("[chapter] list_chapters_by_book: book_id={}", book_id);
     async_storage!(|pool| ChapterRepository::find_by_book(pool, &book_id))
 }
 
@@ -32,6 +33,7 @@ pub async fn list_chapters_by_book(book_id: String) -> Result<Vec<Chapter>, AppE
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn upsert_chapters(book_id: String, chapters: Vec<Chapter>) -> Result<(), AppError> {
+    tracing::info!("[chapter] upsert_chapters: book_id={}, count={}", book_id, chapters.len());
     async_storage!(|pool| ChapterRepository::save(pool, &book_id, &chapters))
 }
 
@@ -60,5 +62,6 @@ pub async fn get_chapter_by_index(
     book_id: String,
     chapter_index: i32,
 ) -> Result<Option<Chapter>, AppError> {
+    tracing::debug!("[chapter] get_chapter_by_index: book_id={}, chapter_index={}", book_id, chapter_index);
     async_storage!(|pool| ChapterRepository::find_by_index(pool, &book_id, chapter_index))
 }

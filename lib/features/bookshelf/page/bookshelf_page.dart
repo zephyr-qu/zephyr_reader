@@ -16,6 +16,7 @@ import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
+import 'package:zephyr_reader/features/bookshelf/application/book_import_service.dart';
 import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
 import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_batch_toolbar.dart';
 import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_book_content.dart';
@@ -44,6 +45,7 @@ class BookshelfPage extends HookWidget {
     final searchController = useTextEditingController();
     final batchMode = useSignal(false);
     final selectedIds = useSignal<Set<String>>({});
+    final bool isListView = useSignalValue(vm.isListView);
     final debounceTimer = useRef<Timer?>(null);
 
     useSignalEffect(() {
@@ -127,6 +129,8 @@ class BookshelfPage extends HookWidget {
                     _showImportDialog(context, vm);
                   case 'scan':
                     _showScanDialog(context, vm);
+                  case 'wifi':
+                    context.push(RoutePaths.wifiTransfer);
                   case 'search':
                     context.push(RoutePaths.search);
                   case 'settings':
@@ -151,6 +155,14 @@ class BookshelfPage extends HookWidget {
                   child: MenuRow(
                     icon: PhosphorIconsFill.folderOpen,
                     label: l10n.scanFolder,
+                    color: DesignTokens.warmAccent,
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'wifi',
+                  child: MenuRow(
+                    icon: PhosphorIconsFill.wifiHigh,
+                    label: l10n.wifiPageTitle,
                     color: DesignTokens.warmAccent,
                   ),
                 ),
@@ -249,14 +261,17 @@ class BookshelfPage extends HookWidget {
                     child: SignalBuilder(
                       builder: (_) {
                         final async = vm.books.value;
+                        final showProgress = vm.showReadingProgress.value;
                         return BookshelfBookContent(
                           isLoading: async.isLoading,
                           hasError: async.hasError,
                           books: async.value ?? [],
                           crossAxisCount: crossAxisCount,
+                          isListView: isListView,
                           batchMode: batchMode.value,
                           selectedIds: selectedIds.value,
                           readingProgress: vm.readingProgress.value.value ?? {},
+                          showProgressBadge: showProgress,
                           onRetry: vm.loadBooks,
                           onImportTap: () => _showImportDialog(context, vm),
                           onRefresh: vm.loadBooks,
@@ -371,7 +386,11 @@ class BookshelfPage extends HookWidget {
       await vm.toggleBookStatus(book.bookId, book.status);
     } else if (result == 'cover') {
       if (!context.mounted) return;
-      await vm.reExtractCover(book.bookId, book.filePath);
+      final ok = await getIt<BookImportService>().reExtractCover(
+        book.bookId,
+        book.filePath,
+      );
+      if (ok) await vm.loadBooks();
     } else if (result == 'pin') {
       await vm.toggleBookPin(book.bookId, book.isPinned);
     }
@@ -382,6 +401,7 @@ class BookshelfPage extends HookWidget {
     BookshelfViewModel vm,
   ) async {
     final l10n = AppLocalizations.of(context)!;
+    final importService = getIt<BookImportService>();
     final result = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['txt', 'epub', 'pdf'],
@@ -389,7 +409,8 @@ class BookshelfPage extends HookWidget {
     if (result == null || !context.mounted) return;
     final filePath = result.path;
     if (filePath == null || !context.mounted) return;
-    final ok = await vm.importBook(filePath);
+    final ok = await importService.importBook(filePath);
+    if (ok) await vm.loadBooks();
     if (!context.mounted) return;
     final fileName = result.name;
     if (ok) {
@@ -404,15 +425,17 @@ class BookshelfPage extends HookWidget {
     BookshelfViewModel vm,
   ) async {
     final l10n = AppLocalizations.of(context)!;
+    final importService = getIt<BookImportService>();
     final folder = await FilePicker.getDirectoryPath();
     if (folder == null || !context.mounted) return;
     showInfoSnack(context, l10n.scanningFolder);
-    final (success, fail) = await vm.scanFolder(
+    final (success, fail) = await importService.scanFolder(
       folder,
       onProgress: (done, total) {
         showInfoSnack(context, l10n.scanProgress(done, total));
       },
     );
+    if (success > 0 || fail > 0) await vm.loadBooks();
     if (!context.mounted) return;
     if (success == 0 && fail == 0) {
       showInfoSnack(context, l10n.noBookFilesFound);
@@ -470,23 +493,47 @@ class BookshelfPage extends HookWidget {
             SettingsCard(
               showDividers: true,
               children: [
-                SettingsToggleTile(
-                  icon: PhosphorIconsRegular.gauge,
-                  iconColor: MenuItemSemantic.info.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.info.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
-                  title: l10n.showReadingProgress,
-                  value: vm.showReadingProgress.value,
-                  onChanged: (v) => vm.showReadingProgress.value = v,
+                SignalBuilder(
+                  builder: (_) {
+                    return SettingsToggleTile(
+                      icon: PhosphorIconsRegular.gauge,
+                      iconColor: MenuItemSemantic.info.iconColor(
+                        Theme.of(context).brightness,
+                      ),
+                      iconBackground: MenuItemSemantic.info.iconBackground(
+                        Theme.of(context).brightness,
+                      ),
+                      title: l10n.showReadingProgress,
+                      value: vm.showReadingProgress.value,
+                      onChanged: (v) => vm.showReadingProgress.value = v,
+                    );
+                  },
                 ),
-                SortSettingTile(
-                  dialogTitle: l10n.sortDialogTitle,
-                  currentSortType: vm.defaultSortType.value,
-                  label: l10n.defaultSort,
-                  onChanged: (type) => vm.defaultSortType.value = type,
+                SignalBuilder(
+                  builder: (_) {
+                    return SortSettingTile(
+                      dialogTitle: l10n.sortDialogTitle,
+                      currentSortType: vm.defaultSortType.value,
+                      label: l10n.defaultSort,
+                      onChanged: (type) => vm.defaultSortType.value = type,
+                    );
+                  },
+                ),
+                SignalBuilder(
+                  builder: (_) {
+                    return SettingsToggleTile(
+                      icon: PhosphorIconsRegular.listBullets,
+                      iconColor: MenuItemSemantic.info.iconColor(
+                        Theme.of(context).brightness,
+                      ),
+                      iconBackground: MenuItemSemantic.info.iconBackground(
+                        Theme.of(context).brightness,
+                      ),
+                      title: l10n.listView,
+                      value: vm.isListView.value,
+                      onChanged: (_) => vm.toggleViewMode(),
+                    );
+                  },
                 ),
               ],
             ),

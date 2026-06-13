@@ -26,6 +26,7 @@ pub async fn get_md_chapter_rich_content(
     file_path: String,
     chapter_index: i32,
 ) -> Result<Vec<RichParagraph>, AppError> {
+    tracing::info!("[md] get_md_chapter_rich_content: file_path={}, chapter_index={}", file_path, chapter_index);
     let validated_path = validate_file_path_async(&file_path).await?;
 
     let parser = parser_for_file(&validated_path)?;

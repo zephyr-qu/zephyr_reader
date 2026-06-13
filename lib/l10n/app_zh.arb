@@ -258,7 +258,6 @@
   "readingModeSection": "阅读模式",
   "layoutSection": "版面布局",
   "typographySection": "文字排版",
-  "searchInChapterHint": "在章节内搜索...",
   "previous": "上一个",
   "next": "下一个",
   "currentlyReading": "正在阅读",
@@ -678,5 +677,10 @@
   "indexChapters": "索引章节",
   "clearProgress": "清除进度",
   "clearedAllBookmarks": "已清空所有书签",
-  "themePreviewSampleText": "春风又绿江南岸，明月何时照我还。"
+  "themePreviewSampleText": "春风又绿江南岸，明月何时照我还。",
+  "textAlign": "文字对齐",
+  "textAlignJustify": "两端对齐",
+  "textAlignStart": "左对齐",
+  "textAlignCenter": "居中",
+  "textAlignEnd": "右对齐"
 }

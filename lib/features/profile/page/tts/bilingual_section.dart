@@ -19,78 +19,77 @@ class BilingualSection extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final int switchInterval = useSignalValue(vm.switchInterval.signal);
     final cs = Theme.of(context).colorScheme;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionLabel(
-          label: l10n.ttsBilingualReading,
-          tag: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-            decoration: BoxDecoration(
-              color: cs.brightness == Brightness.dark
-                  ? const Color(0xFF4E2D0D)
-                  : const Color(0xFFFFF3E0),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              l10n.zephyrExclusive,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                color: cs.brightness == Brightness.dark
-                    ? const Color(0xFFFFCC80)
-                    : const Color(0xFFEF6C00),
-              ),
-            ),
-          ),
-        ),
-        SettingsCard(
-          showDividers: true,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SettingsToggleTile(
-              icon: PhosphorIconsRegular.arrowsLeftRight,
-              iconColor: MenuItemSemantic.reading.iconColor(
-                Theme.of(context).brightness,
+            SectionLabel(
+              label: l10n.ttsBilingualReading,
+              tag: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: cs.brightness == Brightness.dark
+                      ? const Color(0xFF4E2D0D)
+                      : const Color(0xFFFFF3E0),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  l10n.zephyrExclusive,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    color: cs.brightness == Brightness.dark
+                        ? const Color(0xFFFFCC80)
+                        : const Color(0xFFEF6C00),
+                  ),
+                ),
               ),
-              iconBackground: MenuItemSemantic.reading.iconBackground(
-                Theme.of(context).brightness,
-              ),
-              title: l10n.ttsBilingualAlternate,
-              subtitle: l10n.ttsBilingualAlternateDesc,
-              value: useSignalValue<bool, Signal<bool>>(
-                vm.bilingualAlternate.signal,
-              ),
-              onChanged: (v) => vm.bilingualAlternate.value = v,
             ),
-            SettingsToggleTile(
-              icon: PhosphorIconsRegular.textAa,
-              iconColor: MenuItemSemantic.reading.iconColor(
-                Theme.of(context).brightness,
-              ),
-              iconBackground: MenuItemSemantic.reading.iconBackground(
-                Theme.of(context).brightness,
-              ),
-              title: l10n.ttsOriginalOnly,
-              subtitle: l10n.ttsOriginalOnlyDesc,
-              value: useSignalValue<bool, Signal<bool>>(vm.originalOnly.signal),
-              onChanged: (v) => vm.originalOnly.value = v,
-            ),
-            SettingsSliderTile(
-              label: l10n.ttsSwitchInterval,
-              value:
-                  '${useSignalValue<int, Signal<int>>(vm.switchInterval.signal)}ms',
-              current: useSignalValue<int, Signal<int>>(
-                vm.switchInterval.signal,
-              ).toDouble(),
-              min: 200,
-              max: 1500,
-              onChanged: (v) => vm.switchInterval.value = v.toInt(),
-              step: 100,
+            SettingsCard(
+              showDividers: true,
+              children: [
+                SettingsToggleTile(
+                  icon: PhosphorIconsRegular.arrowsLeftRight,
+                  iconColor: MenuItemSemantic.reading.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.reading.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
+                  title: l10n.ttsBilingualAlternate,
+                  subtitle: l10n.ttsBilingualAlternateDesc,
+                  value: useSignalValue(vm.bilingualAlternate.signal),
+                  onChanged: (v) => vm.bilingualAlternate.value = v,
+                ),
+                SettingsToggleTile(
+                  icon: PhosphorIconsRegular.textAa,
+                  iconColor: MenuItemSemantic.reading.iconColor(
+                    Theme.of(context).brightness,
+                  ),
+                  iconBackground: MenuItemSemantic.reading.iconBackground(
+                    Theme.of(context).brightness,
+                  ),
+                  title: l10n.ttsOriginalOnly,
+                  subtitle: l10n.ttsOriginalOnlyDesc,
+                  value: useSignalValue(vm.originalOnly.signal),
+                  onChanged: (v) => vm.originalOnly.value = v,
+                ),
+                SettingsSliderTile(
+                  label: l10n.ttsSwitchInterval,
+                  value: '${switchInterval}ms',
+                  current: switchInterval.toDouble(),
+                  min: 200,
+                  max: 1500,
+                  onChanged: (v) => vm.switchInterval.value = v.toInt(),
+                  step: 100,
+                ),
+              ],
             ),
           ],
-        ),
-      ],
-    ).animate().fadeIn(duration: 300.ms, delay: 200.ms).slideY(begin: 0.04, end: 0);
+        )
+        .animate()
+        .fadeIn(duration: 300.ms, delay: 200.ms)
+        .slideY(begin: 0.04, end: 0);
   }
 }

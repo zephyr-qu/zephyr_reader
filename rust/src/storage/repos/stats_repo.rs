@@ -88,14 +88,14 @@ impl StatsRepository {
     let agg: AggregatedStats = sqlx::query_as(
         "SELECT \
             COALESCE((SELECT SUM(duration_seconds) FROM reading_sessions), 0) AS total_reading_time_seconds, \
-            COALESCE((SELECT SUM(end_char_offset - start_char_offset) FROM reading_sessions), 0) AS total_characters_read, \
+            COALESCE((SELECT SUM(CASE WHEN end_char_offset > start_char_offset THEN end_char_offset - start_char_offset ELSE 0 END) FROM reading_sessions), 0) AS total_characters_read, \
             (SELECT COUNT(DISTINCT book_id) FROM reading_sessions) AS books_read_count, \
             (SELECT COUNT(*) FROM reading_progress WHERE is_completed != 0) AS books_completed_count, \
             (SELECT COUNT(*) FROM books) AS total_books_count, \
             (SELECT COUNT(*) FROM notes) AS total_notes_count, \
             (SELECT COUNT(*) FROM bookmarks) AS total_bookmarks_count, \
             COALESCE((SELECT SUM(duration_seconds) FROM reading_sessions WHERE started_at >= ?1 AND started_at < ?2), 0) AS today_reading_time_seconds, \
-            COALESCE((SELECT SUM(end_char_offset - start_char_offset) FROM reading_sessions WHERE started_at >= ?1 AND started_at < ?2), 0) AS today_characters_read",
+            COALESCE((SELECT SUM(CASE WHEN end_char_offset > start_char_offset THEN end_char_offset - start_char_offset ELSE 0 END) FROM reading_sessions WHERE started_at >= ?1 AND started_at < ?2), 0) AS today_characters_read",
     )
     .bind(today_start)
     .bind(today_end)
