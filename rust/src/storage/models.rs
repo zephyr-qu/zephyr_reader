@@ -323,7 +323,7 @@ impl ReadingSession {
             book_id: book_id.to_string(),
             chapter_index,
             start_char_offset,
-            end_char_offset,
+            end_char_offset: end_char_offset.max(start_char_offset),
             started_at,
             ended_at,
             duration_seconds,

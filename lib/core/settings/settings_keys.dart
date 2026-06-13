@@ -74,6 +74,9 @@ abstract final class SettingsKeys {
   /// 是否跟随系统字体缩放
   static const readerFollowSystemFontScale = 'reader_follow_system_font_scale';
 
+  /// 文字对齐方式
+  static const readerTextAlign = 'reader_text_align';
+
   // ==================== 书架 ====================
 
   /// 显示阅读进度

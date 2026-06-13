@@ -30,6 +30,7 @@ pub async fn create_dictionary(
     is_enabled: bool,
     word_count: i64,
 ) -> Result<Dictionary, AppError> {
+    tracing::info!("[dictionary] create_dictionary: name={}", name);
     let dict = Dictionary::new(
         &name,
         &file_path,
@@ -67,6 +68,7 @@ pub async fn get_dictionary(id: String) -> Result<Option<Dictionary>, AppError> 
 // TODO: 多词典管理页面（设置页），后续实现
 #[frb]
 pub async fn delete_dictionary(id: String) -> Result<bool, AppError> {
+    tracing::info!("[dictionary] delete_dictionary: id={}", id);
     crate::async_storage!(|pool| DictionaryRepository::delete(pool, &id))
 }
 
@@ -88,6 +90,7 @@ static MDICT: LazyLock<Mutex<Option<MdictEngine>>> = LazyLock::new(|| Mutex::new
 /// 如需要切换词典，先调用 `close_dictionary()`。
 #[frb]
 pub async fn init_dictionary(mdx_path: String, mdd_path: Option<String>) -> Result<(), AppError> {
+    tracing::info!("[dictionary] init_dictionary: mdx_path={}", mdx_path);
     let engine = MdictEngine::open(&mdx_path, mdd_path.as_deref())
         .map_err(|e| AppError::internal(format!("Failed to open MDict: {e}")))?;
 
@@ -120,6 +123,7 @@ pub fn close_dictionary() {
 /// 返回 `DictSearchResult`，包含精确匹配条目和拼写纠错建议
 #[frb]
 pub async fn lookup_mdict(word: String) -> Result<Option<DictSearchResult>, AppError> {
+    tracing::debug!("[dictionary] lookup_mdict: word={}", word);
     tokio::task::spawn_blocking(move || {
         let mut guard = MDICT.lock();
         let engine = guard.as_mut().ok_or_else(|| {
@@ -139,6 +143,7 @@ pub async fn lookup_mdict(word: String) -> Result<Option<DictSearchResult>, AppE
 // TODO: Dart 侧计划在查词面板顶部添加搜索输入框 + 自动补全时使用
 #[frb]
 pub async fn suggest_mdict(prefix: String, limit: i32) -> Result<Vec<String>, AppError> {
+    tracing::debug!("[dictionary] suggest_mdict: prefix={}", prefix);
     tokio::task::spawn_blocking(move || {
         let mut guard = MDICT.lock();
         let engine = guard.as_mut().ok_or_else(|| {
@@ -159,6 +164,7 @@ pub async fn suggest_mdict(prefix: String, limit: i32) -> Result<Vec<String>, Ap
 /// 返回音频文件的原始字节（WAV/SPX/MP3 格式），可用于直接播放
 #[frb]
 pub async fn extract_audio(audio_key: String) -> Result<Option<Vec<u8>>, AppError> {
+    tracing::debug!("[dictionary] extract_audio: audio_key={}", audio_key);
     tokio::task::spawn_blocking(move || {
         let mut guard = MDICT.lock();
         let engine = guard.as_mut().ok_or_else(|| {
@@ -188,6 +194,7 @@ pub async fn extract_audio(audio_key: String) -> Result<Option<Vec<u8>>, AppErro
 /// 用于阅读时的生词识别、点击查词等功能（词典独立）
 #[frb]
 pub async fn segment_text(text: String) -> Result<Vec<String>, AppError> {
+    tracing::debug!("[dictionary] segment_text: len={}", text.len());
     let tokenized = crate::search::tokenize_chinese_text(&text);
     Ok(tokenized.split_whitespace().map(String::from).collect())
 }

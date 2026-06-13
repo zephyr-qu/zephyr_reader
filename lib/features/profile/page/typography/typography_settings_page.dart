@@ -16,8 +16,8 @@ import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/page/typography/font_tile.dart';
 import 'package:zephyr_reader/features/profile/page/typography/reset_button.dart';
-import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
 import 'package:zephyr_reader/features/profile/page/typography/typography_preview.dart';
+import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 排版设置页面。
@@ -75,9 +75,8 @@ class TypographySettingsPage extends HookWidget {
     FontRepository fontRepo,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final currentFontInfo = useSignalValue<FontInfo?, Signal<FontInfo?>>(
-      fontRepo.currentFont,
-    );
+
+    final FontInfo? currentFontInfo = useSignalValue(fontRepo.currentFont);
     final currentFontId = currentFontInfo?.id;
     final builtInFonts = fontRepo.availableFonts.value
         .where((f) => f.isBuiltIn)
@@ -120,77 +119,71 @@ class TypographySettingsPage extends HookWidget {
     ReaderConfig config,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    final double fontSize = useSignalValue(config.fontSize.signal);
+    final double lineHeight = useSignalValue(config.lineHeight.signal);
+    final double padding = useSignalValue(config.padding.signal);
+    final double letterSpacing = useSignalValue(config.letterSpacing.signal);
+    final double paragraphSpacing = useSignalValue(
+      config.paragraphSpacing.signal,
+    );
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionLabel(label: l10n.typographyParams),
-        SettingsCard(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SettingsSliderTile(
-              label: l10n.fontSize,
-              value:
-                  '${useSignalValue<double, Signal<double>>(config.fontSize.signal).toInt()}px',
-              current: useSignalValue<double, Signal<double>>(
-                config.fontSize.signal,
-              ),
-              min: 12,
-              max: 32,
-              onChanged: (v) => config.fontSize.value = v.roundToDouble(),
-            ),
-            SettingsSliderTile(
-              label: l10n.lineHeight,
-              value: useSignalValue<double, Signal<double>>(
-                config.lineHeight.signal,
-              ).toStringAsFixed(1),
-              current: useSignalValue<double, Signal<double>>(
-                config.lineHeight.signal,
-              ),
-              min: 1.0,
-              max: 2.5,
-              onChanged: (v) => config.lineHeight.value = v,
-              step: 0.1,
-            ),
-            SettingsSliderTile(
-              label: l10n.paragraphSpacing,
-              value:
-                  '${useSignalValue<double, Signal<double>>(config.paragraphSpacing.signal).toInt()}px',
-              current: useSignalValue<double, Signal<double>>(
-                config.paragraphSpacing.signal,
-              ),
-              min: 0,
-              max: 24,
-              onChanged: (v) =>
-                  config.paragraphSpacing.value = v.roundToDouble(),
-              step: 2,
-            ),
-            SettingsSliderTile(
-              label: l10n.letterSpacing,
-              value:
-                  '${useSignalValue<double, Signal<double>>(config.letterSpacing.signal).toStringAsFixed(1)}px',
-              current: useSignalValue<double, Signal<double>>(
-                config.letterSpacing.signal,
-              ),
-              min: -0.5,
-              max: 2.0,
-              onChanged: (v) => config.letterSpacing.value = v,
-              step: 0.1,
-            ),
-            SettingsSliderTile(
-              label: l10n.pageMargin,
-              value:
-                  '${useSignalValue<double, Signal<double>>(config.padding.signal).toInt()}px',
-              current: useSignalValue<double, Signal<double>>(
-                config.padding.signal,
-              ),
-              min: 16,
-              max: 48,
-              onChanged: (v) => config.padding.value = v.roundToDouble(),
-              step: 2,
+            SectionLabel(label: l10n.typographyParams),
+            SettingsCard(
+              children: [
+                SettingsSliderTile(
+                  label: l10n.fontSize,
+                  value: '${fontSize.toInt()}px',
+                  current: fontSize,
+                  min: 12,
+                  max: 32,
+                  onChanged: (v) => config.fontSize.value = v.roundToDouble(),
+                ),
+                SettingsSliderTile(
+                  label: l10n.lineHeight,
+                  value: lineHeight.toStringAsFixed(1),
+                  current: lineHeight,
+                  min: 1.0,
+                  max: 2.5,
+                  onChanged: (v) => config.lineHeight.value = v,
+                  step: 0.1,
+                ),
+                SettingsSliderTile(
+                  label: l10n.paragraphSpacing,
+                  value: '${paragraphSpacing.toInt()}px',
+                  current: paragraphSpacing,
+                  min: 0,
+                  max: 24,
+                  onChanged: (v) =>
+                      config.paragraphSpacing.value = v.roundToDouble(),
+                  step: 2,
+                ),
+                SettingsSliderTile(
+                  label: l10n.letterSpacing,
+                  value: '${letterSpacing.toStringAsFixed(1)}px',
+                  current: letterSpacing,
+                  min: -0.5,
+                  max: 2.0,
+                  onChanged: (v) => config.letterSpacing.value = v,
+                  step: 0.1,
+                ),
+                SettingsSliderTile(
+                  label: l10n.pageMargin,
+                  value: '${padding.toInt()}px',
+                  current: padding,
+                  min: 16,
+                  max: 48,
+                  onChanged: (v) => config.padding.value = v.roundToDouble(),
+                  step: 2,
+                ),
+              ],
             ),
           ],
-        ),
-      ],
-    ).animate().fadeIn(duration: 300.ms, delay: 150.ms).slideY(begin: 0.04, end: 0);
+        )
+        .animate()
+        .fadeIn(duration: 300.ms, delay: 150.ms)
+        .slideY(begin: 0.04, end: 0);
   }
 
   Widget _buildAdvancedCjk(
@@ -199,11 +192,11 @@ class TypographySettingsPage extends HookWidget {
     ReaderConfig config,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final isVertical =
-        useSignalValue<WritingDirection, Signal<WritingDirection>>(
-          config.writingDirection,
-        ) ==
-        WritingDirection.vertical;
+    final theme = Theme.of(context);
+    final WritingDirection writingDirection = useSignalValue(
+      config.writingDirection,
+    );
+    final isVertical = writingDirection == WritingDirection.vertical;
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -251,40 +244,36 @@ class TypographySettingsPage extends HookWidget {
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.sliders,
                   iconColor: MenuItemSemantic.typography.iconColor(
-                    Theme.of(context).brightness,
+                    theme.brightness,
                   ),
                   iconBackground: MenuItemSemantic.typography.iconBackground(
-                    Theme.of(context).brightness,
+                    theme.brightness,
                   ),
                   title: l10n.punctuationSqueeze,
                   subtitle: l10n.punctuationSqueezeDesc,
-                  value: useSignalValue<bool, Signal<bool>>(
-                    config.punctuationSqueeze.signal,
-                  ),
+                  value: useSignalValue(config.punctuationSqueeze.signal),
                   onChanged: (v) => config.punctuationSqueeze.value = v,
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.textAa,
                   iconColor: MenuItemSemantic.typography.iconColor(
-                    Theme.of(context).brightness,
+                    theme.brightness,
                   ),
                   iconBackground: MenuItemSemantic.typography.iconBackground(
-                    Theme.of(context).brightness,
+                    theme.brightness,
                   ),
                   title: l10n.baselineAlign,
                   subtitle: l10n.baselineAlignDesc,
-                  value: useSignalValue<bool, Signal<bool>>(
-                    config.baselineAlign.signal,
-                  ),
+                  value: useSignalValue(config.baselineAlign.signal),
                   onChanged: (v) => config.baselineAlign.value = v,
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.arrowDown,
                   iconColor: MenuItemSemantic.typography.iconColor(
-                    Theme.of(context).brightness,
+                    theme.brightness,
                   ),
                   iconBackground: MenuItemSemantic.typography.iconBackground(
-                    Theme.of(context).brightness,
+                    theme.brightness,
                   ),
                   title: l10n.verticalMode,
                   subtitle: l10n.verticalModeDesc,

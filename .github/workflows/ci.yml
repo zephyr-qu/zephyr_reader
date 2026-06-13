@@ -178,6 +178,30 @@ jobs:
             exit 1
           fi
 
+
+  e2e:
+    needs: [rust]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/target
+          key: ${{ runner.os }}-cargo-host-${{ hashFiles('rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-host-
+            ${{ runner.os }}-cargo-
+      - run: cargo build
+        working-directory: rust
+      - run: flutter pub get
+      - run: flutter test test_driver/e2e_flow_test.dart
   build-android:
     needs: [rust, dart, codegen]
     runs-on: ubuntu-latest

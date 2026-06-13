@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
@@ -132,7 +135,7 @@ class BookDetailPage extends HookWidget {
                     BookDetailBottomActions(
                       onEditMetadata: () => _onEditMetadata(context, vm, book),
                       onExportNotes: () =>
-                          context.pushNamed(RouteNames.learningNotes),
+                          _onExportNotes(context, vm, book, l10n),
                       onDeleteBook: () async {
                         Logging.debug(
                           '[DetailPage] onDeleteBook start, bookId=${book.bookId}',
@@ -193,25 +196,71 @@ class BookDetailPage extends HookWidget {
     Book book,
   ) async {
     final result = await showEditMetadataDialog(context, book);
-    if (result != null && context.mounted) {
-      vm.book.value = AsyncState.data(
-        book.copyWith(
-          title: result['title'] ?? book.title,
-          author: result['author']?.isNotEmpty == true
-              ? result['author']
-              : null,
-          description: result['description']?.isNotEmpty == true
-              ? result['description']
-              : null,
-          publisher: result['publisher']?.isNotEmpty == true
-              ? result['publisher']
-              : null,
-          translator: result['translator']?.isNotEmpty == true
-              ? result['translator']
-              : null,
-          isbn: result['isbn']?.isNotEmpty == true ? result['isbn'] : null,
-        ),
+    if (result == null || !context.mounted) return;
+    vm.updateMetadata(
+      (b) => b.copyWith(
+        title: result['title'] ?? b.title,
+        author: result['author']?.isNotEmpty == true ? result['author'] : null,
+        description: result['description']?.isNotEmpty == true
+            ? result['description']
+            : null,
+        publisher: result['publisher']?.isNotEmpty == true
+            ? result['publisher']
+            : null,
+        translator: result['translator']?.isNotEmpty == true
+            ? result['translator']
+            : null,
+        isbn: result['isbn']?.isNotEmpty == true ? result['isbn'] : null,
+      ),
+    );
+  }
+
+  Future<void> _onExportNotes(
+    BuildContext context,
+    BookDetailViewModel vm,
+    Book book,
+    AppLocalizations l10n,
+  ) async {
+    try {
+      final notes = await note_api.listNotesByBook(bookId: book.bookId);
+      if (notes.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.noNotes)));
+        }
+        return;
+      }
+      final markdown = note_api.renderNotesToString(
+        notes: notes,
+        bookTitle: book.title,
+        format: 'markdown',
       );
+      final dirPath = await FilePicker.getDirectoryPath(
+        dialogTitle: l10n.exportNotes,
+      );
+      if (dirPath == null) return;
+      final safeName = book.title
+          .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+      final filePath = '$dirPath/${safeName}_读书笔记.md';
+      await File(filePath).writeAsString(markdown);
+      Logging.debug('[DetailPage] Notes exported to $filePath');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${l10n.exportNotes} ${l10n.success}: $filePath'),
+          ),
+        );
+      }
+    } catch (e) {
+      Logging.error('Export notes failed: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${l10n.exportNotes} ${l10n.failed}: $e')),
+        );
+      }
     }
   }
 }

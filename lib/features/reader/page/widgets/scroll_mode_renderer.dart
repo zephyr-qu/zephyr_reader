@@ -116,8 +116,6 @@ class ScrollModeRenderer extends HookWidget {
             paraOffsets[index],
             highlights,
             onHighlightTap: onHighlightTap,
-            searchQuery: config.searchQuery,
-            searchMatchHighlight: config.searchMatchHighlight,
             vocabularyWords: config.effectiveVocabWords,
           );
           return RepaintBoundary(
@@ -131,7 +129,7 @@ class ScrollModeRenderer extends HookWidget {
                 painted,
                 style: textStyle,
                 strutStyle: strutStyle,
-                textAlign: TextAlign.justify,
+                textAlign: config.textAlign,
                 onSelectionChanged: (sel, cause) => _onRichSelectionChanged(
                   sel,
                   paragraphs[index],
@@ -170,8 +168,6 @@ class ScrollModeRenderer extends HookWidget {
           textStyle,
           highlights,
           onHighlightTap: onHighlightTap,
-          searchQuery: config.searchQuery,
-          searchMatchHighlight: config.searchMatchHighlight,
           vocabularyWords: config.effectiveVocabWords,
         );
         return RepaintBoundary(
@@ -184,7 +180,7 @@ class ScrollModeRenderer extends HookWidget {
             child: SelectableText.rich(
               painted,
               strutStyle: strutStyle,
-              textAlign: TextAlign.justify,
+              textAlign: config.textAlign,
               onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(
                 sel,
                 paragraphList[index],
@@ -273,8 +269,6 @@ class ScrollModeRenderer extends HookWidget {
             textStyle,
             highlights,
             onHighlightTap: onHighlightTap,
-            searchQuery: config.searchQuery,
-            searchMatchHighlight: config.searchMatchHighlight,
             vocabularyWords: config.effectiveVocabWords,
           );
           return Padding(
@@ -385,8 +379,6 @@ class ScrollModeRenderer extends HookWidget {
             offset,
             highlights,
             onHighlightTap: onHighlightTap,
-            searchQuery: config.searchQuery,
-            searchMatchHighlight: config.searchMatchHighlight,
             vocabularyWords: config.effectiveVocabWords,
           );
           return RepaintBoundary(
@@ -400,7 +392,7 @@ class ScrollModeRenderer extends HookWidget {
                 painted,
                 style: textStyle,
                 strutStyle: strutStyle,
-                textAlign: TextAlign.justify,
+                textAlign: config.textAlign,
                 onSelectionChanged: (sel, cause) =>
                     _onRichSelectionChanged(sel, span, offset, context),
                 contextMenuBuilder: (_, _) => const SizedBox.shrink(),
@@ -440,8 +432,10 @@ class ScrollModeRenderer extends HookWidget {
       onSelectionGlobalPosition?.call(null);
       return;
     }
-    final box = context.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize || !box.attached) return;
+    final renderObject = context.findRenderObject();
+    if (renderObject is! RenderBox) return;
+    final box = renderObject;
+    if (!box.hasSize || !box.attached) return;
     onSelectionGlobalPosition?.call(box.localToGlobal(Offset.zero));
   }
 

@@ -27,16 +27,18 @@ class StatisticsPage extends HookWidget {
     final AsyncState<List<ReadingStats>> records = useSignalValue(
       vm.dailyRecords,
     );
-    final StatisticsPeriod period = useSignalValue(vm.selectedPeriod);
+    final periodSignal = useSignal(StatisticsPeriod.today);
+    final goalMinSignal = useSignal(60);
+    final StatisticsPeriod period = useSignalValue(periodSignal);
+    final int goalMin = useSignalValue(goalMinSignal);
     final int vUnstarted = useSignalValue(vm.vocabUnstarted);
     final int vLearning = useSignalValue(vm.vocabLearning);
     final int vMastered = useSignalValue(vm.vocabMastered);
     final int vIgnored = useSignalValue(vm.vocabIgnored);
-    final int goalMin = useSignalValue(vm.goalMinutes);
     useEffect(() {
-      vm.loadData(period: period);
+      vm.loadData(period: period, goalMinutes: goalMin);
       return null;
-    }, [period]);
+    }, [period, goalMin]);
 
     final todayMin = gs.value != null
         ? gs.value!.todayReadingTimeSeconds.toInt() ~/ 60
@@ -58,7 +60,7 @@ class StatisticsPage extends HookWidget {
             padding: const EdgeInsets.only(right: 12),
             child: _PeriodSelector(
               selected: period,
-              onChanged: (p) => vm.loadData(period: p),
+              onChanged: (p) => periodSignal.value = p,
             ),
           ),
         ],

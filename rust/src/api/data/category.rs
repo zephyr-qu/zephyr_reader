@@ -24,6 +24,7 @@ pub use crate::storage::models::Category;
 /// 该分类下的书籍列表
 #[frb]
 pub async fn list_books_by_category(category_id: String) -> Result<Vec<Book>, AppError> {
+    tracing::debug!("[category] list_books_by_category: category_id={}", category_id);
     async_storage!(|pool| CategoryRepository::list_books_by_category(pool, &category_id))
 }
 
@@ -33,6 +34,7 @@ pub async fn list_books_by_category(category_id: String) -> Result<Vec<Book>, Ap
 /// 所有分类对象列表
 #[frb]
 pub async fn list_categories() -> Result<Vec<Category>, AppError> {
+    tracing::debug!("[category] list_categories");
     async_storage!(|pool| CategoryRepository::list(pool))
 }
 
@@ -53,6 +55,7 @@ pub async fn create_category(
     sort_order: i32,
     description: Option<String>,
 ) -> Result<Category, AppError> {
+    tracing::info!("[category] create_category: name={}", name);
     let category = Category::new(&name, &color, sort_order as i64, description.as_deref(), false);
     async_storage!(|pool| CategoryRepository::save(pool, &category))
 }
@@ -90,6 +93,7 @@ pub async fn upsert_category(
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn delete_category(category_id: String) -> Result<(), AppError> {
+    tracing::info!("[category] delete_category: category_id={}", category_id);
     async_storage!(|pool| CategoryRepository::delete_by_id(pool, &category_id))
 }
 
@@ -114,6 +118,7 @@ pub async fn get_category(category_id: String) -> Result<Option<Category>, AppEr
 /// 该书籍的所有分类列表
 #[frb]
 pub async fn list_categories_by_book(book_id: String) -> Result<Vec<Category>, AppError> {
+    tracing::debug!("[category] list_categories_by_book: book_id={}", book_id);
     async_storage!(|pool| CategoryRepository::list_by_book(pool, &book_id))
 }
 
@@ -159,6 +164,7 @@ pub async fn set_categories_for_book(
     book_id: String,
     category_ids: Vec<String>,
 ) -> Result<(), AppError> {
+    tracing::info!("[category] set_categories_for_book: book_id={}, count={}", book_id, category_ids.len());
     async_storage!(|pool| CategoryRepository::set_by_book(pool, &book_id, &category_ids))
 }
 

@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/paginated_renderer.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/reader_render_config.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
@@ -34,8 +35,6 @@ ReaderRenderConfig _config({
     letterSpacing: 0,
     paragraphSpacing: 12,
     pageMargin: 16,
-    searchQuery: '',
-    searchMatchHighlight: false,
     showVocabularyMark: false,
     vocabularyWords: const {},
   );

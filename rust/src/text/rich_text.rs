@@ -225,10 +225,15 @@ fn traverse_dom(
                 paragraphs.push(RichParagraph::image_placeholder(src, alt));
             }
 
-            "p" | "div" | "section" | "article" => {
+            "div" | "section" | "article" => {
+                for child in node.children.borrow().iter() {
+                    traverse_dom(child, paragraphs, effective_class.clone(), &merged_style, style_map);
+                }
+            }
+
+            "p" => {
                 let mut spans = Vec::new();
                 collect_text_spans(handle, &mut spans, &merged_style, style_map);
-
                 if !spans.is_empty() {
                     paragraphs.push(RichParagraph {
                         spans,
@@ -247,10 +252,6 @@ fn traverse_dom(
                         image_data: Vec::new(),
                         image_alt: None,
                     });
-                }
-
-                for child in node.children.borrow().iter() {
-                    traverse_dom(child, paragraphs, None, &merged_style, style_map);
                 }
             }
 
@@ -301,9 +302,6 @@ fn traverse_dom(
                     });
                 }
 
-                for child in node.children.borrow().iter() {
-                    traverse_dom(child, paragraphs, None, &merged_style, style_map);
-                }
             }
 
             "li" => {
@@ -339,15 +337,6 @@ fn traverse_dom(
                     });
                 }
 
-                for child in node.children.borrow().iter() {
-                    traverse_dom(
-                        child,
-                        paragraphs,
-                        effective_class.clone(),
-                        &merged_style,
-                        style_map,
-                    );
-                }
             }
 
             _ => {
@@ -490,8 +479,8 @@ fn collect_text_spans(
 
             "img" => {}
 
-            "ul" | "ol" | "blockquote" | "pre" | "table" | "div" | "section" | "article" => {}
-            "p" | "li" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
+            "ul" | "ol" | "blockquote" | "pre" | "table" => {}
+            "div" | "section" | "article" | "p" | "li" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
                 for child in node.children.borrow().iter() {
                     collect_text_spans(child, spans, &merged_style, style_map);
                 }

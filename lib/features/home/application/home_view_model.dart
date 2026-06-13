@@ -27,4 +27,9 @@ class HomeViewModel {
       ),
     ]);
   }
+
+  void dispose() {
+    recentBooks.dispose();
+    dailyRecords.dispose();
+  }
 }

@@ -7,35 +7,32 @@ import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/reader/custom_font_service.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/reader/tts_service.dart';
+import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/core/utils/haptic.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
-import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
-import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
+import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
+import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page_actions.dart';
+import 'package:zephyr_reader/features/reader/page/widgets/battery_indicator.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 import 'reader_dictionary_panel.dart';
 import 'widgets/animated_toolbar_panel.dart';
-import 'widgets/bookmark_widget.dart';
 import 'widgets/brightness_mask.dart';
-import 'widgets/page_indicator.dart';
-import 'widgets/reader_bottom_toolbar.dart';
-import 'widgets/reader_catalog_drawer.dart';
+import 'widgets/reader_annotation_dialog.dart';
+import 'widgets/reader_navigation_drawer.dart';
 import 'widgets/reader_content.dart';
-import 'package:zephyr_reader/features/reader/page/widgets/battery_indicator.dart';
-import 'widgets/tap_zone.dart';
+import 'widgets/reader_highlight_sheet.dart';
 import 'widgets/reader_note_sidebar.dart';
 import 'widgets/reader_page_bindings.dart';
-import 'widgets/reader_search_bar.dart';
 import 'widgets/reader_settings_overlay.dart';
 import 'widgets/reader_toolbar.dart';
-import 'widgets/reader_annotation_dialog.dart';
-import 'widgets/reader_highlight_sheet.dart';
 import 'widgets/reader_translation_dialog.dart';
 import 'widgets/selection_toolbar.dart';
+import 'widgets/tap_zone.dart';
 
 /// 阅读器页面。
 ///
@@ -45,13 +42,11 @@ import 'widgets/selection_toolbar.dart';
 class ReaderPage extends HookWidget {
   final String bookId;
   final int initialChapterId;
-  final int initialPageIndex;
 
   const ReaderPage({
     super.key,
     required this.bookId,
     this.initialChapterId = 0,
-    this.initialPageIndex = 0,
   });
 
   @override
@@ -61,16 +56,16 @@ class ReaderPage extends HookWidget {
     final readRepo = useMemoized(() => getIt<ReaderRepository>());
     final ttsService = useMemoized(() => getIt<TtsService>());
     final config = useMemoized(() => getIt<ReaderConfig>());
-    final tapLayout = useSignalValue<TapLayout, Signal<TapLayout>>(
-      config.tapLayout.signal,
-    );
+    final TapLayout tapLayout = useSignalValue(config.tapLayout.signal);
     final scaffoldKey = useMemoized(() => GlobalKey<ScaffoldState>());
-    final searchController = useTextEditingController();
     final vocabWords = useSignal<Set<String>>({});
     final selectionGlobalPos = useSignal<Offset?>(null);
     final autoHideTimer = useRef<Timer?>(null);
     final activePanel = useState<ReaderPanelType?>(null);
-
+    final showToolbar = useSignal(false);
+    final showSelection = useSignalValue<String, Signal<String>>(
+      vm.selectedText,
+    ).isNotEmpty;
     // Toast → SnackBar
     useSignalEffect(() {
       final msg = vm.toastMessage.value;
@@ -86,18 +81,9 @@ class ReaderPage extends HookWidget {
       }
     });
 
-    // Font → VM
+    // Font → VM：依赖追踪 fontRepo.currentFont
     useSignalEffect(() {
-      fontRepo.currentFont.value;
       vm.updateFont(fontRepo.currentFontFamily);
-    });
-
-    // 搜索面板关闭时同步清空搜索文本
-    useSignalEffect(() {
-      vm.showSearch.value;
-      if (!vm.showSearch.value) {
-        searchController.clear();
-      }
     });
 
     // Init
@@ -110,13 +96,11 @@ class ReaderPage extends HookWidget {
         vm.pageHeight = mq.size.height - mq.padding.vertical;
         vm.devicePixelRatio = mq.devicePixelRatio;
         vm.updateFont(fontRepo.currentFontFamily);
-        vm.initialize(
-          bookId,
-          initialChapterId: initialChapterId,
-          initialPageIndex: initialPageIndex,
-        );
+        vm.initialize(bookId, initialChapterId: initialChapterId);
       });
-      return vm.resetForNewBook;
+      return () {
+        vm.resetForNewBook();
+      };
     }, []);
     // Cancel auto-hide timer on widget dispose to prevent leak.
     useEffect(() {
@@ -145,8 +129,8 @@ class ReaderPage extends HookWidget {
       if (!context.mounted) return;
       autoHideTimer.value = Timer(const Duration(seconds: 4), () {
         if (!context.mounted) return;
-        if (b.showToolbar && activePanel.value == null && !b.showSearch) {
-          vm.showToolbar.value = false;
+        if (showToolbar.value && activePanel.value == null) {
+          showToolbar.value = false;
         }
       });
     }
@@ -191,6 +175,8 @@ class ReaderPage extends HookWidget {
             content: b.content,
             isLoading: b.isLoading,
             error: b.error,
+            hasNextChapter:
+                b.chapterIndex < (vm.chapters.value.value?.length ?? 0) - 1,
             bilingualAlignment: b.bilingualAlign,
             isBilingualLoading: b.isBilingualLoading,
             onRequestTranslation: () => showDialog<void>(
@@ -239,13 +225,12 @@ class ReaderPage extends HookWidget {
               ),
             ),
             fontFamily: fontFamily,
-            searchQuery: b.searchQuery,
-            searchMatchHighlight: b.searchMatchHighlight,
             letterSpacing: b.letterSpacing,
             paragraphSpacing: b.paragraphSpacing,
             pageMargin: b.pageMargin,
             writingDirection: b.writingDirection,
             baselineAlign: b.baselineAlign,
+            textAlign: b.textAlign,
             showVocabularyMark: true,
             vocabularyWords: vocabWords.value,
             showSentenceSplit: true,
@@ -262,40 +247,20 @@ class ReaderPage extends HookWidget {
           onDoubleTap: cycleBrightness,
         ),
         Positioned(
-          bottom: 12,
+          bottom: 0,
           right: 0,
           child: BatteryIndicator(progressText: b.progressText),
         ),
       ];
     }
 
-    Widget buildSearchBar() {
+    Widget buildTopToolbar() {
       return Positioned(
         top: 0,
         left: 0,
         right: 0,
-        child: ReaderSearchBar(
-          controller: searchController,
-          matchCount: vm.searchMatches.value,
-          currentIndex: vm.searchCurrentIndex.value,
-          onChanged: (q) => vm.onSearchChanged(q),
-          onNext: () => vm.nextSearchMatch(),
-          onPrev: () => vm.prevSearchMatch(),
-          onClose: () {
-            searchController.clear();
-            vm.toggleSearch();
-          },
-        ),
-      );
-    }
-
-    Widget buildTopToolbar() {
-      return Positioned(
-        top: b.showSearch ? 56 : 0,
-        left: 0,
-        right: 0,
         child: AnimatedToolbarPanel(
-          visible: b.showToolbar,
+          visible: showToolbar.value,
           slideBeginY: -1,
           child: ReaderToolbar(
             title: b.currentChapterTitle,
@@ -305,7 +270,18 @@ class ReaderPage extends HookWidget {
               vm.resetForNewBook();
               context.pop();
             },
-            onToggleToolbar: () => withTimer(vm.toggleToolbar),
+            onToggleToolbar: () =>
+                withTimer(() => showToolbar.value = !showToolbar.value),
+            onSearchBook: () {
+              activePanel.value = null;
+              showToolbar.value = false;
+              context.pushNamed(
+                RouteNames.bookSearch,
+                queryParameters: {'bookId': b.currentBookId},
+              );
+            },
+            onToggleBookmarks: () =>
+                withTimer(vm.toggleBookmarkAtCurrentPosition),
             onToggleMore: () => withTimer(() {
               activePanel.value = activePanel.value == ReaderPanelType.more
                   ? null
@@ -318,37 +294,6 @@ class ReaderPage extends HookWidget {
 
     List<Widget> buildBottomArea() {
       return [
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: AnimatedToolbarPanel(
-            visible: b.showToolbar,
-            slideBeginY: 1,
-            child: ReaderBottomToolbar(
-              onShowCatalog: () =>
-                  withTimer(() => scaffoldKey.currentState?.openDrawer()),
-              onShowNotes: () =>
-                  withTimer(() => scaffoldKey.currentState?.openEndDrawer()),
-              onToggleTypesetting: () => withTimer(() {
-                activePanel.value =
-                    activePanel.value == ReaderPanelType.typesetting
-                    ? null
-                    : ReaderPanelType.typesetting;
-              }),
-              onToggleDisplay: () => withTimer(() {
-                activePanel.value = activePanel.value == ReaderPanelType.display
-                    ? null
-                    : ReaderPanelType.display;
-              }),
-              onToggleTts: () => withTimer(() {
-                activePanel.value = activePanel.value == ReaderPanelType.tts
-                    ? null
-                    : ReaderPanelType.tts;
-              }),
-            ),
-          ),
-        ),
         if (activePanel.value != null)
           Positioned.fill(
             child: GestureDetector(
@@ -404,10 +349,12 @@ class ReaderPage extends HookWidget {
                     followSystemFontScale: config.followSystemFontScale.value,
                     onFollowSystemFontScale: (v) =>
                         config.followSystemFontScale.value = v,
+                    textAlign: config.textAlign.value,
+                    onTextAlignChanged: (v) => config.textAlign.value = v,
                     autoScroll: config.autoScroll.value,
                     autoScrollSpeed: config.autoScrollSpeed.value,
                     onAutoScrollChanged: (v) => config.autoScroll.value = v,
-                    onAutoScrollSpeedChanged: (v) =>
+                    onAutoScrollSpeedChanged: (double v) =>
                         config.autoScrollSpeed.value = v.round(),
                     isTtsPlaying: ttsService.isPlaying.value,
                     isTtsPaused: ttsService.isPaused.value,
@@ -417,17 +364,6 @@ class ReaderPage extends HookWidget {
           ),
         ),
       ];
-    }
-
-    Widget buildBookmarks() {
-      return BookmarkWidget(
-        bookmarks: vm.bookmarks.value.value ?? [],
-        themeMode: b.themeMode,
-        onBookmarkSelected: vm.jumpToBookmark,
-        onAddBookmark: vm.addBookmark,
-        onDeleteBookmark: vm.deleteBookmark,
-        onClose: vm.toggleBookmarks,
-      );
     }
 
     Widget buildSelectionToolbar() {
@@ -492,10 +428,18 @@ class ReaderPage extends HookWidget {
           drawerEnableOpenDragGesture: false,
           endDrawerEnableOpenDragGesture: false,
           drawerEdgeDragWidth: 0,
-          drawer: ReaderCatalogDrawer(
+          drawer: ReaderNavigationDrawer(
             chapters: vm.chapters.value.value ?? [],
             currentChapterIndex: vm.chapterIndex.value,
-            onChapterSelected: vm.jumpToChapter,
+            onChapterSelected: (idx) {
+              vm.jumpToChapter(idx);
+            },
+            bookmarks: vm.bookmarks.value.value ?? [],
+            onBookmarkSelected: (bm) => vm.jumpToBookmark(bm),
+            onAddBookmark: () => vm.toggleBookmarkAtCurrentPosition(),
+            onDeleteBookmark: (id) => vm.deleteBookmark(id),
+            themeMode: b.themeMode,
+            bookId: b.currentBookId,
           ),
           endDrawer: ReaderNoteSidebar(
             bookId: b.currentBookId,
@@ -522,27 +466,14 @@ class ReaderPage extends HookWidget {
                         clipBehavior: Clip.hardEdge,
                         children: [
                           ...buildContentArea(),
-                          PageIndicator(
-                            pageIndex: b.pageIndex,
-                            totalPages: b.effectiveTotalPages,
-                            visible: false,
-                          ),
                           ...buildBottomArea(),
-                          if (b.showSelection &&
-                              vm.selectedText.value.isNotEmpty)
-                            buildSelectionToolbar(),
+                          if (showSelection) buildSelectionToolbar(),
                         ],
                       ),
                     ),
-                    if (b.showSearch) buildSearchBar(),
                     buildTopToolbar(),
-                    if (b.showBookmarks)
-                      Positioned.fill(child: SafeArea(child: buildBookmarks())),
-                    if (!b.showToolbar &&
-                        !b.showSelection &&
-                        !b.showSearch &&
-                        !b.showCatalog &&
-                        !b.showBookmarks &&
+                    if (!showToolbar.value &&
+                        !showSelection &&
                         b.currentReadingMode != ReadingMode.pageTurn)
                       TapZone(
                         tapLayout: tapLayout,
@@ -557,7 +488,7 @@ class ReaderPage extends HookWidget {
                           hapticFeedback(HapticType.light);
                         },
                         onCenterTap: () => withTimer(() {
-                          vm.toggleToolbar();
+                          showToolbar.value = !showToolbar.value;
                           hapticFeedback(HapticType.selection);
                         }),
                       ),

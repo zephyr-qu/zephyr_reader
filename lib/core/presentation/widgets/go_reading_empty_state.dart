@@ -10,7 +10,7 @@ import 'package:zephyr_reader/core/routing/route_constants.dart';
 /// subtitle, and a [FilledButton.tonalIcon] labelled with [buttonLabel]
 /// that navigates to [RoutePaths.bookshelf].
 ///
-/// Used by both [vocabulary_page] and [note_tab_widget] for their
+/// Used by [vocabulary_page] and [note_list_widget] for their
 /// respective empty states.
 class GoReadingEmptyState extends StatelessWidget {
   final IconData icon;

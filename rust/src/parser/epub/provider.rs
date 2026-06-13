@@ -24,9 +24,9 @@ pub struct EpubContentProvider {
     spine_hrefs: Vec<String>,
     /// 每个 spine item 的纯文本（含尾部 \n 分隔符，最后一个除外）
     spine_texts: Vec<OnceLock<String>>,
-    /// 累积偏移量，spine_offsets[i] = spine 0..i 的总字符数
-    /// 首次调用 content_length() 或 build_spine_offsets() 时计算
-    spine_offsets: OnceLock<Vec<u64>>,
+    /// 累积偏移量，惰性构建：转换为 spin 时追加实际长度，
+    /// 未转换的 spin 在 `build_offsets_up_to` 中按需转换。
+    offsets: Mutex<Vec<u64>>,
 }
 
 impl EpubContentProvider {
@@ -76,13 +76,13 @@ impl EpubContentProvider {
             epub: Mutex::new(epub),
             spine_hrefs,
             spine_texts: (0..count).map(|_| OnceLock::new()).collect(),
-            spine_offsets: OnceLock::new(),
+            offsets: Mutex::new(vec![0u64]),
         })
     }
-    /// 确保指定 spine index 的纯文本已缓存，返回其引用
-    ///
+    /// 确保指定 spine index 的纯文本已缓存，返回其引用。
     /// 在 spine 文本后追加 `\n` 分隔符（最后一个 spine 除外），
     /// 以保持与旧版 `parts.join("\n")` 相同的行为。
+    /// **不**负责偏移跟踪，调用方 `build_offsets_up_to` 处理。
     fn ensure_spine_text(&self, index: usize) -> Result<&str, AppError> {
         if let Some(text) = self.spine_texts[index].get() {
             return Ok(text.as_str());
@@ -108,29 +108,48 @@ impl EpubContentProvider {
         Ok(self.spine_texts[index].get_or_init(|| text).as_str())
     }
 
-    /// 构建并缓存 spine 累积偏移数组
+    /// 惰性构建偏移数组，直到累积长度 ≥ `target_char`。
     ///
-    /// `spine_offsets[i]` = spine 0..i 的总字符数
-    /// 偏移量包含 \n 分隔符。
-    fn build_spine_offsets(&self) -> Result<&[u64], AppError> {
-        self.spine_offsets
-            .get_or_try_init(|| {
-                let mut offsets = Vec::with_capacity(self.spine_texts.len() + 1);
-                offsets.push(0);
-                for i in 0..self.spine_texts.len() {
-                    let len = self.ensure_spine_text(i)?.len() as u64;
-                    offsets.push(*offsets.last().unwrap() + len);
-                }
-                Ok(offsets)
-            })
-            .map(|v| v.as_slice())
+    /// 只转换必要的 spine：按顺序转换为 spine 并记录其实际长度。
+    /// 未触及目标范围以外的 spine。已转换过的不重复转换。
+    fn build_offsets_up_to(&self, target_char: u64) -> Result<Vec<u64>, AppError> {
+        let cache = self.offsets.lock();
+        // 检查是否已经达到目标
+        if *cache.last().unwrap_or(&0) >= target_char && cache.len() > 1 {
+            return Ok(cache.clone());
+        }
+        drop(cache);
+
+        loop {
+            let offsets = self.offsets.lock();
+            let n_converted = offsets.len() - 1; // 已记录偏移的 spine 数量
+
+            if n_converted >= self.spine_texts.len() {
+                break; // 所有 spine 转换完成
+            }
+            if *offsets.last().unwrap_or(&0) >= target_char {
+                break; // 已达到目标累积长度
+            }
+
+            // 转换下一个 spine
+            drop(offsets);
+            let text = self.ensure_spine_text(n_converted)?;
+
+            // 记录偏移（确保未被其他路径提前记录）
+            let mut offsets = self.offsets.lock();
+            if offsets.len() == n_converted + 1 {
+                let last = *offsets.last().unwrap_or(&0);
+                offsets.push(last + text.len() as u64);
+            }
+        }
+        Ok(self.offsets.lock().clone())
     }
 }
-
 impl ChapterContentProvider for EpubContentProvider {
     fn read_text_range(&self, start: u64, end: u64) -> Result<String, AppError> {
-        let offsets = self.build_spine_offsets()?;
-        let total = *offsets.last().unwrap();
+        // 先确保偏移覆盖到 end，只转换必要的 spine
+        let offsets = self.build_offsets_up_to(end)?;
+        let total = *offsets.last().unwrap_or(&0);
         let start = start.min(total);
         let end = end.min(total);
 
@@ -139,19 +158,20 @@ impl ChapterContentProvider for EpubContentProvider {
         }
 
         // 二分查找与 [start, end) 重叠的 spine 索引范围
-        // offsets[i] ≤ start 的最大 i → spine index
         let first_spine = offsets
             .partition_point(|&off| off <= start)
             .saturating_sub(1);
-        // offsets[i] < end 的个数 → exclusive end index
         let last_spine = offsets.partition_point(|&off| off < end);
 
         let mut result = String::with_capacity((end - start) as usize);
         for (relative_idx, &spine_start) in offsets[first_spine..last_spine].iter().enumerate() {
             let i = first_spine + relative_idx;
             let spine_text = self.ensure_spine_text(i)?;
-            let local_start = (start.saturating_sub(spine_start)) as usize;
-            let local_end = (end.saturating_sub(spine_start) as usize).min(spine_text.len());
+            let raw_local_start = (start.saturating_sub(spine_start)) as usize;
+            let raw_local_end = (end.saturating_sub(spine_start) as usize)
+                .min(spine_text.len());
+            let local_start = spine_text.ceil_char_boundary(raw_local_start);
+            let local_end = spine_text.floor_char_boundary(raw_local_end);
             if local_start < local_end {
                 result.push_str(&spine_text[local_start..local_end]);
             }
@@ -160,7 +180,10 @@ impl ChapterContentProvider for EpubContentProvider {
     }
 
     fn content_length(&self) -> u64 {
-        self.build_spine_offsets()
+        // 使用惰性构建，最多转换 spines 至累积长度 cover u64::MAX
+        // 由于 build_offsets_up_to 在 while 循环中检查边界，
+        // 调用 u64::MAX 会转换所有 spine（同旧版行为，但惰性逐步进行）
+        self.build_offsets_up_to(u64::MAX)
             .map(|offsets| *offsets.last().unwrap_or(&0))
             .unwrap_or(0)
     }
@@ -174,228 +197,220 @@ impl ChapterContentProvider for EpubContentProvider {
     }
 }
 
-/// 将 HTML 片段转换为纯文本
+/// 将 HTML 片段转换为纯文本（2-pass 策略）
 ///
-/// 策略：
-/// 1. 移除 `<script>` 和 `<style>` 块
-/// 2. 提取并处理文本内容，对段落进行 trim 和空格压缩
-/// 3. 将块级标签（`<p>`, `<br>`, `</div>` 等）替换为换行符
-/// 4. 移除剩余所有 HTML 标签
-/// 5. 解码 HTML 实体
-/// 6. 清理多余的换行符
+/// Pass 1: byte-level 单次扫描，剥离标签、解码实体、压缩空格
+/// Pass 2: clean_whitespace 清理多余换行和前后空白
 pub(crate) fn html_to_plain_text(html: &str) -> String {
-    // 1. 移除 <script> 和 <style> 块
-    let no_scripts = remove_tag_blocks(html, "script");
-    let no_styles = remove_tag_blocks(&no_scripts, "style");
+    /// Case-insensitive prefix comparison on byte slices
+    fn bytes_starts_with_lower(haystack: &[u8], needle: &[u8]) -> bool {
+        if haystack.len() < needle.len() {
+            return false;
+        }
+        haystack[..needle.len()]
+            .iter()
+            .zip(needle)
+            .all(|(h, n)| h.to_ascii_lowercase() == *n)
+    }
 
-    // 2. 处理段落标签
-    let processed = process_paragraphs(&no_styles);
+    /// Check if at byte position `pos` (right after '<') the tag name matches,
+    /// followed by '>', space, or '/'
+    fn is_tag_at(bytes: &[u8], pos: usize, tag_name: &[u8]) -> bool {
+        let rest = &bytes[pos..];
+        rest.len() > tag_name.len()
+            && bytes_starts_with_lower(rest, tag_name)
+            && matches!(rest[tag_name.len()], b'>' | b' ' | b'/')
+    }
 
-    // 3. 移除所有剩余 HTML 标签
-    let no_tags = remove_html_tags(&processed);
+    let bytes = html.as_bytes();
+    let mut out = String::with_capacity(html.len());
+    let mut pos = 0;
 
-    // 4. 解码 HTML 实体
-    let decoded = decode_html_entities(&no_tags);
+    enum SkipMode { None, Script, Style }
+    let mut skip = SkipMode::None;
+    let mut last_was_newline = true;
 
-    // 5. 清理多余的换行和空格
-    clean_whitespace(&decoded)
-}
-
-/// 移除指定标签的块级内容（含标签本身）
-fn remove_tag_blocks(html: &str, tag: &str) -> String {
-    let mut result = String::with_capacity(html.len());
-    let mut in_block = false;
-
-    let open_start = format!("<{}", tag);
-    let open_end = format!("</{}>", tag);
-    let mut i = 0;
-    let chars: Vec<char> = html.chars().collect();
-
-    while i < chars.len() {
-        if !in_block {
-            if chars[i] == '<' {
-                let remaining: String = chars[i..].iter().collect();
-                if remaining.to_lowercase().starts_with(&open_start) {
-                    in_block = true;
-                    // 跳过到 > 或结尾
-                    i += 1;
-                    while i < chars.len() && chars[i] != '>' {
-                        i += 1;
+    while pos < bytes.len() {
+        // ── Handle skip mode (inside <script> or <style>) ──
+        match skip {
+            SkipMode::Script | SkipMode::Style => {
+                let close_tag: &[u8] = match skip {
+                    SkipMode::Script => b"</script>",
+                    SkipMode::Style => b"</style>",
+                    _ => unreachable!(),
+                };
+                let mut found = false;
+                let mut scan = pos;
+                while scan < bytes.len() {
+                    if bytes[scan] == b'<' && bytes_starts_with_lower(&bytes[scan..], close_tag) {
+                        pos = scan + close_tag.len();
+                        skip = SkipMode::None;
+                        found = true;
+                        break;
                     }
-                    if i < chars.len() {
-                        i += 1; // skip '>'
-                    }
+                    scan += 1;
+                }
+                if !found {
+                    pos = bytes.len();
+                }
+                continue;
+            }
+            SkipMode::None => {}
+        }
+
+        let c = html[pos..].chars().next().unwrap();
+        let c_len = c.len_utf8();
+
+        // ── <tag> handling ──
+        if c == '<' {
+            let rest = &bytes[pos..];
+
+            // HTML comment <!-- ... -->
+            if rest.len() >= 4 && rest[1] == b'!' && rest[2] == b'-' && rest[3] == b'-' {
+                if let Some(end) = rest.windows(3).position(|w| w == b"-->") {
+                    pos += end + 3;
+                } else {
+                    pos = bytes.len();
+                }
+                continue;
+            }
+
+            // <script> opening
+            if is_tag_at(bytes, pos + 1, b"script") {
+                skip = SkipMode::Script;
+                if let Some(gt) = rest.iter().position(|&b| b == b'>') {
+                    pos += gt + 1;
+                } else {
+                    pos += 1;
+                }
+                continue;
+            }
+
+            // <style> opening
+            if is_tag_at(bytes, pos + 1, b"style") {
+                skip = SkipMode::Style;
+                if let Some(gt) = rest.iter().position(|&b| b == b'>') {
+                    pos += gt + 1;
+                } else {
+                    pos += 1;
+                }
+                continue;
+            }
+
+            // <br> → newline
+            if is_tag_at(bytes, pos + 1, b"br") {
+                out.push('\n');
+                last_was_newline = true;
+                if let Some(gt) = rest.iter().position(|&b| b == b'>') {
+                    pos += gt + 1;
+                } else {
+                    pos += 1;
+                }
+                continue;
+            }
+
+            // Block-level tags → newline
+            const BLOCK_TAGS: &[&[u8]] = &[
+                b"p", b"div", b"h1", b"h2", b"h3", b"h4", b"h5", b"h6",
+                b"li", b"tr", b"th", b"td", b"blockquote", b"dd", b"dt",
+                b"figcaption", b"figure",
+            ];
+            let mut is_block = false;
+            for &tag in BLOCK_TAGS {
+                if is_tag_at(bytes, pos + 1, tag) {
+                    is_block = true;
+                    break;
+                }
+            }
+            if is_block {
+                out.push('\n');
+                last_was_newline = true;
+                if let Some(gt) = rest.iter().position(|&b| b == b'>') {
+                    pos += gt + 1;
+                } else {
+                    pos += 1;
+                }
+                continue;
+            }
+
+            // </tag> (closing tag except </a>) → newline
+            if rest.len() >= 2 && rest[1] == b'/' {
+                let is_close_a = rest.len() > 3
+                    && bytes_starts_with_lower(&rest[2..], b"a")
+                    && matches!(rest.get(3), Some(b'>') | Some(b' ') | Some(b'/'));
+                if !is_close_a {
+                    out.push('\n');
+                    last_was_newline = true;
+                }
+                if let Some(gt) = rest.iter().position(|&b| b == b'>') {
+                    pos += gt + 1;
+                } else {
+                    pos += 1;
+                }
+                continue;
+            }
+
+            // Other (inline) tags → skip silently
+            if let Some(gt) = rest.iter().position(|&b| b == b'>') {
+                pos += gt + 1;
+            } else {
+                out.push(c);
+                pos += c_len;
+            }
+            continue;
+        }
+
+        // ── Entity decoding —─
+        if c == '&' {
+            let rest = &bytes[pos..];
+            let max_scan = rest.len().min(21);
+            let semi_pos = rest[..max_scan].iter().position(|&b| b == b';');
+            if let Some(semi) = semi_pos {
+                let body = &rest[1..semi];
+                if !body.is_empty()
+                    && body.iter().all(|&b| {
+                        b.is_ascii_alphanumeric() || b == b'#' || b == b'x' || b == b'X'
+                    })
+                {
+                    let entity = std::str::from_utf8(&rest[..=semi]).unwrap_or("");
+                    let decoded = decode_entity(entity);
+                    out.push_str(&decoded);
+                    pos += semi + 1;
+                    last_was_newline = false;
                     continue;
                 }
             }
-            result.push(chars[i]);
-            i += 1;
-        } else {
-            // 查找闭合标签
-            let remaining: String = chars[i..].iter().collect();
-            if let Some(pos) = remaining.to_lowercase().find(&open_end) {
-                i += pos + open_end.len();
-                in_block = false;
-            } else {
-                break;
-            }
-        }
-    }
-
-    result
-}
-
-/// 处理段落标签内容：trim 并压缩空格
-fn process_paragraphs(html: &str) -> String {
-    let chars: Vec<char> = html.chars().collect();
-    let mut result = String::with_capacity(html.len());
-    let mut i = 0;
-
-    while i < chars.len() {
-        if chars[i] == '<' {
-            let remaining: String = chars[i..].iter().collect();
-            let lower = remaining.to_lowercase();
-
-            // 检测段落相关的块级标签
-            let is_para_block = html_starts_with(&chars[i..], "<p")
-                || html_starts_with(&chars[i..], "</")
-                || html_starts_with(&chars[i..], "<div")
-                || html_starts_with(&chars[i..], "<h1")
-                || html_starts_with(&chars[i..], "<h2")
-                || html_starts_with(&chars[i..], "<h3")
-                || html_starts_with(&chars[i..], "<h4")
-                || html_starts_with(&chars[i..], "<h5")
-                || html_starts_with(&chars[i..], "<h6")
-                || html_starts_with(&chars[i..], "<li")
-                || html_starts_with(&chars[i..], "<tr")
-                || html_starts_with(&chars[i..], "<th")
-                || html_starts_with(&chars[i..], "<td")
-                || html_starts_with(&chars[i..], "<blockquote")
-                || html_starts_with(&chars[i..], "<dd")
-                || html_starts_with(&chars[i..], "<dt")
-                || html_starts_with(&chars[i..], "<figcaption")
-                || html_starts_with(&chars[i..], "<figure")
-                || html_starts_with(&chars[i..], "<br");
-
-            if is_para_block || lower.starts_with("</") && !lower.starts_with("</a>") {
-                result.push('\n');
-            }
-
-            // 跳过整个 HTML 标签
-            let skip = skip_html_tag(&remaining);
-            if skip > 0 {
-                i += skip;
-                continue;
-            }
+            // Malformed entity → output '&' as-is
+            out.push('&');
+            pos += 1;
+            last_was_newline = false;
+            continue;
         }
 
-        // 压缩空格
-        if chars[i].is_whitespace() && !chars[i].is_control() {
-            // 找到完整空格序列的结束
-            let space_start = i;
-            while i < chars.len()
-                && chars[i].is_whitespace()
-                && !chars[i].is_control()
-            {
-                i += 1;
+        // ── Whitespace compression ──
+        if c.is_whitespace() && !c.is_control() {
+            if !last_was_newline {
+                out.push(' ');
+                last_was_newline = false;
             }
-
-            // 检查空格前后内容
-            let after_chars: String = chars[i..].iter().collect();
-            let at_end = after_chars.trim().is_empty();
-            if !at_end {
-                // 检查是否在特殊标签内
-                let before = if space_start > 0 {
-                    chars[space_start - 1]
-                } else {
-                    ' '
-                };
-                if before != '\n' {
-                    result.push(' ');
+            pos += c_len;
+            while pos < bytes.len() {
+                let next = html[pos..].chars().next().unwrap();
+                if !next.is_whitespace() || next.is_control() {
+                    break;
                 }
+                pos += next.len_utf8();
             }
-        } else {
-            result.push(chars[i]);
-            i += 1;
+            continue;
         }
+
+        // ── Regular character ──
+        out.push(c);
+        pos += c_len;
+        last_was_newline = false;
     }
 
-    result
-}
-
-/// 检查字符切片是否以特定字符串开头
-fn html_starts_with(slice: &[char], suffix: &str) -> bool {
-    if slice.len() < suffix.len() {
-        return false;
-    }
-    let suffix_chars: Vec<char> = suffix.chars().collect();
-    for i in 0..suffix_chars.len() {
-        if slice[i].to_ascii_lowercase() != suffix_chars[i] {
-            return false;
-        }
-    }
-    true
-}
-
-/// 跳过 HTML 标签（从 < 之后开始）
-fn skip_html_tag(s: &str) -> usize {
-    let chars: Vec<char> = s.chars().collect();
-    if chars.is_empty() || chars[0] != '<' {
-        return 0;
-    }
-
-    // 处理注释 <!-- ... -->
-    if chars.len() >= 4 && chars[1] == '!' && chars[2] == '-' && chars[3] == '-' {
-        let mut i = 4;
-        while i + 2 < chars.len() {
-            if chars[i] == '-' && chars[i + 1] == '-' && chars[i + 2] == '>' {
-                return i + 3;
-            }
-            i += 1;
-        }
-        return chars.len();
-    }
-
-    // 常规标签 <...>
-    for i in 1..chars.len() {
-        if chars[i] == '>' {
-            return i + 1;
-        }
-    }
-
-    chars.len()
-}
-
-/// 移除 HTML 标签
-fn remove_html_tags(s: &str) -> String {
-    let mut result = String::with_capacity(s.len());
-    let mut in_tag = false;
-    let mut in_entity = false;
-    let mut entity_buf = String::new();
-
-    for c in s.chars() {
-        if in_tag {
-            if c == '>' {
-                in_tag = false;
-            }
-        } else if c == '<' {
-            in_tag = true;
-        } else if c == '&' {
-            in_entity = true;
-            entity_buf.clear();
-            entity_buf.push(c);
-        } else if in_entity {
-            entity_buf.push(c);
-            if c == ';' {
-                result.push_str(&decode_entity(&entity_buf));
-                in_entity = false;
-            }
-        } else {
-            result.push(c);
-        }
-    }
-
-    result
+    clean_whitespace(&out)
 }
 
 /// 解码单个 HTML 实体
@@ -475,91 +490,6 @@ fn clean_whitespace(text: &str) -> String {
     }
 
     cleaned
-}
-
-/// 解码 HTML 实体（完整实现）
-fn decode_html_entities(text: &str) -> String {
-    let mut result = String::with_capacity(text.len());
-    let mut in_entity = false;
-    let mut entity_buf = String::new();
-
-    for c in text.chars() {
-        if c == '&' {
-            in_entity = true;
-            entity_buf.clear();
-            entity_buf.push(c);
-        } else if in_entity {
-            entity_buf.push(c);
-            if c == ';' {
-                // 尝试解码命名字符实体
-                let decoded = match entity_buf.as_str() {
-                    "&amp;" => "&",
-                    "&lt;" => "<",
-                    "&gt;" => ">",
-                    "&quot;" => "\"",
-                    "&apos;" => "'",
-                    "&nbsp;" => "\u{00A0}",
-                    "&mdash;" => "\u{2014}",
-                    "&ndash;" => "\u{2013}",
-                    "&hellip;" => "\u{2026}",
-                    "&ldquo;" => "\u{201C}",
-                    "&rdquo;" => "\u{201D}",
-                    "&lsquo;" => "\u{2018}",
-                    "&rsquo;" => "\u{2019}",
-                    "&laquo;" => "\u{00AB}",
-                    "&raquo;" => "\u{00BB}",
-                    "&bull;" => "\u{2022}",
-                    "&copy;" => "\u{00A9}",
-                    "&reg;" => "\u{00AE}",
-                    "&trade;" => "\u{2122}",
-                    "&euro;" => "\u{20AC}",
-                    "&pound;" => "\u{00A3}",
-                    "&yen;" => "\u{00A5}",
-                    _ => "",
-                };
-                if decoded.is_empty() {
-                    // 尝试数字实体
-                    if let Some(hex) = entity_buf
-                        .strip_prefix("&#x")
-                        .and_then(|s| s.strip_suffix(';'))
-                    {
-                        if let Ok(code) = u32::from_str_radix(hex, 16) {
-                            if let Some(ch) = char::from_u32(code) {
-                                result.push(ch);
-                                in_entity = false;
-                                continue;
-                            }
-                        }
-                    } else if let Some(dec) = entity_buf
-                        .strip_prefix("&#")
-                        .and_then(|s| s.strip_suffix(';'))
-                    {
-                        if let Ok(code) = dec.parse::<u32>() {
-                            if let Some(ch) = char::from_u32(code) {
-                                result.push(ch);
-                                in_entity = false;
-                                continue;
-                            }
-                        }
-                    }
-                    // 未知实体按原样保留
-                    result.push_str(&entity_buf);
-                } else {
-                    result.push_str(decoded);
-                }
-                in_entity = false;
-            }
-        } else {
-            result.push(c);
-        }
-    }
-
-    // 如果实体未闭合，保留原样
-    if in_entity {
-        result.push_str(&entity_buf);
-    }
-
-    result
 }
 #[allow(dead_code)]
 /// 解码数字 HTML 实体（&#xHH; 和 &#D;）
@@ -677,5 +607,35 @@ mod tests {
     fn test_decode_numeric_entities_mixed() {
         let text = "Hello &#x57;orld &#33;";
         assert_eq!(decode_numeric_entities(text), "Hello World !");
+    }
+
+    #[test]
+    fn test_html_to_plain_text_nested_inline_tags() {
+        let text = html_to_plain_text("<p><b>Bold</b> <i>italic</i></p>");
+        assert_eq!(text, "Bold\nitalic");
+    }
+
+    #[test]
+    fn test_html_to_plain_text_style_block() {
+        let text = html_to_plain_text("<p>Hi</p><style>body { color: red; }</style><p>Bye</p>");
+        assert_eq!(text, "Hi\n\nBye");
+    }
+
+    #[test]
+    fn test_html_to_plain_text_unclosed_entity() {
+        let text = html_to_plain_text("<p>A &amp B</p>");
+        assert_eq!(text, "A &amp B");
+    }
+
+    #[test]
+    fn test_html_to_plain_text_numeric_entity() {
+        let text = html_to_plain_text("<p>&#x4F60;&#22909;</p>");
+        assert_eq!(text, "你好");
+    }
+
+    #[test]
+    fn test_html_to_plain_text_mixed_br_and_p() {
+        let text = html_to_plain_text("Line1<br>Line2<p>Line3</p>");
+        assert_eq!(text, "Line1\nLine2\nLine3");
     }
 }

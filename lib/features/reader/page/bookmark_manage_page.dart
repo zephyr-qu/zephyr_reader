@@ -3,11 +3,11 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:zephyr_reader/core/utils/time_formatters.dart';
-import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/utils/time_formatters.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/data/bookmark.dart' as bookmark_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -35,6 +35,10 @@ class BookmarkManagePage extends HookWidget {
       vm.loadBookmarks();
       return null;
     }, []);
+
+    final AsyncState<List<Bookmark>> bookmarksState = useSignalValue(
+      vm.bookmarks,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -110,219 +114,215 @@ class BookmarkManagePage extends HookWidget {
             ),
         ],
       ),
-      body: SignalBuilder(
-        builder: (context) {
-          final async = vm.bookmarks.value;
-          if (async.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: () {
+        final async = bookmarksState;
+        if (async.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          if (async.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    PhosphorIconsRegular.warningCircle,
-                    size: 48,
-                    color: theme.colorScheme.primary,
+        if (async.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  PhosphorIconsRegular.warningCircle,
+                  size: 48,
+                  color: theme.colorScheme.primary,
+                ),
+                SizedBox(height: DesignTokens.spacing(Spacing.md)),
+                Text(
+                  l10n.loadFailed,
+                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                ),
+                SizedBox(height: DesignTokens.spacing(Spacing.md)),
+                FilledButton.icon(
+                  onPressed: () => vm.loadBookmarks(),
+                  label: Text(l10n.reload),
+                ),
+              ],
+            ),
+          );
+        }
+
+        var bookmarkList = (async.value ?? <Bookmark>[]).toList();
+
+        if (isSearchMode.value && searchController.text.isNotEmpty) {
+          final keyword = searchController.text.toLowerCase();
+          bookmarkList = bookmarkList
+              .where(
+                (b) =>
+                    b.title.toLowerCase().contains(keyword) ||
+                    b.chapterIndex.toString().contains(keyword),
+              )
+              .toList();
+        }
+
+        bookmarkList.sort((a, b) {
+          int result;
+          switch (sortBy.value) {
+            case BookmarkSortType.createdAt:
+              result = a.createdAt.compareTo(b.createdAt);
+            case BookmarkSortType.chapterIndex:
+              result = a.chapterIndex.compareTo(b.chapterIndex);
+            case BookmarkSortType.position:
+              result = a.charOffset.compareTo(b.charOffset);
+          }
+          return ascending.value ? result : -result;
+        });
+
+        if (bookmarkList.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  PhosphorIconsRegular.bookmarkSimple,
+                  size: 64,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.3,
                   ),
-                  SizedBox(height: DesignTokens.spacing(Spacing.md)),
+                ),
+                SizedBox(height: DesignTokens.spacing(Spacing.md)),
+                Text(
+                  isSearchMode.value ? l10n.noBookmarksFound : l10n.noBookmarks,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                if (!isSearchMode.value) ...[
+                  SizedBox(height: DesignTokens.spacing(Spacing.sm)),
                   Text(
-                    l10n.loadFailed,
-                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-                  ),
-                  SizedBox(height: DesignTokens.spacing(Spacing.md)),
-                  FilledButton.icon(
-                    onPressed: () => vm.loadBookmarks(),
-                    label: Text(l10n.reload),
+                    l10n.addBookmarkHint,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
-              ),
-            );
-          }
+              ],
+            ),
+          );
+        }
 
-          var bookmarkList = (async.value ?? []).whereType<Bookmark>().toList();
-
-          if (isSearchMode.value && searchController.text.isNotEmpty) {
-            final keyword = searchController.text.toLowerCase();
-            bookmarkList = bookmarkList
-                .where(
-                  (b) =>
-                      b.title.toLowerCase().contains(keyword) ||
-                      b.chapterIndex.toString().contains(keyword),
-                )
-                .toList();
-          }
-
-          bookmarkList.sort((a, b) {
-            int result;
-            switch (sortBy.value) {
-              case BookmarkSortType.createdAt:
-                result = a.createdAt.compareTo(b.createdAt);
-              case BookmarkSortType.chapterIndex:
-                result = a.chapterIndex.compareTo(b.chapterIndex);
-              case BookmarkSortType.position:
-                result = a.charOffset.compareTo(b.charOffset);
-            }
-            return ascending.value ? result : -result;
-          });
-
-          if (bookmarkList.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    PhosphorIconsRegular.bookmarkSimple,
-                    size: 64,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.3,
-                    ),
+        return Column(
+          children: [
+            if (bookmarksState.value != null)
+              Container(
+                margin: EdgeInsets.fromLTRB(
+                  20,
+                  DesignTokens.spacing(Spacing.sm),
+                  20,
+                  DesignTokens.spacing(Spacing.xs),
+                ),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: DesignTokens.spacing(Spacing.sm),
+                ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withValues(
+                    alpha: 0.4,
                   ),
-                  SizedBox(height: DesignTokens.spacing(Spacing.md)),
-                  Text(
-                    isSearchMode.value
-                        ? l10n.noBookmarksFound
-                        : l10n.noBookmarks,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: theme.colorScheme.onSurface,
-                    ),
+                  borderRadius: BorderRadius.circular(
+                    DesignTokens.radius(RadiusSize.md),
                   ),
-                  if (!isSearchMode.value) ...[
-                    SizedBox(height: DesignTokens.spacing(Spacing.sm)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      PhosphorIconsRegular.bookmarkSimple,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                    SizedBox(width: DesignTokens.spacing(Spacing.sm)),
                     Text(
-                      l10n.addBookmarkHint,
+                      l10n.totalBookmarks(bookmarkList.length),
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      l10n.bookTotalBookmarks(
+                        bookmarksState.value?.length ?? 0,
+                      ),
+                      style: TextStyle(
+                        fontSize: 12,
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
-                ],
-              ),
-            );
-          }
-
-          return Column(
-            children: [
-              if (vm.bookmarks.value.value != null)
-                Container(
-                  margin: EdgeInsets.fromLTRB(
-                    20,
-                    DesignTokens.spacing(Spacing.sm),
-                    20,
-                    DesignTokens.spacing(Spacing.xs),
-                  ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: DesignTokens.spacing(Spacing.sm),
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer.withValues(
-                      alpha: 0.4,
-                    ),
-                    borderRadius: BorderRadius.circular(
-                      DesignTokens.radius(RadiusSize.md),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        PhosphorIconsRegular.bookmarkSimple,
-                        size: 16,
-                        color: theme.colorScheme.primary,
-                      ),
-                      SizedBox(width: DesignTokens.spacing(Spacing.sm)),
-                      Text(
-                        l10n.totalBookmarks(bookmarkList.length),
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        l10n.bookTotalBookmarks(
-                          vm.bookmarks.value.value?.length ?? 0,
-                        ),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: bookmarkList.length,
-                  separatorBuilder: (_, _) =>
-                      Divider(height: 0.5, color: theme.dividerColor),
-                  itemBuilder: (context, index) {
-                    final bookmark = bookmarkList[index];
-                    final isSelected = selectedBookmarks.value.contains(
-                      bookmark.id,
-                    );
-                    return _BookmarkTile(
-                      bookmark: bookmark,
-                      isSelected: isSelected,
-                      onTap: () {
-                        vm.jumpToBookmark(bookmark);
-                        context.pop();
-                      },
-                      onDelete: () async {
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (c) => AlertDialog(
-                            title: Text(l10n.deleteBookmark),
-                            content: Text(
-                              l10n.confirmDeleteBookmark(bookmark.title),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(c, false),
-                                child: Text(l10n.cancel),
-                              ),
-                              FilledButton(
-                                onPressed: () => Navigator.pop(c, true),
-                                child: Text(l10n.delete),
-                              ),
-                            ],
+              ),
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: bookmarkList.length,
+                separatorBuilder: (_, _) =>
+                    Divider(height: 0.5, color: theme.dividerColor),
+                itemBuilder: (context, index) {
+                  final bookmark = bookmarkList[index];
+                  final isSelected = selectedBookmarks.value.contains(
+                    bookmark.id,
+                  );
+                  return _BookmarkTile(
+                    bookmark: bookmark,
+                    isSelected: isSelected,
+                    onTap: () {
+                      vm.jumpToBookmark(bookmark);
+                      context.pop();
+                    },
+                    onDelete: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (c) => AlertDialog(
+                          title: Text(l10n.deleteBookmark),
+                          content: Text(
+                            l10n.confirmDeleteBookmark(bookmark.title),
                           ),
-                        );
-                        if (confirmed == true) {
-                          await vm.deleteBookmark(bookmark.id);
-                        }
-                      },
-                      onLongPress: () {
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(c, false),
+                              child: Text(l10n.cancel),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(c, true),
+                              child: Text(l10n.delete),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed == true) {
+                        await vm.deleteBookmark(bookmark.id);
+                      }
+                    },
+                    onLongPress: () {
+                      selectedBookmarks.value = {
+                        ...selectedBookmarks.value,
+                        bookmark.id,
+                      };
+                    },
+                    onToggleSelect: () {
+                      if (isSelected) {
+                        selectedBookmarks.value = selectedBookmarks.value
+                            .where((id) => id != bookmark.id)
+                            .toSet();
+                      } else {
                         selectedBookmarks.value = {
                           ...selectedBookmarks.value,
                           bookmark.id,
                         };
-                      },
-                      onToggleSelect: () {
-                        if (isSelected) {
-                          selectedBookmarks.value = selectedBookmarks.value
-                              .where((id) => id != bookmark.id)
-                              .toSet();
-                        } else {
-                          selectedBookmarks.value = {
-                            ...selectedBookmarks.value,
-                            bookmark.id,
-                          };
-                        }
-                      },
-                    );
-                  },
-                ),
+                      }
+                    },
+                  );
+                },
               ),
-            ],
-          );
-        },
-      ),
+            ),
+          ],
+        );
+      }(),
     );
   }
 

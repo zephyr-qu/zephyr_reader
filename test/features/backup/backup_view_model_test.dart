@@ -26,7 +26,6 @@ void main() {
       expect(vm.status.value, BackupStatus.idle);
       expect(vm.errorMessage.value, isNull);
       expect(vm.lastBackupAt.value, isNull);
-      expect(vm.lastBackupSize.value, 0);
     });
   });
 
@@ -34,7 +33,6 @@ void main() {
     test('keeps null when no backup recorded', () async {
       await vm.initialize();
       expect(vm.lastBackupAt.value, isNull);
-      expect(vm.lastBackupSize.value, 0);
     });
   });
 

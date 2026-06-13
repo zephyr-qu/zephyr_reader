@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/search/page/search_results.dart';
@@ -12,83 +10,15 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 搜索功能 ViewModel
 ///
-/// 负责三种搜索：
-/// 1. `searchBook()` — 分页搜索书籍全文
-/// 2. `loadMore()` — 加载更多分页结果
-/// 3. `doFullSearch()` — 全局多源搜索
+/// 提供全局多源搜索（书籍+笔记+生词），结果聚合供给 UI。
 @lazySingleton
 class SearchViewModel {
-  final keyword = signal('');
   final isSearching = signal(false);
-  final results = asyncSignal<List<SearchResult>>(AsyncState.data([]));
-  final currentPage = signal(1);
-  final hasMore = signal(false);
 
   /// 全量搜索结果（已聚合，直接供给 UI）
   final searchResults = asyncSignal<SearchResults?>(AsyncState.loading());
-
   final hasSearched = signal<bool>(false);
   final searchError = signal<String?>(null);
-  final durationMs = signal<int>(0);
-
-  // ============ 分页搜索 ============
-
-  /// 分页搜索书籍全文
-  Future<void> searchBook({bool loadMore = false}) async {
-    if (keyword.value.isEmpty) {
-      results.value = AsyncState.data([]);
-      return;
-    }
-
-    if (!loadMore) {
-      currentPage.value = 1;
-    }
-
-    isSearching.value = true;
-
-    try {
-      final previous = loadMore
-          ? (results.value.value ?? [])
-          : <SearchResult>[];
-      results.value = AsyncState.loading();
-
-      final data = await searchAllBooks(
-        query: keyword.value,
-        limit: 20,
-        offset: (currentPage.value - 1) * 20,
-      );
-
-      if (loadMore) {
-        results.value = AsyncState.data([...previous, ...data]);
-      } else {
-        results.value = AsyncState.data(data);
-      }
-
-      hasMore.value = data.length >= 20;
-    } catch (e) {
-      results.value = AsyncState.error(e);
-    } finally {
-      isSearching.value = false;
-    }
-  }
-
-  /// 加载更多结果
-  Future<void> loadMore() async {
-    if (!hasMore.value || isSearching.value) return;
-    currentPage.value++;
-    await searchBook(loadMore: true);
-  }
-
-  /// 收藏搜索结果到历史
-  void deleteFromHistory(int index) {
-    final current = results.value.value ?? [];
-    if (index < current.length) {
-      final updated = [...current]..removeAt(index);
-      results.value = AsyncState.data(updated);
-    }
-  }
-
-  // ============ 全量搜索 ============
 
   /// 全量多源搜索（书籍+笔记+生词）
   Future<void> doFullSearch(String query) async {
@@ -175,7 +105,6 @@ class SearchViewModel {
             durationMs: stopwatch.elapsedMilliseconds,
           ),
         );
-        durationMs.value = stopwatch.elapsedMilliseconds;
         hasSearched.value = true;
       });
     } catch (e) {
@@ -189,20 +118,18 @@ class SearchViewModel {
     }
   }
 
-  /// 更新搜索关键词
-  void updateKeyword(String value) {
-    keyword.value = value;
-  }
-
   void clear() {
     batch(() {
-      keyword.value = '';
-      results.value = AsyncState.data([]);
-      currentPage.value = 1;
       searchResults.value = AsyncState.loading();
-      durationMs.value = 0;
       hasSearched.value = false;
       searchError.value = null;
     });
+  }
+
+  void dispose() {
+    isSearching.dispose();
+    searchResults.dispose();
+    hasSearched.dispose();
+    searchError.dispose();
   }
 }

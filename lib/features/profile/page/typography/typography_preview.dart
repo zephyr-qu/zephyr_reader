@@ -32,24 +32,14 @@ class TypographyPreview extends HookWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
-    final fontSize = useSignalValue<double, Signal<double>>(
-      config.fontSize.signal,
-    );
-    final lineHeight = useSignalValue<double, Signal<double>>(
-      config.lineHeight.signal,
-    );
-    final paragraphSpacing = useSignalValue<double, Signal<double>>(
+    final double fontSize = useSignalValue(config.fontSize.signal);
+    final double lineHeight = useSignalValue(config.lineHeight.signal);
+    final double paragraphSpacing = useSignalValue(
       config.paragraphSpacing.signal,
     );
-    final letterSpacing = useSignalValue<double, Signal<double>>(
-      config.letterSpacing.signal,
-    );
-    final margin = useSignalValue<double, Signal<double>>(
-      config.padding.signal,
-    );
-    final currentFontInfo = useSignalValue<FontInfo?, Signal<FontInfo?>>(
-      fontRepo.currentFont,
-    );
+    final double letterSpacing = useSignalValue(config.letterSpacing.signal);
+    final double margin = useSignalValue(config.padding.signal);
+    final FontInfo? currentFontInfo = useSignalValue(fontRepo.currentFont);
     final fontId = currentFontInfo?.id ?? 'system';
 
     return Container(

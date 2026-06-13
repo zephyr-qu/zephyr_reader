@@ -280,29 +280,18 @@ pub fn tokenize_chinese_text(text: &str) -> String {
     result
 }
 
-/// 统一用双引号包裹所有 FTS5 特殊字符，不插入额外空格
+/// 将整个查询包裹为 FTS5 短语，使所有特殊字符成为字面量
+///
+/// FTS5 中需要转义的只有双引号（`""` 在短语内是字面量 `"`），
+/// 其余字符（`+`, `-`, `*`, `(`, `)` 等）在短语包裹下均失去操作符语义。
 fn escape_fts5_query(query: &str) -> String {
-    const SPECIAL: &[char] = &['"', '*', '^', '~', '+', '-', '(', ')', '>', '<'];
-    let mut result = String::with_capacity(query.len() + 8);
-    for c in query.chars() {
-        if SPECIAL.contains(&c) {
-            result.push('"');
-            if c == '"' {
-                result.push('"'); // FTS5 中 "" 是引号的转义
-            } else {
-                result.push(c);
-            }
-            result.push('"');
-        } else {
-            result.push(c);
-        }
-    }
-    let trimmed = result.trim().to_string();
+    let trimmed = query.trim();
     if trimmed.is_empty() {
-        String::new()
-    } else {
-        trimmed
+        return String::new();
     }
+    // 仅在短语内 `""` 是字面量 `"` 的转义，其他字符无需处理
+    let escaped = trimmed.replace('"', "\"\"");
+    format!("\"{escaped}\"")
 }
 
 // #[cfg(test)]

@@ -36,6 +36,7 @@ pub async fn create_highlight(
     language: Option<String>,
     paired_note_id: Option<String>,
 ) -> Result<Note, AppError> {
+    tracing::info!("[note] create_highlight: book_id={}, chapter_index={}", book_id, chapter_index);
     let note = Note::highlight(
         &book_id,
         chapter_index  as i64,
@@ -72,6 +73,7 @@ pub async fn create_annotation(
     language: Option<String>,
     paired_note_id: Option<String>,
 ) -> Result<Note, AppError> {
+    tracing::info!("[note] create_annotation: book_id={}, chapter_index={}", book_id, chapter_index);
     let note = Note::annotation(
         &book_id,
         chapter_index  as i64,
@@ -109,6 +111,7 @@ pub async fn list_notes_by_book(
     book_id: String,
     note_type: Option<NoteType>,
 ) -> Result<Vec<Note>, AppError> {
+    tracing::debug!("[note] list_notes_by_book: book_id={}", book_id);
     async_storage!(|pool| async move {
         match note_type {
             Some(nt) => NoteRepository::find_by_type(pool, &book_id, nt).await,
@@ -156,6 +159,7 @@ pub async fn list_notes_by_books(
 /// 匹配的笔记列表，按创建时间倒序
 #[frb]
 pub async fn search_notes(query: String) -> Result<Vec<Note>, AppError> {
+    tracing::debug!("[note] search_notes: query={}", query);
     async_storage!(|pool| NoteRepository::search(pool, &query))
 }
 
@@ -172,6 +176,7 @@ pub async fn search_notes(query: String) -> Result<Vec<Note>, AppError> {
 /// 笔记列表（含 `book_id`，Dart 侧通过已加载的 `bookTitles` 映射书名）
 #[frb]
 pub async fn list_all_notes(limit: i32, offset: i32) -> Result<Vec<Note>, AppError> {
+    tracing::debug!("[note] list_all_notes: limit={}, offset={}", limit, offset);
     async_storage!(|pool| NoteRepository::list_all_paginated(pool, limit as i64, offset as i64))
 }
 
@@ -218,6 +223,7 @@ pub async fn list_notes_in_chapter(
     chapter_index: i32,
     note_type: Option<NoteType>,
 ) -> Result<Vec<Note>, AppError> {
+    tracing::debug!("[note] list_notes_in_chapter: book_id={}, chapter_index={}", book_id, chapter_index);
     async_storage!(|pool| async move {
         match note_type {
             Some(nt) => {
@@ -239,6 +245,7 @@ pub async fn list_notes_in_chapter(
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn delete_note(note_id: String) -> Result<(), AppError> {
+    tracing::info!("[note] delete_note: note_id={}", note_id);
     async_storage!(|pool| NoteRepository::delete_by_id(pool, &note_id))
 }
 
@@ -251,6 +258,7 @@ pub async fn delete_note(note_id: String) -> Result<(), AppError> {
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn clear_notes_by_book(book_id: String) -> Result<(), AppError> {
+    tracing::info!("[note] clear_notes_by_book: book_id={}", book_id);
     async_storage!(|pool| NoteRepository::delete_by_book(pool, &book_id))
 }
 
@@ -263,6 +271,7 @@ pub async fn clear_notes_by_book(book_id: String) -> Result<(), AppError> {
 /// 该书籍的笔记统计信息
 #[frb]
 pub async fn get_note_stats(book_id: String) -> Result<NoteStats, AppError> {
+    tracing::debug!("[note] get_note_stats: book_id={}", book_id);
     async_storage!(|pool| NoteRepository::find_note_stats(pool, &book_id))
 }
 

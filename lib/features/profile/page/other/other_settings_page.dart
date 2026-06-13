@@ -2,22 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/core/presentation/widgets/confirm_action_dialog.dart';
+import 'package:zephyr_reader/core/presentation/widgets/danger_section.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_navigation_tile.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/application/other_settings_view_model.dart';
 import 'package:zephyr_reader/features/profile/page/other/lang_option_tile.dart';
-import 'package:zephyr_reader/features/profile/page/other/version_footer.dart';
 import 'package:zephyr_reader/features/profile/page/other/legal_section.dart';
+import 'package:zephyr_reader/features/profile/page/other/version_footer.dart';
+import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/core/presentation/widgets/confirm_action_dialog.dart';
-import 'package:zephyr_reader/core/presentation/widgets/danger_section.dart';
 
 /// 其他设置页面。
 ///
@@ -37,11 +38,18 @@ class OtherSettingsPage extends HookWidget {
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final locale = useSignalValue<String?, Signal<String?>>(
-      ThemeManager.instance.locale,
-    );
+    final String? locale = useSignalValue(ThemeManager.instance.locale);
     final localeLabel = locale == 'en' ? 'English' : '简体中文';
-    final String appVersion = useSignalValue(vm.appVersion);
+    // Previously in vm.appVersion signal — now loaded locally
+    final appVersionState = useState<String>('');
+    useEffect(() {
+      PackageInfo.fromPlatform().then(
+        (info) => appVersionState.value =
+            'v${info.version} (Build ${info.buildNumber})',
+      );
+      return null;
+    }, []);
+    final appVersion = appVersionState.value;
 
     return Scaffold(
       appBar: SettingsAppBar(title: l10n.otherSettings),

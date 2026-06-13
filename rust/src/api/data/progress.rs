@@ -44,6 +44,7 @@ pub async fn upsert_progress(progress: ReadingProgress) -> Result<(), AppError> 
 /// 包含阅读进度的书籍列表
 #[frb]
 pub async fn list_all_progresses() -> Result<Vec<BookWithProgress>, AppError> {
+    tracing::debug!("[progress] list_all_progresses");
     async_storage!(|pool| ProgressRepository::list_all_with_progress(pool))
 }
 

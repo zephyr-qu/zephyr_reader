@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
@@ -14,12 +13,6 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 /// 减少重复的 useSignalValue 调用。
 class ReaderPageBindings {
   final ReaderTheme readerTheme;
-  final bool showToolbar;
-  final bool showSettings;
-  final bool showCatalog;
-  final bool showBookmarks;
-  final bool showSelection;
-  final bool showSearch;
   final int bgIndex;
   final double brightness;
   final String currentBookId;
@@ -37,15 +30,13 @@ class ReaderPageBindings {
   final String? bilingualError;
   final int autoScrollTick;
   final List<Note> highlights;
-  final String searchQuery;
-  final int searchCurrentIndex;
-  final bool searchMatchHighlight;
   final double letterSpacing;
   final double paragraphSpacing;
   final double pageMargin;
   final WritingDirection writingDirection;
   final int? pendingJumpCharOffset;
   final bool baselineAlign;
+  final TextAlign textAlign;
   final ThemeMode themeMode;
   final int effectiveTotalPages;
   final String progressText;
@@ -53,12 +44,6 @@ class ReaderPageBindings {
 
   const ReaderPageBindings({
     required this.readerTheme,
-    required this.showToolbar,
-    required this.showSettings,
-    required this.showCatalog,
-    required this.showBookmarks,
-    required this.showSelection,
-    required this.showSearch,
     required this.bgIndex,
     required this.brightness,
     required this.currentBookId,
@@ -76,9 +61,6 @@ class ReaderPageBindings {
     required this.bilingualError,
     required this.autoScrollTick,
     required this.highlights,
-    required this.searchQuery,
-    required this.searchCurrentIndex,
-    required this.searchMatchHighlight,
     required this.letterSpacing,
     required this.paragraphSpacing,
     required this.pageMargin,
@@ -88,86 +70,44 @@ class ReaderPageBindings {
     required this.effectiveTotalPages,
     required this.progressText,
     required this.baselineAlign,
+    required this.textAlign,
     required this.currentChapterTitle,
   });
 }
 
 ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
-  final readerTheme = useSignalValue<ReaderTheme, Signal<ReaderTheme>>(
-    vm.config.theme.signal,
-  );
-  final showToolbar = useSignalValue<bool, Signal<bool>>(vm.showToolbar);
-  final showSettings = useSignalValue<bool, Signal<bool>>(vm.showSettings);
-  final showCatalog = useSignalValue<bool, Signal<bool>>(vm.showCatalog);
-  final showBookmarks = useSignalValue<bool, Signal<bool>>(vm.showBookmarks);
-  final showSelection = useSignalValue<bool, Signal<bool>>(
-    vm.showSelectionToolbar,
-  );
-  final showSearch = useSignalValue<bool, Signal<bool>>(vm.showSearch);
-  final bgIndex = useSignalValue<int, Signal<int>>(
-    vm.config.readerBgColorIndex.signal,
-  );
-  final brightness = useSignalValue<double, Signal<double>>(
-    vm.config.brightnessOverlay,
-  );
-  final currentBookId = useSignalValue<String, Signal<String>>(vm.bookId);
-  final chapterIndex = useSignalValue<int, Signal<int>>(vm.chapterIndex);
-  final pageIndex = useSignalValue<int, Signal<int>>(vm.pageIndex);
-  final totalPages = useSignalValue<int, Signal<int>>(vm.totalPages);
-  final currentReadingMode = useSignalValue<ReadingMode, Signal<ReadingMode>>(
-    vm.readingMode,
-  );
+  final ReaderTheme readerTheme = useSignalValue(vm.config.theme.signal);
+  final int bgIndex = useSignalValue(vm.config.readerBgColorIndex.signal);
+  final double brightness = useSignalValue(vm.config.brightnessOverlay);
+  final String currentBookId = useSignalValue(vm.bookId);
+  final int chapterIndex = useSignalValue(vm.chapterIndex);
+  final int pageIndex = useSignalValue(vm.pageIndex);
+  final int totalPages = useSignalValue(vm.totalPages);
+  final ReadingMode currentReadingMode = useSignalValue(vm.readingMode);
 
-  final fontSize = useSignalValue<double, ReadonlySignal<double>>(
-    vm.fontSizeDouble,
+  final double fontSize = useSignalValue(vm.fontSizeDouble);
+  final double lineHeight = useSignalValue(vm.config.lineHeight.signal);
+  final AsyncState<String> chContent = useSignalValue(vm.chapterContent);
+  final bool isLoading = useSignalValue(vm.isLoading);
+  final String? error = useSignalValue(vm.error);
+  final AsyncState<BilingualAlignment?> bState = useSignalValue(
+    vm.bilingualAlignment,
   );
-  final lineHeight = useSignalValue<double, Signal<double>>(
-    vm.config.lineHeight.signal,
-  );
-  final chContent = useSignalValue<AsyncState<String>, AsyncSignal<String>>(
-    vm.chapterContent,
-  );
-  final isLoading = useSignalValue<bool, Signal<bool>>(vm.isLoading);
-  final error = useSignalValue<String?, Signal<String?>>(vm.error);
-  final bState =
-      useSignalValue<
-        AsyncState<BilingualAlignment?>,
-        AsyncSignal<BilingualAlignment?>
-      >(vm.bilingualAlignment);
-  final autoScrollTick = useSignalValue<int, Signal<int>>(vm.autoScrollTick);
-  final highlights =
-      useSignalValue<AsyncState<List<Note>>, AsyncSignal<List<Note>>>(
-        vm.highlights,
-      );
-  final searchQuery = useSignalValue<String, Signal<String>>(vm.searchQuery);
-  final searchCurrentIndex = useSignalValue<int, Signal<int>>(
-    vm.searchCurrentIndex,
-  );
-  final letterSpacing = useSignalValue<double, Signal<double>>(
-    vm.config.letterSpacing.signal,
-  );
-  final paragraphSpacing = useSignalValue<double, Signal<double>>(
+  final int autoScrollTick = useSignalValue(vm.autoScrollTick);
+  final AsyncState<List<Note>> highlights = useSignalValue(vm.highlights);
+  final double letterSpacing = useSignalValue(vm.config.letterSpacing.signal);
+  final double paragraphSpacing = useSignalValue(
     vm.config.paragraphSpacing.signal,
   );
-  final pageMargin = useSignalValue<double, Signal<double>>(
-    vm.config.padding.signal,
+  final double pageMargin = useSignalValue(vm.config.padding.signal);
+  final WritingDirection writingDirection = useSignalValue(
+    vm.config.writingDirection,
   );
-  final writingDirection =
-      useSignalValue<WritingDirection, Signal<WritingDirection>>(
-        vm.config.writingDirection,
-      );
-  final pendingJumpCharOffset = useSignalValue<int?, Signal<int?>>(
-    vm.pendingJumpCharOffset,
-  );
-  final progressText = useSignalValue<String, ReadonlySignal<String>>(
-    vm.progressText,
-  );
-  final currentChapterTitle = useSignalValue<String, ReadonlySignal<String>>(
-    vm.currentChapterTitle,
-  );
-  final baselineAlign = useSignalValue<bool, Signal<bool>>(
-    vm.config.baselineAlign.signal,
-  );
+  final int? pendingJumpCharOffset = useSignalValue(vm.pendingJumpCharOffset);
+  final String progressText = useSignalValue(vm.progressText);
+  final String currentChapterTitle = useSignalValue(vm.currentChapterTitle);
+  final bool baselineAlign = useSignalValue(vm.config.baselineAlign.signal);
+  final TextAlign textAlign = useSignalValue(vm.config.textAlign.signal);
 
   final themeMode = switch (readerTheme) {
     ReaderTheme.dark => ThemeMode.dark,
@@ -177,12 +117,6 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
 
   return ReaderPageBindings(
     readerTheme: readerTheme,
-    showToolbar: showToolbar,
-    showSettings: showSettings,
-    showCatalog: showCatalog,
-    showBookmarks: showBookmarks,
-    showSelection: showSelection,
-    showSearch: showSearch,
     bgIndex: bgIndex,
     brightness: brightness,
     currentBookId: currentBookId,
@@ -200,15 +134,13 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
     bilingualError: bState.error?.toString(),
     autoScrollTick: autoScrollTick,
     highlights: highlights.value ?? [],
-    searchQuery: searchQuery,
-    searchCurrentIndex: searchCurrentIndex,
-    searchMatchHighlight: searchCurrentIndex > 0,
     letterSpacing: letterSpacing,
     paragraphSpacing: paragraphSpacing,
     pageMargin: pageMargin,
     writingDirection: writingDirection,
     pendingJumpCharOffset: pendingJumpCharOffset,
     themeMode: themeMode,
+    textAlign: textAlign,
     baselineAlign: baselineAlign,
     effectiveTotalPages: math.max(1, totalPages),
     progressText: progressText,
@@ -220,60 +152,33 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
 /// Changes to UI state signals (showToolbar, showSettings, etc.) do NOT
 /// trigger rebuilds of widgets using this binding.
 ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
-  final readerTheme = useSignalValue<ReaderTheme, Signal<ReaderTheme>>(
-    vm.config.theme.signal,
+  final ReaderTheme readerTheme = useSignalValue(vm.config.theme.signal);
+  final String currentBookId = useSignalValue(vm.bookId);
+  final int chapterIndex = useSignalValue(vm.chapterIndex);
+  final int pageIndex = useSignalValue(vm.pageIndex);
+  final int totalPages = useSignalValue(vm.totalPages);
+  final ReadingMode currentReadingMode = useSignalValue(vm.readingMode);
+  final double fontSize = useSignalValue(vm.fontSizeDouble);
+  final double lineHeight = useSignalValue(vm.config.lineHeight.signal);
+  final AsyncState<String> chContent = useSignalValue(vm.chapterContent);
+  final bool isLoading = useSignalValue(vm.isLoading);
+  final String? error = useSignalValue(vm.error);
+  final AsyncState<BilingualAlignment?> bState = useSignalValue(
+    vm.bilingualAlignment,
   );
-  final currentBookId = useSignalValue<String, Signal<String>>(vm.bookId);
-  final chapterIndex = useSignalValue<int, Signal<int>>(vm.chapterIndex);
-  final pageIndex = useSignalValue<int, Signal<int>>(vm.pageIndex);
-  final totalPages = useSignalValue<int, Signal<int>>(vm.totalPages);
-  final currentReadingMode = useSignalValue<ReadingMode, Signal<ReadingMode>>(
-    vm.readingMode,
-  );
-  final fontSize = useSignalValue<double, ReadonlySignal<double>>(
-    vm.fontSizeDouble,
-  );
-  final lineHeight = useSignalValue<double, Signal<double>>(
-    vm.config.lineHeight.signal,
-  );
-  final chContent = useSignalValue<AsyncState<String>, AsyncSignal<String>>(
-    vm.chapterContent,
-  );
-  final isLoading = useSignalValue<bool, Signal<bool>>(vm.isLoading);
-  final error = useSignalValue<String?, Signal<String?>>(vm.error);
-  final bState =
-      useSignalValue<
-        AsyncState<BilingualAlignment?>,
-        AsyncSignal<BilingualAlignment?>
-      >(vm.bilingualAlignment);
-  final autoScrollTick = useSignalValue<int, Signal<int>>(vm.autoScrollTick);
-  final highlights =
-      useSignalValue<AsyncState<List<Note>>, AsyncSignal<List<Note>>>(
-        vm.highlights,
-      );
-  final searchQuery = useSignalValue<String, Signal<String>>(vm.searchQuery);
-  final searchCurrentIndex = useSignalValue<int, Signal<int>>(
-    vm.searchCurrentIndex,
-  );
-  final letterSpacing = useSignalValue<double, Signal<double>>(
-    vm.config.letterSpacing.signal,
-  );
-  final paragraphSpacing = useSignalValue<double, Signal<double>>(
+  final int autoScrollTick = useSignalValue(vm.autoScrollTick);
+  final AsyncState<List<Note>> highlights = useSignalValue(vm.highlights);
+  final double letterSpacing = useSignalValue(vm.config.letterSpacing.signal);
+  final double paragraphSpacing = useSignalValue(
     vm.config.paragraphSpacing.signal,
   );
-  final pageMargin = useSignalValue<double, Signal<double>>(
-    vm.config.padding.signal,
+  final double pageMargin = useSignalValue(vm.config.padding.signal);
+  final WritingDirection writingDirection = useSignalValue(
+    vm.config.writingDirection,
   );
-  final writingDirection =
-      useSignalValue<WritingDirection, Signal<WritingDirection>>(
-        vm.config.writingDirection,
-      );
-  final baselineAlign = useSignalValue<bool, Signal<bool>>(
-    vm.config.baselineAlign.signal,
-  );
-  final pendingJumpCharOffset = useSignalValue<int?, Signal<int?>>(
-    vm.pendingJumpCharOffset,
-  );
+  final bool baselineAlign = useSignalValue(vm.config.baselineAlign.signal);
+  final TextAlign textAlign = useSignalValue(vm.config.textAlign.signal);
+  final int? pendingJumpCharOffset = useSignalValue(vm.pendingJumpCharOffset);
 
   final themeMode = switch (readerTheme) {
     ReaderTheme.dark => ThemeMode.dark,
@@ -283,12 +188,6 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
 
   return ReaderPageBindings(
     readerTheme: readerTheme,
-    showToolbar: false,
-    showSettings: false,
-    showCatalog: false,
-    showBookmarks: false,
-    showSelection: false,
-    showSearch: false,
     bgIndex: 0,
     brightness: 0,
     currentBookId: currentBookId,
@@ -306,9 +205,6 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
     bilingualError: bState.error?.toString(),
     autoScrollTick: autoScrollTick,
     highlights: highlights.value ?? [],
-    searchQuery: searchQuery,
-    searchCurrentIndex: searchCurrentIndex,
-    searchMatchHighlight: searchCurrentIndex > 0,
     letterSpacing: letterSpacing,
     paragraphSpacing: paragraphSpacing,
     baselineAlign: baselineAlign,
@@ -319,5 +215,6 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
     effectiveTotalPages: math.max(1, totalPages),
     progressText: '',
     currentChapterTitle: '',
+    textAlign: textAlign,
   );
 }

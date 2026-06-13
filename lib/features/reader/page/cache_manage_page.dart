@@ -24,19 +24,13 @@ class CacheManagePage extends HookWidget {
       vm.load();
       return null;
     }, []);
-    final AsyncState<List<Book>> books =
-        useSignalValue<AsyncState<List<Book>>, AsyncSignal<List<Book>>>(
-          vm.books,
-        );
-    final AsyncState<List<BookWithProgress>> progressList =
-        useSignalValue<
-          AsyncState<List<BookWithProgress>>,
-          AsyncSignal<List<BookWithProgress>>
-        >(vm.progressList);
-    final AsyncState<IndexStats> indexStats =
-        useSignalValue<AsyncState<IndexStats>, Signal<AsyncState<IndexStats>>>(
-          vm.searchIndexStats,
-        );
+    final AsyncState<List<Book>> books = useSignalValue(vm.books);
+    final AsyncState<List<BookWithProgress>> progressList = useSignalValue(
+      vm.progressList,
+    );
+    final AsyncState<IndexStats> indexStats = useSignalValue(
+      vm.searchIndexStats,
+    );
 
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;

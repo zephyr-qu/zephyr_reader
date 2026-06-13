@@ -21,6 +21,7 @@ pub use crate::storage::models::Bookmark;
 /// 该书籍的所有书签列表
 #[frb]
 pub async fn list_bookmarks_by_book(book_id: String) -> Result<Vec<Bookmark>, AppError> {
+    tracing::debug!("[bookmark] list_bookmarks_by_book: book_id={}", book_id);
     async_storage!(|pool| BookmarkRepository::find_by_book(pool, &book_id))
 }
 
@@ -41,6 +42,7 @@ pub async fn create_bookmark(
     char_offset: i32,
     title: String,
 ) -> Result<Bookmark, AppError> {
+    tracing::info!("[bookmark] create_bookmark: book_id={}, title={}", book_id, title);
     let bookmark = Bookmark::new(&book_id, chapter_index as i64, None, char_offset as i64, &title);
     async_storage!(|pool| BookmarkRepository::save(pool, &bookmark))
 }
@@ -54,6 +56,7 @@ pub async fn create_bookmark(
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn upsert_bookmark(bookmark: Bookmark) -> Result<Bookmark, AppError> {
+    tracing::info!("[bookmark] upsert_bookmark: id={}", bookmark.id);
     async_storage!(|pool| BookmarkRepository::save(pool, &bookmark))
 }
 
@@ -66,6 +69,7 @@ pub async fn upsert_bookmark(bookmark: Bookmark) -> Result<Bookmark, AppError> {
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn delete_bookmark(bookmark_id: String) -> Result<(), AppError> {
+    tracing::info!("[bookmark] delete_bookmark: bookmark_id={}", bookmark_id);
     async_storage!(|pool| BookmarkRepository::delete_by_id(pool, &bookmark_id))
 }
 
@@ -78,6 +82,7 @@ pub async fn delete_bookmark(bookmark_id: String) -> Result<(), AppError> {
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn delete_bookmarks(bookmark_ids: Vec<String>) -> Result<(), AppError> {
+    tracing::info!("[bookmark] delete_bookmarks: count={}", bookmark_ids.len());
     async_storage!(|pool| BookmarkRepository::delete_by_ids(pool, &bookmark_ids))
 }
 
@@ -90,6 +95,7 @@ pub async fn delete_bookmarks(bookmark_ids: Vec<String>) -> Result<(), AppError>
 /// 存在则返回 Some(Bookmark), 否则返回 None
 #[frb]
 pub async fn get_bookmark(bookmark_id: String) -> Result<Option<Bookmark>, AppError> {
+    tracing::debug!("[bookmark] get_bookmark: bookmark_id={}", bookmark_id);
     async_storage!(|pool| BookmarkRepository::find_by_id(pool, &bookmark_id))
 }
 
@@ -102,6 +108,7 @@ pub async fn get_bookmark(bookmark_id: String) -> Result<Option<Bookmark>, AppEr
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn clear_bookmarks_by_book(book_id: String) -> Result<(), AppError> {
+    tracing::debug!("[bookmark] clear_bookmarks_by_book: book_id={}", book_id);
     async_storage!(|pool| BookmarkRepository::delete_by_book(pool, &book_id))
 }
 
@@ -114,6 +121,7 @@ pub async fn clear_bookmarks_by_book(book_id: String) -> Result<(), AppError> {
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn import_bookmarks(bookmarks: Vec<Bookmark>) -> Result<(), AppError> {
+    tracing::info!("[bookmark] import_bookmarks: count={}", bookmarks.len());
     async_storage!(|pool| BookmarkRepository::import_bookmarks(pool, &bookmarks))
 }
 
@@ -126,5 +134,6 @@ pub async fn import_bookmarks(bookmarks: Vec<Bookmark>) -> Result<(), AppError> 
 /// 该书籍的书签总数
 #[frb]
 pub async fn count_bookmarks_by_book(book_id: String) -> Result<i32, AppError> {
+    tracing::debug!("[bookmark] count_bookmarks_by_book: book_id={}", book_id);
     async_storage!(|pool| BookmarkRepository::count_by_book(pool, &book_id))
 }

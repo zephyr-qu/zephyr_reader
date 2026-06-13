@@ -124,6 +124,17 @@ class _MockReaderConfig implements ReaderConfig {
     debounce: Duration.zero,
   );
   @override
+  late final textAlign = persistedEnum<TextAlign>(
+    prefs,
+    '',
+    TextAlign.justify,
+    (name) => TextAlign.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => TextAlign.justify,
+    ),
+    debounce: Duration.zero,
+  );
+  @override
   final writingDirection = signal<WritingDirection>(
     WritingDirection.horizontal,
   );
@@ -154,6 +165,7 @@ class _MockReaderConfig implements ReaderConfig {
     punctuationSqueeze.value = true;
     baselineAlign.value = true;
     tapLayout.value = TapLayout.rightHanded;
+    textAlign.value = TextAlign.justify;
   }
 
   @override
@@ -166,18 +178,6 @@ class MockReaderViewModel extends Mock implements ReaderViewModel {
   final config = _MockReaderConfig();
   @override
   final bookmarks = asyncSignal<List<Bookmark>>(AsyncState.data([]));
-  @override
-  final showToolbar = signal(false);
-  @override
-  final showSettings = signal(false);
-  @override
-  final showCatalog = signal(false);
-  @override
-  final showBookmarks = signal(false);
-  @override
-  final showSelectionToolbar = signal(false);
-  @override
-  final showSearch = signal(false);
   @override
   final bookId = signal('test_book');
   @override
@@ -201,12 +201,7 @@ class MockReaderViewModel extends Mock implements ReaderViewModel {
   @override
   final autoScrollTick = signal(0);
   @override
-  @override
   final highlights = asyncSignal<List<Note>>(AsyncState.data([]));
-  @override
-  final searchQuery = signal('');
-  @override
-  final searchCurrentIndex = signal(0);
   @override
   final toastMessage = signal('');
   @override
@@ -251,9 +246,6 @@ void main() {
       expect(bindings.fontSize, equals(16.0));
       expect(bindings.lineHeight, equals(1.6));
       expect(bindings.bgIndex, equals(0));
-      expect(bindings.showToolbar, isFalse);
-      expect(bindings.showSettings, isFalse);
-      expect(bindings.showCatalog, isFalse);
       expect(bindings.isLoading, isFalse);
       expect(bindings.currentBookId, equals('test_book'));
       expect(bindings.chapterIndex, equals(0));
@@ -301,12 +293,10 @@ void main() {
 
       // 同时更新多个信号
       mockVm.config.fontSize.value = 18.0;
-      mockVm.showToolbar.value = true;
       mockVm.chapterIndex.value = 5;
       await tester.pump();
 
       expect(bindings.fontSize, equals(18.0));
-      expect(bindings.showToolbar, isTrue);
       expect(bindings.chapterIndex, equals(5));
     });
 

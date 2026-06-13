@@ -813,9 +813,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get typographySection => 'Typography';
 
   @override
-  String get searchInChapterHint => 'Search in chapter...';
-
-  @override
   String get previous => 'Previous';
 
   @override
@@ -2078,4 +2075,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get themePreviewSampleText =>
       'The spring wind has greened the southern shore again.';
+
+  @override
+  String get textAlign => 'Text Alignment';
+
+  @override
+  String get textAlignJustify => 'Justified';
+
+  @override
+  String get textAlignStart => 'Left-aligned';
+
+  @override
+  String get textAlignCenter => 'Centered';
+
+  @override
+  String get textAlignEnd => 'Right-aligned';
 }

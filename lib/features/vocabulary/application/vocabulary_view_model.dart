@@ -9,19 +9,16 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 class VocabularyViewModel {
   final words = asyncSignal<List<Vocab>>(AsyncState.data([]));
   final stats = asyncSignal<VocabStats?>(AsyncState.loading());
-  final filterStatus = signal<VocabStatus?>(VocabStatus.unstarted);
-  final filterWordList = signal<String?>(null);
   final wordLists = asyncSignal<List<String>>(AsyncState.loading());
   final bookTitles = asyncSignal<Map<String, String>>(AsyncState.loading());
 
-  /// 加载生词列表、生词统计和书籍标题，支持是否显示加载态。
-  Future<void> loadWords() async {
+  /// 加载生词列表、生词统计和书籍标题。
+  ///
+  /// [status] 和 [wordList] 筛选参数由页面传入，不再存储为 VM 信号。
+  Future<void> loadWords({VocabStatus? status, String? wordList}) async {
     try {
       final results = await Future.wait([
-        vocab_api.listVocabularyByStatus(
-          status: filterStatus.value,
-          wordList: filterWordList.value,
-        ),
+        vocab_api.listVocabularyByStatus(status: status, wordList: wordList),
         vocab_api.getVocabularyStats(),
         book_api.mapBookTitles(),
         vocab_api.listWordLists(),
@@ -38,41 +35,36 @@ class VocabularyViewModel {
     }
   }
 
-  /// 刷新生词列表。
-  Future<void> refresh() async {
-    await loadWords();
-  }
-
-  /// 按学习状态筛选生词。
-  Future<void> setFilter(VocabStatus? status) async {
-    filterStatus.value = status;
-    await loadWords();
-  }
-
-  /// 按词库筛选生词。
-  Future<void> setWordListFilter(String? wordList) async {
-    filterWordList.value = wordList;
-    await loadWords();
+  /// 刷新生词列表（保留当前筛选）。
+  Future<void> refresh({VocabStatus? status, String? wordList}) async {
+    await loadWords(status: status, wordList: wordList);
   }
 
   /// 更新指定生词的学习状态。
-  Future<void> updateStatus(String id, VocabStatus status) async {
+  Future<void> updateStatus(
+    String id,
+    VocabStatus status, {
+    VocabStatus? currentFilter,
+    String? currentWordList,
+  }) async {
     await vocab_api.updateVocabularyStatus(id: id, status: status);
-    await loadWords();
+    await loadWords(status: currentFilter, wordList: currentWordList);
   }
 
   /// 删除指定生词。
-  Future<void> deleteWord(String id) async {
+  Future<void> deleteWord(
+    String id, {
+    VocabStatus? currentFilter,
+    String? currentWordList,
+  }) async {
     await vocab_api.deleteVocabulary(id: id);
-    await loadWords();
+    await loadWords(status: currentFilter, wordList: currentWordList);
   }
 
   /// 释放所有 signal 资源。
   void dispose() {
     words.dispose();
     stats.dispose();
-    filterStatus.dispose();
-    filterWordList.dispose();
     wordLists.dispose();
     bookTitles.dispose();
   }

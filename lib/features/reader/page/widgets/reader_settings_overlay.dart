@@ -36,6 +36,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
   final double brightnessValue;
   final TapLayout tapLayout;
   final bool followSystemFontScale;
+  final TextAlign textAlign;
   final bool autoScroll;
   final int autoScrollSpeed;
   final bool isTtsPlaying;
@@ -52,9 +53,10 @@ class ReaderSettingsOverlay extends StatelessWidget {
   final ValueChanged<double> onBrightnessChanged;
   final ValueChanged<TapLayout> onTapLayoutChanged;
   final ValueChanged<bool> onFollowSystemFontScale;
+  final ValueChanged<TextAlign> onTextAlignChanged;
   final ValueChanged<bool> onAutoScrollChanged;
-  final ValueChanged<double> onAutoScrollSpeedChanged;
   final VoidCallback onTtsToggle;
+  final ValueChanged<double> onAutoScrollSpeedChanged;
   final VoidCallback onClose;
 
   const ReaderSettingsOverlay({
@@ -81,6 +83,8 @@ class ReaderSettingsOverlay extends StatelessWidget {
     required this.tapLayout,
     required this.onTapLayoutChanged,
     required this.followSystemFontScale,
+    required this.textAlign,
+    required this.onTextAlignChanged,
     required this.onFollowSystemFontScale,
     required this.brightnessValue,
     required this.onBrightnessChanged,
@@ -226,6 +230,8 @@ class ReaderSettingsOverlay extends StatelessWidget {
         onChanged: onPageMarginChanged,
         readerTheme: readerTheme,
       ),
+      const SizedBox(height: 4),
+      _textAlignSelector(readerTheme, l10n),
     ];
   }
 
@@ -727,6 +733,102 @@ class ReaderSettingsOverlay extends StatelessWidget {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  Widget _textAlignSelector(
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+  ) {
+    final accentColor = readerTheme.accentColor;
+    final options = [
+      (
+        TextAlign.justify,
+        l10n.textAlignJustify,
+        PhosphorIconsRegular.textAlignCenter,
+      ),
+      (
+        TextAlign.start,
+        l10n.textAlignStart,
+        PhosphorIconsRegular.textAlignLeft,
+      ),
+      (
+        TextAlign.center,
+        l10n.textAlignCenter,
+        PhosphorIconsRegular.textAlignCenter,
+      ),
+      (TextAlign.end, l10n.textAlignEnd, PhosphorIconsRegular.textAlignRight),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 72,
+            child: Text(
+              l10n.textAlign,
+              style: TextStyle(color: readerTheme.textColor, fontSize: 13),
+            ),
+          ),
+          Expanded(
+            child: Row(
+              children: options.map((o) {
+                final isSelected = textAlign == o.$1;
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: GestureDetector(
+                      onTap: () => onTextAlignChanged(o.$1),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(vertical: 7),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? accentColor.withValues(alpha: 0.1)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isSelected
+                                ? accentColor
+                                : readerTheme.mutedColor.withValues(alpha: 0.2),
+                            width: isSelected ? 1.5 : 0.5,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              o.$3,
+                              size: 14,
+                              color: isSelected
+                                  ? accentColor
+                                  : readerTheme.mutedColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              o.$2,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? accentColor
+                                    : readerTheme.textColor,
+                                fontSize: 12,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ),
     );
   }

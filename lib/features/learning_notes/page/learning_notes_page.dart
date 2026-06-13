@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/features/learning_notes/application/learning_notes_view_model.dart';
-import 'package:zephyr_reader/features/learning_notes/page/widgets/note_tab_widget.dart';
+import 'package:zephyr_reader/features/learning_notes/page/widgets/note_list_widget.dart';
 import 'package:zephyr_reader/features/learning_notes/page/widgets/stat_dashboard_widget.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
@@ -10,7 +10,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 学习笔记页面。
 ///
-/// 展示笔记/高亮列表，支持按来源书籍筛选和查看笔记详情。
+/// 展示笔记/高亮列表，按书籍分组展示，不再使用横向筛选标签。
 /// 使用 [LearningNotesViewModel] 加载笔记数据。
 class LearningNotesPage extends HookWidget {
   const LearningNotesPage({super.key});
@@ -19,7 +19,6 @@ class LearningNotesPage extends HookWidget {
   Widget build(BuildContext context) {
     final vm = useMemoized(() => LearningNotesViewModel());
     final l10n = AppLocalizations.of(context)!;
-
     useEffect(() {
       vm.loadAll();
       return null;
@@ -27,10 +26,6 @@ class LearningNotesPage extends HookWidget {
 
     final AsyncState<List<NoteWithBook>> noteList = useSignalValue(vm.noteList);
     final AsyncState<int> noteTotalCount = useSignalValue(vm.noteTotalCount);
-    final String? noteFilterBookId = useSignalValue(vm.noteFilterBookId);
-    final AsyncState<Map<String, String>> filterBookTitles = useSignalValue(
-      vm.filterBookTitles,
-    );
 
     return noteList.map(
       data: (List<NoteWithBook> noteList) => Scaffold(
@@ -41,11 +36,8 @@ class LearningNotesPage extends HookWidget {
               noteTotalCount: noteTotalCount.value ?? 0,
             ),
             Expanded(
-              child: LearningNotesNoteTab(
-                noteList: noteList,
-                filterBookId: noteFilterBookId,
-                bookTitles: filterBookTitles.value ?? {},
-                onNoteFilterChanged: vm.setNoteFilterBook,
+              child: LearningNotesNoteList(
+                groups: vm.groupedNotes,
               ),
             ),
           ],

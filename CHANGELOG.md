@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+
 ### 新增
 - **翻译 API**：双语模式支持自动翻译（#feat/translation-service）
   - 新增 `TranslationService` 抽象接口，支持 OpenAI-compatible 和自定义 API 适配器
@@ -25,6 +26,7 @@
   - `VocabStatusChip` / `VocabStatsRow` 新增 `l10n` 参数并改用 i18n key。
 
 ### 修复
+- **书架设置**：`显示阅读进度` 开关现在实际控制封面百分比显示，并修复开关只能点击一次的 reactivity 问题（底部弹出层内 `StatelessWidget` 未对信号变化重建）。
 - **i18n**：AppBar title、tooltip、Stat label 三处硬编码中文替换为 `AppLocalizations` key（§3.1-3.3）。
 - **LearningNotesViewModel**：`_loadNotes()` 初始不触发 → 加入 `initialize()` Future.wait（§2.1）。
 - **LearningNotesViewModel**：提取 `_loadAll()` 消除 `initialize()`/`refresh()` 重复代码（§4.1）。
@@ -53,6 +55,11 @@
 - **ReaderViewModel**：搜索匹配从 Dart `indexOf` 循环改为 FTS5（§2.1）。`onSearchChanged` 调用 `search_api.search()` 获取匹配数，widget 端 `_onSearchChanged` 删除。FTS5 索引未就绪时静默降级。
 - **词汇词表**：`cet6`/`ielts`/`toefl` 三个 getter 改为返回各自词表而非全量（§2.3）。Rust 侧新增 `get_cet6_words`/`get_ielts_words`/`get_toefl_words` FBR API，Dart 侧 `VocabularyMarkerService` 分别加载。FRB 重新生成。
 - **ReaderDictionaryPanel**：全部硬编码中文替换为 `AppLocalizations`（词条检索/错误提示/配置引导）。新增 `invalidMdxFile`/`dictionaryLoadFailed`/`selectDictionaryFile`/`selectMdxDescription` 等 i18n key。
+  - `lib/features/reader/application/reader_view_model.dart`：移除 5 个 UI 面板 Signal（`showCatalog`/`showBookmarks`/`showToolbar`/`showSettings`/`showSelectionToolbar`）及对应 toggle 方法；`updateSelection`/`clearSelection`/`jumpToChapter`/`jumpToBookmark` 不再操作面板状态
+  - `lib/features/reader/page/reader_page.dart`：新增 4 个 `useSignal(false)` 局部状态；`showSelection` 派生自 `vm.selectedText.value`；toggle/jump 回调改为局部 lambda
+  - `lib/features/reader/page/widgets/reader_page_bindings.dart`：移除 5 个面板 bool 字段（class/constructor/both binding functions）
+  - `lib/features/profile/application/other_settings_view_model.dart`：移除 `appVersion` Signal，改为页面 `useState`+`useEffect` 加载 PackageInfo
+  - `lib/features/reader/application/reading_session_manager.dart`：`readingDuration`/`isReading` 改为 private 字段 + 公开 getter
 
 ### 文件变更（续）
 | 创建 | `lib/features/learning_notes/page/widgets/note_item_card.dart` |

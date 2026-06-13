@@ -24,6 +24,7 @@ pub async fn list_sessions_by_book(
     book_id: String,
     limit: i32,
 ) -> Result<Vec<ReadingSession>, AppError> {
+    tracing::debug!("[session] list_sessions_by_book: book_id={}", book_id);
     async_storage!(|pool| SessionRepository::find_by_book(pool, &book_id, limit as i64))
 }
 
@@ -81,6 +82,7 @@ pub async fn create_session(
     end_char_offset: i32,
     started_at: i64,
 ) -> Result<ReadingSession, AppError> {
+    tracing::info!("[session] create_session: book_id={}, chapter_index={}", book_id, chapter_index);
     let started = chrono::DateTime::from_timestamp(started_at, 0)
         .ok_or_else(|| AppError::internal("invalid started_at timestamp".to_string()))?;
     let session = ReadingSession::new(
@@ -96,6 +98,7 @@ pub async fn create_session(
 /// 新增或更新阅读会话记录(upsert)
 #[frb]
 pub async fn upsert_session(session: ReadingSession) -> Result<ReadingSession, AppError> {
+    tracing::debug!("[session] upsert_session: book_id={}", session.book_id);
     async_storage!(|pool| SessionRepository::save(pool, &session))
 }
 /// 清除书籍的所有阅读会话

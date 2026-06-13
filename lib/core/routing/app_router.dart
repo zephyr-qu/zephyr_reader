@@ -160,15 +160,9 @@ final router = GoRouter(
         final bookId = state.pathParameters['bookId'] ?? '0';
         final chapterId =
             int.tryParse(state.pathParameters['chapterId'] ?? '') ?? 0;
-        final pageIndex =
-            int.tryParse(state.uri.queryParameters['page'] ?? '') ?? 0;
         return CustomTransitionPage<void>(
           key: state.pageKey,
-          child: ReaderPage(
-            bookId: bookId,
-            initialChapterId: chapterId,
-            initialPageIndex: pageIndex,
-          ),
+          child: ReaderPage(bookId: bookId, initialChapterId: chapterId),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             // 前进: 上滑 + 淡入 + 微微放大（翻书）
             // 返回: 下滑 + 淡出 + 缩小到 96%（合书）

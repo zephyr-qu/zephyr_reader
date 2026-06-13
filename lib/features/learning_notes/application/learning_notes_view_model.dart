@@ -1,23 +1,38 @@
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 学习笔记 ViewModel。
 ///
-/// 管理笔记/高亮列表、总数统计和书籍筛选。
+/// 管理笔记/高亮列表、总数统计和按书籍的分组。
 class LearningNotesViewModel {
   final noteList = asyncSignal<List<NoteWithBook>>(AsyncState.data([]));
+
   final noteTotalCount = asyncSignal<int>(AsyncState.loading());
-  final noteFilterBookId = signal<String?>(null);
 
-  /// 用于筛选芯片的书籍标题映射（仅 UI 筛选用，笔记自己已带书名）
-  final filterBookTitles = asyncSignal<Map<String, String>>(
-    AsyncState.data({}),
-  );
+  /// 按书籍分组后的笔记列表（按笔记数量降序排列）。
+  List<NoteGroup> get groupedNotes {
+    final data = noteList.value.value;
+    if (data == null || data.isEmpty) return [];
+    final map = <String, NoteGroup>{};
+    for (final n in data) {
+      final key = n.note.bookId;
+      map.putIfAbsent(
+        key,
+        () => NoteGroup(
+          bookId: key,
+          bookTitle: n.bookTitle,
+          notes: [],
+        ),
+      );
+      map[key]!.notes.add(n);
+    }
+    return map.values.toList()
+      ..sort((a, b) => b.notes.length.compareTo(a.notes.length));
+  }
 
-  /// 重新加载全部数据（笔记列表、笔记总数、书籍标题）。
+  /// 重新加载全部数据（笔记列表、笔记总数）。
   Future<void> refresh() async {
     try {
       await loadAll();
@@ -26,13 +41,8 @@ class LearningNotesViewModel {
     }
   }
 
-  /// 加载笔记列表、笔记总数和筛选书籍列表。
+  /// 加载笔记列表和笔记总数。
   Future<void> loadAll() async {
-    await Future.wait([_loadBookTitles(), _loadNotes()]);
-  }
-
-  Future<void> setNoteFilterBook(String? bookId) async {
-    noteFilterBookId.value = bookId;
     await _loadNotes();
   }
 
@@ -40,7 +50,7 @@ class LearningNotesViewModel {
     try {
       final results = await Future.wait([
         note_api.listNotesWithTitles(limit: limit, offset: 0),
-        note_api.countNotes(bookId: noteFilterBookId.value),
+        note_api.countNotes(),
       ]);
       noteList.value = AsyncState.data(results[0] as List<NoteWithBook>);
       noteTotalCount.value = AsyncState<int>.data(results[1] as int);
@@ -50,21 +60,22 @@ class LearningNotesViewModel {
     }
   }
 
-  /// 加载书籍标题，与笔记查询并行。
-  Future<void> _loadBookTitles() async {
-    try {
-      final titles = await book_api.mapBookTitles();
-      filterBookTitles.value = AsyncState.data(titles);
-    } catch (e) {
-      filterBookTitles.value = AsyncState.error(e);
-    }
-  }
-
   /// 释放所有 signal 资源。
   void dispose() {
     noteList.dispose();
     noteTotalCount.dispose();
-    noteFilterBookId.dispose();
-    filterBookTitles.dispose();
   }
+}
+
+/// 同一本书的笔记分组。
+class NoteGroup {
+  final String bookId;
+  final String bookTitle;
+  final List<NoteWithBook> notes;
+
+  NoteGroup({
+    required this.bookId,
+    required this.bookTitle,
+    required this.notes,
+  });
 }

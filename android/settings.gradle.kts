@@ -18,7 +18,6 @@ pluginManagement {
         maven { setUrl("https://maven.aliyun.com/repository/public") }
         maven { setUrl("https://maven.aliyun.com/nexus/content/groups/public/") }
         maven { setUrl("https://maven.aliyun.com/nexus/content/repositories/jcenter") }
-        maven { setUrl("https://maven.pkg.jetbrains.space/public/p/compose/dev") }
         google()
         mavenCentral()
         gradlePluginPortal()

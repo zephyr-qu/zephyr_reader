@@ -13,6 +13,7 @@ static SEARCH_ENGINE: OnceLock<SearchEngine> = OnceLock::new();
 /// 初始化搜索引擎
 #[frb]
 pub async fn init_search_engine() -> Result<(), AppError> {
+    tracing::info!("[search] init_search_engine");
     if SEARCH_ENGINE.get().is_some() {
         return Ok(());
     }
@@ -42,6 +43,7 @@ pub async fn index_chapter(
     chapter_title: String,
     content: String,
 ) -> Result<(), AppError> {
+    tracing::debug!("[search] index_chapter: book_id={}, chapter_index={}", book_id, chapter_index);
     let engine = get_search_engine()?;
     engine
         .index_chapter(
@@ -63,6 +65,7 @@ pub async fn search(
     query: String,
     limit: i32,
 ) -> Result<Vec<SearchResult>, AppError> {
+    tracing::debug!("[search] search: book_id={}, query={}", book_id, query);
     let engine = get_search_engine()?;
     let limit = limit.max(0) as usize;
     let results = engine
@@ -94,6 +97,7 @@ pub async fn search_all_books(
     limit: i32,
     offset: i32,
 ) -> Result<Vec<SearchResult>, AppError> {
+    tracing::debug!("[search] search_all_books: query={}, limit={}, offset={}", query, limit, offset);
     let engine = get_search_engine()?;
     let limit = limit.max(1).min(200) as usize;
     let offset = offset.max(0) as usize;
@@ -107,6 +111,7 @@ pub async fn search_all_books(
 /// 清除所有搜索索引
 #[frb]
 pub async fn clear_all() -> Result<(), AppError> {
+    tracing::info!("[search] clear_all");
     let engine = get_search_engine()?;
     engine
         .clear_all()
@@ -118,6 +123,7 @@ pub async fn clear_all() -> Result<(), AppError> {
 /// 删除某本书的搜索索引
 #[frb]
 pub async fn delete_by_book(book_id: String) -> Result<(), AppError> {
+    tracing::info!("[search] delete_by_book: book_id={}", book_id);
     let engine = get_search_engine()?;
     engine
         .delete_by_book(&book_id)
@@ -129,6 +135,7 @@ pub async fn delete_by_book(book_id: String) -> Result<(), AppError> {
 /// 获取搜索索引统计信息
 #[frb]
 pub async fn get_index_stats() -> Result<IndexStats, AppError> {
+    tracing::debug!("[search] get_index_stats");
     let engine = get_search_engine()?;
     engine
         .get_index_stats()

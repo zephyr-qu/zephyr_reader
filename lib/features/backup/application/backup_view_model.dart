@@ -35,9 +35,6 @@ class BackupViewModel {
   final status = signal(BackupStatus.idle);
   final errorMessage = signal<String?>(null);
   final lastBackupAt = signal<DateTime?>(null);
-  final lastBackupSize = signal<int>(
-    0,
-  ); // UNUSED: 被写入 SharedPreferences 但页面从未读取
   final currentStats = asyncSignal<backup_api.BackupStats?>(
     AsyncState.loading(),
   );
@@ -53,13 +50,9 @@ class BackupViewModel {
   /// 从 SharedPreferences 读取上次备份的时间戳和文件大小，写入对应 signal。
   void _readLastBackupMeta() {
     final ts = _prefs.getInt(SettingsKeys.lastBackupAt);
-    final size = _prefs.getInt(SettingsKeys.lastBackupSize);
     batch(() {
       if (ts != null) {
         lastBackupAt.value = DateTime.fromMillisecondsSinceEpoch(ts * 1000);
-      }
-      if (size != null) {
-        lastBackupSize.value = size;
       }
     });
   }
@@ -109,8 +102,8 @@ class BackupViewModel {
       final manifest = await backup_api.exportDatabase(destPath: savePath);
 
       // 3. 记录元信息
-      await _prefs.setInt('last_backup_at', manifest.exportedAt);
-      await _prefs.setInt('last_backup_size', manifest.dbSize);
+      await _prefs.setInt(SettingsKeys.lastBackupAt, manifest.exportedAt);
+      await _prefs.setInt(SettingsKeys.lastBackupSize, manifest.dbSize);
       batch(() {
         _readLastBackupMeta();
         status.value = BackupStatus.exportingDone;

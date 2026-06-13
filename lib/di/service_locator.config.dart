@@ -21,6 +21,8 @@ import 'package:zephyr_reader/core/reader/tts_service.dart' as _i825;
 import 'package:zephyr_reader/di/app_module.dart' as _i431;
 import 'package:zephyr_reader/features/backup/application/backup_view_model.dart'
     as _i341;
+import 'package:zephyr_reader/features/bookshelf/application/book_import_service.dart'
+    as _i339;
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart'
     as _i790;
 import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart'
@@ -72,6 +74,7 @@ extension GetItInjectableX on _i174.GetIt {
     });
     gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
     gh.lazySingleton<_i825.TtsService>(() => _i825.TtsService());
+    gh.lazySingleton<_i339.BookImportService>(() => _i339.BookImportService());
     gh.lazySingleton<_i880.VocabularyMarkerService>(
       () => _i880.VocabularyMarkerService(),
     );

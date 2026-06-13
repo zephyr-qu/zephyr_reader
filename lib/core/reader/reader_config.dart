@@ -167,6 +167,17 @@ class ReaderConfig {
     debounce: Duration.zero,
   );
 
+  late final textAlign = persistedEnum<TextAlign>(
+    prefs,
+    SettingsKeys.readerTextAlign,
+    TextAlign.justify,
+    (name) => TextAlign.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => TextAlign.justify,
+    ),
+    debounce: Duration.zero,
+  );
+
   /// 翻页点击区域布局
   late final tapLayout = persistedEnum<TapLayout>(
     prefs,
@@ -218,6 +229,7 @@ class ReaderConfig {
     punctuationSqueeze.reset();
     baselineAlign.reset();
     tapLayout.reset();
+    textAlign.reset();
   }
 
   /// 释放所有 signal 资源。
@@ -235,6 +247,7 @@ class ReaderConfig {
     baselineAlign.dispose();
     tapLayout.dispose();
     followSystemFontScale.dispose();
+    textAlign.dispose();
     writingDirection.dispose();
     brightnessOverlay.dispose();
   }

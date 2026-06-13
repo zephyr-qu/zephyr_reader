@@ -4,7 +4,6 @@ import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/presentation/widgets/go_reading_empty_state.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
-import 'package:zephyr_reader/features/vocabulary/application/vocabulary_view_model.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_list_item_tile.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -17,14 +16,18 @@ class VocabWordListView extends StatelessWidget {
   final AsyncState<List<Vocab>> words;
 
   final Map<String, String> bookTitles;
-  final VocabularyViewModel vm;
+  final Future<void> Function(String id) onDeleteWord;
+  final Future<void> Function(String id, VocabStatus status) onUpdateStatus;
+  final VoidCallback onRetry;
   final bool hasWords;
 
   const VocabWordListView({
     super.key,
     required this.words,
     required this.bookTitles,
-    required this.vm,
+    required this.onDeleteWord,
+    required this.onUpdateStatus,
+    required this.onRetry,
     required this.hasWords,
   });
 
@@ -81,8 +84,8 @@ class VocabWordListView extends StatelessWidget {
               item: item,
               bookTitles: bookTitles,
               index: index,
-              onDismissed: () => vm.deleteWord(item.id),
-              onUpdateStatus: (s) => vm.updateStatus(item.id, s),
+              onDismissed: () => onDeleteWord(item.id),
+              onUpdateStatus: (s) => onUpdateStatus(item.id, s),
             );
           },
         );
@@ -108,11 +111,8 @@ class VocabWordListView extends StatelessWidget {
             style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: DesignTokens.spacing(Spacing.md)),
-          FilledButton.tonal(
-            onPressed: () => vm.loadWords(),
-            child: Text(l10n.retry),
-          ),
+          const SizedBox(height: 12),
+          FilledButton.tonal(onPressed: onRetry, child: Text(l10n.retry)),
         ],
       ),
     );

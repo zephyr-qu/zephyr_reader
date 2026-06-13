@@ -471,6 +471,28 @@ pub async fn get_chapter_first_spine_only(
     Ok(FirstSpineResult { text })
 }
 
+/// 获取章节前 N 字符（惰性转换，只读取必要的 spine）。
+///
+/// EPUB: 只转换覆盖前 `max_chars` 字符的 spine item，其余保持未转换状态。
+/// TXT/MD: 直接读取文件前 N 字符。
+#[frb]
+pub async fn get_chapter_partial(
+    file_path: String,
+    chapter_index: i32,
+    max_chars: u64,
+) -> Result<String, AppError> {
+    let validated_path = validate_file_path_async(&file_path).await?;
+    let format = format_from_extension(&validated_path);
+
+    if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
+        let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
+        Ok(provider.read_text_range(0, max_chars)?)
+    } else {
+        let text = extract_chapter_content(&validated_path, chapter_index).await?;
+        Ok(text.chars().take(max_chars as usize).collect())
+    }
+}
+
 /// 获取指定章节的原始文本内容。
 ///
 /// 返回章节全文的字符串，适用于无需分页的场景。
@@ -599,7 +621,6 @@ pub async fn paginate_all_content(
         };
         provider.read_text_range(start, end)?
     } else {
-        // PDF 等格式回退到旧路径
         extract_chapter_content(&validated_path, chapter_index).await?
     };
 
@@ -608,40 +629,45 @@ pub async fn paginate_all_content(
         .await
         .map_err(|e| AppError::task_panic("pagination", e.to_string()))?;
 
-    // 写缓存
     try_save_cached_pages(&validated_path, chapter_index, config_hash, pages.clone()).await;
 
     Ok(pages)
 }
 
-// ==================== 轻量级分页排版 API ====================
-
-/// 轻量级分页排版（只返回页面描述符，不含文本内容）。
+/// 轻量级分页排版（只获取页面描述符，文本按需加载）。
 ///
 /// 创建 `PageStreamer` 并缓存到 LRU 缓存中，Dart 侧通过 `get_page_content` 按需获取页面内容。
+/// 如果指定 `max_chars`，只读取前 N 字符进行分页（惰性转换，只转换必要的 spine），
+/// 用于初始快速分页。不指定则读取全文。
 /// 与 `paginate_all_content` 相比，显著减少 FFI 数据量（只传偏移量，不传文本）。
 #[frb]
 pub async fn paginate_chapter(
     file_path: String,
     chapter_index: i32,
     config: TypesetConfig,
+    max_chars: Option<u64>,
 ) -> Result<PaginateResult, AppError> {
     let validated_path = validate_file_path_async(&file_path).await?;
     let config = config.validate_and_fix();
     let config_hash = config.config_hash();
 
-    // 提取章节文本（复用 PROVIDER_CACHE 避免重复 I/O）
+    // 提取章节文本（只读取必要的 spine，惰性转换）
     let format = format_from_extension(&validated_path);
     let content = if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
         let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
-        let content_len = provider.content_length();
-        let (start, end) = if format == BookFormat::Epub {
-            (0u64, content_len)
-        } else {
-            let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
-            (cs.max(0) as u64, (ce.max(0) as u64).min(content_len))
-        };
-        provider.read_text_range(start, end)?
+        match max_chars {
+            Some(limit) => provider.read_text_range(0, limit)?,
+            None => {
+                let content_len = provider.content_length();
+                let (start, end) = if format == BookFormat::Epub {
+                    (0u64, content_len)
+                } else {
+                    let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
+                    (cs.max(0) as u64, (ce.max(0) as u64).min(content_len))
+                };
+                provider.read_text_range(start, end)?
+            }
+        }
     } else {
         extract_chapter_content(&validated_path, chapter_index).await?
     };

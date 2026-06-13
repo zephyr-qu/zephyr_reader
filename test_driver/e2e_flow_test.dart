@@ -8,6 +8,7 @@
 // 测试数据: 在 setUpAll 中导入 test/fixtures/ 下的书籍文件，
 //           确保每个测试 group 有真实数据可操作。
 
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -39,6 +40,15 @@ Future<List<String>> _seedFixtures() async {
   return titles;
 }
 
+/// 初始化 APP 并等待 splash 页导航到主布局。
+Future<void> _pumpToMainLayout(WidgetTester tester) async {
+  await tester.pumpWidget(const ZephyrReaderApp());
+  // Splash 页展示 1.2s 后触发 GoRouter 导航
+  await tester.pump(const Duration(seconds: 2));
+  // 额外一帧完成 GoRouter 路由切换
+  await tester.pump();
+}
+
 /// E2E 测试在宿主平台要求 Rust FFI compose 后运行。
 /// 无 FFI 时跳过书籍相关测试，仅运行纯 Dart 测试。
 
@@ -46,7 +56,8 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
-    // 先尝试初始化 AppConfig 和 DI（不依赖 FFI 的部分）
+    // 初始化测试用 SharedPreferences（避免 MissingPluginException）
+    SharedPreferences.setMockInitialValues({});
     await AppConfig.instance.init();
 
     // 初始化 Rust FFI（可能因缺少原生库而失败）
@@ -59,7 +70,12 @@ void main() {
       ffiError = e;
     }
 
-    await configureDependencies();
+    // DI 注入（FFI 不可用时部分依赖可能初始化失败，不影响纯 UI 测试）
+    try {
+      await configureDependencies();
+    } catch (_) {
+      // 忽略 DI 初始化失败（如 SharedPreferences 无平台通道）
+    }
 
     // 仅在 FFI 可用时导入书籍数据
     if (ffiError == null) {
@@ -105,16 +121,14 @@ void main() {
   group('E2E - 书架到阅读流程', () {
     testWidgets('打开应用 → 主布局含底部导航栏', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1080, 1920));
-      await tester.pumpWidget(const ZephyrReaderApp());
-      await tester.pump(const Duration(seconds: 2));
+      await _pumpToMainLayout(tester);
 
       expect(find.byType(MainLayout), findsOneWidget);
     });
 
     testWidgets('导航到书架 → 显示书籍网格', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1080, 1920));
-      await tester.pumpWidget(const ZephyrReaderApp());
-      await tester.pump(const Duration(seconds: 2));
+      await _pumpToMainLayout(tester);
 
       final bookshelf = BookshelfPageObject(tester);
       await bookshelf.navigateToBookshelf();
@@ -126,8 +140,7 @@ void main() {
 
     testWidgets('书架网格显示已导入的书籍', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1080, 1920));
-      await tester.pumpWidget(const ZephyrReaderApp());
-      await tester.pump(const Duration(seconds: 2));
+      await _pumpToMainLayout(tester);
 
       final bookshelf = BookshelfPageObject(tester);
       await bookshelf.navigateToBookshelf();
@@ -143,8 +156,7 @@ void main() {
 
     testWidgets('点击书籍 → 进入阅读页', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1080, 1920));
-      await tester.pumpWidget(const ZephyrReaderApp());
-      await tester.pump(const Duration(seconds: 2));
+      await _pumpToMainLayout(tester);
 
       final bookshelf = BookshelfPageObject(tester);
       await bookshelf.navigateToBookshelf();
@@ -159,8 +171,7 @@ void main() {
 
     testWidgets('阅读页面工具栏交互', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1080, 1920));
-      await tester.pumpWidget(const ZephyrReaderApp());
-      await tester.pump(const Duration(seconds: 2));
+      await _pumpToMainLayout(tester);
 
       // 导航到书架并进入书籍详情
       final bookshelf = BookshelfPageObject(tester);
@@ -187,8 +198,7 @@ void main() {
   group('E2E - 页面导航', () {
     testWidgets('导航到搜索页面', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1080, 1920));
-      await tester.pumpWidget(const ZephyrReaderApp());
-      await tester.pump(const Duration(seconds: 2));
+      await _pumpToMainLayout(tester);
 
       final search = SearchPageObject(tester);
       await search.navigateToSearch();
@@ -197,8 +207,7 @@ void main() {
 
     testWidgets('导航到统计页面', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1080, 1920));
-      await tester.pumpWidget(const ZephyrReaderApp());
-      await tester.pump(const Duration(seconds: 2));
+      await _pumpToMainLayout(tester);
 
       await tester.tap(find.text('统计').last);
       await tester.pumpAndSettle();
@@ -207,8 +216,7 @@ void main() {
 
     testWidgets('导航到个人中心页面', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1080, 1920));
-      await tester.pumpWidget(const ZephyrReaderApp());
-      await tester.pump(const Duration(seconds: 2));
+      await _pumpToMainLayout(tester);
 
       await tester.tap(find.text('我').last);
       await tester.pumpAndSettle();
@@ -217,8 +225,7 @@ void main() {
 
     testWidgets('书架 → 搜索 → 阅读 完整导航闭环', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1080, 1920));
-      await tester.pumpWidget(const ZephyrReaderApp());
-      await tester.pump(const Duration(seconds: 2));
+      await _pumpToMainLayout(tester);
 
       // 书架
       final bookshelf = BookshelfPageObject(tester);
@@ -242,8 +249,7 @@ void main() {
   group('E2E - 搜索功能', () {
     testWidgets('搜索页面基本渲染', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1080, 1920));
-      await tester.pumpWidget(const ZephyrReaderApp());
-      await tester.pump(const Duration(seconds: 2));
+      await _pumpToMainLayout(tester);
 
       final search = SearchPageObject(tester);
       await search.navigateToSearch();
@@ -252,8 +258,7 @@ void main() {
 
     testWidgets('输入书籍标题关键词应返回结果', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1080, 1920));
-      await tester.pumpWidget(const ZephyrReaderApp());
-      await tester.pump(const Duration(seconds: 2));
+      await _pumpToMainLayout(tester);
 
       final search = SearchPageObject(tester);
       await search.navigateToSearch();
@@ -274,8 +279,7 @@ void main() {
 
     testWidgets('输入中文关键词不应崩溃', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1080, 1920));
-      await tester.pumpWidget(const ZephyrReaderApp());
-      await tester.pump(const Duration(seconds: 2));
+      await _pumpToMainLayout(tester);
 
       final search = SearchPageObject(tester);
       await search.navigateToSearch();
@@ -288,8 +292,7 @@ void main() {
   group('E2E - TTS 朗读', () {
     testWidgets('阅读页 TTS 按钮存在', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1080, 1920));
-      await tester.pumpWidget(const ZephyrReaderApp());
-      await tester.pump(const Duration(seconds: 2));
+      await _pumpToMainLayout(tester);
 
       // 进入阅读页
       final bookshelf = BookshelfPageObject(tester);
@@ -300,6 +303,58 @@ void main() {
       // 此测试仅验证 UI 元素存在，不依赖实际导航
       // 读按钮文本在 l10n 中为 '朗读' 或 'Read Aloud'
       expect(find.text('朗读').last, findsWidgets);
+    });
+
+    group('E2E - 翻页流程', () {
+      testWidgets('进入阅读页后翻下一页不崩溃', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1080, 1920));
+        await _pumpToMainLayout(tester);
+
+        final bookshelf = BookshelfPageObject(tester);
+        await bookshelf.navigateToBookshelf();
+        await bookshelf.waitForReady();
+        expect(bookshelf.hasBooks, isTrue, reason: '要有已导入的书籍');
+
+        // 点击第一本书进入阅读页
+        await bookshelf.tapFirstBook();
+
+        final reader = ReaderPageObject(tester);
+        await reader.waitForReady();
+        expect(reader.hasContent, isTrue, reason: '阅读页应加载内容');
+        expect(reader.hasError, isFalse, reason: '阅读页不应有错误');
+
+        // 翻下一页
+        await reader.tapNextPage();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(reader.hasError, isFalse, reason: '翻下一页后不应报错');
+
+        // 翻上一页
+        await reader.tapPrevPage();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(reader.hasError, isFalse, reason: '翻上一页后不应报错');
+      });
+
+      testWidgets('连续翻多页不崩溃', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1080, 1920));
+        await _pumpToMainLayout(tester);
+
+        final bookshelf = BookshelfPageObject(tester);
+        await bookshelf.navigateToBookshelf();
+        await bookshelf.waitForReady();
+        expect(bookshelf.hasBooks, isTrue);
+
+        await bookshelf.tapFirstBook();
+        final reader = ReaderPageObject(tester);
+        await reader.waitForReady();
+        expect(reader.hasContent, isTrue);
+
+        // 连续翻 5 页
+        for (int i = 0; i < 5; i++) {
+          await reader.tapNextPage();
+          await tester.pump(const Duration(milliseconds: 300));
+          expect(reader.hasError, isFalse, reason: '翻第 ${i + 1} 页后不应报错');
+        }
+      });
     });
   });
 }

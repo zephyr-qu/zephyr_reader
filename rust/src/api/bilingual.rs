@@ -60,6 +60,7 @@ pub async fn align_bilingual_content(
     english_content: String,
     min_similarity: f32,
 ) -> Result<BilingualAlignment, AppError> {
+    tracing::info!("[bilingual] align_bilingual_content: chinese_len={}, english_len={}", chinese_content.len(), english_content.len());
     if chinese_content.len() + english_content.len() > MAX_BILINGUAL_LEN {
         return Err(AppError::invalid_input(format!(
             "bilingual alignment input too large: {} bytes (max {})",
@@ -116,6 +117,7 @@ pub struct BilingualHighlightParams {
 pub async fn create_bilingual_highlight_pair(
     params: BilingualHighlightParams,
 ) -> Result<BilingualHighlightPair, AppError> {
+    tracing::info!("[bilingual] create_bilingual_highlight_pair: book_id={}, chapter_index={}", params.source_book_id, params.source_chapter_index);
     let pool = storage_pool()?;
     let pair_id = Uuid::new_v4().to_string();
 
@@ -161,6 +163,7 @@ pub async fn get_bilingual_highlight_pairs(
     book_id: String,
     chapter_index: i32,
 ) -> Result<Vec<BilingualHighlightPair>, AppError> {
+    tracing::debug!("[bilingual] get_bilingual_highlight_pairs: book_id={}, chapter_index={}", book_id, chapter_index);
     let pool = storage_pool()?;
 
     let paired_notes = NoteRepository::find_paired_notes_in_chapter(&pool, &book_id, chapter_index as i64)
@@ -212,6 +215,7 @@ pub async fn get_bilingual_highlight_pairs(
 /// 传入任意一个 note_id，会同时删除配对的另一个高亮
 #[frb]
 pub async fn delete_bilingual_highlight_pair(note_id: String) -> Result<(), AppError> {
+    tracing::info!("[bilingual] delete_bilingual_highlight_pair: note_id={}", note_id);
     let pool = storage_pool()?;
 
     // 获取当前 note 以找到其 paired_note_id

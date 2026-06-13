@@ -35,6 +35,7 @@ pub struct BookDetail {
 #[frb]
 pub async fn get_book_detail(book_id: String) -> Result<BookDetail, AppError> {
 
+    tracing::debug!("[book] get_book_detail: book_id={}", book_id);
     let pool = crate::storage::storage_pool()?;
 
     let book = BookRepository::find_by_id(&pool, &book_id).await
@@ -70,6 +71,7 @@ pub async fn get_book_detail(book_id: String) -> Result<BookDetail, AppError> {
 /// 书籍列表
 #[frb]
 pub async fn list_books() -> Result<Vec<Book>, AppError> {
+    tracing::debug!("[book] list_books");
     async_storage!(BookRepository::list)
 }
 
@@ -78,6 +80,7 @@ pub async fn list_books() -> Result<Vec<Book>, AppError> {
 /// 轻量查询，直接返回 Map 供 Dart 侧 O(1) 查找，无需二次转换。
 #[frb]
 pub async fn map_book_titles() -> Result<HashMap<String, String>, AppError> {
+    tracing::debug!("[book] map_book_titles");
     let pool = crate::storage::storage_pool()?;
     let titles = BookRepository::list_titles(&pool).await?;
     Ok(titles.into_iter().map(|t| (t.book_id, t.title)).collect())
@@ -92,6 +95,7 @@ pub async fn map_book_titles() -> Result<HashMap<String, String>, AppError> {
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn upsert_book(book: Book) -> Result<(), AppError> {
+    tracing::info!("[book] upsert_book: book_id={}, title={}", book.book_id, book.title);
     async_storage!(|pool| BookRepository::save(pool, &book))
 }
 
@@ -105,6 +109,7 @@ pub async fn upsert_book(book: Book) -> Result<(), AppError> {
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn delete_book(book_id: String, covers_dir: String) -> Result<(), AppError> {
+    tracing::info!("[book] delete_book: book_id={}", book_id);
     let storage = ensure_storage()?;
     let pool = storage.pool()?;
 
@@ -141,6 +146,7 @@ pub async fn delete_book(book_id: String, covers_dir: String) -> Result<(), AppE
 /// 匹配关键词的书籍列表
 #[frb]
 pub async fn search_books(keyword: String) -> Result<Vec<Book>, AppError> {
+    tracing::debug!("[book] search_books: keyword={}", keyword);
     async_storage!(|pool| BookRepository::search(pool, &keyword))
 }
 
@@ -153,6 +159,7 @@ pub async fn search_books(keyword: String) -> Result<Vec<Book>, AppError> {
 /// 存在则返回 Some(Book), 否则返回 None
 #[frb]
 pub async fn get_book(book_id: String) -> Result<Option<Book>, AppError> {
+    tracing::debug!("[book] get_book: book_id={}", book_id);
     async_storage!(|pool| BookRepository::find_by_id(pool, &book_id))
 }
 
@@ -165,6 +172,7 @@ pub async fn get_book(book_id: String) -> Result<Option<Book>, AppError> {
 /// 指定状态的书籍列表
 #[frb]
 pub async fn list_books_by_status(status: BookStatus) -> Result<Vec<Book>, AppError> {
+    tracing::debug!("[book] list_books_by_status: status={:?}", status);
     async_storage!(|pool| BookRepository::list_by_status(pool, status))
 }
 
@@ -177,6 +185,7 @@ pub async fn list_books_by_status(status: BookStatus) -> Result<Vec<Book>, AppEr
 /// 存在则返回 Some(Book), 否则返回 None
 #[frb]
 pub async fn get_book_by_file_path(validated_path: String) -> Result<Option<Book>, AppError> {
+    tracing::debug!("[book] get_book_by_file_path: path={}", validated_path);
     async_storage!(|pool| BookRepository::find_by_file_path(pool, &validated_path))
 }
 
@@ -186,6 +195,7 @@ pub async fn get_book_by_file_path(validated_path: String) -> Result<Option<Book
 /// 置顶排序的书籍列表
 #[frb]
 pub async fn list_pinned_books() -> Result<Vec<Book>, AppError> {
+    tracing::debug!("[book] list_pinned_books");
     async_storage!(BookRepository::list_pinned)
 }
 
@@ -198,6 +208,7 @@ pub async fn list_pinned_books() -> Result<Vec<Book>, AppError> {
 /// 按最近打开时间排序的书籍列表
 #[frb]
 pub async fn list_recently_opened_books(limit: i32) -> Result<Vec<Book>, AppError> {
+    tracing::debug!("[book] list_recently_opened_books: limit={}", limit);
     async_storage!(|pool| BookRepository::list_recent(pool, limit as i64))
 }
 
@@ -218,6 +229,7 @@ pub async fn list_books_paginated(
     sort_by: Option<String>,
     sort_order: Option<String>,
 ) -> Result<Vec<Book>, AppError> {
+    tracing::debug!("[book] list_books_paginated");
     let sort_by = sort_by.unwrap_or_else(|| "added_at".to_string());
     let sort_order = sort_order.unwrap_or_else(|| "desc".to_string());
     async_storage!(|pool| BookRepository::list_paginated(
@@ -235,6 +247,7 @@ pub async fn list_books_paginated(
 /// 数据库中书籍总记录数
 #[frb]
 pub async fn count_books() -> Result<i64, AppError> {
+    tracing::debug!("[book] count_books");
     async_storage!(BookRepository::count)
 }
 
@@ -248,6 +261,7 @@ pub async fn count_books() -> Result<i64, AppError> {
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn update_book_status(book_id: String, status: BookStatus) -> Result<(), AppError> {
+    tracing::info!("[book] update_book_status: book_id={}", book_id);
     async_storage!(|pool| BookRepository::update_status(pool, &book_id, status))
 }
 
@@ -261,6 +275,7 @@ pub async fn update_book_status(book_id: String, status: BookStatus) -> Result<(
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn update_book_pin(book_id: String, is_pinned: bool) -> Result<(), AppError> {
+    tracing::info!("[book] update_book_pin: book_id={}", book_id);
     async_storage!(|pool| BookRepository::update_pin(pool, &book_id, is_pinned))
 }
 
@@ -274,6 +289,7 @@ pub async fn update_book_pin(book_id: String, is_pinned: bool) -> Result<(), App
 /// 成功时返回 Ok(()), 失败时返回 AppError
 #[frb]
 pub async fn update_book_title(book_id: String, title: String) -> Result<(), AppError> {
+    tracing::info!("[book] update_book_title: book_id={}", book_id);
     async_storage!(|pool| BookRepository::update_title(pool, &book_id, &title))
 }
 
@@ -294,6 +310,7 @@ pub async fn update_book_metadata(
     author: Option<String>,
     description: Option<String>,
 ) -> Result<(), AppError> {
+    tracing::info!("[book] update_book_metadata: book_id={}", book_id);
     async_storage!(|pool| BookRepository::update_metadata(
         pool,
         &book_id,
@@ -329,6 +346,7 @@ pub async fn create_web_book(
     cover_path: Option<String>,
     description: Option<String>,
 ) -> Result<Book, AppError> {
+    tracing::info!("[book] create_web_book: title={}", title);
     let book = Book::new(
         &file_path,
         0,
@@ -362,6 +380,7 @@ pub async fn batch_update_book_status(
     book_ids: Vec<String>,
     status: BookStatus,
 ) -> Result<(), AppError> {
+    tracing::info!("[book] batch_update_book_status: count={}", book_ids.len());
     let pool = crate::storage::ensure_storage()?.pool()?;
     for book_id in &book_ids {
         BookRepository::update_status(&pool, book_id, status.clone()).await?;
@@ -375,6 +394,7 @@ pub async fn batch_set_categories_for_books(
     book_ids: Vec<String>,
     category_ids: Vec<String>,
 ) -> Result<(), AppError> {
+    tracing::info!("[book] batch_set_categories_for_books: count={}", book_ids.len());
     let pool = crate::storage::ensure_storage()?.pool()?;
     use crate::storage::repos::category_repo::CategoryRepository;
     for book_id in &book_ids {

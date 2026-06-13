@@ -5,7 +5,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/search/application/search_view_model.dart';
 import 'package:zephyr_reader/features/search/application/services/search_history_service.dart';
@@ -13,6 +12,7 @@ import 'package:zephyr_reader/features/search/page/search_results.dart';
 import 'package:zephyr_reader/features/search/page/widgets/search_history.dart';
 import 'package:zephyr_reader/features/search/page/widgets/search_result_header.dart';
 import 'package:zephyr_reader/features/search/page/widgets/search_results_view.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 全局搜索页面。
 ///
@@ -32,17 +32,13 @@ class SearchPage extends HookWidget {
     final searchText = useSignal('');
 
     // VM signal bindings
-    final isSearching = useSignalValue<bool, Signal<bool>>(vm.isSearching);
-    final hasSearched = useSignalValue<bool, Signal<bool>>(vm.hasSearched);
-    final searchError = useSignalValue<String?, Signal<String?>>(
-      vm.searchError,
+    final bool isSearching = useSignalValue(vm.isSearching);
+    final bool hasSearched = useSignalValue(vm.hasSearched);
+    final String? searchError = useSignalValue(vm.searchError);
+    final AsyncState<SearchResults?> searchResultState = useSignalValue(
+      vm.searchResults,
     );
-
-    final searchResults = useComputed(() {
-      if (!vm.hasSearched.value) return null;
-      if (vm.searchError.value != null) return null;
-      return vm.searchResults.value.value;
-    });
+    final searchResults = searchResultState.value;
 
     // Debounced search effect
     useEffect(() {
@@ -96,8 +92,8 @@ class SearchPage extends HookWidget {
                 history.addHistory(value);
               },
             ),
-            if (hasSearched && searchResults.value != null)
-              SearchSummaryBar(results: searchResults.value!),
+            if (hasSearched && searchResults != null)
+              SearchSummaryBar(results: searchResults),
             Expanded(
               child: _buildBody(
                 context,
@@ -105,7 +101,7 @@ class SearchPage extends HookWidget {
                 isSearching,
                 hasSearched,
                 searchError,
-                searchResults.value,
+                searchResults,
                 history,
                 controller,
               ),

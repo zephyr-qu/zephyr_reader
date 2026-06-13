@@ -50,8 +50,10 @@ class PaginatedModeRenderer extends StatelessWidget {
       onSelectionGlobalPosition?.call(null);
       return;
     }
-    final box = context.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize || !box.attached) return;
+    final renderObject = context.findRenderObject();
+    if (renderObject is! RenderBox) return;
+    final box = renderObject;
+    if (!box.hasSize || !box.attached) return;
     onSelectionGlobalPosition?.call(box.localToGlobal(Offset.zero));
   }
 
@@ -141,8 +143,6 @@ class PaginatedModeRenderer extends StatelessWidget {
           textStyle,
           highlights,
           onHighlightTap: onHighlightTap,
-          searchQuery: config.searchQuery,
-          searchMatchHighlight: config.searchMatchHighlight,
           vocabularyWords: config.effectiveVocabWords,
         );
         return _renderPageContent(
@@ -176,8 +176,6 @@ class PaginatedModeRenderer extends StatelessWidget {
         textStyle,
         highlights,
         onHighlightTap: onHighlightTap,
-        searchQuery: config.searchQuery,
-        searchMatchHighlight: config.searchMatchHighlight,
         vocabularyWords: config.effectiveVocabWords,
       );
       return _renderPageContent(
@@ -210,8 +208,6 @@ class PaginatedModeRenderer extends StatelessWidget {
       textStyle,
       highlights,
       onHighlightTap: onHighlightTap,
-      searchQuery: config.searchQuery,
-      searchMatchHighlight: config.searchMatchHighlight,
       vocabularyWords: config.effectiveVocabWords,
     );
     return _renderPageContent(
@@ -254,8 +250,6 @@ class PaginatedModeRenderer extends StatelessWidget {
               textStyle,
               highlights,
               onHighlightTap: onHighlightTap,
-              searchQuery: config.searchQuery,
-              searchMatchHighlight: config.searchMatchHighlight,
               vocabularyWords: config.effectiveVocabWords,
             );
             return Padding(
@@ -307,7 +301,7 @@ class PaginatedModeRenderer extends StatelessWidget {
         child: SelectableText.rich(
           paintedSpan,
           strutStyle: strutStyle,
-          textAlign: TextAlign.justify,
+          textAlign: config.textAlign,
           onSelectionChanged: (sel, cause) =>
               _onSelection(sel, pageContent, startOffset, context),
           contextMenuBuilder: (_, _) => const SizedBox.shrink(),
@@ -356,8 +350,6 @@ class PaginatedModeRenderer extends StatelessWidget {
             textStyle,
             highlights,
             onHighlightTap: onHighlightTap,
-            searchQuery: config.searchQuery,
-            searchMatchHighlight: config.searchMatchHighlight,
             vocabularyWords: config.effectiveVocabWords,
           );
           return _renderPageContent(
@@ -382,8 +374,10 @@ void _reportSelectionPositionStandalone(
   void Function(Offset?)? onSelectionGlobalPosition,
 ) {
   if (onSelectionGlobalPosition == null) return;
-  final box = context.findRenderObject() as RenderBox?;
-  if (box == null || !box.hasSize || !box.attached) return;
+  final renderObject = context.findRenderObject();
+  if (renderObject is! RenderBox) return;
+  final box = renderObject;
+  if (!box.hasSize || !box.attached) return;
   onSelectionGlobalPosition(box.localToGlobal(Offset.zero));
 }
 
@@ -440,8 +434,6 @@ Widget _buildPageContentVerticalStandalone(
             textStyle,
             highlights,
             onHighlightTap: onHighlightTap,
-            searchQuery: config.searchQuery,
-            searchMatchHighlight: config.searchMatchHighlight,
             vocabularyWords: config.effectiveVocabWords,
           );
           return Padding(
@@ -487,7 +479,7 @@ Widget buildSinglePageContent({
 }) {
   final pageContent = repo.getPageContent(pageIndex);
   if (pageContent == null) {
-    return const SizedBox(width: double.infinity, height: 600);
+    return Container(color: config.backgroundColor);
   }
   final textStyle = config.buildTextStyle();
   final strutStyle = config.buildStrutStyle();
@@ -496,8 +488,6 @@ Widget buildSinglePageContent({
     textStyle,
     highlights,
     onHighlightTap: onHighlightTap,
-    searchQuery: config.searchQuery,
-    searchMatchHighlight: config.searchMatchHighlight,
     vocabularyWords: config.effectiveVocabWords,
   );
 
@@ -525,7 +515,7 @@ Widget buildSinglePageContent({
       child: SelectableText.rich(
         paintedSpan,
         strutStyle: strutStyle,
-        textAlign: TextAlign.justify,
+        textAlign: config.textAlign,
         onSelectionChanged: (sel, cause) => _handlePageContentSelection(
           sel,
           pageContent,

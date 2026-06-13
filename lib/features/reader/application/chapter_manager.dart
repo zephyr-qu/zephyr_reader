@@ -7,7 +7,7 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/src/rust/api/search.dart' as search_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 
 import '../../../core/reader/reader_config.dart';
 import '../data/repositories/rust_reader_repository.dart';
@@ -152,10 +152,15 @@ class ChapterManager {
     int initialCharOffset = 0,
     bool restartSession = true,
     Future<void> Function()? onChapterLoaded,
+
+    /// 跨章节翻页时保留当前内容，不显示 loading 状态。
+    bool preserveContent = false,
   }) async {
     final sw = Stopwatch()..start();
-    chapterContent.value = AsyncState.loading();
-    isLoading.value = true;
+    if (!preserveContent) {
+      chapterContent.value = AsyncState.loading();
+      isLoading.value = true;
+    }
 
     try {
       // █ 启动后台 futures（不等待）█
@@ -196,11 +201,14 @@ class ChapterManager {
         _repo.warmPageCache(firstPages[0].pageIndex, firstPages[0].content);
       }
 
+      // 首屏就绪后立即启动相邻章节的首页预加载（不阻塞后续渲染）
+      unawaited(_preloadAdjacentFirstPages(chapterIndex));
+
       chapterContent.value = AsyncState.data(firstText);
       totalPages.value = firstPages.length;
       this.chapterIndex.value = chapterIndex;
       currentCharOffset.value = initialCharOffset.clamp(0, firstText.length);
-      pageIndex.value = resolvePageIndexFromPageInfo(
+      pageIndex.value = PaginationEngine.resolvePageIndexFromPageInfo(
         firstPages,
         currentCharOffset.value,
       );
@@ -212,6 +220,40 @@ class ChapterManager {
 
       final tFast = sw.elapsedMilliseconds;
       Logging.info('[Timing] firstSpine: ${tFast}ms');
+
+      // █ 快速局部分页（~300ms，只转换必要 spine）█
+      // 让用户在等全文时就可以翻页
+      final tPartialStart = sw.elapsedMilliseconds;
+      final partialTotal = await _repo.paginateChapterPartial(
+        bookId: bookId.value,
+        chapterIndex: chapterIndex,
+        fontSize: _config.fontSize.value,
+        lineHeight: _config.lineHeight.value,
+        width: pageWidth,
+        height: pageHeight,
+        padding: _config.padding.value,
+        devicePixelRatio: devicePixelRatio,
+        calibration: _calibration.value,
+        fontFamily: _fontFamily,
+        letterSpacing: _config.letterSpacing.value,
+        paragraphSpacing: _config.paragraphSpacing.value,
+        punctuationSqueeze: _config.punctuationSqueeze.value,
+      );
+      if (partialTotal > 0) {
+        final partialDesc = _repo.descriptors;
+        if (partialDesc != null && partialDesc.isNotEmpty) {
+          totalPages.value = partialTotal;
+          pageIndex.value = PaginationEngine.resolvePageIndexForOffset(
+            partialDesc,
+            currentCharOffset.value,
+          );
+          _repo.ensurePageWindow(pageIndex.value);
+        }
+      }
+      Logging.info(
+        '[Timing] partialPaginate: '
+        '${sw.elapsedMilliseconds - tPartialStart}ms',
+      );
 
       // █ 等待后台：全文 + 校准 █
       final results = await Future.wait([contentFuture, calibFuture]);
@@ -264,7 +306,7 @@ class ChapterManager {
         chapterContent.value = AsyncState.data(content);
         totalPages.value = pages.length;
         currentCharOffset.value = initialCharOffset.clamp(0, content.length);
-        pageIndex.value = resolvePageIndexFromPageInfo(
+        pageIndex.value = PaginationEngine.resolvePageIndexFromPageInfo(
           pages,
           currentCharOffset.value,
         );
@@ -282,7 +324,7 @@ class ChapterManager {
         chapterContent.value = AsyncState.data(content);
         totalPages.value = total;
         currentCharOffset.value = initialCharOffset.clamp(0, content.length);
-        pageIndex.value = resolvePageIndexForOffset(
+        pageIndex.value = PaginationEngine.resolvePageIndexForOffset(
           descriptors,
           currentCharOffset.value,
         );
@@ -314,7 +356,6 @@ class ChapterManager {
     }
   }
 
-  /// 章节内容加载完成后异步执行：搜索索引 + 预加载前后章节。
   Future<void> _postLoadTasks(int chapterIndex, String content) async {
     await _searchIndexOperation?.cancel();
     _searchIndexOperation = CancelableOperation.fromFuture(
@@ -326,10 +367,7 @@ class ChapterManager {
 
   /// 加载指定页（不保存进度 — 由调用方负责）
   void loadPage(int pageIndex) {
-    if (pageIndex < 0 || pageIndex >= totalPages.value) {
-      return;
-    }
-
+    if (pageIndex < 0 || pageIndex > totalPages.value) return;
     this.pageIndex.value = pageIndex;
 
     // 从新版 descriptors 获取偏移
@@ -375,6 +413,24 @@ class ChapterManager {
     }
   }
 
+  /// 预加载相邻章节的首页文本内容（当前章节 +1 / -1），用于跨章节翻页。
+  Future<void> _preloadAdjacentFirstPages(int centerIndex) async {
+    final chapterList = chapters.value.value ?? [];
+    if (chapterList.isEmpty) return;
+    if (centerIndex + 1 < chapterList.length) {
+      final nextIdx = centerIndex + 1;
+      await _repo.preloadNextChapterFirstPage(
+        bookId.value,
+        nextIdx,
+        fontSize: _config.fontSize.value,
+        lineHeight: _config.lineHeight.value,
+        width: pageWidth,
+        height: pageHeight,
+        padding: _config.padding.value,
+      );
+    }
+  }
+
   /// 将章节内容索引到 FTS5（不阻塞 UI，失败静默忽略）
   Future<void> _indexForSearch(int chapterIndex, String content) async {
     try {
@@ -399,11 +455,21 @@ class ChapterManager {
 
   // ==================== 章节导航 ====================
 
-  /// 上一章
   Future<void> previousChapter() async {
     if (chapterIndex.value > 0) {
       final newChapterIndex = chapterIndex.value - 1;
-      await loadChapter(newChapterIndex);
+      await loadChapter(newChapterIndex, preserveContent: true);
+      // 向前翻页进入上一章 → 落在末页
+      pageIndex.value = (totalPages.value - 1).clamp(0, 0x7FFFFFFF);
+      // 更新 char offset 到页末尾，确保阅读进度正确
+      final descriptors = _repo.descriptors;
+      if (descriptors != null && pageIndex.value < descriptors.length) {
+        currentCharOffset.value = descriptors[pageIndex.value].endOffset;
+      } else if (_repo.currentPages != null &&
+          pageIndex.value < _repo.currentPages!.length) {
+        currentCharOffset.value =
+            _repo.currentPages![pageIndex.value].endOffset;
+      }
     }
   }
 
@@ -412,7 +478,7 @@ class ChapterManager {
     final chapterList = chapters.value.value ?? [];
     if (chapterIndex.value < chapterList.length - 1) {
       final newChapterIndex = chapterIndex.value + 1;
-      await loadChapter(newChapterIndex);
+      await loadChapter(newChapterIndex, preserveContent: true);
     }
   }
 
@@ -472,45 +538,6 @@ class ChapterManager {
   void stopAutoScroll() {
     _autoScrollTimer?.cancel();
     _autoScrollTimer = null;
-  }
-
-  // ==================== 工具方法 ====================
-
-  int resolvePageIndexFromPageInfo(List<PageInfo> pages, int charOffset) {
-    if (pages.isEmpty) return 0;
-    int lo = 0, hi = pages.length - 1;
-    while (lo <= hi) {
-      final mid = (lo + hi) >> 1;
-      final page = pages[mid];
-      if (charOffset < page.startOffset) {
-        hi = mid - 1;
-      } else if (charOffset >= page.endOffset) {
-        lo = mid + 1;
-      } else {
-        return mid;
-      }
-    }
-    return charOffset < pages[0].startOffset ? 0 : pages.length - 1;
-  }
-
-  int resolvePageIndexForOffset(
-    List<PageDescriptor> descriptors,
-    int charOffset,
-  ) {
-    if (descriptors.isEmpty) return 0;
-    int lo = 0, hi = descriptors.length - 1;
-    while (lo <= hi) {
-      final mid = (lo + hi) >> 1;
-      final page = descriptors[mid];
-      if (charOffset < page.startOffset) {
-        hi = mid - 1;
-      } else if (charOffset >= page.endOffset) {
-        lo = mid + 1;
-      } else {
-        return mid;
-      }
-    }
-    return charOffset < descriptors[0].startOffset ? 0 : descriptors.length - 1;
   }
 
   // ==================== 重置 ====================

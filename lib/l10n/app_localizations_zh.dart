@@ -810,9 +810,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get typographySection => '文字排版';
 
   @override
-  String get searchInChapterHint => '在章节内搜索...';
-
-  @override
   String get previous => '上一个';
 
   @override
@@ -2048,4 +2045,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get themePreviewSampleText => '春风又绿江南岸，明月何时照我还。';
+
+  @override
+  String get textAlign => '文字对齐';
+
+  @override
+  String get textAlignJustify => '两端对齐';
+
+  @override
+  String get textAlignStart => '左对齐';
+
+  @override
+  String get textAlignCenter => '居中';
+
+  @override
+  String get textAlignEnd => '右对齐';
 }

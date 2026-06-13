@@ -44,4 +44,9 @@ class ReadingSessionsViewModel {
       sessions.value = AsyncState.error(e);
     }
   }
+
+  void dispose() {
+    sessions.dispose();
+    bookCache.dispose();
+  }
 }

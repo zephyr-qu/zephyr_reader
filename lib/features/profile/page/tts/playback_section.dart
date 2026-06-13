@@ -25,11 +25,9 @@ class PlaybackSection extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final speed = useSignalValue<double, Signal<double>>(vm.speed.signal);
-    final pitch = useSignalValue<double, Signal<double>>(vm.pitch.signal);
-    final pauseBetween = useSignalValue<int, Signal<int>>(
-      vm.pauseBetween.signal,
-    );
+    final double speed = useSignalValue(vm.speed.signal);
+    final double pitch = useSignalValue(vm.pitch.signal);
+    final int pauseBetween = useSignalValue(vm.pauseBetween.signal);
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

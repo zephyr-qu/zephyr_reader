@@ -44,8 +44,6 @@ class ReaderContent extends HookWidget {
   final void Function(Note)? onHighlightTap;
   final ValueChanged<Offset?>? onSelectionGlobalPosition;
   final String fontFamily;
-  final String searchQuery;
-  final bool searchMatchHighlight;
   final double letterSpacing;
   final double paragraphSpacing;
   final double pageMargin;
@@ -54,10 +52,14 @@ class ReaderContent extends HookWidget {
   final bool showVocabularyMark;
   final Set<String> vocabularyWords;
   final bool baselineAlign;
+  final TextAlign textAlign;
   final bool showSentenceSplit;
   final int? jumpToCharOffset;
   final ValueChanged<int>? onPositionChanged;
   final VoidCallback? onReachEnd;
+
+  /// 是否有下一章（用于 pageTurn 模式扩展页面范围）
+  final bool hasNextChapter;
 
   final VoidCallback? onJumpHandled;
 
@@ -88,8 +90,6 @@ class ReaderContent extends HookWidget {
     this.onHighlightTap,
     this.onSelectionGlobalPosition,
     this.fontFamily = 'Noto Sans SC',
-    this.searchQuery = '',
-    this.searchMatchHighlight = false,
     this.letterSpacing = 0,
     this.paragraphSpacing = 12,
     this.pageMargin = 16,
@@ -102,7 +102,9 @@ class ReaderContent extends HookWidget {
     this.onPositionChanged,
     this.onJumpHandled,
     this.onReachEnd,
+    this.hasNextChapter = false,
     this.baselineAlign = true,
+    this.textAlign = TextAlign.justify,
   });
 
   @override
@@ -117,7 +119,6 @@ class ReaderContent extends HookWidget {
     final backgroundColor = _getBackgroundColor(themeMode);
     final bilingualPairs = useState<List<BilingualHighlightPair>>([]);
     final disableAnim = MediaQuery.disableAnimationsOf(context);
-
     final renderConfig = useMemoized(
       () => ReaderRenderConfig(
         textColor: textColor,
@@ -128,11 +129,10 @@ class ReaderContent extends HookWidget {
         letterSpacing: letterSpacing,
         paragraphSpacing: paragraphSpacing,
         pageMargin: pageMargin,
-        searchQuery: searchQuery,
-        searchMatchHighlight: searchMatchHighlight,
         showVocabularyMark: showVocabularyMark,
         vocabularyWords: vocabularyWords,
         baselineAlign: baselineAlign,
+        textAlign: textAlign,
       ),
       [
         textColor,
@@ -143,25 +143,28 @@ class ReaderContent extends HookWidget {
         letterSpacing,
         paragraphSpacing,
         pageMargin,
-        searchQuery,
-        searchMatchHighlight,
-        showVocabularyMark,
-        vocabularyWords,
         baselineAlign,
+        textAlign,
+        vocabularyWords,
       ],
     );
 
     useEffect(() {
-      if (readingMode != ReadingMode.pagination || disableAnim) {
+      if (readingMode != ReadingMode.pagination) {
         return null;
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (pageController.hasClients) {
-          pageController.animateToPage(
-            pageIndex,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-          );
+          final currentPage = pageController.page?.round();
+          if (currentPage != null && currentPage != pageIndex) {
+            pageController.animateToPage(
+              pageIndex,
+              duration: disableAnim
+                  ? Duration.zero
+                  : const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+            );
+          }
         }
       });
       return null;
@@ -317,7 +320,16 @@ class ReaderContent extends HookWidget {
       return null;
     }, [jumpToCharOffset, readingMode, bookId, chapterId, content]);
     // Must call useRef unconditionally (hook ordering rule).
+    // ignore: unused_local_variable
     final prevPageIndex = useRef(pageIndex);
+    // 跨章节 slide 方向追踪（在 pageTurn/pagination 条件返回前声明）
+    final prevChapterId = useRef<int?>(null);
+    final isForward = prevChapterId.value != null &&
+        chapterId > prevChapterId.value!;
+    useEffect(() {
+      prevChapterId.value = chapterId;
+      return null;
+    }, [chapterId]);
 
     // pageTurn mode: bypass AnimatedSwitcher, use interactive PageCurlWidget
     if (readingMode == ReadingMode.pageTurn &&
@@ -325,7 +337,22 @@ class ReaderContent extends HookWidget {
         error == null &&
         content.isNotEmpty) {
       final descriptors = repo.descriptors;
+      // 始终允许跨章节翻页（preload 异步完成后通过 notifier 触发重建更新内容）
+      // ignore: unused_local_variable
+      final preloadGen = useListenable(repo.preloadGeneration);
+      final hasNext = hasNextChapter;
+      final extendedTotal = totalPages + (hasNext ? 1 : 0);
       Widget pageBuilder(int idx) {
+        // 跨章节翻页：缓存预加载内容到 pageCache，通过 buildSinglePageContent 统一渲染
+        if (idx >= (descriptors?.length ?? totalPages) &&
+            hasNext &&
+            idx < extendedTotal) {
+          final preloaded = repo.getPreloadedNextChapterContent(chapterId + 1);
+          if (preloaded != null) {
+            // 存入 pageCache，使 getPageContent 可查询 → buildSinglePageContent 统一渲染
+            repo.warmPageCache(idx, preloaded);
+          }
+        }
         final startOffset = (descriptors != null && idx < descriptors.length)
             ? descriptors[idx].startOffset
             : 0;
@@ -345,9 +372,15 @@ class ReaderContent extends HookWidget {
 
       return PageCurlWidget(
         pageIndex: pageIndex,
-        totalPages: totalPages,
+        totalPages: extendedTotal,
         pageBuilder: pageBuilder,
         onPageChanged: (index) {
+          // 跨章节翻页 → 异步加载下一章
+          if (index >= totalPages && onReachEnd != null) {
+            onReachEnd!();
+          }
+          // 必须更新 pageIndex signal，否则 PageCurlWidget 在动画完成后
+          // 会回退到旧页内容（widget.pageIndex 未改变）
           onPageChanged?.call(index);
           if (descriptors != null && index < descriptors.length) {
             onPositionChanged?.call(descriptors[index].startOffset);
@@ -372,56 +405,30 @@ class ReaderContent extends HookWidget {
       pageMargin,
     );
 
-    final isForward = pageIndex >= prevPageIndex.value;
-    prevPageIndex.value = pageIndex;
-
-    final contentKey = isLoading
-        ? const ValueKey('loading')
-        : error != null
-        ? const ValueKey('error')
-        : readingMode != ReadingMode.pagination
-        ? ValueKey('${readingMode}_${chapterId}_$pageIndex')
-        : ValueKey('${readingMode}_$chapterId');
-
-    return Container(
-      color: backgroundColor,
-      child: AnimatedSwitcher(
-        duration: Duration(
-          milliseconds: disableAnim
-              ? 0
-              : readingMode == ReadingMode.pagination
-              ? 200
-              : 250,
-        ),
-        switchInCurve: readingMode == ReadingMode.scroll
-            ? Curves.easeOut
-            : Curves.easeOutCubic,
-        switchOutCurve: readingMode == ReadingMode.scroll
-            ? Curves.easeIn
-            : Curves.easeInCubic,
+    if (readingMode == ReadingMode.pagination) {
+      final slideX = isForward ? 1.0 : -1.0;
+      return AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        switchInCurve: Curves.easeInOut,
         transitionBuilder: (child, animation) {
-          switch (readingMode) {
-            case ReadingMode.pagination:
-              final offset = isForward
-                  ? const Offset(0.15, 0)
-                  : const Offset(-0.15, 0);
-              return SlideTransition(
-                position: Tween<Offset>(begin: offset, end: Offset.zero)
-                    .animate(
-                      CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOutCubic,
-                      ),
-                    ),
-                child: child,
-              );
-            default:
-              return FadeTransition(opacity: animation, child: child);
-          }
+          // 进入 child: animation 0→1, Offset(slideX→0) ✓ 外→中
+          // 离开 child: animation 1→0, Offset(0→slideX) 中→外方向一致
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: Offset(slideX, 0.0),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
+          );
         },
-        child: KeyedSubtree(key: contentKey, child: contentWidget),
-      ),
-    );
+        child: Container(
+          key: ValueKey('chapter_$chapterId'),
+          color: backgroundColor,
+          child: contentWidget,
+        ),
+      );
+    }
+    return Container(color: backgroundColor, child: contentWidget);
   }
 
   Widget _buildContent(
@@ -444,11 +451,12 @@ class ReaderContent extends HookWidget {
     if (isLoading) {
       // 分段读取模式下首屏文字在 ~100ms 内到达，
       // 骨架屏仅闪烁一帧反而影响体验，直接占位。
-      return const SizedBox.shrink();
+      return const SizedBox(key: ValueKey('reader_loading'));
     }
 
     if (error != null) {
       return Center(
+        key: const ValueKey('reader_error'),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

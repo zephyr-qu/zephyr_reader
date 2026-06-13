@@ -106,6 +106,7 @@ itertools = "0.14"
 bincode = "2.0"
 # Fast deterministic hashing for cache keys
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
+tempfile = "3.27.0"
 
 [package.metadata.hyphenation]
 embeds = ["EnglishUS"]
@@ -114,6 +115,10 @@ embeds = ["EnglishUS"]
 criterion = { version = "0.8.2", features = ["html_reports"] }
 pretty_assertions = "1.4"
 tempfile = "3.27.0"
+
+[[bin]]
+name = "stress_test"
+path = "tools/stress_test.rs"
 
 [[bench]]
 name = "parsing_benchmark"
