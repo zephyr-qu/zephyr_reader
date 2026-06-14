@@ -82,7 +82,7 @@ void showDictionaryPanel(
               case 1:
                 return Column(
                   children: [
-                    SizedBox(height: DesignTokens.spacing(Spacing.md)),
+                    SizedBox(height: Spacing.md.value),
                     Row(
                       children: [
                         Expanded(
@@ -122,7 +122,7 @@ void showDictionaryPanel(
                 } else if (result?.suggestions.isNotEmpty ?? false) {
                   return Column(
                     children: [
-                      SizedBox(height: DesignTokens.spacing(Spacing.sm)),
+                      SizedBox(height: Spacing.sm.value),
                       Text(
                         l10n.noExactMatch,
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Colors.grey),
@@ -151,14 +151,14 @@ void showDictionaryPanel(
                 } else if (loading) {
                   return Padding(
                     padding: EdgeInsets.only(
-                      top: DesignTokens.spacing(Spacing.lg),
+                      top: Spacing.lg.value,
                     ),
                     child: const Center(child: CircularProgressIndicator()),
                   );
                 } else {
                   return Padding(
                     padding: EdgeInsets.only(
-                      top: DesignTokens.spacing(Spacing.lg),
+                      top: Spacing.lg.value,
                     ),
                     child: Text(
                       error ?? l10n.noDefinition,
@@ -170,7 +170,7 @@ void showDictionaryPanel(
                 if (segments.length <= 1) return const SizedBox.shrink();
                 return Column(
                   children: [
-                    SizedBox(height: DesignTokens.spacing(Spacing.lg)),
+                    SizedBox(height: Spacing.lg.value),
                     Text(
                       l10n.wordSegmentation,
                       style: const TextStyle(fontSize: 12, color: Colors.grey),

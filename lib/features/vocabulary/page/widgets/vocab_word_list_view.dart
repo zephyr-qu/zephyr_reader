@@ -74,7 +74,7 @@ class VocabWordListView extends StatelessWidget {
 
         return ListView.separated(
           padding: EdgeInsets.symmetric(
-            horizontal: DesignTokens.spacing(Spacing.md),
+            horizontal: Spacing.md.value,
           ),
           itemCount: words.length,
           separatorBuilder: (_, _) => const Divider(height: 1),

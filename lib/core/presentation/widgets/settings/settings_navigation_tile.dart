@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 /// 设置页导航条目。
@@ -10,6 +11,7 @@ class SettingsNavigationTile extends StatelessWidget {
   final IconData? icon;
   final Color? iconColor;
   final Color? iconBackground;
+  final MenuItemSemantic? semantic;
   final Widget? iconWidget;
   final Widget? trailing;
   final VoidCallback onTap;
@@ -17,8 +19,9 @@ class SettingsNavigationTile extends StatelessWidget {
   const SettingsNavigationTile({
     super.key,
     required this.title,
-    required this.subtitle,
+    this.subtitle = '',
     this.icon,
+    this.semantic,
     this.iconColor,
     this.iconBackground,
     this.iconWidget,
@@ -29,8 +32,10 @@ class SettingsNavigationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final effectiveIconColor = iconColor ?? cs.onPrimaryContainer;
-    final effectiveIconBg = iconBackground ?? cs.primaryContainer;
+    final effectiveIconColor = iconColor ??
+        (semantic?.iconColor(Theme.of(context).brightness) ?? cs.onPrimaryContainer);
+    final effectiveIconBg = iconBackground ??
+        (semantic?.iconBackground(Theme.of(context).brightness) ?? cs.primaryContainer);
 
     return InkWell(
       onTap: onTap,

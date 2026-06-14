@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 /// 设置页开关条目。
@@ -12,6 +13,7 @@ class SettingsToggleTile extends StatelessWidget {
   final IconData? icon;
   final Color? iconColor;
   final Color? iconBackground;
+  final MenuItemSemantic? semantic;
 
   const SettingsToggleTile({
     super.key,
@@ -20,6 +22,7 @@ class SettingsToggleTile extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.icon,
+    this.semantic,
     this.iconColor,
     this.iconBackground,
   });
@@ -46,13 +49,17 @@ class SettingsToggleTile extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: iconBackground ?? cs.primaryContainer,
+                  color: iconBackground ??
+                      (semantic?.iconBackground(Theme.of(context).brightness) ??
+                          cs.primaryContainer),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   icon,
                   size: IconSize.inline,
-                  color: iconColor ?? cs.onPrimaryContainer,
+                  color: iconColor ??
+                      (semantic?.iconColor(Theme.of(context).brightness) ??
+                          cs.onPrimaryContainer),
                 ),
               ),
               const SizedBox(width: 12),

@@ -179,7 +179,7 @@ void main() {
       vm.chapterManager.pageIndex.value = 0;
 
       vm.previousPage();
-      expect(vm.pageIndex.value, equals(0));
+      expect(vm.chapterManager.pageIndex.value, equals(0));
     });
 
     test('nextPage 从第 0 页到第 1 页', () {
@@ -187,7 +187,7 @@ void main() {
       vm.chapterManager.pageIndex.value = 0;
 
       vm.nextPage();
-      expect(vm.pageIndex.value, equals(1));
+      expect(vm.chapterManager.pageIndex.value, equals(1));
     });
 
     test('nextPage 边界：最后一页时不变', () {
@@ -195,7 +195,7 @@ void main() {
       vm.chapterManager.pageIndex.value = 2;
 
       vm.nextPage();
-      expect(vm.pageIndex.value, equals(2));
+      expect(vm.chapterManager.pageIndex.value, equals(2));
     });
 
     test('loadPage 边界：超出范围不改变', () async {
@@ -203,17 +203,17 @@ void main() {
       vm.chapterManager.pageIndex.value = 0;
 
       await vm.loadPage(-1);
-      expect(vm.pageIndex.value, equals(0));
+      expect(vm.chapterManager.pageIndex.value, equals(0));
     });
 
     test('setReadingMode 更新 readingMode 信号', () {
-      expect(vm.readingMode.value, equals(ReadingMode.pagination));
+      expect(vm.chapterManager.readingMode.value, equals(ReadingMode.pagination));
 
       vm.setReadingMode(ReadingMode.scroll);
-      expect(vm.readingMode.value, equals(ReadingMode.scroll));
+      expect(vm.chapterManager.readingMode.value, equals(ReadingMode.scroll));
 
       vm.setReadingMode(ReadingMode.pageTurn);
-      expect(vm.readingMode.value, equals(ReadingMode.pageTurn));
+      expect(vm.chapterManager.readingMode.value, equals(ReadingMode.pageTurn));
     });
   });
 }

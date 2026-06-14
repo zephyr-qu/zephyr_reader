@@ -29,16 +29,16 @@ class _HeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: EdgeInsets.all(DesignTokens.spacing(Spacing.md)),
+      padding: EdgeInsets.all(Spacing.md.value),
       decoration: BoxDecoration(
         gradient: _heroGradientFor(theme),
-        borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.md)),
+        borderRadius: BorderRadius.circular(RadiusSize.md.value),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           leading,
-          SizedBox(width: DesignTokens.spacing(Spacing.md)),
+          SizedBox(width: Spacing.md.value),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,14 +53,14 @@ class _HeroCard extends StatelessWidget {
                     color: Colors.white,
                   ),
                 ),
-                SizedBox(height: DesignTokens.spacing(Spacing.xs)),
+                SizedBox(height: Spacing.xs.value),
                 Text(
                   subtitle,
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: Colors.white,
                   ),
                 ),
-                SizedBox(height: DesignTokens.spacing(Spacing.md)),
+                SizedBox(height: Spacing.md.value),
                 SizedBox(
                   width: double.infinity,
                   height: 36,
@@ -71,7 +71,7 @@ class _HeroCard extends StatelessWidget {
                       foregroundColor: DesignTokens.warmAccent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(
-                          DesignTokens.radius(RadiusSize.sm),
+                          RadiusSize.sm.value,
                         ),
                       ),
                     ),
@@ -131,7 +131,7 @@ class HomeHeroSection extends StatelessWidget {
       return _HeroCard(
         leading: ClipRRect(
           borderRadius: BorderRadius.circular(
-            DesignTokens.radius(RadiusSize.sm),
+            RadiusSize.sm.value,
           ),
           child: SizedBox(
             width: 72,

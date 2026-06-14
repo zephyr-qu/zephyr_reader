@@ -81,21 +81,19 @@ void main() {
     });
 
     group('日出日落时间计算', () {
-      test('getSunriseTime 应返回结束时间', () {
-        final sunrise = service.getSunriseTime();
-        expect(sunrise.inHours, equals(6));
+      test('日出时间应等于深色模式结束时间', () {
+        expect(Duration(hours: service.darkModeEndHour.value).inHours, equals(6));
       });
 
-      test('getSunsetTime 应返回开始时间', () {
-        final sunset = service.getSunsetTime();
-        expect(sunset.inHours, equals(18));
+      test('日落时间应等于深色模式开始时间', () {
+        expect(Duration(hours: service.darkModeStartHour.value).inHours, equals(18));
       });
 
       test('修改时间后应反映新的日出日落', () async {
         await service.setDarkModeTime(20, 7);
 
-        expect(service.getSunriseTime().inHours, equals(7));
-        expect(service.getSunsetTime().inHours, equals(20));
+        expect(Duration(hours: service.darkModeEndHour.value).inHours, equals(7));
+        expect(Duration(hours: service.darkModeStartHour.value).inHours, equals(20));
       });
     });
 

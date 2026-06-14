@@ -192,7 +192,6 @@ class TypographySettingsPage extends HookWidget {
     ReaderConfig config,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     final WritingDirection writingDirection = useSignalValue(
       config.writingDirection,
     );
@@ -243,12 +242,7 @@ class TypographySettingsPage extends HookWidget {
               children: [
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.sliders,
-                  iconColor: MenuItemSemantic.typography.iconColor(
-                    theme.brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.typography.iconBackground(
-                    theme.brightness,
-                  ),
+                  semantic: MenuItemSemantic.typography,
                   title: l10n.punctuationSqueeze,
                   subtitle: l10n.punctuationSqueezeDesc,
                   value: useSignalValue(config.punctuationSqueeze.signal),
@@ -256,12 +250,7 @@ class TypographySettingsPage extends HookWidget {
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.textAa,
-                  iconColor: MenuItemSemantic.typography.iconColor(
-                    theme.brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.typography.iconBackground(
-                    theme.brightness,
-                  ),
+                  semantic: MenuItemSemantic.typography,
                   title: l10n.baselineAlign,
                   subtitle: l10n.baselineAlignDesc,
                   value: useSignalValue(config.baselineAlign.signal),
@@ -269,12 +258,7 @@ class TypographySettingsPage extends HookWidget {
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.arrowDown,
-                  iconColor: MenuItemSemantic.typography.iconColor(
-                    theme.brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.typography.iconBackground(
-                    theme.brightness,
-                  ),
+                  semantic: MenuItemSemantic.typography,
                   title: l10n.verticalMode,
                   subtitle: l10n.verticalModeDesc,
                   value: isVertical,

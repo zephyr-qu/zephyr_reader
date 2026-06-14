@@ -15,11 +15,6 @@ const _itemTitle = TextStyle(fontSize: 17, fontWeight: FontWeight.w500, letterSp
 const _body = TextStyle(fontSize: 14, fontWeight: FontWeight.w400);
 const _label = TextStyle(fontSize: 12, fontWeight: FontWeight.w500, letterSpacing: 0.2);
 const _caption = TextStyle(fontSize: 11, fontWeight: FontWeight.w400);
-/// 介于 body(14) 与 itemTitle(17) 之间，用于编号、副标题等稍大正文。
-const _bodyLarge = TextStyle(fontSize: 15, fontWeight: FontWeight.w500);
-
-/// 极小说明文字，用于 tag、徽章、时间戳等紧凑场景。
-const _captionSmall = TextStyle(fontSize: 10, fontWeight: FontWeight.w400);
 
 /// 应用主题工厂
 ///
@@ -27,13 +22,30 @@ const _captionSmall = TextStyle(fontSize: 10, fontWeight: FontWeight.w400);
 /// 提供统一的 AppBar、卡片、按钮、输入框等组件主题配置，
 /// 并注入自定义 [AppThemeExtension] 和 [ReaderThemeExtension]。
 class AppThemes {
-
-  /// 介于 body(14) 与 itemTitle(17) 之间（15px），用于编号、副标题等。
-  static const TextStyle bodyLarge = _bodyLarge;
-
-  /// 极小说明文字（10px），用于 tag、徽章、时间戳等紧凑场景。
-  static const TextStyle captionSmall = _captionSmall;
   AppThemes._();
+
+  // ===== 排版 scale（与 file-private _hero 等共享同一 const，零开销）=====
+
+  /// 大 Banner、首页推荐标题（28/w700）
+  static const TextStyle hero = _hero;
+
+  /// 页面大标题（24/w700）
+  static const TextStyle screenTitle = _screenTitle;
+
+  /// 区域/板块标题（20/w600）
+  static const TextStyle sectionTitle = _sectionTitle;
+
+  /// 列表项标题、卡片标题（17/w500）
+  static const TextStyle itemTitle = _itemTitle;
+
+  /// 正文段落、列表副文本（14/w400）
+  static const TextStyle body = _body;
+
+  /// 按钮、标签、Tab、辅助文字（12/w500）
+  static const TextStyle label = _label;
+
+  /// 极小说明、时间戳、脚注（11/w400）
+  static const TextStyle caption = _caption;
 
   /// 界面 chrome 默认字族。
   /// Noto Sans SC — 多数 Android 预装，iOS 无则 fallback 系统字体。
@@ -138,7 +150,7 @@ class AppThemes {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: ButtonStyle(
           shape: WidgetStateProperty.all(RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.md)),
+            borderRadius: BorderRadius.circular(RadiusSize.md.value),
           )),
           side: WidgetStateProperty.all(BorderSide(color: div, width: 0.5)),
           foregroundColor: WidgetStateProperty.all(textPri),
@@ -153,30 +165,30 @@ class AppThemes {
         filled: true,
         fillColor: isDark ? _surfaceDark : _bgLight,
         contentPadding: EdgeInsets.symmetric(
-          horizontal: DesignTokens.spacing(Spacing.md),
+          horizontal: Spacing.md.value,
           vertical: 12,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.md)),
+          borderRadius: BorderRadius.circular(RadiusSize.md.value),
           borderSide: BorderSide(color: div, width: 0.5),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.md)),
+          borderRadius: BorderRadius.circular(RadiusSize.md.value),
           borderSide: BorderSide(color: div, width: 0.5),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.md)),
+          borderRadius: BorderRadius.circular(RadiusSize.md.value),
           borderSide: BorderSide(color: primary, width: 1),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.md)),
+          borderRadius: BorderRadius.circular(RadiusSize.md.value),
           borderSide: const BorderSide(color: DesignTokens.error, width: 0.5),
         ),
       ),
 
       popupMenuTheme: PopupMenuThemeData(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.md)),
+          borderRadius: BorderRadius.circular(RadiusSize.md.value),
           side: BorderSide(color: div, width: 0.5),
         ),
         elevation: 0,
@@ -187,7 +199,7 @@ class AppThemes {
       listTileTheme: ListTileThemeData(
         minTileHeight: 44,
         contentPadding: EdgeInsets.symmetric(
-          horizontal: DesignTokens.spacing(Spacing.md),
+          horizontal: Spacing.md.value,
           vertical: 2,
         ),
         dense: true,
@@ -203,8 +215,8 @@ class AppThemes {
       iconTheme: IconThemeData(size: IconSize.nav, color: textSec),
       chipTheme: ChipThemeData(
         padding: EdgeInsets.symmetric(
-          horizontal: DesignTokens.spacing(Spacing.sm),
-          vertical: DesignTokens.spacing(Spacing.xs),
+          horizontal: Spacing.sm.value,
+          vertical: Spacing.xs.value,
         ),
         labelStyle: _label.copyWith(color: textPri),
         backgroundColor: Colors.transparent,

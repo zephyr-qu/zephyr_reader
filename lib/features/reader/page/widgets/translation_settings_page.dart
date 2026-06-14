@@ -352,7 +352,7 @@ class _TestSection extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(
-                      DesignTokens.radius(RadiusSize.md),
+                      RadiusSize.md.value,
                     ),
                   ),
                 ),
@@ -547,7 +547,7 @@ Widget _iconBox(BuildContext context, IconData icon, ColorScheme cs) {
     height: 32,
     decoration: BoxDecoration(
       color: cs.primaryContainer,
-      borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.sm)),
+      borderRadius: BorderRadius.circular(RadiusSize.sm.value),
     ),
     child: Icon(icon, size: 16, color: cs.onPrimaryContainer),
   );

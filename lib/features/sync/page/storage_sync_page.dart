@@ -252,12 +252,7 @@ class StorageSyncPage extends HookWidget {
               children: [
                 SettingsNavigationTile(
                   icon: PhosphorIconsRegular.broom,
-                  iconColor: MenuItemSemantic.info.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.info.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
+                  semantic: MenuItemSemantic.info,
                   title: l10n.cacheManage,
                   subtitle: l10n.cacheInfoTip,
                   onTap: () => context.push(AppRoute.cacheManage.path),

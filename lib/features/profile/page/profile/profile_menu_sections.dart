@@ -16,7 +16,6 @@ class ProfileMenuSections extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final brightness = Theme.of(context).brightness;
 
     final sections = [
       _SectionData(
@@ -121,8 +120,7 @@ class ProfileMenuSections extends StatelessWidget {
               final item = entry.value;
               return SettingsNavigationTile(
                     icon: item.icon,
-                    iconColor: item.semantic.iconColor(brightness),
-                    iconBackground: item.semantic.iconBackground(brightness),
+                    semantic: item.semantic,
                     title: item.title,
                     subtitle: '',
                     onTap: item.onTap,

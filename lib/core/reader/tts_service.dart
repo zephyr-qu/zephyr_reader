@@ -182,50 +182,15 @@ class TtsService {
     return sentences.where((s) => !_isCjk(s)).toList();
   }
 
-  /// 将文本按句末标点切分为句子列表。
-  /// 先按双换行切分段落，再按句末标点（.!?。！？）+ 空白切分句子。
-  /// 单句最长 500 字符，超长则暴力截断。
+  /// 按句末标点（.!?。！？）分割文本，单句最长 500 字符。
   List<String> _splitSentences(String text) {
     if (text.isEmpty) return [];
-
-    // 先按双换行切分段
-    final paragraphs = text.split(RegExp(r'\n{2,}'));
-
-    final sentences = <String>[];
-    for (final part in paragraphs) {
-      if (part.trim().isEmpty) continue;
-
-      final trimmed = part.trim();
-      final buffer = StringBuffer();
-
-      for (int i = 0; i < trimmed.length; i++) {
-        buffer.write(trimmed[i]);
-        if ((trimmed[i] == '.' ||
-                trimmed[i] == '!' ||
-                trimmed[i] == '?' ||
-                trimmed[i] == '。' ||
-                trimmed[i] == '！' ||
-                trimmed[i] == '？') &&
-            (i + 1 >= trimmed.length ||
-                trimmed[i + 1] == ' ' ||
-                trimmed[i + 1] == '\t')) {
-          final sentence = buffer.toString().trim();
-          buffer.clear();
-          if (sentence.isNotEmpty) sentences.add(sentence);
-          // 跳过标点后的空白
-          while (i + 1 < trimmed.length &&
-              (trimmed[i + 1] == ' ' || trimmed[i + 1] == '\t')) {
-            i++;
-          }
-        }
-      }
-
-      final remaining = buffer.toString().trim();
-      if (remaining.isNotEmpty) sentences.add(remaining);
-    }
-
+    final sentences = text
+        .split(RegExp(r'[.!?。！？](?=\s|$)'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
     if (sentences.isEmpty) return [text];
-
     // 单句不超过 500 字符
     final result = <String>[];
     for (final s in sentences) {
@@ -237,7 +202,6 @@ class TtsService {
         result.add(s);
       }
     }
-
     return result;
   }
 

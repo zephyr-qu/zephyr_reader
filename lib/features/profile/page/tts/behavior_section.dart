@@ -27,12 +27,7 @@ class BehaviorSection extends HookWidget {
               children: [
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.playCircle,
-                  iconColor: MenuItemSemantic.info.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.info.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
+                  semantic: MenuItemSemantic.info,
                   title: l10n.ttsBackgroundPlay,
                   subtitle: l10n.ttsBackgroundPlayDesc,
                   value: useSignalValue(vm.backgroundPlay.signal),
@@ -40,12 +35,7 @@ class BehaviorSection extends HookWidget {
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.arrowRight,
-                  iconColor: MenuItemSemantic.info.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.info.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
+                  semantic: MenuItemSemantic.info,
                   title: l10n.ttsAutoPage,
                   subtitle: l10n.ttsAutoPageDesc,
                   value: useSignalValue(vm.autoPage.signal),
@@ -53,12 +43,7 @@ class BehaviorSection extends HookWidget {
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.highlighter,
-                  iconColor: MenuItemSemantic.info.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.info.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
+                  semantic: MenuItemSemantic.info,
                   title: l10n.ttsHighlightFollow,
                   subtitle: l10n.ttsHighlightFollowDesc,
                   value: useSignalValue(vm.highlightFollow.signal),
@@ -66,12 +51,7 @@ class BehaviorSection extends HookWidget {
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.moon,
-                  iconColor: MenuItemSemantic.info.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.info.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
+                  semantic: MenuItemSemantic.info,
                   title: l10n.ttsDimOnLock,
                   subtitle: l10n.ttsDimOnLockDesc,
                   value: useSignalValue(vm.dimOnLock.signal),

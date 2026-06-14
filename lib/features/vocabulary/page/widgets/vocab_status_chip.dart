@@ -35,7 +35,7 @@ class VocabStatusChip extends StatelessWidget {
     final color = vocabStatusColor(status, theme);
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: DesignTokens.spacing(Spacing.sm),
+        horizontal: Spacing.sm.value,
         vertical: 2,
       ),
       decoration: BoxDecoration(

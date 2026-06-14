@@ -15,9 +15,9 @@ class HomeHeaderSliver extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(
-        DesignTokens.spacing(Spacing.md),
-        DesignTokens.spacing(Spacing.lg),
-        DesignTokens.spacing(Spacing.md),
+        Spacing.md.value,
+        Spacing.lg.value,
+        Spacing.md.value,
         0,
       ),
       sliver: SliverToBoxAdapter(

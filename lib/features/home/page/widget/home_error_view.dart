@@ -21,7 +21,7 @@ class HomeErrorView extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
-        padding: EdgeInsets.all(DesignTokens.spacing(Spacing.xl)),
+        padding: EdgeInsets.all(Spacing.xl.value),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -30,13 +30,13 @@ class HomeErrorView extends StatelessWidget {
               size: 48,
               color: theme.colorScheme.error,
             ),
-            SizedBox(height: DesignTokens.spacing(Spacing.md)),
+            SizedBox(height: Spacing.md.value),
             Text(
               errorMessage,
               textAlign: TextAlign.center,
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             ),
-            SizedBox(height: DesignTokens.spacing(Spacing.lg)),
+            SizedBox(height: Spacing.lg.value),
             FilledButton.tonalIcon(
               onPressed: onRetry,
               icon: const Icon(PhosphorIconsRegular.arrowClockwise, size: 18),

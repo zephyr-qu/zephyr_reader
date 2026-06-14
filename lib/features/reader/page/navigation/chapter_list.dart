@@ -73,8 +73,8 @@ class ChapterList extends HookWidget {
                 padding: EdgeInsets.only(
                   top: 4,
                   bottom: 24,
-                  left: DesignTokens.spacing(Spacing.md),
-                  right: DesignTokens.spacing(Spacing.sm),
+                  left: Spacing.md.value,
+                  right: Spacing.sm.value,
                 ),
                 itemCount: chapters.length,
                 itemBuilder: (context, index) {
@@ -119,10 +119,10 @@ class ChapterList extends HookWidget {
   Widget _buildHeader(ReaderThemeExtension readerTheme, AppLocalizations l10n) {
     return Container(
       padding: EdgeInsets.fromLTRB(
-        DesignTokens.spacing(Spacing.md),
-        DesignTokens.spacing(Spacing.sm),
-        DesignTokens.spacing(Spacing.sm),
-        DesignTokens.spacing(Spacing.sm),
+        Spacing.md.value,
+        Spacing.sm.value,
+        Spacing.sm.value,
+        Spacing.sm.value,
       ),
       decoration: BoxDecoration(
         border: Border(
@@ -139,7 +139,7 @@ class ChapterList extends HookWidget {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          SizedBox(width: DesignTokens.spacing(Spacing.sm)),
+          SizedBox(width: Spacing.sm.value),
           Text(
             l10n.chapterList,
             style: TextStyle(
@@ -166,7 +166,7 @@ class ChapterList extends HookWidget {
               ),
             ),
           ),
-          SizedBox(width: DesignTokens.spacing(Spacing.sm)),
+          SizedBox(width: Spacing.sm.value),
           IconButton(
             icon: Icon(
               PhosphorIconsRegular.x,

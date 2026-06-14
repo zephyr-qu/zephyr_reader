@@ -39,57 +39,16 @@ class ReaderViewModel {
 
   late final ChapterViewModel chapterManager;
   late final ReadingSessionManager sessionManager;
-  late final BookmarkViewModel _bookmarks;
-  late final AnnotationViewModel _annotations;
-  late final TranslationViewModel _translation;
-
-  // ==================== 快捷 getter（ChapterViewModel） ====================
-
-  Signal<String> get bookId => chapterManager.bookId;
-  Signal<int> get chapterIndex => chapterManager.chapterIndex;
-  AsyncSignal<List<Chapter>> get chapters => chapterManager.chapters;
-  AsyncSignal<String> get chapterContent => chapterManager.chapterContent;
-  Signal<int> get totalPages => chapterManager.totalPages;
-  Signal<int> get pageIndex => chapterManager.pageIndex;
-  Signal<int> get currentCharOffset => chapterManager.currentCharOffset;
-  Signal<int?> get pendingJumpCharOffset =>
-      chapterManager.pendingJumpCharOffset;
-  Signal<bool> get isLoading => chapterManager.isLoading;
-  Signal<String?> get error => chapterManager.error;
-  double get pageWidth => chapterManager.pageWidth;
-  double get pageHeight => chapterManager.pageHeight;
-  double get devicePixelRatio => chapterManager.devicePixelRatio;
-  set pageWidth(double value) => chapterManager.pageWidth = value;
-  set pageHeight(double value) => chapterManager.pageHeight = value;
-  set devicePixelRatio(double value) => chapterManager.devicePixelRatio = value;
-  Signal<ReadingMode> get readingMode => chapterManager.readingMode;
-  Signal<int> get autoScrollTick => chapterManager.autoScrollTick;
-  ReadonlySignal<String> get progressText => chapterManager.progressText;
-  ReadonlySignal<String> get currentChapterTitle =>
-      chapterManager.currentChapterTitle;
+  late final BookmarkViewModel bookmarks;
+  late final AnnotationViewModel annotations;
+  late final TranslationViewModel translation;
 
   /// 字体大小（double，供 bindings 消费）
   late final ReadonlySignal<double> fontSizeDouble = computed(
     () => _config.fontSize.value,
   );
 
-  // ==================== 书签 getter ====================
-
-  AsyncSignal<List<Bookmark>> get bookmarks => _bookmarks.bookmarks;
-
-  // ==================== 批注 getter ====================
-
-  Signal<String> get selectedText => _annotations.selectedText;
-  Signal<int> get selectionStart => _annotations.selectionStart;
-  Signal<int> get selectionEnd => _annotations.selectionEnd;
-  AsyncSignal<List<Note>> get highlights => _annotations.highlights;
-
-  // ==================== 翻译/双语 getter ====================
-
-  bool get isTranslationConfigured => _translation.isConfigured;
-  AsyncSignal<BilingualAlignment?> get bilingualAlignment =>
-      _translation.bilingualAlignment;
-  Signal<String> get translationContent => _translation.translationContent;
+  bool get isTranslationConfigured => translation.isConfigured;
 
   // ==================== 跨切面信号 ====================
 
@@ -109,16 +68,16 @@ class ReaderViewModel {
     chapterManager = ChapterViewModel(_repo, _config);
     sessionManager = ReadingSessionManager(chapterManager);
 
-    _bookmarks = BookmarkViewModel(
+    bookmarks = BookmarkViewModel(
       chapterManager.bookId,
       chapterManager.chapterIndex,
       chapterManager.currentCharOffset,
     );
-    _annotations = AnnotationViewModel(
+    annotations = AnnotationViewModel(
       chapterManager.bookId,
       chapterManager.chapterIndex,
     );
-    _translation = TranslationViewModel(
+    translation = TranslationViewModel(
       chapterManager.bookId,
       chapterManager.chapterIndex,
       chapterManager.chapterContent,
@@ -136,8 +95,8 @@ class ReaderViewModel {
     chapterManager.bookId.value = bookId;
     chapterManager.currentCharOffset.value = 0;
 
-    isLoading.value = true;
-    error.value = null;
+    chapterManager.isLoading.value = true;
+    chapterManager.error.value = null;
 
     _disposers.add(
       effect(() {
@@ -153,7 +112,7 @@ class ReaderViewModel {
       await chapterManager.loadChapters();
       await chapterManager.loadLastProgress();
 
-      final chaptersList = chapters.value.value;
+      final chaptersList = chapterManager.chapters.value.value;
       if (chaptersList != null && chaptersList.isNotEmpty) {
         final restoredChapterIndex = chapterManager.chapterIndex.value;
         final restoredCharOffset = chapterManager.currentCharOffset.value;
@@ -168,18 +127,18 @@ class ReaderViewModel {
           targetChapterIndex,
           initialCharOffset: targetCharOffset,
           restartSession: false,
-          onChapterLoaded: _annotations.loadHighlights,
+          onChapterLoaded: annotations.loadHighlights,
         );
       }
 
-      await _bookmarks.loadBookmarks();
+      await bookmarks.loadBookmarks();
       sessionManager.startReading();
       sessionManager.startAutoSave();
     } catch (e) {
-      error.value = AppErrorMapper.humanReadable(e);
+      chapterManager.error.value = AppErrorMapper.humanReadable(e);
       Logging.error('ReaderViewModel.initialize error', exception: e);
     } finally {
-      isLoading.value = false;
+      chapterManager.isLoading.value = false;
     }
   }
 
@@ -194,7 +153,7 @@ class ReaderViewModel {
       chapterIndex,
       initialCharOffset: initialCharOffset,
       restartSession: restartSession,
-      onChapterLoaded: _annotations.loadHighlights,
+      onChapterLoaded: annotations.loadHighlights,
     );
   }
 
@@ -225,41 +184,41 @@ class ReaderViewModel {
 
   // ==================== 书签（代理到 BookmarkController） ====================
 
-  Future<void> loadBookmarks() => _bookmarks.loadBookmarks();
-  Future<bool> addBookmark() => _bookmarks.addBookmark();
+  Future<void> loadBookmarks() => bookmarks.loadBookmarks();
+  Future<bool> addBookmark() => bookmarks.addBookmark();
   Future<bool> deleteBookmark(String bookmarkId) =>
-      _bookmarks.deleteBookmark(bookmarkId);
+      bookmarks.deleteBookmark(bookmarkId);
 
   Future<void> jumpToBookmark(Bookmark bookmark) async {
     await jumpToPosition(bookmark.chapterIndex, bookmark.charOffset.toInt());
   }
 
   bool get hasBookmarkAtCurrentPosition =>
-      _bookmarks.hasBookmarkAtCurrentPosition;
-  Bookmark? get currentBookmark => _bookmarks.currentBookmark;
+      bookmarks.hasBookmarkAtCurrentPosition;
+  Bookmark? get currentBookmark => bookmarks.currentBookmark;
 
   Future<bool> toggleBookmarkAtCurrentPosition() async {
     final existing = currentBookmark;
     if (existing != null) {
-      return await _bookmarks.deleteBookmark(existing.id);
+      return await bookmarks.deleteBookmark(existing.id);
     } else {
-      return await _bookmarks.addBookmark();
+      return await bookmarks.addBookmark();
     }
   }
 
   // ==================== 划词批注（代理到 AnnotationController） ====================
 
   Future<void> loadHighlights({bool forceRefresh = false}) =>
-      _annotations.loadHighlights(forceRefresh: forceRefresh);
+      annotations.loadHighlights(forceRefresh: forceRefresh);
 
   void updateSelection(String text, int start, int end) =>
-      _annotations.updateSelection(text, start, end);
+      annotations.updateSelection(text, start, end);
 
-  void clearSelection() => _annotations.clearSelection();
+  void clearSelection() => annotations.clearSelection();
 
   Future<void> saveHighlight(AppLocalizations l10n) async {
     try {
-      await _annotations.saveHighlight();
+      await annotations.saveHighlight();
     } catch (_) {
       toastMessage.value = l10n.saveHighlightFailed;
     }
@@ -270,7 +229,7 @@ class ReaderViewModel {
     AppLocalizations l10n,
   ) async {
     try {
-      await _annotations.saveAnnotation(annotationContent);
+      await annotations.saveAnnotation(annotationContent);
     } catch (_) {
       toastMessage.value = l10n.saveAnnotationFailed;
     }
@@ -278,9 +237,9 @@ class ReaderViewModel {
 
   Future<void> deleteNote(String noteId, AppLocalizations l10n) async {
     try {
-      await _translation.deleteBilingualPair(noteId: noteId);
+      await translation.deleteBilingualPair(noteId: noteId);
       await HapticFeedback.heavyImpact();
-      await _annotations.loadHighlights(forceRefresh: true);
+      await annotations.loadHighlights(forceRefresh: true);
     } catch (_) {
       toastMessage.value = l10n.deleteHighlightFailed;
     }
@@ -288,7 +247,7 @@ class ReaderViewModel {
 
   Future<void> updateNote(Note note, AppLocalizations l10n) async {
     try {
-      await _annotations.updateNote(note);
+      await annotations.updateNote(note);
     } catch (_) {
       toastMessage.value = l10n.updateNoteFailed;
     }
@@ -301,10 +260,10 @@ class ReaderViewModel {
     _reloadDebounce = Timer(const Duration(milliseconds: 300), () {
       unawaited(
         chapterManager.loadChapter(
-          chapterIndex.value,
-          initialCharOffset: currentCharOffset.value,
+          chapterManager.chapterIndex.value,
+          initialCharOffset: chapterManager.currentCharOffset.value,
           restartSession: false,
-          onChapterLoaded: _annotations.loadHighlights,
+          onChapterLoaded: annotations.loadHighlights,
         ),
       );
     });
@@ -336,16 +295,16 @@ class ReaderViewModel {
   }
 
   void setReadingMode(ReadingMode mode) {
-    readingMode.value = mode;
+    chapterManager.readingMode.value = mode;
     if (mode == ReadingMode.bilingual) {
-      _translation.onEnterBilingualMode();
+      translation.onEnterBilingualMode();
     }
   }
 
   void setTranslationContent(String content) =>
-      _translation.setTranslationContent(content);
+      translation.setTranslationContent(content);
 
-  Future<void> translateChapter() => _translation.translateChapter();
+  Future<void> translateChapter() => translation.translateChapter();
 
   // ==================== 双语高亮 ====================
 
@@ -366,7 +325,7 @@ class ReaderViewModel {
     int highlightColor = 0xFFE91E63,
   }) async {
     try {
-      await _translation.createBilingualHighlight(
+      await translation.createBilingualHighlight(
         BilingualHighlightParams(
           sourceBookId: sourceBookId,
           sourceChapterIndex: sourceChapterIndex,
@@ -405,9 +364,9 @@ class ReaderViewModel {
     await sessionManager.stopReading();
     chapterManager.reset();
 
-    _bookmarks.reset();
-    _annotations.reset();
-    await _translation.reset();
+    bookmarks.reset();
+    annotations.reset();
+    await translation.reset();
 
     toastMessage.value = '';
   }
