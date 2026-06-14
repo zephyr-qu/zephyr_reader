@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 /// An empty state guiding the user to start reading.
 ///
 /// Shows a centered column with a large faded icon, title, optional
 /// subtitle, and a [FilledButton.tonalIcon] labelled with [buttonLabel]
-/// that navigates to [RoutePaths.bookshelf].
+/// that navigates to [AppRoute.bookshelf.path].
 ///
 /// Used by [vocabulary_page] and [note_list_widget] for their
 /// respective empty states.
@@ -56,7 +55,7 @@ class GoReadingEmptyState extends StatelessWidget {
           ],
           const SizedBox(height: 16),
           FilledButton.tonalIcon(
-            onPressed: () => context.push(RoutePaths.bookshelf),
+            onPressed: () => context.push(AppRoute.bookshelf.path),
             icon: const Icon(PhosphorIconsRegular.books, size: IconSize.inline),
             label: Text(buttonLabel),
           ),

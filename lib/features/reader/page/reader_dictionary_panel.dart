@@ -184,11 +184,10 @@ void showDictionaryPanel(
                             (s) => ActionChip(
                               label: Text(
                                 s,
-                                style: const TextStyle(fontSize: 13),
                                 style: Theme.of(context).textTheme.labelLarge?.copyWith(),
                               ),
                               onPressed: () {
-                                style: Theme.of(context).textTheme.labelLarge?.copyWith(),
+                                Theme.of(context).textTheme.labelLarge?.copyWith();
                               },
                             ),
                           )

@@ -21,7 +21,7 @@ class HomeRecentBookCard extends StatelessWidget {
     final theme = Theme.of(context);
     return InkWell(
       onTap: () => context.pushNamed(
-        RouteNames.reader,
+        AppRoute.reader.name,
         pathParameters: {'bookId': book.bookId, 'chapterId': '0'},
       ),
       borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.sm)),

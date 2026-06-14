@@ -152,6 +152,7 @@ class _BookmarkTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     if (bookmarks.isEmpty) {
       return Center(
         child: Column(
@@ -170,7 +171,7 @@ class _BookmarkTab extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               l10n.addBookmarkHint,
-              style: TextStyle(fontSize: 13, color: dimColor),
+              style: theme.textTheme.labelLarge?.copyWith(color: dimColor),
             ),
             const SizedBox(height: 16),
             if (onAddBookmark != null)
@@ -196,7 +197,7 @@ class _BookmarkTab extends StatelessWidget {
               Expanded(
                 child: Text(
                   l10n.totalBookmarks(bookmarks.length),
-                  style: TextStyle(fontSize: 13, color: dimColor),
+                  style: theme.textTheme.labelLarge?.copyWith(color: dimColor),
                 ),
               ),
               TextButton.icon(
@@ -207,7 +208,7 @@ class _BookmarkTab extends StatelessWidget {
                 ),
                 label: Text(
                   l10n.bookmarkManage,
-                  style: TextStyle(fontSize: 13, color: accentColor),
+                  style: theme.textTheme.labelLarge?.copyWith(color: accentColor),
                 ),
                 onPressed: () {
                   Navigator.of(context).pop();

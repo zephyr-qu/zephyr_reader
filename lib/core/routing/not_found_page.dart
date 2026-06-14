@@ -29,7 +29,7 @@ class NotFoundPage extends StatelessWidget {
             Text('未找到页面: $path'),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => context.go(RoutePaths.bookshelf),
+              onPressed: () => context.go(AppRoute.bookshelf.path),
               child: const Text('返回书架'),
             ),
           ],

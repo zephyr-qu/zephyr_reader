@@ -1,16 +1,16 @@
-import 'package:flutter/material.dart';
 import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
-import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
-import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/features/bookshelf/application/book_detail_view_model.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/features/bookshelf/application/book_detail_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_actions.dart';
@@ -21,8 +21,9 @@ import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_note_st
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_progress_card.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_toc_section.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class BookDetailPage extends HookWidget {
   final String bookId;
@@ -57,8 +58,7 @@ class BookDetailPage extends HookWidget {
             final book = detail.book;
             final progress = detail.progress;
             final currentChapterIndex = progress?.chapterIndex ?? -1;
-            final hasProgress =
-                progress != null && progress.progress > 0;
+            final hasProgress = progress != null && progress.progress > 0;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.only(bottom: 100),
@@ -69,18 +69,15 @@ class BookDetailPage extends HookWidget {
                   BookDetailActions(
                     hasProgress: hasProgress,
                     onContinueReading: () => context.pushNamed(
-                      RouteNames.reader,
+                      AppRoute.reader.name,
                       pathParameters: {
                         'bookId': book.bookId,
                         'chapterId': '${progress?.chapterIndex ?? 0}',
                       },
                     ),
                     onReadFromBeginning: () => context.pushNamed(
-                      RouteNames.reader,
-                      pathParameters: {
-                        'bookId': book.bookId,
-                        'chapterId': '0',
-                      },
+                      AppRoute.reader.name,
+                      pathParameters: {'bookId': book.bookId, 'chapterId': '0'},
                     ),
                   ),
                   if (progress != null)
@@ -99,7 +96,7 @@ class BookDetailPage extends HookWidget {
                     currentChapterIndex: currentChapterIndex,
                     onToggleExpand: () => toggleShowAllChapters(),
                     onChapterTap: (ci) => context.pushNamed(
-                      RouteNames.reader,
+                      AppRoute.reader.name,
                       pathParameters: {
                         'bookId': book.bookId,
                         'chapterId': '$ci',

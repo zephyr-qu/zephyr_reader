@@ -83,7 +83,7 @@
 ### 导航
 - **profile**："学习管理" 区域新增 "生词本" 菜单项 → `/vocabulary`
 - **learning_notes**：AppBar 右侧新增生词本导航按钮 → `/vocabulary`
-- **vocabulary**：空态 "去阅读" 按钮使用 `RoutePaths.bookshelf`
+- **vocabulary**：空态 "去阅读" 按钮使用 `AppRoute.bookshelf.path`
 
 ### 文件变更
 | 操作 | 文件 |

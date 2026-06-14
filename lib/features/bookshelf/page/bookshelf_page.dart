@@ -15,8 +15,8 @@ import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
-import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/application/book_import_service.dart';
+import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
 import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_batch_toolbar.dart';
 import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_book_content.dart';
@@ -130,15 +130,15 @@ class BookshelfPage extends HookWidget {
                   case 'scan':
                     _showScanDialog(context, vm);
                   case 'wifi':
-                    context.push(RoutePaths.wifiTransfer);
+                    context.push(AppRoute.wifiTransfer.path);
                   case 'search':
-                    context.push(RoutePaths.search);
+                    context.push(AppRoute.search.path);
                   case 'settings':
                     _showSettingsSheet(context, vm);
                   case 'batch':
                     batchMode.value = true;
                   case 'categories':
-                    context.push(RoutePaths.categoryManagement);
+                    context.push(AppRoute.categoryManagement.path);
                 }
               },
               itemBuilder: (context) => [
@@ -279,7 +279,7 @@ class BookshelfPage extends HookWidget {
                             selectedIds.value = ids;
                           },
                           onBookTap: (book) => context.pushNamed(
-                            RouteNames.bookDetail,
+                            AppRoute.bookDetail.name,
                             pathParameters: {'id': book.bookId},
                           ),
                           onBookLongPress: (book) =>

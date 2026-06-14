@@ -1,39 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-
-import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
+import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:flutter/services.dart';
 
 /// 底部导航栏配置
 enum BottomNavItem {
   home(
     icon: PhosphorIconsRegular.house,
     activeIcon: PhosphorIconsFill.house,
-    route: RoutePaths.home,
-    routeName: RouteNames.home,
+    route: AppRoute.home.path,
+    routeName: AppRoute.home.name,
   ),
   bookshelf(
     icon: PhosphorIconsRegular.bookOpenText,
     activeIcon: PhosphorIconsFill.bookOpenText,
-    route: RoutePaths.bookshelf,
-    routeName: RouteNames.bookshelf,
+    route: AppRoute.bookshelf.path,
+    routeName: AppRoute.bookshelf.name,
   ),
   statistics(
     icon: PhosphorIconsRegular.chartBar,
     activeIcon: PhosphorIconsFill.chartBar,
-    route: RoutePaths.statistics,
-    routeName: RouteNames.statistics,
+    route: AppRoute.statistics.path,
+    routeName: AppRoute.statistics.name,
   ),
   profile(
     icon: PhosphorIconsRegular.user,
     activeIcon: PhosphorIconsFill.user,
-    route: RoutePaths.profile,
-    routeName: RouteNames.profile,
+    route: AppRoute.profile.path,
+    routeName: AppRoute.profile.name,
   );
 
   final IconData icon;

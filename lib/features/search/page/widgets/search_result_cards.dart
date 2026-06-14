@@ -3,13 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/utils/cover_utils.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import 'search_highlight.dart';
-import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 书籍搜索结果卡片列表。
 ///
@@ -83,7 +82,7 @@ class BookSearchCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return SearchCard(
       onTap: () => context.pushNamed(
-        RouteNames.reader,
+        AppRoute.reader.name,
         pathParameters: {'bookId': book.bookId, 'chapterId': '0'},
       ),
       child: Row(
@@ -178,7 +177,7 @@ class NoteSearchCard extends StatelessWidget {
     return SearchCard(
       onTap: () {
         context.pushNamed(
-          RouteNames.reader,
+          AppRoute.reader.name,
           pathParameters: {
             'bookId': note.bookId,
             'chapterId': '${note.chapterIndex}',
@@ -242,14 +241,14 @@ class VocabSearchCard extends StatelessWidget {
       onTap: () {
         if (vocab.bookId != null && vocab.chapterIndex != null) {
           context.pushNamed(
-            RouteNames.reader,
+            AppRoute.reader.name,
             pathParameters: {
               'bookId': vocab.bookId!,
               'chapterId': '${vocab.chapterIndex}',
             },
           );
         } else {
-          context.pushNamed(RouteNames.vocabulary);
+          context.pushNamed(AppRoute.vocabulary.name);
         }
       },
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
