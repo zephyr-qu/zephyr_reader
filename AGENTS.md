@@ -20,13 +20,12 @@ Drop this file in your project root. Claude Code / Codex / Cursor / Hermes all r
 ## Project specifics
 
 - Stack: Flutter (Dart) + Rust (FRB) + flutter_rust_bridge
-- 绝对禁区: 严禁读取、修改或建议改动 `frb_generated.rs`、`frb_generated.h`、`lib/src/rust/` 等任何自动生成文件。如需调整 FFI 接口，仅允许修改 Rust 侧源文件并重新执行 `flutter_rust_bridge generate`
+- 绝对禁区: 严禁读取、修改或建议改动 `frb_generated.rs`、`frb_generated.h`、`lib/src/rust/` 等任何自动生成文件。如需调整 FFI 接口，仅允许修改 Rust 侧源文件并重新执行 `flutter_rust_bridge_codegen generate`
 - Rust API 规范: 所有导出函数必须返回 `Result<T, AppError>`，禁止 panic 跨越 FFI 边界
 - 类型映射: 优先使用 FRB 原生支持的零拷贝类型（如 `Uint8List`, `String`），避免自定义 Struct 的冗余序列化
 - 测试策略: Rust 侧单元测试覆盖纯逻辑；Dart 侧仅做集成测试与 UI 绑定验证，不重复测试 Rust 已覆盖的逻辑
 - 异步模型: Rust 侧统一使用 `tokio::spawn` + `channel`，Dart 侧通过 FRB Stream/Sink 消费，禁止在 FFI 层阻塞主线程
 - Lint: Rust 侧 `cargo clippy -- -D warnings`；Dart 侧 `dart analyze --fatal-infos`，CI 前必须双端通过
-- Rust规范: rust 代码规范查看[RUST_ENGINE_SPEC](rust/RUST_ENGINE_SPEC.md)
 
 ## Launching Dart and Flutter Applications
 

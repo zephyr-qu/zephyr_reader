@@ -19,24 +19,30 @@ class AutoThemeService {
   Timer? _autoSwitchTimer;
 
   /// 是否启用自动主题切换
-  late final autoThemeEnabled = persistedBool(
+  late final autoThemeEnabled = persisted<bool>(
     _prefs,
     SettingsKeys.autoThemeEnabled,
     false,
+    reader: (p, k) => p.getBool(k) ?? false,
+    writer: (p, k, v) => p.setBool(k, v),
   );
 
   /// 深色模式开始时间（小时）
-  late final darkModeStartHour = persistedInt(
+  late final darkModeStartHour = persisted<int>(
     _prefs,
     SettingsKeys.darkModeStartHour,
     18,
+    reader: (p, k) => p.getInt(k) ?? 18,
+    writer: (p, k, v) => p.setInt(k, v),
   );
 
   /// 深色模式结束时间（小时）
-  late final darkModeEndHour = persistedInt(
+  late final darkModeEndHour = persisted<int>(
     _prefs,
     SettingsKeys.darkModeEndHour,
     6,
+    reader: (p, k) => p.getInt(k) ?? 6,
+    writer: (p, k, v) => p.setInt(k, v),
   );
 
   /// 当前主题模式

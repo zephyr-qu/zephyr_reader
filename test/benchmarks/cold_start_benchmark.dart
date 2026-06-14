@@ -21,7 +21,6 @@ import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 import '../helpers/integration_test_helper.dart';
-import '../helpers/test_helper.dart';
 
 /// 模拟阅读页使用的默认排版配置（与 ReaderViewModel 保持同步）
 TypesetConfig _readerConfig() {

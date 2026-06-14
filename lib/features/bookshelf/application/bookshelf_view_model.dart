@@ -65,26 +65,30 @@ class BookshelfViewModel {
   final isSearching = signal<bool>(false);
 
   /// 显示阅读进度
-  late final showReadingProgress = persistedBool(
+  late final showReadingProgress = persisted<bool>(
     _prefs,
     SettingsKeys.bookshelfShowProgress,
     true,
+    reader: (p, k) => p.getBool(k) ?? true,
+    writer: (p, k, v) => p.setBool(k, v),
   );
 
   /// 默认排序方式
-  late final defaultSortType = persistedEnumCustom(
+  late final defaultSortType = persisted<BookshelfSortType>(
     _prefs,
     SettingsKeys.bookshelfDefaultSort,
     BookshelfSortType.lastRead,
-    BookshelfSortType.fromKey,
-    (v) => v.key,
+    reader: (p, k) => readEnum(p, k, BookshelfSortType.lastRead, BookshelfSortType.fromKey),
+    writer: (p, k, v) => p.setString(k, v.key),
   );
 
   /// 是否使用列表视图（false=网格视图）
-  late final _isListView = persistedBool(
+  late final _isListView = persisted<bool>(
     _prefs,
     SettingsKeys.bookshelfIsListView,
     false,
+    reader: (p, k) => p.getBool(k) ?? false,
+    writer: (p, k, v) => p.setBool(k, v),
   );
 
   /// 列表/网格视图模式（持久化）。页面消费此信号。

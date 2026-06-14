@@ -14,20 +14,26 @@ import 'package:zephyr_reader/core/utils/cache_utils.dart';
 class OtherSettingsViewModel {
   final SharedPreferences _prefs;
 
-  late final notificationsEnabled = persistedBool(
+  late final notificationsEnabled = persisted<bool>(
     _prefs,
     SettingsKeys.otherNotifications,
     true,
+    reader: (p, k) => p.getBool(k) ?? true,
+    writer: (p, k, v) => p.setBool(k, v),
   );
-  late final startupCheckEnabled = persistedBool(
+  late final startupCheckEnabled = persisted<bool>(
     _prefs,
     SettingsKeys.otherStartupCheck,
     true,
+    reader: (p, k) => p.getBool(k) ?? true,
+    writer: (p, k, v) => p.setBool(k, v),
   );
-  late final markdownPreview = persistedBool(
+  late final markdownPreview = persisted<bool>(
     _prefs,
     SettingsKeys.otherMarkdownPreview,
     false,
+    reader: (p, k) => p.getBool(k) ?? false,
+    writer: (p, k, v) => p.setBool(k, v),
   );
 
   bool _initialized = false;

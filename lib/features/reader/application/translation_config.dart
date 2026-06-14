@@ -30,34 +30,53 @@ class TranslationConfig {
   /// 请求超时秒数
   final PersistedSignal<int> timeoutSeconds;
 
-  TranslationConfig(SharedPreferences prefs)
-    : provider = persistedString(
+  TranslationConfig(SharedPreferences prefs) :
+      provider = persisted<String>(
         prefs,
         SettingsKeys.translationProvider,
         'openai',
+        reader: (p, k) => p.getString(k) ?? 'openai',
+        writer: (p, k, v) => p.setString(k, v),
       ),
-      apiUrl = persistedString(
+      apiUrl = persisted<String>(
         prefs,
         SettingsKeys.translationApiUrl,
         'https://api.openai.com',
+        reader: (p, k) => p.getString(k) ?? 'https://api.openai.com',
+        writer: (p, k, v) => p.setString(k, v),
       ),
-      apiKey = persistedString(prefs, SettingsKeys.translationApiKey, ''),
-      model = persistedString(
+      apiKey = persisted<String>(
+        prefs,
+        SettingsKeys.translationApiKey,
+        '',
+        reader: (p, k) => p.getString(k) ?? '',
+        writer: (p, k, v) => p.setString(k, v),
+      ),
+      model = persisted<String>(
         prefs,
         SettingsKeys.translationModel,
         'gpt-4o-mini',
+        reader: (p, k) => p.getString(k) ?? 'gpt-4o-mini',
+        writer: (p, k, v) => p.setString(k, v),
       ),
-      targetLang = persistedString(
+      targetLang = persisted<String>(
         prefs,
         SettingsKeys.translationTargetLang,
         'zh',
+        reader: (p, k) => p.getString(k) ?? 'zh',
+        writer: (p, k, v) => p.setString(k, v),
       ),
-      sourceLang = persistedString(
+      sourceLang = persisted<String>(
         prefs,
         SettingsKeys.translationSourceLang,
         'auto',
+        reader: (p, k) => p.getString(k) ?? 'auto',
+        writer: (p, k, v) => p.setString(k, v),
       ),
-      timeoutSeconds = persistedInt(prefs, SettingsKeys.translationTimeout, 30);
+      timeoutSeconds = persisted<int>(prefs, SettingsKeys.translationTimeout, 30,
+        reader: (p, k) => p.getInt(k) ?? 30,
+        writer: (p, k, v) => p.setInt(k, v),
+      );
 
   /// 是否已配置（API URL 和 Key 均非空）。
   bool get isConfigured => apiUrl.value.isNotEmpty && apiKey.value.isNotEmpty;
