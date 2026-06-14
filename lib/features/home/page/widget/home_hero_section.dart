@@ -56,7 +56,9 @@ class _HeroCard extends StatelessWidget {
                 SizedBox(height: DesignTokens.spacing(Spacing.xs)),
                 Text(
                   subtitle,
-                  style: theme.textTheme.labelLarge?.copyWith(color: Colors.white),
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: Colors.white,
+                  ),
                 ),
                 SizedBox(height: DesignTokens.spacing(Spacing.md)),
                 SizedBox(
@@ -148,7 +150,7 @@ class HomeHeroSection extends StatelessWidget {
         subtitle: b.author ?? l10n.unknownAuthor,
         buttonLabel: l10n.continueReading,
         onPressed: () => context.pushNamed(
-          RouteNames.reader,
+          AppRoute.reader.name,
           pathParameters: {'bookId': b.bookId, 'chapterId': '0'},
         ),
       );
@@ -162,7 +164,7 @@ class HomeHeroSection extends StatelessWidget {
       title: l10n.startReadingJourney,
       subtitle: l10n.exploreNewWorld,
       buttonLabel: l10n.goToBookshelf,
-      onPressed: () => context.pushNamed(RouteNames.bookshelf),
+      onPressed: () => context.pushNamed(AppRoute.bookshelf.name),
     );
   }
 }

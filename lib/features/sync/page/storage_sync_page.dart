@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-
+import 'package:zephyr_reader/core/presentation/widgets/confirm_action_dialog.dart';
+import 'package:zephyr_reader/core/presentation/widgets/danger_section.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_navigation_tile.dart';
+import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
+import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/utils/time_formatters.dart';
 import 'package:zephyr_reader/features/sync/application/storage_sync_view_model.dart';
-import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/features/sync/page/widgets/webdav_config_dialog.dart';
-import 'package:zephyr_reader/core/presentation/widgets/confirm_action_dialog.dart';
-import 'package:zephyr_reader/core/presentation/widgets/danger_section.dart';
-import 'package:zephyr_reader/core/theme/menu_colors.dart';
-import 'package:zephyr_reader/core/routing/route_constants.dart';
-import 'package:go_router/go_router.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 存储同步页面。
 ///
@@ -261,7 +260,7 @@ class StorageSyncPage extends HookWidget {
                   ),
                   title: l10n.cacheManage,
                   subtitle: l10n.cacheInfoTip,
-                  onTap: () => context.push(RoutePaths.cacheManage),
+                  onTap: () => context.push(AppRoute.cacheManage.path),
                 ),
               ],
             ),

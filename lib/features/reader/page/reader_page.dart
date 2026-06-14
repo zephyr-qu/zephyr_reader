@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
@@ -10,12 +11,12 @@ import 'package:zephyr_reader/core/reader/tts_service.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
-import 'package:flutter/services.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
+import 'package:zephyr_reader/features/reader/page/bookmarks/reader_note_sidebar.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page_actions.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/battery_indicator.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
@@ -24,9 +25,9 @@ import 'reader_dictionary_panel.dart';
 import 'widgets/animated_toolbar_panel.dart';
 import 'widgets/brightness_mask.dart';
 import 'widgets/reader_annotation_dialog.dart';
-import 'widgets/reader_navigation_drawer.dart';
 import 'widgets/reader_content.dart';
 import 'widgets/reader_highlight_sheet.dart';
+import 'widgets/reader_navigation_drawer.dart';
 import 'widgets/reader_note_sidebar.dart';
 import 'widgets/reader_page_bindings.dart';
 import 'widgets/reader_settings_overlay.dart';
@@ -277,7 +278,7 @@ class ReaderPage extends HookWidget {
               activePanel.value = null;
               showToolbar.value = false;
               context.pushNamed(
-                RouteNames.bookSearch,
+                AppRoute.bookSearch.name,
                 queryParameters: {'bookId': b.currentBookId},
               );
             },

@@ -17,7 +17,7 @@ class SearchResultTile extends StatelessWidget {
     final theme = Theme.of(context);
     return InkWell(
       onTap: () => context.goNamed(
-        RouteNames.reader,
+        AppRoute.reader.name,
         pathParameters: {
           'bookId': result.bookId,
           'chapterId': result.chapterId,
