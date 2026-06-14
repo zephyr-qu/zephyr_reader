@@ -28,7 +28,7 @@ class BookDetailInfoSection extends StatelessWidget {
       child: Column(
         children: [
           _infoRow(theme, l10n.bookFormat, book.format.name.toUpperCase()),
-          _infoRow(theme, l10n.fileSize, formatFileSize(book.fileSize.toInt())),
+          _infoRow(theme, l10n.fileSize, formatFileSize(book.fileSize.toInt(), l10n)),
           if (book.publisher != null && book.publisher!.isNotEmpty)
             _infoRow(theme, l10n.publisher, book.publisher!),
           if (book.translator != null && book.translator!.isNotEmpty)

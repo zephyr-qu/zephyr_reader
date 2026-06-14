@@ -65,12 +65,13 @@ class VocabListItemTile extends StatelessWidget {
           return confirmed ?? false;
         },
         onDismissed: (_) => onDismissed(),
-        child: _buildItemCard(cs, statusColor, bookTitle, l10n),
+        child: _buildItemCard(theme, cs, statusColor, bookTitle, l10n),
       ),
     );
   }
 
   Widget _buildItemCard(
+    ThemeData theme,
     ColorScheme cs,
     Color statusColor,
     String? bookTitle,

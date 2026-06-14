@@ -32,12 +32,12 @@ class BookmarkManagePage extends HookWidget {
     final ascending = useSignal(false);
 
     useEffect(() {
-      vm.loadBookmarks();
+      vm.bookmarks.loadBookmarks();
       return null;
     }, []);
 
     final AsyncState<List<Bookmark>> bookmarksState = useSignalValue(
-      vm.bookmarks,
+      vm.bookmarks.bookmarks,
     );
 
     return Scaffold(
@@ -71,7 +71,7 @@ class BookmarkManagePage extends HookWidget {
               onPressed: () {
                 isSearchMode.value = false;
                 searchController.clear();
-                vm.loadBookmarks();
+                vm.bookmarks.loadBookmarks();
               },
               tooltip: l10n.closeSearch,
             ),
@@ -137,7 +137,7 @@ class BookmarkManagePage extends HookWidget {
                 ),
                 SizedBox(height: DesignTokens.spacing(Spacing.md)),
                 FilledButton.icon(
-                  onPressed: () => vm.loadBookmarks(),
+                  onPressed: () => vm.bookmarks.loadBookmarks(),
                   label: Text(l10n.reload),
                 ),
               ],
@@ -255,7 +255,7 @@ class BookmarkManagePage extends HookWidget {
               ),
             Expanded(
               child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: DesignTokens.spacing(Spacing.md)),
                 itemCount: bookmarkList.length,
                 separatorBuilder: (_, _) =>
                     Divider(height: 0.5, color: theme.dividerColor),
@@ -268,7 +268,7 @@ class BookmarkManagePage extends HookWidget {
                     bookmark: bookmark,
                     isSelected: isSelected,
                     onTap: () {
-                      vm.jumpToBookmark(bookmark);
+                      vm.chapterManager.jumpToPosition(bookmark.chapterIndex, bookmark.charOffset.toInt());
                       context.pop();
                     },
                     onDelete: () async {
@@ -292,7 +292,7 @@ class BookmarkManagePage extends HookWidget {
                         ),
                       );
                       if (confirmed == true) {
-                        await vm.deleteBookmark(bookmark.id);
+                        await vm.bookmarks.deleteBookmark(bookmark.id);
                       }
                     },
                     onLongPress: () {
@@ -348,7 +348,7 @@ class BookmarkManagePage extends HookWidget {
     );
     if (confirmed == true) {
       await bookmark_api.deleteBookmarks(bookmarkIds: bookmarkIds.toList());
-      await vm.loadBookmarks();
+      await vm.bookmarks.loadBookmarks();
       if (context.mounted) {
         showInfoSnack(context, l10n.deletedBookmarks(bookmarkIds.length));
       }
@@ -379,7 +379,7 @@ class BookmarkManagePage extends HookWidget {
     );
     if (confirmed == true) {
       await bookmark_api.clearBookmarksByBook(bookId: bookId);
-      await vm.loadBookmarks();
+      await vm.bookmarks.loadBookmarks();
       if (context.mounted) {
         showInfoSnack(context, l10n.clearedAllBookmarks);
       }
