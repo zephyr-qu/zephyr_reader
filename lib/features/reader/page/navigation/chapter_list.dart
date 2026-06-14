@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
+import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -32,13 +33,13 @@ const _cnNumerals = [
 /// 章节列表组件。
 ///
 /// 展示书籍的章节列表，支持点击跳转和当前章节高亮。
-class ChapterListWidget extends HookWidget {
+class ChapterList extends HookWidget {
   final List<Chapter> chapters;
   final int currentChapterIndex;
   final ValueChanged<int> onChapterSelected;
   final VoidCallback onClose;
 
-  const ChapterListWidget({
+  const ChapterList({
     super.key,
     required this.chapters,
     required this.currentChapterIndex,
@@ -109,7 +110,7 @@ class ChapterListWidget extends HookWidget {
       final maxScroll = controller.position.maxScrollExtent;
       controller.animateTo(
         offset.clamp(0, maxScroll),
-        duration: const Duration(milliseconds: 500),
+        duration: AnimTokens.scroll,
         curve: Curves.easeOutCubic,
       );
     }
@@ -203,7 +204,7 @@ class ChapterListWidget extends HookWidget {
           splashColor: readerTheme.accentColor.withValues(alpha: 0.08),
           highlightColor: readerTheme.accentColor.withValues(alpha: 0.04),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
+            duration: AnimTokens.normal,
             margin: const EdgeInsets.symmetric(vertical: 2),
             padding: EdgeInsets.only(
               left: showNumber ? 4 : 20,

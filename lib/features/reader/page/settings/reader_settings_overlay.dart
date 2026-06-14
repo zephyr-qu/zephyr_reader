@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
+import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 阅读器设置浮层面板类型。
@@ -24,7 +25,7 @@ enum ReaderPanelType {
 /// 根据 [panelType] 展示不同功能区块，替代原来单一臃肿的设置面板。
 class ReaderSettingsOverlay extends StatelessWidget {
   final ReaderPanelType panelType;
-  final ThemeMode themeMode;
+  final ReaderTheme readerTheme;
   final ReadingMode readingMode;
   final double fontSize;
   final double lineHeight;
@@ -44,7 +45,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
   final ValueChanged<ReadingMode> onReadingModeChanged;
   final ValueChanged<double> onFontSizeChanged;
   final ValueChanged<double> onLineHeightChanged;
-  final ValueChanged<ThemeMode> onThemeChanged;
+  final ValueChanged<ReaderTheme> onThemeChanged;
   final ValueChanged<double> onLetterSpacingChanged;
   final ValueChanged<double> onParagraphSpacingChanged;
   final ValueChanged<double> onPageMarginChanged;
@@ -62,7 +63,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
   const ReaderSettingsOverlay({
     super.key,
     required this.panelType,
-    required this.themeMode,
+    required this.readerTheme,
     required this.readingMode,
     required this.fontSize,
     required this.lineHeight,
@@ -445,7 +446,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
           return GestureDetector(
             onTap: () => onReadingModeChanged(m.$1),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: AnimTokens.medium,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
                 color: isSelected
@@ -493,23 +494,23 @@ class ReaderSettingsOverlay extends StatelessWidget {
   ) {
     final accentColor = readerTheme.accentColor;
     final themes = [
-      (ThemeMode.light, l10n.themeLight, PhosphorIconsRegular.sun),
-      (ThemeMode.dark, l10n.themeDark, PhosphorIconsRegular.moon),
-      (ThemeMode.system, l10n.themeSystem, PhosphorIconsRegular.circle),
+      (ReaderTheme.light, l10n.readerThemeLight, PhosphorIconsRegular.sun),
+      (ReaderTheme.sepia, l10n.readerThemeSepia, PhosphorIconsRegular.leaf),
+      (ReaderTheme.dark, l10n.readerThemeDark, PhosphorIconsRegular.moon),
     ];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Row(
         children: themes.map((t) {
-          final isSelected = themeMode == t.$1;
+          final isSelected = this.readerTheme == t.$1;
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: GestureDetector(
                 onTap: () => onThemeChanged(t.$1),
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
+                  duration: AnimTokens.medium,
                   padding: const EdgeInsets.symmetric(vertical: 7),
                   decoration: BoxDecoration(
                     color: isSelected
@@ -616,7 +617,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
               child: GestureDetector(
                 onTap: () => onTapLayoutChanged(l.$1),
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
+                  duration: AnimTokens.medium,
                   padding: const EdgeInsets.symmetric(vertical: 7),
                   decoration: BoxDecoration(
                     color: isSelected
@@ -689,7 +690,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
               child: GestureDetector(
                 onTap: () => onWritingDirectionChanged(d.$1),
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
+                  duration: AnimTokens.medium,
                   padding: const EdgeInsets.symmetric(vertical: 7),
                   decoration: BoxDecoration(
                     color: isSelected
@@ -782,7 +783,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
                     child: GestureDetector(
                       onTap: () => onTextAlignChanged(o.$1),
                       child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
+                        duration: AnimTokens.medium,
                         padding: const EdgeInsets.symmetric(vertical: 7),
                         decoration: BoxDecoration(
                           color: isSelected

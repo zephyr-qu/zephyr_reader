@@ -16,25 +16,24 @@ import 'package:zephyr_reader/features/profile/application/tts_settings_view_mod
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
+import 'package:zephyr_reader/features/reader/page/binding/reader_page_bindings.dart';
+import 'package:zephyr_reader/features/reader/page/bookmarks/reader_annotation_dialog.dart';
+import 'package:zephyr_reader/features/reader/page/bookmarks/reader_highlight_sheet.dart';
 import 'package:zephyr_reader/features/reader/page/bookmarks/reader_note_sidebar.dart';
+import 'package:zephyr_reader/features/reader/page/navigation/reader_navigation_drawer.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page_actions.dart';
-import 'package:zephyr_reader/features/reader/page/widgets/battery_indicator.dart';
+import 'package:zephyr_reader/features/reader/page/settings/reader_settings_overlay.dart';
+import 'package:zephyr_reader/features/reader/page/toolbar/animated_toolbar_panel.dart';
+import 'package:zephyr_reader/features/reader/page/toolbar/reader_toolbar.dart';
+import 'package:zephyr_reader/features/reader/page/touch/selection_toolbar.dart';
+import 'package:zephyr_reader/features/reader/page/touch/tap_zone.dart';
+import 'package:zephyr_reader/features/reader/page/ui/battery_indicator.dart';
+import 'package:zephyr_reader/features/reader/page/ui/brightness_mask.dart';
+import 'package:zephyr_reader/features/reader/page/widgets/reader_content.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-
 import 'reader_dictionary_panel.dart';
-import 'widgets/animated_toolbar_panel.dart';
-import 'widgets/brightness_mask.dart';
-import 'widgets/reader_annotation_dialog.dart';
-import 'widgets/reader_content.dart';
-import 'widgets/reader_highlight_sheet.dart';
-import 'widgets/reader_navigation_drawer.dart';
-import 'widgets/reader_note_sidebar.dart';
-import 'widgets/reader_page_bindings.dart';
-import 'widgets/reader_settings_overlay.dart';
-import 'widgets/reader_toolbar.dart';
 import 'widgets/reader_translation_dialog.dart';
-import 'widgets/selection_toolbar.dart';
-import 'widgets/tap_zone.dart';
+
 
 /// 阅读器页面。
 ///
@@ -113,6 +112,12 @@ class ReaderPage extends HookWidget {
     final l10n = AppLocalizations.of(context)!;
 
     final b = useReaderBindings(vm);
+    final themeMode = switch (b.readerTheme) {
+      ReaderTheme.dark => ThemeMode.dark,
+      ReaderTheme.sepia => ThemeMode.light,
+      ReaderTheme.light => ThemeMode.light,
+    };
+
     const brightnessPresets = [0.0, 0.3, 0.5, 0.7];
 
     void cycleBrightness() {
@@ -143,17 +148,15 @@ class ReaderPage extends HookWidget {
       resetHideTimer();
     }
 
-    final readerData = useMemoized(() {
-      final baseTheme = Theme.of(context);
-      final readerExt = switch (b.readerTheme) {
-        ReaderTheme.dark => ReaderThemeExtension.dark(),
-        ReaderTheme.sepia => ReaderThemeExtension.sepia(),
-        ReaderTheme.light => ReaderThemeExtension.light(),
-      };
-      return baseTheme.copyWith(
-        extensions: [readerExt, ...baseTheme.extensions.values],
-      );
-    }, [b.readerTheme]);
+    final baseTheme = Theme.of(context);
+    final readerExt = switch (b.readerTheme) {
+      ReaderTheme.dark => ReaderThemeExtension.dark(),
+      ReaderTheme.sepia => ReaderThemeExtension.sepia(),
+      ReaderTheme.light => ReaderThemeExtension.light(),
+    };
+    final readerData = baseTheme.copyWith(
+      extensions: [readerExt, ...baseTheme.extensions.values],
+    );
 
     // ── 提取的 Stack children 构建方法 ──
 
@@ -172,7 +175,7 @@ class ReaderPage extends HookWidget {
             totalPages: b.totalPages,
             fontSize: b.fontSize,
             lineHeight: b.lineHeight,
-            themeMode: b.themeMode,
+            themeMode: themeMode,
             readingMode: b.currentReadingMode,
             content: b.content,
             isLoading: b.isLoading,
@@ -267,7 +270,7 @@ class ReaderPage extends HookWidget {
           child: ReaderToolbar(
             title: b.currentChapterTitle,
             progress: b.progressText,
-            themeMode: b.themeMode,
+            themeMode: themeMode,
             onClose: () {
               vm.resetForNewBook();
               context.pop();
@@ -318,7 +321,7 @@ class ReaderPage extends HookWidget {
             child: activePanel.value != null
                 ? ReaderSettingsOverlay(
                     panelType: activePanel.value!,
-                    themeMode: b.themeMode,
+                    readerTheme: b.readerTheme,
                     readingMode: b.currentReadingMode,
                     fontSize: vm.config.fontSize.value,
                     lineHeight: vm.config.lineHeight.value,
@@ -329,10 +332,7 @@ class ReaderPage extends HookWidget {
                     onReadingModeChanged: vm.setReadingMode,
                     onFontSizeChanged: vm.setFontSize,
                     onLineHeightChanged: vm.setLineHeight,
-                    onThemeChanged: (tm) =>
-                        config.theme.value = tm == ThemeMode.dark
-                        ? ReaderTheme.dark
-                        : ReaderTheme.light,
+                    onThemeChanged: (rt) => config.theme.value = rt,
                     onLetterSpacingChanged: (v) => vm.setLetterSpacing(v),
                     onParagraphSpacingChanged: (v) => vm.setParagraphSpacing(v),
                     onPageMarginChanged: (m) => vm.setPageMargin(m),
@@ -440,7 +440,7 @@ class ReaderPage extends HookWidget {
             onBookmarkSelected: (bm) => vm.jumpToBookmark(bm),
             onAddBookmark: () => vm.toggleBookmarkAtCurrentPosition(),
             onDeleteBookmark: (id) => vm.deleteBookmark(id),
-            themeMode: b.themeMode,
+            themeMode: themeMode,
             bookId: b.currentBookId,
           ),
           endDrawer: ReaderNoteSidebar(

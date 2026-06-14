@@ -9,95 +9,29 @@ import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'models.freezed.dart';
 
 /// 书籍元数据
-class Book {
-  final String bookId;
-  final String filePath;
-  final String? fileHash;
-  final PlatformInt64 fileSize;
-  final PlatformInt64? fileMtime;
-  final String title;
-  final String? author;
-  final String? coverPath;
-  final PlatformInt64 chapterCount;
-  final PlatformInt64 totalCharacters;
-  final BookFormat format;
-  final DateTime addedAt;
-  final DateTime? lastOpenedAt;
-  final BookStatus status;
-  final bool isPinned;
-  final String? description;
-  final String? publisher;
-  final String? translator;
-  final String? isbn;
-
-  const Book({
-    required this.bookId,
-    required this.filePath,
-    this.fileHash,
-    required this.fileSize,
-    this.fileMtime,
-    required this.title,
-    this.author,
-    this.coverPath,
-    required this.chapterCount,
-    required this.totalCharacters,
-    required this.format,
-    required this.addedAt,
-    this.lastOpenedAt,
-    required this.status,
-    required this.isPinned,
-    this.description,
-    this.publisher,
-    this.translator,
-    this.isbn,
-  });
-
-  @override
-  int get hashCode =>
-      bookId.hashCode ^
-      filePath.hashCode ^
-      fileHash.hashCode ^
-      fileSize.hashCode ^
-      fileMtime.hashCode ^
-      title.hashCode ^
-      author.hashCode ^
-      coverPath.hashCode ^
-      chapterCount.hashCode ^
-      totalCharacters.hashCode ^
-      format.hashCode ^
-      addedAt.hashCode ^
-      lastOpenedAt.hashCode ^
-      status.hashCode ^
-      isPinned.hashCode ^
-      description.hashCode ^
-      publisher.hashCode ^
-      translator.hashCode ^
-      isbn.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Book &&
-          runtimeType == other.runtimeType &&
-          bookId == other.bookId &&
-          filePath == other.filePath &&
-          fileHash == other.fileHash &&
-          fileSize == other.fileSize &&
-          fileMtime == other.fileMtime &&
-          title == other.title &&
-          author == other.author &&
-          coverPath == other.coverPath &&
-          chapterCount == other.chapterCount &&
-          totalCharacters == other.totalCharacters &&
-          format == other.format &&
-          addedAt == other.addedAt &&
-          lastOpenedAt == other.lastOpenedAt &&
-          status == other.status &&
-          isPinned == other.isPinned &&
-          description == other.description &&
-          publisher == other.publisher &&
-          translator == other.translator &&
-          isbn == other.isbn;
+@freezed
+sealed class Book with _$Book {
+  const factory Book({
+    required String bookId,
+    required String filePath,
+    String? fileHash,
+    required PlatformInt64 fileSize,
+    PlatformInt64? fileMtime,
+    required String title,
+    String? author,
+    String? coverPath,
+    required PlatformInt64 chapterCount,
+    required PlatformInt64 totalCharacters,
+    required BookFormat format,
+    required DateTime addedAt,
+    DateTime? lastOpenedAt,
+    required BookStatus status,
+    required bool isPinned,
+    String? description,
+    String? publisher,
+    String? translator,
+    String? isbn,
+  }) = _Book;
 }
 
 /// 书籍文件格式

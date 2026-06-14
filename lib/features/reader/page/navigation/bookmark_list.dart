@@ -2,148 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
-import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-import 'chapter_list_widget.dart';
-
-/// 阅读器导航侧边栏 — 目录/书签 双 TabBar。
-class ReaderNavigationDrawer extends StatelessWidget {
-  final List<Chapter> chapters;
-  final int currentChapterIndex;
-  final ValueChanged<int> onChapterSelected;
-
+class BookmarkList extends StatelessWidget {
   final List<Bookmark> bookmarks;
+  final String bookId;
   final ValueChanged<Bookmark> onBookmarkSelected;
   final VoidCallback? onAddBookmark;
   final ValueChanged<String> onDeleteBookmark;
-  final ThemeMode themeMode;
-  final String bookId;
 
-  const ReaderNavigationDrawer({
+  const BookmarkList({
     super.key,
-    required this.chapters,
-    required this.currentChapterIndex,
-    required this.onChapterSelected,
-    required this.bookmarks,
-    required this.onBookmarkSelected,
-    this.onAddBookmark,
-    required this.onDeleteBookmark,
-    required this.themeMode,
-    required this.bookId,
-  });
-
-  Color _dimColor(Color c) => c.withValues(alpha: 0.55);
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final readerTheme = theme.extension<ReaderThemeExtension>()!;
-    final tc = readerTheme.textColor;
-    final dim = _dimColor(tc);
-
-    return DefaultTabController(
-      length: 2,
-      child: Drawer(
-        width: MediaQuery.sizeOf(context).width * 0.82,
-        child: Column(
-          children: [
-            Container(
-              color: readerTheme.surfaceColor,
-              child: SafeArea(
-                bottom: false,
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              l10n.chapterList,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: tc,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: Icon(PhosphorIconsRegular.x, color: tc),
-                            onPressed: () => Navigator.of(context).pop(),
-                            tooltip: l10n.close,
-                          ),
-                        ],
-                      ),
-                    ),
-                    TabBar(
-                      labelColor: tc,
-                      unselectedLabelColor: tc.withValues(alpha: 0.45),
-                      indicatorColor: tc,
-                      labelStyle: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      unselectedLabelStyle: const TextStyle(fontSize: 14),
-                      tabs: [
-                        Tab(text: l10n.chapterList),
-                        Tab(text: l10n.bookmarks),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  ChapterListWidget(
-                    chapters: chapters,
-                    currentChapterIndex: currentChapterIndex,
-                    onChapterSelected: (i) {
-                      Navigator.of(context).pop();
-                      onChapterSelected(i);
-                    },
-                    onClose: () => Navigator.of(context).pop(),
-                  ),
-                  _BookmarkTab(
-                    bookmarks: bookmarks,
-                    bookId: bookId,
-                    textColor: tc,
-                    dimColor: dim,
-                    accentColor: readerTheme.accentColor,
-                    onBookmarkSelected: onBookmarkSelected,
-                    onAddBookmark: onAddBookmark,
-                    onDeleteBookmark: onDeleteBookmark,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// =====================================================================
-
-class _BookmarkTab extends StatelessWidget {
-  final List<Bookmark> bookmarks;
-  final String bookId;
-  final Color textColor, dimColor, accentColor;
-  final ValueChanged<Bookmark> onBookmarkSelected;
-  final VoidCallback? onAddBookmark;
-  final ValueChanged<String> onDeleteBookmark;
-
-  const _BookmarkTab({
     required this.bookmarks,
     required this.bookId,
-    required this.textColor,
-    required this.dimColor,
-    required this.accentColor,
     required this.onBookmarkSelected,
     this.onAddBookmark,
     required this.onDeleteBookmark,
@@ -152,7 +25,7 @@ class _BookmarkTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
+    final readerTheme = Theme.of(context).extension<ReaderThemeExtension>()!;
     if (bookmarks.isEmpty) {
       return Center(
         child: Column(
@@ -161,17 +34,17 @@ class _BookmarkTab extends StatelessWidget {
             Icon(
               PhosphorIconsRegular.bookmarkSimple,
               size: 48,
-              color: dimColor,
+              color: readerTheme.mutedColor,
             ),
             const SizedBox(height: 12),
             Text(
               l10n.noBookmarks,
-              style: TextStyle(fontSize: 15, color: dimColor),
+              style: TextStyle(fontSize: 15, color: readerTheme.textColor),
             ),
             const SizedBox(height: 8),
             Text(
               l10n.addBookmarkHint,
-              style: theme.textTheme.labelLarge?.copyWith(color: dimColor),
+              style: TextStyle(fontSize: 13, color: readerTheme.mutedColor),
             ),
             const SizedBox(height: 16),
             if (onAddBookmark != null)
@@ -197,18 +70,18 @@ class _BookmarkTab extends StatelessWidget {
               Expanded(
                 child: Text(
                   l10n.totalBookmarks(bookmarks.length),
-                  style: theme.textTheme.labelLarge?.copyWith(color: dimColor),
+                  style: TextStyle(fontSize: 13, color: readerTheme.mutedColor),
                 ),
               ),
               TextButton.icon(
                 icon: Icon(
                   PhosphorIconsRegular.addressBook,
                   size: 16,
-                  color: accentColor,
+                  color: readerTheme.accentColor,
                 ),
                 label: Text(
                   l10n.bookmarkManage,
-                  style: theme.textTheme.labelLarge?.copyWith(color: accentColor),
+                  style: TextStyle(fontSize: 13, color: readerTheme.accentColor),
                 ),
                 onPressed: () {
                   Navigator.of(context).pop();
@@ -222,7 +95,7 @@ class _BookmarkTab extends StatelessWidget {
                 IconButton(
                   icon: Icon(
                     PhosphorIconsRegular.plusCircle,
-                    color: accentColor,
+                    color: readerTheme.accentColor,
                     size: 20,
                   ),
                   onPressed: onAddBookmark,
@@ -243,7 +116,7 @@ class _BookmarkTab extends StatelessWidget {
             separatorBuilder: (_, _) => Divider(
               height: 1,
               indent: 16,
-              color: dimColor.withValues(alpha: 0.15),
+              color: readerTheme.mutedColor.withValues(alpha: 0.15),
             ),
             itemBuilder: (_, i) {
               final bm = sorted[i];
@@ -254,18 +127,18 @@ class _BookmarkTab extends StatelessWidget {
                 ),
                 leading: Icon(
                   PhosphorIconsRegular.bookmarkSimple,
-                  color: accentColor,
+                  color: readerTheme.accentColor,
                   size: 20,
                 ),
                 title: Text(
                   bm.title.isNotEmpty ? bm.title : l10n.unknownBook,
-                  style: TextStyle(fontSize: 14, color: textColor),
+                  style: TextStyle(fontSize: 14, color: readerTheme.textColor),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 subtitle: Text(
                   'Ch.${bm.chapterIndex + 1} @ ${bm.charOffset}',
-                  style: TextStyle(fontSize: 12, color: dimColor),
+                  style: TextStyle(fontSize: 12, color: readerTheme.mutedColor),
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -274,7 +147,7 @@ class _BookmarkTab extends StatelessWidget {
                       icon: Icon(
                         PhosphorIconsRegular.arrowUpRight,
                         size: 18,
-                        color: dimColor,
+                        color: readerTheme.mutedColor,
                       ),
                       onPressed: () {
                         Navigator.of(context).pop();
@@ -291,7 +164,7 @@ class _BookmarkTab extends StatelessWidget {
                       icon: Icon(
                         PhosphorIconsRegular.trash,
                         size: 16,
-                        color: dimColor,
+                        color: readerTheme.mutedColor,
                       ),
                       onPressed: () => _confirmDelete(context, bm, l10n),
                       tooltip: l10n.delete,

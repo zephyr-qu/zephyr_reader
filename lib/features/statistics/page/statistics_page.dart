@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/features/statistics/application/reading_stats_view_model.dart';
 import 'package:zephyr_reader/features/statistics/page/widgets/reading_trend_chart.dart';
@@ -136,7 +137,7 @@ class _PeriodSelector extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
             onTap: () => onChanged(period),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
+              duration: AnimTokens.normal,
               curve: Curves.easeOut,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(

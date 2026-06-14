@@ -3212,6 +3212,30 @@ abstract class AppLocalizations {
   /// **'千'**
   String get thousandCharsUnit;
 
+  /// No description provided for @byteUnit.
+  ///
+  /// In zh, this message translates to:
+  /// **'B'**
+  String get byteUnit;
+
+  /// No description provided for @kilobyteUnit.
+  ///
+  /// In zh, this message translates to:
+  /// **'KB'**
+  String get kilobyteUnit;
+
+  /// No description provided for @megabyteUnit.
+  ///
+  /// In zh, this message translates to:
+  /// **'MB'**
+  String get megabyteUnit;
+
+  /// No description provided for @gigabyteUnit.
+  ///
+  /// In zh, this message translates to:
+  /// **'GB'**
+  String get gigabyteUnit;
+
   /// No description provided for @livePreview.
   ///
   /// In zh, this message translates to:

@@ -11,6 +11,9 @@ class AnimTokens {
   /// 微交互（按钮反馈、选中态切换、小范围 fade）
   static const Duration fast = Duration(milliseconds: 150);
 
+  /// 选择反馈、选项按钮过渡（200ms）
+  static const Duration medium = Duration(milliseconds: 200);
+
   /// 面板显示/隐藏、容器过渡
   static const Duration normal = Duration(milliseconds: 250);
 
@@ -19,6 +22,8 @@ class AnimTokens {
 
   /// 骨架屏 shimmer、Toast 等较长时间
   static const Duration persistent = Duration(seconds: 3);
+  /// 滚动动画（scrollTo、scrollController.animateTo）
+  static const Duration scroll = Duration(milliseconds: 500);
 
   // ===== Curve =====
 

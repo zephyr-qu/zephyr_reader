@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
@@ -27,13 +28,13 @@ class SelectionToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final readerTheme = theme.extension<ReaderThemeExtension>()!;
     final l10n = AppLocalizations.of(context)!;
     final isDark = theme.brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: (isDark ? const Color(0xFF1A1A24) : const Color(0xFFFFFDF7))
-            .withValues(alpha: 0.9),
+        color: readerTheme.surfaceColor.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),

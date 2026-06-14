@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
+import 'package:zephyr_reader/features/reader/page/renderer/highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import '../../data/repositories/rust_reader_repository.dart';
-import 'package:zephyr_reader/features/reader/page/widgets/highlight_painter.dart';
 import 'reader_render_config.dart';
 import 'find_render_box.dart';
 

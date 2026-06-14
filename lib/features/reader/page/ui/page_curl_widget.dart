@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 
 // ── Page Curl Widget ──
 
@@ -41,7 +42,7 @@ class _PageCurlWidgetState extends State<PageCurlWidget>
     _ctrl =
         AnimationController(
             vsync: this,
-            duration: const Duration(milliseconds: 300),
+            duration: AnimTokens.slow,
           )
           ..addListener(() => setState(() {}))
           ..addStatusListener((status) {

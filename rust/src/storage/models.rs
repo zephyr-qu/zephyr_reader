@@ -432,6 +432,7 @@ impl TryFrom<String> for BookStatus {
 
 /// 书籍元数据
 #[derive(Debug, Clone, Serialize, Deserialize, Default, sqlx::FromRow)]
+#[frb(dart_metadata = ("freezed"))]
 pub struct Book {
     #[sqlx(rename = "id")]
     pub book_id: String,

@@ -15,6 +15,11 @@ const _itemTitle = TextStyle(fontSize: 17, fontWeight: FontWeight.w500, letterSp
 const _body = TextStyle(fontSize: 14, fontWeight: FontWeight.w400);
 const _label = TextStyle(fontSize: 12, fontWeight: FontWeight.w500, letterSpacing: 0.2);
 const _caption = TextStyle(fontSize: 11, fontWeight: FontWeight.w400);
+/// 介于 body(14) 与 itemTitle(17) 之间，用于编号、副标题等稍大正文。
+const _bodyLarge = TextStyle(fontSize: 15, fontWeight: FontWeight.w500);
+
+/// 极小说明文字，用于 tag、徽章、时间戳等紧凑场景。
+const _captionSmall = TextStyle(fontSize: 10, fontWeight: FontWeight.w400);
 
 /// 应用主题工厂
 ///
@@ -22,6 +27,12 @@ const _caption = TextStyle(fontSize: 11, fontWeight: FontWeight.w400);
 /// 提供统一的 AppBar、卡片、按钮、输入框等组件主题配置，
 /// 并注入自定义 [AppThemeExtension] 和 [ReaderThemeExtension]。
 class AppThemes {
+
+  /// 介于 body(14) 与 itemTitle(17) 之间（15px），用于编号、副标题等。
+  static const TextStyle bodyLarge = _bodyLarge;
+
+  /// 极小说明文字（10px），用于 tag、徽章、时间戳等紧凑场景。
+  static const TextStyle captionSmall = _captionSmall;
   AppThemes._();
 
   /// 界面 chrome 默认字族。
@@ -252,10 +263,6 @@ class AppThemes {
           overlayLight: textPri.withValues(alpha: 0.05),
           overlayMedium: textPri.withValues(alpha: 0.08),
         ),
-        if (isDark)
-          ReaderThemeExtension.dark()
-        else
-          ReaderThemeExtension.light(),
       ],
     );
   }
