@@ -5,6 +5,17 @@ import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/theme/theme_extension.dart';
 
+
+// ==================== 排版常量（7 档，无 color，const 零开销） ====================
+
+const _hero = TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.5);
+const _screenTitle = TextStyle(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.3);
+const _sectionTitle = TextStyle(fontSize: 20, fontWeight: FontWeight.w600, letterSpacing: -0.2);
+const _itemTitle = TextStyle(fontSize: 17, fontWeight: FontWeight.w500, letterSpacing: -0.2);
+const _body = TextStyle(fontSize: 14, fontWeight: FontWeight.w400);
+const _label = TextStyle(fontSize: 12, fontWeight: FontWeight.w500, letterSpacing: 0.2);
+const _caption = TextStyle(fontSize: 11, fontWeight: FontWeight.w400);
+
 /// 应用主题工厂
 ///
 /// 构建基于 Material 3 的亮色/深色 [ThemeData]，支持自定义主色。
@@ -12,6 +23,10 @@ import 'package:zephyr_reader/core/theme/theme_extension.dart';
 /// 并注入自定义 [AppThemeExtension] 和 [ReaderThemeExtension]。
 class AppThemes {
   AppThemes._();
+
+  /// 界面 chrome 默认字族。
+  /// Noto Sans SC — 多数 Android 预装，iOS 无则 fallback 系统字体。
+  static const String fontFamily = 'Noto Sans SC';
 
   // ===== Light mode base colors =====
   static const Color _bgLight = Color(0xFFFAFAFA);
@@ -39,6 +54,7 @@ class AppThemes {
     final Color div = isDark ? _dividerDark : _dividerLight;
 
     return ThemeData(
+      fontFamily: fontFamily,
       useMaterial3: true,
       brightness: brightness,
       pageTransitionsTheme: const PageTransitionsTheme(
@@ -48,9 +64,9 @@ class AppThemes {
         },
       ),
       scaffoldBackgroundColor: scaffoldBg,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primary,
-        brightness: brightness,
+      colorScheme: (brightness == Brightness.dark
+              ? ColorScheme.dark
+              : ColorScheme.light)(
         primary: primary,
         onPrimary: onPrimary,
         secondary: DesignTokens.secondary,
@@ -101,21 +117,18 @@ class AppThemes {
           padding: WidgetStateProperty.all(
             const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           ),
-          shape: WidgetStateProperty.all(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
           elevation: WidgetStateProperty.all(0),
           textStyle: WidgetStateProperty.all(
-            const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+            _body.copyWith(fontWeight: FontWeight.w500),
+          ),
           ),
         ),
-      ),
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: ButtonStyle(
-          shape: WidgetStateProperty.all(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
+          shape: WidgetStateProperty.all(RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.md)),
+          )),
           side: WidgetStateProperty.all(BorderSide(color: div, width: 0.5)),
           foregroundColor: WidgetStateProperty.all(textPri),
         ),
@@ -128,31 +141,31 @@ class AppThemes {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: isDark ? _surfaceDark : _bgLight,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: DesignTokens.spacing(Spacing.md),
           vertical: 12,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.md)),
           borderSide: BorderSide(color: div, width: 0.5),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.md)),
           borderSide: BorderSide(color: div, width: 0.5),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.md)),
           borderSide: BorderSide(color: primary, width: 1),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.md)),
           borderSide: const BorderSide(color: DesignTokens.error, width: 0.5),
         ),
       ),
 
       popupMenuTheme: PopupMenuThemeData(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.md)),
           side: BorderSide(color: div, width: 0.5),
         ),
         elevation: 0,
@@ -162,21 +175,27 @@ class AppThemes {
 
       listTileTheme: ListTileThemeData(
         minTileHeight: 44,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: DesignTokens.spacing(Spacing.md),
+          vertical: 2,
+        ),
         dense: true,
         titleTextStyle: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w400,
           color: textPri,
         ),
-        subtitleTextStyle: TextStyle(fontSize: 13, color: textSec),
+        subtitleTextStyle: _body.copyWith(color: textSec),
         iconColor: textSec,
       ),
 
-      iconTheme: IconThemeData(size: 22, color: textSec),
+      iconTheme: IconThemeData(size: IconSize.nav, color: textSec),
       chipTheme: ChipThemeData(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        labelStyle: TextStyle(fontSize: 12, color: textPri),
+        padding: EdgeInsets.symmetric(
+          horizontal: DesignTokens.spacing(Spacing.sm),
+          vertical: DesignTokens.spacing(Spacing.xs),
+        ),
+        labelStyle: _label.copyWith(color: textPri),
         backgroundColor: Colors.transparent,
         elevation: 0,
         side: BorderSide(color: div, width: 0.5),
@@ -192,33 +211,25 @@ class AppThemes {
         shadowColor: Colors.transparent,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: primary,
-            );
+            return _label.copyWith(color: primary);
           }
-          return TextStyle(fontSize: 12, color: textSec);
+          return _label.copyWith(color: textSec);
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return IconThemeData(size: 22, color: primary);
+            return IconThemeData(size: IconSize.nav, color: primary);
           }
-          return IconThemeData(size: 22, color: textSec);
+          return IconThemeData(size: IconSize.nav, color: textSec);
         }),
       ),
 
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: Colors.transparent,
         indicatorColor: Colors.transparent,
-        selectedIconTheme: IconThemeData(size: 22, color: primary),
-        unselectedIconTheme: IconThemeData(size: 22, color: textSec),
-        selectedLabelTextStyle: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: primary,
-        ),
-        unselectedLabelTextStyle: TextStyle(fontSize: 12, color: textSec),
+        selectedIconTheme: IconThemeData(size: IconSize.nav, color: primary),
+        unselectedIconTheme: IconThemeData(size: IconSize.nav, color: textSec),
+        selectedLabelTextStyle: _label.copyWith(color: primary),
+        unselectedLabelTextStyle: _label.copyWith(color: textSec),
       ),
 
       sliderTheme: SliderThemeData(
@@ -249,60 +260,21 @@ class AppThemes {
     );
   }
 
-  /// 构建应用文本主题，包含标题、正文、标签等各级文字样式
+  /// 构建应用文本主题。
+  ///
+  /// 覆盖 7 个 M3 slot，其余保持 M3 默认。
   static TextTheme _textTheme({
     required Color onSurface,
     required Color onSurfaceVariant,
   }) {
     return TextTheme(
-      displayLarge: TextStyle(
-        fontSize: 32,
-        fontWeight: FontWeight.w700,
-        color: onSurface,
-        letterSpacing: -0.5,
-      ),
-      displayMedium: TextStyle(
-        fontSize: 28,
-        fontWeight: FontWeight.w600,
-        color: onSurface,
-        letterSpacing: -0.3,
-      ),
-      headlineLarge: TextStyle(
-        fontSize: 24,
-        fontWeight: FontWeight.w700,
-        color: onSurface,
-        letterSpacing: -0.3,
-      ),
-      headlineMedium: TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-        color: onSurface,
-        letterSpacing: -0.2,
-      ),
-      titleLarge: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        color: onSurface,
-        letterSpacing: -0.2,
-      ),
-      titleMedium: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-        color: onSurface,
-      ),
-      bodyLarge: TextStyle(fontSize: 15, color: onSurface, height: 1.6),
-      bodyMedium: TextStyle(fontSize: 13, color: onSurfaceVariant, height: 1.5),
-      labelLarge: TextStyle(
-        fontSize: 12,
-        color: onSurfaceVariant,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 0.2,
-      ),
-      labelSmall: TextStyle(
-        fontSize: 10,
-        color: onSurfaceVariant,
-        fontWeight: FontWeight.w400,
-      ),
+      headlineMedium: _hero.copyWith(color: onSurface),
+      headlineLarge: _screenTitle.copyWith(color: onSurface),
+      headlineSmall: _sectionTitle.copyWith(color: onSurface),
+      titleLarge: _itemTitle.copyWith(color: onSurface),
+      bodyLarge: _body.copyWith(color: onSurface),
+      labelLarge: _label.copyWith(color: onSurfaceVariant),
+      labelSmall: _caption.copyWith(color: onSurfaceVariant),
     );
   }
 }

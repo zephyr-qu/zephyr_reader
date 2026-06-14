@@ -14,8 +14,11 @@ import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
 import 'package:zephyr_reader/core/local/file_storage.dart' as _i772;
+import 'package:zephyr_reader/core/local/shared_preferences_service.dart'
+    as _i467;
 import 'package:zephyr_reader/core/network/network_module.dart' as _i510;
 import 'package:zephyr_reader/core/network/wifi_transfer_service.dart' as _i82;
+import 'package:zephyr_reader/core/reader/custom_font_service.dart' as _i851;
 import 'package:zephyr_reader/core/reader/reader_config.dart' as _i849;
 import 'package:zephyr_reader/core/reader/tts_service.dart' as _i825;
 import 'package:zephyr_reader/di/app_module.dart' as _i431;
@@ -47,6 +50,8 @@ import 'package:zephyr_reader/features/reader/domain/translation_service.dart'
     as _i625;
 import 'package:zephyr_reader/features/search/application/search_view_model.dart'
     as _i1;
+import 'package:zephyr_reader/features/sync/application/services/webdav_sync_service.dart'
+    as _i9;
 import 'package:zephyr_reader/features/sync/application/storage_sync_view_model.dart'
     as _i657;
 
@@ -60,8 +65,8 @@ extension GetItInjectableX on _i174.GetIt {
     final appModule = _$AppModule();
     final networkModule = _$NetworkModule();
     final translationModule = _$TranslationModule();
-    await gh.factoryAsync<_i460.SharedPreferences>(
-      () => appModule.prefs,
+    await gh.factoryAsync<_i467.SharedPreferencesService>(
+      () => appModule.providePreferencesService(),
       preResolve: true,
     );
     gh.factory<_i5.CategoryViewModel>(() => _i5.CategoryViewModel());
@@ -79,6 +84,7 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i880.VocabularyMarkerService(),
     );
     gh.lazySingleton<_i1.SearchViewModel>(() => _i1.SearchViewModel());
+    gh.lazySingleton<_i9.WebDavSyncService>(() => _i9.WebDavSyncService());
     gh.lazySingleton<_i790.BookshelfViewModel>(
       () => _i790.BookshelfViewModel(
         gh<_i460.SharedPreferences>(),
@@ -87,6 +93,10 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.singleton<_i82.WifiTransferService>(
       () => _i82.WifiTransferService(gh<_i460.SharedPreferences>()),
+    );
+    await gh.singleton<_i851.FontRepository>(
+      () => _i851.FontRepository(gh<_i460.SharedPreferences>()),
+      preResolve: true,
     );
     gh.factory<_i362.OtherSettingsViewModel>(
       () => _i362.OtherSettingsViewModel(gh<_i460.SharedPreferences>()),

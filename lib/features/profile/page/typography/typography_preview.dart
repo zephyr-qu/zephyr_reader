@@ -5,6 +5,7 @@ import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/reader/custom_font_service.dart';
 import 'package:zephyr_reader/core/reader/models/font_info.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 String _fontFamily(FontRepository fontRepo, String fontId) {
@@ -78,7 +79,7 @@ class TypographyPreview extends HookWidget {
           ),
           const SizedBox(height: 12),
           AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
+            duration: AnimTokens.fast,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

@@ -10,185 +10,62 @@ use rust_lib_zephyr_reader::domain::AppError;
 // ==================== AppError ====================
 
 #[test]
-fn test_apperror_file_not_found() {
-    let err = AppError::file_not_found("/test/path");
-    assert!(matches!(&err, AppError::FileNotFound { path } if path == "/test/path"));
-    let display = err.to_string();
-    assert!(display.contains("File not found"));
-    assert!(display.contains("/test/path"));
-}
+fn test_apperror_display() {
+    /// 断言错误的 Display 包含所有期望的子串，且 Debug 包含变体名。
+    #[track_caller]
+    fn check(err: AppError, variant: &str, expected: &[&str]) {
+        let display = err.to_string();
+        assert!(
+            format!("{err:?}").contains(variant),
+            "Debug '{err:?}' should contain variant '{variant}'"
+        );
+        for &s in expected {
+            assert!(
+                display.contains(s),
+                "Display '{display}' should contain '{s}'"
+            );
+        }
+    }
 
-#[test]
-fn test_apperror_file_read_error() {
-    let err = AppError::file_read_error("/path/to/file.txt", "permission denied");
-    assert!(matches!(&err, AppError::FileReadError { path, details }
-        if path == "/path/to/file.txt" && details == "permission denied"));
-    let display = err.to_string();
-    assert!(display.contains("File read error"));
-    assert!(display.contains("/path/to/file.txt"));
-    assert!(display.contains("permission denied"));
-}
-
-#[test]
-fn test_apperror_file_write_error() {
-    let err = AppError::file_write_error("/output.txt", "disk full");
-    assert!(matches!(&err, AppError::FileWriteError { path, details }
-        if path == "/output.txt" && details == "disk full"));
-    let display = err.to_string();
-    assert!(display.contains("File write error"));
-    assert!(display.contains("/output.txt"));
-    assert!(display.contains("disk full"));
-}
-
-#[test]
-fn test_apperror_unsupported_format() {
-    let err = AppError::unsupported_format("docx");
-    assert!(matches!(&err, AppError::UnsupportedFormat { format } if format == "docx"));
-    let display = err.to_string();
-    assert!(display.contains("docx"));
-    assert!(display.contains("Unsupported file format"));
-}
-
-#[test]
-fn test_apperror_epub_parse_error() {
-    let err = AppError::epub_parse_error("missing container.xml");
-    assert!(
-        matches!(&err, AppError::EpubParseError { reason } if reason == "missing container.xml")
-    );
-    let display = err.to_string();
-    assert!(display.contains("EPUB parse error"));
-    assert!(display.contains("missing container.xml"));
-}
-
-#[test]
-fn test_apperror_pdf_parse_error() {
-    let err = AppError::pdf_parse_error("invalid cross reference");
-    assert!(
-        matches!(&err, AppError::PdfParseError { reason } if reason == "invalid cross reference")
-    );
-    let display = err.to_string();
-    assert!(display.contains("PDF parse error"));
-    assert!(display.contains("invalid cross reference"));
-}
-
-#[test]
-fn test_apperror_chapter_extract_error() {
-    let err = AppError::chapter_extract_error(3, "table of contents not found");
-    assert!(
-        matches!(&err, AppError::ChapterExtractError { index, reason }
-        if *index == 3 && reason == "table of contents not found")
-    );
-    let display = err.to_string();
-    assert!(display.contains("Chapter 3"));
-    assert!(display.contains("table of contents not found"));
-}
-
-#[test]
-fn test_apperror_config_error() {
-    let err = AppError::config_error("font size out of range");
-    assert!(
-        matches!(&err, AppError::TypesetConfigError { reason } if reason == "font size out of range")
-    );
-    let display = err.to_string();
-    assert!(display.contains("config error"));
-    assert!(display.contains("font size out of range"));
-}
-
-#[test]
-fn test_apperror_database_error() {
-    let err = AppError::database_error("connection timeout");
-    assert!(matches!(&err, AppError::DatabaseError { reason } if reason == "connection timeout"));
-    let display = err.to_string();
-    assert!(display.contains("Database error"));
-    assert!(display.contains("connection timeout"));
-}
-
-#[test]
-fn test_apperror_not_found() {
-    let err = AppError::not_found("Book");
-    assert!(matches!(&err, AppError::NotFound { entity } if entity == "Book"));
-    let display = err.to_string();
-    assert!(display.contains("Resource not found"));
-    assert!(display.contains("Book"));
+    check(AppError::FileNotFound { path: "/test/path".into() },           "FileNotFound",       &["File not found", "/test/path"]);
+    check(AppError::FileReadError { path: "/path".into(), details: "denied".into() }, "FileReadError", &["File read error", "/path", "denied"]);
+    check(AppError::FileWriteError { path: "/out".into(), details: "full".into() },   "FileWriteError", &["File write error", "/out", "full"]);
+    check(AppError::UnsupportedFormat { format: "docx".into() },          "UnsupportedFormat",  &["docx", "Unsupported file format"]);
+    check(AppError::EpubParseError { reason: "missing container.xml".into() },         "EpubParseError",  &["EPUB parse error", "missing container.xml"]);
+    check(AppError::PdfParseError { reason: "invalid cross reference".into() },         "PdfParseError",   &["PDF parse error", "invalid cross reference"]);
+    check(AppError::ChapterExtractError { index: 3, reason: "toc not found".into() },   "ChapterExtractError", &["Chapter 3", "toc not found"]);
+    check(AppError::TypesetConfigError { reason: "font size out of range".into() },     "TypesetConfigError",  &["config error", "font size out of range"]);
+    check(AppError::DatabaseError { reason: "connection timeout".into() },              "DatabaseError",       &["Database error", "connection timeout"]);
+    check(AppError::NotFound { entity: "Book".into() },                   "NotFound",           &["Resource not found", "Book"]);
+    check(AppError::SearchError { reason: "index not ready".into() },     "SearchError",        &["Search error", "index not ready"]);
+    check(AppError::SecurityError { reason: "traversal".into(), path: "/etc/passwd".into() }, "SecurityError", &["Security error", "traversal", "/etc/passwd"]);
+    check(AppError::InvalidInput { reason: "empty title".into() },        "InvalidInput",       &["Invalid input", "empty title"]);
+    check(AppError::InternalError { reason: "null ptr".into() },           "InternalError",     &["Internal error", "null ptr"]);
+    check(AppError::TaskPanic { task_name: "parser".into(), details: "overflow".into() }, "TaskPanic", &["Task panic", "parser", "overflow"]);
 }
 
 #[test]
 fn test_apperror_storage_not_initialized() {
-    let err = AppError::storage_not_initialized();
-    assert!(matches!(&err, AppError::StorageNotInitialized));
-    let display = err.to_string();
+    let display = AppError::StorageNotInitialized.to_string();
     assert_eq!(display, "Storage not initialized. Call init() first.");
 }
 
 #[test]
-fn test_apperror_search_error() {
-    let err = AppError::search_error("index not ready");
-    assert!(matches!(&err, AppError::SearchError { reason } if reason == "index not ready"));
-    let display = err.to_string();
-    assert!(display.contains("Search error"));
-    assert!(display.contains("index not ready"));
-}
-
-#[test]
-fn test_apperror_security_error() {
-    let err = AppError::security_error("path traversal detected", "/etc/passwd");
-    assert!(matches!(&err, AppError::SecurityError { reason, path }
-        if reason == "path traversal detected" && path == "/etc/passwd"));
-    let display = err.to_string();
-    assert!(display.contains("Security error"));
-    assert!(display.contains("path traversal detected"));
-    assert!(display.contains("/etc/passwd"));
-}
-
-#[test]
-fn test_apperror_invalid_input() {
-    let err = AppError::invalid_input("empty book title");
-    assert!(matches!(&err, AppError::InvalidInput { reason } if reason == "empty book title"));
-    let display = err.to_string();
-    assert!(display.contains("Invalid input"));
-    assert!(display.contains("empty book title"));
-}
-
-#[test]
-fn test_apperror_internal() {
-    let err = AppError::internal("unexpected null pointer");
-    assert!(
-        matches!(&err, AppError::InternalError { reason } if reason == "unexpected null pointer")
-    );
-    let display = err.to_string();
-    assert!(display.contains("Internal error"));
-    assert!(display.contains("unexpected null pointer"));
-}
-
-#[test]
-fn test_apperror_task_panic() {
-    let err = AppError::task_panic("pdf_parser", "stack overflow");
-    assert!(matches!(&err, AppError::TaskPanic { task_name, details }
-        if task_name == "pdf_parser" && details == "stack overflow"));
-    let display = err.to_string();
-    assert!(display.contains("Task panic"));
-    assert!(display.contains("pdf_parser"));
-    assert!(display.contains("stack overflow"));
-}
-
-#[test]
 fn test_apperror_other() {
-    let err = AppError::other("something went wrong");
+    let err = AppError::Other("something went wrong".into());
     assert!(matches!(&err, AppError::Other(msg) if msg == "something went wrong"));
-    let display = err.to_string();
-    assert_eq!(display, "something went wrong");
+    assert_eq!(err.to_string(), "something went wrong");
 }
 
 #[test]
 fn test_apperror_debug_and_display() {
-    let err = AppError::invalid_input("bad value");
+    let err = AppError::InvalidInput { reason: "bad value".into() };
     let debug = format!("{err:?}");
     let display = format!("{err}");
     assert_ne!(debug, display, "Debug and Display output should differ");
     assert!(debug.contains("InvalidInput"));
     assert!(display.contains("Invalid input"));
 }
-
 // ==================== TypesetConfig ====================
 
 #[test]

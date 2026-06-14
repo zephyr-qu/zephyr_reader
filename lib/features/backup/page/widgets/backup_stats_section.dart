@@ -22,8 +22,7 @@ class BackupStatsSection extends StatelessWidget {
       children: [
         Text(
           l10n.currentDataStats,
-          style: TextStyle(
-            fontSize: 13,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.w600,
             color: cs.onSurface,
           ),

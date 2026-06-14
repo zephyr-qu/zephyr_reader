@@ -56,7 +56,7 @@ class _HeroCard extends StatelessWidget {
                 SizedBox(height: DesignTokens.spacing(Spacing.xs)),
                 Text(
                   subtitle,
-                  style: const TextStyle(fontSize: 13, color: Colors.white),
+                  style: theme.textTheme.labelLarge?.copyWith(color: Colors.white),
                 ),
                 SizedBox(height: DesignTokens.spacing(Spacing.md)),
                 SizedBox(
@@ -75,8 +75,7 @@ class _HeroCard extends StatelessWidget {
                     ),
                     child: Text(
                       buttonLabel,
-                      style: const TextStyle(
-                        fontSize: 13,
+                      style: theme.textTheme.labelLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),

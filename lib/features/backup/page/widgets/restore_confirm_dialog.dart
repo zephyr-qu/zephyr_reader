@@ -27,7 +27,7 @@ Future<bool?> showRestoreConfirmDialog(
         children: [
           Text(
             l10n.restoreConfirmWarning,
-            style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
           Container(

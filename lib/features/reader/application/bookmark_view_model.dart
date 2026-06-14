@@ -4,11 +4,10 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/data/bookmark.dart' as bookmark_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-/// 书签控制器。
+/// 书签视图模型。
 ///
 /// 管理当前书籍的书签信号和 CRUD 操作、位置索引和跨章节跳转。
-/// 不持有 ViewModel 引用，所有依赖通过构造注入。
-class BookmarkController {
+class BookmarkViewModel {
   final Signal<String> _bookId;
   final Signal<int> _chapterIndex;
   final Signal<int> _currentCharOffset;
@@ -25,7 +24,7 @@ class BookmarkController {
     return map;
   });
 
-  BookmarkController(this._bookId, this._chapterIndex, this._currentCharOffset);
+  BookmarkViewModel(this._bookId, this._chapterIndex, this._currentCharOffset);
 
   /// 加载当前书籍的所有书签。
   Future<void> loadBookmarks() async {

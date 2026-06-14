@@ -9,11 +9,11 @@ import 'package:zephyr_reader/features/reader/domain/translation_service.dart';
 import 'package:zephyr_reader/features/reader/data/translation/translation_cache.dart';
 import 'package:zephyr_reader/features/reader/application/translation_config.dart';
 
-/// 翻译控制器。
+/// 翻译视图模型。
 ///
 /// 管理翻译 API 调用、双语对齐、双语高亮和翻译缓存。
 /// 不持有 ViewModel 引用，所有依赖通过构造注入。
-class TranslationController {
+class TranslationViewModel {
   // ignore: unused_field — reserved for future use
   final Signal<String> _bookId;
   final Signal<int> _chapterIndex;
@@ -29,7 +29,7 @@ class TranslationController {
   );
   final translationContent = signal<String>('');
 
-  TranslationController(
+  TranslationViewModel(
     this._bookId,
     this._chapterIndex,
     this._chapterContent,

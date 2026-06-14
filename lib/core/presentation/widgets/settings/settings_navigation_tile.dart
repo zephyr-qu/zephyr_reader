@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 /// 设置页导航条目。
 ///
@@ -55,7 +56,7 @@ class SettingsNavigationTile extends StatelessWidget {
                   color: effectiveIconBg,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, size: 16, color: effectiveIconColor),
+                child: Icon(icon, size: IconSize.inline, color: effectiveIconColor),
               ),
             const SizedBox(width: 12),
             Expanded(

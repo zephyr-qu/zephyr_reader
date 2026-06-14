@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 
 /// 带动画的工具栏面板容器。
 ///
@@ -20,7 +21,7 @@ class AnimatedToolbarPanel extends StatelessWidget {
     return RepaintBoundary(
       child: AnimatedSlide(
         offset: visible ? Offset.zero : Offset(0, slideBeginY),
-        duration: const Duration(milliseconds: 250),
+        duration: AnimTokens.normal,
         curve: Curves.easeOut,
         child: child,
       ),

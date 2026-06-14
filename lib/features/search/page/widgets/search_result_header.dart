@@ -58,8 +58,7 @@ class ResultGroupHeader extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: theme.colorScheme.onSurfaceVariant,
                     letterSpacing: 0.5,

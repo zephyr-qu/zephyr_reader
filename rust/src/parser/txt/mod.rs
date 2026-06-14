@@ -49,7 +49,7 @@ impl TxtParser {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || parse_txt(fp))
             .await
-            .map_err(|e| AppError::internal(format!("parse task failed: {}", e)))?
+            .map_err(|e| AppError::InternalError { reason: format!("parse task failed: {}", e).into() })?
     }
 
     /// 提取 TXT 文件元数据
@@ -68,7 +68,7 @@ impl TxtParser {
         let fp = file_path.to_string();
         let result = tokio::task::spawn_blocking(move || parse_txt(fp))
             .await
-            .map_err(|e| AppError::internal(format!("parse task failed: {}", e)))??;
+            .map_err(|e| AppError::InternalError { reason: format!("parse task failed: {}", e).into() })??;
         Ok(BookMetadata {
             title: result.book_info.title,
             author: result.book_info.author.unwrap_or_default(),
@@ -109,10 +109,7 @@ impl TxtParser {
                 .iter()
                 .find(|c| c.chapter_index == chapter_index as i64)
                 .ok_or_else(|| {
-                    AppError::chapter_extract_error(
-                        chapter_index,
-                        format!("chapter {} not found", chapter_index),
-                    )
+                    AppError::ChapterExtractError { index: chapter_index, reason: format!("chapter {} not found", chapter_index).into() }
                 })?;
 
             let start = chapter.start_index as usize;
@@ -130,16 +127,13 @@ impl TxtParser {
                     start,
                     safe_end
                 );
-                return Err(AppError::chapter_extract_error(
-                    0,
-                    format!("invalid chapter boundary: {}-{}", start, safe_end),
-                ));
+                return Err(AppError::ChapterExtractError { index: 0, reason: format!("invalid chapter boundary: {}-{}", start, safe_end).into() });
             }
 
             Ok(content[start..safe_end].to_string())
         })
         .await
-        .map_err(|e| AppError::internal(format!("chapter extraction failed: {}", e)))?
+        .map_err(|e| AppError::InternalError { reason: format!("chapter extraction failed: {}", e).into() })?
     }
 }
 

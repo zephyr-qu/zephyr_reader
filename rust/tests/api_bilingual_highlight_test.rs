@@ -8,29 +8,11 @@ use rust_lib_zephyr_reader::api::bilingual::{
     create_bilingual_highlight_pair, delete_bilingual_highlight_pair,
     get_bilingual_highlight_pairs, BilingualHighlightParams,
 };
-use rust_lib_zephyr_reader::api::data::{self, init};
+use rust_lib_zephyr_reader::api::data;
 use rust_lib_zephyr_reader::storage::models::{Book, BookFormat, BookStatus};
-use std::sync::OnceLock;
-use tempfile::TempDir;
 
 // ==================== 测试工具函数 ====================
 
-static TEST_STORAGE: OnceLock<TempDir> = OnceLock::new();
-
-// 初始化测试存储环境（全局只初始化一次）
-async fn ensure_storage_initialized() {
-    if TEST_STORAGE.get().is_some() {
-        return;
-    }
-    let temp_dir = TempDir::new().expect("failed to create temp dir");
-    let data_dir = temp_dir.path().to_str().unwrap().to_string();
-    if let Err(e) = init::init_storage(data_dir).await {
-        if !e.to_string().contains("already initialized") {
-            panic!("failed to init storage: {e}");
-        }
-    }
-    TEST_STORAGE.get_or_init(|| temp_dir);
-}
 
 // 创建测试书籍模板
 fn create_test_book(file_path: &str) -> Book {
@@ -62,7 +44,7 @@ fn create_test_book(file_path: &str) -> Book {
 #[tokio::test]
 async fn test_create_and_get_bilingual_pair() {
     // 测试创建双语高亮配对，再通过 get 获取并验证字段正确性
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let book_id = "bilingual-book-create-get".to_string();
     let mut book = create_test_book("/test/bilingual_cg.epub");
@@ -138,7 +120,7 @@ async fn test_create_and_get_bilingual_pair() {
 #[tokio::test]
 async fn test_get_bilingual_pairs_empty_chapter() {
     // 测试查询不存在的书籍或没有配对的章节应返回空列表
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let pairs = get_bilingual_highlight_pairs("nonexistent-book".to_string(), 0).await;
     assert!(pairs.is_ok(), "查询不存在的书籍应返回 Ok");
@@ -153,7 +135,7 @@ async fn test_get_bilingual_pairs_empty_chapter() {
 #[tokio::test]
 async fn test_delete_bilingual_pair() {
     // 测试删除双语高亮配对后，配对的双方都被删除
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let book_id = "bilingual-book-delete".to_string();
     let mut book = create_test_book("/test/bilingual_del.epub");
@@ -200,7 +182,7 @@ async fn test_delete_bilingual_pair() {
 #[tokio::test]
 async fn test_delete_nonexistent_pair() {
     // 测试删除不存在的配对 ID 应静默成功（无操作）
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let result = delete_bilingual_highlight_pair("nonexistent-id".to_string()).await;
     assert!(
@@ -214,7 +196,7 @@ async fn test_delete_nonexistent_pair() {
 #[tokio::test]
 async fn test_create_bilingual_pair_same_book_diff_chapters() {
     // 测试在同一本书的不同章节间创建双语高亮配对
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let book_id = "bilingual-book-diff-chapters".to_string();
     let mut book = create_test_book("/test/bilingual_diffc.epub");

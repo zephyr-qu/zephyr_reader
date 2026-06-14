@@ -12,15 +12,15 @@ import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import '../../../core/reader/reader_config.dart';
 import '../data/repositories/rust_reader_repository.dart';
 
-/// 章节管理器
+/// 章节视图模型
 ///
 /// 管理书籍/章节加载、分页导航、布局参数、自动滚动和搜索索引生命周期。
-/// 不持有 UI 面板状态（由 ReaderViewModel 管理）。
-class ChapterManager {
+/// 不持有 UI 面板状态（由 ReaderViewModel Facade 协调）。
+class ChapterViewModel {
   final ReaderRepository _repo;
   final ReaderConfig _config;
 
-  ChapterManager(this._repo, this._config);
+  ChapterViewModel(this._repo, this._config);
 
   // ==================== 书籍状态 ====================
 

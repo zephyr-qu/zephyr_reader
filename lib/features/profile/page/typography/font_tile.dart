@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/reader/models/font_info.dart';
+import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 
 class FontTile extends StatelessWidget {
   final FontInfo font;
@@ -27,7 +28,7 @@ class FontTile extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+          duration: AnimTokens.fast,
           margin: const EdgeInsets.symmetric(horizontal: 4),
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(

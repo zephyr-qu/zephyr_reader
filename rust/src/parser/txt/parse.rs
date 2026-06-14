@@ -88,7 +88,7 @@ fn parse_txt_inner(file_path: String) -> Result<ParseResult, AppError> {
 
     // 检查文件是否存在
     if !Path::new(&file_path).exists() {
-        return Err(AppError::file_not_found(&file_path));
+        return Err(AppError::FileNotFound { path: file_path.into() });
     }
     tracing::debug!("file existence check passed: {}", file_path);
 
@@ -128,19 +128,11 @@ fn parse_txt_inner(file_path: String) -> Result<ParseResult, AppError> {
         author: Some(author),
         chapter_count: chapters.len() as i64,
         total_characters: total_chars,
-        cover_path: None,
-        publisher: None,
-        translator: None,
-        isbn: None,
-        file_hash: None,
         file_size,
-        file_mtime: None,
         description: meta_description,
         format: BookFormat::Txt,
         added_at: chrono::Utc::now(),
-        last_opened_at: None,
-        status: crate::storage::models::BookStatus::Reading,
-        is_pinned: false,
+        ..Default::default()
     };
 
     let elapsed = start_time.elapsed();

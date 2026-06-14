@@ -16,10 +16,7 @@ pub fn extract_metadata_from_path(file_path: &str) -> Result<PdfMetadata, AppErr
     let pdf = pdfium
         .load_pdf_from_file(file_path, None)
         .map_err(|e| {
-            AppError::file_read_error(
-                file_path.to_string(),
-                format!("PDF document open failed: {}", e),
-            )
+            AppError::FileReadError { path: file_path.to_string().into(), details: format!("PDF document open failed: {}", e).into() }
         })?;
 
     // 尝试从 /Info 字典解析元数据（失败时返回默认值，不阻塞）
@@ -49,18 +46,18 @@ pub fn extract_metadata_from_path(file_path: &str) -> Result<PdfMetadata, AppErr
 /// ```
 fn parse_pdf_info_dict(file_path: &str) -> Result<PdfMetadata, AppError> {
     let bytes = std::fs::read(file_path)
-        .map_err(|e| AppError::file_read_error(file_path.to_string(), e.to_string()))?;
+        .map_err(|e| AppError::FileReadError { path: file_path.to_string().into(), details: e.to_string().into() })?;
 
     // 1. 在文件末尾查找 trailer 块
     let trailer = find_trailer(&bytes)
-        .ok_or_else(|| AppError::pdf_parse_error("cannot find PDF trailer"))?;
+        .ok_or_else(|| AppError::PdfParseError { reason: "cannot find PDF trailer".into() })?;
 
     // 2. 从 trailer 字典中解析 /Info 对象引用号
     let info_ref = parse_info_ref(trailer)?;
 
     // 3. 定位 /Info 对象字节段
     let obj_bytes = find_object(&bytes, info_ref)
-        .ok_or_else(|| AppError::pdf_parse_error(format!("Info object {} not found", info_ref)))?;
+        .ok_or_else(|| AppError::PdfParseError { reason: format!("Info object {} not found", info_ref).into() })?;
 
     // 4. 提取字段
     Ok(PdfMetadata {
@@ -105,7 +102,7 @@ fn parse_info_ref(trailer: &[u8]) -> Result<u32, AppError> {
                 .windows(6)
                 .position(|w| w.eq_ignore_ascii_case(b"/Info\n"))
         })
-        .ok_or_else(|| AppError::pdf_parse_error("/Info not found in trailer"))?;
+        .ok_or_else(|| AppError::PdfParseError { reason: "/Info not found in trailer".into() })?;
 
     let after_info = &trailer[info_pos + 5..]; // skip "/Info"
 
@@ -115,14 +112,14 @@ fn parse_info_ref(trailer: &[u8]) -> Result<u32, AppError> {
 
     let mut parts = after_trimmed.splitn(3, |b: &u8| b.is_ascii_whitespace());
     let num_str = parts.next().ok_or_else(|| {
-        AppError::pdf_parse_error("cannot parse Info object number")
+        AppError::PdfParseError { reason: "cannot parse Info object number".into() }
     })?;
 
     let num = std::str::from_utf8(num_str)
-        .map_err(|_| AppError::pdf_parse_error("Info object number is not valid UTF-8"))?;
+        .map_err(|_| AppError::PdfParseError { reason: "Info object number is not valid UTF-8".into() })?;
 
     num.parse::<u32>()
-        .map_err(|e| AppError::pdf_parse_error(format!("invalid Info object number: {}", e)))
+        .map_err(|e| AppError::PdfParseError { reason: format!("invalid Info object number: {}", e).into() })
 }
 
 /// 在 PDF 字节中查找对象 `N 0 obj ... endobj` 并返回内容段

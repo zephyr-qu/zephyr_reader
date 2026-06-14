@@ -17,10 +17,11 @@ void main() {
 
     test('vocab 计数初始为 0', () {
       final vm = ReadingStatsViewModel();
-      expect(vm.vocabUnstarted.value, equals(0));
-      expect(vm.vocabLearning.value, equals(0));
-      expect(vm.vocabMastered.value, equals(0));
-      expect(vm.vocabIgnored.value, equals(0));
+      final vs = vm.vocabStats.value;
+      expect(vs.unstartedCount, equals(0));
+      expect(vs.learningCount, equals(0));
+      expect(vs.masteredCount, equals(0));
+      expect(vs.ignoredCount, equals(0));
     });
   });
 }

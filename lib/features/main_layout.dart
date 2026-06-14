@@ -5,8 +5,9 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
+import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/core/utils/haptic.dart';
+import 'package:flutter/services.dart';
 
 /// 底部导航栏配置
 enum BottomNavItem {
@@ -302,12 +303,12 @@ class MainLayout extends HookWidget {
                 child: GestureDetector(
                   onTap: () {
                     context.go(item.route);
-                    hapticFeedback(HapticType.light);
+                    HapticFeedback.lightImpact();
                   },
                   behavior: HitTestBehavior.opaque,
                   child: AnimatedScale(
                     scale: isSelected ? 1.0 : 0.9,
-                    duration: const Duration(milliseconds: 300),
+                    duration: AnimTokens.slow,
                     curve: Curves.easeOutBack,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,

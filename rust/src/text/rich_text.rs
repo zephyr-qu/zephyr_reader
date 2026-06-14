@@ -34,7 +34,7 @@ pub fn parse_html_to_rich_text(html_content: &str) -> Result<Vec<RichParagraph>,
     let dom = parse_document(RcDom::default(), Default::default())
         .from_utf8()
         .read_from(&mut html_content.as_bytes())
-        .map_err(|e| AppError::epub_parse_error(format!("HTML parse failed: {}", e)))?;
+        .map_err(|e| AppError::EpubParseError { reason: format!("HTML parse failed: {}", e).into() })?;
 
     let mut paragraphs = Vec::new();
 
@@ -186,6 +186,28 @@ impl ComputedStyle {
     }
 }
 
+/// 构建段落对象的辅助函数，填充不随标签变动的固定字段。
+fn build_paragraph(
+    spans: Vec<RichTextSpan>,
+    indent: u8,
+    is_heading: bool,
+    heading_level: u8,
+    class_name: Option<String>,
+    text_align: Option<String>,
+    line_height: Option<f32>,
+) -> RichParagraph {
+    RichParagraph {
+        spans,
+        indent,
+        is_heading,
+        heading_level,
+        class_name,
+        text_align,
+        line_height,
+        ..Default::default()
+    }
+}
+
 /// 遍历 DOM 树
 fn traverse_dom(
     handle: &Handle,
@@ -235,23 +257,15 @@ fn traverse_dom(
                 let mut spans = Vec::new();
                 collect_text_spans(handle, &mut spans, &merged_style, style_map);
                 if !spans.is_empty() {
-                    paragraphs.push(RichParagraph {
+                    paragraphs.push(build_paragraph(
                         spans,
-                        indent: 2,
-                        is_heading: false,
-                        heading_level: 0,
-                        class_name: if current_class.is_empty() {
-                            inherited_class
-                        } else {
-                            Some(current_class)
-                        },
-                        text_align: merged_style.text_align.clone(),
-                        line_height: merged_style.line_height,
-                        is_image: false,
-                        image_src: None,
-                        image_data: Vec::new(),
-                        image_alt: None,
-                    });
+                        2,
+                        false,
+                        0,
+                        if current_class.is_empty() { inherited_class } else { Some(current_class) },
+                        merged_style.text_align.clone(),
+                        merged_style.line_height,
+                    ));
                 }
             }
 
@@ -283,23 +297,15 @@ fn traverse_dom(
                 }
 
                 if !spans.is_empty() {
-                    paragraphs.push(RichParagraph {
+                    paragraphs.push(build_paragraph(
                         spans,
-                        indent: 0,
-                        is_heading: true,
-                        heading_level: level,
-                        class_name: if current_class.is_empty() {
-                            inherited_class
-                        } else {
-                            Some(current_class)
-                        },
-                        text_align: merged_style.text_align.clone().or(Some("left".to_string())),
-                        line_height: merged_style.line_height,
-                        is_image: false,
-                        image_src: None,
-                        image_data: Vec::new(),
-                        image_alt: None,
-                    });
+                        0,
+                        true,
+                        level,
+                        if current_class.is_empty() { inherited_class } else { Some(current_class) },
+                        merged_style.text_align.clone().or(Some("left".to_string())),
+                        merged_style.line_height,
+                    ));
                 }
 
             }
@@ -318,23 +324,15 @@ fn traverse_dom(
                         }),
                     );
 
-                    paragraphs.push(RichParagraph {
+                    paragraphs.push(build_paragraph(
                         spans,
-                        indent: 0,
-                        is_heading: false,
-                        heading_level: 0,
-                        class_name: if current_class.is_empty() {
-                            inherited_class
-                        } else {
-                            Some(current_class)
-                        },
-                        text_align: merged_style.text_align.clone(),
-                        line_height: merged_style.line_height,
-                        is_image: false,
-                        image_src: None,
-                        image_data: Vec::new(),
-                        image_alt: None,
-                    });
+                        0,
+                        false,
+                        0,
+                        if current_class.is_empty() { inherited_class } else { Some(current_class) },
+                        merged_style.text_align.clone(),
+                        merged_style.line_height,
+                    ));
                 }
 
             }

@@ -31,11 +31,10 @@ class BookDetailDescSection extends StatelessWidget {
           const SizedBox(height: 8),
           SelectableText(
             description,
-            style: TextStyle(
-              fontSize: 13,
-              height: 1.7,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-            ),
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+            height: 1.7,
+          ),
           ),
         ],
       ),

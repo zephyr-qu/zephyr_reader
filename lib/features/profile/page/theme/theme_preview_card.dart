@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 const _previewColors = <(Color, Color)>[
@@ -26,7 +27,7 @@ class ThemePreviewCard extends StatelessWidget {
     final fg = colors.$2;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
+      duration: AnimTokens.normal,
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(16),

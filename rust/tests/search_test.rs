@@ -5,35 +5,15 @@ mod common;
 use parking_lot::Mutex;
 use rust_lib_zephyr_reader::api::{self};
 use std::sync::LazyLock;
-use tempfile::TempDir;
 
 // ==================== 测试工具函数 ====================
 
-
-/// 串行化测试访问全局 STORAGE（OnceLock 单例）
+/// 串行化测试访问全局 STORAGE
 static TEST_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
-// 初始化测试存储环境（全局只初始化一次）
-async fn ensure_storage_initialized() {
-    let temp_dir = TempDir::new().expect("failed to create temp dir");
-    let data_dir = temp_dir.path().to_str().unwrap().to_string();
-
-    // 初始化存储（首次调用成功，后续忽略 "already initialized"）
-    if let Err(e) = api::data::init::init_storage(data_dir.clone()).await {
-        if !e.to_string().contains("already initialized") {
-            panic!("failed to init storage: {:?}", e);
-        }
-    }
-
-    // 初始化搜索引擎
-    if let Err(e) = api::search::init_search_engine().await {
-        if !e.to_string().contains("already initialized") {
-            panic!("failed to init search engine: {:?}", e);
-        }
-    }
-
-    // temp_dir 在此处被丢弃 → 目录删除；但 init_storage 的 OnceLock 已经
-    // 持有目录路径的副本，对已在全局存储中的操作无影响。
+async fn init_test_env() {
+    common::init_test_storage().await;
+    common::init_test_search_engine().await;
 }
 
 
@@ -42,7 +22,7 @@ async fn ensure_storage_initialized() {
 #[tokio::test]
 async fn test_index_single_chapter() {
     let _guard = TEST_LOCK.lock();
-    ensure_storage_initialized().await;
+    init_test_env().await;
 
     let book_id = "test_index_single".to_string();
     // 创建章节内容
@@ -66,7 +46,7 @@ async fn test_index_single_chapter() {
 #[tokio::test]
 async fn test_index_multiple_chapters() {
     let _guard = TEST_LOCK.lock();
-    ensure_storage_initialized().await;
+    init_test_env().await;
 
     let book_id = "test_index_multiple".to_string();
 
@@ -110,7 +90,7 @@ async fn test_index_multiple_chapters() {
 #[tokio::test]
 async fn test_index_chapter_update() {
     let _guard = TEST_LOCK.lock();
-    ensure_storage_initialized().await;
+    init_test_env().await;
 
     let book_id = "test_index_update".to_string();
     let chapter_id = "chapter_1".to_string();
@@ -147,7 +127,7 @@ async fn test_index_chapter_update() {
 #[tokio::test]
 async fn test_search_in_book_basic() {
     let _guard = TEST_LOCK.lock();
-    ensure_storage_initialized().await;
+    init_test_env().await;
 
     let book_id = "test_search_basic".to_string();
 
@@ -182,7 +162,7 @@ async fn test_search_in_book_basic() {
 #[tokio::test]
 async fn test_search_chinese_text() {
     let _guard = TEST_LOCK.lock();
-    ensure_storage_initialized().await;
+    init_test_env().await;
 
     let book_id = "test_search_chinese".to_string();
 
@@ -211,7 +191,7 @@ async fn test_search_chinese_text() {
 #[tokio::test]
 async fn test_search_no_results() {
     let _guard = TEST_LOCK.lock();
-    ensure_storage_initialized().await;
+    init_test_env().await;
 
     let book_id = "test_search_no_results".to_string();
 
@@ -239,7 +219,7 @@ async fn test_search_no_results() {
 #[tokio::test]
 async fn test_search_limit_results() {
     let _guard = TEST_LOCK.lock();
-    ensure_storage_initialized().await;
+    init_test_env().await;
 
     let book_id = "test_search_limit".to_string();
 
@@ -269,7 +249,7 @@ async fn test_search_limit_results() {
 #[tokio::test]
 async fn test_search_all_books() {
     let _guard = TEST_LOCK.lock();
-    ensure_storage_initialized().await;
+    init_test_env().await;
 
     // 创建多本书并索引
     for i in 0..3 {
@@ -306,7 +286,7 @@ async fn test_search_all_books() {
 #[tokio::test]
 async fn test_delete_book_index() {
     let _guard = TEST_LOCK.lock();
-    ensure_storage_initialized().await;
+    init_test_env().await;
 
     let book_id = "test_delete_index".to_string();
 
@@ -341,7 +321,7 @@ async fn test_delete_book_index() {
 #[tokio::test]
 async fn test_clear_all_index() {
     let _guard = TEST_LOCK.lock();
-    ensure_storage_initialized().await;
+    init_test_env().await;
 
     // 创建多个书籍的索引
     for i in 0..3 {
@@ -374,7 +354,7 @@ async fn test_clear_all_index() {
 #[tokio::test]
 async fn test_search_relevance() {
     let _guard = TEST_LOCK.lock();
-    ensure_storage_initialized().await;
+    init_test_env().await;
 
     let book_id = "test_search_relevance".to_string();
 
@@ -424,7 +404,7 @@ async fn test_search_relevance() {
 #[tokio::test]
 async fn test_search_special_characters() {
     let _guard = TEST_LOCK.lock();
-    ensure_storage_initialized().await;
+    init_test_env().await;
 
     let book_id = "test_search_special".to_string();
 
@@ -452,7 +432,7 @@ async fn test_search_special_characters() {
 #[tokio::test]
 async fn test_concurrent_indexing() {
     let _guard = TEST_LOCK.lock();
-    ensure_storage_initialized().await;
+    init_test_env().await;
 
     let book_id = "test_concurrent_index".to_string();
 
@@ -485,7 +465,7 @@ async fn test_concurrent_indexing() {
 #[tokio::test]
 async fn test_concurrent_search() {
     let _guard = TEST_LOCK.lock();
-    ensure_storage_initialized().await;
+    init_test_env().await;
 
     let book_id = "test_concurrent_search".to_string();
 
@@ -523,7 +503,7 @@ async fn test_concurrent_search() {
 #[tokio::test]
 async fn test_get_index_stats() {
     let _guard = TEST_LOCK.lock();
-    ensure_storage_initialized().await;
+    init_test_env().await;
 
     // 记录当前统计基线（其他测试可能已建索引）
     let before = api::search::get_index_stats()

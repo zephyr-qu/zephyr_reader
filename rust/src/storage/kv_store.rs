@@ -24,10 +24,10 @@ impl KvStore {
     /// 打开或创建 KV 存储
     pub fn new(path: impl AsRef<Path>) -> Result<Self, AppError> {
         let db = sled::open(path)
-            .map_err(|e| AppError::database_error(format!("Failed to open sled database: {e}")))?;
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to open sled database: {e}").into() })?;
         let layout_cache = db
             .open_tree(LAYOUT_TREE_NAME)
-            .map_err(|e| AppError::database_error(format!("Failed to open layout tree: {e}")))?;
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to open layout tree: {e}").into() })?;
         Ok(Self { db, layout_cache })
     }
 
@@ -35,7 +35,7 @@ impl KvStore {
     pub fn flush(&self) -> Result<(), AppError> {
         self.db
             .flush()
-            .map_err(|e| AppError::database_error(format!("Failed to flush sled database: {e}")))?;
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to flush sled database: {e}").into() })?;
         Ok(())
     }
 
@@ -48,10 +48,10 @@ impl KvStore {
             "LayoutCache version/config_hash mismatch on save"
         );
         let bytes = bincode::encode_to_vec(value, bincode::config::standard())
-            .map_err(|e| AppError::database_error(format!("Failed to serialize value: {e}")))?;
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to serialize value: {e}").into() })?;
         self.layout_cache
             .insert(key.to_string(), bytes)
-            .map_err(|e| AppError::database_error(format!("Failed to insert cache: {e}")))?;
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to insert cache: {e}").into() })?;
         Ok(())
     }
 
@@ -63,7 +63,7 @@ impl KvStore {
         match self
             .layout_cache
             .get(key.to_string())
-            .map_err(|e| AppError::database_error(format!("Failed to read cache: {e}")))?
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read cache: {e}").into() })?
         {
             Some(bytes) => {
                 match bincode::decode_from_slice::<LayoutCache, _>(
@@ -93,10 +93,10 @@ impl KvStore {
             .keys()
         {
             let key = key
-                .map_err(|e| AppError::database_error(format!("Failed to read key: {e}")))?;
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read key: {e}").into() })?;
             self.layout_cache
                 .remove(key)
-                .map_err(|e| AppError::database_error(format!("Failed to remove cache: {e}")))?;
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to remove cache: {e}").into() })?;
         }
         Ok(())
     }
@@ -113,7 +113,7 @@ impl KvStore {
         for key in keys {
             self.layout_cache
                 .remove(key)
-                .map_err(|e| AppError::database_error(format!("Failed to remove key: {e}")))?;
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to remove key: {e}").into() })?;
             count += 1;
         }
         Ok(count)
@@ -125,14 +125,14 @@ impl KvStore {
         let mut count = 0;
         for item in self.layout_cache.iter() {
             let (key, value) = item
-                .map_err(|e| AppError::database_error(format!("Failed to read from sled: {e}")))?;
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read from sled: {e}").into() })?;
             if let Ok((cache, _)) =
                 bincode::decode_from_slice::<LayoutCache, _>(&value, bincode::config::standard())
             {
                 if cache.created_at < cutoff {
                     self.layout_cache
                         .remove(key)
-                        .map_err(|e| AppError::database_error(format!("Failed to remove key: {e}")))?;
+                        .map_err(|e| AppError::DatabaseError { reason: format!("Failed to remove key: {e}").into() })?;
                     count += 1;
                 }
             }

@@ -62,11 +62,11 @@ pub async fn align_bilingual_content(
 ) -> Result<BilingualAlignment, AppError> {
     tracing::info!("[bilingual] align_bilingual_content: chinese_len={}, english_len={}", chinese_content.len(), english_content.len());
     if chinese_content.len() + english_content.len() > MAX_BILINGUAL_LEN {
-        return Err(AppError::invalid_input(format!(
+        return Err(AppError::InvalidInput { reason: format!(
             "bilingual alignment input too large: {} bytes (max {})",
             chinese_content.len() + english_content.len(),
             MAX_BILINGUAL_LEN,
-        )));
+        ).into() });
     }
 
     let similarity = min_similarity.max(0.3).min(1.0);
@@ -79,8 +79,8 @@ pub async fn align_bilingual_content(
         )
     })
     .await
-    .map_err(|e| AppError::task_panic("bilingual alignment", e.to_string()))?
-    .map_err(|e| AppError::internal(format!("bilingual alignment failed: {}", e)))
+    .map_err(|e| AppError::TaskPanic { task_name: "bilingual alignment".into(), details: e.to_string().into() })?
+    .map_err(|e| AppError::InternalError { reason: format!("bilingual alignment failed: {}", e).into() })
 }
 
 
@@ -145,11 +145,11 @@ pub async fn create_bilingual_highlight_pair(
 
     NoteRepository::save(&pool, &source_note)
         .await
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+        .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
 
     NoteRepository::save(&pool, &target_note)
         .await
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+        .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
 
     Ok(BilingualHighlightPair {
         source_note,
@@ -168,7 +168,7 @@ pub async fn get_bilingual_highlight_pairs(
 
     let paired_notes = NoteRepository::find_paired_notes_in_chapter(&pool, &book_id, chapter_index as i64)
         .await
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+        .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
 
     // Batch fetch all partner notes in a single query (replaces N+1)
     let query_pairs: Vec<(String, String)> = paired_notes
@@ -178,7 +178,7 @@ pub async fn get_bilingual_highlight_pairs(
 
     let partners = NoteRepository::find_partner_notes_batch(&pool, &query_pairs)
         .await
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+        .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
 
     let mut pairs: Vec<BilingualHighlightPair> = Vec::new();
     let mut processed: std::collections::HashSet<String> = std::collections::HashSet::new();
@@ -221,25 +221,25 @@ pub async fn delete_bilingual_highlight_pair(note_id: String) -> Result<(), AppE
     // 获取当前 note 以找到其 paired_note_id
     let note = NoteRepository::find_by_id(&pool, &note_id)
         .await
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+        .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
 
     if let Some(n) = note {
         if let Some(ref pair_id) = n.paired_note_id {
             let partner = NoteRepository::find_partner_note(&pool, pair_id, &note_id)
                 .await
-                .map_err(|e| AppError::database_error(e.to_string()))?;
+                .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
             if let Some(partner) = partner {
                 if partner.id != note_id {
                     NoteRepository::delete_by_id(&pool, &partner.id)
                         .await
-                        .map_err(|e| AppError::database_error(e.to_string()))?;
+                        .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
                 }
             }
         }
         // 删除当前 note
         NoteRepository::delete_by_id(&pool, &note_id)
             .await
-            .map_err(|e| AppError::database_error(e.to_string()))?;
+            .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
     }
 
     Ok(())

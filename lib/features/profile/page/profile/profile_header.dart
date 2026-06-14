@@ -21,7 +21,7 @@ class ProfileHeader extends StatelessWidget {
           backgroundColor: DesignTokens.warmAccent,
           child: Text(
             '书',
-            style: theme.textTheme.headlineMedium?.copyWith(
+            style: theme.textTheme.headlineSmall?.copyWith(
               color: Colors.white,
             ),
           ),
@@ -32,7 +32,7 @@ class ProfileHeader extends StatelessWidget {
           children: [
             Text(
               l10n.profileDisplayName,
-              style: theme.textTheme.headlineMedium?.copyWith(
+              style: theme.textTheme.headlineSmall?.copyWith(
                 letterSpacing: -0.3,
               ),
             ),

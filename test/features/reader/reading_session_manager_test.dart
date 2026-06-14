@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/features/reader/application/chapter_manager.dart';
+import 'package:zephyr_reader/features/reader/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/application/reading_session_manager.dart';
 
-class _MockChapterManager extends Mock implements ChapterManager {}
+class _MockChapterManager extends Mock implements ChapterViewModel {}
 
 void main() {
   late _MockChapterManager chapterManager;

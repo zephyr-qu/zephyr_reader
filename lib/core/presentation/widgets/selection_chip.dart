@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 
 /// 可选中标签组件。
 ///
@@ -35,7 +36,7 @@ class SelectionChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(borderRadius),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: AnimTokens.stagger,
           padding: padding,
           decoration: BoxDecoration(
             color: selected

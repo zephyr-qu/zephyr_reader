@@ -40,7 +40,7 @@ class SortSettingTile extends StatelessWidget {
             ),
             child: Icon(
               PhosphorIconsRegular.arrowsDownUp,
-              size: 16,
+              size: IconSize.inline,
               color: MenuItemSemantic.neutral.iconColor(brightness),
             ),
           ),

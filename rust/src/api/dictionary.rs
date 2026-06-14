@@ -92,13 +92,11 @@ static MDICT: LazyLock<Mutex<Option<MdictEngine>>> = LazyLock::new(|| Mutex::new
 pub async fn init_dictionary(mdx_path: String, mdd_path: Option<String>) -> Result<(), AppError> {
     tracing::info!("[dictionary] init_dictionary: mdx_path={}", mdx_path);
     let engine = MdictEngine::open(&mdx_path, mdd_path.as_deref())
-        .map_err(|e| AppError::internal(format!("Failed to open MDict: {e}")))?;
+        .map_err(|e| AppError::InternalError { reason: format!("Failed to open MDict: {e}").into() })?;
 
     let mut guard = MDICT.lock();
     if guard.is_some() {
-        return Err(AppError::internal(
-            "Dictionary already initialized. Call close_dictionary() first.",
-        ));
+        return Err(AppError::InternalError { reason: "Dictionary already initialized. Call close_dictionary() first.".into() });
     }
     *guard = Some(engine);
     Ok(())
@@ -127,12 +125,12 @@ pub async fn lookup_mdict(word: String) -> Result<Option<DictSearchResult>, AppE
     tokio::task::spawn_blocking(move || {
         let mut guard = MDICT.lock();
         let engine = guard.as_mut().ok_or_else(|| {
-            AppError::internal("Dictionary not initialized. Call init_dictionary() first.")
+            AppError::InternalError { reason: "Dictionary not initialized. Call init_dictionary() first.".into() }
         })?;
         Ok(engine.lookup(&word))
     })
     .await
-    .map_err(|e| AppError::task_panic("lookup mdict", e.to_string()))?
+    .map_err(|e| AppError::TaskPanic { task_name: "lookup mdict".into(), details: e.to_string().into() })?
 }
 
 /// 前缀搜索：自动补全建议
@@ -147,12 +145,12 @@ pub async fn suggest_mdict(prefix: String, limit: i32) -> Result<Vec<String>, Ap
     tokio::task::spawn_blocking(move || {
         let mut guard = MDICT.lock();
         let engine = guard.as_mut().ok_or_else(|| {
-            AppError::internal("Dictionary not initialized. Call init_dictionary() first.")
+            AppError::InternalError { reason: "Dictionary not initialized. Call init_dictionary() first.".into() }
         })?;
         Ok(engine.suggest(&prefix, limit.max(1).min(50) as usize))
     })
     .await
-    .map_err(|e| AppError::task_panic("suggest mdict", e.to_string()))?
+    .map_err(|e| AppError::TaskPanic { task_name: "suggest mdict".into(), details: e.to_string().into() })?
 }
 
 /// 从 .mdd 资源文件中提取音频数据
@@ -168,12 +166,12 @@ pub async fn extract_audio(audio_key: String) -> Result<Option<Vec<u8>>, AppErro
     tokio::task::spawn_blocking(move || {
         let mut guard = MDICT.lock();
         let engine = guard.as_mut().ok_or_else(|| {
-            AppError::internal("Dictionary not initialized. Call init_dictionary() first.")
+            AppError::InternalError { reason: "Dictionary not initialized. Call init_dictionary() first.".into() }
         })?;
         Ok(engine.extract_audio(&audio_key))
     })
     .await
-    .map_err(|e| AppError::task_panic("extract audio", e.to_string()))?
+    .map_err(|e| AppError::TaskPanic { task_name: "extract audio".into(), details: e.to_string().into() })?
 }
 
 // ==================== 中文分词功能 ====================

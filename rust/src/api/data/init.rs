@@ -30,7 +30,7 @@ pub async fn init_storage(data_dir: String) -> Result<(), AppError> {
 
     if !dir.exists() {
         tokio::fs::create_dir_all(&dir).await.map_err(|e| {
-            AppError::file_write_error(&data_dir, format!("Failed to create data directory: {}", e))
+            AppError::FileWriteError { path: data_dir.into(), details: format!("Failed to create data directory: {}", e).into() }
         })?;
         tracing::info!("data_dir did not exist, created: {:?}", dir);
     } else {
@@ -46,7 +46,7 @@ pub async fn init_storage(data_dir: String) -> Result<(), AppError> {
     let manager = StorageManager::new(&dir).await?;
     STORAGE
         .set(manager)
-        .map_err(|_| AppError::internal("Storage already initialized"))?;
+        .map_err(|_| AppError::InternalError { reason: "Storage already initialized".into() })?;
 
     tracing::info!("init_storage complete: data_dir={:?}", dir);
     Ok(())

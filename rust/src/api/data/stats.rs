@@ -36,9 +36,9 @@ pub async fn get_reading_stats_by_range(
 ) -> Result<Vec<ReadingStats>, AppError> {
     // 解析日期
     let start = NaiveDate::parse_from_str(&start_date, "%Y-%m-%d")
-        .map_err(|e| AppError::internal(e.to_string()))?;
+        .map_err(|e| AppError::InternalError { reason: e.to_string().into() })?;
     let end = NaiveDate::parse_from_str(&end_date, "%Y-%m-%d")
-        .map_err(|e| AppError::internal(e.to_string()))?;
+        .map_err(|e| AppError::InternalError { reason: e.to_string().into() })?;
     async_storage!(|pool| StatsRepository::find_by_range(pool, start, end))
 }
 

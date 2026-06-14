@@ -4,7 +4,7 @@
 //! 通用解析功能请使用 core::parse_book。
 
 use crate::domain::{AppError, EpubMetadata, RichParagraph, TypesetConfig};
-use crate::utils::security::validate_file_path_async;
+use crate::utils::security::validate_file_path;
 use lru::LruCache;
 use std::num::NonZeroUsize;
 use std::sync::{LazyLock, Mutex};
@@ -112,7 +112,7 @@ pub struct EpubImageInfo {
 // DEAD CODE: Dart 侧无调用，导入走 parseBook 不经过此函数
 #[frb]
 pub async fn get_epub_metadata(file_path: String) -> Result<EpubMetadata, AppError> {
-    let validated_path = validate_file_path_async(&file_path).await?;
+    let validated_path = validate_file_path(&file_path)?;
     crate::parser::epub::unzip::get_epub_metadata(&validated_path)
 }
 
@@ -145,7 +145,7 @@ pub async fn get_epub_chapter_rich_content(
     config: TypesetConfig,
 ) -> Result<Vec<RichParagraph>, AppError> {
     let config = config.validate_and_fix();
-    let validated_path = validate_file_path_async(&file_path).await?;
+    let validated_path = validate_file_path(&file_path)?;
     let cache_key = (validated_path.clone(), chapter_index, config.config_hash());
 
     // 检查 LRU 缓存

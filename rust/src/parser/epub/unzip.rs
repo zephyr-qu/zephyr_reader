@@ -93,12 +93,12 @@ impl EpubFile {
     /// 打开 EPUB 文件
     pub fn open(file_path: &str) -> Result<Self, AppError> {
         if !std::path::Path::new(file_path).exists() {
-            return Err(AppError::file_not_found(file_path));
+            return Err(AppError::FileNotFound { path: file_path.into() });
         }
 
         tracing::info!("[EpubFile::open] opening EPUB: {}", file_path);
         let doc = EpubDoc::new(file_path).map_err(|e| {
-            AppError::file_read_error(file_path, format!("EPUB parse failed: {}", e))
+            AppError::FileReadError { path: file_path.into(), details: format!("EPUB parse failed: {}", e).into() }
         })?;
         tracing::info!(
             "[EpubFile::open] success: metadata={}, resources={}, spine={}, toc={}",
@@ -158,7 +158,7 @@ impl EpubFile {
 
         // 查找资源
         let (resource_href, resource) = find_resource_by_href_or_path(&self.doc.resources, href)
-            .ok_or_else(|| AppError::epub_parse_error(format!("resource not found: {}", href)))?;
+            .ok_or_else(|| AppError::EpubParseError { reason: format!("resource not found: {}", href).into() })?;
 
         let resource_href: String = resource_href.clone();
         tracing::debug!(
@@ -178,9 +178,7 @@ impl EpubFile {
 
             // 读取内容 - epub 2.x 返回 (Vec<u8>, String) 元组
             let (content, charset) = self.doc.get_current().ok_or_else(|| {
-                AppError::epub_parse_error(
-                    "read resource failed: unable to get current content".to_string(),
-                )
+                AppError::EpubParseError { reason: "read resource failed: unable to get current content".to_string().into() }
             })?;
 
             tracing::debug!(
@@ -199,10 +197,10 @@ impl EpubFile {
             "[read_resource] resource not found in spine: {}",
             resource_href
         );
-        Err(AppError::epub_parse_error(format!(
+        Err(AppError::EpubParseError { reason: format!(
             "unable to locate resource: {}",
             href
-        )))
+        ).into() })
     }
 
     /// 解码内容（EPUB 规范要求 UTF-8，提供回退）

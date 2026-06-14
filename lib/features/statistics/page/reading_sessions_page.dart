@@ -119,7 +119,9 @@ class ReadingSessionsPage extends HookWidget {
             const SizedBox(height: 8),
             Text(
               error.toString(),
-              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
               textAlign: TextAlign.center,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,

@@ -39,20 +39,20 @@ pub async fn get_book_detail(book_id: String) -> Result<BookDetail, AppError> {
     let pool = crate::storage::storage_pool()?;
 
     let book = BookRepository::find_by_id(&pool, &book_id).await
-        .map_err(|e| AppError::database_error(e.to_string()))?
-        .ok_or_else(|| AppError::not_found("book"))?;
+        .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?
+        .ok_or_else(|| AppError::NotFound { entity: "book".into() })?;
     let progress = ProgressRepository::find_by_book(&pool, &book_id).await
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+        .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
     let note_stats = NoteRepository::find_note_stats(&pool, &book_id).await
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+        .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
     let chapters = ChapterRepository::find_by_book(&pool, &book_id).await
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+        .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
     let categories = CategoryRepository::list_by_book(&pool, &book_id).await
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+        .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
     let session_count = SessionRepository::count_by_book(&pool, &book_id).await
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+        .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
     let vocab_count = VocabRepository::count_by_book(&pool, &book_id).await
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+        .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
 
     Ok(BookDetail {
         book,
@@ -125,7 +125,7 @@ pub async fn delete_book(book_id: String, covers_dir: String) -> Result<(), AppE
 
     BookRepository::delete_cascade(&pool, &book_id)
         .await
-        .map_err(|e| AppError::database_error(e.to_string()))?;
+        .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
     let kv = storage.kv();
     let cache_repo = LayoutCacheRepository::new(kv);
     if let Err(e) = cache_repo.invalidate_book_cache(&book_id) {

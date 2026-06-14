@@ -69,7 +69,7 @@ impl CoverExtractor for EpubCoverExtractor {
         let mut epub_file = crate::parser::epub::unzip::EpubFile::open(file_path)?;
         let cover_data = epub_file
             .read_cover()
-            .ok_or_else(|| AppError::other("EPUB cover not found"))?;
+            .ok_or_else(|| AppError::Other("EPUB cover not found".into()))?;
 
         let file_stem = Path::new(file_path)
             .file_stem()
@@ -109,9 +109,9 @@ impl CoverExtractor for EpubCoverExtractor {
             .to_string();
 
         std::fs::create_dir_all(output_dir)
-            .map_err(|e| AppError::file_write_error(output_dir.to_string(), e.to_string()))?;
+            .map_err(|e| AppError::FileWriteError { path: output_dir.to_string().into(), details: e.to_string().into() })?;
         std::fs::write(&output_path, cover_data)
-            .map_err(|e| AppError::file_write_error(&output_path, e.to_string()))?;
+            .map_err(|e| AppError::FileWriteError { path: output_path.clone().into(), details: e.to_string().into() })?;
 
         Ok(output_path)
     }
@@ -204,11 +204,11 @@ impl CoverExtractorRegistry {
             .extension()
             .and_then(|ext| ext.to_str())
             .ok_or_else(|| {
-                AppError::unsupported_format("unable to identify file extension".to_string())
+                AppError::UnsupportedFormat { format: "unable to identify file extension".to_string().into() }
             })?;
 
         let extractor = self.get_extractor(extension).ok_or_else(|| {
-            AppError::unsupported_format(format!("unsupported file format: {}", extension))
+            AppError::UnsupportedFormat { format: format!("unsupported file format: {}", extension).into() }
         })?;
 
         extractor.extract_cover(file_path, output_dir)
@@ -252,10 +252,10 @@ impl ThreadSafeCoverRegistry {
             .extension()
             .and_then(|ext| ext.to_str())
             .ok_or_else(|| {
-                AppError::unsupported_format("unable to identify file extension".to_string())
+                AppError::UnsupportedFormat { format: "unable to identify file extension".to_string().into() }
             })?;
         let extractor = self.inner.lock().get_extractor(extension).ok_or_else(|| {
-            AppError::unsupported_format(format!("unsupported file format: {}", extension))
+            AppError::UnsupportedFormat { format: format!("unsupported file format: {}", extension).into() }
         })?;
         extractor.extract_cover(file_path, output_dir)
     }

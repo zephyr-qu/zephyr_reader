@@ -15,7 +15,15 @@ import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 /// final converter = RichTextConverter();
 /// final (span, plain) = converter.toTextSpan(paragraphs);
 /// ```
+
+/// 从 [RichTextSpan] 提取纯文本内容的辅助函数。
+String _spanText(RichTextSpan span) => span.when(
+  styled: (_, data) => data.text,
+  link: (data, _) => data.text,
+);
+
 class RichTextConverter {
+
   const RichTextConverter();
 
   /// 将 [RichParagraph] 列表转换为 [TextSpan] 树（保留样式），
@@ -34,7 +42,7 @@ class RichTextConverter {
       final p = paragraphs[i];
       if (p.isImage) continue;
 
-      final paraText = p.spans.map((s) => s.text).join();
+      final paraText = p.spans.map(_spanText).join();
       if (paraText.isEmpty) continue;
 
       final blockStyle = paragraphBlockStyle(
@@ -43,7 +51,7 @@ class RichTextConverter {
         baseLineHeight: baseLineHeight,
       );
       final spanChildren = p.spans
-          .map((s) => TextSpan(text: s.text, style: spanToStyle(s)))
+          .map((s) => TextSpan(text: _spanText(s), style: spanToStyle(s)))
           .toList();
 
       if (blockStyle != const TextStyle()) {
@@ -63,28 +71,34 @@ class RichTextConverter {
 
   /// 将单个 [RichTextSpan] 映射为 [TextStyle]。
   TextStyle spanToStyle(RichTextSpan span) {
-    final base = span.when(
-      plain: (text, fontSize, color) => const TextStyle(),
-      bold: (text, fontSize, color) =>
-          const TextStyle(fontWeight: FontWeight.bold),
-      italic: (text, fontSize, color) =>
-          const TextStyle(fontStyle: FontStyle.italic),
-      boldItalic: (text, fontSize, color) => const TextStyle(
-        fontWeight: FontWeight.bold,
-        fontStyle: FontStyle.italic,
+    return span.when(
+      styled: (style, data) {
+        final base = switch (style) {
+          SpanStyle.plain => const TextStyle(),
+          SpanStyle.bold => const TextStyle(fontWeight: FontWeight.bold),
+          SpanStyle.italic => const TextStyle(fontStyle: FontStyle.italic),
+          SpanStyle.boldItalic => const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontStyle: FontStyle.italic,
+          ),
+          SpanStyle.underline => const TextStyle(
+            decoration: TextDecoration.underline,
+          ),
+          SpanStyle.strikethrough => const TextStyle(
+            decoration: TextDecoration.lineThrough,
+          ),
+          SpanStyle.code => const TextStyle(fontFamily: 'monospace'),
+        };
+        if (data.fontSize == null && data.color == null) return base;
+        return base.copyWith(
+          fontSize: data.fontSize,
+          color: data.color != null ? parseCssColor(data.color!) : null,
+        );
+      },
+      link: (data, url) => const TextStyle(
+        decoration: TextDecoration.underline,
+        color: Colors.blue,
       ),
-      underline: (text, fontSize, color) =>
-          const TextStyle(decoration: TextDecoration.underline),
-      strikethrough: (text, fontSize, color) =>
-          const TextStyle(decoration: TextDecoration.lineThrough),
-      code: (text, fontSize, color) => const TextStyle(fontFamily: 'monospace'),
-      link: (text, url, fontSize, color) =>
-          const TextStyle(decoration: TextDecoration.underline),
-    );
-    if (span.fontSize == null && span.color == null) return base;
-    return base.copyWith(
-      fontSize: span.fontSize,
-      color: span.color != null ? parseCssColor(span.color!) : null,
     );
   }
 

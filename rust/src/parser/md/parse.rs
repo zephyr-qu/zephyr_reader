@@ -12,7 +12,7 @@ use tokio::fs;
 use super::metadata;
 use crate::domain::{AppError, ParseResult};
 use crate::parser::book_parser::BookMetadata;
-use crate::storage::models::{Book, BookFormat, BookStatus, Chapter};
+use crate::storage::models::{Book, BookFormat, Chapter};
 
 const MAX_FILE_SIZE: u64 = 50 * 1024 * 1024;
 const MD_PARSER_NAME: &str = "md";
@@ -54,17 +54,14 @@ impl MdParser {
     pub async fn parse(&self, file_path: &str) -> Result<ParseResult, AppError> {
         let content = fs::read_to_string(file_path)
             .await
-            .map_err(|e| AppError::file_read_error(file_path, e.to_string()))?;
+            .map_err(|e| AppError::FileReadError { path: file_path.into(), details: e.to_string().into() })?;
 
         let file_size = content.len() as u64;
         if file_size > MAX_FILE_SIZE {
-            return Err(AppError::security_error(
-                format!(
-                    "Markdown file too large: {} bytes (max {})",
-                    file_size, MAX_FILE_SIZE
-                ),
-                file_path,
-            ));
+            return Err(AppError::SecurityError { reason: format!(
+                "Markdown file too large: {} bytes (max {})",
+                file_size, MAX_FILE_SIZE
+            ).into(), path: file_path.into() });
         }
 
         let title = metadata::extract_title(&content).unwrap_or_else(|| {
@@ -83,23 +80,14 @@ impl MdParser {
             book_info: Book {
                 book_id,
                 file_path: file_path.to_string(),
-                file_hash: None,
                 file_size: file_size as i64,
-                file_mtime: None,
                 title,
                 author: Some(author),
-                description: None,
-                cover_path: None,
-                publisher: None,
-                translator: None,
-                isbn: None,
                 chapter_count: chapters.len() as i64,
                 total_characters: content.len() as i64,
                 format: BookFormat::Md,
                 added_at: chrono::Utc::now(),
-                last_opened_at: None,
-                status: BookStatus::Reading,
-                is_pinned: false,
+                ..Default::default()
             },
             chapters,
         })
@@ -120,7 +108,7 @@ impl MdParser {
     pub async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata, AppError> {
         let content = fs::read_to_string(file_path)
             .await
-            .map_err(|e| AppError::file_read_error(file_path, e.to_string()))?;
+            .map_err(|e| AppError::FileReadError { path: file_path.into(), details: e.to_string().into() })?;
 
         let title = metadata::extract_title(&content).unwrap_or_else(|| {
             Path::new(file_path)
@@ -168,16 +156,16 @@ impl MdParser {
     ) -> Result<String, AppError> {
         let content = fs::read_to_string(file_path)
             .await
-            .map_err(|e| AppError::file_read_error(file_path, e.to_string()))?;
+            .map_err(|e| AppError::FileReadError { path: file_path.into(), details: e.to_string().into() })?;
 
         let chapters = extract_chapters_raw(&content);
         let idx = chapter_index as usize;
         if idx >= chapters.len() {
-            return Err(AppError::invalid_input(format!(
+            return Err(AppError::InvalidInput { reason: format!(
                 "Chapter index {} out of range (total: {})",
                 chapter_index,
                 chapters.len()
-            )));
+            ).into() });
         }
 
         let (_, chapter_text) = &chapters[idx];

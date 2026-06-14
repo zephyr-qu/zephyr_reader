@@ -381,11 +381,12 @@ pub struct GlobalStats {
 ///
 /// 数据库中存储为小写文本。`FromStr` 额外兼容 markdown 别名。
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, strum::AsRefStr, strum::EnumString,
+    Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, strum::AsRefStr, strum::EnumString,
 )]
 #[strum(serialize_all = "lowercase")]
 #[frb]
 pub enum BookFormat {
+    #[default]
     #[strum(serialize = "txt", serialize = "text")]
     Txt,
     Epub,
@@ -409,11 +410,12 @@ impl TryFrom<String> for BookFormat {
 
 /// 书籍阅读状态
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, strum::AsRefStr, strum::EnumString,
+    Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, strum::AsRefStr, strum::EnumString,
 )]
 #[strum(serialize_all = "lowercase")]
 #[frb]
 pub enum BookStatus {
+    #[default]
     Reading,
     Completed,
     Dropped,
@@ -429,8 +431,7 @@ impl TryFrom<String> for BookStatus {
 }
 
 /// 书籍元数据
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-#[frb(dart_metadata = ("freezed"))]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, sqlx::FromRow)]
 pub struct Book {
     #[sqlx(rename = "id")]
     pub book_id: String,

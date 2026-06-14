@@ -128,8 +128,7 @@ class ReadingSessionBookGroup extends StatelessWidget {
               children: [
                 Text(
                   dateStr,
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: theme.textTheme.labelLarge?.copyWith(
                     color: theme.colorScheme.onSurface,
                   ),
                 ),
@@ -145,8 +144,7 @@ class ReadingSessionBookGroup extends StatelessWidget {
           ),
           Text(
             duration,
-            style: TextStyle(
-              fontSize: 13,
+            style: theme.textTheme.labelLarge?.copyWith(
               fontWeight: FontWeight.w500,
               color: theme.colorScheme.primary,
             ),

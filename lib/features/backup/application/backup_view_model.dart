@@ -18,13 +18,14 @@ enum BackupStatus {
   error,
 }
 
-@lazySingleton
+
 /// 本地备份 ViewModel
 ///
 /// 状态机：
 ///   idle → exporting → exportingDone → idle
 ///   idle → restoring → restoringDone → idle
 ///   任意 → error → idle
+@lazySingleton
 class BackupViewModel {
   final SharedPreferences _prefs;
 

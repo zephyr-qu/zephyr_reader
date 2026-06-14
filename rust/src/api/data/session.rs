@@ -45,9 +45,9 @@ pub async fn list_sessions_by_date_range(
 ) -> Result<Vec<ReadingSession>, AppError> {
     // 解析日期
     let start = NaiveDate::parse_from_str(&start_date, "%Y-%m-%d")
-        .map_err(|e| AppError::internal(e.to_string()))?;
+        .map_err(|e| AppError::InternalError { reason: e.to_string().into() })?;
     let end = NaiveDate::parse_from_str(&end_date, "%Y-%m-%d")
-        .map_err(|e| AppError::internal(e.to_string()))?;
+        .map_err(|e| AppError::InternalError { reason: e.to_string().into() })?;
     async_storage!(|pool| SessionRepository::find_by_date_range(pool, &book_id, start, end))
 }
 
@@ -84,7 +84,7 @@ pub async fn create_session(
 ) -> Result<ReadingSession, AppError> {
     tracing::info!("[session] create_session: book_id={}, chapter_index={}", book_id, chapter_index);
     let started = chrono::DateTime::from_timestamp(started_at, 0)
-        .ok_or_else(|| AppError::internal("invalid started_at timestamp".to_string()))?;
+        .ok_or_else(|| AppError::InternalError { reason: "invalid started_at timestamp".to_string().into() })?;
     let session = ReadingSession::new(
         &book_id,
         chapter_index  as i64,

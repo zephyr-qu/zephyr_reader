@@ -59,7 +59,7 @@ impl PdfParser {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || parse_pdf(fp))
             .await
-            .map_err(|e| AppError::internal(format!("PDF parse task failed: {}", e)))?
+            .map_err(|e| AppError::InternalError { reason: format!("PDF parse task failed: {}", e).into() })?
     }
 
     /// 提取 PDF 文件元数据
@@ -78,7 +78,7 @@ impl PdfParser {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || -> Result<BookMetadata, AppError> {
             if !Path::new(&fp).exists() {
-                return Err(AppError::file_not_found(&fp));
+                return Err(AppError::FileNotFound { path: fp.into() });
             }
 
             let metadata = get_pdf_metadata(fp.clone())?;
@@ -108,7 +108,7 @@ impl PdfParser {
             })
         })
         .await
-        .map_err(|e| AppError::internal(format!("PDF metadata extraction failed: {}", e)))?
+        .map_err(|e| AppError::InternalError { reason: format!("PDF metadata extraction failed: {}", e).into() })?
     }
 
     /// 提取指定章节内容
@@ -136,7 +136,7 @@ impl PdfParser {
             get_chapter_text(&fp, start_page as usize, end_page as usize)
         })
         .await
-        .map_err(|e| AppError::internal(format!("PDF chapter extraction failed: {}", e)))?
+        .map_err(|e| AppError::InternalError { reason: format!("PDF chapter extraction failed: {}", e).into() })?
     }
 }
 

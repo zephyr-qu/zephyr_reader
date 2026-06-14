@@ -9,13 +9,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 class BookDetailViewModel {
   BookDetailViewModel({required this.bookId});
 
-  final book = asyncSignal<Book>(AsyncState.loading());
-  final progress = asyncSignal<ReadingProgress?>(AsyncState.loading());
-  final noteStats = asyncSignal<NoteStats?>(AsyncState.loading());
-  final chapters = asyncSignal<List<Chapter>>(AsyncState.loading());
-  final categories = asyncSignal<List<Category>>(AsyncState.loading());
-  final sessionCount = signal<int>(0);
-  final vocabCount = signal<int>(0);
+  final state = asyncSignal<book_api.BookDetail>(AsyncState.loading());
 
   final String bookId;
 
@@ -23,23 +17,9 @@ class BookDetailViewModel {
   Future<void> loadData() async {
     try {
       final detail = await book_api.getBookDetail(bookId: bookId);
-      batch(() {
-        book.value = AsyncState.data(detail.book);
-        progress.value = AsyncState.data(detail.progress);
-        noteStats.value = AsyncState.data(detail.noteStats);
-        chapters.value = AsyncState.data(detail.chapters);
-        categories.value = AsyncState.data(detail.categories);
-        sessionCount.value = detail.sessionCount;
-        vocabCount.value = detail.vocabCount;
-      });
+      state.value = AsyncState.data(detail);
     } catch (e) {
-      book.value = AsyncState.error(e);
-      progress.value = AsyncState.error(e);
-      noteStats.value = AsyncState.error(e);
-      chapters.value = AsyncState.error(e);
-      categories.value = AsyncState.error(e);
-      sessionCount.value = 0;
-      vocabCount.value = 0;
+      state.value = AsyncState.error(e);
     }
   }
 
@@ -53,20 +33,16 @@ class BookDetailViewModel {
 
   /// 更新书籍元数据（标题、作者、描述等）。
   void updateMetadata(Book Function(Book) updater) {
-    final current = book.value;
-    if (current is AsyncData<Book>) {
-      book.value = AsyncState.data(updater(current.value));
+    final current = state.value;
+    if (current is AsyncData<book_api.BookDetail>) {
+      state.value = AsyncState.data(
+        current.value.copyWith(book: updater(current.value.book)),
+      );
     }
   }
 
   /// 释放所有 signal 资源。
   void dispose() {
-    book.dispose();
-    progress.dispose();
-    categories.dispose();
-    noteStats.dispose();
-    chapters.dispose();
-    sessionCount.dispose();
-    vocabCount.dispose();
+    state.dispose();
   }
 }

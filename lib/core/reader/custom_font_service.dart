@@ -16,12 +16,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reader/models/font_info.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
+import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 
 /// 字体仓库
 ///
 /// 管理阅读器自定义字体的加载、切换和持久化
+@singleton
+@preResolve
 class FontRepository {
   final SharedPreferences _prefs;
   final Completer<void> _ready = Completer<void>();
@@ -98,6 +101,24 @@ class FontRepository {
       } catch (e) {
         Logging.error('字体注册失败 $family: $e');
       }
+    }
+  }
+
+  /// 注册单个自定义字体到 Flutter FontLoader
+  Future<void> _registerSingleFont(FontInfo font) async {
+    if (font.isBuiltIn || font.path == null) return;
+    final family = familyNameFor(font);
+    if (_registeredFamilies.contains(family)) return;
+    final file = File(font.path!);
+    if (!await file.exists()) return;
+    try {
+      final data = await file.readAsBytes();
+      final loader = FontLoader(family)
+        ..addFont(Future.value(data.buffer.asByteData()));
+      await loader.load();
+      _registeredFamilies.add(family);
+    } catch (e) {
+      Logging.error('字体注册失败 $family: $e');
     }
   }
 
@@ -201,17 +222,18 @@ class FontRepository {
     );
 
     await fontFile.copy(destPath);
-    await loadFonts();
-    await _registerFonts();
 
-    final fontName = p.basename(destPath);
-    return FontInfo(
+    final font = FontInfo(
       id: 'custom_$destPath',
-      name: fontName,
+      name: p.basename(destPath),
       path: destPath,
       isDownloaded: false,
       createTime: DateTime.now(),
     );
+    availableFonts.value = [...availableFonts.value, font];
+    await _registerSingleFont(font);
+
+    return font;
   }
 
   /// 生成唯一文件路径
@@ -238,14 +260,16 @@ class FontRepository {
 
     final filePath = fontId.substring('custom_'.length);
     final file = File(filePath);
+    if (!await file.exists()) return false;
 
-    if (await file.exists()) {
-      await file.delete();
-      if (currentFont.value?.id == fontId) await setCurrentFont('system');
-      await loadFonts();
-      return true;
-    }
-    return false;
+    await file.delete();
+    if (currentFont.value?.id == fontId) await setCurrentFont('system');
+
+    availableFonts.value = availableFonts.value
+        .where((f) => f.id != fontId)
+        .toList();
+
+    return true;
   }
 
   /// 获取字体文件路径
@@ -263,8 +287,6 @@ class FontRepository {
   }
 
   /// 清除所有自定义字体
-  ///
-  /// 删除 fonts 目录下的所有字体文件，并切换回系统默认
   Future<void> clearAllCustomFonts() async {
     await _ready.future;
     try {
@@ -275,7 +297,11 @@ class FontRepository {
         await fontDir.delete(recursive: true);
       }
 
-      // 切换回系统默认
+      // 仅保留系统内置字体
+      availableFonts.value =
+          availableFonts.value.where((f) => f.isBuiltIn).toList();
+      _registeredFamilies.clear();
+
       await setCurrentFont('system');
 
       Logging.info('清除所有自定义字体完成');

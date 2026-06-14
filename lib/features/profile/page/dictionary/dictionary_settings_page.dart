@@ -177,36 +177,36 @@ class DictionarySettingsPage extends HookWidget {
           ),
         ),
         SettingsCard(
-              children: dictionaries.value.isEmpty
-                  ? [
-                      Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Center(
-                          child: Text(
-                            l10n.selectMdxDescription,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: cs.onSurfaceVariant,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
+          children: dictionaries.value.isEmpty
+              ? [
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: Text(
+                        l10n.selectMdxDescription,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelLarge
+                            ?.copyWith(color: cs.onSurfaceVariant),
                       ),
-                    ]
-                  : dictionaries.value
-                        .map(
-                          (dict) => _dictTile(
-                            context,
-                            cs,
-                            l10n,
-                            dict,
-                            prefs,
-                            currentMdx,
-                            dictionaries,
-                          ),
-                        )
-                        .toList(),
-            )
+                    ),
+                  ),
+                ]
+              : dictionaries.value
+                    .map(
+                      (dict) => _dictTile(
+                        context,
+                        cs,
+                        l10n,
+                        dict,
+                        prefs,
+                        currentMdx,
+                        dictionaries,
+                      ),
+                    )
+                    .toList(),
+        )
             .animate()
             .fadeIn(duration: 300.ms, delay: 150.ms)
             .slideY(begin: 0.03, end: 0),

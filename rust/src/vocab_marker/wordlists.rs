@@ -3,41 +3,26 @@
 
 use std::{collections::HashSet, sync::LazyLock};
 
-/// 大学英语四级词表
-static CET4: LazyLock<HashSet<String>> = LazyLock::new(|| {
-    let json = include_str!("../../../assets/wordlists/cet4.json");
-    serde_json::from_str::<Vec<String>>(json)
-        .expect("cet4.json must be valid JSON array of strings")
-        .into_iter()
-        .collect()
-});
+macro_rules! load_wordlist {
+    ($name:ident, $file:literal) => {
+        static $name: LazyLock<HashSet<String>> = LazyLock::new(|| {
+            let json = include_str!(concat!("../../../assets/wordlists/", $file));
+            serde_json::from_str::<Vec<String>>(json)
+                .expect(concat!($file, " must be valid JSON array of strings"))
+                .into_iter()
+                .collect()
+        });
+    };
+}
 
-/// 大学英语六级词表
-static CET6: LazyLock<HashSet<String>> = LazyLock::new(|| {
-    let json = include_str!("../../../assets/wordlists/cet6.json");
-    serde_json::from_str::<Vec<String>>(json)
-        .expect("cet6.json must be valid JSON array of strings")
-        .into_iter()
-        .collect()
-});
-
-/// 雅思词表
-static IELTS: LazyLock<HashSet<String>> = LazyLock::new(|| {
-    let json = include_str!("../../../assets/wordlists/ielts.json");
-    serde_json::from_str::<Vec<String>>(json)
-        .expect("ielts.json must be valid JSON array of strings")
-        .into_iter()
-        .collect()
-});
-
-/// 托福词表
-static TOEFL: LazyLock<HashSet<String>> = LazyLock::new(|| {
-    let json = include_str!("../../../assets/wordlists/toefl.json");
-    serde_json::from_str::<Vec<String>>(json)
-        .expect("toefl.json must be valid JSON array of strings")
-        .into_iter()
-        .collect()
-});
+// 大学英语四级词表
+load_wordlist!(CET4, "cet4.json");
+// 大学英语六级词表
+load_wordlist!(CET6, "cet6.json");
+// 雅思词表
+load_wordlist!(IELTS, "ielts.json");
+// 托福词表
+load_wordlist!(TOEFL, "toefl.json");
 
 /// 所有词表的合并集合（统一转为小写）
 static ALL: LazyLock<HashSet<String>> = LazyLock::new(|| {

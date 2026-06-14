@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/core/utils/haptic.dart';
+import 'package:flutter/services.dart';
 
 /// 设置页滑块条目。
 ///
@@ -82,7 +82,7 @@ class SettingsSliderTile extends StatelessWidget {
                   ? ((max - min) / step).round().clamp(1, 1000)
                   : null,
               onChanged: (value) {
-                hapticFeedback(HapticType.selection);
+                HapticFeedback.selectionClick();
                 onChanged(value);
               },
             ),

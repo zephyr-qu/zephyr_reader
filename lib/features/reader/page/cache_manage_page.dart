@@ -86,10 +86,7 @@ class CacheManagePage extends HookWidget {
               const SizedBox(height: 8),
               Text(
                 '$err',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+                style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
             ],

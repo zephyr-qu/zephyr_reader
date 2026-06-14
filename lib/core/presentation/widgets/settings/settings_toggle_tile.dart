@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 /// 设置页开关条目。
 ///
@@ -50,7 +51,7 @@ class SettingsToggleTile extends StatelessWidget {
                 ),
                 child: Icon(
                   icon,
-                  size: 16,
+                  size: IconSize.inline,
                   color: iconColor ?? cs.onPrimaryContainer,
                 ),
               ),

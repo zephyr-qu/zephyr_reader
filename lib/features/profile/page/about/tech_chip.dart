@@ -11,7 +11,8 @@ class TechChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
+    final theme = Theme.of(context);
+    final brightness = theme.brightness;
     final bg = brightness == Brightness.light
         ? color.withValues(alpha: 0.1)
         : color.withValues(alpha: 0.18);
@@ -27,8 +28,7 @@ class TechChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 13,
+        style: theme.textTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w600,
           color: fg,
           letterSpacing: 0.3,

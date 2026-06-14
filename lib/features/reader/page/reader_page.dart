@@ -8,8 +8,9 @@ import 'package:zephyr_reader/core/reader/custom_font_service.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/reader/tts_service.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
-import 'package:zephyr_reader/core/utils/haptic.dart';
+import 'package:flutter/services.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
@@ -309,7 +310,7 @@ class ReaderPage extends HookWidget {
           ),
         AnimatedSlide(
           offset: activePanel.value != null ? Offset.zero : const Offset(0, 1),
-          duration: const Duration(milliseconds: 300),
+          duration: AnimTokens.slow,
           curve: Curves.easeOut,
           child: Align(
             alignment: Alignment.bottomCenter,
@@ -448,7 +449,7 @@ class ReaderPage extends HookWidget {
             onNoteTap: (ci, co) => vm.jumpToPosition(ci, co),
           ),
           body: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
+            duration: AnimTokens.slow,
             curve: Curves.easeInOut,
             color: b.readerTheme == ReaderTheme.dark
                 ? ReaderBgColors.darkBackground
@@ -481,15 +482,15 @@ class ReaderPage extends HookWidget {
                         totalPages: vm.totalPages.value,
                         onPreviousPage: () {
                           unawaited(vm.previousPage());
-                          hapticFeedback(HapticType.light);
+                          HapticFeedback.lightImpact();
                         },
                         onNextPage: () {
                           unawaited(vm.nextPage());
-                          hapticFeedback(HapticType.light);
+                          HapticFeedback.lightImpact();
                         },
                         onCenterTap: () => withTimer(() {
                           showToolbar.value = !showToolbar.value;
-                          hapticFeedback(HapticType.selection);
+                          HapticFeedback.selectionClick();
                         }),
                       ),
                   ],
@@ -525,7 +526,7 @@ class ReaderPage extends HookWidget {
       // Stopped → Start
       _startTts(vm, ttsService);
     }
-    hapticFeedback(HapticType.medium);
+    HapticFeedback.mediumImpact();
   }
 
   void _startTts(ReaderViewModel vm, TtsService ttsService) {
