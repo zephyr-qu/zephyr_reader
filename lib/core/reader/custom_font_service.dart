@@ -12,7 +12,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reader/models/font_info.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
@@ -26,7 +26,7 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 @singleton
 @preResolve
 class FontRepository {
-  final SharedPreferences _prefs;
+  final PreferencesService _prefs;
   final Completer<void> _ready = Completer<void>();
 
   FontRepository(this._prefs);
@@ -41,13 +41,7 @@ class FontRepository {
     }
   }
 
-  late final _currentFontId = persisted<String?>(
-    _prefs,
-    SettingsKeys.currentFont,
-    null,
-    reader: (p, k) => p.getString(k),
-    writer: (p, k, v) => v != null ? p.setString(k, v) : p.remove(k),
-  );
+  late final _currentFontId = persistedNullableString(_prefs, SettingsKeys.currentFont);
 
   /// 当前字体
   final currentFont = signal<FontInfo?>(null);

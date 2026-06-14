@@ -5,7 +5,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_desc_section.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_info_section.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_actions.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_bottom_actions.dart';
@@ -29,20 +28,6 @@ Widget _wrapWithMaterial(Widget child) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('BookDetailDescSection', () {
-    testWidgets('renders description text', (tester) async {
-      await tester.pumpWidget(
-        _wrapWithMaterial(
-          const BookDetailDescSection(
-            description: 'A great book about Flutter.',
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('A great book about Flutter.'), findsOneWidget);
-    });
-  });
 
   group('BookDetailInfoSection', () {
     testWidgets('renders book info rows', (tester) async {
@@ -230,34 +215,6 @@ void main() {
       expect(find.byType(SizedBox), findsOneWidget);
     });
 
-    testWidgets('invokes callbacks on tap', (tester) async {
-      int highlightCalls = 0;
-      int annotationCalls = 0;
-      int vocabCalls = 0;
-
-      await tester.pumpWidget(
-        _wrapWithMaterial(
-          BookDetailNoteStats(
-            highlightCount: 1,
-            annotationCount: 2,
-            vocabCount: 3,
-            onHighlightsTap: () => highlightCalls++,
-            onAnnotationsTap: () => annotationCalls++,
-            onVocabularyTap: () => vocabCalls++,
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('1'));
-      expect(highlightCalls, 1);
-
-      await tester.tap(find.text('2'));
-      expect(annotationCalls, 1);
-
-      await tester.tap(find.text('3'));
-      expect(vocabCalls, 1);
-    });
   });
 
   group('BookDetailTocSection', () {

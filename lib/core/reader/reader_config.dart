@@ -3,7 +3,7 @@ import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 
 /// 阅读器翻页点击区域布局（右手/左手习惯）
 enum TapLayout { rightHanded, leftHanded }
@@ -69,147 +69,73 @@ class ReaderBgColors {
 /// 管理阅读页的所有用户可调参数，包括主题、字体、布局、翻页等。
 /// 使用 PersistedSignal 实现自动持久化，支持重置为默认值。
 class ReaderConfig {
-  final SharedPreferences prefs;
+  final PreferencesService prefs;
 
   // ==================== 持久化信号 ====================
 
   /// 当前主题
-  late final theme = persisted<ReaderTheme>(
+  late final theme = persistedEnum(
     prefs,
     SettingsKeys.readerTheme,
     ReaderTheme.light,
-    reader: (p, k) => readEnum(p, k, ReaderTheme.light, ReaderTheme.fromId),
-    writer: (p, k, v) => p.setString(k, v.name),
+    ReaderTheme.fromId,
     debounce: Duration.zero,
   );
 
   /// 字体大小
-  late final fontSize = persisted<double>(
-    prefs,
-    SettingsKeys.readerFontSize,
-    16.0,
-    reader: (p, k) => p.getDouble(k) ?? 16.0,
-    writer: (p, k, v) => p.setDouble(k, v),
-  );
+  late final fontSize = persistedDouble(prefs, SettingsKeys.readerFontSize, 16.0);
 
   /// 行间距
-  late final lineHeight = persisted<double>(
-    prefs,
-    SettingsKeys.readerLineHeight,
-    1.6,
-    reader: (p, k) => p.getDouble(k) ?? 1.6,
-    writer: (p, k, v) => p.setDouble(k, v),
-  );
+  late final lineHeight = persistedDouble(prefs, SettingsKeys.readerLineHeight, 1.6);
 
   /// 段落间距
-  late final paragraphSpacing = persisted<double>(
-    prefs,
-    SettingsKeys.readerParagraphSpacing,
-    16.0,
-    reader: (p, k) => p.getDouble(k) ?? 16.0,
-    writer: (p, k, v) => p.setDouble(k, v),
-  );
+  late final paragraphSpacing = persistedDouble(prefs, SettingsKeys.readerParagraphSpacing, 16.0);
 
   /// 页边距
-  late final padding = persisted<double>(
-    prefs,
-    SettingsKeys.readerPadding,
-    16.0,
-    reader: (p, k) => p.getDouble(k) ?? 16.0,
-    writer: (p, k, v) => p.setDouble(k, v),
-  );
+  late final padding = persistedDouble(prefs, SettingsKeys.readerPadding, 16.0);
 
   /// 阅读背景色预设索引
-  late final readerBgColorIndex = persisted<int>(
-    prefs,
-    SettingsKeys.readerBgColorIndex,
-    0,
-    reader: (p, k) => p.getInt(k) ?? 0,
-    writer: (p, k, v) => p.setInt(k, v),
-  );
+  late final readerBgColorIndex = persistedInt(prefs, SettingsKeys.readerBgColorIndex, 0);
 
   /// 是否自动翻页
-  late final autoScroll = persisted<bool>(
-    prefs,
-    SettingsKeys.readerAutoScroll,
-    false,
-    reader: (p, k) => p.getBool(k) ?? false,
-    writer: (p, k, v) => p.setBool(k, v),
-    debounce: Duration.zero,
-  );
+  late final autoScroll = persistedBool(prefs, SettingsKeys.readerAutoScroll, false, debounce: Duration.zero);
 
   /// 自动翻页速度（秒）
-  late final autoScrollSpeed = persisted<int>(
-    prefs,
-    SettingsKeys.readerAutoScrollSpeed,
-    30,
-    reader: (p, k) => p.getInt(k) ?? 30,
-    writer: (p, k, v) => p.setInt(k, v),
-  );
+  late final autoScrollSpeed = persistedInt(prefs, SettingsKeys.readerAutoScrollSpeed, 30);
 
   /// 字间距
-  late final letterSpacing = persisted<double>(
-    prefs,
-    SettingsKeys.readerLetterSpacing,
-    0.0,
-    reader: (p, k) => p.getDouble(k) ?? 0.0,
-    writer: (p, k, v) => p.setDouble(k, v),
-  );
+  late final letterSpacing = persistedDouble(prefs, SettingsKeys.readerLetterSpacing, 0.0);
 
   /// 标点挤压
-  late final punctuationSqueeze = persisted<bool>(
-    prefs,
-    SettingsKeys.readerPunctuationSqueeze,
-    true,
-    reader: (p, k) => p.getBool(k) ?? true,
-    writer: (p, k, v) => p.setBool(k, v),
-    debounce: Duration.zero,
-  );
+  late final punctuationSqueeze = persistedBool(prefs, SettingsKeys.readerPunctuationSqueeze, true, debounce: Duration.zero);
 
-  /// 中西文基线对齐
-  late final baselineAlign = persisted<bool>(
-    prefs,
-    SettingsKeys.readerBaselineAlign,
-    true,
-    reader: (p, k) => p.getBool(k) ?? true,
-    writer: (p, k, v) => p.setBool(k, v),
-    debounce: Duration.zero,
-  );
+  late final baselineAlign = persistedBool(prefs, SettingsKeys.readerBaselineAlign, true, debounce: Duration.zero);
 
-  late final textAlign = persisted<TextAlign>(
+  late final textAlign = persistedEnum(
     prefs,
     SettingsKeys.readerTextAlign,
     TextAlign.justify,
-    reader: (p, k) => readEnum(p, k, TextAlign.justify, (name) => TextAlign.values.firstWhere(
+    (name) => TextAlign.values.firstWhere(
       (e) => e.name == name,
       orElse: () => TextAlign.justify,
-    )),
-    writer: (p, k, v) => p.setString(k, v.name),
+    ),
     debounce: Duration.zero,
   );
 
   /// 翻页点击区域布局
-  late final tapLayout = persisted<TapLayout>(
+  late final tapLayout = persistedEnum(
     prefs,
     SettingsKeys.readerTapLayout,
     TapLayout.rightHanded,
-    reader: (p, k) => readEnum(p, k, TapLayout.rightHanded, (name) => TapLayout.values.firstWhere(
+    (name) => TapLayout.values.firstWhere(
       (e) => e.name == name,
       orElse: () => TapLayout.rightHanded,
-    )),
-    writer: (p, k, v) => p.setString(k, v.name),
+    ),
     debounce: Duration.zero,
   );
 
   /// 是否跟随系统字体缩放（而非仅阅读器自有字号）
-  late final followSystemFontScale = persisted<bool>(
-    prefs,
-    SettingsKeys.readerFollowSystemFontScale,
-    false,
-    reader: (p, k) => p.getBool(k) ?? false,
-    writer: (p, k, v) => p.setBool(k, v),
-    debounce: Duration.zero,
-  );
+  late final followSystemFontScale = persistedBool(prefs, SettingsKeys.readerFollowSystemFontScale, false, debounce: Duration.zero);
 
   // ==================== 非持久化信号 ====================
 
@@ -264,4 +190,8 @@ class ReaderConfig {
     writingDirection.dispose();
     brightnessOverlay.dispose();
   }
+}
+
+extension ReaderConfigSignals on ReaderConfig {
+  ReadonlySignal<double> get fontSizeDouble => computed(() => fontSize.value);
 }

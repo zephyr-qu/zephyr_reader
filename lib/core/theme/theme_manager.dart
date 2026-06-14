@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:injectable/injectable.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
@@ -24,7 +24,7 @@ enum AppThemeType {
 /// 语言偏好和自定义主题色。使用 persisted signals 实现自动持久化。
 @Singleton()
 class ThemeManager {
-  final SharedPreferences prefs;
+  final PreferencesService prefs;
 
   /// 当前主题类型
   late final themeType = persisted<AppThemeType>(
@@ -37,7 +37,7 @@ class ThemeManager {
       if (str != null) {
         try { return AppThemeType.values.byName(str); } catch (_) {}
       }
-      final idx = p.getInt(k);
+      final idx = p.getIntOrNull(k);
       if (idx != null && idx >= 0 && idx < AppThemeType.values.length) {
         return AppThemeType.values[idx];
       }
@@ -68,18 +68,9 @@ class ThemeManager {
   );
 
   /// 自定义主题色信号（允许用户自定义主色）
-  late final customPrimaryColor = persisted<Color?>(
+  late final customPrimaryColor = persistedColor(
     prefs,
     SettingsKeys.customPrimaryColor,
-    null,
-    reader: (p, k) => readColor(p, k),
-    writer: (p, k, v) async {
-      if (v != null) {
-        await p.setInt(k, v.toARGB32());
-      } else {
-        await p.remove(k);
-      }
-    },
     debounce: Duration.zero,
   );
 

@@ -1,4 +1,4 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
@@ -12,29 +12,11 @@ import 'package:zephyr_reader/core/utils/cache_utils.dart';
 ///
 /// 管理通知、学习目标等杂项设置的持久化状态。
 class OtherSettingsViewModel {
-  final SharedPreferences _prefs;
+  final PreferencesService _prefs;
 
-  late final notificationsEnabled = persisted<bool>(
-    _prefs,
-    SettingsKeys.otherNotifications,
-    true,
-    reader: (p, k) => p.getBool(k) ?? true,
-    writer: (p, k, v) => p.setBool(k, v),
-  );
-  late final startupCheckEnabled = persisted<bool>(
-    _prefs,
-    SettingsKeys.otherStartupCheck,
-    true,
-    reader: (p, k) => p.getBool(k) ?? true,
-    writer: (p, k, v) => p.setBool(k, v),
-  );
-  late final markdownPreview = persisted<bool>(
-    _prefs,
-    SettingsKeys.otherMarkdownPreview,
-    false,
-    reader: (p, k) => p.getBool(k) ?? false,
-    writer: (p, k, v) => p.setBool(k, v),
-  );
+  late final notificationsEnabled = persistedBool(_prefs, SettingsKeys.otherNotifications, true);
+  late final startupCheckEnabled = persistedBool(_prefs, SettingsKeys.otherStartupCheck, true);
+  late final markdownPreview = persistedBool(_prefs, SettingsKeys.otherMarkdownPreview, false);
 
   bool _initialized = false;
 

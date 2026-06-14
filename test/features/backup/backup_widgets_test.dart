@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/shared_preferences_service.dart';
 
 import 'package:zephyr_reader/features/backup/application/backup_view_model.dart';
 import 'package:zephyr_reader/features/backup/page/widgets/backup_action_tile.dart';
@@ -20,7 +21,7 @@ Widget _wrapWithApp(Widget child) {
   );
 }
 
-/// Create a real BackupViewModel with mocked SharedPreferences, then set
+/// Create a real BackupViewModel with mocked PreferencesService, then set
 /// signal values directly. The optional [BackupApi] param defaults to the
 /// real Rust FFI — but we never call API methods in these widget tests.
 Future<BackupViewModel> _createVm({
@@ -30,7 +31,8 @@ Future<BackupViewModel> _createVm({
 }) async {
   SharedPreferences.setMockInitialValues(<String, Object>{});
   final prefs = await SharedPreferences.getInstance();
-  final vm = BackupViewModel(prefs);
+  final svc = SharedPreferencesService(prefs);
+  final vm = BackupViewModel(svc);
   vm.status.value = status;
   vm.lastBackupAt.value = lastBackupAt;
   vm.currentStats.value = AsyncState.data(stats);

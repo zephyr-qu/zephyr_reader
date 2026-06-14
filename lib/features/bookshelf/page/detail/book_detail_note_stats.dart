@@ -6,18 +6,12 @@ class BookDetailNoteStats extends StatelessWidget {
   final int highlightCount;
   final int annotationCount;
   final int vocabCount;
-  final VoidCallback? onHighlightsTap;
-  final VoidCallback? onAnnotationsTap;
-  final VoidCallback? onVocabularyTap;
 
   const BookDetailNoteStats({
     super.key,
     required this.highlightCount,
     required this.annotationCount,
     required this.vocabCount,
-    this.onHighlightsTap,
-    this.onAnnotationsTap,
-    this.onVocabularyTap,
   });
 
   @override
@@ -40,7 +34,7 @@ class BookDetailNoteStats extends StatelessWidget {
                 ? const Color(0xFFFFB74D)
                 : const Color(0xFFFFA726),
             Colors.orange.shade50,
-            onHighlightsTap ?? () {},
+            () {},
           ),
           const SizedBox(width: 8),
           _noteStatCard(
@@ -49,7 +43,7 @@ class BookDetailNoteStats extends StatelessWidget {
             l10n.notesCount,
             theme.colorScheme.primary,
             theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-            onAnnotationsTap ?? () {},
+            () {},
           ),
           const SizedBox(width: 8),
           _noteStatCard(
@@ -60,7 +54,7 @@ class BookDetailNoteStats extends StatelessWidget {
                 ? const Color(0xFFCE93D8)
                 : const Color(0xFFAB47BC),
             Colors.purple.shade50,
-            onVocabularyTap ?? () {},
+            () {},
           ),
         ],
       ),

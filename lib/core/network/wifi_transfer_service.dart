@@ -6,7 +6,7 @@ import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 
 const _kPortKey = SettingsKeys.wifiTransferPort;
@@ -17,7 +17,7 @@ const _kPortKey = SettingsKeys.wifiTransferPort;
 /// 在局域网内启动 HTTP 服务器，提供 Web 界面上传书籍文件。
 /// 支持文件上传、目录选择和多文件批量上传。
 class WifiTransferService {
-  final SharedPreferences _prefs;
+  final PreferencesService _prefs;
   String _htmlContent = '';
   HttpServer? _server;
   bool _running = false;

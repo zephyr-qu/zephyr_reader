@@ -1,4 +1,4 @@
-/// 所有 SharedPreferences 键的唯一定义处
+/// 所有持久化键的唯一定义处
 ///
 /// 本文件集中管理所有持久化键，禁止在其他文件中定义 `_key*` 常量。
 abstract final class SettingsKeys {

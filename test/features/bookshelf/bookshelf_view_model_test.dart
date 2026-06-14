@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/shared_preferences_service.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -15,7 +16,8 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       prefs = await SharedPreferences.getInstance();
       final catVM = CategoryViewModel();
-      vm = BookshelfViewModel(prefs, catVM);
+      final svc = SharedPreferencesService(prefs);
+      vm = BookshelfViewModel(svc, catVM);
     });
 
     test('initial state is correct', () {

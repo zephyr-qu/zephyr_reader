@@ -1,4 +1,4 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:injectable/injectable.dart';
 
 import 'package:zephyr_reader/core/reader/reader_config.dart';
@@ -12,24 +12,12 @@ import 'package:zephyr_reader/di/service_locator.dart';
 ///
 /// 管理主题类型、阅读器背景色、亮度遮罩等设置的状态和持久化。
 class ThemeBrightnessViewModel {
-  final SharedPreferences _prefs;
+  final PreferencesService _prefs;
   final _themeManager = ThemeManager.instance;
   final _readerConfig = getIt<ReaderConfig>();
 
-  late final brightness = persisted<int>(
-    _prefs,
-    SettingsKeys.brightness,
-    80,
-    reader: (p, k) => p.getInt(k) ?? 80,
-    writer: (p, k, v) => p.setInt(k, v),
-  );
-  late final useSystemBrightness = persisted<bool>(
-    _prefs,
-    SettingsKeys.useSystemBrightness,
-    true,
-    reader: (p, k) => p.getBool(k) ?? true,
-    writer: (p, k, v) => p.setBool(k, v),
-  );
+  late final brightness = persistedInt(_prefs, SettingsKeys.brightness, 80);
+  late final useSystemBrightness = persistedBool(_prefs, SettingsKeys.useSystemBrightness, true);
 
   ThemeBrightnessViewModel(this._prefs);
 

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
 
@@ -11,7 +12,6 @@ import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
 /// 在批量选择模式下显示，提供分类、删除等批量操作按钮。
 class BookshelfBatchToolbar extends StatelessWidget {
   final int selectedCount;
-  final List<Category> categories;
   final VoidCallback onCancel;
   final Future<void> Function() onDeleteAll;
   final Future<void> Function(String status) onBatchStatusChange;
@@ -20,7 +20,6 @@ class BookshelfBatchToolbar extends StatelessWidget {
   const BookshelfBatchToolbar({
     super.key,
     required this.selectedCount,
-    required this.categories,
     required this.onCancel,
     required this.onDeleteAll,
     required this.onBatchStatusChange,
@@ -75,9 +74,12 @@ class BookshelfBatchToolbar extends StatelessWidget {
                     await onDeleteAll();
                   }
                 } else if (action == 'category') {
+                  final vm = getIt<CategoryViewModel>();
+                  await vm.loadCategories();
+                  final cats = vm.categories.value.value ?? [];
                   final selected = await showCategorySelectionDialog(
                     context,
-                    categories: categories,
+                    categories: cats,
                     title: l10n.moveCategory,
                     cancelText: l10n.cancel,
                     confirmText: l10n.apply,

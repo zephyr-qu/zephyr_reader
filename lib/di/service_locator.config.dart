@@ -12,10 +12,8 @@
 import 'package:dio/dio.dart' as _i361;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
-import 'package:shared_preferences/shared_preferences.dart' as _i460;
 import 'package:zephyr_reader/core/local/file_storage.dart' as _i772;
-import 'package:zephyr_reader/core/local/shared_preferences_service.dart'
-    as _i467;
+import 'package:zephyr_reader/core/local/preferences_service.dart' as _i985;
 import 'package:zephyr_reader/core/network/network_module.dart' as _i510;
 import 'package:zephyr_reader/core/network/wifi_transfer_service.dart' as _i82;
 import 'package:zephyr_reader/core/reader/custom_font_service.dart' as _i851;
@@ -66,7 +64,7 @@ extension GetItInjectableX on _i174.GetIt {
     final appModule = _$AppModule();
     final networkModule = _$NetworkModule();
     final translationModule = _$TranslationModule();
-    await gh.factoryAsync<_i467.SharedPreferencesService>(
+    await gh.factoryAsync<_i985.PreferencesService>(
       () => appModule.providePreferencesService(),
       preResolve: true,
     );
@@ -86,52 +84,50 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i1.SearchViewModel>(() => _i1.SearchViewModel());
     gh.lazySingleton<_i9.WebDavSyncService>(() => _i9.WebDavSyncService());
+    gh.lazySingleton<_i335.ReaderViewModel>(
+      () => _i335.ReaderViewModel(
+        repo: gh<_i1054.ReaderRepository>(),
+        config: gh<_i849.ReaderConfig>(),
+      ),
+    );
     gh.lazySingleton<_i790.BookshelfViewModel>(
       () => _i790.BookshelfViewModel(
-        gh<_i460.SharedPreferences>(),
+        gh<_i985.PreferencesService>(),
         gh<_i5.CategoryViewModel>(),
       ),
     );
-    gh.singleton<_i82.WifiTransferService>(
-      () => _i82.WifiTransferService(gh<_i460.SharedPreferences>()),
-    );
-    await gh.singleton<_i851.FontRepository>(
-      () => _i851.FontRepository(gh<_i460.SharedPreferences>()),
-      preResolve: true,
-    );
     gh.factory<_i362.OtherSettingsViewModel>(
-      () => _i362.OtherSettingsViewModel(gh<_i460.SharedPreferences>()),
+      () => _i362.OtherSettingsViewModel(gh<_i985.PreferencesService>()),
     );
     gh.factory<_i583.ThemeBrightnessViewModel>(
-      () => _i583.ThemeBrightnessViewModel(gh<_i460.SharedPreferences>()),
+      () => _i583.ThemeBrightnessViewModel(gh<_i985.PreferencesService>()),
     );
     gh.factory<_i136.TtsSettingsViewModel>(
-      () => _i136.TtsSettingsViewModel(gh<_i460.SharedPreferences>()),
+      () => _i136.TtsSettingsViewModel(gh<_i985.PreferencesService>()),
+    );
+    gh.singleton<_i82.WifiTransferService>(
+      () => _i82.WifiTransferService(gh<_i985.PreferencesService>()),
+    );
+    await gh.singleton<_i851.FontRepository>(
+      () => _i851.FontRepository(gh<_i985.PreferencesService>()),
+      preResolve: true,
     );
     gh.lazySingleton<_i341.BackupViewModel>(
-      () => _i341.BackupViewModel(gh<_i460.SharedPreferences>()),
+      () => _i341.BackupViewModel(gh<_i985.PreferencesService>()),
     );
     gh.singleton<_i849.ReaderConfig>(
-      () => _i849.ReaderConfig(gh<_i460.SharedPreferences>()),
+      () => _i849.ReaderConfig(gh<_i985.PreferencesService>()),
     );
     gh.singleton<_i182.ThemeManager>(
-      () => _i182.ThemeManager(gh<_i460.SharedPreferences>()),
+      () => _i182.ThemeManager(gh<_i985.PreferencesService>()),
     );
     gh.singleton<_i888.TranslationConfig>(
-      () => _i888.TranslationConfig(gh<_i460.SharedPreferences>()),
+      () => _i888.TranslationConfig(gh<_i985.PreferencesService>()),
     );
     gh.lazySingleton<_i625.TranslationService>(
       () => translationModule.translationService(
         gh<_i888.TranslationConfig>(),
         gh<_i361.Dio>(),
-      ),
-    );
-    gh.lazySingleton<_i335.ReaderViewModel>(
-      () => _i335.ReaderViewModel(
-        gh<_i1054.ReaderRepository>(),
-        gh<_i849.ReaderConfig>(),
-        gh<_i888.TranslationConfig>(),
-        gh<_i625.TranslationService>(),
       ),
     );
     return this;

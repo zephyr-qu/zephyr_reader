@@ -1,54 +1,42 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter/services.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/core/presentation/widgets/skeleton_widget.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
-import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/core/utils/cover_utils.dart';
-import 'package:flutter/services.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/book_cover.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 书架书籍内容网格。
-///
-/// 以网格布局展示书籍封面，支持加载态、空态、错误态和批量选择模式。
 class BookshelfBookContent extends StatelessWidget {
-  final bool isLoading;
-  final bool hasError;
-  final List<BookshelfBook> books;
+  final AsyncState<List<BookshelfBook>> asyncBooks;
   final int crossAxisCount;
-  final bool isListView;
   final bool batchMode;
   final Set<String> selectedIds;
-  final VoidCallback onRetry;
   final VoidCallback onImportTap;
-  final VoidCallback onRefresh;
   final ValueChanged<Set<String>> onSelectionChanged;
   final void Function(BookshelfBook) onBookTap;
   final void Function(BookshelfBook) onBookLongPress;
-  final Map<String, double> readingProgress;
-  final bool showProgressBadge;
 
   const BookshelfBookContent({
     super.key,
-    required this.isLoading,
-    required this.hasError,
-    required this.books,
+    required this.asyncBooks,
     required this.crossAxisCount,
-    required this.isListView,
     required this.batchMode,
     required this.selectedIds,
-    required this.onRetry,
     required this.onImportTap,
-    required this.onRefresh,
     required this.onSelectionChanged,
     required this.onBookTap,
     required this.onBookLongPress,
-    required this.readingProgress,
-    required this.showProgressBadge,
   });
 
   String _statusLabel(BuildContext context, String statusName) {
@@ -130,18 +118,22 @@ class BookshelfBookContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    if (isLoading) return const SkeletonGrid();
-    if (hasError) {
+    final books = asyncBooks.value ?? [];
+    final vm = getIt<BookshelfViewModel>();
+    final bool isListView = vm.isListView.value;
+    final bool showProgress = vm.showReadingProgress.signal.value;
+    if (asyncBooks.isLoading) return const SkeletonGrid();
+    if (asyncBooks.hasError) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              l10n.loadFailed,
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-            ),
+            Text(l10n.loadFailed),
             SizedBox(height: Spacing.sm.value),
-            TextButton(onPressed: onRetry, child: Text(l10n.retry)),
+            TextButton(
+              onPressed: () => vm.loadBooks(),
+              child: Text(l10n.retry),
+            ),
           ],
         ),
       );
@@ -175,7 +167,7 @@ class BookshelfBookContent extends StatelessWidget {
       );
     }
     return RefreshIndicator(
-      onRefresh: () async => onRefresh(),
+      onRefresh: () async => vm.loadBooks(),
       child: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(
@@ -192,15 +184,15 @@ class BookshelfBookContent extends StatelessWidget {
               batchMode ? 80 : 0,
             ),
             child: isListView
-                ? _buildListContent(context, theme, l10n)
-                : _buildGridContent(context, theme, l10n),
+                ? _buildListContent(context, theme, l10n, books, showProgress)
+                : _buildGridContent(context, theme, l10n, books, showProgress),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildGridContent(BuildContext context, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildGridContent(BuildContext context, ThemeData theme, AppLocalizations l10n, List<BookshelfBook> books, bool showProgress) {
     final cs = theme.colorScheme;
     return GridView.builder(
       key: const Key('bookshelf_grid'),
@@ -227,7 +219,7 @@ class BookshelfBookContent extends StatelessWidget {
               BookCover(
                 book: book,
                 statusLabel: _statusLabel(context, book.status.name),
-                progress: showProgressBadge ? readingProgress[book.bookId] : null,
+                progress: showProgress ? book.progress : null,
               ),
               if (batchMode)
                 Positioned(
@@ -249,7 +241,7 @@ class BookshelfBookContent extends StatelessWidget {
     );
   }
 
-  Widget _buildListContent(BuildContext context, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildListContent(BuildContext context, ThemeData theme, AppLocalizations l10n, List<BookshelfBook> books, bool showProgress) {
     final cs = theme.colorScheme;
     return ListView.builder(
       key: const Key('bookshelf_list'),
@@ -261,7 +253,7 @@ class BookshelfBookContent extends StatelessWidget {
       itemBuilder: (context, index) {
         final book = books[index];
         final selected = selectedIds.contains(book.bookId);
-        final progress = showProgressBadge ? readingProgress[book.bookId] : null;
+        final progress = showProgress ? book.progress : null;
         return _buildBookItemWrapper(
           index: index,
           book: book,
@@ -275,13 +267,11 @@ class BookshelfBookContent extends StatelessWidget {
           slideFromRight: true,
           child: Stack(
             children: [
-              // Main content row
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Cover with shadow
                     DecoratedBox(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(RadiusSize.sm.value),
@@ -309,117 +299,107 @@ class BookshelfBookContent extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    // Book details
+                    SizedBox(width: Spacing.lg.value),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Title row (with optional pin icon)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(book.title, maxLines: 2, overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: cs.onSurface, height: 1.3, letterSpacing: -0.3)),
-                              ),
-                              if (book.isPinned)
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 6, top: 2),
-                                  child: Icon(PhosphorIconsFill.pushPin, size: 14, color: DesignTokens.warmAccent.withValues(alpha: 0.5)),
-                                ),
-                            ],
-                          ),
-                          // Author
-                          if (book.author != null && book.author!.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                Text('·', style: TextStyle(fontSize: 15, color: DesignTokens.warmAccent.withValues(alpha: 0.5), fontWeight: FontWeight.w700, height: 1)),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(book.author!, maxLines: 1, overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant, height: 1.3)),
-                                ),
-                              ],
+                          Text(
+                            book.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: cs.onSurface,
                             ),
-                          ],
-                          const SizedBox(height: 10),
-                          // Status & progress row
+                          ),
+                          SizedBox(height: Spacing.xs.value),
+                          Text(
+                            book.author ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                          SizedBox(height: Spacing.sm.value),
                           Row(
                             children: [
-                              // Status pill
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: _statusColor(cs, book.status.name).withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(_statusLabel(context, book.status.name),
-                                  style: TextStyle(fontSize: 11, color: _statusColor(cs, book.status.name), fontWeight: FontWeight.w600, height: 1.2)),
-                              ),
-                              if (progress != null && progress > 0) ...[
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(3),
-                                    child: LinearProgressIndicator(
-                                      value: progress, minHeight: 5,
-                                      backgroundColor: cs.surfaceContainerHighest.withValues(alpha: 0.6),
-                                    ),
+                              _ProgressIndicator(progress: progress),
+                              SizedBox(width: Spacing.sm.value),
+                              if (book.chapterCount > 0)
+                                Text(
+                                  '${book.chapterCount}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: cs.onSurfaceVariant,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Text('${(progress * 100).round()}%', style: const TextStyle(fontSize: 11, color: DesignTokens.warmAccent, fontWeight: FontWeight.w700, height: 1.2)),
-                              ],
                             ],
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    // Right side: chapter count or batch checkbox
                     if (!batchMode)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Icon(PhosphorIconsRegular.caretRight, size: 16, color: cs.onSurfaceVariant.withValues(alpha: 0.2)),
-                            if (book.chapterCount > 0) ...[
-                              const SizedBox(height: 4),
-                              Text(l10n.totalChapters(book.chapterCount), style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant.withValues(alpha: 0.4), height: 1.2)),
-                            ],
-                          ],
+                      PopupMenuButton<String>(
+                        icon: Icon(
+                          PhosphorIconsRegular.dotsThreeVertical,
+                          size: IconSize.inline,
+                          color: cs.onSurfaceVariant,
                         ),
+                        onSelected: (value) {
+                          if (value == 'delete') {
+                            getIt<BookshelfViewModel>().deleteBook(book.bookId);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  PhosphorIconsRegular.trash,
+                                  size: 16,
+                                  color: cs.error,
+                                ),
+                                SizedBox(width: 8),
+                                Text(l10n.deleteBook),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     if (batchMode)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Icon(
-                          selected ? PhosphorIconsFill.checkCircle : PhosphorIconsRegular.circle,
-                          color: selected ? cs.primary : cs.onSurfaceVariant.withValues(alpha: 0.4),
-                          size: 22,
-                        ),
+                      Checkbox(
+                        value: selected,
+                        onChanged: (_) {
+                          if (selected) {
+                            onSelectionChanged(
+                              selectedIds.where((id) => id != book.bookId).toSet(),
+                            );
+                          } else {
+                            onSelectionChanged({...selectedIds, book.bookId});
+                          }
+                        },
                       ),
                   ],
                 ),
               ),
-              // Left reading-progress accent ribbon
-              if (progress != null && progress > 0)
+              if (batchMode && selected)
                 Positioned(
-                  left: 0, top: 0, bottom: 0,
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
                   child: Container(
-                    width: 3,
+                    width: 4,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter, end: Alignment.topCenter,
-                        stops: [progress, progress],
-                        colors: [DesignTokens.warmAccent.withValues(alpha: 0.55), Colors.transparent],
+                      color: cs.primary,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(RadiusSize.lg.value),
+                        bottomLeft: Radius.circular(RadiusSize.lg.value),
                       ),
-                      borderRadius: const BorderRadius.only(topLeft: Radius.circular(1.5), bottomLeft: Radius.circular(1.5)),
                     ),
                   ),
                 ),
@@ -429,12 +409,36 @@ class BookshelfBookContent extends StatelessWidget {
       },
     );
   }
+}
 
-  Color _statusColor(ColorScheme cs, String statusName) {
-    return switch (statusName) {
-      'reading' => cs.primary,
-      'completed' => cs.tertiary,
-      _ => cs.onSurfaceVariant.withValues(alpha: 0.6),
-    };
+class _ProgressIndicator extends StatelessWidget {
+  final double? progress;
+  const _ProgressIndicator({this.progress});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    if (progress == null) return const SizedBox.shrink();
+    return SizedBox(
+      width: 60,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: progress!),
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, _) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: value,
+              minHeight: 6,
+              backgroundColor: cs.surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation(
+                value >= 1.0 ? cs.tertiary : DesignTokens.warmAccent,
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import 'package:zephyr_reader/features/bookshelf/application/bookshelf_sort_type_ext.dart';
-import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
+import 'package:zephyr_reader/features/bookshelf/model/bookshelf_sort_type.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 class SortSettingTile extends StatelessWidget {

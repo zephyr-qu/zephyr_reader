@@ -4,7 +4,7 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:injectable/injectable.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/src/rust/api/backup.dart' as backup_api;
@@ -27,7 +27,7 @@ enum BackupStatus {
 ///   任意 → error → idle
 @lazySingleton
 class BackupViewModel {
-  final SharedPreferences _prefs;
+  final PreferencesService _prefs;
 
   BackupViewModel(this._prefs);
 
@@ -42,15 +42,15 @@ class BackupViewModel {
 
   // ============ 初始化 ============
 
-  /// 从 SharedPreferences 恢复上次备份的元信息，并刷新当前数据库统计。
+  /// 从 PreferencesService 恢复上次备份的元信息，并刷新当前数据库统计。
   Future<void> initialize() async {
     _readLastBackupMeta();
     await _refreshStats();
   }
 
-  /// 从 SharedPreferences 读取上次备份的时间戳和文件大小，写入对应 signal。
+  /// 从 PreferencesService 读取上次备份的时间戳和文件大小，写入对应 signal。
   void _readLastBackupMeta() {
-    final ts = _prefs.getInt(SettingsKeys.lastBackupAt);
+    final ts = _prefs.getIntOrNull(SettingsKeys.lastBackupAt);
     batch(() {
       if (ts != null) {
         lastBackupAt.value = DateTime.fromMillisecondsSinceEpoch(ts * 1000);

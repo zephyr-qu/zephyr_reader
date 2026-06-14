@@ -1,6 +1,6 @@
 // test/features/profile/other_settings_view_model_test.dart
 //
-// OtherSettingsViewModel — 无 FFI 依赖，纯 SharedPreferences 持久化信号
+// OtherSettingsViewModel — 无 FFI 依赖，纯 PreferencesService 持久化信号
 //
 // 覆盖：默认值、读写持久化、initialize 守卫、dispose
 //
@@ -10,14 +10,14 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/features/profile/application/other_settings_view_model.dart';
 
-class _MockSharedPreferences extends Mock implements SharedPreferences {
+class _MockSharedPreferences extends Mock implements PreferencesService {
   _MockSharedPreferences() {
     when(() => setBool(any(), any())).thenAnswer((_) async => true);
-    when(() => getBool(any())).thenReturn(null);
+    when(() => getBool(any(), defaultValue: any(named: 'defaultValue'))).thenReturn(null);
     when(() => getString(any())).thenReturn(null);
   }
 }
@@ -100,17 +100,17 @@ void main() {
   });
 
   group('OtherSettingsViewModel loading from persisted values', () {
-    test('reads notificationsEnabled from SharedPreferences', () {
+    test('reads notificationsEnabled from PreferencesService', () {
       when(
-        () => mockPrefs.getBool(SettingsKeys.otherNotifications),
+        () => mockPrefs.getBool(SettingsKeys.otherNotifications, defaultValue: any(named: 'defaultValue')),
       ).thenReturn(false);
       final vm2 = OtherSettingsViewModel(mockPrefs);
       expect(vm2.notificationsEnabled.value, false);
     });
 
-    test('reads markdownPreview from SharedPreferences', () {
+    test('reads markdownPreview from PreferencesService', () {
       when(
-        () => mockPrefs.getBool(SettingsKeys.otherMarkdownPreview),
+        () => mockPrefs.getBool(SettingsKeys.otherMarkdownPreview, defaultValue: any(named: 'defaultValue')),
       ).thenReturn(true);
       final vm2 = OtherSettingsViewModel(mockPrefs);
       expect(vm2.markdownPreview.value, true);

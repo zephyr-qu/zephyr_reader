@@ -23,12 +23,9 @@ class ReaderContent extends HookWidget {
   final int pageIndex;
   final int totalPages;
   final ReaderRepository repo;
-  final double fontSize;
-  final double lineHeight;
-  final ThemeMode themeMode;
+  final ReaderRenderConfig renderConfig;
   final ReadingMode readingMode;
   final String content;
-
   final bool isLoading;
   final String? error;
   final BilingualAlignment? bilingualAlignment;
@@ -43,24 +40,12 @@ class ReaderContent extends HookWidget {
   final void Function(String text, int start, int end)? onSelectionChanged;
   final void Function(Note)? onHighlightTap;
   final ValueChanged<Offset?>? onSelectionGlobalPosition;
-  final String fontFamily;
-  final double letterSpacing;
-  final double paragraphSpacing;
-  final double pageMargin;
-  final int bgIndex;
   final WritingDirection writingDirection;
-  final bool showVocabularyMark;
-  final Set<String> vocabularyWords;
-  final bool baselineAlign;
-  final TextAlign textAlign;
   final bool showSentenceSplit;
   final int? jumpToCharOffset;
   final ValueChanged<int>? onPositionChanged;
   final VoidCallback? onReachEnd;
-
-  /// 是否有下一章（用于 pageTurn 模式扩展页面范围）
   final bool hasNextChapter;
-
   final VoidCallback? onJumpHandled;
 
   const ReaderContent({
@@ -70,9 +55,7 @@ class ReaderContent extends HookWidget {
     required this.chapterId,
     required this.pageIndex,
     required this.totalPages,
-    required this.fontSize,
-    required this.lineHeight,
-    required this.themeMode,
+    required this.renderConfig,
     required this.readingMode,
     required this.content,
     required this.isLoading,
@@ -89,66 +72,27 @@ class ReaderContent extends HookWidget {
     this.onSelectionChanged,
     this.onHighlightTap,
     this.onSelectionGlobalPosition,
-    this.fontFamily = 'Noto Sans SC',
-    this.letterSpacing = 0,
-    this.paragraphSpacing = 12,
-    this.pageMargin = 16,
     this.writingDirection = WritingDirection.horizontal,
-    this.showVocabularyMark = false,
-    this.vocabularyWords = const {},
-    this.bgIndex = 0,
     this.showSentenceSplit = false,
     this.jumpToCharOffset,
     this.onPositionChanged,
     this.onJumpHandled,
     this.onReachEnd,
     this.hasNextChapter = false,
-    this.baselineAlign = true,
-    this.textAlign = TextAlign.justify,
   });
 
   @override
   Widget build(BuildContext context) {
     final repo = this.repo;
+    final renderConfig = this.renderConfig;
     // 永不重建 PageController — 跨章时手动 jumpToPage(0)
     final pageController = useMemoized(
       () => PageController(initialPage: pageIndex),
       [],
     );
     final scrollController = useScrollController();
-    final textColor = _getTextColor(themeMode);
-    final backgroundColor = _getBackgroundColor(themeMode);
     final bilingualPairs = useState<List<BilingualHighlightPair>>([]);
     final disableAnim = MediaQuery.disableAnimationsOf(context);
-    final renderConfig = useMemoized(
-      () => ReaderRenderConfig(
-        textColor: textColor,
-        backgroundColor: backgroundColor,
-        fontSize: fontSize,
-        lineHeight: lineHeight,
-        fontFamily: fontFamily,
-        letterSpacing: letterSpacing,
-        paragraphSpacing: paragraphSpacing,
-        pageMargin: pageMargin,
-        showVocabularyMark: showVocabularyMark,
-        vocabularyWords: vocabularyWords,
-        baselineAlign: baselineAlign,
-        textAlign: textAlign,
-      ),
-      [
-        textColor,
-        backgroundColor,
-        fontSize,
-        lineHeight,
-        fontFamily,
-        letterSpacing,
-        paragraphSpacing,
-        pageMargin,
-        baselineAlign,
-        textAlign,
-        vocabularyWords,
-      ],
-    );
 
     // 跨章时直接跳转第 0 页，不带动画
     useEffect(() {
@@ -206,7 +150,7 @@ class ReaderContent extends HookWidget {
       if (autoScrollTick == null) return null;
 
       if (readingMode == ReadingMode.scroll && scrollController.hasClients) {
-        final scrollAmount = fontSize * lineHeight * 3;
+        final scrollAmount = renderConfig.fontSize * renderConfig.lineHeight * 3;
         final newPosition = scrollController.offset + scrollAmount;
         if (newPosition < scrollController.position.maxScrollExtent) {
           scrollController.animateTo(
@@ -255,7 +199,7 @@ class ReaderContent extends HookWidget {
 
         // Auto-next-chapter: detect near bottom of scroll
         if (onReachEnd != null && !isLoading) {
-          final threshold = fontSize * lineHeight * 1.5;
+          final threshold = renderConfig.fontSize * renderConfig.lineHeight * 1.5;
           if (scrollController.offset >= maxExtent - threshold) {
             if (!reachEndTriggered.value) {
               reachEndTriggered.value = true;
@@ -404,15 +348,11 @@ class ReaderContent extends HookWidget {
       content,
       isLoading,
       error,
-      textColor,
-      backgroundColor,
       pageController,
       scrollController,
       repo,
       bilingualPairs.value,
       renderConfig,
-      themeMode == ThemeMode.dark ? Brightness.dark : Brightness.light,
-      pageMargin,
     );
 
     if (readingMode == ReadingMode.pagination) {
@@ -433,12 +373,12 @@ class ReaderContent extends HookWidget {
         },
         child: Container(
           key: ValueKey('chapter_$chapterId'),
-          color: backgroundColor,
+          color: renderConfig.backgroundColor,
           child: contentWidget,
         ),
       );
     }
-    return Container(color: backgroundColor, child: contentWidget);
+    return Container(color: renderConfig.backgroundColor, child: contentWidget);
   }
 
   Widget _buildContent(
@@ -446,15 +386,11 @@ class ReaderContent extends HookWidget {
     String content,
     bool isLoading,
     String? error,
-    Color textColor,
-    Color backgroundColor,
     PageController pageController,
     ScrollController scrollController,
     ReaderRepository repo,
     List<BilingualHighlightPair> bilingualPairs,
     ReaderRenderConfig renderConfig,
-    Brightness brightness,
-    double pageMargin,
   ) {
     final l10n = AppLocalizations.of(context)!;
 
@@ -548,7 +484,7 @@ class ReaderContent extends HookWidget {
     }
   }
 
-  Color _getTextColor(ThemeMode themeMode) {
+  static Color getTextColor(ThemeMode themeMode) {
     switch (themeMode) {
       case ThemeMode.dark:
         return Colors.grey[300]!;
@@ -558,7 +494,7 @@ class ReaderContent extends HookWidget {
     }
   }
 
-  Color _getBackgroundColor(ThemeMode themeMode) {
+  static Color getBackgroundColor(ThemeMode themeMode, int bgIndex) {
     switch (themeMode) {
       case ThemeMode.dark:
         return ReaderBgColors.darkBackground;

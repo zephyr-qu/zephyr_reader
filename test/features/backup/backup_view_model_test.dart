@@ -1,13 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/features/backup/application/backup_view_model.dart';
 
 // ===== Mocks =====
 
-class _MockSharedPreferences extends Mock implements SharedPreferences {
+class _MockSharedPreferences extends Mock implements PreferencesService {
   _MockSharedPreferences() {
-    when(() => getInt(any())).thenReturn(null);
+    when(() => getIntOrNull(any())).thenReturn(null);
     when(() => setInt(any(), any())).thenAnswer((_) async => true);
   }
 }

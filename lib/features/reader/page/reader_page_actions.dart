@@ -5,6 +5,8 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 import 'package:zephyr_reader/src/rust/api/dictionary.dart' as dict_api;
 import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
+import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import '../application/reader_view_model.dart';
 
 String _stripHtml(String html) {
@@ -111,22 +113,29 @@ Future<void> onBilingualHighlight(
 
   final seg = alignment.segments[segmentIndex];
   final targetText = targetLanguage == 'zh' ? seg.chinese : seg.english;
-
-  await vm.createBilingualHighlight(
-    l10n: l10n,
-    sourceBookId: vm.state.bookId.value,
-    sourceChapterIndex: vm.state.chapterIndex.value,
-    sourceCharOffset: startOffset,
-    sourceLength: length,
-    sourceSelectedText: text,
-    sourceLanguage: sourceLanguage,
-    targetBookId: vm.state.bookId.value,
-    targetChapterIndex: vm.state.chapterIndex.value,
-    targetCharOffset: targetOffset,
-    targetLength: targetText.length,
-    targetSelectedText: targetText,
-    targetLanguage: targetLanguage,
-  );
+  try {
+    await vm.translation.createBilingualHighlight(
+      BilingualHighlightParams(
+        sourceBookId: vm.state.bookId.value,
+        sourceChapterIndex: vm.state.chapterIndex.value,
+        sourceCharOffset: startOffset,
+        sourceLength: length,
+        sourceSelectedText: text,
+        sourceLanguage: sourceLanguage,
+        targetBookId: vm.state.bookId.value,
+        targetChapterIndex: vm.state.chapterIndex.value,
+        targetCharOffset: targetOffset,
+        targetLength: targetText.length,
+        targetSelectedText: targetText,
+        targetLanguage: targetLanguage,
+        highlightColor: 0xFFE91E63,
+      ),
+    );
+  } catch (e, stack) {
+    Logging.error('onBilingualHighlight', exception: e, stackTrace: stack);
+    vm.toastMessage.value = l10n.bilingualHighlightFailed;
+    return;
+  }
 
   vm.annotations.clearSelection();
   await vm.annotations.loadHighlights();

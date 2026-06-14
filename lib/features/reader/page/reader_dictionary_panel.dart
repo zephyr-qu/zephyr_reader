@@ -6,7 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/core/dictionary/builtin_dictionary.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
@@ -245,7 +245,7 @@ Future<bool> _ensureMdictConfigured(
   ReaderViewModel vm,
 ) async {
   final l10n = AppLocalizations.of(context)!;
-  final prefs = getIt<SharedPreferences>();
+  final prefs = getIt<PreferencesService>();
 
   final savedMdx = prefs.getString(_kPrefMdxPath);
   if (savedMdx != null && File(savedMdx).existsSync()) {

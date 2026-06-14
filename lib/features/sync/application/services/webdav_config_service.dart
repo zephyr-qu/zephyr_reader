@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:flutter/foundation.dart';
@@ -12,7 +12,7 @@ import 'sync_models.dart';
 ///
 /// 管理 WebDAV 服务器连接参数的持久化存储（使用 FlutterSecureStorage）。
 class WebDavConfigService {
-  final SharedPreferences _prefs;
+  final PreferencesService _prefs;
   final FlutterSecureStorage _secureStorage;
 
   final isConfigured = signal(false);

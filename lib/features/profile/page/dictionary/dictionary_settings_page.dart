@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/core/dictionary/builtin_dictionary.dart';
@@ -25,7 +25,7 @@ class DictionarySettingsPage extends HookWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
-    final prefs = useMemoized(() => getIt<SharedPreferences>());
+    final prefs = useMemoized(() => getIt<PreferencesService>());
 
     final currentMdx = useState<String?>(
       prefs.getString(SettingsKeys.dictMdxPath),
@@ -72,7 +72,7 @@ class DictionarySettingsPage extends HookWidget {
     ColorScheme cs,
     AppLocalizations l10n,
     ValueNotifier<String?> currentMdx,
-    SharedPreferences prefs,
+    PreferencesService prefs,
     ValueNotifier<List<Dictionary>> dictionaries,
     ValueNotifier<bool> loading,
   ) {
@@ -158,7 +158,7 @@ class DictionarySettingsPage extends HookWidget {
     ColorScheme cs,
     AppLocalizations l10n,
     ValueNotifier<List<Dictionary>> dictionaries,
-    SharedPreferences prefs,
+    PreferencesService prefs,
     ValueNotifier<String?> currentMdx,
   ) {
     return Column(
@@ -250,7 +250,7 @@ class DictionarySettingsPage extends HookWidget {
     ColorScheme cs,
     AppLocalizations l10n,
     Dictionary dict,
-    SharedPreferences prefs,
+    PreferencesService prefs,
     ValueNotifier<String?> currentMdx,
     ValueNotifier<List<Dictionary>> dictionaries,
   ) {
@@ -342,7 +342,7 @@ class DictionarySettingsPage extends HookWidget {
 
   Future<void> _switchDict(
     BuildContext context,
-    SharedPreferences prefs,
+    PreferencesService prefs,
     ValueNotifier<String?> currentMdx,
     AppLocalizations l10n,
     Dictionary dict,
@@ -363,7 +363,7 @@ class DictionarySettingsPage extends HookWidget {
 
   Future<void> _confirmDelete(
     BuildContext context,
-    SharedPreferences prefs,
+    PreferencesService prefs,
     AppLocalizations l10n,
     Dictionary dict,
     ValueNotifier<List<Dictionary>> dictionaries,
@@ -413,7 +413,7 @@ Future<void> _loadState(
 
 Future<void> _pickDictionary(
   BuildContext context,
-  SharedPreferences prefs,
+    PreferencesService prefs,
   ValueNotifier<String?> currentMdx,
   ValueNotifier<List<Dictionary>> dictionaries,
 ) async {
@@ -461,7 +461,7 @@ Future<void> _pickDictionary(
 
 Future<void> _resetToBuiltin(
   BuildContext context,
-  SharedPreferences prefs,
+    PreferencesService prefs,
   ValueNotifier<String?> currentMdx,
   ValueNotifier<List<Dictionary>> dictionaries,
 ) async {
