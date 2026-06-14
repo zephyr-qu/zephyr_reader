@@ -343,7 +343,7 @@ class ScrollModeRenderer extends HookWidget {
           return RepaintBoundary(
             child: Padding(
               padding: EdgeInsets.symmetric(
-                vertical: DesignTokens.spacing(Spacing.sm),
+                vertical: Spacing.sm.value,
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(4),

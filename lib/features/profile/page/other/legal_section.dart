@@ -26,12 +26,7 @@ class LegalSection extends StatelessWidget {
               children: [
                 SettingsNavigationTile(
                   icon: PhosphorIconsRegular.fileText,
-                  iconColor: MenuItemSemantic.legal.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.legal.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
+                  semantic: MenuItemSemantic.legal,
                   title: l10n.userAgreement,
                   subtitle: '',
                   onTap: () => Navigator.push(
@@ -43,12 +38,7 @@ class LegalSection extends StatelessWidget {
                 ),
                 SettingsNavigationTile(
                   icon: PhosphorIconsRegular.shieldCheck,
-                  iconColor: MenuItemSemantic.legal.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.legal.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
+                  semantic: MenuItemSemantic.legal,
                   title: l10n.privacyPolicy,
                   subtitle: '',
                   onTap: () => Navigator.push(
@@ -60,12 +50,7 @@ class LegalSection extends StatelessWidget {
                 ),
                 SettingsNavigationTile(
                   icon: PhosphorIconsRegular.code,
-                  iconColor: MenuItemSemantic.legal.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.legal.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
+                  semantic: MenuItemSemantic.legal,
                   title: l10n.openSourceLicense,
                   subtitle: l10n.openSourceLicenseDesc,
                   onTap: () => showLicensePage(

@@ -141,23 +141,9 @@ void resetToDefault() { for (final s in _signals) s.reset(); }
 
 ## 🟢 低严重度
 
-### 37. DesignTokens.spacing/radius switch 分发 (Dart)
-
-`DesignTokens.spacing(Spacing.md)` 比 `Spacing.md.value` 多一次函数调用。改为扩展 getter。
-
-### 38. AutoThemeService getSunriseTime/getSunsetTime (Dart)
-
-`getSunriseTime()` 返回 `Duration(hours: darkModeEndHour.value)`，仅一行封装，无价值。
-
-### 39. tts\_service 手写句子分割 (Dart)
-
-`_splitSentences()` 用字符级遍历分割句子。`RegExp(r'[.!?。！？](?=\s|$)').split(text)` 一行完成。
-
 ### 40. async\_utils 不必要抽象 (Dart)
 
 简单 `delay()` 包装 `Future.delayed()`，无额外价值。
-
-<br />
 
 ### 48. auto\_theme\_service ThemeTimePreset + Extension (Dart)
 

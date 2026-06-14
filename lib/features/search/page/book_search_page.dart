@@ -105,7 +105,7 @@ class BookSearchPage extends HookWidget {
                     alpha: 0.3,
                   ),
                 ),
-                SizedBox(height: DesignTokens.spacing(Spacing.md)),
+                SizedBox(height: Spacing.md.value),
                 Text(
                   query.isEmpty
                       ? l10n.searchEnterKeyword
@@ -116,7 +116,7 @@ class BookSearchPage extends HookWidget {
                   ),
                 ),
                 if (query.isNotEmpty) ...[
-                  SizedBox(height: DesignTokens.spacing(Spacing.sm)),
+                  SizedBox(height: Spacing.sm.value),
                   Text(
                     l10n.searchTryOtherKeywords,
                     style: TextStyle(
@@ -133,7 +133,7 @@ class BookSearchPage extends HookWidget {
         return ListView.separated(
           padding: EdgeInsets.symmetric(
             horizontal: 20,
-            vertical: DesignTokens.spacing(Spacing.sm),
+            vertical: Spacing.sm.value,
           ),
           itemCount: results.length,
           separatorBuilder: (_, _) =>
@@ -151,12 +151,12 @@ class BookSearchPage extends HookWidget {
               size: 48,
               color: theme.colorScheme.primary,
             ),
-            SizedBox(height: DesignTokens.spacing(Spacing.md)),
+            SizedBox(height: Spacing.md.value),
             Text(
               l10n.searchFailed,
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             ),
-            SizedBox(height: DesignTokens.spacing(Spacing.md)),
+            SizedBox(height: Spacing.md.value),
             FilledButton(onPressed: onRetry, child: Text(l10n.retry)),
           ],
         ),

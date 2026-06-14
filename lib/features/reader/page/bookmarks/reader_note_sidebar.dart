@@ -55,8 +55,8 @@ class ReaderNoteSidebar extends HookWidget {
               width: double.infinity,
               padding: EdgeInsets.fromLTRB(
                 20,
-                DesignTokens.spacing(Spacing.md),
-                DesignTokens.spacing(Spacing.sm),
+                Spacing.md.value,
+                Spacing.sm.value,
                 12,
               ),
               decoration: BoxDecoration(
@@ -116,7 +116,7 @@ class ReaderNoteSidebar extends HookWidget {
                     )
                   : ListView.builder(
                       padding: EdgeInsets.symmetric(
-                        horizontal: DesignTokens.spacing(Spacing.md),
+                        horizontal: Spacing.md.value,
                       ),
                       itemCount: notes.value.length,
                       itemBuilder: (context, index) {
@@ -152,7 +152,7 @@ class ReaderNoteSidebar extends HookWidget {
                                       : theme.colorScheme.onSurfaceVariant,
                                 ),
                                 SizedBox(
-                                  width: DesignTokens.spacing(Spacing.sm),
+                                  width: Spacing.sm.value,
                                 ),
                                 Expanded(
                                   child: Column(
@@ -175,9 +175,7 @@ class ReaderNoteSidebar extends HookWidget {
                                               (note.selectedText ?? ''))
                                         Padding(
                                           padding: EdgeInsets.only(
-                                            top: DesignTokens.spacing(
-                                              Spacing.xs,
-                                            ),
+                                            top: Spacing.xs.value,
                                           ),
                                           child: Text(
                                             note.content,

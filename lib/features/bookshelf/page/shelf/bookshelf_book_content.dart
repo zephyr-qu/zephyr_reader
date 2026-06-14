@@ -140,7 +140,7 @@ class BookshelfBookContent extends StatelessWidget {
               l10n.loadFailed,
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             ),
-            SizedBox(height: DesignTokens.spacing(Spacing.sm)),
+            SizedBox(height: Spacing.sm.value),
             TextButton(onPressed: onRetry, child: Text(l10n.retry)),
           ],
         ),
@@ -156,7 +156,7 @@ class BookshelfBookContent extends StatelessWidget {
               size: IconSize.hero,
               color: theme.colorScheme.onSurfaceVariant,
             ),
-            SizedBox(height: DesignTokens.spacing(Spacing.md)),
+            SizedBox(height: Spacing.md.value),
             Text(
               l10n.bookshelfEmpty,
               style: TextStyle(
@@ -164,7 +164,7 @@ class BookshelfBookContent extends StatelessWidget {
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            SizedBox(height: DesignTokens.spacing(Spacing.md)),
+            SizedBox(height: Spacing.md.value),
             FilledButton.tonalIcon(
               onPressed: onImportTap,
               icon: const Icon(PhosphorIconsRegular.uploadSimple, size: 18),
@@ -186,9 +186,9 @@ class BookshelfBookContent extends StatelessWidget {
           ),
           child: Padding(
             padding: EdgeInsets.fromLTRB(
-              DesignTokens.spacing(Spacing.lg),
+              Spacing.lg.value,
               20,
-              DesignTokens.spacing(Spacing.lg),
+              Spacing.lg.value,
               batchMode ? 80 : 0,
             ),
             child: isListView
@@ -270,7 +270,7 @@ class BookshelfBookContent extends StatelessWidget {
             left: 4, right: 4,
             bottom: index < books.length - 1 ? 8 : 0,
           ),
-          inkWellBorderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.lg)),
+          inkWellBorderRadius: BorderRadius.circular(RadiusSize.lg.value),
           selectedBackgroundColor: cs.primaryContainer.withValues(alpha: 0.15),
           slideFromRight: true,
           child: Stack(
@@ -284,11 +284,11 @@ class BookshelfBookContent extends StatelessWidget {
                     // Cover with shadow
                     DecoratedBox(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.sm)),
+                        borderRadius: BorderRadius.circular(RadiusSize.sm.value),
                         boxShadow: [DesignTokens.cardShadow],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.sm)),
+                        borderRadius: BorderRadius.circular(RadiusSize.sm.value),
                         child: SizedBox(
                           width: 100, height: 150,
                           child: book.coverPath != null

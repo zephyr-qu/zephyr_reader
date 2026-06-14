@@ -13,24 +13,23 @@ widget
   │     └── extensions ─── AppThemeExtension（全局）
   │
   ├── ReaderThemeExtension ───── 阅读器主题（reader 子树内）
-  │     ├── textColor
-  │     ├── mutedColor
-  │     ├── backgroundColor
-  │     ├── surfaceColor
-  │     ├── dividerColor
-  │     ├── accentColor
-  │     └── ttsActiveColor
+  │     ├── textColor / mutedColor / backgroundColor
+  │     ├── surfaceColor / dividerColor / accentColor / ttsActiveColor
+  │
+  ├── MenuItemSemantic ───────── 设置页菜单项语义色（12 组）
+  │     └── iconColor(brightness) / iconBackground(brightness)
+  │     └── 通过 tile widget 的 semantic: 参数使用
   │
   ├── DesignTokens ────────────── 设计令牌（全局静态常量和函数）
   │     ├── 色板（primary / error / success / warning / warmAccent / …）
   │     ├── spacing(size) ── 8 档
-  │     └── radius(size) ─── 6 档
+  │     └── radius(size) ─── 5 档
   │
-  ├── AnimTokens ──────────────── 动画 Token（全局静态常量）
+  ├── AnimTokens ──────────────── 动画 Token
   │     ├── fast / medium / normal / slow / scroll / persistent
   │     └── defaultCurve / emphasisCurve
   │
-  └── IconSize ────────────────── 图标尺寸（全局静态常量）
+  └── IconSize ────────────────── 图标尺寸
         ├── inline=16 / leading=20 / nav=22 / hero=48
 ```
 
@@ -38,32 +37,30 @@ widget
 
 | 文件 | 内容 |
 |---|---|
-| `app_theme.dart` | `AppThemes.buildTheme()` 工厂，排版 7 档 scale + 扩展 2 档，亮/深色基础色板 |
-| `theme_constants.dart` | `DesignTokens`、`Spacing`、`RadiusSize`、`IconSize` |
+| `app_theme.dart` | `AppThemes.buildTheme()` 工厂，7 档排版 scale，亮/深色基础色板 |
+| `theme_constants.dart` | `DesignTokens`、`Spacing`、`RadiusSize`、`IconSize`、`BuildContext` 扩展 |
 | `theme_extension.dart` | `AppThemeExtension`（primaryContainer / surfaceVariant / shadow / dividerSubtle / overlay） |
-| `reader_theme_extension.dart` | `ReaderThemeExtension`（.light / .dark / .sepia 三套预设） |
+| `reader_theme_extension.dart` | `ReaderThemeExtension`（.light / .dark / .sepia + .resolve() 工厂） |
+| `menu_colors.dart` | `MenuItemSemantic` 枚举 + `iconColor(Brightness)` / `iconBackground(Brightness)` |
 | `anim_tokens.dart` | `AnimTokens`（duration + curve） |
 | `theme_manager.dart` | 主题切换、跟随系统 |
 | `auto_theme_service.dart` | 按时间段自动切换亮/暗 |
-| `menu_colors.dart` | 语义操作色映射表 |
 
-## 排版常量（7 + 2 档 scale）
+## 排版常量（7 档 scale）
 
 定义在 `app_theme.dart`，无 color（const 零开销），与 Material 3 TextTheme slot 映射：
 
-| 名称 | fontSize | fontWeight | letterSpacing | 用途 | M3 slot |
-|---|---|---|---|---|---|
-| hero | 28 | w700 | -0.5 | 大 Banner、首页推荐标题 | `headlineMedium` |
-| screenTitle | 24 | w700 | -0.3 | 页面大标题 | `headlineLarge` |
-| sectionTitle | 20 | w600 | -0.2 | 区域/板块标题 | `headlineSmall` |
-| itemTitle | 17 | w500 | -0.2 | 列表项标题、卡片标题 | `titleLarge` |
-| **bodyLarge** | **15** | **w500** | — | 编号、副标题等稍大正文 | `AppThemes.bodyLarge` |
-| body | 14 | w400 | — | 正文段落、列表副文本 | `bodyLarge` |
-| label | 12 | w500 | 0.2 | 按钮、标签、Tab、辅助文字 | `labelLarge` |
-| caption | 11 | w400 | — | 极小说明、时间戳、脚注 | `labelSmall` |
-| **captionSmall** | **10** | **w400** | — | tag、徽章、紧凑场景 | `AppThemes.captionSmall` |
+| 名称 | fontSize | fontWeight | 用途 | M3 slot |
+|---|---|---|---|---|
+| hero | 28 | w700 | 大 Banner、首页推荐标题 | `headlineMedium` |
+| screenTitle | 24 | w700 | 页面大标题 | `headlineLarge` |
+| sectionTitle | 20 | w600 | 区域/板块标题 | `headlineSmall` |
+| itemTitle | 17 | w500 | 列表项标题、卡片标题 | `titleLarge` |
+| body | 14 | w400 | 正文段落、列表副文本 | `bodyLarge` |
+| label | 12 | w500 | 按钮、标签、Tab、辅助文字 | `labelLarge` |
+| caption | 11 | w400 | 极小说明、时间戳、脚注 | `labelSmall` |
 
-> `bodyLarge`(15) 和 `captionSmall`(10) 通过 `AppThemes.bodyLarge` / `AppThemes.captionSmall` 公开访问。
+> 所有 7 档仅通过 `Theme.of(context).textTheme.X` 访问。不使用 `AppThemes.` 静态公开路径。
 
 ## 设计令牌
 
@@ -83,7 +80,12 @@ widget
 | cardShadow | warmAccent@8% blur=8 offset=0,2 | 卡片/弹出菜单阴影 |
 | dividerSubtle | warmAccent@12% | 弱化分割线 |
 
-### 间距 `DesignTokens.spacing(Spacing size)`
+### 间距 `DesignTokens.spacing(Spacing size)` / `context.spacing`
+
+```dart
+DesignTokens.spacing(Spacing.md)  // 传统方式
+context.spacing.md                // BuildContext 扩展
+```
 
 | 档位 | 值 | 用途 |
 |---|---|---|
@@ -96,14 +98,20 @@ widget
 | xl | 32 | 页面大段间距 |
 | xxl | 48 | 顶部大留白、hero 区域 |
 
-### 圆角 `DesignTokens.radius(RadiusSize size)`
+### 圆角 `DesignTokens.radius(RadiusSize size)` / `context.radius`
+
+```dart
+DesignTokens.radius(RadiusSize.md)  // 传统方式
+context.radius.md                   // BuildContext 扩展
+```
+
+5 档，严格单调递增：
 
 | 档位 | 值 | 用途 |
 |---|---|---|
 | xs | 4 | tag/badge/chip 圆角 |
 | sm | 6 | 小型控件、tag/chip 选中态 |
-| smMd | 10 | icon 容器、小型浮层 |
-| md | 8 | 输入框、卡片 |
+| md | 8 | 输入框、卡片、icon 容器、小型浮层 |
 | lg | 12 | 弹窗、设置面板 |
 | xl | 16 | 大型浮层 |
 
@@ -132,7 +140,7 @@ widget
 
 ## 阅读器主题 `ReaderThemeExtension`
 
-`ReaderPage` 子树内通过 `Theme.of(context).extension<ReaderThemeExtension>()!` 获取。
+`ReaderPage` 子树内通过 `ReaderThemeExtension.resolve(readerTheme)` 或 `Theme.of(context).extension<ReaderThemeExtension>()!` 获取。
 
 ### .light（亮色）
 
@@ -143,7 +151,7 @@ widget
 | backgroundColor | #F8F6F0 |
 | surfaceColor | #FFFDF7 |
 | dividerColor | #EDEBE4 |
-| accentColor | #D4A373 (warmAccent) |
+| accentColor | #D4A373（warmAccent） |
 | ttsActiveColor | #2E7D32 |
 
 ### .dark（深色）
@@ -155,7 +163,7 @@ widget
 | backgroundColor | #111118 |
 | surfaceColor | #1A1A24 |
 | dividerColor | #2A2A35 |
-| accentColor | #D4A373 (warmAccent) |
+| accentColor | #D4A373（warmAccent） |
 | ttsActiveColor | #66BB6A |
 
 ### .sepia（护眼）
@@ -170,49 +178,67 @@ widget
 | accentColor | #A0522D |
 | ttsActiveColor | #2E7D32 |
 
-## 使用规范
+## 菜单语义色 `MenuItemSemantic`
 
-### ✅ 正确的做法
+设置页菜单项的语义色枚举，每种语义对应一组亮/暗色值，通过 `iconColor(Brightness)` 和 `iconBackground(Brightness)` 方法解析。
+
+不涉及 ThemeExtension。通过 `SettingsNavigationTile` / `SettingsToggleTile` 的 `semantic:` 参数使用。
 
 ```dart
-// 字体 — 用排版常量
-style: _bodyLarge,
-// 或从 Theme.of(context) 的 textTheme
-style: Theme.of(context).textTheme.bodyMedium
+// 推荐 — widget 内部自动解析
+SettingsNavigationTile(semantic: MenuItemSemantic.info)
 
-// 圆角 — 用 DesignTokens
-DesignTokens.radius(RadiusSize.md)
-
-// 间距 — 用 DesignTokens
-DesignTokens.spacing(Spacing.md)
-
-// 动画 — 用 AnimTokens
-duration: AnimTokens.normal
-
-// 主题色 — 用 Theme.of(context) 的 extension
-final readerTheme = Theme.of(context).extension<ReaderThemeExtension>()!;
-readerTheme.textColor
+// 自定义场景 — 手动解析
+MenuItemSemantic.info.iconColor(Theme.of(context).brightness)
 ```
 
-### ❌ 禁止的做法
+| 语义 | iconColor（亮） | iconColor（暗） |
+|---|---|---|
+| info | #2196F3 | #64B5F6 |
+| warning | DesignTokens.warning | DesignTokens.warning |
+| success | DesignTokens.success | DesignTokens.success |
+| experimental | #673AB7 | #9575CD |
+| reading | #009688 | #4DB6AC |
+| neutral | #9E9E9E | #BDBDBD |
+| legal | #3F51B5 | #7986CB |
+| education | #673AB7 | #B39DDB |
+| about | #607D8B | #90A4AE |
+| error | DesignTokens.error | DesignTokens.error |
+| primary | #448AFF | #82B1FF |
+| typography | #536DFE | #8C9EFF |
+
+> `iconBackground` 为对应 `iconColor` 的 12% alpha。
+
+## 使用规范
 
 ```dart
-// 禁止 — 无魔法数字
+// ✅ 正确
+style: Theme.of(context).textTheme.bodyMedium
+context.spacing.md
+DesignTokens.radius(RadiusSize.md)
+duration: AnimTokens.normal
+final rt = ReaderThemeExtension.resolve(readerTheme);
+rt.textColor
+SettingsNavigationTile(semantic: MenuItemSemantic.info)
+
+// ❌ 禁止
 fontSize: 16
 const Duration(milliseconds: 250)
 BorderRadius.circular(8)
 padding: EdgeInsets.all(16)
 Color(0xFFF59E0B)
+MenuItemSemantic.info.iconColor(Theme.of(context).brightness)  // tile 场景改用 semantic:
 ```
 
-## 已知 gap（审计 2026-06-14）
+## 已知 gap
 
-| 缺失 | 影响范围 | 状态 |
-|---|---|---|
-| radius 4px | tag / badge / chip ~8 处 | ✅ 已加 `RadiusSize.xs` |
-| radius 10px | icon 容器 ~3 处 | ✅ 已加 `RadiusSize.smMd` |
-| spacing 12px | gap / chip padding | ✅ 已加 `Spacing.smMd` |
-| spacing 20px | ListView page margin | ✅ 已加 `Spacing.mdLg` |
-| fontSize 15 / 10 | 散落值 | ✅ 已加 `AppThemes.bodyLarge`(15) / `captionSmall`(10) |
-| fontSize 16 / 18 / 26 | 2/1/1 处 | 建议收敛到 17 / 20 / 28 |
-| anim 500ms | chapter_list scrollTo | ✅ 已加 `AnimTokens.scroll` |
+| 项目 | 状态 |
+|---|---|
+| radius 4px（`RadiusSize.xs`） | ✅ 已加 |
+| radius 10px | ✅ 收敛到 `md`(8) |
+| spacing 12px（`Spacing.smMd`） | ✅ 已加 |
+| spacing 20px（`Spacing.mdLg`） | ✅ 已加 |
+| fontSize 15 / 10 | ✅ 收敛到 body(14) / caption(11) |
+| fontSize 16 / 18 / 26 | 建议收敛到 17 / 20 / 28 |
+| anim 500ms（`AnimTokens.scroll`） | ✅ 已加，已迁移 chapter_list |
+| MenuColors 游离体系外 | ✅ 通过 tile widget `semantic:` 参数纳入 |

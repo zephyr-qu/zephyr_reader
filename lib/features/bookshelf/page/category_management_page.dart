@@ -81,14 +81,14 @@ class CategoryManagementPage extends HookWidget {
                     size: 64,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
-                  SizedBox(height: DesignTokens.spacing(Spacing.md)),
+                  SizedBox(height: Spacing.md.value),
                   Text(
                     l10n.noCategories,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  SizedBox(height: DesignTokens.spacing(Spacing.sm)),
+                  SizedBox(height: Spacing.sm.value),
                   Text(
                     l10n.addCategoryHint,
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -101,7 +101,7 @@ class CategoryManagementPage extends HookWidget {
           }
 
           return ReorderableListView.builder(
-            padding: EdgeInsets.all(DesignTokens.spacing(Spacing.md)),
+            padding: EdgeInsets.all(Spacing.md.value),
             itemCount: categories.length,
             onReorderItem: (oldIndex, newIndex) =>
                 _onReorder(oldIndex, newIndex, catVm),
@@ -131,7 +131,7 @@ class CategoryManagementPage extends HookWidget {
     final l10n = AppLocalizations.of(context)!;
     return Card(
       key: ValueKey(category.id),
-      margin: EdgeInsets.only(bottom: DesignTokens.spacing(Spacing.sm)),
+      margin: EdgeInsets.only(bottom: Spacing.sm.value),
       child: ListTile(
         leading: Container(
           width: 40,
@@ -139,7 +139,7 @@ class CategoryManagementPage extends HookWidget {
           decoration: BoxDecoration(
             color: category.colorValue,
             borderRadius: BorderRadius.circular(
-              DesignTokens.radius(RadiusSize.md),
+              RadiusSize.md.value,
             ),
           ),
           child: Icon(
@@ -236,12 +236,12 @@ class CategoryManagementPage extends HookWidget {
                 autofocus: true,
                 maxLength: 10,
               ),
-              SizedBox(height: DesignTokens.spacing(Spacing.md)),
+              SizedBox(height: Spacing.md.value),
               const SizedBox.shrink(),
               const SizedBox(height: 12),
               Wrap(
-                spacing: DesignTokens.spacing(Spacing.sm),
-                runSpacing: DesignTokens.spacing(Spacing.sm),
+                spacing: Spacing.sm.value,
+                runSpacing: Spacing.sm.value,
                 children: _colors.map((entry) {
                   final isSelected = selectedColor == entry.key;
                   return GestureDetector(
@@ -341,12 +341,12 @@ class CategoryManagementPage extends HookWidget {
                 ),
                 maxLength: 10,
               ),
-              SizedBox(height: DesignTokens.spacing(Spacing.md)),
+              SizedBox(height: Spacing.md.value),
               const SizedBox.shrink(),
               const SizedBox(height: 12),
               Wrap(
-                spacing: DesignTokens.spacing(Spacing.sm),
-                runSpacing: DesignTokens.spacing(Spacing.sm),
+                spacing: Spacing.sm.value,
+                runSpacing: Spacing.sm.value,
                 children: _colors.map((entry) {
                   final isSelected = selectedColor == entry.key;
                   return GestureDetector(

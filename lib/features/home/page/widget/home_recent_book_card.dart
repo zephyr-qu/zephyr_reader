@@ -24,7 +24,7 @@ class HomeRecentBookCard extends StatelessWidget {
         AppRoute.reader.name,
         pathParameters: {'bookId': book.bookId, 'chapterId': '0'},
       ),
-      borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.sm)),
+      borderRadius: BorderRadius.circular(RadiusSize.sm.value),
       child: SizedBox(
         width: 72,
         child: Column(
@@ -32,7 +32,7 @@ class HomeRecentBookCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(
-                DesignTokens.radius(RadiusSize.sm),
+                RadiusSize.sm.value,
               ),
               child: SizedBox(
                 width: 72,
@@ -65,7 +65,7 @@ class HomeRecentBookCard extends StatelessWidget {
                       ),
               ),
             ),
-            SizedBox(height: DesignTokens.spacing(Spacing.sm)),
+            SizedBox(height: Spacing.sm.value),
             Text(
               book.title,
               maxLines: 2,

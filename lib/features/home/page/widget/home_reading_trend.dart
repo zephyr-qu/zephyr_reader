@@ -42,7 +42,7 @@ class ReadingTrend extends StatelessWidget {
             color: theme.colorScheme.onSurface,
           ),
         ),
-        SizedBox(height: DesignTokens.spacing(Spacing.sm)),
+        SizedBox(height: Spacing.sm.value),
         if (maxVal == 0)
           SizedBox(
             height: 180,

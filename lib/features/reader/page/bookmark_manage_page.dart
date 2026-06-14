@@ -37,7 +37,7 @@ class BookmarkManagePage extends HookWidget {
     }, []);
 
     final AsyncState<List<Bookmark>> bookmarksState = useSignalValue(
-      vm.bookmarks,
+      vm.bookmarks.bookmarks,
     );
 
     return Scaffold(
@@ -130,12 +130,12 @@ class BookmarkManagePage extends HookWidget {
                   size: 48,
                   color: theme.colorScheme.primary,
                 ),
-                SizedBox(height: DesignTokens.spacing(Spacing.md)),
+                SizedBox(height: Spacing.md.value),
                 Text(
                   l10n.loadFailed,
                   style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                 ),
-                SizedBox(height: DesignTokens.spacing(Spacing.md)),
+                SizedBox(height: Spacing.md.value),
                 FilledButton.icon(
                   onPressed: () => vm.loadBookmarks(),
                   label: Text(l10n.reload),
@@ -183,7 +183,7 @@ class BookmarkManagePage extends HookWidget {
                     alpha: 0.3,
                   ),
                 ),
-                SizedBox(height: DesignTokens.spacing(Spacing.md)),
+                SizedBox(height: Spacing.md.value),
                 Text(
                   isSearchMode.value ? l10n.noBookmarksFound : l10n.noBookmarks,
                   style: TextStyle(
@@ -192,7 +192,7 @@ class BookmarkManagePage extends HookWidget {
                   ),
                 ),
                 if (!isSearchMode.value) ...[
-                  SizedBox(height: DesignTokens.spacing(Spacing.sm)),
+                  SizedBox(height: Spacing.sm.value),
                   Text(
                     l10n.addBookmarkHint,
                     style: TextStyle(
@@ -212,20 +212,20 @@ class BookmarkManagePage extends HookWidget {
               Container(
                 margin: EdgeInsets.fromLTRB(
                   20,
-                  DesignTokens.spacing(Spacing.sm),
+                  Spacing.sm.value,
                   20,
-                  DesignTokens.spacing(Spacing.xs),
+                  Spacing.xs.value,
                 ),
                 padding: EdgeInsets.symmetric(
                   horizontal: 12,
-                  vertical: DesignTokens.spacing(Spacing.sm),
+                  vertical: Spacing.sm.value,
                 ),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primaryContainer.withValues(
                     alpha: 0.4,
                   ),
                   borderRadius: BorderRadius.circular(
-                    DesignTokens.radius(RadiusSize.md),
+                    RadiusSize.md.value,
                   ),
                 ),
                 child: Row(
@@ -235,7 +235,7 @@ class BookmarkManagePage extends HookWidget {
                       size: 16,
                       color: theme.colorScheme.primary,
                     ),
-                    SizedBox(width: DesignTokens.spacing(Spacing.sm)),
+                    SizedBox(width: Spacing.sm.value),
                     Text(
                       l10n.totalBookmarks(bookmarkList.length),
                       style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurface),
@@ -413,7 +413,7 @@ class _BookmarkTile extends StatelessWidget {
       background: Container(
         color: theme.colorScheme.primary,
         alignment: Alignment.centerRight,
-        padding: EdgeInsets.only(right: DesignTokens.spacing(Spacing.md)),
+        padding: EdgeInsets.only(right: Spacing.md.value),
         child: const Icon(
           PhosphorIconsRegular.trash,
           color: Colors.white,
@@ -483,7 +483,7 @@ class _BookmarkTile extends StatelessWidget {
                         color: theme.colorScheme.onSurface,
                       ),
                     ),
-                    SizedBox(height: DesignTokens.spacing(Spacing.xs)),
+                    SizedBox(height: Spacing.xs.value),
                     Text(
                       l10n.chapterN(bookmark.chapterIndex),
                       style: TextStyle(
@@ -495,7 +495,7 @@ class _BookmarkTile extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(width: DesignTokens.spacing(Spacing.sm)),
+            SizedBox(width: Spacing.sm.value),
             Text(
               formatRelativeTime(bookmark.createdAt, l10n),
               style: TextStyle(

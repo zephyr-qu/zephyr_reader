@@ -231,9 +231,9 @@ class BookshelfPage extends HookWidget {
                 children: [
                   Padding(
                     padding: EdgeInsets.fromLTRB(
-                      DesignTokens.spacing(Spacing.lg),
+                      Spacing.lg.value,
                       12,
-                      DesignTokens.spacing(Spacing.lg),
+                      Spacing.lg.value,
                       0,
                     ),
                     child: SignalBuilder(
@@ -461,7 +461,7 @@ class BookshelfPage extends HookWidget {
           20,
           20,
           20,
-          DesignTokens.spacing(Spacing.xl),
+          Spacing.xl.value,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -497,12 +497,7 @@ class BookshelfPage extends HookWidget {
                   builder: (_) {
                     return SettingsToggleTile(
                       icon: PhosphorIconsRegular.gauge,
-                      iconColor: MenuItemSemantic.info.iconColor(
-                        Theme.of(context).brightness,
-                      ),
-                      iconBackground: MenuItemSemantic.info.iconBackground(
-                        Theme.of(context).brightness,
-                      ),
+                      semantic: MenuItemSemantic.info,
                       title: l10n.showReadingProgress,
                       value: vm.showReadingProgress.value,
                       onChanged: (v) => vm.showReadingProgress.value = v,
@@ -523,12 +518,7 @@ class BookshelfPage extends HookWidget {
                   builder: (_) {
                     return SettingsToggleTile(
                       icon: PhosphorIconsRegular.listBullets,
-                      iconColor: MenuItemSemantic.info.iconColor(
-                        Theme.of(context).brightness,
-                      ),
-                      iconBackground: MenuItemSemantic.info.iconBackground(
-                        Theme.of(context).brightness,
-                      ),
+                      semantic: MenuItemSemantic.info,
                       title: l10n.listView,
                       value: vm.isListView.value,
                       onChanged: (_) => vm.toggleViewMode(),

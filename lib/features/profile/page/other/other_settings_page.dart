@@ -92,12 +92,7 @@ class OtherSettingsPage extends HookWidget {
               children: [
                 SettingsNavigationTile(
                   icon: PhosphorIconsRegular.translate,
-                  iconColor: MenuItemSemantic.info.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.info.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
+                  semantic: MenuItemSemantic.info,
                   title: l10n.language,
                   subtitle: l10n.languageSubtitle,
                   trailing: Row(
@@ -122,12 +117,7 @@ class OtherSettingsPage extends HookWidget {
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.bell,
-                  iconColor: MenuItemSemantic.warning.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.warning.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
+                  semantic: MenuItemSemantic.warning,
                   title: l10n.otherNotifications,
                   subtitle: l10n.otherNotificationsDesc,
                   value: vm.notificationsEnabled.value,
@@ -135,12 +125,7 @@ class OtherSettingsPage extends HookWidget {
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.arrowArcRight,
-                  iconColor: MenuItemSemantic.success.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.success.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
+                  semantic: MenuItemSemantic.success,
                   title: l10n.otherStartupCheck,
                   subtitle: l10n.otherStartupCheckDesc,
                   value: vm.startupCheckEnabled.value,
@@ -203,12 +188,7 @@ class OtherSettingsPage extends HookWidget {
               children: [
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.markdownLogo,
-                  iconColor: MenuItemSemantic.experimental.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.experimental.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
+                  semantic: MenuItemSemantic.experimental,
                   title: l10n.otherMarkdownPreview,
                   subtitle: l10n.otherMarkdownPreviewDesc,
                   value: vm.markdownPreview.value,

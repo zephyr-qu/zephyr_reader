@@ -23,15 +23,15 @@ class BookshelfCategoryChips extends StatelessWidget {
     final theme = Theme.of(context);
 
     if (categories.isEmpty) {
-      return SizedBox(height: DesignTokens.spacing(Spacing.sm));
+      return SizedBox(height: Spacing.sm.value);
     }
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        DesignTokens.spacing(Spacing.lg),
+        Spacing.lg.value,
         10,
-        DesignTokens.spacing(Spacing.lg),
-        DesignTokens.spacing(Spacing.sm),
+        Spacing.lg.value,
+        Spacing.sm.value,
       ),
       child: SizedBox(
         height: 26,
@@ -40,7 +40,7 @@ class BookshelfCategoryChips extends StatelessWidget {
           physics: adaptiveScrollPhysics(context),
           itemCount: categories.length,
           separatorBuilder: (_, _) =>
-              SizedBox(width: DesignTokens.spacing(Spacing.sm)),
+              SizedBox(width: Spacing.sm.value),
           itemBuilder: (context, index) {
             final category = categories[index];
             final isSelected = selectedCategoryId == category.id;

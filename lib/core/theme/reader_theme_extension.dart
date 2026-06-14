@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
 
 /// 阅读器主题扩展
 ///
@@ -68,6 +69,13 @@ class ReaderThemeExtension extends ThemeExtension<ReaderThemeExtension> {
     accentColor: Color(0xFFA0522D),
     ttsActiveColor: Color(0xFF2E7D32),
   );
+
+  /// 根据 [ReaderTheme] 枚举值解析对应预设。
+  factory ReaderThemeExtension.resolve(ReaderTheme theme) => switch (theme) {
+    ReaderTheme.dark => ReaderThemeExtension.dark(),
+    ReaderTheme.sepia => ReaderThemeExtension.sepia(),
+    ReaderTheme.light => ReaderThemeExtension.light(),
+  };
 
   @override
   ReaderThemeExtension copyWith({

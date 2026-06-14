@@ -77,22 +77,22 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
   final ReaderTheme readerTheme = useSignalValue(vm.config.theme.signal);
   final int bgIndex = useSignalValue(vm.config.readerBgColorIndex.signal);
   final double brightness = useSignalValue(vm.config.brightnessOverlay);
-  final String currentBookId = useSignalValue(vm.bookId);
-  final int chapterIndex = useSignalValue(vm.chapterIndex);
-  final int pageIndex = useSignalValue(vm.pageIndex);
-  final int totalPages = useSignalValue(vm.totalPages);
-  final ReadingMode currentReadingMode = useSignalValue(vm.readingMode);
+  final String currentBookId = useSignalValue(vm.chapterManager.bookId);
+  final int chapterIndex = useSignalValue(vm.chapterManager.chapterIndex);
+  final int pageIndex = useSignalValue(vm.chapterManager.pageIndex);
+  final int totalPages = useSignalValue(vm.chapterManager.totalPages);
+  final ReadingMode currentReadingMode = useSignalValue(vm.chapterManager.readingMode);
 
   final double fontSize = useSignalValue(vm.fontSizeDouble);
   final double lineHeight = useSignalValue(vm.config.lineHeight.signal);
-  final AsyncState<String> chContent = useSignalValue(vm.chapterContent);
-  final bool isLoading = useSignalValue(vm.isLoading);
-  final String? error = useSignalValue(vm.error);
+  final AsyncState<String> chContent = useSignalValue(vm.chapterManager.chapterContent);
+  final bool isLoading = useSignalValue(vm.chapterManager.isLoading);
+  final String? error = useSignalValue(vm.chapterManager.error);
   final AsyncState<BilingualAlignment?> bState = useSignalValue(
-    vm.bilingualAlignment,
+    vm.translation.bilingualAlignment,
   );
-  final int autoScrollTick = useSignalValue(vm.autoScrollTick);
-  final AsyncState<List<Note>> highlights = useSignalValue(vm.highlights);
+  final int autoScrollTick = useSignalValue(vm.chapterManager.autoScrollTick);
+  final AsyncState<List<Note>> highlights = useSignalValue(vm.annotations.highlights);
   final double letterSpacing = useSignalValue(vm.config.letterSpacing.signal);
   final double paragraphSpacing = useSignalValue(
     vm.config.paragraphSpacing.signal,
@@ -101,9 +101,9 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
   final WritingDirection writingDirection = useSignalValue(
     vm.config.writingDirection,
   );
-  final int? pendingJumpCharOffset = useSignalValue(vm.pendingJumpCharOffset);
-  final String progressText = useSignalValue(vm.progressText);
-  final String currentChapterTitle = useSignalValue(vm.currentChapterTitle);
+  final int? pendingJumpCharOffset = useSignalValue(vm.chapterManager.pendingJumpCharOffset);
+  final String progressText = useSignalValue(vm.chapterManager.progressText);
+  final String currentChapterTitle = useSignalValue(vm.chapterManager.currentChapterTitle);
   final bool baselineAlign = useSignalValue(vm.config.baselineAlign.signal);
   final TextAlign textAlign = useSignalValue(vm.config.textAlign.signal);
 
@@ -145,22 +145,22 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
 /// trigger rebuilds of widgets using this binding.
 ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
   final ReaderTheme readerTheme = useSignalValue(vm.config.theme.signal);
-  final String currentBookId = useSignalValue(vm.bookId);
-  final int chapterIndex = useSignalValue(vm.chapterIndex);
-  final int pageIndex = useSignalValue(vm.pageIndex);
-  final int totalPages = useSignalValue(vm.totalPages);
-  final ReadingMode currentReadingMode = useSignalValue(vm.readingMode);
+  final String currentBookId = useSignalValue(vm.chapterManager.bookId);
+  final int chapterIndex = useSignalValue(vm.chapterManager.chapterIndex);
+  final int pageIndex = useSignalValue(vm.chapterManager.pageIndex);
+  final int totalPages = useSignalValue(vm.chapterManager.totalPages);
+  final ReadingMode currentReadingMode = useSignalValue(vm.chapterManager.readingMode);
   final double fontSize = useSignalValue(vm.fontSizeDouble);
   final double lineHeight = useSignalValue(vm.config.lineHeight.signal);
-  final AsyncState<String> chContent = useSignalValue(vm.chapterContent);
-  final bool isLoading = useSignalValue(vm.isLoading);
-  final String? error = useSignalValue(vm.error);
+  final AsyncState<String> chContent = useSignalValue(vm.chapterManager.chapterContent);
+  final bool isLoading = useSignalValue(vm.chapterManager.isLoading);
+  final String? error = useSignalValue(vm.chapterManager.error);
   final AsyncState<BilingualAlignment?> bState = useSignalValue(
-    vm.bilingualAlignment,
+    vm.translation.bilingualAlignment,
   );
   // autoScrollTick intentionally excluded — ReaderContent subscribes via local useEffect
   // to avoid triggering rebuilds of widgets using this binding on every tick.
-  final AsyncState<List<Note>> highlights = useSignalValue(vm.highlights);
+  final AsyncState<List<Note>> highlights = useSignalValue(vm.annotations.highlights);
   final double letterSpacing = useSignalValue(vm.config.letterSpacing.signal);
   final double paragraphSpacing = useSignalValue(
     vm.config.paragraphSpacing.signal,
@@ -171,7 +171,7 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
   );
   final bool baselineAlign = useSignalValue(vm.config.baselineAlign.signal);
   final TextAlign textAlign = useSignalValue(vm.config.textAlign.signal);
-  final int? pendingJumpCharOffset = useSignalValue(vm.pendingJumpCharOffset);
+  final int? pendingJumpCharOffset = useSignalValue(vm.chapterManager.pendingJumpCharOffset);
 
 
   return ReaderPageBindings(

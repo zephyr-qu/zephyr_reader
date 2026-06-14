@@ -35,7 +35,7 @@ class BookshelfBatchToolbar extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.symmetric(
           horizontal: 20,
-          vertical: DesignTokens.spacing(Spacing.sm),
+          vertical: Spacing.sm.value,
         ),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,

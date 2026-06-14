@@ -51,12 +51,7 @@ class BilingualSection extends HookWidget {
               children: [
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.arrowsLeftRight,
-                  iconColor: MenuItemSemantic.reading.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.reading.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
+                  semantic: MenuItemSemantic.reading,
                   title: l10n.ttsBilingualAlternate,
                   subtitle: l10n.ttsBilingualAlternateDesc,
                   value: useSignalValue(vm.bilingualAlternate.signal),
@@ -64,12 +59,7 @@ class BilingualSection extends HookWidget {
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.textAa,
-                  iconColor: MenuItemSemantic.reading.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.reading.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
+                  semantic: MenuItemSemantic.reading,
                   title: l10n.ttsOriginalOnly,
                   subtitle: l10n.ttsOriginalOnlyDesc,
                   value: useSignalValue(vm.originalOnly.signal),

@@ -68,18 +68,18 @@ class HomePage extends HookWidget {
                     HomeHeaderSliver(greeting: greeting),
                     SliverPadding(
                       padding: EdgeInsets.fromLTRB(
-                        DesignTokens.spacing(Spacing.md),
-                        DesignTokens.spacing(Spacing.lg),
-                        DesignTokens.spacing(Spacing.md),
+                        Spacing.md.value,
+                        Spacing.lg.value,
+                        Spacing.md.value,
                         0,
                       ),
                       sliver: const SliverToBoxAdapter(child: DailyQuote()),
                     ),
                     SliverPadding(
                       padding: EdgeInsets.fromLTRB(
-                        DesignTokens.spacing(Spacing.md),
-                        DesignTokens.spacing(Spacing.md),
-                        DesignTokens.spacing(Spacing.md),
+                        Spacing.md.value,
+                        Spacing.md.value,
+                        Spacing.md.value,
                         0,
                       ),
                       sliver: SliverToBoxAdapter(
@@ -98,9 +98,9 @@ class HomePage extends HookWidget {
                     ),
                     SliverPadding(
                       padding: EdgeInsets.fromLTRB(
-                        DesignTokens.spacing(Spacing.md),
-                        DesignTokens.spacing(Spacing.lg),
-                        DesignTokens.spacing(Spacing.md),
+                        Spacing.md.value,
+                        Spacing.lg.value,
+                        Spacing.md.value,
                         0,
                       ),
                       sliver: SliverToBoxAdapter(
@@ -118,7 +118,7 @@ class HomePage extends HookWidget {
                     ),
                     SliverPadding(
                       padding: EdgeInsets.only(
-                        top: DesignTokens.spacing(Spacing.xl),
+                        top: Spacing.xl.value,
                       ),
                     ),
                     recentBooks.map(
@@ -133,9 +133,9 @@ class HomePage extends HookWidget {
                           ),
                       data: (List<Book> value) => SliverPadding(
                         padding: EdgeInsets.fromLTRB(
-                          DesignTokens.spacing(Spacing.md),
+                          Spacing.md.value,
                           0,
-                          DesignTokens.spacing(Spacing.md),
+                          Spacing.md.value,
                           0,
                         ),
                         sliver: SliverToBoxAdapter(

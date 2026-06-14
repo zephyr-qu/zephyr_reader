@@ -31,10 +31,10 @@ class DailyQuote extends StatelessWidget {
     final day = DateTime.now().day;
     final quote = quotes[day % quotes.length];
     return Container(
-      padding: EdgeInsets.all(DesignTokens.spacing(Spacing.md)),
+      padding: EdgeInsets.all(Spacing.md.value),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(DesignTokens.radius(RadiusSize.md)),
+        borderRadius: BorderRadius.circular(RadiusSize.md.value),
         border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
       ),
       child: Row(
@@ -48,7 +48,7 @@ class DailyQuote extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          SizedBox(width: DesignTokens.spacing(Spacing.sm)),
+          SizedBox(width: Spacing.sm.value),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,7 +61,7 @@ class DailyQuote extends StatelessWidget {
                     color: Color(0xFF1A1A1A),
                   ),
                 ),
-                SizedBox(height: DesignTokens.spacing(Spacing.sm)),
+                SizedBox(height: Spacing.sm.value),
                 Align(
                   alignment: Alignment.bottomRight,
                   child: Text(

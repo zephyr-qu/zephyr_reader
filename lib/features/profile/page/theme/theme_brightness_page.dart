@@ -147,12 +147,7 @@ class ThemeBrightnessPage extends HookWidget {
                 ),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.sunHorizon,
-                  iconColor: MenuItemSemantic.warning.iconColor(
-                    Theme.of(context).brightness,
-                  ),
-                  iconBackground: MenuItemSemantic.warning.iconBackground(
-                    Theme.of(context).brightness,
-                  ),
+                  semantic: MenuItemSemantic.warning,
                   title: '使用系统亮度',
                   subtitle: '关闭后可独立调节阅读器亮度',
                   value: useSystemBrightness,

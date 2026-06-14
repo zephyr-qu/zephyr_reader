@@ -45,13 +45,13 @@ class BookCover extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: cs.primaryContainer,
                   borderRadius: BorderRadius.circular(
-                    DesignTokens.radius(RadiusSize.sm),
+                    RadiusSize.sm.value,
                   ),
                 ),
                 child: book.coverPath != null
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(
-                          DesignTokens.radius(RadiusSize.sm),
+                          RadiusSize.sm.value,
                         ),
                         child: Image.file(
                           File(resolveCoverPath(book.coverPath!)!),

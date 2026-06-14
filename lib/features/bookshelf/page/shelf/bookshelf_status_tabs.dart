@@ -28,7 +28,7 @@ class BookshelfStatusTabs extends StatelessWidget {
         physics: adaptiveScrollPhysics(context),
         itemCount: _statusTabs.length,
         separatorBuilder: (_, _) =>
-            SizedBox(width: DesignTokens.spacing(Spacing.md)),
+            SizedBox(width: Spacing.md.value),
         itemBuilder: (context, index) {
           final tab = _statusTabs[index];
           final isSelected = selectedStatus == tab.status;
@@ -54,7 +54,7 @@ class BookshelfStatusTabs extends StatelessWidget {
                     Container(
                       height: 1.5,
                       margin: EdgeInsets.only(
-                        top: DesignTokens.spacing(Spacing.xs),
+                        top: Spacing.xs.value,
                       ),
                       color: theme.colorScheme.primary,
                     )

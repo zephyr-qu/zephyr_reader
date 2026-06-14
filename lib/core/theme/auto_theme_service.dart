@@ -150,15 +150,6 @@ class AutoThemeService {
     });
   }
 
-  /// 获取日出时间（估算）
-  Duration getSunriseTime() {
-    return Duration(hours: darkModeEndHour.value);
-  }
-
-  /// 获取日落时间（估算）
-  Duration getSunsetTime() {
-    return Duration(hours: darkModeStartHour.value);
-  }
 
   bool get isDarkModeTime {
     if (!autoThemeEnabled.value) {

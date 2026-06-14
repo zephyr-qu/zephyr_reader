@@ -49,11 +49,11 @@ class _ReaderAnnotationDialogState extends State<ReaderAnnotationDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: EdgeInsets.all(DesignTokens.spacing(Spacing.sm)),
+              padding: EdgeInsets.all(Spacing.sm.value),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(
-                  DesignTokens.radius(RadiusSize.md),
+                  RadiusSize.md.value,
                 ),
               ),
               child: Text(
