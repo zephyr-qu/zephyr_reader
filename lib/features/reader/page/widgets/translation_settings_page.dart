@@ -377,11 +377,10 @@ class _TestSection extends StatelessWidget {
                     Flexible(
                       child: Text(
                         testResult!,
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: isTestSuccess == true
                               ? DesignTokens.success
                               : DesignTokens.error,
-                          fontSize: 13,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -438,7 +437,7 @@ class _SelectTile extends StatelessWidget {
             ),
             Text(
               value,
-              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant),
             ),
             const SizedBox(width: 8),
             Icon(

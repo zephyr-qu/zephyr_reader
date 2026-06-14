@@ -163,8 +163,7 @@ class ReaderNoteSidebar extends HookWidget {
                                         note.selectedText ?? note.content,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 13,
+                                        style: theme.textTheme.labelLarge?.copyWith(
                                           color: theme.colorScheme.onSurface,
                                         ),
                                       ),

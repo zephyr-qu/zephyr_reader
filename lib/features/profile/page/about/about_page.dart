@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -96,7 +97,7 @@ class AboutPage extends HookWidget {
 
           // ── Description ────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(horizontal: DesignTokens.spacing(Spacing.md)),
             child: Text(
               l10n.aboutDescription,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -119,7 +120,7 @@ class AboutPage extends HookWidget {
           // ── Tech Stack ─────────────────────────────────────────────
           SectionLabel(label: l10n.aboutSectionTechStack),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(horizontal: DesignTokens.spacing(Spacing.md)),
             child: SettingsCard(
               children: [
                 Padding(

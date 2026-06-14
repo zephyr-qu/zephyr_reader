@@ -60,18 +60,18 @@ Future<void> onBilingualHighlight(
   BuildContext context,
   ReaderViewModel vm,
 ) async {
-  final text = vm.selectedText.value;
+  final text = vm.annotations.selectedText.value;
   final l10n = AppLocalizations.of(context)!;
   if (text.isEmpty) return;
 
-  final alignment = vm.bilingualAlignment.value.value;
+  final alignment = vm.translation.bilingualAlignment.value.value;
   if (alignment == null || alignment.segments.isEmpty) {
     vm.toastMessage.value = l10n.bilingualNoAlignment;
     return;
   }
 
-  final startOffset = vm.selectionStart.value;
-  final length = vm.selectionEnd.value - vm.selectionStart.value;
+  final startOffset = vm.annotations.selectionStart.value;
+  final length = vm.annotations.selectionEnd.value - vm.annotations.selectionStart.value;
 
   int segmentIndex = -1;
   String sourceLanguage = 'zh';
@@ -114,21 +114,21 @@ Future<void> onBilingualHighlight(
 
   await vm.createBilingualHighlight(
     l10n: l10n,
-    sourceBookId: vm.bookId.value,
-    sourceChapterIndex: vm.chapterIndex.value,
+    sourceBookId: vm.chapterManager.bookId.value,
+    sourceChapterIndex: vm.chapterManager.chapterIndex.value,
     sourceCharOffset: startOffset,
     sourceLength: length,
     sourceSelectedText: text,
     sourceLanguage: sourceLanguage,
-    targetBookId: vm.bookId.value,
-    targetChapterIndex: vm.chapterIndex.value,
+    targetBookId: vm.chapterManager.bookId.value,
+    targetChapterIndex: vm.chapterManager.chapterIndex.value,
     targetCharOffset: targetOffset,
     targetLength: targetText.length,
     targetSelectedText: targetText,
     targetLanguage: targetLanguage,
   );
 
-  vm.clearSelection();
-  await vm.loadHighlights();
+  vm.annotations.clearSelection();
+  await vm.annotations.loadHighlights();
   vm.toastMessage.value = l10n.bilingualHighlightCreated;
 }

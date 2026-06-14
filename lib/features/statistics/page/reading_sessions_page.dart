@@ -67,6 +67,7 @@ class ReadingSessionsPage extends HookWidget {
         ],
       ),
       body: _buildBody(
+        context,
         l10n,
         cs,
         sessionsState,
@@ -78,6 +79,7 @@ class ReadingSessionsPage extends HookWidget {
   }
 
   Widget _buildBody(
+    BuildContext context,
     AppLocalizations l10n,
     ColorScheme cs,
     AsyncState<List<ReadingSession>> sessionsState,
@@ -87,7 +89,7 @@ class ReadingSessionsPage extends HookWidget {
   ) {
     return switch (sessionsState) {
       AsyncLoading() => const Center(child: CircularProgressIndicator()),
-      AsyncError(:final error) => _buildError(l10n, cs, error, onRetry),
+      AsyncError(:final error) => _buildError(context, l10n, cs, error, onRetry),
       AsyncData(:final value) => _buildSessionList(
         l10n,
         cs,
@@ -99,6 +101,7 @@ class ReadingSessionsPage extends HookWidget {
   }
 
   Widget _buildError(
+    BuildContext context,
     AppLocalizations l10n,
     ColorScheme cs,
     Object error,

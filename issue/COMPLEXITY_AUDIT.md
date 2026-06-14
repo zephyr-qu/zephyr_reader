@@ -18,28 +18,6 @@
 
 ## 🔴 高严重度 — 建议优先改
 
-### 1. ReaderViewModel 纯转发层 (Dart)
-
-**文件**: `lib/features/reader/application/reader_view_model.dart` (415 行)
-
-**问题**: 30+ 个 getter 只是把子 Controller 的信号直接转发出去，ReaderViewModel 本身零逻辑。
-
-```dart
-// 当前：415 行的纯转发
-Signal<String> get bookId => chapterManager.bookId;
-Signal<int> get chapterIndex => chapterManager.chapterIndex;
-AsyncSignal<List<Chapter>> get chapters => chapterManager.chapters;
-// ... 30+ 行重复
-
-// 简化：页面直接消费 Controller
-final chapterManager = getIt<ChapterManager>();
-final bookId = chapterManager.bookId; // 直接用
-```
-
-**收益**: 删除整个 VM 类，每个信号只声明一次。
-
-***
-
 ### 6. ReaderPage 550 行 build() (Dart)
 
 **文件**: `lib/features/reader/page/reader_page.dart` (550 行)
@@ -111,17 +89,7 @@ void resetToDefault() { for (final s in _signals) s.reset(); }
 
 <br />
 
-### 19. AppErrorMapper 16 路类型匹配 (Dart)
-
-**文件**: `lib/core/utils/app_error_mapper.dart`
-
-按类型逐个匹配 16 种 AppError 变体返回中文消息。可用 switch 表达式或表驱动。
-
-### 20. network\_state\_service 死代码 (Dart)
-
-**文件**: `lib/core/network/network_state_service.dart`
-
-全文件每个方法返回硬编码 `false`/noop。插件已废弃，代码永远不会工作。直接删除。
+<br />
 
 ### 21. RoutePaths / RouteNames 双份常量 (Dart)
 
@@ -135,11 +103,7 @@ void resetToDefault() { for (final s in _signals) s.reset(); }
 
 `_deleteDirectoryContents` 和 `_calculateDirectorySize` 共享相同的 `.list(recursive: true)` 迭代逻辑，仅 per-item 动作不同。提取 `_walkDir` 辅助函数。
 
-### 23. bookshelf\_book\_content 网格/列表双份构建 (Dart)
-
-**文件**: `lib/features/bookshelf/page/shelf/bookshelf_book_content.dart` (525 行)
-
-`_buildGridContent` 和 `_buildListContent` 重复所有选择/动画/手势/进度/状态逻辑，仅外层容器不同。抽取共享 Widget。
+<br />
 
 ### 24. reader\_content 6 个竞争 useEffect (Dart)
 
@@ -177,29 +141,11 @@ void resetToDefault() { for (final s in _signals) s.reset(); }
 
 每个 Material 文本样式完整指定 fontSize/fontWeight/letterSpacing（与默认值相同），仅改 color。用 `copyWith(color: ...)` 或只覆盖需要的样式即可。
 
-### 30. battery\_state\_service 类型擦除结果 (Dart)
-
-**文件**: `lib/core/battery/battery_state_service.dart`
-
-`Future.wait([...])` 返回 `List<Object?>`，通过 `results[0]`/`results[1]` 魔数索引取值。顺序错误编译期不报错。改为顺序 await。
-
-<br />
-
-#
-
 ### 33. 空占位测试 (Rust)
 
 **文件**: `rust/tests/api_test.rs`
 
 `test_search_initialization` 和 `test_dictionary_availability` 只有 `println!`，无断言。
-
-### 34. validate\_file\_path\_async 不必要的 spawn\_blocking (Rust)
-
-**文件**: `rust/src/utils/security.rs`
-
-`validate_file_path_async` 将同步 `stat()`/`is_file()` 包装在 `spawn_blocking` 中。这些 OS 调用不会阻塞 runtime。直接同步调用即可。
-
-<br />
 
 ***
 
@@ -220,12 +166,6 @@ void resetToDefault() { for (final s in _signals) s.reset(); }
 ### 40. async\_utils 不必要抽象 (Dart)
 
 简单 `delay()` 包装 `Future.delayed()`，无额外价值。
-
-### 41. format\_utils formatFileSize 硬编码英文字符串 (Dart)
-
-返回 "B"/"KB"/"MB"/"GB" 硬编码英文，不支持 i18n（而同一文件里的 `formatChars` 支持 i18n）。不一致。
-
-<br />
 
 ### 48. auto\_theme\_service ThemeTimePreset + Extension (Dart)
 
