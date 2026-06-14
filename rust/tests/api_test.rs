@@ -227,30 +227,8 @@ async fn test_bilingual_alignment_simple() {
         alignment.unmatched_chinese.len(),
         alignment.unmatched_english.len()
     );
+
 }
-
-// ==================== 搜索接口测试 ====================
-
-#[tokio::test]
-async fn test_search_initialization() {
-    common::init_logger();
-
-    // 测试搜索功能是否可用
-    // 注意：这可能需要先初始化索引
-    println!("搜索接口测试 - 需要有效的数据库环境");
-}
-
-// ==================== 词典接口测试 ====================
-
-#[test]
-fn test_dictionary_availability() {
-    common::init_logger();
-
-    // 测试词典功能是否可用
-    // 注意：这可能需要先初始化词典引擎
-    println!("词典接口测试 - 需要有效的词典文件");
-}
-
 // ==================== 错误处理测试 ====================
 
 #[test]

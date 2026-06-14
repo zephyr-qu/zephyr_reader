@@ -33,7 +33,7 @@ class ThemeBrightnessPage extends HookWidget {
       getIt<ReaderConfig>().readerBgColorIndex.signal,
     );
     final AppThemeType themeType = useSignalValue(
-      ThemeManager.instance.themeType,
+      ThemeManager.instance.themeType.signal,
     );
     final int brightness = useSignalValue(vm.brightness.signal);
     final bool useSystemBrightness = useSignalValue(

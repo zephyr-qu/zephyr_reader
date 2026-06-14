@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 笔记添加/编辑对话框。
 ///
 /// `initialContent` 为空时为创建模式，非空时为编辑模式（标题显示「编辑笔记」）。
-class ReaderAnnotationDialog extends StatefulWidget {
+class ReaderAnnotationDialog extends HookWidget {
   final String selectedText;
   final String? initialContent;
   final ValueChanged<String> onSave;
@@ -18,27 +19,9 @@ class ReaderAnnotationDialog extends StatefulWidget {
   });
 
   @override
-  State<ReaderAnnotationDialog> createState() => _ReaderAnnotationDialogState();
-}
-
-class _ReaderAnnotationDialogState extends State<ReaderAnnotationDialog> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialContent ?? '');
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final isEditing = widget.initialContent != null;
+    final controller = useTextEditingController(text: initialContent ?? '');
+    final isEditing = initialContent != null;
     final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
       title: Text(isEditing ? l10n.editNote : l10n.addNote),
@@ -57,7 +40,7 @@ class _ReaderAnnotationDialogState extends State<ReaderAnnotationDialog> {
                 ),
               ),
               child: Text(
-                widget.selectedText,
+                selectedText,
                 style: const TextStyle(
                   fontSize: 14,
                   fontStyle: FontStyle.italic,
@@ -68,7 +51,7 @@ class _ReaderAnnotationDialogState extends State<ReaderAnnotationDialog> {
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: _controller,
+              controller: controller,
               maxLines: 5,
               autofocus: true,
               decoration: InputDecoration(
@@ -86,7 +69,7 @@ class _ReaderAnnotationDialogState extends State<ReaderAnnotationDialog> {
         ),
         FilledButton(
           onPressed: () {
-            widget.onSave(_controller.text);
+            onSave(controller.text);
             Navigator.of(context).pop();
           },
           child: Text(l10n.save),

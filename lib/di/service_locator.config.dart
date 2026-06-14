@@ -21,6 +21,7 @@ import 'package:zephyr_reader/core/network/wifi_transfer_service.dart' as _i82;
 import 'package:zephyr_reader/core/reader/custom_font_service.dart' as _i851;
 import 'package:zephyr_reader/core/reader/reader_config.dart' as _i849;
 import 'package:zephyr_reader/core/reader/tts_service.dart' as _i825;
+import 'package:zephyr_reader/core/theme/theme_manager.dart' as _i182;
 import 'package:zephyr_reader/di/app_module.dart' as _i431;
 import 'package:zephyr_reader/features/backup/application/backup_view_model.dart'
     as _i341;
@@ -112,6 +113,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.singleton<_i849.ReaderConfig>(
       () => _i849.ReaderConfig(gh<_i460.SharedPreferences>()),
+    );
+    gh.singleton<_i182.ThemeManager>(
+      () => _i182.ThemeManager(gh<_i460.SharedPreferences>()),
     );
     gh.singleton<_i888.TranslationConfig>(
       () => _i888.TranslationConfig(gh<_i460.SharedPreferences>()),

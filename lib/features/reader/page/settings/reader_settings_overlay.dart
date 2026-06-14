@@ -25,76 +25,32 @@ enum ReaderPanelType {
 /// 根据 [panelType] 展示不同功能区块，替代原来单一臃肿的设置面板。
 class ReaderSettingsOverlay extends StatelessWidget {
   final ReaderPanelType panelType;
-  final ReaderTheme readerTheme;
+  final ReaderConfig config;
   final ReadingMode readingMode;
-  final double fontSize;
-  final double lineHeight;
-  final double letterSpacing;
-  final double paragraphSpacing;
-  final double pageMargin;
-  final WritingDirection writingDirection;
-  final int readerBgColorIndex;
-  final double brightnessValue;
-  final TapLayout tapLayout;
-  final bool followSystemFontScale;
-  final TextAlign textAlign;
-  final bool autoScroll;
-  final int autoScrollSpeed;
   final bool isTtsPlaying;
   final bool isTtsPaused;
   final ValueChanged<ReadingMode> onReadingModeChanged;
   final ValueChanged<double> onFontSizeChanged;
   final ValueChanged<double> onLineHeightChanged;
-  final ValueChanged<ReaderTheme> onThemeChanged;
   final ValueChanged<double> onLetterSpacingChanged;
   final ValueChanged<double> onParagraphSpacingChanged;
   final ValueChanged<double> onPageMarginChanged;
-  final ValueChanged<WritingDirection> onWritingDirectionChanged;
-  final ValueChanged<int> onReaderBgColorChanged;
-  final ValueChanged<double> onBrightnessChanged;
-  final ValueChanged<TapLayout> onTapLayoutChanged;
-  final ValueChanged<bool> onFollowSystemFontScale;
-  final ValueChanged<TextAlign> onTextAlignChanged;
-  final ValueChanged<bool> onAutoScrollChanged;
   final VoidCallback onTtsToggle;
-  final ValueChanged<double> onAutoScrollSpeedChanged;
   final VoidCallback onClose;
 
   const ReaderSettingsOverlay({
     super.key,
     required this.panelType,
-    required this.readerTheme,
+    required this.config,
     required this.readingMode,
-    required this.fontSize,
-    required this.lineHeight,
-    required this.letterSpacing,
-    required this.paragraphSpacing,
-    required this.pageMargin,
-    required this.writingDirection,
+    required this.isTtsPlaying,
+    required this.isTtsPaused,
     required this.onReadingModeChanged,
     required this.onFontSizeChanged,
     required this.onLineHeightChanged,
-    required this.onThemeChanged,
     required this.onLetterSpacingChanged,
     required this.onParagraphSpacingChanged,
     required this.onPageMarginChanged,
-    required this.onWritingDirectionChanged,
-    required this.readerBgColorIndex,
-    required this.onReaderBgColorChanged,
-    required this.tapLayout,
-    required this.onTapLayoutChanged,
-    required this.followSystemFontScale,
-    required this.textAlign,
-    required this.onTextAlignChanged,
-    required this.onFollowSystemFontScale,
-    required this.brightnessValue,
-    required this.onBrightnessChanged,
-    required this.autoScroll,
-    required this.autoScrollSpeed,
-    required this.onAutoScrollChanged,
-    required this.onAutoScrollSpeedChanged,
-    required this.isTtsPlaying,
-    required this.isTtsPaused,
     required this.onTtsToggle,
     required this.onClose,
   });
@@ -183,51 +139,51 @@ class ReaderSettingsOverlay extends StatelessWidget {
       ),
       _sliderTile(
         label: l10n.fontSize,
-        value: fontSize,
+        value: config.fontSize.value,
         min: 12,
         max: 32,
         divisions: 20,
-        display: '${fontSize.toStringAsFixed(0)}px',
+        display: '${config.fontSize.value.toStringAsFixed(0)}px',
         onChanged: onFontSizeChanged,
         readerTheme: readerTheme,
       ),
       _sliderTile(
         label: l10n.lineHeight,
-        value: lineHeight,
+        value: config.lineHeight.value,
         min: 0.7,
         max: 3.0,
         divisions: 23,
-        display: lineHeight.toStringAsFixed(1),
+        display: config.lineHeight.value.toStringAsFixed(1),
         onChanged: onLineHeightChanged,
         readerTheme: readerTheme,
       ),
       _sliderTile(
         label: l10n.letterSpacing,
-        value: letterSpacing,
+        value: config.letterSpacing.value,
         min: 0,
         max: 8,
         divisions: 16,
-        display: letterSpacing.toStringAsFixed(1),
+        display: config.letterSpacing.value.toStringAsFixed(1),
         onChanged: onLetterSpacingChanged,
         readerTheme: readerTheme,
       ),
       _sliderTile(
         label: l10n.paragraphSpacing,
-        value: paragraphSpacing,
+        value: config.paragraphSpacing.value,
         min: 4,
         max: 32,
         divisions: 14,
-        display: paragraphSpacing.toStringAsFixed(0),
+        display: config.paragraphSpacing.value.toStringAsFixed(0),
         onChanged: onParagraphSpacingChanged,
         readerTheme: readerTheme,
       ),
       _sliderTile(
         label: l10n.pageMargin,
-        value: pageMargin,
+        value: config.pageMargin,
         min: 8,
         max: 40,
         divisions: 16,
-        display: '${pageMargin.toStringAsFixed(0)}px',
+        display: '${config.pageMargin.toStringAsFixed(0)}px',
         onChanged: onPageMarginChanged,
         readerTheme: readerTheme,
       ),
@@ -250,12 +206,12 @@ class ReaderSettingsOverlay extends StatelessWidget {
       ),
       _sliderTile(
         label: l10n.brightness,
-        value: 1 - brightnessValue,
+        value: 1 - config.brightnessOverlay.value,
         min: 0.3,
         max: 1.0,
         divisions: 14,
-        display: '${((1 - brightnessValue) * 100).toStringAsFixed(0)}%',
-        onChanged: (v) => onBrightnessChanged(1 - v),
+        display: '${((1 - config.brightnessOverlay.value) * 100).toStringAsFixed(0)}%',
+        onChanged: (v) => config.brightnessOverlay.value = 1 - v,
         readerTheme: readerTheme,
       ),
       const SizedBox(height: 8),
@@ -301,15 +257,15 @@ class ReaderSettingsOverlay extends StatelessWidget {
         mutedColor: readerTheme.mutedColor,
       ),
       _autoScrollTile(readerTheme, l10n),
-      if (autoScroll)
+      if (config.autoScroll.value)
         _sliderTile(
           label: l10n.autoScrollSpeed,
-          value: autoScrollSpeed.toDouble(),
+          value: config.autoScrollSpeed.value.toDouble(),
           min: 10,
           max: 120,
           divisions: 22,
-          display: '${autoScrollSpeed}s',
-          onChanged: (v) => onAutoScrollSpeedChanged(v),
+          display: '${config.autoScrollSpeed.value}s',
+          onChanged: (v) => config.autoScrollSpeed.value = v.round(),
           readerTheme: readerTheme,
         ),
     ];
@@ -503,12 +459,12 @@ class ReaderSettingsOverlay extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Row(
         children: themes.map((t) {
-          final isSelected = this.readerTheme == t.$1;
+          final isSelected = config.theme.value == t.$1;
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: GestureDetector(
-                onTap: () => onThemeChanged(t.$1),
+                onTap: () => config.theme.value = t.$1,
                 child: AnimatedContainer(
                   duration: AnimTokens.medium,
                   padding: const EdgeInsets.symmetric(vertical: 7),
@@ -579,8 +535,8 @@ class ReaderSettingsOverlay extends StatelessWidget {
             ),
           ),
           Switch(
-            value: followSystemFontScale,
-            onChanged: onFollowSystemFontScale,
+            value: config.followSystemFontScale.value,
+            onChanged: (v) => config.followSystemFontScale.value = v,
             activeThumbColor: readerTheme.accentColor,
           ),
         ],
@@ -610,12 +566,12 @@ class ReaderSettingsOverlay extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
         children: layouts.map((l) {
-          final isSelected = tapLayout == l.$1;
+          final isSelected = config.tapLayout.value == l.$1;
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: GestureDetector(
-                onTap: () => onTapLayoutChanged(l.$1),
+                onTap: () => config.tapLayout.value = l.$1,
                 child: AnimatedContainer(
                   duration: AnimTokens.medium,
                   padding: const EdgeInsets.symmetric(vertical: 7),
@@ -683,12 +639,12 @@ class ReaderSettingsOverlay extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Row(
         children: directions.map((d) {
-          final isSelected = writingDirection == d.$1;
+          final isSelected = config.writingDirection.value == d.$1;
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: GestureDetector(
-                onTap: () => onWritingDirectionChanged(d.$1),
+                onTap: () => config.writingDirection.value = d.$1,
                 child: AnimatedContainer(
                   duration: AnimTokens.medium,
                   padding: const EdgeInsets.symmetric(vertical: 7),
@@ -776,12 +732,12 @@ class ReaderSettingsOverlay extends StatelessWidget {
           Expanded(
             child: Row(
               children: options.map((o) {
-                final isSelected = textAlign == o.$1;
+                final isSelected = config.textAlign.value == o.$1;
                 return Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
                     child: GestureDetector(
-                      onTap: () => onTextAlignChanged(o.$1),
+                      onTap: () => config.textAlign.value = o.$1,
                       child: AnimatedContainer(
                         duration: AnimTokens.medium,
                         padding: const EdgeInsets.symmetric(vertical: 7),
@@ -847,9 +803,9 @@ class ReaderSettingsOverlay extends StatelessWidget {
         spacing: 8,
         runSpacing: 8,
         children: List.generate(presetColors.length, (i) {
-          final isSelected = readerBgColorIndex == i;
+          final isSelected = config.readerBgColorIndex.value == i;
           return GestureDetector(
-            onTap: () => onReaderBgColorChanged(i),
+            onTap: () => config.readerBgColorIndex.value = i,
             child: Container(
               width: 32,
               height: 32,
@@ -898,8 +854,8 @@ class ReaderSettingsOverlay extends StatelessWidget {
             ),
           ),
           Switch(
-            value: autoScroll,
-            onChanged: onAutoScrollChanged,
+            value: config.autoScroll.value,
+            onChanged: (v) => config.autoScroll.value = v,
             activeThumbColor: readerTheme.accentColor,
           ),
         ],
