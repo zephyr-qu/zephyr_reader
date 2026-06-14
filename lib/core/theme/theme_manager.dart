@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 
 /// App主题类型枚举
 enum AppThemeType {
@@ -16,146 +18,122 @@ enum AppThemeType {
   system,
 }
 
-/// 主题管理器单
-/// 主题管理器单例
+/// 主题管理器
 ///
 /// 管理应用的主题状态，包括主题类型（浅色/深色/跟随系统）、
-/// 语言偏好和自定义主题色。使用 signals 实现响应式状态管理，
-/// 并提供主题持久化能力。
+/// 语言偏好和自定义主题色。使用 persisted signals 实现自动持久化。
+@Singleton()
 class ThemeManager {
-  static final ThemeManager _instance = ThemeManager._internal();
-  static ThemeManager get instance => _instance;
+  final SharedPreferences prefs;
 
-  ThemeManager._internal();
-
-  SharedPreferences? _prefs;
-  final List<void Function()> _disposers = [];
-  bool _initialized = false;
-  Future<void>? _initFuture;
-
-  /// 当前主题类型信号
-  final themeType = signal<AppThemeType>(AppThemeType.system);
+  /// 当前主题类型
+  late final themeType = persisted<AppThemeType>(
+    prefs,
+    SettingsKeys.themeType,
+    AppThemeType.system,
+    reader: (p, k) {
+      // 兼容旧格式（int index），新格式为 string name
+      final str = p.getString(k);
+      if (str != null) {
+        try { return AppThemeType.values.byName(str); } catch (_) {}
+      }
+      final idx = p.getInt(k);
+      if (idx != null && idx >= 0 && idx < AppThemeType.values.length) {
+        return AppThemeType.values[idx];
+      }
+      return AppThemeType.system;
+    },
+    writer: (p, k, v) => p.setString(k, v.name),
+    debounce: Duration.zero,
+  );
 
   /// 当前语言信号（null = 跟随系统）
-  final locale = signal<String?>(null);
+  late final locale = persisted<String?>(
+    prefs,
+    SettingsKeys.locale,
+    null,
+    reader: (p, k) {
+      final v = p.getString(k);
+      if (v != null && ['zh', 'en'].contains(v)) return v;
+      return null;
+    },
+    writer: (p, k, v) async {
+      if (v != null) {
+        await p.setString(k, v);
+      } else {
+        await p.remove(k);
+      }
+    },
+    debounce: Duration.zero,
+  );
 
-  /// 自定义主题色信号（允许用户自定义主色
-  final customPrimaryColor = signal<Color?>(null);
+  /// 自定义主题色信号（允许用户自定义主色）
+  late final customPrimaryColor = persisted<Color?>(
+    prefs,
+    SettingsKeys.customPrimaryColor,
+    null,
+    reader: (p, k) => readColor(p, k),
+    writer: (p, k, v) async {
+      if (v != null) {
+        await p.setInt(k, v.toARGB32());
+      } else {
+        await p.remove(k);
+      }
+    },
+    debounce: Duration.zero,
+  );
 
   /// 当前激活的主题预设 ID（null = 自定义颜色或默认）
-  final currentPresetId = signal<String?>(null);
+  late final currentPresetId = persisted<String?>(
+    prefs,
+    SettingsKeys.currentPresetId,
+    null,
+    reader: (p, k) => p.getString(k),
+    writer: (p, k, v) async {
+      if (v != null) {
+        await p.setString(k, v);
+      } else {
+        await p.remove(k);
+      }
+    },
+    debounce: Duration.zero,
+  );
+
+  ThemeManager(this.prefs);
+
+  /// 兼容旧调用方 — 通过 DI 获取实例
+  static ThemeManager get instance => getIt<ThemeManager>();
 
   /// 获取 Flutter [ThemeMode]，将 [AppThemeType] 映射为 Material 主题模式
   ThemeMode get themeMode {
-    switch (themeType.value) {
-      case AppThemeType.light:
-        return ThemeMode.light;
-      case AppThemeType.dark:
-        return ThemeMode.dark;
-      case AppThemeType.system:
-        return ThemeMode.system;
-    }
+    return switch (themeType.value) {
+      AppThemeType.light => ThemeMode.light,
+      AppThemeType.dark => ThemeMode.dark,
+      AppThemeType.system => ThemeMode.system,
+    };
   }
 
   /// 当前是否为深色模式
   ///
   /// 根据 [themeType] 和系统亮度判断当前实际深色状态
   bool get isDarkMode {
-    final brightness =
-        SchedulerBinding.instance.platformDispatcher.platformBrightness;
     return switch (themeType.value) {
       AppThemeType.dark => true,
       AppThemeType.light => false,
-      AppThemeType.system => brightness == Brightness.dark,
+      AppThemeType.system => SchedulerBinding.instance.platformDispatcher.platformBrightness == Brightness.dark,
     };
-  }
-
-  /// 初始化主题管理器，从 SharedPreferences 加载持久化的主题设置
-  Future<void> init() async {
-    if (_initialized) return;
-    _initFuture ??= _doInit();
-    return _initFuture;
-  }
-
-  Future<void> _doInit() async {
-    _prefs = await SharedPreferences.getInstance();
-    final p = _prefs!;
-
-    // 加载主题类型
-    final int themeIndex =
-        _prefs!.getInt(SettingsKeys.themeType) ?? AppThemeType.system.index;
-    final int resolvedIndex =
-        themeIndex >= 0 && themeIndex < AppThemeType.values.length
-        ? themeIndex
-        : AppThemeType.system.index;
-    themeType.value = AppThemeType.values[resolvedIndex];
-
-    // 加载自定义主
-    final colorValue = _prefs!.getInt(SettingsKeys.customPrimaryColor);
-    if (colorValue != null) {
-      customPrimaryColor.value = Color(colorValue);
-    }
-
-    // 加载主题预设
-    currentPresetId.value = _prefs!.getString(SettingsKeys.currentPresetId);
-
-    // 加载语言设置
-    final savedLocale = _prefs!.getString(SettingsKeys.locale);
-    if (savedLocale != null && ['zh', 'en'].contains(savedLocale)) {
-      locale.value = savedLocale;
-    }
-
-    // 设置自动持久化 watcher
-    _disposers.add(
-      effect(() {
-        p.setInt(SettingsKeys.themeType, themeType.value.index);
-      }),
-    );
-    _disposers.add(
-      effect(() {
-        final v = customPrimaryColor.value;
-        if (v != null) {
-          p.setInt(SettingsKeys.customPrimaryColor, v.toARGB32());
-        } else {
-          p.remove(SettingsKeys.customPrimaryColor);
-        }
-      }),
-    );
-    _disposers.add(
-      effect(() {
-        final v = currentPresetId.value;
-        if (v != null) {
-          p.setString(SettingsKeys.currentPresetId, v);
-        } else {
-          p.remove(SettingsKeys.currentPresetId);
-        }
-      }),
-    );
-    _disposers.add(
-      effect(() {
-        final v = locale.value;
-        if (v != null) {
-          p.setString(SettingsKeys.locale, v);
-        } else {
-          p.remove(SettingsKeys.locale);
-        }
-      }),
-    );
-
-    _initialized = true;
   }
 
   /// 获取应用当前 Locale（null 表示跟随系统）
   Locale? get appLocale {
-    final code = locale.value;
-    if (code == null) return null;
-    return Locale(code);
+    final lang = locale.value;
+    return lang != null ? Locale(lang) : null;
   }
 
   /// 设置自定义主色（同时更新主题预设 ID）
   Future<void> setCustomPrimaryColor(Color? color, {String? presetId}) async {
     customPrimaryColor.value = color;
-    currentPresetId.value = presetId;
+    if (presetId != null) currentPresetId.value = presetId;
   }
 
   /// 重置为主题默认色
@@ -163,13 +141,11 @@ class ThemeManager {
     await setCustomPrimaryColor(null);
   }
 
-  /// 释放所有 effect，允许热重载时重新初始化。
+  /// 释放所有 signal 资源。
   void dispose() {
-    for (final d in _disposers) {
-      d();
-    }
-    _disposers.clear();
-    _initialized = false;
-    _prefs = null;
+    themeType.dispose();
+    locale.dispose();
+    customPrimaryColor.dispose();
+    currentPresetId.dispose();
   }
 }

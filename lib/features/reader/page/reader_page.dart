@@ -319,46 +319,18 @@ class ReaderPage extends HookWidget {
             child: activePanel.value != null
                 ? ReaderSettingsOverlay(
                     panelType: activePanel.value!,
-                    readerTheme: b.readerTheme,
+                    config: config,
                     readingMode: b.currentReadingMode,
-                    fontSize: vm.config.fontSize.value,
-                    lineHeight: vm.config.lineHeight.value,
-                    letterSpacing: vm.config.letterSpacing.value,
-                    paragraphSpacing: vm.config.paragraphSpacing.value,
-                    pageMargin: vm.config.pageMargin,
-                    writingDirection: vm.config.writingDirection.value,
+                    isTtsPlaying: ttsService.isPlaying.value,
+                    isTtsPaused: ttsService.isPaused.value,
                     onReadingModeChanged: vm.setReadingMode,
                     onFontSizeChanged: vm.setFontSize,
                     onLineHeightChanged: vm.setLineHeight,
-                    onThemeChanged: (rt) => config.theme.value = rt,
                     onLetterSpacingChanged: (v) => vm.setLetterSpacing(v),
                     onParagraphSpacingChanged: (v) => vm.setParagraphSpacing(v),
                     onPageMarginChanged: (m) => vm.setPageMargin(m),
-                    onWritingDirectionChanged: (d) =>
-                        vm.config.writingDirection.value = d,
-                    onClose: () => activePanel.value = null,
-                    readerBgColorIndex: vm.config.readerBgColorIndex.value,
-                    onReaderBgColorChanged: (v) =>
-                        config.readerBgColorIndex.value = v,
-                    brightnessValue: vm.config.brightnessOverlay.value,
-                    onBrightnessChanged: (v) =>
-                        vm.config.brightnessOverlay.value = v.clamp(0.0, 1.0),
-                    tapLayout: config.tapLayout.value,
-                    onTapLayoutChanged: (layout) =>
-                        config.tapLayout.value = layout,
-                    followSystemFontScale: config.followSystemFontScale.value,
-                    onFollowSystemFontScale: (v) =>
-                        config.followSystemFontScale.value = v,
-                    textAlign: config.textAlign.value,
-                    onTextAlignChanged: (v) => config.textAlign.value = v,
-                    autoScroll: config.autoScroll.value,
-                    autoScrollSpeed: config.autoScrollSpeed.value,
-                    onAutoScrollChanged: (v) => config.autoScroll.value = v,
-                    onAutoScrollSpeedChanged: (double v) =>
-                        config.autoScrollSpeed.value = v.round(),
-                    isTtsPlaying: ttsService.isPlaying.value,
-                    isTtsPaused: ttsService.isPaused.value,
                     onTtsToggle: () => _toggleTts(vm, ttsService),
+                    onClose: () => activePanel.value = null,
                   )
                 : const SizedBox.shrink(),
           ),

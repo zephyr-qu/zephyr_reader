@@ -38,7 +38,7 @@ class OtherSettingsPage extends HookWidget {
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final String? locale = useSignalValue(ThemeManager.instance.locale);
+    final String? locale = useSignalValue(ThemeManager.instance.locale.signal);
     final localeLabel = locale == 'en' ? 'English' : '简体中文';
     // Previously in vm.appVersion signal — now loaded locally
     final appVersionState = useState<String>('');

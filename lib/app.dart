@@ -19,12 +19,6 @@ class ZephyrReaderApp extends HookWidget {
   Widget build(BuildContext context) {
     final themeManager = ThemeManager.instance;
 
-    // 使用 useEffect 并传入空数组 [] 进行一次性初始化
-    useEffect(() {
-      themeManager.init();
-      return null;
-    }, []);
-
     // 从 DI 获取 SharedPreferences 单例
     final prefs = useMemoized(() => getIt<SharedPreferences>());
 
@@ -43,10 +37,10 @@ class ZephyrReaderApp extends HookWidget {
 
     // 监听信号变化
     final Color? customPrimary = useSignalValue(
-      themeManager.customPrimaryColor,
+      themeManager.customPrimaryColor.signal,
     );
-    final AppThemeType themeType = useSignalValue(themeManager.themeType);
-    final String? localeStr = useSignalValue(themeManager.locale);
+    final AppThemeType themeType = useSignalValue(themeManager.themeType.signal);
+    final String? localeStr = useSignalValue(themeManager.locale.signal);
 
     // 缓存 ThemeData，仅在 customPrimary 变化时重建
     final theme = useMemoized(
