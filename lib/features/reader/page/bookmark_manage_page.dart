@@ -32,7 +32,7 @@ class BookmarkManagePage extends HookWidget {
     final ascending = useSignal(false);
 
     useEffect(() {
-      vm.loadBookmarks();
+      vm.bookmarks.loadBookmarks();
       return null;
     }, []);
 
@@ -71,7 +71,7 @@ class BookmarkManagePage extends HookWidget {
               onPressed: () {
                 isSearchMode.value = false;
                 searchController.clear();
-                vm.loadBookmarks();
+                vm.bookmarks.loadBookmarks();
               },
               tooltip: l10n.closeSearch,
             ),
@@ -137,7 +137,7 @@ class BookmarkManagePage extends HookWidget {
                 ),
                 SizedBox(height: Spacing.md.value),
                 FilledButton.icon(
-                  onPressed: () => vm.loadBookmarks(),
+                  onPressed: () => vm.bookmarks.loadBookmarks(),
                   label: Text(l10n.reload),
                 ),
               ],
@@ -292,7 +292,7 @@ class BookmarkManagePage extends HookWidget {
                         ),
                       );
                       if (confirmed == true) {
-                        await vm.deleteBookmark(bookmark.id);
+                        await vm.bookmarks.deleteBookmark(bookmark.id);
                       }
                     },
                     onLongPress: () {
@@ -348,7 +348,7 @@ class BookmarkManagePage extends HookWidget {
     );
     if (confirmed == true) {
       await bookmark_api.deleteBookmarks(bookmarkIds: bookmarkIds.toList());
-      await vm.loadBookmarks();
+      await vm.bookmarks.loadBookmarks();
       if (context.mounted) {
         showInfoSnack(context, l10n.deletedBookmarks(bookmarkIds.length));
       }
@@ -379,7 +379,7 @@ class BookmarkManagePage extends HookWidget {
     );
     if (confirmed == true) {
       await bookmark_api.clearBookmarksByBook(bookId: bookId);
-      await vm.loadBookmarks();
+      await vm.bookmarks.loadBookmarks();
       if (context.mounted) {
         showInfoSnack(context, l10n.clearedAllBookmarks);
       }

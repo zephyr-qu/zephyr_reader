@@ -10,7 +10,6 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/category.dart' as category_api;
-import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 书架排序方式枚举。
@@ -42,9 +41,10 @@ class BookshelfViewModel {
   /// 自增世代计数器
   int _reloadGeneration = 0;
 
-  /// 全量书籍列表缓存，避免无筛选时重复 FFI 调用。
-  List<Book>? _cachedBooks;
+  /// 书架展示用书籍列表缓存，避免无筛选时重复 FFI 调用。
+  List<BookshelfBook>? _cachedBooks;
   bool _cacheDirty = true;
+
 
   void _invalidateCache() {
     _cacheDirty = true;
@@ -52,7 +52,7 @@ class BookshelfViewModel {
   }
 
   /// 所有书籍
-  final books = asyncSignal<List<Book>>(AsyncState.loading());
+  final books = asyncSignal<List<BookshelfBook>>(AsyncState.loading());
   CategoryViewModel get categoryVM => _categoryVM;
 
   /// 当前选中的阅读状态
@@ -82,7 +82,6 @@ class BookshelfViewModel {
     writer: (p, k, v) => p.setString(k, v.key),
   );
 
-  /// 是否使用列表视图（false=网格视图）
   late final _isListView = persisted<bool>(
     _prefs,
     SettingsKeys.bookshelfIsListView,
@@ -110,36 +109,78 @@ class BookshelfViewModel {
   /// 加载书籍列表 + 排序（最常用的刷新）
   Future<void> reloadBooks() async {
     final gen = ++_reloadGeneration;
-    final cacheDirty = _cacheDirty;
-    final cachedCount = _cachedBooks?.length ?? -1;
     Logging.debug(
-      '[$this] reloadBooks() gen=$gen category=${_categoryVM.selectedCategory.value?.id} status=${selectedStatus.value?.name} cacheDirty=$cacheDirty cachedCount=$cachedCount',
+      '[$this] reloadBooks() gen=$gen category=${_categoryVM.selectedCategory.value?.id} status=${selectedStatus.value?.name}',
     );
     books.value = AsyncState.loading();
     try {
-      List<Book> data;
+      // 排序方向和 SQL 列名
+      String sqlSortBy;
+      String sqlSortOrder;
+      switch (defaultSortType.value) {
+        case BookshelfSortType.lastRead:
+          sqlSortBy = 'last_opened_at';
+          sqlSortOrder = 'desc';
+        case BookshelfSortType.createdAt:
+          sqlSortBy = 'added_at';
+          sqlSortOrder = 'desc';
+        case BookshelfSortType.progress:
+          sqlSortBy = 'progress';
+          sqlSortOrder = 'desc';
+        case BookshelfSortType.title:
+          sqlSortBy = 'title';
+          sqlSortOrder = 'asc';
+        case BookshelfSortType.author:
+          sqlSortBy = 'author';
+          sqlSortOrder = 'asc';
+      }
+
+      BookshelfBook fromBook(Book b) => BookshelfBook(
+            bookId: b.bookId,
+            filePath: b.filePath,
+            title: b.title,
+            author: b.author,
+            coverPath: b.coverPath,
+            isPinned: b.isPinned,
+            status: b.status,
+            chapterCount: b.chapterCount,
+            lastOpenedAt: b.lastOpenedAt,
+            addedAt: b.addedAt,
+            progress: null,
+          );
+      List<BookshelfBook> data;
 
       if (isSearching.value && searchKeyword.value.isNotEmpty) {
-        data = await book_api.searchBooks(keyword: searchKeyword.value);
+        data = await book_api.searchBookshelfBooks(
+          keyword: searchKeyword.value,
+        );
       } else {
         final category = _categoryVM.selectedCategory.value;
         final status = selectedStatus.value;
         if (category != null && status != null) {
-          // Both filters: fetch by category, filter status in Dart
-          data = await category_api.listBooksByCategory(
+          data = (await category_api.listBooksByCategory(
             categoryId: category.id,
-          );
-          data = data.where((b) => b.status == status).toList();
+          ))
+              .where((b) => b.status == status)
+              .map(fromBook)
+              .toList();
         } else if (category != null) {
-          data = await category_api.listBooksByCategory(
+          data = (await category_api.listBooksByCategory(
             categoryId: category.id,
-          );
+          ))
+              .map(fromBook)
+              .toList();
         } else if (status != null) {
-          data = await book_api.listBooksByStatus(status: status);
+          data = (await book_api.listBooksByStatus(status: status))
+              .map(fromBook)
+              .toList();
         } else {
-          // 无筛选时使用缓存，避免重复全量 FFI 调用
+          // 无筛选时使用缓存，避免重复 FFI 调用
           if (_cacheDirty || _cachedBooks == null) {
-            data = await book_api.listBooks();
+            data = await book_api.listBookshelfBooks(
+              sortBy: sqlSortBy,
+              sortOrder: sqlSortOrder,
+            );
             _cachedBooks = data;
             _cacheDirty = false;
           } else {
@@ -148,30 +189,14 @@ class BookshelfViewModel {
         }
       }
 
-      data = List.from(data);
-
-      data.sort((a, b) {
-        // 置顶书始终排在最前
-        if (a.isPinned != b.isPinned) {
-          return a.isPinned ? -1 : 1;
+      // 提取进度映射
+      final progressMap = <String, double>{};
+      for (final b in data) {
+        if (b.progress != null) {
+          progressMap[b.bookId] = b.progress!;
         }
-        switch (defaultSortType.value) {
-          case BookshelfSortType.title:
-            return a.title.compareTo(b.title);
-          case BookshelfSortType.author:
-            return (a.author ?? '').compareTo(b.author ?? '');
-          case BookshelfSortType.lastRead:
-            return -(a.lastOpenedAt ?? DateTime(2000)).compareTo(
-              b.lastOpenedAt ?? DateTime(2000),
-            );
-          case BookshelfSortType.progress:
-            final pa = (readingProgress.value.value ?? {})[a.bookId] ?? 0;
-            final pb = (readingProgress.value.value ?? {})[b.bookId] ?? 0;
-            return pb.compareTo(pa);
-          case BookshelfSortType.createdAt:
-            return -(a.addedAt).compareTo(b.addedAt);
-        }
-      });
+      }
+      readingProgress.value = AsyncState.data(progressMap);
 
       if (gen != _reloadGeneration) return;
       books.value = AsyncState.data(data);
@@ -184,32 +209,17 @@ class BookshelfViewModel {
     }
   }
 
-  /// 刷新阅读进度
-  Future<void> reloadProgress() async {
-    try {
-      final allProgress = await progress_api.listAllProgresses();
-      final progressMap = <String, double>{};
-      for (final item in allProgress) {
-        if (item.progress != null) {
-          progressMap[item.book.bookId] = item.progress!.progress;
-        }
-      }
-      readingProgress.value = AsyncState.data(progressMap);
-    } catch (e) {
-      readingProgress.value = AsyncState.error(e);
-    }
-  }
-
   /// 加载书籍列表和阅读进度。
   Future<void> loadBooks() async {
     Logging.debug('[$this] loadBooks() called');
     _invalidateCache();
     await reloadBooks();
-    await reloadProgress();
     Logging.debug(
       '[$this] loadBooks() completed, books count=${(books.value.value ?? []).length}',
     );
   }
+
+  /// 切换分类
 
   /// 安全执行操作，捕获异常并记录日志，成功后可选执行回调。
   Future<bool> _safeAction(
@@ -231,8 +241,6 @@ class BookshelfViewModel {
       return false;
     }
   }
-
-  /// 切换分类
   void selectCategory(Category? category) {
     _categoryVM.selectCategory(category);
     isSearching.value = false;

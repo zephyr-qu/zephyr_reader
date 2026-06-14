@@ -14,7 +14,8 @@ import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
-import 'package:zephyr_reader/features/reader/page/widgets/reader_page_bindings.dart';
+import 'package:zephyr_reader/features/reader/application/reader_page_state.dart';
+import 'package:zephyr_reader/features/reader/page/binding/reader_page_bindings.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -22,174 +23,127 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class _MockSharedPreferences extends Mock implements SharedPreferences {
   _MockSharedPreferences() {
-    // 为 PersistedSignal 的 setXxx 方法提供默认 stub
-    when(() => setDouble(any(), any())).thenAnswer((_) async => true);
+    when(() => getString(any())).thenReturn(null);
+    when(() => getBool(any())).thenReturn(null);
+    when(() => getInt(any())).thenReturn(null);
+    when(() => getDouble(any())).thenReturn(null);
+    when(() => setString(any(), any())).thenAnswer((_) async => true);
     when(() => setBool(any(), any())).thenAnswer((_) async => true);
     when(() => setInt(any(), any())).thenAnswer((_) async => true);
-    when(() => setString(any(), any())).thenAnswer((_) async => true);
-    when(() => remove(any())).thenAnswer((_) async => true);
+    when(() => setDouble(any(), any())).thenAnswer((_) async => true);
   }
 }
 
 class _MockReaderConfig implements ReaderConfig {
   @override
-  final SharedPreferences prefs = _MockSharedPreferences();
-  @override
-  late final theme = persistedEnum<ReaderTheme>(
-    prefs,
-    '',
+  final theme = PersistedSignal<ReaderTheme>(
     ReaderTheme.light,
-    ReaderTheme.fromId,
-    debounce: Duration.zero,
+    _MockSharedPreferences(),
+    'theme',
   );
   @override
-  late final fontSize = persistedDouble(
-    prefs,
-    '',
-    16.0,
-    debounce: Duration.zero,
-  );
-  @override
-  late final lineHeight = persistedDouble(
-    prefs,
-    '',
-    1.6,
-    debounce: Duration.zero,
-  );
-  @override
-  late final paragraphSpacing = persistedDouble(
-    prefs,
-    '',
-    12.0,
-    debounce: Duration.zero,
-  );
-  @override
-  late final padding = persistedDouble(
-    prefs,
-    '',
-    16.0,
-    debounce: Duration.zero,
-  );
-  @override
-  late final readerBgColorIndex = persistedInt(
-    prefs,
-    '',
+  final readerBgColorIndex = PersistedSignal<int>(
     0,
-    debounce: Duration.zero,
-  );
-  @override
-  late final autoScroll = persistedBool(
-    prefs,
-    '',
-    false,
-    debounce: Duration.zero,
-  );
-  @override
-  late final autoScrollSpeed = persistedInt(
-    prefs,
-    '',
-    30,
-    debounce: Duration.zero,
-  );
-  @override
-  late final letterSpacing = persistedDouble(
-    prefs,
-    '',
-    0.0,
-    debounce: Duration.zero,
-  );
-  @override
-  late final tapLayout = persistedEnum<TapLayout>(
-    prefs,
-    '',
-    TapLayout.rightHanded,
-    (name) => TapLayout.values.firstWhere(
-      (e) => e.name == name,
-      orElse: () => TapLayout.rightHanded,
-    ),
-    debounce: Duration.zero,
-  );
-  @override
-  late final punctuationSqueeze = persistedBool(
-    prefs,
-    '',
-    true,
-    debounce: Duration.zero,
-  );
-  @override
-  late final baselineAlign = persistedBool(
-    prefs,
-    '',
-    true,
-    debounce: Duration.zero,
-  );
-  @override
-  late final textAlign = persistedEnum<TextAlign>(
-    prefs,
-    '',
-    TextAlign.justify,
-    (name) => TextAlign.values.firstWhere(
-      (e) => e.name == name,
-      orElse: () => TextAlign.justify,
-    ),
-    debounce: Duration.zero,
-  );
-  @override
-  final writingDirection = signal<WritingDirection>(
-    WritingDirection.horizontal,
+    _MockSharedPreferences(),
+    'readerBgColorIndex',
   );
   @override
   final brightnessOverlay = signal<double>(0.0);
-
   @override
-  double get pageMargin => padding.value;
-
-  @override
-  late final followSystemFontScale = persistedBool(
-    prefs,
-    '',
-    false,
-    debounce: Duration.zero,
+  final fontSize = PersistedSignal<double>(
+    16.0,
+    _MockSharedPreferences(),
+    'fontSize',
   );
   @override
-  Future<void> resetToDefault() async {
-    theme.value = ReaderTheme.light;
-    fontSize.value = 16.0;
-    lineHeight.value = 1.6;
-    paragraphSpacing.value = 16.0;
-    padding.value = 16.0;
-    readerBgColorIndex.value = 0;
-    autoScroll.value = false;
-    autoScrollSpeed.value = 30;
-    letterSpacing.value = 0.0;
-    punctuationSqueeze.value = true;
-    baselineAlign.value = true;
-    tapLayout.value = TapLayout.rightHanded;
-    textAlign.value = TextAlign.justify;
-  }
-
+  final lineHeight = PersistedSignal<double>(
+    1.6,
+    _MockSharedPreferences(),
+    'lineHeight',
+  );
   @override
-  void dispose() {}
+  final letterSpacing = PersistedSignal<double>(
+    0.0,
+    _MockSharedPreferences(),
+    'letterSpacing',
+  );
+  @override
+  final paragraphSpacing = PersistedSignal<double>(
+    0.0,
+    _MockSharedPreferences(),
+    'paragraphSpacing',
+  );
+  @override
+  final padding = PersistedSignal<double>(
+    16.0,
+    _MockSharedPreferences(),
+    'padding',
+  );
+  @override
+  final writingDirection = PersistedSignal<WritingDirection>(
+    WritingDirection.ltr,
+    _MockSharedPreferences(),
+    'writingDirection',
+  );
+  @override
+  final baselineAlign = PersistedSignal<bool>(
+    true,
+    _MockSharedPreferences(),
+    'baselineAlign',
+  );
+  @override
+  final textAlign = PersistedSignal<TextAlign>(
+    TextAlign.left,
+    _MockSharedPreferences(),
+    'textAlign',
+  );
+  @override
+  final autoScroll = PersistedSignal<bool>(
+    false,
+    _MockSharedPreferences(),
+    'autoScroll',
+  );
+  @override
+  final autoScrollSpeed = PersistedSignal<int>(
+    8,
+    _MockSharedPreferences(),
+    'autoScrollSpeed',
+  );
+  @override
+  final tapLayout = PersistedSignal<TapLayout>(
+    TapLayout.classic,
+    _MockSharedPreferences(),
+    'tapLayout',
+  );
+  @override
+  final punctuationSqueeze = PersistedSignal<bool>(
+    true,
+    _MockSharedPreferences(),
+    'punctuationSqueeze',
+  );
+  @override
+  final followSystemFontScale = PersistedSignal<bool>(
+    false,
+    _MockSharedPreferences(),
+    'followSystemFontScale',
+  );
+  @override
+  bool get isDarkMode => theme.value == ReaderTheme.dark;
 }
+
 // ===== Mock ViewModel =====
 
 class MockReaderViewModel extends Mock implements ReaderViewModel {
   @override
   final config = _MockReaderConfig();
   @override
+  final state = ReaderPageState();
+  @override
   final bookmarks = asyncSignal<List<Bookmark>>(AsyncState.data([]));
-  @override
-  final bookId = signal('test_book');
-  @override
-  final chapterIndex = signal(0);
   @override
   final pageIndex = signal(0);
   @override
   final totalPages = signal(1);
-  @override
-  final readingMode = signal(ReadingMode.scroll);
-  @override
-  final chapterContent = asyncSignal<String>(AsyncState.data('Test content'));
   @override
   final isLoading = signal(false);
   @override
@@ -204,8 +158,6 @@ class MockReaderViewModel extends Mock implements ReaderViewModel {
   final highlights = asyncSignal<List<Note>>(AsyncState.data([]));
   @override
   final toastMessage = signal('');
-  @override
-  final pendingJumpCharOffset = signal<int?>(null);
   @override
   late final ReadonlySignal<String> progressText = computed(() => '0%');
   @override
@@ -247,7 +199,7 @@ void main() {
       expect(bindings.lineHeight, equals(1.6));
       expect(bindings.bgIndex, equals(0));
       expect(bindings.isLoading, isFalse);
-      expect(bindings.currentBookId, equals('test_book'));
+      expect(bindings.currentBookId, equals(''));
       expect(bindings.chapterIndex, equals(0));
       expect(bindings.pageIndex, equals(0));
       expect(bindings.totalPages, equals(1));
@@ -293,7 +245,7 @@ void main() {
 
       // 同时更新多个信号
       mockVm.config.fontSize.value = 18.0;
-      mockVm.chapterIndex.value = 5;
+      mockVm.state.chapterIndex.value = 5;
       await tester.pump();
 
       expect(bindings.fontSize, equals(18.0));

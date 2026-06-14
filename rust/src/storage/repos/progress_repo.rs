@@ -46,7 +46,7 @@ impl ProgressRepository {
     /// 内部执行 2 次查询（books + progress），Rust 层按 book_id 匹配，
     /// 替代 Dart 侧 N+1 次 FRB 调用。
     pub async fn list_all_with_progress(pool: &SqlitePool) -> Result<Vec<BookWithProgress>, AppError> {
-        let books = super::BookRepository::list(pool).await?;
+        let books = super::BookRepository::list_progress(pool).await?;
         let all_progress: Vec<ReadingProgress> =
             sqlx::query_as::<_, ReadingProgress>("SELECT * FROM reading_progress")
                 .fetch_all(pool)

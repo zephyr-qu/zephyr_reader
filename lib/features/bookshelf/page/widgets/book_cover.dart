@@ -10,7 +10,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 统一书架封面组件，支持封面图/占位图、阅读状态标签、三角形进度覆盖+百分比。
 class BookCover extends StatelessWidget {
-  final Book book;
+  final BookshelfBook book;
   final double? progress;
   final String? statusLabel;
   final double iconSize;

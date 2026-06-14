@@ -3,14 +3,13 @@ import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/data/bookmark.dart' as bookmark_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'reader_page_state.dart';
 
 /// 书签视图模型。
 ///
 /// 管理当前书籍的书签信号和 CRUD 操作、位置索引和跨章节跳转。
 class BookmarkViewModel {
-  final Signal<String> _bookId;
-  final Signal<int> _chapterIndex;
-  final Signal<int> _currentCharOffset;
+  final ReaderPageState _pageState;
 
   final bookmarks = asyncSignal<List<Bookmark>>(AsyncState.data([]));
 
@@ -24,12 +23,12 @@ class BookmarkViewModel {
     return map;
   });
 
-  BookmarkViewModel(this._bookId, this._chapterIndex, this._currentCharOffset);
+  BookmarkViewModel(this._pageState);
 
   /// 加载当前书籍的所有书签。
   Future<void> loadBookmarks() async {
     await bookmarks.loadAsync(
-      () => bookmark_api.listBookmarksByBook(bookId: _bookId.value),
+      () => bookmark_api.listBookmarksByBook(bookId: _pageState.bookId.value),
       label: 'loadBookmarks',
     );
   }
@@ -38,9 +37,9 @@ class BookmarkViewModel {
   Future<bool> addBookmark() async {
     try {
       await bookmark_api.createBookmark(
-        bookId: _bookId.value,
-        chapterIndex: _chapterIndex.value,
-        charOffset: _currentCharOffset.value,
+        bookId: _pageState.bookId.value,
+        chapterIndex: _pageState.chapterIndex.value,
+        charOffset: _pageState.currentCharOffset.value,
         title: '书签',
       );
       await loadBookmarks();
@@ -65,13 +64,15 @@ class BookmarkViewModel {
 
   /// 当前阅读位置是否存在书签。
   bool get hasBookmarkAtCurrentPosition {
-    final key = '${_chapterIndex.value}:${_currentCharOffset.value}';
+    final key =
+        '${_pageState.chapterIndex.value}:${_pageState.currentCharOffset.value}';
     return bookmarkIndex.value.containsKey(key);
   }
 
   /// 获取当前阅读位置的书签（如果存在）。
   Bookmark? get currentBookmark {
-    final key = '${_chapterIndex.value}:${_currentCharOffset.value}';
+    final key =
+        '${_pageState.chapterIndex.value}:${_pageState.currentCharOffset.value}';
     return bookmarkIndex.value[key];
   }
 

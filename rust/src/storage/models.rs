@@ -756,3 +756,22 @@ pub struct BookWithProgress {
     pub book: Book,
     pub progress: Option<ReadingProgress>,
 }
+
+/// 书架展示用书籍摘要（含进度）
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[frb(dart_metadata = ("freezed"))]
+pub struct BookshelfBook {
+    #[sqlx(rename = "id")]
+    pub book_id: String,
+    pub file_path: String,
+    pub title: String,
+    pub author: Option<String>,
+    pub cover_path: Option<String>,
+    pub is_pinned: bool,
+    #[sqlx(try_from = "String")]
+    pub status: BookStatus,
+    pub chapter_count: i64,
+    pub last_opened_at: Option<DateTime<Utc>>,
+    pub added_at: DateTime<Utc>,
+    pub progress: Option<f32>,
+}

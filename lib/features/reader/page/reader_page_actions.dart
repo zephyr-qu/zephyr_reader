@@ -114,21 +114,21 @@ Future<void> onBilingualHighlight(
 
   await vm.createBilingualHighlight(
     l10n: l10n,
-    sourceBookId: vm.chapterManager.bookId.value,
-    sourceChapterIndex: vm.chapterManager.chapterIndex.value,
+    sourceBookId: vm.state.bookId.value,
+    sourceChapterIndex: vm.state.chapterIndex.value,
     sourceCharOffset: startOffset,
     sourceLength: length,
     sourceSelectedText: text,
     sourceLanguage: sourceLanguage,
-    targetBookId: vm.chapterManager.bookId.value,
-    targetChapterIndex: vm.chapterManager.chapterIndex.value,
+    targetBookId: vm.state.bookId.value,
+    targetChapterIndex: vm.state.chapterIndex.value,
     targetCharOffset: targetOffset,
     targetLength: targetText.length,
     targetSelectedText: targetText,
     targetLanguage: targetLanguage,
   );
 
-  vm.clearSelection();
-  await vm.loadHighlights();
+  vm.annotations.clearSelection();
+  await vm.annotations.loadHighlights();
   vm.toastMessage.value = l10n.bilingualHighlightCreated;
 }

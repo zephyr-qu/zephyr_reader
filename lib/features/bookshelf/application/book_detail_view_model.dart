@@ -1,5 +1,6 @@
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/app_config.dart';
+import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -15,12 +16,10 @@ class BookDetailViewModel {
 
   /// 从 Rust 侧加载书籍详情，包括进度、笔记统计、章节、分类、阅读会话和生词列表。
   Future<void> loadData() async {
-    try {
-      final detail = await book_api.getBookDetail(bookId: bookId);
-      state.value = AsyncState.data(detail);
-    } catch (e) {
-      state.value = AsyncState.error(e);
-    }
+    await state.loadAsync(
+      () => book_api.getBookDetail(bookId: bookId),
+      label: '加载书籍详情',
+    );
   }
 
   /// 删除本书及封面文件。

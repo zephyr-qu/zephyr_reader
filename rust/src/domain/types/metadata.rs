@@ -62,7 +62,6 @@ pub struct PdfMetadata {
 /// 书籍解析结果
 /// 包含书籍元数据信息和章节列表
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb(non_opaque)]
 pub struct ParseResult {
     /// 书籍信息
     pub book_info: Book,

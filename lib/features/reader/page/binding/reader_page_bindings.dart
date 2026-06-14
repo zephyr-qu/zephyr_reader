@@ -40,6 +40,9 @@ class ReaderPageBindings {
   final int effectiveTotalPages;
   final String progressText;
   final String currentChapterTitle;
+  final String selectedText;
+  final int selectionStart;
+  final int numChapters;
 
   const ReaderPageBindings({
     required this.readerTheme,
@@ -70,6 +73,9 @@ class ReaderPageBindings {
     required this.baselineAlign,
     required this.textAlign,
     required this.currentChapterTitle,
+    required this.selectedText,
+    required this.selectionStart,
+    required this.numChapters,
   });
 }
 
@@ -77,15 +83,15 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
   final ReaderTheme readerTheme = useSignalValue(vm.config.theme.signal);
   final int bgIndex = useSignalValue(vm.config.readerBgColorIndex.signal);
   final double brightness = useSignalValue(vm.config.brightnessOverlay);
-  final String currentBookId = useSignalValue(vm.chapterManager.bookId);
-  final int chapterIndex = useSignalValue(vm.chapterManager.chapterIndex);
+  final String currentBookId = useSignalValue(vm.state.bookId);
+  final int chapterIndex = useSignalValue(vm.state.chapterIndex);
   final int pageIndex = useSignalValue(vm.chapterManager.pageIndex);
   final int totalPages = useSignalValue(vm.chapterManager.totalPages);
-  final ReadingMode currentReadingMode = useSignalValue(vm.chapterManager.readingMode);
+  final ReadingMode currentReadingMode = useSignalValue(vm.state.readingMode);
 
   final double fontSize = useSignalValue(vm.fontSizeDouble);
   final double lineHeight = useSignalValue(vm.config.lineHeight.signal);
-  final AsyncState<String> chContent = useSignalValue(vm.chapterManager.chapterContent);
+  final AsyncState<String> chContent = useSignalValue(vm.state.chapterContent);
   final bool isLoading = useSignalValue(vm.chapterManager.isLoading);
   final String? error = useSignalValue(vm.chapterManager.error);
   final AsyncState<BilingualAlignment?> bState = useSignalValue(
@@ -101,11 +107,15 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
   final WritingDirection writingDirection = useSignalValue(
     vm.config.writingDirection,
   );
-  final int? pendingJumpCharOffset = useSignalValue(vm.chapterManager.pendingJumpCharOffset);
+  final int? pendingJumpCharOffset = useSignalValue(vm.state.pendingJumpCharOffset);
   final String progressText = useSignalValue(vm.chapterManager.progressText);
   final String currentChapterTitle = useSignalValue(vm.chapterManager.currentChapterTitle);
   final bool baselineAlign = useSignalValue(vm.config.baselineAlign.signal);
   final TextAlign textAlign = useSignalValue(vm.config.textAlign.signal);
+  final String selectedText = useSignalValue(vm.annotations.selectedText);
+  final int selectionStart = useSignalValue(vm.annotations.selectionStart);
+  final chaptersResult = useSignalValue(vm.chapterManager.chapters);
+  final int numChapters = (chaptersResult as AsyncState<List<Chapter>>).value?.length ?? 0;
 
 
   return ReaderPageBindings(
@@ -137,6 +147,9 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
     effectiveTotalPages: math.max(1, totalPages),
     progressText: progressText,
     currentChapterTitle: currentChapterTitle,
+    selectedText: selectedText,
+    selectionStart: selectionStart,
+    numChapters: numChapters,
   );
 }
 
@@ -145,14 +158,14 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
 /// trigger rebuilds of widgets using this binding.
 ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
   final ReaderTheme readerTheme = useSignalValue(vm.config.theme.signal);
-  final String currentBookId = useSignalValue(vm.chapterManager.bookId);
-  final int chapterIndex = useSignalValue(vm.chapterManager.chapterIndex);
+  final String currentBookId = useSignalValue(vm.state.bookId);
+  final int chapterIndex = useSignalValue(vm.state.chapterIndex);
   final int pageIndex = useSignalValue(vm.chapterManager.pageIndex);
   final int totalPages = useSignalValue(vm.chapterManager.totalPages);
-  final ReadingMode currentReadingMode = useSignalValue(vm.chapterManager.readingMode);
+  final ReadingMode currentReadingMode = useSignalValue(vm.state.readingMode);
   final double fontSize = useSignalValue(vm.fontSizeDouble);
   final double lineHeight = useSignalValue(vm.config.lineHeight.signal);
-  final AsyncState<String> chContent = useSignalValue(vm.chapterManager.chapterContent);
+  final AsyncState<String> chContent = useSignalValue(vm.state.chapterContent);
   final bool isLoading = useSignalValue(vm.chapterManager.isLoading);
   final String? error = useSignalValue(vm.chapterManager.error);
   final AsyncState<BilingualAlignment?> bState = useSignalValue(
@@ -171,7 +184,9 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
   );
   final bool baselineAlign = useSignalValue(vm.config.baselineAlign.signal);
   final TextAlign textAlign = useSignalValue(vm.config.textAlign.signal);
-  final int? pendingJumpCharOffset = useSignalValue(vm.chapterManager.pendingJumpCharOffset);
+  final int? pendingJumpCharOffset = useSignalValue(vm.state.pendingJumpCharOffset);
+  final chaptersResult = useSignalValue(vm.chapterManager.chapters);
+  final int numChapters = (chaptersResult as AsyncState<List<Chapter>>).value?.length ?? 0;
 
 
   return ReaderPageBindings(
@@ -202,6 +217,9 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
     effectiveTotalPages: math.max(1, totalPages),
     progressText: '',
     currentChapterTitle: '',
+    selectedText: '',
+    selectionStart: 0,
+    numChapters: numChapters,
     textAlign: textAlign,
   );
 }

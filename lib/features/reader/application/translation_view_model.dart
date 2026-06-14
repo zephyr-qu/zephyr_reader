@@ -8,17 +8,14 @@ import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/features/reader/domain/translation_service.dart';
 import 'package:zephyr_reader/features/reader/data/translation/translation_cache.dart';
 import 'package:zephyr_reader/features/reader/application/translation_config.dart';
+import 'reader_page_state.dart';
 
 /// 翻译视图模型。
 ///
 /// 管理翻译 API 调用、双语对齐、双语高亮和翻译缓存。
 /// 不持有 ViewModel 引用，所有依赖通过构造注入。
 class TranslationViewModel {
-  // ignore: unused_field — reserved for future use
-  final Signal<String> _bookId;
-  final Signal<int> _chapterIndex;
-  final AsyncSignal<String> _chapterContent;
-  final Signal<ReadingMode> _readingMode;
+  final ReaderPageState _pageState;
   final TranslationConfig _config;
   final TranslationService _service;
   final TranslationCache _cache;
@@ -30,10 +27,7 @@ class TranslationViewModel {
   final translationContent = signal<String>('');
 
   TranslationViewModel(
-    this._bookId,
-    this._chapterIndex,
-    this._chapterContent,
-    this._readingMode,
+    this._pageState,
     this._config,
     this._service,
   ) : _cache = TranslationCache();
@@ -45,7 +39,7 @@ class TranslationViewModel {
   void setTranslationContent(String content) {
     _cancelToken?.cancel();
     translationContent.value = content;
-    if (_readingMode.value == ReadingMode.bilingual) {
+    if (_pageState.readingMode.value == ReadingMode.bilingual) {
       _runBilingualAlignment();
     }
   }
@@ -63,10 +57,10 @@ class TranslationViewModel {
   ///
   /// 自动处理: 缓存命中、取消前次请求、错误回退。
   Future<void> translateChapter() async {
-    final content = _chapterContent.value.value ?? '';
+    final content = _pageState.chapterContent.value.value ?? '';
     if (content.isEmpty) return;
 
-    final idx = _chapterIndex.value;
+    final idx = _pageState.chapterIndex.value;
 
     // 缓存命中
     final cached = _cache.get(idx, content);
@@ -132,7 +126,7 @@ class TranslationViewModel {
 
   /// 运行双语对齐（将原文与译文按段落对齐）。
   Future<void> _runBilingualAlignment() async {
-    final content = _chapterContent.value.value ?? '';
+    final content = _pageState.chapterContent.value.value ?? '';
     final translation = translationContent.value;
     if (translation.isEmpty) return;
     await bilingualAlignment.loadAsync(

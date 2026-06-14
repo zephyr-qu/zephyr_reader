@@ -207,13 +207,13 @@ void main() {
     });
 
     test('setReadingMode 更新 readingMode 信号', () {
-      expect(vm.chapterManager.readingMode.value, equals(ReadingMode.pagination));
+      expect(vm.state.readingMode.value, equals(ReadingMode.pagination));
 
       vm.setReadingMode(ReadingMode.scroll);
-      expect(vm.chapterManager.readingMode.value, equals(ReadingMode.scroll));
+      expect(vm.state.readingMode.value, equals(ReadingMode.scroll));
 
       vm.setReadingMode(ReadingMode.pageTurn);
-      expect(vm.chapterManager.readingMode.value, equals(ReadingMode.pageTurn));
+      expect(vm.state.readingMode.value, equals(ReadingMode.pageTurn));
     });
   });
 }

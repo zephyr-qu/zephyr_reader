@@ -18,7 +18,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 class BookshelfBookContent extends StatelessWidget {
   final bool isLoading;
   final bool hasError;
-  final List<Book> books;
+  final List<BookshelfBook> books;
   final int crossAxisCount;
   final bool isListView;
   final bool batchMode;
@@ -27,8 +27,8 @@ class BookshelfBookContent extends StatelessWidget {
   final VoidCallback onImportTap;
   final VoidCallback onRefresh;
   final ValueChanged<Set<String>> onSelectionChanged;
-  final void Function(Book) onBookTap;
-  final void Function(Book) onBookLongPress;
+  final void Function(BookshelfBook) onBookTap;
+  final void Function(BookshelfBook) onBookLongPress;
   final Map<String, double> readingProgress;
   final bool showProgressBadge;
 
@@ -63,7 +63,7 @@ class BookshelfBookContent extends StatelessWidget {
   /// 共享 item 包裹器：手势/动画/选择态背景。
   Widget _buildBookItemWrapper({
     required int index,
-    required Book book,
+    required BookshelfBook book,
     required bool selected,
     required Widget child,
     EdgeInsetsGeometry? outerPadding,

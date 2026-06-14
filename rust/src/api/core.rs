@@ -3,7 +3,7 @@ use std::num::NonZeroUsize;
 use std::sync::{Arc, LazyLock};
 
 pub(crate) use crate::domain::{AppError, TypesetConfig};
-use crate::domain::{PageContent, PaginateResult, ParseResult};
+use crate::domain::{PageContent, PaginateResult};
 use crate::parser::pdf::provider::PdfContentProvider;
 use crate::parser::provider::{ChapterContentProvider, PageData, PagedContentProvider};
 use crate::parser::registry::parser_for_file;
@@ -89,8 +89,7 @@ static BOOK_ID_CACHE: LazyLock<Mutex<BookIdCache>> =
 ///
 /// 完整的导入流程，包括文件校验（大小、安全路径）、格式检测、内容解析
 /// 以及将书籍信息和章节写入数据库。
-#[frb]
-pub async fn parse_book(file_path: String) -> Result<ParseResult, AppError> {
+pub async fn parse_book(file_path: String) -> Result<String, AppError> {
     tracing::info!("[parse_book] start: file_path={}", file_path);
     let validated_path = validate_file_path(&file_path)?;
     tracing::debug!(
@@ -136,7 +135,7 @@ pub async fn parse_book(file_path: String) -> Result<ParseResult, AppError> {
     BookRepository::save(&pool, &result.book_info).await?;
     BookRepository::save_metadata(&pool, &result.book_info).await?;
     ChapterRepository::save(&pool, &result.book_info.book_id, &result.chapters).await?;
-    Ok(result)
+    Ok(result.book_info.book_id)
 }
 
 
@@ -926,16 +925,24 @@ mod tests {
         std::fs::write(&file_path_buf, content).unwrap();
         let file_path = file_path_buf.to_string_lossy().to_string();
 
-        // 解析
-        let parse_result = parse_book(file_path.clone()).await
+        // 解析并持久化，返回 book_id
+        let book_id = parse_book(file_path.clone()).await
             .expect("parse_book should succeed");
 
+        // 从 DB 读取持久化的书籍和章节
+        let pool = storage_pool().unwrap();
+        let book = BookRepository::find_by_id(&pool, &book_id).await
+            .expect("find_by_id should succeed")
+            .expect("book should exist");
+        let chapters = ChapterRepository::find_by_book(&pool, &book_id).await
+            .expect("find_by_book should succeed");
+
         eprintln!("[DIAG] parsed: title={}, chapters={}, chars={}",
-            parse_result.book_info.title,
-            parse_result.chapters.len(),
-            parse_result.book_info.total_characters,
+            book.title,
+            chapters.len(),
+            book.total_characters,
         );
-        for c in &parse_result.chapters {
+        for c in &chapters {
             eprintln!("[DIAG] chapter: idx={}, start={}, end={}",
                 c.chapter_index, c.start_index, c.end_index);
         }
@@ -949,7 +956,7 @@ mod tests {
         // 直接调用 get_chapter_bounds（使用 validated path）
         let bounds = get_chapter_bounds(&validated, 0).await
             .expect("get_chapter_bounds should succeed");
-        eprintln!("[DIAG] chapter_bounds: start={}, end={}", bounds.0, bounds.1);
+
 
         // 创建 provider
         let format = format_from_extension(&validated);
