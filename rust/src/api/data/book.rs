@@ -15,7 +15,7 @@ use crate::storage::repos::{
 };
 
 pub use crate::storage::models::{
-    Book, BookFormat, BookStatus, BookTitle, Category, Chapter, NoteStats,
+    Book, BookFormat, BookStatus, BookshelfBook, BookTitle, Category, Chapter, NoteStats,
     ReadingProgress, ReadingSession, Vocab,
 };
 
@@ -65,19 +65,39 @@ pub async fn get_book_detail(book_id: String) -> Result<BookDetail, AppError> {
     })
 }
 
-/// 获取所有书籍列表
+/// 获取所有书籍列表（支持可选排序）
+///
+/// # 参数
+/// * `sort_by` - 排序字段（可选，默认无排序：title/last_opened_at/added_at/author/file_size）
+/// * `sort_order` - 排序方向（可选，默认 desc：asc/desc）
 ///
 /// # 返回
-/// 书籍列表
+/// 所有书籍列表
 #[frb]
-pub async fn list_books() -> Result<Vec<Book>, AppError> {
-    tracing::debug!("[book] list_books");
-    async_storage!(BookRepository::list)
+pub async fn list_books(
+    sort_by: Option<String>,
+    sort_order: Option<String>,
+) -> Result<Vec<Book>, AppError> {
+    tracing::debug!("[book] list_books: sort_by={:?}, sort_order={:?}", sort_by, sort_order);
+    let sort_by = sort_by.unwrap_or_else(|| "last_opened_at".to_string());
+    let sort_order = sort_order.unwrap_or_else(|| "desc".to_string());
+    async_storage!(|pool| BookRepository::list(pool, &sort_by, &sort_order))
 }
 
-/// 获取所有书籍的标题映射（book_id → title）。
+/// 获取书架展示用的书籍列表（含阅读进度，单次 JOIN 查询）
 ///
-/// 轻量查询，直接返回 Map 供 Dart 侧 O(1) 查找，无需二次转换。
+/// 相比 listBooks + listAllProgresses 两步调用，一次查询完成所有书架所需数据。
+/// 排序字段支持：title / author / last_opened_at / added_at / progress
+#[frb]
+pub async fn list_bookshelf_books(
+    sort_by: Option<String>,
+    sort_order: Option<String>,
+) -> Result<Vec<BookshelfBook>, AppError> {
+    tracing::debug!("[book] list_bookshelf_books: sort_by={:?}, sort_order={:?}", sort_by, sort_order);
+    let sort_by = sort_by.unwrap_or_else(|| "last_opened_at".to_string());
+    let sort_order = sort_order.unwrap_or_else(|| "desc".to_string());
+    async_storage!(|pool| BookRepository::list_bookshelf(pool, &sort_by, &sort_order))
+}
 #[frb]
 pub async fn map_book_titles() -> Result<HashMap<String, String>, AppError> {
     tracing::debug!("[book] map_book_titles");
@@ -150,6 +170,15 @@ pub async fn search_books(keyword: String) -> Result<Vec<Book>, AppError> {
     async_storage!(|pool| BookRepository::search(pool, &keyword))
 }
 
+/// 书架搜索（标题或作者模糊匹配，含阅读进度）
+///
+/// 返回 BookshelfBook 结构体，直接供给书架展示，无需二次转换。
+#[frb]
+pub async fn search_bookshelf_books(keyword: String) -> Result<Vec<BookshelfBook>, AppError> {
+    tracing::debug!("[book] search_bookshelf_books: keyword={}", keyword);
+    async_storage!(|pool| BookRepository::search_bookshelf(pool, &keyword))
+}
+
 /// 根据 ID 获取书籍
 ///
 /// # 参数
@@ -174,6 +203,13 @@ pub async fn get_book(book_id: String) -> Result<Option<Book>, AppError> {
 pub async fn list_books_by_status(status: BookStatus) -> Result<Vec<Book>, AppError> {
     tracing::debug!("[book] list_books_by_status: status={:?}", status);
     async_storage!(|pool| BookRepository::list_by_status(pool, status))
+}
+
+/// 按阅读状态筛选书籍（书架版，含进度）
+#[frb]
+pub async fn list_bookshelf_books_by_status(status: BookStatus) -> Result<Vec<BookshelfBook>, AppError> {
+    tracing::debug!("[book] list_bookshelf_books_by_status: status={:?}", status);
+    async_storage!(|pool| BookRepository::list_bookshelf_by_status(pool, status))
 }
 
 /// 根据书籍路径获取

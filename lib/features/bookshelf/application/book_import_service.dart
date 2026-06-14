@@ -7,7 +7,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/cover.dart' as cover_api;
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 
 /// 书籍导入服务。
 ///
@@ -18,10 +17,9 @@ class BookImportService {
   /// 从文件导入书籍（解析并存入数据库）。
   Future<bool> importBook(String filePath) async {
     try {
-      final parseResult = await core_api.parseBook(filePath: filePath);
-      await book_api.upsertBook(book: parseResult.bookInfo);
+      final bookId = await core_api.parseBook(filePath: filePath);
       // 导入后自动提取封面到磁盘
-      await _extractCover(parseResult.bookInfo.bookId, filePath);
+      await _extractCover(bookId, filePath);
       return true;
     } catch (e, stack) {
       Logging.error(
@@ -68,9 +66,7 @@ class BookImportService {
       files.map(
         (file) => sem.acquire(() async {
           try {
-            final parseResult = await core_api.parseBook(filePath: file);
-            final bookId = parseResult.bookInfo.bookId;
-            await book_api.upsertBook(book: parseResult.bookInfo);
+            final bookId = await core_api.parseBook(filePath: file);
             await _extractCover(bookId, file);
             success++;
           } catch (e, stack) {
@@ -157,6 +153,7 @@ class _Semaphore {
 
   void _release() {
     if (_queue.isNotEmpty) {
+      _count--;
       _queue.removeAt(0).complete();
     } else {
       _count--;

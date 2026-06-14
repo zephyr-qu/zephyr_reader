@@ -11,6 +11,7 @@ import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 
 import '../../../core/reader/reader_config.dart';
 import '../data/repositories/rust_reader_repository.dart';
+import 'reader_page_state.dart';
 
 /// 章节视图模型
 ///
@@ -19,34 +20,23 @@ import '../data/repositories/rust_reader_repository.dart';
 class ChapterViewModel {
   final ReaderRepository _repo;
   final ReaderConfig _config;
+  final ReaderPageState _pageState;
 
-  ChapterViewModel(this._repo, this._config);
+  ChapterViewModel(this._repo, this._config, this._pageState);
 
-  // ==================== 书籍状态 ====================
+  /// 测试用 — 暴露共享状态供测试断言。
+  ReaderPageState get pageState => _pageState;
 
-  /// 当前书籍 ID
-  final bookId = signal<String>('0');
-
-  /// 当前章节索引（从 0 开始）
-  final chapterIndex = signal<int>(0);
+  // ==================== 章节列表 ====================
 
   /// 章节列表
   final chapters = asyncSignal<List<Chapter>>(AsyncState.data([]));
-
-  /// 当前章节内容
-  final chapterContent = asyncSignal<String>(AsyncState.data(''));
 
   /// 总页数（分页模式）
   final totalPages = signal<int>(0);
 
   /// 当前页码
   final pageIndex = signal<int>(0);
-
-  /// 当前阅读位置在章节内的字符偏移
-  final currentCharOffset = signal<int>(0);
-
-  /// 待消费的跳转目标偏移，用于通知阅读内容组件定位
-  final pendingJumpCharOffset = signal<int?>(null);
 
   // ==================== UI 加载状态 ====================
 
@@ -73,13 +63,11 @@ class ChapterViewModel {
   /// 当前字体系列名（由 FontRepository 提供）
   String _fontFamily = 'Noto Sans SC';
 
-  /// 阅读模式
-  final readingMode = signal<ReadingMode>(ReadingMode.pagination);
-
   // ==================== 搜索索引生命周期 ====================
 
   /// 章节全文索引操作，防止并发堆积
   CancelableOperation<void>? _searchIndexOperation;
+
 
   // ==================== 自动滚动 ====================
 
@@ -94,15 +82,15 @@ class ChapterViewModel {
   late final ReadonlySignal<String> progressText = computed(() {
     final totalChapters = chapters.value.value?.length ?? 0;
     if (totalChapters == 0) return '0%';
-    final chapterProgress = (chapterIndex.value + 1) / totalChapters;
+    final chapterProgress = (_pageState.chapterIndex.value + 1) / totalChapters;
     return '${(chapterProgress * 100).toStringAsFixed(1)}%';
   });
 
   /// 获取当前章节标题
   late final ReadonlySignal<String> currentChapterTitle = computed(() {
     final chapterList = chapters.value.value ?? [];
-    if (chapterIndex.value >= 0 && chapterIndex.value < chapterList.length) {
-      return chapterList[chapterIndex.value].title;
+    if (_pageState.chapterIndex.value >= 0 && _pageState.chapterIndex.value < chapterList.length) {
+      return chapterList[_pageState.chapterIndex.value].title;
     }
     return '';
   });
@@ -123,7 +111,7 @@ class ChapterViewModel {
   Future<void> loadChapters() async {
     chapters.value = AsyncState.loading();
     try {
-      final data = await _repo.getChapters(bookId.value);
+      final data = await _repo.getChapters(_pageState.bookId.value);
       chapters.value = AsyncState.data(data);
     } catch (e) {
       chapters.value = AsyncState.error(e);
@@ -134,10 +122,10 @@ class ChapterViewModel {
   /// 加载上次的阅读进度
   Future<void> loadLastProgress() async {
     try {
-      final progress = await _repo.loadReadingProgress(bookId.value);
+      final progress = await _repo.loadReadingProgress(_pageState.bookId.value);
       if (progress != null) {
-        chapterIndex.value = progress.chapterIndex;
-        currentCharOffset.value = progress.charOffset;
+        _pageState.chapterIndex.value = progress.chapterIndex;
+        _pageState.currentCharOffset.value = progress.charOffset;
       }
     } catch (e) {
       Logging.error('Failed to load reading progress', exception: e);
@@ -158,16 +146,16 @@ class ChapterViewModel {
   }) async {
     final sw = Stopwatch()..start();
     if (!preserveContent) {
-      chapterContent.value = AsyncState.loading();
+      _pageState.chapterContent.value = AsyncState.loading();
       isLoading.value = true;
     }
 
     try {
       // █ 启动后台 futures（不等待）█
       final contentFuture = _repo.loadChapterContent(
-        bookId.value,
+        _pageState.bookId.value,
         chapterIndex,
-        readingMode: readingMode.value,
+        readingMode: _pageState.readingMode.value,
       );
 
       final calibFuture = _calibration.value != null
@@ -183,7 +171,7 @@ class ChapterViewModel {
 
       // █ 快速读取首屏（~100ms）█
       final firstText = await _repo.loadChapterFirstSpine(
-        bookId.value,
+        _pageState.bookId.value,
         chapterIndex,
       );
 
@@ -205,15 +193,15 @@ class ChapterViewModel {
       // 首屏就绪后立即启动相邻章节的首页预加载（不阻塞后续渲染）
       unawaited(_preloadAdjacentFirstPages(chapterIndex));
 
-      chapterContent.value = AsyncState.data(firstText);
+      _pageState.chapterContent.value = AsyncState.data(firstText);
       totalPages.value = firstPages.length;
-      this.chapterIndex.value = chapterIndex;
-      currentCharOffset.value = initialCharOffset.clamp(0, firstText.length);
+      _pageState.chapterIndex.value = chapterIndex;
+      _pageState.currentCharOffset.value = initialCharOffset.clamp(0, firstText.length);
       pageIndex.value = PaginationEngine.resolvePageIndexFromPageInfo(
         firstPages,
-        currentCharOffset.value,
+        _pageState.currentCharOffset.value,
       );
-      pendingJumpCharOffset.value = currentCharOffset.value;
+      _pageState.pendingJumpCharOffset.value = _pageState.currentCharOffset.value;
       error.value = null;
 
       // 取消骨架屏
@@ -226,7 +214,7 @@ class ChapterViewModel {
       // 让用户在等全文时就可以翻页
       final tPartialStart = sw.elapsedMilliseconds;
       final partialResult = await _repo.paginateChapterPartial(
-        bookId: bookId.value,
+        bookId: _pageState.bookId.value,
         chapterIndex: chapterIndex,
         fontSize: _config.fontSize.value,
         lineHeight: _config.lineHeight.value,
@@ -247,7 +235,7 @@ class ChapterViewModel {
           totalPages.value = partialTotal;
           pageIndex.value = PaginationEngine.resolvePageIndexForOffset(
             partialDesc,
-            currentCharOffset.value,
+            _pageState.currentCharOffset.value,
           );
           _repo.ensurePageWindow(pageIndex.value);
         }
@@ -262,7 +250,7 @@ class ChapterViewModel {
       if (partialResult.isPartial) {
         // █ 需要完整分页 → 立即发起（与 contentFuture/calibFuture 并行）█
         fullPaginateFuture = _repo.paginateChapter(
-          bookId: bookId.value,
+          bookId: _pageState.bookId.value,
           chapterIndex: chapterIndex,
           fontSize: _config.fontSize.value,
           lineHeight: _config.lineHeight.value,
@@ -313,7 +301,7 @@ class ChapterViewModel {
           'loadChapter: Rust pagination fallback, using Dart approximate',
         );
         final pages = await _repo.calculatePages(
-          bookId: bookId.value,
+          bookId: _pageState.bookId.value,
           chapterId: chapterIndex,
           fontSize: _config.fontSize.value,
           lineHeight: _config.lineHeight.value,
@@ -322,14 +310,14 @@ class ChapterViewModel {
           padding: _config.padding.value,
         );
 
-        chapterContent.value = AsyncState.data(content);
+        _pageState.chapterContent.value = AsyncState.data(content);
         totalPages.value = pages.length;
-        currentCharOffset.value = initialCharOffset.clamp(0, content.length);
+        _pageState.currentCharOffset.value = initialCharOffset.clamp(0, content.length);
         pageIndex.value = PaginationEngine.resolvePageIndexFromPageInfo(
           pages,
-          currentCharOffset.value,
+          _pageState.currentCharOffset.value,
         );
-        pendingJumpCharOffset.value = currentCharOffset.value;
+        _pageState.pendingJumpCharOffset.value = _pageState.currentCharOffset.value;
         error.value = null;
 
         // 确保当前页内容已缓存
@@ -337,17 +325,17 @@ class ChapterViewModel {
 
         Logging.debug(
           'loadChapter (fallback): pages=${pages.length} '
-          'resolvePage=$pageIndex off=$currentCharOffset',
+          'resolvePage=$pageIndex off=${_pageState.currentCharOffset.value}',
         );
       } else {
-        chapterContent.value = AsyncState.data(content);
+        _pageState.chapterContent.value = AsyncState.data(content);
         totalPages.value = total;
-        currentCharOffset.value = initialCharOffset.clamp(0, content.length);
+        _pageState.currentCharOffset.value = initialCharOffset.clamp(0, content.length);
         pageIndex.value = PaginationEngine.resolvePageIndexForOffset(
           descriptors,
-          currentCharOffset.value,
+          _pageState.currentCharOffset.value,
         );
-        pendingJumpCharOffset.value = currentCharOffset.value;
+        _pageState.pendingJumpCharOffset.value = _pageState.currentCharOffset.value;
         error.value = null;
 
         // 确保当前页内容已缓存
@@ -355,7 +343,7 @@ class ChapterViewModel {
 
         Logging.debug(
           'loadChapter: pages=${descriptors.length} '
-          'resolvePage=$pageIndex off=$currentCharOffset',
+          'resolvePage=$pageIndex off=${_pageState.currentCharOffset.value}',
         );
       }
 
@@ -367,7 +355,7 @@ class ChapterViewModel {
         await onChapterLoaded();
       }
     } catch (e) {
-      chapterContent.value = AsyncState.error(e);
+      _pageState.chapterContent.value = AsyncState.error(e);
       error.value = AppErrorMapper.humanReadable(e);
       Logging.error('ChapterManager.loadChapter error', exception: e);
     } finally {
@@ -392,12 +380,12 @@ class ChapterViewModel {
     // 从新版 descriptors 获取偏移
     final descriptors = _repo.descriptors;
     if (descriptors != null && pageIndex < descriptors.length) {
-      currentCharOffset.value = descriptors[pageIndex].startOffset;
+      _pageState.currentCharOffset.value = descriptors[pageIndex].startOffset;
     } else {
       // 回退到旧版 currentPages
       final pages = _repo.currentPages;
       if (pages != null && pageIndex < pages.length) {
-        currentCharOffset.value = pages[pageIndex].startOffset;
+        _pageState.currentCharOffset.value = pages[pageIndex].startOffset;
       }
     }
 
@@ -426,7 +414,7 @@ class ChapterViewModel {
       final batch = indices.skip(b).take(batchSize);
       await Future.wait(
         batch.map(
-          (i) => _repo.preloadChapter(bookId.value, i).catchError((_) {}),
+          (i) => _repo.preloadChapter(_pageState.bookId.value, i).catchError((_) {}),
         ),
       );
     }
@@ -439,7 +427,7 @@ class ChapterViewModel {
     if (centerIndex + 1 < chapterList.length) {
       final nextIdx = centerIndex + 1;
       await _repo.preloadNextChapterFirstPage(
-        bookId.value,
+        _pageState.bookId.value,
         nextIdx,
         fontSize: _config.fontSize.value,
         lineHeight: _config.lineHeight.value,
@@ -461,8 +449,8 @@ class ChapterViewModel {
               ?.title ??
           '';
       await search_api.indexChapter(
-        bookId: bookId.value,
-        chapterId: '${bookId.value}_$chapterIndex',
+        bookId: _pageState.bookId.value,
+        chapterId: '${_pageState.bookId.value}_$chapterIndex',
         chapterIndex: chapterIndex,
         chapterTitle: title,
         content: content,
@@ -475,18 +463,18 @@ class ChapterViewModel {
   // ==================== 章节导航 ====================
 
   Future<void> previousChapter() async {
-    if (chapterIndex.value > 0) {
-      final newChapterIndex = chapterIndex.value - 1;
+    if (_pageState.chapterIndex.value > 0) {
+      final newChapterIndex = _pageState.chapterIndex.value - 1;
       await loadChapter(newChapterIndex, preserveContent: true);
       // 向前翻页进入上一章 → 落在末页
       pageIndex.value = (totalPages.value - 1).clamp(0, 0x7FFFFFFF);
       // 更新 char offset 到页末尾，确保阅读进度正确
       final descriptors = _repo.descriptors;
       if (descriptors != null && pageIndex.value < descriptors.length) {
-        currentCharOffset.value = descriptors[pageIndex.value].endOffset;
+        _pageState.currentCharOffset.value = descriptors[pageIndex.value].endOffset;
       } else if (_repo.currentPages != null &&
           pageIndex.value < _repo.currentPages!.length) {
-        currentCharOffset.value =
+        _pageState.currentCharOffset.value =
             _repo.currentPages![pageIndex.value].endOffset;
       }
     }
@@ -495,8 +483,8 @@ class ChapterViewModel {
   /// 下一章
   Future<void> nextChapter() async {
     final chapterList = chapters.value.value ?? [];
-    if (chapterIndex.value < chapterList.length - 1) {
-      final newChapterIndex = chapterIndex.value + 1;
+    if (_pageState.chapterIndex.value < chapterList.length - 1) {
+      final newChapterIndex = _pageState.chapterIndex.value + 1;
       await loadChapter(newChapterIndex, preserveContent: true);
     }
   }
@@ -533,13 +521,13 @@ class ChapterViewModel {
 
   /// 更新当前阅读位置
   void updateCurrentCharOffset(int charOffset) {
-    final contentLength = chapterContent.value.value?.length ?? 0;
-    currentCharOffset.value = charOffset.clamp(0, contentLength);
+    final contentLength = _pageState.chapterContent.value.value?.length ?? 0;
+    _pageState.currentCharOffset.value = charOffset.clamp(0, contentLength);
   }
 
   /// 消费待消费的跳转目标偏移
   void consumePendingJumpOffset() {
-    pendingJumpCharOffset.value = null;
+    _pageState.pendingJumpCharOffset.value = null;
   }
 
   // ==================== 自动滚动 ====================
@@ -566,14 +554,14 @@ class ChapterViewModel {
     stopAutoScroll();
     _searchIndexOperation?.cancel();
     _searchIndexOperation = null;
-    bookId.value = '0';
-    chapterIndex.value = 0;
+    _pageState.bookId.value = '0';
+    _pageState.chapterIndex.value = 0;
     chapters.value = AsyncState.data([]);
-    chapterContent.value = AsyncState.data('');
+    _pageState.chapterContent.value = AsyncState.data('');
     totalPages.value = 0;
     pageIndex.value = 0;
-    currentCharOffset.value = 0;
-    pendingJumpCharOffset.value = null;
+    _pageState.currentCharOffset.value = 0;
+    _pageState.pendingJumpCharOffset.value = null;
     isLoading.value = false;
     error.value = null;
     autoScrollTick.value = 0;

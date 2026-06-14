@@ -107,6 +107,24 @@ impl CategoryRepository {
         .await?)
     }
 
+    /// 获取指定分类下的所有书籍（书架版，含进度）
+    pub async fn list_bookshelf_by_category(
+        pool: &SqlitePool,
+        category_id: &str,
+    ) -> Result<Vec<BookshelfBook>, AppError> {
+        Ok(sqlx::query_as::<_, BookshelfBook>(
+            "SELECT b.id, b.file_path, b.title, b.author, b.cover_path, b.is_pinned, b.status, b.chapter_count, b.last_opened_at, b.added_at, rp.progress \
+             FROM books b \
+             INNER JOIN book_categories bc ON b.id = bc.book_id \
+             LEFT JOIN reading_progress rp ON b.id = rp.book_id \
+             WHERE bc.category_id = ? \
+             ORDER BY b.is_pinned DESC, b.last_opened_at DESC NULLS LAST",
+        )
+        .bind(category_id)
+        .fetch_all(pool)
+        .await?)
+    }
+
     /// 清除书籍的所有分类
     pub async fn clear_by_book(pool: &SqlitePool, book_id: &str) -> Result<(), AppError> {
         sqlx::query("DELETE FROM book_categories WHERE book_id = ?")

@@ -80,12 +80,71 @@ impl BookRepository {
         tx.commit().await?;
         Ok(())
     }
-    /// 获取所有书籍列表
-    pub async fn list(pool: &SqlitePool) -> Result<Vec<Book>, AppError> {
-        // 直接使用 query_as，FromRow 自动完成所有映射
+    /// 获取所有书籍列表（按指定字段排序）
+    pub async fn list(
+        pool: &SqlitePool,
+        sort_by: &str,
+        sort_order: &str,
+    ) -> Result<Vec<Book>, AppError> {
+        // 白名单校验
+        let sort_column = match sort_by {
+            "title" => "title",
+            "last_opened_at" => "last_opened_at",
+            "added_at" => "added_at",
+            "author" => "author",
+            "file_size" => "file_size",
+            _ => "added_at",
+        };
+        let order = if sort_order.eq_ignore_ascii_case("asc") {
+            "ASC"
+        } else {
+            "DESC"
+        };
+        let mut builder = sqlx::QueryBuilder::<sqlx::Sqlite>::new(
+            "SELECT * FROM books ORDER BY ",
+        );
+        builder.push(sort_column);
+        builder.push(" ");
+        builder.push(order);
+        Ok(builder.build_query_as::<Book>().fetch_all(pool).await?)
+    }
+
+    /// 获取所有书籍列表（无排序，供 progress_repo 等内部使用）
+    pub async fn list_progress(pool: &SqlitePool) -> Result<Vec<Book>, AppError> {
         Ok(sqlx::query_as::<_, Book>("SELECT * FROM books")
             .fetch_all(pool)
             .await?)
+    }
+
+    /// 书架书籍列表（含阅读进度，单次 JOIN 查询）
+    pub async fn list_bookshelf(
+        pool: &SqlitePool,
+        sort_by: &str,
+        sort_order: &str,
+    ) -> Result<Vec<super::super::models::BookshelfBook>, AppError> {
+        let sort_column = match sort_by {
+            "title" => "b.title",
+            "last_opened_at" => "b.last_opened_at",
+            "added_at" => "b.added_at",
+            "author" => "b.author",
+            "progress" => "rp.progress",
+            _ => "b.added_at",
+        };
+        let order = if sort_order.eq_ignore_ascii_case("asc") {
+            "ASC"
+        } else {
+            "DESC"
+        };
+        let mut builder = sqlx::QueryBuilder::<sqlx::Sqlite>::new(
+            "SELECT b.id, b.file_path, b.title, b.author, b.cover_path, b.is_pinned, b.status, b.chapter_count, b.last_opened_at, b.added_at, rp.progress \
+             FROM books b \
+             LEFT JOIN reading_progress rp ON b.id = rp.book_id \
+             ORDER BY b.is_pinned DESC, ",
+        );
+        builder.push(sort_column);
+        builder.push(" ");
+        builder.push(order);
+        Ok(builder.build_query_as::<super::super::models::BookshelfBook>().fetch_all(pool).await?)
     }
 
     /// 获取所有书籍的 ID 和标题
@@ -184,10 +243,50 @@ impl BookRepository {
         .await?)
     }
 
+    /// 书架搜索（标题或作者模糊匹配，含阅读进度）
+    pub async fn search_bookshelf(
+        pool: &SqlitePool,
+        keyword: &str,
+    ) -> Result<Vec<BookshelfBook>, AppError> {
+        if keyword.trim().is_empty() {
+            return Ok(Vec::new());
+        }
+        let escaped = keyword.replace('%', r"\%").replace('_', r"\_");
+        let pattern = format!("%{}%", escaped);
+        Ok(sqlx::query_as::<_, BookshelfBook>(
+            "SELECT b.id, b.file_path, b.title, b.author, b.cover_path, b.is_pinned, b.status, b.chapter_count, b.last_opened_at, b.added_at, rp.progress \
+             FROM books b \
+             LEFT JOIN reading_progress rp ON b.id = rp.book_id \
+             WHERE b.title LIKE ? ESCAPE '\\' OR b.author LIKE ? ESCAPE '\\' \
+             ORDER BY b.is_pinned DESC, b.last_opened_at DESC NULLS LAST",
+        )
+        .bind(&pattern)
+        .bind(&pattern)
+        .fetch_all(pool)
+        .await?)
+    }
+
     /// 按阅读状态筛选
     pub async fn list_by_status(pool: &SqlitePool, status: BookStatus) -> Result<Vec<Book>, AppError> {
         Ok(sqlx::query_as::<_, Book>(
             "SELECT * FROM books WHERE status = ? ORDER BY last_opened_at DESC NULLS LAST",
+        )
+        .bind(status.as_ref())
+        .fetch_all(pool)
+        .await?)
+    }
+
+    /// 按阅读状态筛选（书架版，含进度）
+    pub async fn list_bookshelf_by_status(
+        pool: &SqlitePool,
+        status: BookStatus,
+    ) -> Result<Vec<BookshelfBook>, AppError> {
+        Ok(sqlx::query_as::<_, BookshelfBook>(
+            "SELECT b.id, b.file_path, b.title, b.author, b.cover_path, b.is_pinned, b.status, b.chapter_count, b.last_opened_at, b.added_at, rp.progress \
+             FROM books b \
+             LEFT JOIN reading_progress rp ON b.id = rp.book_id \
+             WHERE b.status = ? \
+             ORDER BY b.is_pinned DESC, b.last_opened_at DESC NULLS LAST",
         )
         .bind(status.as_ref())
         .fetch_all(pool)

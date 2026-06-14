@@ -38,13 +38,11 @@ class BookshelfPage extends HookWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final vm = useMemoized(() => getIt<BookshelfViewModel>());
-    Logging.debug(
-      '[BookshelfPage] build vm=$vm books_loading=${vm.books.value.isLoading} books_count=${(vm.books.value.value ?? []).length}',
-    );
+
     final isSearching = useSignal(false);
     final searchController = useTextEditingController();
     final batchMode = useSignal(false);
-    final selectedIds = useSignal<Set<String>>({});
+    final selectedIds = useSetSignal<String>({});
     final bool isListView = useSignalValue(vm.isListView);
     final debounceTimer = useRef<Timer?>(null);
 
@@ -323,7 +321,7 @@ class BookshelfPage extends HookWidget {
   void _showBookActions(
     BuildContext context,
     BookshelfViewModel vm,
-    Book book,
+    BookshelfBook book,
   ) async {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);

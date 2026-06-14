@@ -17,6 +17,7 @@ import 'chapter_view_model.dart';
 import 'reading_session_manager.dart';
 import 'bookmark_view_model.dart';
 import 'annotation_view_model.dart';
+import 'reader_page_state.dart';
 import 'translation_view_model.dart';
 
 /// 阅读器视图模型 — Facade
@@ -48,7 +49,6 @@ class ReaderViewModel {
     () => _config.fontSize.value,
   );
 
-  bool get isTranslationConfigured => translation.isConfigured;
 
   // ==================== 跨切面信号 ====================
 
@@ -57,7 +57,10 @@ class ReaderViewModel {
   // ==================== 定时器 ====================
 
   Timer? _reloadDebounce;
+
   final List<void Function()> _disposers = [];
+
+  final ReaderPageState state = ReaderPageState();
 
   ReaderViewModel(
     this._repo,
@@ -65,26 +68,11 @@ class ReaderViewModel {
     TranslationConfig translateConfig,
     TranslationService translateService,
   ) {
-    chapterManager = ChapterViewModel(_repo, _config);
-    sessionManager = ReadingSessionManager(chapterManager);
-
-    bookmarks = BookmarkViewModel(
-      chapterManager.bookId,
-      chapterManager.chapterIndex,
-      chapterManager.currentCharOffset,
-    );
-    annotations = AnnotationViewModel(
-      chapterManager.bookId,
-      chapterManager.chapterIndex,
-    );
-    translation = TranslationViewModel(
-      chapterManager.bookId,
-      chapterManager.chapterIndex,
-      chapterManager.chapterContent,
-      chapterManager.readingMode,
-      translateConfig,
-      translateService,
-    );
+    chapterManager = ChapterViewModel(_repo, _config, state);
+    sessionManager = ReadingSessionManager(state, chapterManager);
+    bookmarks = BookmarkViewModel(state);
+    annotations = AnnotationViewModel(state);
+    translation = TranslationViewModel(state, translateConfig, translateService);
   }
 
   // ==================== 编排方法 ====================
@@ -92,8 +80,8 @@ class ReaderViewModel {
   /// 初始化阅读器，加载章节列表、恢复阅读进度、加载书签并开始计时。
   Future<void> initialize(String bookId, {int initialChapterId = 0}) async {
     await resetForNewBook();
-    chapterManager.bookId.value = bookId;
-    chapterManager.currentCharOffset.value = 0;
+    state.bookId.value = bookId;
+    state.currentCharOffset.value = 0;
 
     chapterManager.isLoading.value = true;
     chapterManager.error.value = null;
@@ -114,8 +102,8 @@ class ReaderViewModel {
 
       final chaptersList = chapterManager.chapters.value.value;
       if (chaptersList != null && chaptersList.isNotEmpty) {
-        final restoredChapterIndex = chapterManager.chapterIndex.value;
-        final restoredCharOffset = chapterManager.currentCharOffset.value;
+        final restoredChapterIndex = state.chapterIndex.value;
+        final restoredCharOffset = state.currentCharOffset.value;
         final targetChapterIndex = initialChapterId > 0
             ? initialChapterId
             : restoredChapterIndex;
@@ -162,43 +150,16 @@ class ReaderViewModel {
     unawaited(sessionManager.saveProgress());
   }
 
-  Future<void> jumpToChapter(int chapterIndex) async {
-    await chapterManager.jumpToChapter(chapterIndex);
-  }
-
-  Future<void> jumpToPosition(int chapterIndex, int charOffset) async {
-    await chapterManager.jumpToPosition(chapterIndex, charOffset);
-  }
-
-  Future<void> previousChapter() => chapterManager.previousChapter();
-  Future<void> nextChapter() => chapterManager.nextChapter();
-  Future<void> previousPage() => chapterManager.previousPage();
-  Future<void> nextPage() => chapterManager.nextPage();
-
-  void updateCurrentCharOffset(int charOffset) =>
-      chapterManager.updateCurrentCharOffset(charOffset);
-
-  void consumePendingJumpOffset() => chapterManager.consumePendingJumpOffset();
-
-  void updateFont(String fontFamily) => chapterManager.updateFont(fontFamily);
-
-  // ==================== 书签（代理到 BookmarkController） ====================
-
-  Future<void> loadBookmarks() => bookmarks.loadBookmarks();
-  Future<bool> addBookmark() => bookmarks.addBookmark();
-  Future<bool> deleteBookmark(String bookmarkId) =>
-      bookmarks.deleteBookmark(bookmarkId);
+  // ==================== 书签 ====================
 
   Future<void> jumpToBookmark(Bookmark bookmark) async {
-    await jumpToPosition(bookmark.chapterIndex, bookmark.charOffset.toInt());
+    await chapterManager.jumpToPosition(bookmark.chapterIndex, bookmark.charOffset.toInt());
   }
 
-  bool get hasBookmarkAtCurrentPosition =>
-      bookmarks.hasBookmarkAtCurrentPosition;
   Bookmark? get currentBookmark => bookmarks.currentBookmark;
 
   Future<bool> toggleBookmarkAtCurrentPosition() async {
-    final existing = currentBookmark;
+    final existing = bookmarks.currentBookmark;
     if (existing != null) {
       return await bookmarks.deleteBookmark(existing.id);
     } else {
@@ -206,15 +167,8 @@ class ReaderViewModel {
     }
   }
 
-  // ==================== 划词批注（代理到 AnnotationController） ====================
 
-  Future<void> loadHighlights({bool forceRefresh = false}) =>
-      annotations.loadHighlights(forceRefresh: forceRefresh);
-
-  void updateSelection(String text, int start, int end) =>
-      annotations.updateSelection(text, start, end);
-
-  void clearSelection() => annotations.clearSelection();
+  // ==================== 划词批注 ====================
 
   Future<void> saveHighlight(AppLocalizations l10n) async {
     try {
@@ -260,8 +214,8 @@ class ReaderViewModel {
     _reloadDebounce = Timer(const Duration(milliseconds: 300), () {
       unawaited(
         chapterManager.loadChapter(
-          chapterManager.chapterIndex.value,
-          initialCharOffset: chapterManager.currentCharOffset.value,
+          state.chapterIndex.value,
+          initialCharOffset: state.currentCharOffset.value,
           restartSession: false,
           onChapterLoaded: annotations.loadHighlights,
         ),
@@ -295,16 +249,12 @@ class ReaderViewModel {
   }
 
   void setReadingMode(ReadingMode mode) {
-    chapterManager.readingMode.value = mode;
+    state.readingMode.value = mode;
     if (mode == ReadingMode.bilingual) {
       translation.onEnterBilingualMode();
     }
   }
 
-  void setTranslationContent(String content) =>
-      translation.setTranslationContent(content);
-
-  Future<void> translateChapter() => translation.translateChapter();
 
   // ==================== 双语高亮 ====================
 
@@ -369,5 +319,6 @@ class ReaderViewModel {
     await translation.reset();
 
     toastMessage.value = '';
+    state.reset();
   }
 }
