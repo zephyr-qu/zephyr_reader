@@ -1,7 +1,7 @@
 //! 富文本解析
 //! 解析 HTML 内容为富文本段落列表，支持内联 CSS 样式提取和图片占位
 
-use crate::domain::{AppError, RichParagraph, RichTextSpan};
+use crate::domain::{AppError, RichParagraph, RichTextSpan, RichTextSpanData, SpanStyle};
 use crate::text::css;
 use html5ever::Attribute;
 use html5ever::parse_document;
@@ -311,11 +311,11 @@ fn traverse_dom(
                 if !spans.is_empty() {
                     spans.insert(
                         0,
-                        RichTextSpan::Plain {
+                        RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
                             text: "• ".to_string(),
                             font_size: None,
                             color: None,
-                        },
+                        }),
                     );
 
                     paragraphs.push(RichParagraph {
@@ -388,11 +388,11 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Bold {
+                    spans.push(RichTextSpan::Styled(SpanStyle::Bold, RichTextSpanData {
                         text: inner_text.trim().to_string(),
                         font_size: merged_style.font_size,
                         color: merged_style.color.clone(),
-                    });
+                    }));
                 }
             }
 
@@ -401,11 +401,11 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Italic {
+                    spans.push(RichTextSpan::Styled(SpanStyle::Italic, RichTextSpanData {
                         text: inner_text.trim().to_string(),
                         font_size: merged_style.font_size,
                         color: merged_style.color.clone(),
-                    });
+                    }));
                 }
             }
 
@@ -414,11 +414,11 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Underline {
+                    spans.push(RichTextSpan::Styled(SpanStyle::Underline, RichTextSpanData {
                         text: inner_text.trim().to_string(),
                         font_size: merged_style.font_size,
                         color: merged_style.color.clone(),
-                    });
+                    }));
                 }
             }
 
@@ -427,11 +427,11 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Strikethrough {
+                    spans.push(RichTextSpan::Styled(SpanStyle::Strikethrough, RichTextSpanData {
                         text: inner_text.trim().to_string(),
                         font_size: merged_style.font_size,
                         color: merged_style.color.clone(),
-                    });
+                    }));
                 }
             }
 
@@ -440,11 +440,11 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Code {
+                    spans.push(RichTextSpan::Styled(SpanStyle::Code, RichTextSpanData {
                         text: inner_text.trim().to_string(),
                         font_size: merged_style.font_size,
                         color: merged_style.color.clone(),
-                    });
+                    }));
                 }
             }
 
@@ -455,20 +455,22 @@ fn collect_text_spans(
 
                 if !inner_text.trim().is_empty() {
                     spans.push(RichTextSpan::Link {
-                        text: inner_text.trim().to_string(),
+                        data: RichTextSpanData {
+                            text: inner_text.trim().to_string(),
+                            font_size: merged_style.font_size,
+                            color: merged_style.color.clone(),
+                        },
                         url: href,
-                        font_size: merged_style.font_size,
-                        color: merged_style.color.clone(),
                     });
                 }
             }
 
             "br" => {
-                spans.push(RichTextSpan::Plain {
+                spans.push(RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
                     text: "\n".to_string(),
                     font_size: None,
                     color: None,
-                });
+                }));
             }
 
             "span" => {
@@ -495,11 +497,11 @@ fn collect_text_spans(
     } else if let NodeData::Text { ref contents } = node.data {
         let text = contents.borrow().to_string();
         if !text.trim().is_empty() {
-            spans.push(RichTextSpan::Plain {
+            spans.push(RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
                 text,
                 font_size: parent_style.font_size,
                 color: parent_style.color.clone(),
-            });
+            }));
         }
     }
 }

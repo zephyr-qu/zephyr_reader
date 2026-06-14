@@ -82,160 +82,44 @@ class PersistedSignal<T> {
   }
 }
 
-// ==================== 类型工厂 ====================
 
-/// [bool] 类型持久化信号
-PersistedSignal<bool> persistedBool(
+// ==================== 通用工厂 ====================
+
+/// 泛型 [PersistedSignal] 工厂。
+///
+/// 通过 [reader] 读取初始值，通过 [writer] 持久化新值。
+/// 可用于任意类型，包括内置不支持的类型（自定义编码）。
+///
+/// 示例：
+/// ```dart
+/// persisted<bool>(
+///   prefs, SettingsKeys.readerAutoScroll, false,
+///   reader: (p, k) => p.getBool(k) ?? false,
+///   writer: (p, k, v) => p.setBool(k, v),
+/// );
+/// ```
+PersistedSignal<T> persisted<T>(
   SharedPreferences prefs,
   String key,
-  bool defaultValue, {
-  Duration debounce = const Duration(milliseconds: 150),
-}) {
-  return PersistedSignal<bool>._(
-    initialValue: prefs.getBool(key) ?? defaultValue,
-    defaultValue: defaultValue,
-    key: key,
-    prefs: prefs,
-    write: (p, k, v) => p.setBool(k, v),
-    debounce: debounce,
-  );
-}
-
-/// [int] 类型持久化信号
-PersistedSignal<int> persistedInt(
-  SharedPreferences prefs,
-  String key,
-  int defaultValue, {
-  Duration debounce = const Duration(milliseconds: 150),
-}) {
-  return PersistedSignal<int>._(
-    initialValue: prefs.getInt(key) ?? defaultValue,
-    defaultValue: defaultValue,
-    key: key,
-    prefs: prefs,
-    write: (p, k, v) => p.setInt(k, v),
-    debounce: debounce,
-  );
-}
-
-/// [double] 类型持久化信号
-PersistedSignal<double> persistedDouble(
-  SharedPreferences prefs,
-  String key,
-  double defaultValue, {
-  Duration debounce = const Duration(milliseconds: 150),
-}) {
-  return PersistedSignal<double>._(
-    initialValue: prefs.getDouble(key) ?? defaultValue,
-    defaultValue: defaultValue,
-    key: key,
-    prefs: prefs,
-    write: (p, k, v) => p.setDouble(k, v),
-    debounce: debounce,
-  );
-}
-
-/// [String] 类型持久化信号
-PersistedSignal<String> persistedString(
-  SharedPreferences prefs,
-  String key,
-  String defaultValue, {
-  Duration debounce = const Duration(milliseconds: 150),
-}) {
-  return PersistedSignal<String>._(
-    initialValue: prefs.getString(key) ?? defaultValue,
-    defaultValue: defaultValue,
-    key: key,
-    prefs: prefs,
-    write: (p, k, v) => p.setString(k, v),
-    debounce: debounce,
-  );
-}
-
-/// 可为 null 的 [String] 类型持久化信号。
-/// 值为 null 时从 SharedPreferences 中删除该键。
-PersistedSignal<String?> persistedNullableString(
-  SharedPreferences prefs,
-  String key, {
-  Duration debounce = const Duration(milliseconds: 150),
-}) {
-  return PersistedSignal<String?>._(
-    initialValue: prefs.getString(key),
-    defaultValue: null,
-    key: key,
-    prefs: prefs,
-    write: (p, k, v) {
-      if (v != null) {
-        return p.setString(k, v);
-      } else {
-        return p.remove(k);
-      }
-    },
-    debounce: debounce,
-  );
-}
-
-/// 可为 null 的 [int] 类型持久化信号（用于存储 [Color] 的 ARGB32 值）。
-/// 值为 null 时从 SharedPreferences 中删除该键。
-PersistedSignal<int?> persistedNullableInt(
-  SharedPreferences prefs,
-  String key, {
-  Duration debounce = const Duration(milliseconds: 150),
-}) {
-  return PersistedSignal<int?>._(
-    initialValue: prefs.getInt(key),
-    defaultValue: null,
-    key: key,
-    prefs: prefs,
-    write: (p, k, v) {
-      if (v != null) {
-        return p.setInt(k, v);
-      } else {
-        return p.remove(k);
-      }
-    },
-    debounce: debounce,
-  );
-}
-
-/// [Enum] 类型持久化信号（通过字符串 ID 持久化）
-PersistedSignal<T> persistedEnum<T extends Enum>(
-  SharedPreferences prefs,
-  String key,
-  T defaultValue,
-  T Function(String) parser, {
+  T defaultValue, {
+  required T Function(SharedPreferences, String) reader,
+  required Future<void> Function(SharedPreferences, String, T) writer,
   Duration debounce = const Duration(milliseconds: 150),
 }) {
   return PersistedSignal<T>._(
-    initialValue: _readEnum(prefs, key, defaultValue, parser),
+    initialValue: reader(prefs, key),
     defaultValue: defaultValue,
     key: key,
     prefs: prefs,
-    write: (p, k, v) => p.setString(k, v.name),
+    write: writer,
     debounce: debounce,
   );
 }
 
-/// [Enum] 类型持久化信号（使用自定义序列化器，如 [BookshelfSortType.key]）
-PersistedSignal<T> persistedEnumCustom<T extends Enum>(
-  SharedPreferences prefs,
-  String key,
-  T defaultValue,
-  T Function(String) parser,
-  String Function(T) serializer, {
-  Duration debounce = const Duration(milliseconds: 150),
-}) {
-  return PersistedSignal<T>._(
-    initialValue: _readEnum(prefs, key, defaultValue, parser),
-    defaultValue: defaultValue,
-    key: key,
-    prefs: prefs,
-    write: (p, k, v) => p.setString(k, serializer(v)),
-    debounce: debounce,
-  );
-}
+// ==================== 枚举/颜色读取辅助 ====================
 
-T _readEnum<T extends Enum>(
+/// 从 [SharedPreferences] 读取枚举值，解析失败时返回 [defaultValue]。
+T readEnum<T extends Enum>(
   SharedPreferences prefs,
   String key,
   T defaultValue,
@@ -247,35 +131,14 @@ T _readEnum<T extends Enum>(
     return parser(stored);
   } catch (e) {
     Logging.warning(
-      'PersistedSignal._readEnum[$key] failed to parse "$stored": $e',
+      'PersistedSignal.readEnum[$key] failed to parse "$stored": $e',
     );
     return defaultValue;
   }
 }
 
-/// [Color] 类型持久化信号（以 ARGB32 int 存储）
-PersistedSignal<Color?> persistedColor(
-  SharedPreferences prefs,
-  String key, {
-  Duration debounce = const Duration(milliseconds: 150),
-}) {
-  return PersistedSignal<Color?>._(
-    initialValue: _readColor(prefs, key),
-    defaultValue: null,
-    key: key,
-    prefs: prefs,
-    write: (p, k, v) {
-      if (v != null) {
-        return p.setInt(k, v.toARGB32());
-      } else {
-        return p.remove(k);
-      }
-    },
-    debounce: debounce,
-  );
-}
-
-Color? _readColor(SharedPreferences prefs, String key) {
+/// 从 [SharedPreferences] 读取 [Color] 值（以 ARGB32 int 存储）。
+Color? readColor(SharedPreferences prefs, String key) {
   final value = prefs.getInt(key);
   if (value == null) return null;
   return Color(value);

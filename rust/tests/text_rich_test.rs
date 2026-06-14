@@ -1,4 +1,4 @@
-use rust_lib_zephyr_reader::domain::RichTextSpan;
+use rust_lib_zephyr_reader::domain::{RichTextSpan, SpanStyle};
 use rust_lib_zephyr_reader::text::parse_html_to_rich_text;
 
 #[test]
@@ -54,14 +54,14 @@ fn test_parse_with_styles() {
     // Find the Bold span
     let bold_span = spans
         .iter()
-        .find(|s| matches!(s, RichTextSpan::Bold { .. }));
+        .find(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Bold, _)));
     assert!(bold_span.is_some(), "expected a Bold span");
     assert!(bold_span.unwrap().text().contains("Bold"));
 
     // Find the Italic span
     let italic_span = spans
         .iter()
-        .find(|s| matches!(s, RichTextSpan::Italic { .. }));
+        .find(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Italic, _)));
     assert!(italic_span.is_some(), "expected an Italic span");
     assert!(italic_span.unwrap().text().contains("Italic"));
 }
@@ -111,8 +111,8 @@ fn test_parse_link() {
         .iter()
         .find(|s| matches!(s, RichTextSpan::Link { .. }));
     assert!(link_span.is_some(), "expected a Link span");
-    if let RichTextSpan::Link { text, url, .. } = link_span.unwrap() {
-        assert!(text.contains("Link"));
+    if let RichTextSpan::Link { data, url } = link_span.unwrap() {
+        assert!(data.text.contains("Link"));
         assert_eq!(url, "https://example.com");
     }
 }
@@ -150,7 +150,7 @@ fn test_parse_nested_tags() {
     let spans = &result[0].spans;
     let bold_span = spans
         .iter()
-        .find(|s| matches!(s, RichTextSpan::Bold { .. }));
+        .find(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Bold, _)));
     assert!(
         bold_span.is_some(),
         "expected a Bold span from nested <b><i>"
@@ -166,7 +166,7 @@ fn test_parse_code_span() {
     let code_span = result[0]
         .spans
         .iter()
-        .find(|s| matches!(s, RichTextSpan::Code { .. }));
+        .find(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Code, _)));
     assert!(code_span.is_some(), "expected a Code span");
     assert!(code_span.unwrap().text().contains("fn main()"));
 }
@@ -179,7 +179,7 @@ fn test_parse_underline() {
     let u_span = result[0]
         .spans
         .iter()
-        .find(|s| matches!(s, RichTextSpan::Underline { .. }));
+        .find(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Underline, _)));
     assert!(u_span.is_some(), "expected an Underline span");
     assert!(u_span.unwrap().text().contains("Underlined text"));
 }
@@ -192,7 +192,7 @@ fn test_parse_strikethrough() {
     let spans = &result[0].spans;
     let s_spans: Vec<_> = spans
         .iter()
-        .filter(|s| matches!(s, RichTextSpan::Strikethrough { .. }))
+        .filter(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Strikethrough, _)))
         .collect();
     assert_eq!(s_spans.len(), 2, "expected two Strikethrough spans");
     assert!(s_spans[0].text().contains("Struck through"));
@@ -207,7 +207,7 @@ fn test_parse_bold_via_strong() {
     let bold_span = result[0]
         .spans
         .iter()
-        .find(|s| matches!(s, RichTextSpan::Bold { .. }));
+        .find(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Bold, _)));
     assert!(bold_span.is_some(), "expected a Bold span from <strong>");
     assert!(bold_span.unwrap().text().contains("Strong emphasis"));
 }
@@ -220,7 +220,7 @@ fn test_parse_italic_via_em() {
     let italic_span = result[0]
         .spans
         .iter()
-        .find(|s| matches!(s, RichTextSpan::Italic { .. }));
+        .find(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Italic, _)));
     assert!(italic_span.is_some(), "expected an Italic span from <em>");
     assert!(italic_span.unwrap().text().contains("Emphasis"));
 }
@@ -296,7 +296,7 @@ fn test_parse_style_with_multiple_spans() {
     let bold_spans: Vec<_> = result[0]
         .spans
         .iter()
-        .filter(|s| matches!(s, RichTextSpan::Bold { .. }))
+        .filter(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Bold, _)))
         .collect();
     assert_eq!(bold_spans.len(), 2, "expected two Bold spans");
     assert!(bold_spans[0].text().contains("A"));

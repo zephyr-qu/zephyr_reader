@@ -38,9 +38,12 @@ class FontRepository {
     }
   }
 
-  late final _currentFontId = persistedNullableString(
+  late final _currentFontId = persisted<String?>(
     _prefs,
     SettingsKeys.currentFont,
+    null,
+    reader: (p, k) => p.getString(k),
+    writer: (p, k, v) => v != null ? p.setString(k, v) : p.remove(k),
   );
 
   /// 当前字体

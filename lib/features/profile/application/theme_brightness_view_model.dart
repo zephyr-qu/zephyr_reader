@@ -16,11 +16,19 @@ class ThemeBrightnessViewModel {
   final _themeManager = ThemeManager.instance;
   final _readerConfig = getIt<ReaderConfig>();
 
-  late final brightness = persistedInt(_prefs, SettingsKeys.brightness, 80);
-  late final useSystemBrightness = persistedBool(
+  late final brightness = persisted<int>(
+    _prefs,
+    SettingsKeys.brightness,
+    80,
+    reader: (p, k) => p.getInt(k) ?? 80,
+    writer: (p, k, v) => p.setInt(k, v),
+  );
+  late final useSystemBrightness = persisted<bool>(
     _prefs,
     SettingsKeys.useSystemBrightness,
     true,
+    reader: (p, k) => p.getBool(k) ?? true,
+    writer: (p, k, v) => p.setBool(k, v),
   );
 
   ThemeBrightnessViewModel(this._prefs);

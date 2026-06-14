@@ -3,7 +3,7 @@
 //! 测试 AppError、TypesetConfig、RichParagraph、RichTextSpan 等领域类型
 //! 无需外部依赖，纯函数测试
 
-use rust_lib_zephyr_reader::domain::types::rich_text::{RichParagraph, RichTextSpan};
+use rust_lib_zephyr_reader::domain::types::rich_text::{RichParagraph, RichTextSpan, RichTextSpanData, SpanStyle};
 use rust_lib_zephyr_reader::domain::types::typeset::{LanguageType, TypesetConfig};
 use rust_lib_zephyr_reader::domain::AppError;
 
@@ -401,88 +401,90 @@ fn test_rich_paragraph_image_placeholder() {
 
 #[test]
 fn test_rich_text_span_text() {
-    let span = RichTextSpan::Plain {
+    let span = RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
         text: "plain".into(),
         font_size: None,
         color: None,
-    };
+    });
     assert_eq!(span.text(), "plain");
 
-    let span = RichTextSpan::Bold {
+    let span = RichTextSpan::Styled(SpanStyle::Bold, RichTextSpanData {
         text: "bold".into(),
         font_size: None,
         color: None,
-    };
+    });
     assert_eq!(span.text(), "bold");
 
-    let span = RichTextSpan::Italic {
+    let span = RichTextSpan::Styled(SpanStyle::Italic, RichTextSpanData {
         text: "italic".into(),
         font_size: None,
         color: None,
-    };
+    });
     assert_eq!(span.text(), "italic");
 
-    let span = RichTextSpan::BoldItalic {
+    let span = RichTextSpan::Styled(SpanStyle::BoldItalic, RichTextSpanData {
         text: "bolditalic".into(),
         font_size: None,
         color: None,
-    };
+    });
     assert_eq!(span.text(), "bolditalic");
 
-    let span = RichTextSpan::Underline {
+    let span = RichTextSpan::Styled(SpanStyle::Underline, RichTextSpanData {
         text: "underline".into(),
         font_size: None,
         color: None,
-    };
+    });
     assert_eq!(span.text(), "underline");
 
-    let span = RichTextSpan::Strikethrough {
+    let span = RichTextSpan::Styled(SpanStyle::Strikethrough, RichTextSpanData {
         text: "strike".into(),
         font_size: None,
         color: None,
-    };
+    });
     assert_eq!(span.text(), "strike");
 
-    let span = RichTextSpan::Code {
+    let span = RichTextSpan::Styled(SpanStyle::Code, RichTextSpanData {
         text: "code".into(),
         font_size: None,
         color: None,
-    };
+    });
     assert_eq!(span.text(), "code");
 
     let span = RichTextSpan::Link {
-        text: "click me".into(),
+        data: RichTextSpanData {
+            text: "click me".into(),
+            font_size: None,
+            color: None,
+        },
         url: "https://example.com".into(),
-        font_size: None,
-        color: None,
     };
     assert_eq!(span.text(), "click me");
 }
 
 #[test]
 fn test_rich_text_span_is_plain() {
-    let plain = RichTextSpan::Plain {
+    let plain = RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
         text: "x".into(),
         font_size: None,
         color: None,
-    };
+    });
     assert!(plain.is_plain());
 
-    let bold = RichTextSpan::Bold {
+    let bold = RichTextSpan::Styled(SpanStyle::Bold, RichTextSpanData {
         text: "x".into(),
         font_size: None,
         color: None,
-    };
+    });
     assert!(!bold.is_plain());
 }
 
 #[test]
 fn test_rich_text_span_with_css() {
-    let span = RichTextSpan::Plain {
+    let span = RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
         text: "styled".into(),
         font_size: None,
         color: None,
-    };
+    });
     let styled = span.with_css(Some(20.0), Some("#ff0000".into()));
     assert_eq!(styled.font_size(), Some(20.0));
     let dbg = format!("{styled:?}");
@@ -494,11 +496,11 @@ fn test_rich_text_span_with_css() {
 
 #[test]
 fn test_rich_text_span_font_size() {
-    let mut span = RichTextSpan::Plain {
+    let mut span = RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
         text: "resize".into(),
         font_size: Some(14.0),
         color: None,
-    };
+    });
     assert_eq!(span.font_size(), Some(14.0));
 
     span.set_font_size(Some(18.0));
@@ -511,46 +513,48 @@ fn test_rich_text_span_font_size() {
 #[test]
 fn test_rich_text_span_font_size_all_variants() {
     let variants: [RichTextSpan; 8] = [
-        RichTextSpan::Plain {
+        RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
             text: "p".into(),
             font_size: Some(10.0),
             color: None,
-        },
-        RichTextSpan::Bold {
+        }),
+        RichTextSpan::Styled(SpanStyle::Bold, RichTextSpanData {
             text: "b".into(),
             font_size: Some(10.0),
             color: None,
-        },
-        RichTextSpan::Italic {
+        }),
+        RichTextSpan::Styled(SpanStyle::Italic, RichTextSpanData {
             text: "i".into(),
             font_size: Some(10.0),
             color: None,
-        },
-        RichTextSpan::BoldItalic {
+        }),
+        RichTextSpan::Styled(SpanStyle::BoldItalic, RichTextSpanData {
             text: "bi".into(),
             font_size: Some(10.0),
             color: None,
-        },
-        RichTextSpan::Underline {
+        }),
+        RichTextSpan::Styled(SpanStyle::Underline, RichTextSpanData {
             text: "u".into(),
             font_size: Some(10.0),
             color: None,
-        },
-        RichTextSpan::Strikethrough {
+        }),
+        RichTextSpan::Styled(SpanStyle::Strikethrough, RichTextSpanData {
             text: "s".into(),
             font_size: Some(10.0),
             color: None,
-        },
-        RichTextSpan::Code {
+        }),
+        RichTextSpan::Styled(SpanStyle::Code, RichTextSpanData {
             text: "c".into(),
             font_size: Some(10.0),
             color: None,
-        },
+        }),
         RichTextSpan::Link {
-            text: "l".into(),
+            data: RichTextSpanData {
+                text: "l".into(),
+                font_size: Some(10.0),
+                color: None,
+            },
             url: "http://x.com".into(),
-            font_size: Some(10.0),
-            color: None,
         },
     ];
     for v in &variants {

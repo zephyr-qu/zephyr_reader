@@ -147,8 +147,8 @@ class BackupViewModel {
       }
 
       // 更新元信息
-      await _prefs.setInt('last_backup_at', manifest.exportedAt);
-      await _prefs.setInt('last_backup_size', manifest.dbSize);
+      await _prefs.setInt(SettingsKeys.lastBackupAt, manifest.exportedAt);
+      await _prefs.setInt(SettingsKeys.lastBackupSize, manifest.dbSize);
       batch(() {
         _readLastBackupMeta();
         status.value = BackupStatus.restoringDone;
@@ -179,4 +179,12 @@ class BackupViewModel {
 
   /// 将数字补齐为两位字符串（如 3 → "03"），用于生成备份文件名中的日期段。
   String _pad(int n) => n.toString().padLeft(2, '0');
+
+  /// 释放所有 signal 资源。
+  void dispose() {
+    status.dispose();
+    errorMessage.dispose();
+    lastBackupAt.dispose();
+    currentStats.dispose();
+  }
 }
