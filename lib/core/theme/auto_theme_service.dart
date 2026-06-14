@@ -12,7 +12,6 @@ import 'package:signals_flutter/signals_flutter.dart';
 import '../settings/persisted_signal.dart';
 import '../settings/settings_keys.dart';
 import '../utils/logging.dart';
-import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 class AutoThemeService {
   final SharedPreferences _prefs;
@@ -206,12 +205,4 @@ enum ThemeTimePreset {
     }
     return ThemeTimePreset.custom;
   }
-}
-
-extension ThemeTimePresetX on ThemeTimePreset {
-  String l10nLabel(AppLocalizations l10n) => switch (this) {
-    ThemeTimePreset.sunsetToSunrise => l10n.timePresetSunsetToSunrise,
-    ThemeTimePreset.eveningToMorning => l10n.timePresetEveningToMorning,
-    ThemeTimePreset.custom => l10n.timePresetCustom,
-  };
 }

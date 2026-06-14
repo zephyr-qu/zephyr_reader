@@ -12,7 +12,7 @@ use crate::storage::repos::{BookRepository, ChapterRepository, LayoutCacheReposi
 use crate::storage::storage_pool;
 pub use crate::text::PageStreamer;
 use crate::text::paginate_all;
-use crate::utils::security::validate_file_path_async;
+use crate::utils::security::validate_file_path;
 use flutter_rust_bridge::frb;
 use lru::LruCache;
 
@@ -92,7 +92,7 @@ static BOOK_ID_CACHE: LazyLock<Mutex<BookIdCache>> =
 #[frb]
 pub async fn parse_book(file_path: String) -> Result<ParseResult, AppError> {
     tracing::info!("[parse_book] start: file_path={}", file_path);
-    let validated_path = validate_file_path_async(&file_path).await?;
+    let validated_path = validate_file_path(&file_path)?;
     tracing::debug!(
         "[parse_book] path validated: validated_path={}",
         validated_path
@@ -100,7 +100,7 @@ pub async fn parse_book(file_path: String) -> Result<ParseResult, AppError> {
 
     let metadata = tokio::fs::metadata(&validated_path)
         .await
-        .map_err(|e| AppError::file_read_error(&validated_path, e.to_string()))?;
+        .map_err(|e| AppError::FileReadError { path: validated_path.clone().into(), details: e.to_string().into() })?;
     tracing::debug!("[parse_book] file size: {} bytes", metadata.len());
     if metadata.len() > MAX_FILE_SIZE {
         tracing::warn!(
@@ -108,13 +108,10 @@ pub async fn parse_book(file_path: String) -> Result<ParseResult, AppError> {
             metadata.len(),
             MAX_FILE_SIZE
         );
-        return Err(AppError::security_error(
-            format!(
-                "file size exceeds limit (max {} MB)",
-                MAX_FILE_SIZE / 1024 / 1024
-            ),
-            &validated_path,
-        ));
+        return Err(AppError::SecurityError { reason: format!(
+            "file size exceeds limit (max {} MB)",
+            MAX_FILE_SIZE / 1024 / 1024
+        ).into(), path: validated_path.into() });
     }
 
     let extension = std::path::Path::new(&validated_path)
@@ -205,17 +202,18 @@ async fn extract_chapter_content(file_path: &str, chapter_index: i32) -> Result<
 
 // ==================== 排版缓存 ====================
 
-/// 尝试从排版缓存获取分页结果
-async fn try_get_cached_pages(
+/// 尝试从缓存获取分页结果
+async fn try_get_cached(
     validated_path: &str,
     chapter_index: i32,
+    chunk_index: Option<u32>,
     config_hash: u64,
 ) -> Option<Vec<PageContent>> {
     let storage = crate::storage::storage()?;
     let pool = match storage.pool() {
         Ok(p) => p,
         Err(e) => {
-            tracing::warn!("layout cache miss: pool unavailable: {e}");
+            tracing::warn!("cache[{chunk_index:?}] miss: pool unavailable: {e}");
             return None;
         }
     };
@@ -223,35 +221,36 @@ async fn try_get_cached_pages(
         Ok(Some(b)) => b,
         Ok(None) => return None,
         Err(e) => {
-            tracing::warn!("layout cache miss: book lookup failed: {e}");
+            tracing::warn!("cache[{chunk_index:?}] miss: book lookup failed: {e}");
             return None;
         }
     };
     let cache_key = LayoutCacheKey {
         book_id: book.book_id.clone(),
         chapter_index,
-        chunk_index: None,
+        chunk_index,
         config_hash,
     };
     let kv = storage.kv();
     let cache_repo = LayoutCacheRepository::new(kv);
     match cache_repo.get_layout_cache(&cache_key) {
         Ok(Some(cache)) => {
-            tracing::debug!("layout cache HIT: {}", cache_key);
+            tracing::debug!("cache[{chunk_index:?}] HIT: {}", cache_key);
             Some(cache.pages)
         }
         Ok(None) => None,
         Err(e) => {
-            tracing::warn!("layout cache read failed: {}", e);
+            tracing::warn!("cache[{chunk_index:?}] read failed: {}", e);
             None
         }
     }
 }
 
 /// 保存排版结果到缓存（写入失败不影响阅读）
-async fn try_save_cached_pages(
+async fn try_save_cached(
     validated_path: &str,
     chapter_index: i32,
+    chunk_index: Option<u32>,
     config_hash: u64,
     pages: Vec<PageContent>,
 ) {
@@ -262,7 +261,7 @@ async fn try_save_cached_pages(
     let pool = match storage.pool() {
         Ok(p) => p,
         Err(e) => {
-            tracing::warn!("layout cache save skipped: pool unavailable: {e}");
+            tracing::warn!("cache[{chunk_index:?}] save skipped: pool unavailable: {e}");
             return;
         }
     };
@@ -270,105 +269,20 @@ async fn try_save_cached_pages(
         Ok(Some(b)) => b,
         Ok(None) => return,
         Err(e) => {
-            tracing::warn!("layout cache save skipped: book lookup failed: {e}");
+            tracing::warn!("cache[{chunk_index:?}] save skipped: book lookup failed: {e}");
             return;
         }
     };
     let cache_key = LayoutCacheKey {
         book_id: book.book_id,
         chapter_index,
-        chunk_index: None,
+        chunk_index,
         config_hash,
     };
     let cache = LayoutCache::new(config_hash, pages);
     let cache_repo = LayoutCacheRepository::new(storage.kv());
     if let Err(e) = cache_repo.save_layout_cache(&cache_key, &cache) {
-        tracing::warn!("layout cache save failed: {}", e);
-    }
-}
-
-// ==================== Chunk 级排版缓存 ====================
-
-/// 尝试从 chunk 缓存获取分页结果
-async fn try_get_cached_chunk(
-    validated_path: &str,
-    chapter_index: i32,
-    chunk_index: u32,
-    config_hash: u64,
-) -> Option<Vec<PageContent>> {
-    let storage = crate::storage::storage()?;
-    let pool = match storage.pool() {
-        Ok(p) => p,
-        Err(e) => {
-            tracing::warn!("chunk cache miss: pool unavailable: {e}");
-            return None;
-        }
-    };
-    let book = match BookRepository::find_by_file_path(&pool, validated_path).await {
-        Ok(Some(b)) => b,
-        Ok(None) => return None,
-        Err(e) => {
-            tracing::warn!("chunk cache miss: book lookup failed: {e}");
-            return None;
-        }
-    };
-    let cache_key = LayoutCacheKey {
-        book_id: book.book_id.clone(),
-        chapter_index,
-        chunk_index: Some(chunk_index),
-        config_hash,
-    };
-    let cache_repo = LayoutCacheRepository::new(storage.kv());
-    match cache_repo.get_layout_cache(&cache_key) {
-        Ok(Some(cache)) => {
-            tracing::debug!("chunk cache HIT: {}", cache_key);
-            Some(cache.pages)
-        }
-        Ok(None) => None,
-        Err(e) => {
-            tracing::warn!("chunk cache read failed: {}", e);
-            None
-        }
-    }
-}
-
-/// 保存 chunk 排版结果到缓存（写入失败不影响阅读）
-async fn try_save_cached_chunk(
-    validated_path: &str,
-    chapter_index: i32,
-    chunk_index: u32,
-    config_hash: u64,
-    pages: Vec<PageContent>,
-) {
-    let storage = match crate::storage::storage() {
-        Some(s) => s,
-        None => return,
-    };
-    let pool = match storage.pool() {
-        Ok(p) => p,
-        Err(e) => {
-            tracing::warn!("chunk cache save skipped: pool unavailable: {e}");
-            return;
-        }
-    };
-    let book = match BookRepository::find_by_file_path(&pool, validated_path).await {
-        Ok(Some(b)) => b,
-        Ok(None) => return,
-        Err(e) => {
-            tracing::warn!("chunk cache save skipped: book lookup failed: {e}");
-            return;
-        }
-    };
-    let cache_key = LayoutCacheKey {
-        book_id: book.book_id,
-        chapter_index,
-        chunk_index: Some(chunk_index),
-        config_hash,
-    };
-    let cache = LayoutCache::new(config_hash, pages);
-    let cache_repo = LayoutCacheRepository::new(storage.kv());
-    if let Err(e) = cache_repo.save_layout_cache(&cache_key, &cache) {
-        tracing::warn!("chunk cache save failed: {}", e);
+        tracing::warn!("cache[{chunk_index:?}] save failed: {}", e);
     }
 }
 
@@ -393,7 +307,7 @@ async fn get_or_create_provider(
                 crate::parser::txt::TxtContentProvider::open(&path)
             })
             .await
-            .map_err(|e| AppError::task_panic("txt provider", e.to_string()))??;
+            .map_err(|e| AppError::TaskPanic { task_name: "txt provider".into(), details: e.to_string().into() })??;
             Arc::new(provider)
         }
         BookFormat::Epub => {
@@ -402,19 +316,17 @@ async fn get_or_create_provider(
                 crate::parser::epub::provider::EpubContentProvider::open(&path, chapter_index)
             })
             .await
-            .map_err(|e| AppError::task_panic("epub provider", e.to_string()))??;
+            .map_err(|e| AppError::TaskPanic { task_name: "epub provider".into(), details: e.to_string().into() })??;
             Arc::new(provider)
         }
         BookFormat::Md => {
             let content = tokio::fs::read_to_string(validated_path)
                 .await
-                .map_err(|e| AppError::file_read_error(validated_path, e.to_string()))?;
+                .map_err(|e| AppError::FileReadError { path: validated_path.into(), details: e.to_string().into() })?;
             Arc::new(crate::parser::md::MdContentProvider::new(content))
         }
         BookFormat::Pdf => {
-            return Err(AppError::invalid_input(
-                "PDF does not support range-based text access",
-            ));
+            return Err(AppError::InvalidInput { reason: "PDF does not support range-based text access".into() });
         }
     };
 
@@ -435,7 +347,7 @@ pub async fn get_chapter_first_spine_only(
     file_path: String,
     chapter_index: i32,
 ) -> Result<FirstSpineResult, AppError> {
-    let validated_path = validate_file_path_async(&file_path).await?;
+    let validated_path = validate_file_path(&file_path)?;
     let format = format_from_extension(&validated_path);
 
     let text = if format == BookFormat::Epub {
@@ -444,14 +356,14 @@ pub async fn get_chapter_first_spine_only(
         tokio::task::spawn_blocking(move || -> Result<String, AppError> {
             let mut epub =
                 crate::parser::epub::unzip::EpubFile::open(&path)
-                    .map_err(|e| AppError::chapter_extract_error(idx, e.to_string()))?;
+                    .map_err(|e| AppError::ChapterExtractError { index: idx, reason: e.to_string().into() })?;
             let chapters =
                 crate::parser::epub::toc::extract_chapters_from_epub(&mut epub, "");
             let chapter = chapters
                 .iter()
                 .find(|c| c.chapter_index == idx as i64)
                 .ok_or_else(|| {
-                    AppError::chapter_extract_error(idx, "chapter not found")
+                    AppError::ChapterExtractError { index: idx, reason: "chapter not found".into() }
                 })?;
 
             let spine = epub.spine();
@@ -463,7 +375,7 @@ pub async fn get_chapter_first_spine_only(
             let href = &spine[start];
             let html = epub
                 .read_resource(href)
-                .map_err(|e| AppError::chapter_extract_error(idx, e.to_string()))?;
+                .map_err(|e| AppError::ChapterExtractError { index: idx, reason: e.to_string().into() })?;
 
             // 截断 HTML 到 8KB 避免 html_to_plain_text 处理大文件
             let truncated: String = html.chars().take(8 * 1024).collect();
@@ -473,12 +385,12 @@ pub async fn get_chapter_first_spine_only(
             Ok(plain.chars().take(2000).collect())
         })
         .await
-        .map_err(|e| AppError::task_panic("first_spine", e.to_string()))??
+        .map_err(|e| AppError::TaskPanic { task_name: "first_spine".into(), details: e.to_string().into() })??
     } else {
         // TXT/MD: 读前 2000 字符
         let content = tokio::fs::read_to_string(&validated_path)
             .await
-            .map_err(|e| AppError::file_read_error(&validated_path, e.to_string()))?;
+            .map_err(|e| AppError::FileReadError { path: validated_path.into(), details: e.to_string().into() })?;
         content.chars().take(2000).collect()
     };
 
@@ -495,7 +407,7 @@ pub async fn get_chapter_partial(
     chapter_index: i32,
     max_chars: u64,
 ) -> Result<String, AppError> {
-    let validated_path = validate_file_path_async(&file_path).await?;
+    let validated_path = validate_file_path(&file_path)?;
     let format = format_from_extension(&validated_path);
 
     if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
@@ -516,7 +428,7 @@ pub async fn get_chapter(
     chapter_index: i32,
     config: Option<TypesetConfig>,
 ) -> Result<ChapterContent, AppError> {
-    let validated_path = validate_file_path_async(&file_path).await?;
+    let validated_path = validate_file_path(&file_path)?;
     let format = format_from_extension(&validated_path);
 
     // 支持分块格式走 Provider 路径
@@ -540,7 +452,7 @@ pub async fn get_chapter(
 
                 // 查缓存
                 if let Some(pages) =
-                    try_get_cached_pages(&validated_path, chapter_index, config_hash).await
+                    try_get_cached(&validated_path, chapter_index, None, config_hash).await
                 {
                     return Ok(chapter_content_pages(pages));
                 }
@@ -549,10 +461,10 @@ pub async fn get_chapter(
                 let pages =
                     tokio::task::spawn_blocking(move || paginate_all(text, chapter_idx, cfg))
                         .await
-                        .map_err(|e| AppError::task_panic("pagination", e.to_string()))?;
+                        .map_err(|e| AppError::TaskPanic { task_name: "pagination".into(), details: e.to_string().into() })?;
 
                 // 写缓存
-                try_save_cached_pages(&validated_path, chapter_index, config_hash, pages.clone())
+                try_save_cached(&validated_path, chapter_index, None, config_hash, pages.clone())
                     .await;
 
                 Ok(chapter_content_pages(pages))
@@ -569,7 +481,7 @@ pub async fn get_chapter(
 
                 // 查缓存
                 if let Some(pages) =
-                    try_get_cached_pages(&validated_path, chapter_index, config_hash).await
+                    try_get_cached(&validated_path, chapter_index, None, config_hash).await
                 {
                     return Ok(chapter_content_pages(pages));
                 }
@@ -577,7 +489,7 @@ pub async fn get_chapter(
                 let pages = paginate_all(text, chapter_index, cfg);
 
                 // 写缓存
-                try_save_cached_pages(&validated_path, chapter_index, config_hash, pages.clone())
+                try_save_cached(&validated_path, chapter_index, None, config_hash, pages.clone())
                     .await;
 
                 Ok(chapter_content_pages(pages))
@@ -597,7 +509,7 @@ pub async fn create_page_streamer(
     chapter_index: i32,
     config: TypesetConfig,
 ) -> Result<PageStreamer, AppError> {
-    let validated_path = validate_file_path_async(&file_path).await?;
+    let validated_path = validate_file_path(&file_path)?;
     let content = extract_chapter_content(&validated_path, chapter_index).await?;
     let config = config.validate_and_fix();
     Ok(PageStreamer::new(content, config))
@@ -613,12 +525,12 @@ pub async fn paginate_all_content(
     chapter_index: i32,
     config: TypesetConfig,
 ) -> Result<Vec<PageContent>, AppError> {
-    let validated_path = validate_file_path_async(&file_path).await?;
+    let validated_path = validate_file_path(&file_path)?;
     let config = config.validate_and_fix();
     let config_hash = config.config_hash();
 
     // 查缓存
-    if let Some(pages) = try_get_cached_pages(&validated_path, chapter_index, config_hash).await {
+    if let Some(pages) = try_get_cached(&validated_path, chapter_index, None, config_hash).await {
         return Ok(pages);
     }
 
@@ -641,9 +553,9 @@ pub async fn paginate_all_content(
     let chapter_idx = chapter_index;
     let pages = tokio::task::spawn_blocking(move || paginate_all(content, chapter_idx, config))
         .await
-        .map_err(|e| AppError::task_panic("pagination", e.to_string()))?;
+        .map_err(|e| AppError::TaskPanic { task_name: "pagination".into(), details: e.to_string().into() })?;
 
-    try_save_cached_pages(&validated_path, chapter_index, config_hash, pages.clone()).await;
+    try_save_cached(&validated_path, chapter_index, None, config_hash, pages.clone()).await;
 
     Ok(pages)
 }
@@ -661,7 +573,7 @@ pub async fn paginate_chapter(
     config: TypesetConfig,
     max_chars: Option<u64>,
 ) -> Result<PaginateResult, AppError> {
-    let validated_path = validate_file_path_async(&file_path).await?;
+    let validated_path = validate_file_path(&file_path)?;
     let config = config.validate_and_fix();
     let config_hash = config.config_hash();
 
@@ -762,13 +674,13 @@ async fn get_chapter_bounds(
     } {
         let chapter = ChapterRepository::find_by_index(&pool, &book_id, chapter_index)
             .await?
-            .ok_or_else(|| AppError::chapter_extract_error(chapter_index, "chapter not found in DB"))?;
+            .ok_or_else(|| AppError::ChapterExtractError { index: chapter_index, reason: "chapter not found in DB".into() })?;
         return Ok((chapter.start_index as i32, chapter.end_index as i32));
     }
 
     let book = BookRepository::find_by_file_path(&pool, validated_path)
         .await?
-        .ok_or_else(|| AppError::file_not_found(validated_path))?;
+        .ok_or_else(|| AppError::FileNotFound { path: validated_path.into() })?;
     let book_id = book.book_id.clone();
     // 填充缓存（不持有锁跨 await）
     {
@@ -778,7 +690,7 @@ async fn get_chapter_bounds(
 
     let chapter = ChapterRepository::find_by_index(&pool, &book_id, chapter_index)
         .await?
-        .ok_or_else(|| AppError::chapter_extract_error(chapter_index, "chapter not found in DB"))?;
+        .ok_or_else(|| AppError::ChapterExtractError { index: chapter_index, reason: "chapter not found in DB".into() })?;
 
     Ok((chapter.start_index as i32, chapter.end_index as i32))
 }
@@ -839,20 +751,18 @@ pub async fn get_paginated_chunk(
     chunk_index: u32,
     config: TypesetConfig,
 ) -> Result<Vec<PageContent>, AppError> {
-    let validated_path = validate_file_path_async(&file_path).await?;
+    let validated_path = validate_file_path(&file_path)?;
     let config = config.validate_and_fix();
     let config_hash = config.config_hash();
     let format = format_from_extension(&validated_path);
 
     if format == BookFormat::Pdf {
-        return Err(AppError::invalid_input(
-            "PDF does not support chunked text access, use get_pdf_page instead",
-        ));
+        return Err(AppError::InvalidInput { reason: "PDF does not support chunked text access, use get_pdf_page instead".into() });
     }
 
     // 查 chunk 缓存
     if let Some(pages) =
-        try_get_cached_chunk(&validated_path, chapter_index, chunk_index, config_hash).await
+        try_get_cached(&validated_path, chapter_index, Some(chunk_index), config_hash).await
     {
         return Ok(pages);
     }
@@ -889,14 +799,13 @@ pub async fn get_paginated_chunk(
     let pages = paginate_chunk(&text, range_start, chapter_index, &config);
 
     // 写 chunk 缓存
-    try_save_cached_chunk(
+    try_save_cached(
         &validated_path,
         chapter_index,
-        chunk_index,
+        Some(chunk_index),
         config_hash,
         pages.clone(),
-    )
-    .await;
+    ).await;
 
     let mut pages = pages;
     if let Some(last) = pages.last_mut() {
@@ -913,26 +822,26 @@ pub async fn get_paginated_chunk(
 // TODO: Dart 侧尚未接入 PDF 阅读
 #[frb]
 pub async fn get_pdf_page(file_path: String, page_index: u32) -> Result<PageData, AppError> {
-    let validated_path = validate_file_path_async(&file_path).await?;
+    let validated_path = validate_file_path(&file_path)?;
     tokio::task::spawn_blocking(move || {
         let provider = PdfContentProvider::open(&validated_path)?;
         provider.get_page(page_index)
     })
     .await
-    .map_err(|e| AppError::task_panic("pdf page", e.to_string()))?
+    .map_err(|e| AppError::TaskPanic { task_name: "pdf page".into(), details: e.to_string().into() })?
 }
 
 /// 获取 PDF 总页数
 #[frb]
 // TODO: Dart 侧尚未接入 PDF 阅读
 pub async fn get_pdf_total_pages(file_path: String) -> Result<u32, AppError> {
-    let validated_path = validate_file_path_async(&file_path).await?;
+    let validated_path = validate_file_path(&file_path)?;
     tokio::task::spawn_blocking(move || {
         let provider = crate::parser::pdf::provider::PdfContentProvider::open(&validated_path)?;
         Ok(provider.total_pages())
     })
     .await
-    .map_err(|e| AppError::task_panic("pdf total pages", e.to_string()))?
+    .map_err(|e| AppError::TaskPanic { task_name: "pdf total pages".into(), details: e.to_string().into() })?
 }
 
 /// 检查格式是否已实现分块排版 Provider
@@ -1032,7 +941,7 @@ mod tests {
         }
 
         // 获取 validated path（与 parse_book 内部使用的相同）
-        let validated = validate_file_path_async(&file_path).await
+        let validated = validate_file_path(&file_path)
             .expect("validate should succeed");
         eprintln!("[DIAG] original path: {}", file_path);
         eprintln!("[DIAG] validated path: {}", validated);

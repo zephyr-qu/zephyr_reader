@@ -11,23 +11,14 @@ use std::path::Path;
 pub fn validate_file_path(path_str: &str) -> Result<String, AppError> {
     let path = Path::new(path_str);
     if !path.exists() {
-        return Err(AppError::file_not_found(path_str));
+        return Err(AppError::FileNotFound { path: path_str.into() });
     }
     if !path.is_file() {
-        return Err(AppError::file_read_error(path_str, "path is not a file"));
+        return Err(AppError::FileReadError { path: path_str.into(), details: "path is not a file".into() });
     }
     let canonical = path
         .canonicalize()
-        .map_err(|e| AppError::file_read_error(path_str, e.to_string()))?;
+        .map_err(|e| AppError::FileReadError { path: path_str.into(), details: e.to_string().into() })?;
     Ok(canonical.to_string_lossy().to_string())
 }
 
-/// 验证文件路径（异步）
-///
-/// 通过 `spawn_blocking` 在阻塞线程池中执行同步校验，避免阻塞 async 运行时
-pub async fn validate_file_path_async(path_str: &str) -> Result<String, AppError> {
-    let path_str = path_str.to_string();
-    tokio::task::spawn_blocking(move || validate_file_path(&path_str))
-        .await
-        .map_err(|e| AppError::task_panic("security sync", e.to_string()))?
-}

@@ -55,3 +55,22 @@ enum Spacing { xs, sm, md, lg, xl, xxl }
 
 /// 圆角尺寸枚举 — sm(6)、md(8)、lg(12)、xl(16)
 enum RadiusSize { sm, md, lg, xl }
+
+// ===== 图标尺寸系统 =====
+
+/// 图标尺寸常量，按语义命名，替代散落各处的 magic number。
+class IconSize {
+  IconSize._();
+
+  /// 与内联文字并排的图标（16px）
+  static const double inline = 16;
+
+  /// 列表/菜单引导图标（20px）
+  static const double leading = 20;
+
+  /// 底部导航栏/侧边 Rail 图标（22px）
+  static const double nav = 22;
+
+  /// 空态/启动页大图标（48px）
+  static const double hero = 48;
+}

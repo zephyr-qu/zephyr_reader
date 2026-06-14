@@ -52,7 +52,7 @@ impl EpubParser {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || parse_epub(fp))
             .await
-            .map_err(|e| AppError::internal(format!("EPUB parse task failed: {}", e)))?
+            .map_err(|e| AppError::InternalError { reason: format!("EPUB parse task failed: {}", e).into() })?
     }
 
     /// 提取 EPUB 文件元数据
@@ -72,7 +72,7 @@ impl EpubParser {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || -> Result<BookMetadata, AppError> {
             if !Path::new(&fp).exists() {
-                return Err(AppError::file_not_found(&fp));
+                return Err(AppError::FileNotFound { path: fp.into() });
             }
 
             let epub_file = unzip::EpubFile::open(&fp)?;
@@ -96,7 +96,7 @@ impl EpubParser {
             })
         })
         .await
-        .map_err(|e| AppError::internal(format!("EPUB metadata extraction failed: {}", e)))?
+        .map_err(|e| AppError::InternalError { reason: format!("EPUB metadata extraction failed: {}", e).into() })?
     }
 
     /// 提取指定章节内容
@@ -124,24 +124,18 @@ impl EpubParser {
                 .iter()
                 .find(|c| c.chapter_index == chapter_index as i64)
                 .ok_or_else(|| {
-                    AppError::chapter_extract_error(
-                        chapter_index,
-                        format!("chapter {} not found", chapter_index),
-                    )
+                    AppError::ChapterExtractError { index: chapter_index, reason: format!("chapter {} not found", chapter_index).into() }
                 })?;
 
             let spine = epub_file.spine();
             let href = spine.get(chapter.start_index as usize).ok_or_else(|| {
-                AppError::chapter_extract_error(
-                    (chapter.chapter_index as i64).try_into().unwrap(),
-                    format!("chapter index out of range: {}", chapter.start_index),
-                )
+                AppError::ChapterExtractError { index: (chapter.chapter_index as i64).try_into().unwrap(), reason: format!("chapter index out of range: {}", chapter.start_index).into() }
             })?;
 
             epub_file.read_resource(href)
         })
         .await
-        .map_err(|e| AppError::internal(format!("EPUB chapter extraction failed: {}", e)))?
+        .map_err(|e| AppError::InternalError { reason: format!("EPUB chapter extraction failed: {}", e).into() })?
     }
 }
 

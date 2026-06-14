@@ -4,61 +4,14 @@
 
 mod common;
 
-use rust_lib_zephyr_reader::api::data::{book, category, init};
-use rust_lib_zephyr_reader::storage::models::{Book, BookFormat, BookStatus};
-use std::sync::OnceLock;
-use tempfile::TempDir;
+use rust_lib_zephyr_reader::api::data::category;
 
-static TEST_STORAGE: OnceLock<TempDir> = OnceLock::new();
-
-async fn ensure_storage_initialized() {
-    if TEST_STORAGE.get().is_some() {
-        return;
-    }
-
-    let temp_dir = TempDir::new().expect("failed to create temp dir");
-    let data_dir = temp_dir.path().to_str().unwrap().to_string();
-
-    if let Err(e) = init::init_storage(data_dir.clone()).await {
-        if !e.to_string().contains("already initialized") {
-            panic!("failed to init storage: {:?}", e);
-        }
-    }
-
-    TEST_STORAGE.get_or_init(|| temp_dir);
-}
-
-// 创建测试书籍（book_categories 表有 FK 约束）
-async fn ensure_book(book_id: &str) {
-    let book = Book {
-        book_id: book_id.to_string(),
-        file_path: format!("/test/{book_id}.txt"),
-        file_hash: None,
-        file_size: 1024,
-        file_mtime: None,
-        title: book_id.to_string(),
-        author: None,
-        cover_path: None,
-        chapter_count: 1,
-        total_characters: 1000,
-        format: BookFormat::Txt,
-        added_at: chrono::Utc::now(),
-        last_opened_at: None,
-        status: BookStatus::Reading,
-        is_pinned: false,
-        description: None,
-        publisher: None,
-        translator: None,
-        isbn: None,
-    };
-    book::upsert_book(book).await.unwrap();
-}
 
 // ==================== 分类 CRUD ====================
 
 #[tokio::test]
 async fn test_create_and_list_categories() {
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let cat = category::create_category(
         "TestCat".to_string(),
@@ -80,7 +33,7 @@ async fn test_create_and_list_categories() {
 
 #[tokio::test]
 async fn test_get_category() {
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let cat = category::create_category(
         "GetTest".to_string(),
@@ -105,7 +58,7 @@ async fn test_get_category() {
 
 #[tokio::test]
 async fn test_upsert_category() {
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     // upsert_category always creates a new category (no category_id param in current API)
     let cat = category::upsert_category(
@@ -133,7 +86,7 @@ async fn test_upsert_category() {
 
 #[tokio::test]
 async fn test_delete_category() {
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let cat = category::create_category(
         "DeleteMe".to_string(),
@@ -156,7 +109,7 @@ async fn test_delete_category() {
 
 #[tokio::test]
 async fn test_delete_nonexistent() {
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     // Deleting a nonexistent category should succeed (idempotent)
     category::delete_category("nonexistent-id".to_string())
@@ -168,10 +121,10 @@ async fn test_delete_nonexistent() {
 
 #[tokio::test]
 async fn test_assign_and_list_by_book() {
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let book_id = "assign-list-book";
-    ensure_book(book_id).await;
+    common::ensure_test_book(book_id).await;
 
     let cat = category::create_category(
         "AssignTest".to_string(),
@@ -197,10 +150,10 @@ async fn test_assign_and_list_by_book() {
 
 #[tokio::test]
 async fn test_clear_category_from_book() {
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let book_id = "clear-cat-book";
-    ensure_book(book_id).await;
+    common::ensure_test_book(book_id).await;
 
     let cat = category::create_category(
         "ClearTest".to_string(),
@@ -230,10 +183,10 @@ async fn test_clear_category_from_book() {
 
 #[tokio::test]
 async fn test_set_categories_for_book() {
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let book_id = "set-cats-book";
-    ensure_book(book_id).await;
+    common::ensure_test_book(book_id).await;
 
     let cat1 = category::create_category(
         "SetTest1".to_string(),
@@ -269,10 +222,10 @@ async fn test_set_categories_for_book() {
 
 #[tokio::test]
 async fn test_clear_categories_by_book() {
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let book_id = "clear-cats-book";
-    ensure_book(book_id).await;
+    common::ensure_test_book(book_id).await;
 
     let cat = category::create_category(
         "ClearAllTest".to_string(),
@@ -302,10 +255,10 @@ async fn test_clear_categories_by_book() {
 
 #[tokio::test]
 async fn test_list_books_by_category() {
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let book_id = "list-books-by-cat";
-    ensure_book(book_id).await;
+    common::ensure_test_book(book_id).await;
 
     let cat = category::create_category(
         "ListBooksByCat".to_string(),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 底部操作按钮行：编辑元数据 / 导出笔记 / 删除书籍
@@ -34,11 +35,10 @@ class BookDetailBottomActions extends StatelessWidget {
                 foregroundColor: theme.colorScheme.onSurfaceVariant,
               ),
               onPressed: onEditMetadata,
-              icon: const Icon(PhosphorIconsRegular.pencilLine, size: 16),
+              icon: const Icon(PhosphorIconsRegular.pencilLine, size: IconSize.inline),
               label: Text(
                 l10n.editMetadata,
-                style: const TextStyle(
-                  fontSize: 13,
+                style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -56,11 +56,10 @@ class BookDetailBottomActions extends StatelessWidget {
                 foregroundColor: theme.colorScheme.onSurfaceVariant,
               ),
               onPressed: onExportNotes,
-              icon: const Icon(PhosphorIconsRegular.fileArrowUp, size: 16),
+              icon: const Icon(PhosphorIconsRegular.fileArrowUp, size: IconSize.inline),
               label: Text(
                 l10n.exportNotes,
-                style: const TextStyle(
-                  fontSize: 13,
+                style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -84,11 +83,10 @@ class BookDetailBottomActions extends StatelessWidget {
                     : const Color(0xFFEF5350),
               ),
               onPressed: onDeleteBook,
-              icon: const Icon(PhosphorIconsRegular.trash, size: 16),
+              icon: const Icon(PhosphorIconsRegular.trash, size: IconSize.inline),
               label: Text(
                 l10n.deleteBook,
-                style: const TextStyle(
-                  fontSize: 13,
+                style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w500,
                 ),
               ),

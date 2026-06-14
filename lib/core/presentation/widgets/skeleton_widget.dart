@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 /// 骨架屏加载占位组件。
@@ -18,7 +19,7 @@ class SkeletonWidget extends HookWidget {
     this.width = double.infinity,
     required this.height,
     this.borderRadius = 4,
-    this.maxShimmerDuration = const Duration(seconds: 3),
+    this.maxShimmerDuration = AnimTokens.persistent,
   });
 
   @override

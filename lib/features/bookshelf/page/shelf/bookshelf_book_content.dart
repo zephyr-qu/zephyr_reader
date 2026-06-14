@@ -8,7 +8,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/core/utils/cover_utils.dart';
-import 'package:zephyr_reader/core/utils/haptic.dart';
+import 'package:flutter/services.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/book_cover.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -87,7 +87,7 @@ class BookshelfBookContent extends StatelessWidget {
           children: [
             Icon(
               PhosphorIconsRegular.book,
-              size: 48,
+              size: IconSize.hero,
               color: theme.colorScheme.onSurfaceVariant,
             ),
             SizedBox(height: DesignTokens.spacing(Spacing.md)),
@@ -170,7 +170,7 @@ class BookshelfBookContent extends StatelessWidget {
                 : () => onBookTap(book),
             onLongPress: () {
               if (!batchMode) {
-                hapticFeedback(HapticType.medium);
+                HapticFeedback.mediumImpact();
                 onBookLongPress(book);
               }
             },
@@ -253,7 +253,7 @@ class BookshelfBookContent extends StatelessWidget {
                   : () => onBookTap(book),
               onLongPress: () {
                 if (!batchMode) {
-                  hapticFeedback(HapticType.medium);
+                  HapticFeedback.mediumImpact();
                   onBookLongPress(book);
                 }
               },
@@ -371,11 +371,7 @@ class BookshelfBookContent extends StatelessWidget {
                                           book.author!,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: cs.onSurfaceVariant,
-                                            height: 1.3,
-                                          ),
+                                          style: theme.textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant, height: 1.3),
                                         ),
                                       ),
                                     ],

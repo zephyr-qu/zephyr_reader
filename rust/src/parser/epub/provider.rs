@@ -52,10 +52,7 @@ impl EpubContentProvider {
             .iter()
             .find(|c| c.chapter_index == chapter_index as i64)
             .ok_or_else(|| {
-                AppError::chapter_extract_error(
-                    chapter_index,
-                    format!("chapter {} not found", chapter_index),
-                )
+                AppError::ChapterExtractError { index: chapter_index, reason: format!("chapter {} not found", chapter_index).into() }
             })?;
 
         let spine = epub.spine();
@@ -91,10 +88,7 @@ impl EpubContentProvider {
         let mut epub = self.epub.lock();
         let href = &self.spine_hrefs[index];
         let html = epub.read_resource(href).map_err(|e| {
-            AppError::chapter_extract_error(
-                -1,
-                format!("failed to read spine item {}: {}", href, e),
-            )
+            AppError::ChapterExtractError { index: -1, reason: format!("failed to read spine item {}: {}", href, e).into() }
         })?;
         let plain = html_to_plain_text(&html);
 

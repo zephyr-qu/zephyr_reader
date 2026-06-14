@@ -42,7 +42,7 @@ class SelectItemTile extends StatelessWidget {
             ),
             Text(
               value,
-              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant),
             ),
             const SizedBox(width: 8),
             Icon(

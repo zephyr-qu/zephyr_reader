@@ -3,11 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/core/theme/auto_theme_service.dart';
-import 'package:zephyr_reader/l10n/app_localizations_en.dart';
 
 class _MockSharedPreferences extends Mock implements SharedPreferences {}
-
-final _l10n = AppLocalizationsEn();
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -106,7 +103,6 @@ void main() {
       test('应从预设中正确选择', () {
         final preset = ThemeTimePreset.fromHours(18, 6);
         expect(preset, equals(ThemeTimePreset.sunsetToSunrise));
-        expect(preset.l10nLabel(_l10n), equals('Sunset to Sunrise'));
       });
 
       test('应匹配 eveningToMorning', () {
@@ -119,11 +115,6 @@ void main() {
         expect(preset, equals(ThemeTimePreset.custom));
       });
 
-      test('所有预设应有显示名称', () {
-        for (final preset in ThemeTimePreset.values) {
-          expect(preset.l10nLabel(_l10n), isNotEmpty);
-        }
-      });
     });
 
     // 注: _updateThemeMode 和 _startAutoSwitch 是私有方法

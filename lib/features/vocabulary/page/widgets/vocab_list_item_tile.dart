@@ -133,8 +133,7 @@ class VocabListItemTile extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       item.translation,
-                      style: TextStyle(
-                        fontSize: 13,
+                      style: theme.textTheme.labelLarge?.copyWith(
                         color: cs.onSurface.withValues(alpha: 0.7),
                       ),
                     ),

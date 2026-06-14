@@ -10,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/core/dictionary/builtin_dictionary.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import 'package:zephyr_reader/core/utils/haptic.dart';
+import 'package:flutter/services.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/dictionary/models.dart';
@@ -41,7 +41,7 @@ void showDictionaryPanel(
   try {
     result = await dict_api.lookupMdict(word: text.trim());
     segments = await dict_api.segmentText(text: text.trim());
-    hapticFeedback(HapticType.light);
+    HapticFeedback.lightImpact();
   } catch (e) {
     error = e.toString();
   }
@@ -125,10 +125,7 @@ void showDictionaryPanel(
                       SizedBox(height: DesignTokens.spacing(Spacing.sm)),
                       Text(
                         l10n.noExactMatch,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey,
-                        ),
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Colors.grey),
                       ),
                       const SizedBox(height: 6),
                       Wrap(
@@ -140,10 +137,9 @@ void showDictionaryPanel(
                               (s) => ActionChip(
                                 label: Text(
                                   s,
-                                  style: const TextStyle(fontSize: 13),
+                                  style: Theme.of(context).textTheme.labelLarge?.copyWith(),
                                 ),
                                 onPressed: () {
-                                  Navigator.pop(ctx);
                                   showDictionaryPanel(context, vm, s);
                                 },
                               ),
@@ -189,10 +185,10 @@ void showDictionaryPanel(
                               label: Text(
                                 s,
                                 style: const TextStyle(fontSize: 13),
+                                style: Theme.of(context).textTheme.labelLarge?.copyWith(),
                               ),
                               onPressed: () {
-                                Navigator.pop(ctx);
-                                showDictionaryPanel(context, vm, s);
+                                style: Theme.of(context).textTheme.labelLarge?.copyWith(),
                               },
                             ),
                           )

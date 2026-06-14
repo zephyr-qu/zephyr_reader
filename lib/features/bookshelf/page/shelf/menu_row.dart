@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 class MenuRow extends StatelessWidget {
   final IconData icon;
@@ -18,7 +19,7 @@ class MenuRow extends StatelessWidget {
       children: [
         Icon(
           icon,
-          size: 20,
+          size: IconSize.leading,
           color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
         ),
         const SizedBox(width: 12),

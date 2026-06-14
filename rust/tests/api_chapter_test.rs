@@ -7,31 +7,10 @@ mod common;
 use rust_lib_zephyr_reader::api::data::chapter::{
     clear_chapters_by_book, get_chapter_by_index, list_chapters_by_book, upsert_chapters,
 };
-use rust_lib_zephyr_reader::api::data::init;
 use rust_lib_zephyr_reader::storage::ensure_storage;
 use rust_lib_zephyr_reader::storage::models::{Book, BookFormat, Chapter};
 use rust_lib_zephyr_reader::storage::repos::BookRepository;
-use std::sync::OnceLock;
-use tempfile::TempDir;
 
-static TEST_STORAGE: OnceLock<TempDir> = OnceLock::new();
-
-async fn ensure_storage_initialized() {
-    if TEST_STORAGE.get().is_some() {
-        return;
-    }
-
-    let temp_dir = TempDir::new().expect("failed to create temp dir");
-    let data_dir = temp_dir.path().to_str().unwrap().to_string();
-
-    if let Err(e) = init::init_storage(data_dir.clone()).await {
-        if !e.to_string().contains("already initialized") {
-            panic!("failed to init storage: {:?}", e);
-        }
-    }
-
-    TEST_STORAGE.get_or_init(|| temp_dir);
-}
 
 // 创建测试书籍用于 FK 约束
 async fn ensure_test_book(book_id: &str) {
@@ -74,7 +53,7 @@ async fn ensure_test_book(book_id: &str) {
 
 #[tokio::test]
 async fn test_upsert_and_list_chapters() {
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
     ensure_test_book("chapter-test-book-1").await;
 
     let chapters = vec![
@@ -97,7 +76,7 @@ async fn test_upsert_and_list_chapters() {
 
 #[tokio::test]
 async fn test_get_chapter_by_index() {
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
     ensure_test_book("chapter-test-book-2").await;
 
     let chapters = vec![
@@ -123,7 +102,7 @@ async fn test_get_chapter_by_index() {
 
 #[tokio::test]
 async fn test_get_chapter_by_index_validates_correct_chapter() {
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
     ensure_test_book("chapter-test-book-3").await;
 
     let chapters = vec![
@@ -162,7 +141,7 @@ async fn test_get_chapter_by_index_validates_correct_chapter() {
 
 #[tokio::test]
 async fn test_clear_chapters_by_book() {
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
     ensure_test_book("chapter-test-book-4").await;
 
     let chapters = vec![
@@ -185,7 +164,7 @@ async fn test_clear_chapters_by_book() {
 
 #[tokio::test]
 async fn test_upsert_empty_chapters() {
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
     ensure_test_book("chapter-test-book-5").await;
 
     let initial = list_chapters_by_book("chapter-test-book-5".to_string())

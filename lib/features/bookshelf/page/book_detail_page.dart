@@ -10,6 +10,7 @@ import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/bookshelf/application/book_detail_view_model.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_actions.dart';
@@ -21,6 +22,7 @@ import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_progres
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_toc_section.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 
 class BookDetailPage extends HookWidget {
   final String bookId;
@@ -35,13 +37,7 @@ class BookDetailPage extends HookWidget {
       vm.loadData();
       return null;
     }, []);
-    final AsyncState<Book?> book = useSignalValue(vm.book);
-    final AsyncState<ReadingProgress?> progress = useSignalValue(vm.progress);
-    final AsyncState<NoteStats?> noteStats = useSignalValue(vm.noteStats);
-    final AsyncState<List<Chapter>> chapters = useSignalValue(vm.chapters);
-    final AsyncState<List<Category>> categories = useSignalValue(vm.categories);
-    final int sessionCount = useSignalValue(vm.sessionCount);
-    final int vocabCount = useSignalValue(vm.vocabCount);
+    final AsyncState<book_api.BookDetail> state = useSignalValue(vm.state);
     final showAll = useSignal<bool>(false);
     void toggleShowAllChapters() => showAll.value = !showAll.value;
 
@@ -56,111 +52,92 @@ class BookDetailPage extends HookWidget {
         ),
       ),
       body: SafeArea(
-        child: book.map(
-          data: (Book? book) {
-            if (book == null) {
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.loadFailed,
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: () => vm.loadData(),
-                      child: Text(l10n.retry),
-                    ),
-                  ],
-                ),
-              );
-            } else {
-              final currentChapterIndex = progress.value?.chapterIndex ?? -1;
-              final hasProgress =
-                  progress.value != null && (progress.value!.progress) > 0;
+        child: state.map(
+          data: (detail) {
+            final book = detail.book;
+            final progress = detail.progress;
+            final currentChapterIndex = progress?.chapterIndex ?? -1;
+            final hasProgress =
+                progress != null && progress.progress > 0;
 
-              return SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 100),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    BookDetailHero(book: book, categories: categories.value!),
-                    BookDetailActions(
-                      hasProgress: hasProgress,
-                      onContinueReading: () => context.pushNamed(
-                        RouteNames.reader,
-                        pathParameters: {
-                          'bookId': book.bookId,
-                          'chapterId': '${progress.value?.chapterIndex ?? 0}',
-                        },
-                      ),
-                      onReadFromBeginning: () => context.pushNamed(
-                        RouteNames.reader,
-                        pathParameters: {
-                          'bookId': book.bookId,
-                          'chapterId': '0',
-                        },
-                      ),
-                    ),
-                    if (progress.value != null)
-                      BookDetailProgressCard(
-                        progress: progress.value!,
-                        sessionCount: sessionCount,
-                      ),
-                    BookDetailNoteStats(
-                      highlightCount: noteStats.value?.highlightCount ?? 0,
-                      annotationCount: noteStats.value?.annotationCount ?? 0,
-                      vocabCount: vocabCount,
-                    ),
-                    BookDetailTocSection(
-                      chapters: chapters.value!,
-                      showAll: showAll.value,
-                      currentChapterIndex: currentChapterIndex,
-                      onToggleExpand: () => toggleShowAllChapters(),
-                      onChapterTap: (ci) => context.pushNamed(
-                        RouteNames.reader,
-                        pathParameters: {
-                          'bookId': book.bookId,
-                          'chapterId': '$ci',
-                        },
-                      ),
-                    ),
-                    BookDetailInfoSection(
-                      book: book,
-                      categories: categories.value!,
-                    ),
-                    BookDetailBottomActions(
-                      onEditMetadata: () => _onEditMetadata(context, vm, book),
-                      onExportNotes: () =>
-                          _onExportNotes(context, vm, book, l10n),
-                      onDeleteBook: () async {
-                        Logging.debug(
-                          '[DetailPage] onDeleteBook start, bookId=${book.bookId}',
-                        );
-                        final ok = await showDeleteBookDialog(context, book);
-                        Logging.debug(
-                          '[DetailPage] showDeleteBookDialog returned ok=$ok',
-                        );
-                        if (ok) {
-                          final bookshelfVm = getIt<BookshelfViewModel>();
-                          Logging.debug(
-                            '[DetailPage] got BookshelfVM instance, calling loadBooks()',
-                          );
-                          await bookshelfVm.loadBooks();
-                          Logging.debug(
-                            '[DetailPage] loadBooks completed, now popping',
-                          );
-                          if (context.mounted) context.pop();
-                        }
+            return SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 100),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  BookDetailHero(book: book, categories: detail.categories),
+                  BookDetailActions(
+                    hasProgress: hasProgress,
+                    onContinueReading: () => context.pushNamed(
+                      RouteNames.reader,
+                      pathParameters: {
+                        'bookId': book.bookId,
+                        'chapterId': '${progress?.chapterIndex ?? 0}',
                       },
                     ),
-                  ],
-                ),
-              );
-            }
+                    onReadFromBeginning: () => context.pushNamed(
+                      RouteNames.reader,
+                      pathParameters: {
+                        'bookId': book.bookId,
+                        'chapterId': '0',
+                      },
+                    ),
+                  ),
+                  if (progress != null)
+                    BookDetailProgressCard(
+                      progress: progress,
+                      sessionCount: detail.sessionCount,
+                    ),
+                  BookDetailNoteStats(
+                    highlightCount: detail.noteStats.highlightCount,
+                    annotationCount: detail.noteStats.annotationCount,
+                    vocabCount: detail.vocabCount,
+                  ),
+                  BookDetailTocSection(
+                    chapters: detail.chapters,
+                    showAll: showAll.value,
+                    currentChapterIndex: currentChapterIndex,
+                    onToggleExpand: () => toggleShowAllChapters(),
+                    onChapterTap: (ci) => context.pushNamed(
+                      RouteNames.reader,
+                      pathParameters: {
+                        'bookId': book.bookId,
+                        'chapterId': '$ci',
+                      },
+                    ),
+                  ),
+                  BookDetailInfoSection(
+                    book: book,
+                    categories: detail.categories,
+                  ),
+                  BookDetailBottomActions(
+                    onEditMetadata: () => _onEditMetadata(context, vm, book),
+                    onExportNotes: () =>
+                        _onExportNotes(context, vm, book, l10n),
+                    onDeleteBook: () async {
+                      Logging.debug(
+                        '[DetailPage] onDeleteBook start, bookId=${book.bookId}',
+                      );
+                      final ok = await showDeleteBookDialog(context, book);
+                      Logging.debug(
+                        '[DetailPage] showDeleteBookDialog returned ok=$ok',
+                      );
+                      if (ok) {
+                        final bookshelfVm = getIt<BookshelfViewModel>();
+                        Logging.debug(
+                          '[DetailPage] got BookshelfVM instance, calling loadBooks()',
+                        );
+                        await bookshelfVm.loadBooks();
+                        Logging.debug(
+                          '[DetailPage] loadBooks completed, now popping',
+                        );
+                        if (context.mounted) context.pop();
+                      }
+                    },
+                  ),
+                ],
+              ),
+            );
           },
           error: (e) => Center(
             child: Column(
@@ -168,7 +145,7 @@ class BookDetailPage extends HookWidget {
               children: [
                 Icon(
                   PhosphorIconsRegular.warningCircle,
-                  size: 48,
+                  size: IconSize.hero,
                   color: theme.colorScheme.error,
                 ),
                 const SizedBox(height: 16),

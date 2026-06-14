@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/network/wifi_transfer_service.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
@@ -99,7 +100,7 @@ class WifiTransferPage extends HookWidget {
                   children: [
                     Icon(
                       PhosphorIconsRegular.wifiSlash,
-                      size: 48,
+                      size: IconSize.hero,
                       color: colorScheme.onSurfaceVariant.withValues(
                         alpha: 0.4,
                       ),
@@ -195,7 +196,7 @@ class _ServerCard extends StatelessWidget {
                 children: [
                   Icon(
                     PhosphorIconsRegular.link,
-                    size: 20,
+                    size: IconSize.leading,
                     color: theme.brightness == Brightness.dark
                         ? Colors.green[300]!
                         : Colors.green,
@@ -212,7 +213,7 @@ class _ServerCard extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(PhosphorIconsRegular.copySimple, size: 20),
+                    icon: const Icon(PhosphorIconsRegular.copySimple, size: IconSize.leading),
                     onPressed: onCopyUrl,
                     tooltip: l10n.wifiCopyLink,
                   ),
@@ -269,7 +270,8 @@ class _LogItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -297,7 +299,7 @@ class _LogItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(entry.message, style: const TextStyle(fontSize: 13)),
+                  Text(entry.message, style: theme.textTheme.labelLarge?.copyWith()),
                   if (entry.fileName != null)
                     Text(
                       entry.fileName!,

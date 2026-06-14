@@ -58,8 +58,7 @@ class SearchHistoryView extends StatelessWidget {
             children: [
               Text(
                 l10n.searchHistory,
-                style: TextStyle(
-                  fontSize: 13,
+                style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

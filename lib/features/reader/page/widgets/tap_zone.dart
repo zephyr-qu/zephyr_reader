@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
-import 'package:zephyr_reader/core/utils/haptic.dart';
+import 'package:flutter/services.dart';
 
 /// 全屏点击/滑动翻页区域。
 ///
@@ -44,10 +44,10 @@ class TapZone extends StatelessWidget {
           }
           if (goBack && pageIndex > 0) {
             onPreviousPage();
-            hapticFeedback(HapticType.light);
+            HapticFeedback.lightImpact();
           } else if (goForward && pageIndex < totalPages - 1) {
             onNextPage();
-            hapticFeedback(HapticType.light);
+            HapticFeedback.lightImpact();
           } else if (!goBack && !goForward) {
             onCenterTap();
           }
@@ -56,10 +56,10 @@ class TapZone extends StatelessWidget {
           if (details.primaryVelocity == null) return;
           if (details.primaryVelocity! < -30) {
             onNextPage();
-            hapticFeedback(HapticType.light);
+            HapticFeedback.lightImpact();
           } else if (details.primaryVelocity! > 30) {
             onPreviousPage();
-            hapticFeedback(HapticType.light);
+            HapticFeedback.lightImpact();
           }
         },
       ),

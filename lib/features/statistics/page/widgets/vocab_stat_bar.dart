@@ -46,8 +46,7 @@ class VocabStatBar extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             '$count',
-            style: TextStyle(
-              fontSize: 13,
+            style: tt.labelLarge?.copyWith(
               fontWeight: FontWeight.w700,
               color: cs.onSurface,
             ),

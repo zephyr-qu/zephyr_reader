@@ -26,10 +26,7 @@ class HomeHeaderSliver extends StatelessWidget {
           children: [
             Text(
               greeting,
-              style: TextStyle(
-                fontSize: 13,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+            style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 2),
             Text(

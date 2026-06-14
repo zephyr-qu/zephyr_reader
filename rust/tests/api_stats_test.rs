@@ -4,62 +4,9 @@
 
 mod common;
 
-use rust_lib_zephyr_reader::api::data::{book, init, stats};
-use rust_lib_zephyr_reader::storage::models::{
-    Book, BookFormat, BookStatus, ReadingStats,
-};
-use std::sync::OnceLock;
-use tempfile::TempDir;
+use rust_lib_zephyr_reader::api::data::stats;
+use rust_lib_zephyr_reader::storage::models::ReadingStats;
 
-static TEST_STORAGE: OnceLock<TempDir> = OnceLock::new();
-
-async fn ensure_storage_initialized() {
-    if TEST_STORAGE.get().is_some() {
-        return;
-    }
-
-    let temp_dir = TempDir::new().expect("failed to create temp dir");
-    let data_dir = temp_dir.path().to_str().unwrap().to_string();
-
-    if let Err(e) = init::init_storage(data_dir.clone()).await {
-        if !e.to_string().contains("already initialized") {
-            panic!("failed to init storage: {e}");
-        }
-    }
-
-    TEST_STORAGE.get_or_init(|| temp_dir);
-}
-
-// 确保测试书籍存在（reading_stats 表有 FK 约束）
-async fn ensure_test_book(book_id: &str) {
-    let existing = book::get_book(book_id.to_string()).await.unwrap();
-    if existing.is_some() {
-        return;
-    }
-
-    let b = Book {
-        book_id: book_id.to_string(),
-        file_path: format!("/test/{book_id}.txt"),
-        file_hash: None,
-        file_size: 1024,
-        file_mtime: None,
-        title: book_id.to_string(),
-        author: None,
-        cover_path: None,
-        chapter_count: 1,
-        total_characters: 1000,
-        format: BookFormat::Txt,
-        added_at: chrono::Utc::now(),
-        last_opened_at: None,
-        status: BookStatus::Reading,
-        is_pinned: false,
-        description: None,
-        publisher: None,
-        translator: None,
-        isbn: None,
-    };
-    book::upsert_book(b).await.unwrap();
-}
 
 fn make_stats(book_id: &str, date: &str, secs: i64, chars: i64) -> ReadingStats {
     ReadingStats {
@@ -77,8 +24,8 @@ fn make_stats(book_id: &str, date: &str, secs: i64, chars: i64) -> ReadingStats 
 #[tokio::test]
 async fn test_update_and_get_today_stats() {
     common::init_logger();
-    ensure_storage_initialized().await;
-    ensure_test_book("stats_test_book_today").await;
+    common::init_test_storage().await;
+    common::ensure_test_book("stats_test_book_today").await;
 
     let today = chrono::Utc::now().date_naive().to_string();
     let stats = make_stats("stats_test_book_today", &today, 1800, 5000);
@@ -99,8 +46,8 @@ async fn test_update_and_get_today_stats() {
 #[tokio::test]
 async fn test_get_reading_stats_by_range() {
     common::init_logger();
-    ensure_storage_initialized().await;
-    ensure_test_book("stats_test_book_range").await;
+    common::init_test_storage().await;
+    common::ensure_test_book("stats_test_book_range").await;
 
     // Insert stats for a known date
     let stats = make_stats("stats_test_book_range", "2024-06-01", 900, 2000);
@@ -133,8 +80,8 @@ async fn test_get_reading_stats_by_range() {
 #[tokio::test]
 async fn test_get_reading_stats_by_days() {
     common::init_logger();
-    ensure_storage_initialized().await;
-    ensure_test_book("stats_test_book_days").await;
+    common::init_test_storage().await;
+    common::ensure_test_book("stats_test_book_days").await;
 
     let today = chrono::Utc::now().date_naive().to_string();
     let stats = make_stats("stats_test_book_days", &today, 600, 1500);
@@ -152,8 +99,8 @@ async fn test_get_reading_stats_by_days() {
 #[tokio::test]
 async fn test_get_reading_stats_by_days_with_fill() {
     common::init_logger();
-    ensure_storage_initialized().await;
-    ensure_test_book("stats_test_book_fill").await;
+    common::init_test_storage().await;
+    common::ensure_test_book("stats_test_book_fill").await;
 
     let today = chrono::Utc::now().date_naive().to_string();
     let stats = make_stats("stats_test_book_fill", &today, 600, 1500);
@@ -178,8 +125,8 @@ async fn test_get_reading_stats_by_days_with_fill() {
 #[tokio::test]
 async fn test_get_global_reading_stats() {
     common::init_logger();
-    ensure_storage_initialized().await;
-    ensure_test_book("stats_test_book_global").await;
+    common::init_test_storage().await;
+    common::ensure_test_book("stats_test_book_global").await;
 
     // Insert a reading_stats entry (global stats reads from sessions table,
     // not reading_stats, so we can't assert on reading_time here).
@@ -200,8 +147,8 @@ async fn test_get_global_reading_stats() {
 #[tokio::test]
 async fn test_update_multiple_days() {
     common::init_logger();
-    ensure_storage_initialized().await;
-    ensure_test_book("stats_test_book_multi").await;
+    common::init_test_storage().await;
+    common::ensure_test_book("stats_test_book_multi").await;
 
     // Use far-future dates to avoid overlaps with other tests
     let stats1 = make_stats("stats_test_book_multi", "2099-06-01", 1200, 3000);

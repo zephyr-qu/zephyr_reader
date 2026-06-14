@@ -1,4 +1,6 @@
 #[allow(dead_code)]
+use std::sync::OnceLock;
+#[allow(dead_code)]
 use std::sync::Once;
 #[allow(dead_code)]
 use tempfile::TempDir;
@@ -24,4 +26,60 @@ pub fn create_temp_file(name: &str, content: &str) -> (TempDir, String) {
     std::fs::write(&path, content).expect("failed to write temp file");
     let path_str = path.to_str().unwrap().to_string();
     (dir, path_str)
+}
+
+// ==================== 存储测试工具 ====================
+
+/// 全局测试存储目录，仅初始化一次（生命周期与测试进程一致）
+static TEST_STORAGE: OnceLock<TempDir> = OnceLock::new();
+
+/// 初始化测试存储环境（全局只初始化一次）
+///
+/// 在第一个测试文件中被调用时创建临时目录并初始化存储引擎。
+/// 后续调用直接返回，不会重复初始化。
+#[allow(dead_code)]
+pub async fn init_test_storage() {
+    if TEST_STORAGE.get().is_some() {
+        return;
+    }
+
+    let temp_dir = TempDir::new().expect("failed to create temp dir");
+    let data_dir = temp_dir.path().to_str().unwrap().to_string();
+
+    if let Err(e) = rust_lib_zephyr_reader::api::data::init::init_storage(data_dir).await {
+        if !e.to_string().contains("already initialized") {
+            panic!("failed to init storage: {e}");
+        }
+    }
+
+    TEST_STORAGE.get_or_init(|| temp_dir);
+}
+
+/// 初始化搜索引擎（全局只初始化一次）
+#[allow(dead_code)]
+pub async fn init_test_search_engine() {
+    if let Err(e) = rust_lib_zephyr_reader::api::search::init_search_engine().await {
+        if !e.to_string().contains("already initialized") {
+            panic!("failed to init search engine: {e}");
+        }
+    }
+}
+
+/// 创建（或更新）一个最小测试书籍，标准默认字段
+#[allow(dead_code)]
+pub async fn ensure_test_book(book_id: &str) {
+    use rust_lib_zephyr_reader::api::data::book;
+    use rust_lib_zephyr_reader::storage::models::Book;
+
+    let b = Book {
+        book_id: book_id.to_string(),
+        file_path: format!("/test/{book_id}.txt"),
+        file_size: 1024,
+        title: book_id.to_string(),
+        chapter_count: 1,
+        total_characters: 1000,
+        added_at: chrono::Utc::now(),
+        ..Default::default()
+    };
+    book::upsert_book(b).await.unwrap();
 }

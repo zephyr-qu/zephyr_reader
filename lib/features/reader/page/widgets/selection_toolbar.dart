@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/core/utils/haptic.dart';
+import 'package:flutter/services.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 class SelectionToolbar extends StatelessWidget {
@@ -127,7 +127,7 @@ class _ActionChip extends StatelessWidget {
     final theme = Theme.of(context);
     return GestureDetector(
       onTap: () {
-        hapticFeedback(HapticType.selection);
+        HapticFeedback.selectionClick();
         onTap();
       },
       behavior: HitTestBehavior.opaque,

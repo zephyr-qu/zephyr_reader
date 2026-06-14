@@ -37,8 +37,7 @@ class ReadingTrend extends StatelessWidget {
       children: [
         Text(
           l10n.readingTrend,
-          style: TextStyle(
-            fontSize: 13,
+          style: theme.textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.w600,
             color: theme.colorScheme.onSurface,
           ),
@@ -50,10 +49,7 @@ class ReadingTrend extends StatelessWidget {
             child: Center(
               child: Text(
                 l10n.noReadingRecord,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
+                style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
               ),
             ),
           )

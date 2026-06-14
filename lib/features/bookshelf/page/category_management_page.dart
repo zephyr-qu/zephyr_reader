@@ -275,7 +275,7 @@ class CategoryManagementPage extends HookWidget {
                           ? const Icon(
                               PhosphorIconsBold.check,
                               color: Colors.white,
-                              size: 20,
+                              size: IconSize.leading,
                             )
                           : null,
                     ),
@@ -380,7 +380,7 @@ class CategoryManagementPage extends HookWidget {
                           ? const Icon(
                               PhosphorIconsBold.check,
                               color: Colors.white,
-                              size: 20,
+                              size: IconSize.leading,
                             )
                           : null,
                     ),

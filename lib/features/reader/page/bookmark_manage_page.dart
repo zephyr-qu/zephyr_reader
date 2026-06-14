@@ -27,7 +27,7 @@ class BookmarkManagePage extends HookWidget {
     final vm = useMemoized(() => getIt<ReaderViewModel>());
     final searchController = useTextEditingController();
     final isSearchMode = useSignal(false);
-    final selectedBookmarks = useSignal<Set<String>>({});
+    final selectedBookmarks = useSetSignal<String>({});
     final sortBy = useSignal<BookmarkSortType>(BookmarkSortType.createdAt);
     final ascending = useSignal(false);
 
@@ -238,10 +238,7 @@ class BookmarkManagePage extends HookWidget {
                     SizedBox(width: DesignTokens.spacing(Spacing.sm)),
                     Text(
                       l10n.totalBookmarks(bookmarkList.length),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: theme.colorScheme.onSurface,
-                      ),
+                      style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurface),
                     ),
                     const Spacer(),
                     Text(

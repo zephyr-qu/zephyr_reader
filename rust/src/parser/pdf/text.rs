@@ -27,38 +27,38 @@ pub fn get_chapter_text(
     end_page: usize,
 ) -> Result<String, AppError> {
     if !Path::new(file_path).exists() {
-        return Err(AppError::file_not_found(file_path));
+        return Err(AppError::FileNotFound { path: file_path.into() });
     }
 
     let pdfium = Pdfium::default();
     let load_result = pdfium.load_pdf_from_file(file_path, None);
     let pdf = load_result
-        .map_err(|e| AppError::pdf_parse_error(format!("failed to open PDF file: {}", e)))?;
+        .map_err(|e| AppError::PdfParseError { reason: format!("failed to open PDF file: {}", e).into() })?;
 
     let num_pages: usize = pdf.pages().len() as usize;
     if start_page >= num_pages {
-        return Err(AppError::pdf_parse_error(format!(
+        return Err(AppError::PdfParseError { reason: format!(
             "start page out of range: {} (total {} pages)",
             start_page, num_pages
-        )));
+        ).into() });
     }
 
     let actual_end = end_page.min(num_pages);
     if actual_end <= start_page {
-        return Err(AppError::pdf_parse_error(format!(
+        return Err(AppError::PdfParseError { reason: format!(
             "invalid page range: {} - {}",
             start_page, end_page
-        )));
+        ).into() });
     }
 
     let mut chapter_text = String::new();
     for page_index in start_page..actual_end {
         let page = pdf.pages().get(page_index as PdfPageIndex).map_err(|e| {
-            AppError::pdf_parse_error(format!("failed to get page {}: {}", page_index, e))
+            AppError::PdfParseError { reason: format!("failed to get page {}: {}", page_index, e).into() }
         })?;
 
         let page_text = page.text().map_err(|e| {
-            AppError::pdf_parse_error(format!("failed to extract page {} text: {}", page_index, e))
+            AppError::PdfParseError { reason: format!("failed to extract page {} text: {}", page_index, e).into() }
         })?;
 
         // 使用 chars() 获取所有字符并拼接

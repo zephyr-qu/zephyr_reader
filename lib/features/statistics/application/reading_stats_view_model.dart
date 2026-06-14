@@ -16,10 +16,9 @@ class ReadingStatsViewModel {
   /// 近 N 天阅读记录
   final dailyRecords = asyncSignal<List<ReadingStats>>(AsyncState.loading());
 
-  final vocabUnstarted = signal(0);
-  final vocabLearning = signal(0);
-  final vocabMastered = signal(0);
-  final vocabIgnored = signal(0);
+  final vocabStats = signal(const VocabStats(
+    totalWords: 0, unstartedCount: 0, learningCount: 0, masteredCount: 0, ignoredCount: 0,
+  ));
 
   /// 按时段加载统计数据（全局统计、每日阅读记录、生词统计）。
   Future<void> loadData({
@@ -49,11 +48,7 @@ class ReadingStatsViewModel {
       dailyRecords.value = AsyncState<List<ReadingStats>>.data(
         results[0] as List<ReadingStats>,
       );
-      final vs = results[1] as VocabStats;
-      vocabUnstarted.value = vs.unstartedCount.toInt();
-      vocabLearning.value = vs.learningCount.toInt();
-      vocabMastered.value = vs.masteredCount.toInt();
-      vocabIgnored.value = vs.ignoredCount.toInt();
+      vocabStats.value = results[1] as VocabStats;
     } catch (e) {
       dailyRecords.value = AsyncState<List<ReadingStats>>.error(e);
     }
@@ -62,9 +57,5 @@ class ReadingStatsViewModel {
   void dispose() {
     globalStats.dispose();
     dailyRecords.dispose();
-    vocabUnstarted.dispose();
-    vocabLearning.dispose();
-    vocabMastered.dispose();
-    vocabIgnored.dispose();
   }
 }

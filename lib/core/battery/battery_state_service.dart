@@ -28,12 +28,8 @@ class BatteryStateService {
   Future<int> getBatteryLevel() => _battery.batteryLevel;
 
   Future<BatteryState> getBatteryState() async {
-    final results = await Future.wait([
-      _battery.batteryLevel,
-      _battery.batteryState,
-    ]);
-    final level = results[0] as int;
-    final state = results[1] as battery_plus.BatteryState;
+    final level = await _battery.batteryLevel;
+    final state = await _battery.batteryState;
     return BatteryState(
       batteryLevel: level,
       isCharging:

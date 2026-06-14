@@ -6,7 +6,7 @@ use crate::domain::AppError;
 use crate::parser::get_cover_registry;
 use crate::storage::ensure_storage;
 use crate::storage::repos::BookRepository;
-use crate::utils::security::validate_file_path_async;
+use crate::utils::security::validate_file_path;
 use flutter_rust_bridge::frb;
 use std::path::Path;
 
@@ -16,7 +16,7 @@ use std::path::Path;
 #[frb]
 pub async fn extract_book_cover(file_path: String, output_dir: String) -> Result<String, AppError> {
     tracing::info!("[cover] extract_book_cover: file_path={}", file_path);
-    let validated_path = validate_file_path_async(&file_path).await?;
+    let validated_path = validate_file_path(&file_path)?;
     let registry = get_cover_registry();
     registry.extract_cover(&validated_path, &output_dir)
 }
@@ -44,7 +44,7 @@ pub async fn extract_and_save_cover(
         .to_string();
 
     if relative_path.is_empty() {
-        return Err(AppError::other("failed to extract cover filename"));
+        return Err(AppError::Other("failed to extract cover filename".into()));
     }
 
     if let Err(e) = BookRepository::update_cover_path(&pool, &book_id, &relative_path).await {
@@ -56,7 +56,7 @@ pub async fn extract_and_save_cover(
                 cleanup_err
             );
         }
-        return Err(AppError::database_error(e.to_string()));
+        return Err(AppError::DatabaseError { reason: e.to_string().into() });
     }
     Ok(relative_path)
 }

@@ -3,11 +3,11 @@ import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/highlight_painter.dart';
 
-/// 划词批注控制器。
+/// 划词批注视图模型。
 ///
 /// 管理选区文本、高亮和笔记的加载、保存、删除。
 /// 不持有 ViewModel 引用，所有依赖通过构造注入。
-class AnnotationController {
+class AnnotationViewModel {
   final Signal<String> _bookId;
   final Signal<int> _chapterIndex;
 
@@ -19,7 +19,7 @@ class AnnotationController {
   final selectionEnd = signal<int>(0);
   final highlights = asyncSignal<List<Note>>(AsyncState.data([]));
 
-  AnnotationController(this._bookId, this._chapterIndex);
+  AnnotationViewModel(this._bookId, this._chapterIndex);
 
   /// 加载当前章节的全部高亮和笔记。
   ///

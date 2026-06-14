@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
-import 'package:zephyr_reader/core/utils/haptic.dart';
+import 'package:flutter/services.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/features/reader/application/translation_config.dart';
 import 'package:zephyr_reader/features/reader/domain/translation_service.dart';
@@ -13,20 +13,20 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../../core/reader/reader_config.dart';
 import '../data/repositories/rust_reader_repository.dart';
-import 'chapter_manager.dart';
+import 'chapter_view_model.dart';
 import 'reading_session_manager.dart';
-import 'bookmark_controller.dart';
-import 'annotation_controller.dart';
-import 'translation_controller.dart';
+import 'bookmark_view_model.dart';
+import 'annotation_view_model.dart';
+import 'translation_view_model.dart';
 
 /// 阅读器视图模型 — Facade
 ///
-/// 轻量协调层：持有各 Controller，代理信号访问，处理跨 Controller 的编排逻辑。
-/// 书籍/章节状态和分页 → ChapterManager。
+/// 轻量协调层：持有各子 ViewModel，代理信号访问，处理跨 ViewModel 的编排逻辑。
+/// 书籍/章节状态和分页 → ChapterViewModel。
 /// 阅读计时和进度保存 → ReadingSessionManager。
-/// 书签 → BookmarkController。
-/// 划词批注 → AnnotationController。
-/// 翻译/双语 → TranslationController。
+/// 书签 → BookmarkViewModel。
+/// 划词批注 → AnnotationViewModel。
+/// 翻译/双语 → TranslationViewModel。
 @lazySingleton
 class ReaderViewModel {
   final ReaderRepository _repo;
@@ -35,15 +35,15 @@ class ReaderViewModel {
   /// 阅读配置
   ReaderConfig get config => _config;
 
-  // ==================== 控制器 ====================
+  // ==================== 子 ViewModel ====================
 
-  late final ChapterManager chapterManager;
+  late final ChapterViewModel chapterManager;
   late final ReadingSessionManager sessionManager;
-  late final BookmarkController _bookmarks;
-  late final AnnotationController _annotations;
-  late final TranslationController _translation;
+  late final BookmarkViewModel _bookmarks;
+  late final AnnotationViewModel _annotations;
+  late final TranslationViewModel _translation;
 
-  // ==================== 快捷 getter（ChapterManager） ====================
+  // ==================== 快捷 getter（ChapterViewModel） ====================
 
   Signal<String> get bookId => chapterManager.bookId;
   Signal<int> get chapterIndex => chapterManager.chapterIndex;
@@ -106,19 +106,19 @@ class ReaderViewModel {
     TranslationConfig translateConfig,
     TranslationService translateService,
   ) {
-    chapterManager = ChapterManager(_repo, _config);
+    chapterManager = ChapterViewModel(_repo, _config);
     sessionManager = ReadingSessionManager(chapterManager);
 
-    _bookmarks = BookmarkController(
+    _bookmarks = BookmarkViewModel(
       chapterManager.bookId,
       chapterManager.chapterIndex,
       chapterManager.currentCharOffset,
     );
-    _annotations = AnnotationController(
+    _annotations = AnnotationViewModel(
       chapterManager.bookId,
       chapterManager.chapterIndex,
     );
-    _translation = TranslationController(
+    _translation = TranslationViewModel(
       chapterManager.bookId,
       chapterManager.chapterIndex,
       chapterManager.chapterContent,
@@ -279,7 +279,7 @@ class ReaderViewModel {
   Future<void> deleteNote(String noteId, AppLocalizations l10n) async {
     try {
       await _translation.deleteBilingualPair(noteId: noteId);
-      hapticFeedback(HapticType.heavy);
+      await HapticFeedback.heavyImpact();
       await _annotations.loadHighlights(forceRefresh: true);
     } catch (_) {
       toastMessage.value = l10n.deleteHighlightFailed;

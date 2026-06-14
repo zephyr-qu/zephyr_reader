@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// Shows a confirmation dialog with warning icon, title, content text,
@@ -22,7 +23,7 @@ Future<void> showConfirmActionDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
-          Icon(PhosphorIconsRegular.warning, size: 20, color: cs.error),
+          Icon(PhosphorIconsRegular.warning, size: IconSize.leading, color: cs.error),
           const SizedBox(width: 8),
           Text(title, style: const TextStyle(fontSize: 18)),
         ],

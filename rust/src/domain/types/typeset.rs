@@ -139,27 +139,32 @@ impl Default for TypesetConfig {
 
 impl Hash for TypesetConfig {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.page_width.hash(state);
-        self.page_height.hash(state);
-        self.font_size.hash(state);
-        self.line_spacing.to_bits().hash(state);
-        self.letter_spacing.to_bits().hash(state);
-        self.paragraph_spacing.to_bits().hash(state);
-        self.first_line_indent.hash(state);
-        self.punctuation_squeeze.hash(state);
-        self.enable_hyphenation.hash(state);
-        self.language.hash(state);
-        self.hyphenation_language.hash(state);
-        self.font_family.hash(state);
-        if let Some(c) = self.calibration {
-            c.dpr.to_bits().hash(state);
-            c.cjk_width.to_bits().hash(state);
-            c.ascii_width.to_bits().hash(state);
-            c.digit_width.to_bits().hash(state);
-            c.punct_width.to_bits().hash(state);
-            c.latin_ext_width.to_bits().hash(state);
-            c.other_width.to_bits().hash(state);
-        }
+        let core = (
+            self.page_width,
+            self.page_height,
+            self.font_size,
+            self.line_spacing.to_bits(),
+            self.letter_spacing.to_bits(),
+            self.paragraph_spacing.to_bits(),
+            self.first_line_indent,
+            self.punctuation_squeeze,
+            self.enable_hyphenation,
+            self.language,
+            &self.hyphenation_language,
+            &self.font_family,
+        );
+        let cal = self.calibration.as_ref().map(|c| {
+            (
+                c.dpr.to_bits(),
+                c.cjk_width.to_bits(),
+                c.ascii_width.to_bits(),
+                c.digit_width.to_bits(),
+                c.punct_width.to_bits(),
+                c.latin_ext_width.to_bits(),
+                c.other_width.to_bits(),
+            )
+        });
+        (core, cal).hash(state);
     }
 }
 
@@ -178,6 +183,19 @@ pub struct TypesetConfigFixReport {
 
 // ==================== 验证与修正方法 ====================
 
+// ==================== 验证宏 ====================
+
+macro_rules! check_range {
+    ($self:ident, $field:ident, $min:ident, $max:ident, $desc:expr, $unit:expr) => {
+        if $self.$field < $min || $self.$field > $max {
+            return Err(AppError::TypesetConfigError { reason: format!(
+                concat!($desc, " must be between {} and {} ", $unit, ", got: {}"),
+                $min, $max, $self.$field
+            ).into() });
+        }
+    };
+}
+
 impl TypesetConfig {
     /// 验证配置是否合法
     ///
@@ -185,57 +203,18 @@ impl TypesetConfig {
     /// 如果任何参数超出允许范围，返回配置错误
     #[frb(sync)]
     pub fn validate(&self) -> Result<(), AppError> {
-        if self.page_width < MIN_PAGE_WIDTH || self.page_width > MAX_PAGE_WIDTH {
-            return Err(AppError::config_error(format!(
-                "page width must be between {} and {} px, got: {}",
-                MIN_PAGE_WIDTH, MAX_PAGE_WIDTH, self.page_width
-            )));
-        }
-
-        if self.page_height < MIN_PAGE_HEIGHT || self.page_height > MAX_PAGE_HEIGHT {
-            return Err(AppError::config_error(format!(
-                "page height must be between {} and {} px, got: {}",
-                MIN_PAGE_HEIGHT, MAX_PAGE_HEIGHT, self.page_height
-            )));
-        }
-
-        if self.font_size < MIN_FONT_SIZE || self.font_size > MAX_FONT_SIZE {
-            return Err(AppError::config_error(format!(
-                "font size must be between {} and {} px, got: {}",
-                MIN_FONT_SIZE, MAX_FONT_SIZE, self.font_size
-            )));
-        }
-
-        if self.line_spacing < MIN_LINE_SPACING || self.line_spacing > MAX_LINE_SPACING {
-            return Err(AppError::config_error(format!(
-                "line spacing must be between {} and {}, got: {}",
-                MIN_LINE_SPACING, MAX_LINE_SPACING, self.line_spacing
-            )));
-        }
-
-        if self.letter_spacing < MIN_LETTER_SPACING || self.letter_spacing > MAX_LETTER_SPACING {
-            return Err(AppError::config_error(format!(
-                "letter spacing must be between {} and {}, got: {}",
-                MIN_LETTER_SPACING, MAX_LETTER_SPACING, self.letter_spacing
-            )));
-        }
-
-        if self.paragraph_spacing < MIN_PARAGRAPH_SPACING
-            || self.paragraph_spacing > MAX_PARAGRAPH_SPACING
-        {
-            return Err(AppError::config_error(format!(
-                "paragraph spacing must be between {} and {}, got: {}",
-                MIN_PARAGRAPH_SPACING, MAX_PARAGRAPH_SPACING, self.paragraph_spacing
-            )));
-        }
-
+        check_range!(self, page_width, MIN_PAGE_WIDTH, MAX_PAGE_WIDTH, "page width", "px");
+        check_range!(self, page_height, MIN_PAGE_HEIGHT, MAX_PAGE_HEIGHT, "page height", "px");
+        check_range!(self, font_size, MIN_FONT_SIZE, MAX_FONT_SIZE, "font size", "px");
+        check_range!(self, line_spacing, MIN_LINE_SPACING, MAX_LINE_SPACING, "line spacing", "");
+        check_range!(self, letter_spacing, MIN_LETTER_SPACING, MAX_LETTER_SPACING, "letter spacing", "");
+        check_range!(self, paragraph_spacing, MIN_PARAGRAPH_SPACING, MAX_PARAGRAPH_SPACING, "paragraph spacing", "");
         if self.first_line_indent > MAX_FIRST_LINE_INDENT {
-            return Err(AppError::config_error(format!(
+            return Err(AppError::TypesetConfigError { reason: format!(
                 "first line indent must be between 0 and {} chars, got: {}",
                 MAX_FIRST_LINE_INDENT, self.first_line_indent
-            )));
+            ).into() });
         }
-
         Ok(())
     }
 

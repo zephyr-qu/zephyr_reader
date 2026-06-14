@@ -31,7 +31,7 @@ pub fn parse_pdf(file_path: String) -> Result<ParseResult, AppError> {
 
     // 检查文件是否存在
     if !Path::new(&file_path).exists() {
-        return Err(AppError::file_not_found(&file_path));
+        return Err(AppError::FileNotFound { path: file_path.into() });
     }
     tracing::debug!("file existence check passed: {}", file_path);
 
@@ -71,23 +71,14 @@ pub fn parse_pdf(file_path: String) -> Result<ParseResult, AppError> {
     let book_info = Book {
         book_id,
         file_path: file_path.clone(),
-        file_hash: None,
-        file_size: 0,
-        file_mtime: None,
         title,
         author: metadata.author,
-        description: None,
-        cover_path: None,
-        publisher: None,
-        translator: None,
-        isbn: None,
-        chapter_count:chapter_count as i64,
+        chapter_count: chapter_count as i64,
         total_characters: total_chars,
+        file_size: 0,
         format: BookFormat::Pdf,
         added_at: chrono::Utc::now(),
-        last_opened_at: None,
-        status: crate::storage::models::BookStatus::Reading,
-        is_pinned: false,
+        ..Default::default()
     };
 
     let elapsed = start_time.elapsed();

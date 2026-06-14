@@ -6,7 +6,7 @@
 use crate::domain::{AppError, RichParagraph};
 use crate::parser::registry::parser_for_file;
 use crate::text::rich_text;
-use crate::utils::security::validate_file_path_async;
+use crate::utils::security::validate_file_path;
 use flutter_rust_bridge::frb;
 
 /// 获取 Markdown 章节富文本内容
@@ -27,7 +27,7 @@ pub async fn get_md_chapter_rich_content(
     chapter_index: i32,
 ) -> Result<Vec<RichParagraph>, AppError> {
     tracing::info!("[md] get_md_chapter_rich_content: file_path={}, chapter_index={}", file_path, chapter_index);
-    let validated_path = validate_file_path_async(&file_path).await?;
+    let validated_path = validate_file_path(&file_path)?;
 
     let parser = parser_for_file(&validated_path)?;
     let html = parser

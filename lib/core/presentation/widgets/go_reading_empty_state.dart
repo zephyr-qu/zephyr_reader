@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 
 /// An empty state guiding the user to start reading.
@@ -35,7 +36,7 @@ class GoReadingEmptyState extends StatelessWidget {
         children: [
           Icon(
             icon,
-            size: 48,
+            size: IconSize.hero,
             color: cs.onSurfaceVariant.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 12),
@@ -56,7 +57,7 @@ class GoReadingEmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           FilledButton.tonalIcon(
             onPressed: () => context.push(RoutePaths.bookshelf),
-            icon: const Icon(PhosphorIconsRegular.books, size: 16),
+            icon: const Icon(PhosphorIconsRegular.books, size: IconSize.inline),
             label: Text(buttonLabel),
           ),
         ],

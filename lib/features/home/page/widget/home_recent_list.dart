@@ -20,8 +20,7 @@ class HomeRecentList extends StatelessWidget {
       children: [
         Text(
           l10n.recentReading,
-          style: TextStyle(
-            fontSize: 13,
+          style: theme.textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.w600,
             color: theme.colorScheme.onSurface,
           ),

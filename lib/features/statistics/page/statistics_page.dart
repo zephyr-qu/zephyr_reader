@@ -31,10 +31,7 @@ class StatisticsPage extends HookWidget {
     final goalMinSignal = useSignal(60);
     final StatisticsPeriod period = useSignalValue(periodSignal);
     final int goalMin = useSignalValue(goalMinSignal);
-    final int vUnstarted = useSignalValue(vm.vocabUnstarted);
-    final int vLearning = useSignalValue(vm.vocabLearning);
-    final int vMastered = useSignalValue(vm.vocabMastered);
-    final int vIgnored = useSignalValue(vm.vocabIgnored);
+    final VocabStats vs = useSignalValue(vm.vocabStats);
     useEffect(() {
       vm.loadData(period: period, goalMinutes: goalMin);
       return null;
@@ -96,10 +93,10 @@ class StatisticsPage extends HookWidget {
           ).animate().fadeIn(duration: 400.ms, delay: 400.ms),
           const SizedBox(height: 28),
           VocabStatsSection(
-            vocabUnstarted: vUnstarted,
-            vocabLearning: vLearning,
-            vocabMastered: vMastered,
-            vocabIgnored: vIgnored,
+            vocabUnstarted: vs.unstartedCount,
+            vocabLearning: vs.learningCount,
+            vocabMastered: vs.masteredCount,
+            vocabIgnored: vs.ignoredCount,
           ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
         ],
       ),

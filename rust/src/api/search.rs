@@ -22,7 +22,7 @@ pub async fn init_search_engine() -> Result<(), AppError> {
     engine
         .ensure_table()
         .await
-        .map_err(|e| AppError::search_error(format!("Failed to create FTS5 table: {e}")))?;
+        .map_err(|e| AppError::SearchError { reason: format!("Failed to create FTS5 table: {e}").into() })?;
     let _ = SEARCH_ENGINE.set(engine);
     Ok(())
 }
@@ -30,7 +30,7 @@ pub async fn init_search_engine() -> Result<(), AppError> {
 /// 获取搜索引擎实例
 pub(crate) fn get_search_engine() -> Result<&'static SearchEngine, AppError> {
     SEARCH_ENGINE.get().ok_or_else(|| {
-        AppError::internal("Search engine not initialized. Call init_search_engine() first.")
+        AppError::InternalError { reason: "Search engine not initialized. Call init_search_engine() first.".into() }
     })
 }
 
@@ -54,7 +54,7 @@ pub async fn index_chapter(
             &content,
         )
         .await
-        .map_err(|e| AppError::search_error(e.to_string()))?;
+        .map_err(|e| AppError::SearchError { reason: e.to_string().into() })?;
     Ok(())
 }
 
@@ -71,7 +71,7 @@ pub async fn search(
     let results = engine
         .search(&book_id, &query, limit)
         .await
-        .map_err(|e| AppError::search_error(e.to_string()))?;
+        .map_err(|e| AppError::SearchError { reason: e.to_string().into() })?;
     Ok(results)
 }
 
@@ -86,7 +86,7 @@ pub async fn count_matches(
     let count = engine
         .count_matches(&book_id, &query, chapter_index)
         .await
-        .map_err(|e| AppError::search_error(e.to_string()))?;
+        .map_err(|e| AppError::SearchError { reason: e.to_string().into() })?;
     Ok(count as i32)
 }
 
@@ -104,7 +104,7 @@ pub async fn search_all_books(
     let results = engine
         .search_all_books(&query, limit, offset)
         .await
-        .map_err(|e| AppError::search_error(e.to_string()))?;
+        .map_err(|e| AppError::SearchError { reason: e.to_string().into() })?;
     Ok(results)
 }
 
@@ -116,7 +116,7 @@ pub async fn clear_all() -> Result<(), AppError> {
     engine
         .clear_all()
         .await
-        .map_err(|e| AppError::search_error(e.to_string()))?;
+        .map_err(|e| AppError::SearchError { reason: e.to_string().into() })?;
     Ok(())
 }
 
@@ -128,7 +128,7 @@ pub async fn delete_by_book(book_id: String) -> Result<(), AppError> {
     engine
         .delete_by_book(&book_id)
         .await
-        .map_err(|e| AppError::search_error(e.to_string()))?;
+        .map_err(|e| AppError::SearchError { reason: e.to_string().into() })?;
     Ok(())
 }
 
@@ -140,5 +140,5 @@ pub async fn get_index_stats() -> Result<IndexStats, AppError> {
     engine
         .get_index_stats()
         .await
-        .map_err(|e| AppError::search_error(e.to_string()))
+        .map_err(|e| AppError::SearchError { reason: e.to_string().into() })
 }

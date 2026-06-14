@@ -12,7 +12,7 @@ use super::typeset::TypesetConfig;
 
 /// 富文本段落
 /// 包含多个文本段（spans）和段落属性
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[frb(non_opaque)]
 pub struct RichParagraph {
     /// 文本段列表
@@ -49,15 +49,7 @@ impl RichParagraph {
                 color: None,
             })],
             indent,
-            is_heading: false,
-            heading_level: 0,
-            class_name: None,
-            text_align: None,
-            line_height: None,
-            is_image: false,
-            image_src: None,
-            image_data: Vec::new(),
-            image_alt: None,
+            ..Default::default()
         }
     }
 
@@ -76,16 +68,9 @@ impl RichParagraph {
                 font_size: None,
                 color: None,
             })],
-            indent: 0,
             is_heading: true,
             heading_level: level,
-            class_name: None,
-            text_align: None,
-            line_height: None,
-            is_image: false,
-            image_src: None,
-            image_data: Vec::new(),
-            image_alt: None,
+            ..Default::default()
         }
     }
 
@@ -93,33 +78,20 @@ impl RichParagraph {
     pub fn image(data: Vec<u8>, alt: String) -> Self {
         Self {
             spans: Vec::new(),
-            indent: 0,
-            is_heading: false,
-            heading_level: 0,
-            class_name: None,
-            text_align: None,
-            line_height: None,
             is_image: true,
-            image_src: None,
             image_data: data,
             image_alt: Some(alt),
+            ..Default::default()
         }
     }
 
     /// 创建图片占位符段落（仅有路径）
     pub fn image_placeholder(src: String, alt: String) -> Self {
         Self {
-            spans: Vec::new(),
-            indent: 0,
-            is_heading: false,
-            heading_level: 0,
-            class_name: None,
-            text_align: None,
-            line_height: None,
             is_image: true,
             image_src: Some(src),
-            image_data: Vec::new(),
             image_alt: Some(alt),
+            ..Default::default()
         }
     }
 

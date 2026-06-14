@@ -21,12 +21,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::AppError;
 use crate::storage::ensure_storage;
-use crate::utils::security::validate_file_path_async;
-
-// ==================== 公开 DTO ====================
-
-/// 备份清单 — 嵌入 `_backup_meta` 表中
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+use crate::utils::security::validate_file_path;#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 #[frb(non_opaque)]
 pub struct BackupManifest {
@@ -77,7 +72,7 @@ async fn ensure_meta_table(pool: &sqlx::SqlitePool) -> Result<(), AppError> {
     )
     .execute(pool)
     .await
-    .map_err(|e| AppError::database_error(format!("ensure_meta_table: {e}")))?;
+    .map_err(|e| AppError::DatabaseError { reason: format!("ensure_meta_table: {e}").into() })?;
     Ok(())
 }
 
@@ -90,13 +85,13 @@ async fn read_manifest_from_pool(
     )
     .fetch_optional(pool)
     .await
-    .map_err(|e| AppError::database_error(format!("read_manifest: {e}")))?;
+    .map_err(|e| AppError::DatabaseError { reason: format!("read_manifest: {e}").into() })?;
 
     let Some((app_version, exported_at, db_size, stats_json)) = row else {
         return Ok(None);
     };
     let stats: BackupStats = serde_json::from_str(&stats_json)
-        .map_err(|e| AppError::database_error(format!("parse stats_json: {e}")))?;
+        .map_err(|e| AppError::DatabaseError { reason: format!("parse stats_json: {e}").into() })?;
     Ok(Some(BackupManifest {
         app_version,
         exported_at,
@@ -111,7 +106,7 @@ async fn write_manifest_to_pool(
     manifest: &BackupManifest,
 ) -> Result<(), AppError> {
     let stats_json = serde_json::to_string(&manifest.stats)
-        .map_err(|e| AppError::internal(format!("serialize stats: {e}")))?;
+        .map_err(|e| AppError::InternalError { reason: format!("serialize stats: {e}").into() })?;
     sqlx::query(
         "INSERT OR REPLACE INTO _backup_meta (id, app_version, exported_at, db_size, stats_json) VALUES (1, ?, ?, ?, ?)",
     )
@@ -121,7 +116,7 @@ async fn write_manifest_to_pool(
     .bind(&stats_json)
     .execute(pool)
     .await
-    .map_err(|e| AppError::database_error(format!("write_manifest: {e}")))?;
+    .map_err(|e| AppError::DatabaseError { reason: format!("write_manifest: {e}").into() })?;
     Ok(())
 }
 
@@ -130,7 +125,7 @@ async fn drop_meta_table(pool: &sqlx::SqlitePool) -> Result<(), AppError> {
     sqlx::query("DROP TABLE IF EXISTS _backup_meta")
         .execute(pool)
         .await
-        .map_err(|e| AppError::database_error(format!("drop_meta_table: {e}")))?;
+        .map_err(|e| AppError::DatabaseError { reason: format!("drop_meta_table: {e}").into() })?;
     Ok(())
 }
 
@@ -141,7 +136,7 @@ async fn count_stats(pool: &sqlx::SqlitePool) -> Result<BackupStats, AppError> {
         let (n,): (i64,) = sqlx::query_as(sql)
             .fetch_one(pool)
             .await
-            .map_err(|e| AppError::database_error(format!("count: {e}")))?;
+            .map_err(|e| AppError::DatabaseError { reason: format!("count: {e}").into() })?;
         Ok(n)
     }
     Ok(BackupStats {
@@ -199,7 +194,7 @@ async fn open_readonly_pool(validated: &str) -> Result<sqlx::SqlitePool, AppErro
                 .create_if_missing(false),
         )
         .await
-        .map_err(|e| AppError::database_error(format!("open readonly: {e}")))
+        .map_err(|e| AppError::DatabaseError { reason: format!("open readonly: {e}").into() })
 }
 
 // ==================== 公开 API ====================
@@ -217,7 +212,7 @@ pub async fn get_backup_stats() -> Result<BackupStats, AppError> {
 /// 流程：写 `_backup_meta` 表 → WAL checkpoint → 复制 db → 重写 manifest 含 db_size → checkpoint → 删 meta。
 #[frb]
 pub async fn export_database(dest_path: String) -> Result<BackupManifest, AppError> {
-    let validated = validate_file_path_async(&dest_path).await?;
+    let validated = validate_file_path(&dest_path)?;
     let storage = ensure_storage()?;
 
     let pool = storage.pool()?;
@@ -234,26 +229,26 @@ pub async fn export_database(dest_path: String) -> Result<BackupManifest, AppErr
     sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
         .execute(&pool)
         .await
-        .map_err(|e| AppError::database_error(format!("wal_checkpoint: {e}")))?;
+        .map_err(|e| AppError::DatabaseError { reason: format!("wal_checkpoint: {e}").into() })?;
 
     let db_path = storage.data_dir().join("reader.db");
     let dest = PathBuf::from(&validated);
     std::fs::copy(&db_path, &dest)
-        .map_err(|e| AppError::file_write_error(&validated, format!("copy db: {e}")))?;
+        .map_err(|e| AppError::FileWriteError { path: validated.clone().into(), details: format!("copy db: {e}").into() })?;
     // 刷盘保证文件完整写入磁盘，防极端掉电损坏
     File::open(&dest)
         .and_then(|f| f.sync_all())
-        .map_err(|e| AppError::file_write_error(&validated, format!("sync dest: {e}")))?;
+        .map_err(|e| AppError::FileWriteError { path: validated.clone().into(), details: format!("sync dest: {e}").into() })?;
 
     let db_size = std::fs::metadata(&dest)
-        .map_err(|e| AppError::file_read_error(&validated, format!("stat dest: {e}")))?
+        .map_err(|e| AppError::FileReadError { path: validated.clone().into(), details: format!("stat dest: {e}").into() })?
         .len() as i64;
     manifest.db_size = db_size;
     write_manifest_to_pool(&pool, &manifest).await?;
     sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
         .execute(&pool)
         .await
-        .map_err(|e| AppError::database_error(format!("wal_checkpoint 2: {e}")))?;
+        .map_err(|e| AppError::DatabaseError { reason: format!("wal_checkpoint 2: {e}").into() })?;
 
     drop_meta_table(&pool).await?;
 
@@ -264,7 +259,7 @@ pub async fn export_database(dest_path: String) -> Result<BackupManifest, AppErr
 /// 只读地读取备份文件的 manifest（不执行还原）
 #[frb]
 pub async fn inspect_backup(backup_path: String) -> Result<Option<BackupManifest>, AppError> {
-    let validated = validate_file_path_async(&backup_path).await?;
+    let validated = validate_file_path(&backup_path)?;
     let pool = open_readonly_pool(&validated).await?;
     let result = read_manifest_from_pool(&pool).await;
     pool.close().await;
@@ -280,23 +275,21 @@ pub async fn inspect_backup(backup_path: String) -> Result<Option<BackupManifest
 /// 4. 调用 `storage.restore_from_backup()`：关闭旧池→复制→迁移→热替换
 #[frb]
 pub async fn restore_database(backup_path: String) -> Result<BackupManifest, AppError> {
-    let validated = validate_file_path_async(&backup_path).await?;
+    let validated = validate_file_path(&backup_path)?;
     let storage = ensure_storage()?;
 
     let inspect_pool = open_readonly_pool(&validated).await?;
     let manifest = read_manifest_from_pool(&inspect_pool).await?;
     inspect_pool.close().await;
     let Some(manifest) = manifest else {
-        return Err(AppError::invalid_input(
-            "backup has no _backup_meta table (not produced by export_database or older version)",
-        ));
+        return Err(AppError::InvalidInput { reason: "backup has no _backup_meta table (not produced by export_database or older version)".into() });
     };
 
     if semver_cmp(&manifest.app_version, CURRENT_APP_VERSION) > 0 {
-        return Err(AppError::invalid_input(format!(
+        return Err(AppError::InvalidInput { reason: format!(
             "backup produced by newer app version {} (current {}), refusing to restore",
             manifest.app_version, CURRENT_APP_VERSION
-        )));
+        ).into() });
     }
 
     let db_path = storage.data_dir().join("reader.db");
@@ -323,7 +316,7 @@ pub async fn restore_database(backup_path: String) -> Result<BackupManifest, App
     storage
         .restore_from_backup(&validated)
         .await
-        .map_err(|e| AppError::database_error(format!("restore_from_backup: {e}")))?;
+        .map_err(|e| AppError::DatabaseError { reason: format!("restore_from_backup: {e}").into() })?;
 
     tracing::info!(
         "Database restored from {:?} (was {} bytes, app_version {})",
@@ -340,10 +333,7 @@ pub async fn cleanup_auto_snapshots(older_than_unix: i64) -> Result<i64, AppErro
     let storage = ensure_storage()?;
     let mut count = 0i64;
     let entries = std::fs::read_dir(storage.data_dir()).map_err(|e| {
-        AppError::file_read_error(
-            storage.data_dir().to_string_lossy().as_ref(),
-            e.to_string(),
-        )
+        AppError::FileReadError { path: storage.data_dir().to_string_lossy().as_ref().into(), details: e.to_string().into() }
     })?;
     for entry in entries.flatten() {
         let name = entry.file_name();

@@ -4,68 +4,15 @@
 
 mod common;
 
-use rust_lib_zephyr_reader::api::data::{book, init, session};
-use rust_lib_zephyr_reader::storage::models::{
-    Book, BookFormat, BookStatus, ReadingSession,
-};
-use std::sync::OnceLock;
-use tempfile::TempDir;
+use rust_lib_zephyr_reader::api::data::session;
+use rust_lib_zephyr_reader::storage::models::ReadingSession;
 
-static TEST_STORAGE: OnceLock<TempDir> = OnceLock::new();
-
-async fn ensure_storage_initialized() {
-    if TEST_STORAGE.get().is_some() {
-        return;
-    }
-
-    let temp_dir = TempDir::new().expect("failed to create temp dir");
-    let data_dir = temp_dir.path().to_str().unwrap().to_string();
-
-    if let Err(e) = init::init_storage(data_dir.clone()).await {
-        if !e.to_string().contains("already initialized") {
-            panic!("failed to init storage: {:?}", e);
-        }
-    }
-
-    TEST_STORAGE.get_or_init(|| temp_dir);
-}
-
-// 确保测试书籍存在（session 表有 FK 约束）
-async fn ensure_test_book(book_id: &str) {
-    let existing = book::get_book(book_id.to_string()).await.unwrap();
-    if existing.is_some() {
-        return;
-    }
-
-    let b = Book {
-        book_id: book_id.to_string(),
-        file_path: format!("/test/{book_id}.txt"),
-        file_hash: None,
-        file_size: 1024,
-        file_mtime: None,
-        title: book_id.to_string(),
-        author: None,
-        cover_path: None,
-        chapter_count: 1,
-        total_characters: 1000,
-        format: BookFormat::Txt,
-        added_at: chrono::Utc::now(),
-        last_opened_at: None,
-        status: BookStatus::Reading,
-        is_pinned: false,
-        description: None,
-        publisher: None,
-        translator: None,
-        isbn: None,
-    };
-    book::upsert_book(b).await.unwrap();
-}
 
 #[tokio::test]
 async fn test_create_and_list_session() {
     common::init_logger();
-    ensure_storage_initialized().await;
-    ensure_test_book("session-test-book").await;
+    common::init_test_storage().await;
+    common::ensure_test_book("session-test-book").await;
 
     let now = chrono::Utc::now().timestamp();
     let result = session::create_session(
@@ -92,8 +39,8 @@ async fn test_create_and_list_session() {
 #[tokio::test]
 async fn test_list_sessions_by_book_limit() {
     common::init_logger();
-    ensure_storage_initialized().await;
-    ensure_test_book("session-limit-book").await;
+    common::init_test_storage().await;
+    common::ensure_test_book("session-limit-book").await;
 
     // 创建3个会话（时间戳递增避免冲突）
     for i in 0..3i32 {
@@ -119,8 +66,8 @@ async fn test_list_sessions_by_book_limit() {
 #[tokio::test]
 async fn test_list_sessions_by_recent() {
     common::init_logger();
-    ensure_storage_initialized().await;
-    ensure_test_book("session-recent-book").await;
+    common::init_test_storage().await;
+    common::ensure_test_book("session-recent-book").await;
 
     let ts = chrono::Utc::now().timestamp();
     session::create_session(
@@ -140,8 +87,8 @@ async fn test_list_sessions_by_recent() {
 #[tokio::test]
 async fn test_list_sessions_by_date_range() {
     common::init_logger();
-    ensure_storage_initialized().await;
-    ensure_test_book("session-date-book").await;
+    common::init_test_storage().await;
+    common::ensure_test_book("session-date-book").await;
 
     let ts = chrono::Utc::now().timestamp();
     session::create_session(
@@ -173,8 +120,8 @@ async fn test_list_sessions_by_date_range() {
 #[tokio::test]
 async fn test_upsert_session() {
     common::init_logger();
-    ensure_storage_initialized().await;
-    ensure_test_book("session-upsert-book").await;
+    common::init_test_storage().await;
+    common::ensure_test_book("session-upsert-book").await;
 
     // 先通过 create_session 创建一条记录
     let ts = chrono::Utc::now().timestamp();
@@ -209,8 +156,8 @@ async fn test_upsert_session() {
 #[tokio::test]
 async fn test_clear_sessions_by_book() {
     common::init_logger();
-    ensure_storage_initialized().await;
-    ensure_test_book("session-clear-book").await;
+    common::init_test_storage().await;
+    common::ensure_test_book("session-clear-book").await;
 
     let ts = chrono::Utc::now().timestamp();
     session::create_session(

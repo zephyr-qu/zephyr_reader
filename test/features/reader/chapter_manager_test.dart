@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
-import 'package:zephyr_reader/features/reader/application/chapter_manager.dart';
+import 'package:zephyr_reader/features/reader/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
@@ -187,8 +187,8 @@ class _MockConfig implements ReaderConfig {
 
 // ===== Helpers =====
 
-ChapterManager createManager({ReaderRepository? repo, ReaderConfig? config}) {
-  return ChapterManager(repo ?? _MockRepo(), config ?? _MockConfig());
+ChapterViewModel createManager({ReaderRepository? repo, ReaderConfig? config}) {
+  return ChapterViewModel(repo ?? _MockRepo(), config ?? _MockConfig());
 }
 
 /// Mock 设置 `paginateChapter` 成功返回 2 页。
@@ -255,7 +255,7 @@ void _registerFallbackValues() {
 void main() {
   late _MockRepo repo;
   late _MockConfig config;
-  late ChapterManager manager;
+  late ChapterViewModel manager;
 
   setUpAll(() {
     _registerFallbackValues();

@@ -61,10 +61,9 @@ class BookDetailInfoSection extends StatelessWidget {
             width: 72,
             child: Text(
               key,
-              style: TextStyle(
-                fontSize: 13,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
             ),
           ),
           const SizedBox(width: 8),
@@ -72,8 +71,7 @@ class BookDetailInfoSection extends StatelessWidget {
             child: SelectableText(
               value,
               textAlign: TextAlign.end,
-              style: TextStyle(
-                fontSize: 13,
+              style: theme.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w500,
                 color: theme.colorScheme.onSurface,
               ),

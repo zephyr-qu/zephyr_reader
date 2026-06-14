@@ -105,8 +105,7 @@ class BookDetailProgressCard extends StatelessWidget {
         children: [
           Text(
             value,
-            style: TextStyle(
-              fontSize: 13,
+            style: theme.textTheme.labelLarge?.copyWith(
               fontWeight: FontWeight.w600,
               color: theme.colorScheme.onSurface,
             ),

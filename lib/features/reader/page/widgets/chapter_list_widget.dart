@@ -59,27 +59,14 @@ class ChapterListWidget extends HookWidget {
 
     final l10n = AppLocalizations.of(context)!;
     final readerTheme = Theme.of(context).extension<ReaderThemeExtension>()!;
-    final bgColor = readerTheme.backgroundColor;
-    final surfaceColor = readerTheme.surfaceColor;
-    final textColor = readerTheme.textColor;
-    final mutedColor = readerTheme.mutedColor;
-    final accentColor = readerTheme.accentColor;
-    final dividerColor = readerTheme.dividerColor;
 
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        color: bgColor,
+    return
+     Container(
+        color: readerTheme.backgroundColor,
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(
-                textColor,
-                mutedColor,
-                accentColor,
-                dividerColor,
-                l10n,
-              ),
+              _buildHeader(readerTheme, l10n),
               Expanded(
                 child: ListView.builder(
                   controller: scrollController,
@@ -100,10 +87,7 @@ class ChapterListWidget extends HookWidget {
                       index: index,
                       isCurrent: isCurrent,
                       indent: indent,
-                      textColor: textColor,
-                      mutedColor: mutedColor,
-                      accentColor: accentColor,
-                      surfaceColor: surfaceColor,
+                      readerTheme: readerTheme,
                     );
                   },
                 ),
@@ -112,7 +96,7 @@ class ChapterListWidget extends HookWidget {
           ),
         ),
       ),
-    );
+
   }
 
   void _scrollToCurrent(
@@ -135,10 +119,7 @@ class ChapterListWidget extends HookWidget {
   }
 
   Widget _buildHeader(
-    Color textColor,
-    Color mutedColor,
-    Color accentColor,
-    Color dividerColor,
+    ReaderThemeExtension readerTheme,
     AppLocalizations l10n,
   ) {
     return Container(
@@ -149,7 +130,7 @@ class ChapterListWidget extends HookWidget {
         DesignTokens.spacing(Spacing.sm),
       ),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: dividerColor, width: 1)),
+        border: Border(bottom: BorderSide(color: readerTheme.dividerColor, width: 1)),
       ),
       child: Row(
         children: [
@@ -157,7 +138,7 @@ class ChapterListWidget extends HookWidget {
             width: 3,
             height: 20,
             decoration: BoxDecoration(
-              color: accentColor,
+              color: readerTheme.accentColor,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -165,7 +146,7 @@ class ChapterListWidget extends HookWidget {
           Text(
             l10n.chapterList,
             style: TextStyle(
-              color: textColor,
+              color: readerTheme.textColor,
               fontSize: 17,
               fontWeight: FontWeight.w600,
               letterSpacing: 1.2,
@@ -175,13 +156,13 @@ class ChapterListWidget extends HookWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.12),
+              color: readerTheme.accentColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               '${chapters.length} ${l10n.chapterCountLabel}',
               style: TextStyle(
-                color: accentColor,
+                color: readerTheme.accentColor,
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 0.5,
@@ -190,7 +171,7 @@ class ChapterListWidget extends HookWidget {
           ),
           SizedBox(width: DesignTokens.spacing(Spacing.sm)),
           IconButton(
-            icon: Icon(PhosphorIconsRegular.x, color: mutedColor, size: 22),
+            icon: Icon(PhosphorIconsRegular.x, color: readerTheme.mutedColor, size: 22),
             onPressed: onClose,
             splashRadius: 20,
             tooltip: l10n.close,
@@ -205,10 +186,7 @@ class ChapterListWidget extends HookWidget {
     required int index,
     required bool isCurrent,
     required int indent,
-    required Color textColor,
-    required Color mutedColor,
-    required Color accentColor,
-    required Color surfaceColor,
+    required ReaderThemeExtension readerTheme,
   }) {
     final showNumber = chapter.level <= 1;
     final cnNum = index < _cnNumerals.length
@@ -222,8 +200,8 @@ class ChapterListWidget extends HookWidget {
         child: InkWell(
           onTap: () => onChapterSelected(chapter.chapterIndex),
           borderRadius: BorderRadius.circular(10),
-          splashColor: accentColor.withValues(alpha: 0.08),
-          highlightColor: accentColor.withValues(alpha: 0.04),
+          splashColor: readerTheme.accentColor.withValues(alpha: 0.08),
+          highlightColor: readerTheme.accentColor.withValues(alpha: 0.04),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 250),
             margin: const EdgeInsets.symmetric(vertical: 2),
@@ -235,11 +213,11 @@ class ChapterListWidget extends HookWidget {
             ),
             decoration: BoxDecoration(
               color: isCurrent
-                  ? accentColor.withValues(alpha: 0.08)
+                  ? readerTheme.accentColor.withValues(alpha: 0.08)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
               border: isCurrent
-                  ? Border(left: BorderSide(color: accentColor, width: 3))
+                  ? Border(left: BorderSide(color: readerTheme.accentColor, width: 3))
                   : null,
             ),
             child: Row(
@@ -252,8 +230,8 @@ class ChapterListWidget extends HookWidget {
                       cnNum,
                       style: TextStyle(
                         color: isCurrent
-                            ? accentColor
-                            : mutedColor.withValues(alpha: 0.5),
+                            ? readerTheme.accentColor
+                            : readerTheme.mutedColor.withValues(alpha: 0.5),
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         fontFamily: 'monospace',
@@ -265,7 +243,7 @@ class ChapterListWidget extends HookWidget {
                     width: 14,
                     child: CustomPaint(
                       painter: _TreeBranchPainter(
-                        color: mutedColor.withValues(alpha: 0.2),
+                        color: readerTheme.mutedColor.withValues(alpha: 0.2),
                       ),
                       size: const Size(14, 20),
                     ),
@@ -279,7 +257,7 @@ class ChapterListWidget extends HookWidget {
                       Text(
                         chapter.title,
                         style: TextStyle(
-                          color: isCurrent ? accentColor : textColor,
+                          color: isCurrent ? readerTheme.accentColor : readerTheme.textColor,
                           fontWeight: isCurrent
                               ? FontWeight.w600
                               : FontWeight.w400,
@@ -294,7 +272,7 @@ class ChapterListWidget extends HookWidget {
                         Text(
                           '正在阅读',
                           style: TextStyle(
-                            color: accentColor.withValues(alpha: 0.7),
+                            color: readerTheme.accentColor.withValues(alpha: 0.7),
                             fontSize: 11,
                             letterSpacing: 0.3,
                           ),
@@ -309,11 +287,11 @@ class ChapterListWidget extends HookWidget {
                     height: 6,
                     margin: const EdgeInsets.only(left: 4),
                     decoration: BoxDecoration(
-                      color: accentColor,
+                      color: readerTheme.accentColor,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: accentColor.withValues(alpha: 0.4),
+                          color: readerTheme.accentColor.withValues(alpha: 0.4),
                           blurRadius: 4,
                           spreadRadius: 1,
                         ),

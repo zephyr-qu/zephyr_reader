@@ -32,13 +32,13 @@ impl PdfContentProvider {
     /// 通过 LRU 缓存优化重复访问。
     pub fn open(file_path: &str) -> Result<Self, AppError> {
         if !std::path::Path::new(file_path).exists() {
-            return Err(AppError::file_not_found(file_path));
+            return Err(AppError::FileNotFound { path: file_path.into() });
         }
 
         let pdfium = Pdfium::default();
         let pdf = pdfium
             .load_pdf_from_file(file_path, None)
-            .map_err(|e| AppError::pdf_parse_error(format!("failed to open PDF: {}", e)))?;
+            .map_err(|e| AppError::PdfParseError { reason: format!("failed to open PDF: {}", e).into() })?;
 
         let total_pages_count = pdf.pages().len() as u32;
 
@@ -56,22 +56,22 @@ impl PdfContentProvider {
         let pdfium = Pdfium::default();
         let pdf = pdfium
             .load_pdf_from_file(&self.file_path, None)
-            .map_err(|e| AppError::pdf_parse_error(format!("failed to open PDF: {}", e)))?;
+            .map_err(|e| AppError::PdfParseError { reason: format!("failed to open PDF: {}", e).into() })?;
 
         let num_pages = pdf.pages().len() as usize;
         if (page_index as usize) >= num_pages {
-            return Err(AppError::pdf_parse_error(format!(
+            return Err(AppError::PdfParseError { reason: format!(
                 "page index out of range: {} (total {} pages)",
                 page_index, num_pages
-            )));
+            ).into() });
         }
 
         let page = pdf.pages().get(page_index as PdfPageIndex).map_err(|e| {
-            AppError::pdf_parse_error(format!("failed to get page {}: {}", page_index, e))
+            AppError::PdfParseError { reason: format!("failed to get page {}: {}", page_index, e).into() }
         })?;
 
         let page_text = page.text().map_err(|e| {
-            AppError::pdf_parse_error(format!("failed to extract page {} text: {}", page_index, e))
+            AppError::PdfParseError { reason: format!("failed to extract page {} text: {}", page_index, e).into() }
         })?;
 
         let mut text = String::new();

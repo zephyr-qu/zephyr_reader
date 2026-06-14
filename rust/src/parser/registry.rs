@@ -40,10 +40,10 @@ pub fn format_from_extension(ext: &str) -> Result<BookFormat, AppError> {
             b"epub" => Ok(BookFormat::Epub),
             b"md" | b"markdown" | b"mdown" | b"mkdn" => Ok(BookFormat::Md),
             b"pdf" => Ok(BookFormat::Pdf),
-            _ => Err(AppError::unsupported_format(format!("Unknown format: {}", ext))),
+            _ => Err(AppError::UnsupportedFormat { format: format!("Unknown format: {}", ext).into() }),
         }
     } else {
-        Err(AppError::unsupported_format(format!("Unknown format: {}", ext)))
+        Err(AppError::UnsupportedFormat { format: format!("Unknown format: {}", ext).into() })
     }
 }
 
@@ -53,7 +53,7 @@ pub fn parser_for_file(path: &str) -> Result<Parser, AppError> {
         .extension()
         .and_then(|ext| ext.to_str())
         .ok_or_else(|| {
-            AppError::unsupported_format("Cannot identify file extension".to_string())
+            AppError::UnsupportedFormat { format: "Cannot identify file extension".to_string().into() }
         })?;
     let format = format_from_extension(ext)?;
     Ok(parser_for_format(format))

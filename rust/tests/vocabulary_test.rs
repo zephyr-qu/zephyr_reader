@@ -4,26 +4,9 @@
 
 mod common;
 
-use rust_lib_zephyr_reader::api::data::{init, vocabulary};
+use rust_lib_zephyr_reader::api::data::vocabulary;
 use rust_lib_zephyr_reader::storage::models::VocabStatus;
-use std::sync::OnceLock;
-use tempfile::TempDir;
 
-static TEST_STORAGE: OnceLock<TempDir> = OnceLock::new();
-
-async fn ensure_storage_initialized() {
-    if TEST_STORAGE.get().is_some() {
-        return;
-    }
-    let temp_dir = TempDir::new().expect("failed to create temp dir");
-    let data_dir = temp_dir.path().to_str().unwrap().to_string();
-    if let Err(e) = init::init_storage(data_dir.clone()).await {
-        if !e.to_string().contains("already initialized") {
-            panic!("failed to init storage: {:?}", e);
-        }
-    }
-    TEST_STORAGE.get_or_init(|| temp_dir);
-}
 
 // 使用 tag 生成唯一的单词名称，避免并行测试间数据污染
 fn unique_word(name: &str) -> String {
@@ -33,7 +16,7 @@ fn unique_word(name: &str) -> String {
 #[tokio::test]
 async fn test_create_and_list_vocab_word() {
     common::init_logger();
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let word = unique_word("create_list");
     let entry = vocabulary::create_vocabulary_word(
@@ -57,7 +40,7 @@ async fn test_create_and_list_vocab_word() {
 #[tokio::test]
 async fn test_create_vocab_with_book_and_word_list() {
     common::init_logger();
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let entry = vocabulary::create_vocabulary_word(
         unique_word("with_context").to_string(),
@@ -79,7 +62,7 @@ async fn test_create_vocab_with_book_and_word_list() {
 #[tokio::test]
 async fn test_list_vocab_filter_by_status() {
     common::init_logger();
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let word = unique_word("filter_status");
     let entry = vocabulary::create_vocabulary_word(
@@ -124,7 +107,7 @@ async fn test_list_vocab_filter_by_status() {
 #[tokio::test]
 async fn test_list_vocab_filter_by_word_list() {
     common::init_logger();
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let w1 = unique_word("wl_cet4");
     let w2 = unique_word("wl_cet6");
@@ -160,7 +143,7 @@ async fn test_list_vocab_filter_by_word_list() {
 #[tokio::test]
 async fn test_search_vocabulary() {
     common::init_logger();
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let unique = unique_word("search_target");
     vocabulary::create_vocabulary_word(
@@ -196,7 +179,7 @@ async fn test_search_vocabulary() {
 #[tokio::test]
 async fn test_update_vocabulary_status() {
     common::init_logger();
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let word = unique_word("status_update");
     let entry = vocabulary::create_vocabulary_word(
@@ -223,7 +206,7 @@ async fn test_update_vocabulary_status() {
 #[tokio::test]
 async fn test_delete_vocabulary() {
     common::init_logger();
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let word = unique_word("delete_me");
     let entry = vocabulary::create_vocabulary_word(
@@ -247,7 +230,7 @@ async fn test_delete_vocabulary() {
 #[tokio::test]
 async fn test_vocabulary_stats() {
     common::init_logger();
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     // stats 返回全局值，无法精确断言具体数字
     // 验证类型和结构正确即可
@@ -263,7 +246,7 @@ async fn test_vocabulary_stats() {
 #[tokio::test]
 async fn test_list_word_lists() {
     common::init_logger();
-    ensure_storage_initialized().await;
+    common::init_test_storage().await;
 
     let lists = vocabulary::list_word_lists();
     assert!(!lists.is_empty(), "should have at least one built-in list");

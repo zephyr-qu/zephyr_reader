@@ -5,12 +5,13 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:injectable/injectable.dart';
 import 'package:webdav_client/webdav_client.dart' as webdav;
 
 import 'sync_models.dart';
 
 /// WebDAV 同步服务 —— 负责连接管理、文件传输和核心同步循环。
-// registered manually in service_locator.dart
+@lazySingleton
 class WebDavSyncService {
   WebDavConfig? _config;
   webdav.Client? _client;
@@ -29,11 +30,7 @@ class WebDavSyncService {
 
   // ── 构造 ──
 
-  WebDavSyncService({WebDavConfig? config}) {
-    if (config != null) {
-      setConfig(config);
-    }
-  }
+  WebDavSyncService();
 
   void setConfig(WebDavConfig config) {
     _config = config;

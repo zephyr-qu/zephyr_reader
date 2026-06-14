@@ -6,14 +6,14 @@ import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
 import 'package:zephyr_reader/src/rust/api/data/session.dart' as session_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-import 'chapter_manager.dart';
+import 'chapter_view_model.dart';
 
 /// 阅读会话管理器
 ///
 /// 管理阅读计时、进度保存和自动保存。
 /// 依赖 ChapterManager 读取书籍/章节状态。
 class ReadingSessionManager {
-  final ChapterManager _chapterManager;
+  final ChapterViewModel _chapterManager;
 
   ReadingSessionManager(this._chapterManager);
 

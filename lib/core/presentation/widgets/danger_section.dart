@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 
 class DangerSection extends StatelessWidget {
   final String label;
@@ -83,7 +84,7 @@ class DangerItem extends StatelessWidget {
                 color: cs.error.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, size: 16, color: cs.error),
+              child: Icon(icon, size: IconSize.inline, color: cs.error),
             ),
             const SizedBox(width: 12),
             Expanded(

@@ -33,7 +33,7 @@ pub fn parse_epub(file_path: String) -> Result<ParseResult, AppError> {
 
     // 检查文件是否存在
     if !Path::new(&file_path).exists() {
-        return Err(AppError::file_not_found(&file_path));
+        return Err(AppError::FileNotFound { path: file_path.into() });
     }
     tracing::debug!("file existence check passed: {}", file_path);
 
@@ -68,20 +68,15 @@ pub fn parse_epub(file_path: String) -> Result<ParseResult, AppError> {
         title,
         author: Some(author),
         cover_path,
-        chapter_count:chapter_count  as i64,
+        chapter_count: chapter_count as i64,
         total_characters: total_chars,
         publisher,
         translator,
         isbn,
-        file_hash: None,
         file_size: 0,
-        file_mtime: None,
-        description: None,
         format: BookFormat::Epub,
         added_at: chrono::Utc::now(),
-        last_opened_at: None,
-        status: crate::storage::models::BookStatus::Reading,
-        is_pinned: false,
+        ..Default::default()
     };
 
     let elapsed = start_time.elapsed();
@@ -154,7 +149,7 @@ fn read_chapter_content(epub_file: &mut EpubFile, chapter: &Chapter) -> Result<S
     let mut contents = Vec::new();
     for i in start..end {
         let href = spine.get(i).ok_or_else(|| {
-            AppError::chapter_extract_error(i as i32, format!("spine index out of range: {}", i))
+            AppError::ChapterExtractError { index: i as i32, reason: format!("spine index out of range: {}", i).into() }
         })?;
         tracing::debug!("[read_chapter_content] reading spine[{}] href={}", i, href);
         match epub_file.read_resource(href) {
@@ -164,10 +159,7 @@ fn read_chapter_content(epub_file: &mut EpubFile, chapter: &Chapter) -> Result<S
     }
 
     if contents.is_empty() {
-        return Err(AppError::chapter_extract_error(
-            (chapter.chapter_index  as i64).try_into().unwrap(),
-            "chapter content is empty",
-        ));
+        return Err(AppError::ChapterExtractError { index: (chapter.chapter_index  as i64).try_into().unwrap(), reason: "chapter content is empty".into() });
     }
 
     Ok(contents.join("\n"))
@@ -210,7 +202,7 @@ pub fn get_chapter_content_rich(
         .iter()
         .find(|c| c.chapter_index == chapter_id  as i64)
         .ok_or_else(|| {
-            AppError::chapter_extract_error(chapter_id, format!("chapter {} not found", chapter_id))
+            AppError::ChapterExtractError { index: chapter_id, reason: format!("chapter {} not found", chapter_id).into() }
         })?;
     tracing::info!(
         "[get_chapter_content_rich] chapter found: id={}, title={}, start_index={}",
