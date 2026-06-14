@@ -4,9 +4,6 @@ import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:flutter/services.dart';
-import 'package:zephyr_reader/src/rust/api/bilingual.dart';
-import 'package:zephyr_reader/features/reader/application/translation_config.dart';
-import 'package:zephyr_reader/features/reader/domain/translation_service.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -19,6 +16,7 @@ import 'bookmark_view_model.dart';
 import 'annotation_view_model.dart';
 import 'reader_page_state.dart';
 import 'translation_view_model.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 
 /// 阅读器视图模型 — Facade
 ///
@@ -44,12 +42,6 @@ class ReaderViewModel {
   late final AnnotationViewModel annotations;
   late final TranslationViewModel translation;
 
-  /// 字体大小（double，供 bindings 消费）
-  late final ReadonlySignal<double> fontSizeDouble = computed(
-    () => _config.fontSize.value,
-  );
-
-
   // ==================== 跨切面信号 ====================
 
   final toastMessage = signal<String>('');
@@ -62,17 +54,16 @@ class ReaderViewModel {
 
   final ReaderPageState state = ReaderPageState();
 
-  ReaderViewModel(
-    this._repo,
-    this._config,
-    TranslationConfig translateConfig,
-    TranslationService translateService,
-  ) {
+  ReaderViewModel({
+    ReaderRepository? repo,
+    ReaderConfig? config,
+  }) : _repo = repo ?? getIt<ReaderRepository>(),
+       _config = config ?? getIt<ReaderConfig>() {
     chapterManager = ChapterViewModel(_repo, _config, state);
     sessionManager = ReadingSessionManager(state, chapterManager);
     bookmarks = BookmarkViewModel(state);
     annotations = AnnotationViewModel(state);
-    translation = TranslationViewModel(state, translateConfig, translateService);
+    translation = TranslationViewModel(state);
   }
 
   // ==================== 编排方法 ====================
@@ -252,53 +243,6 @@ class ReaderViewModel {
     state.readingMode.value = mode;
     if (mode == ReadingMode.bilingual) {
       translation.onEnterBilingualMode();
-    }
-  }
-
-
-  // ==================== 双语高亮 ====================
-
-  Future<void> createBilingualHighlight({
-    required AppLocalizations l10n,
-    required String sourceBookId,
-    required int sourceChapterIndex,
-    required int sourceCharOffset,
-    required int sourceLength,
-    required String sourceSelectedText,
-    required String sourceLanguage,
-    required String targetBookId,
-    required int targetChapterIndex,
-    required int targetCharOffset,
-    required int targetLength,
-    required String targetSelectedText,
-    required String targetLanguage,
-    int highlightColor = 0xFFE91E63,
-  }) async {
-    try {
-      await translation.createBilingualHighlight(
-        BilingualHighlightParams(
-          sourceBookId: sourceBookId,
-          sourceChapterIndex: sourceChapterIndex,
-          sourceCharOffset: sourceCharOffset,
-          sourceLength: sourceLength,
-          sourceSelectedText: sourceSelectedText,
-          sourceLanguage: sourceLanguage,
-          targetBookId: targetBookId,
-          targetChapterIndex: targetChapterIndex,
-          targetCharOffset: targetCharOffset,
-          targetLength: targetLength,
-          targetSelectedText: targetSelectedText,
-          targetLanguage: targetLanguage,
-          highlightColor: highlightColor,
-        ),
-      );
-    } catch (e, stack) {
-      Logging.error(
-        'ReaderViewModel.createBilingualHighlight',
-        exception: e,
-        stackTrace: stack,
-      );
-      toastMessage.value = l10n.bilingualHighlightFailed;
     }
   }
 

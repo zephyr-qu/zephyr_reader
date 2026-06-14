@@ -56,7 +56,7 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
-    // 初始化测试用 SharedPreferences（避免 MissingPluginException）
+    // 初始化测试用 PreferencesService（避免 MissingPluginException）
     SharedPreferences.setMockInitialValues({});
     await AppConfig.instance.init();
 
@@ -74,7 +74,7 @@ void main() {
     try {
       await configureDependencies();
     } catch (_) {
-      // 忽略 DI 初始化失败（如 SharedPreferences 无平台通道）
+      // 忽略 DI 初始化失败（如 PreferencesService 无平台通道）
     }
 
     // 仅在 FFI 可用时导入书籍数据

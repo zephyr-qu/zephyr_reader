@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/features/reader/application/translation_config.dart';
+import 'package:zephyr_reader/core/local/shared_preferences_service.dart';
 
 void main() {
   late SharedPreferences prefs;
@@ -12,7 +13,7 @@ void main() {
 
   group('TranslationConfig', () {
     test('default values', () {
-      final config = TranslationConfig(prefs);
+      final config = TranslationConfig(SharedPreferencesService(prefs));
 
       expect(config.provider.value, 'openai');
       expect(config.apiUrl.value, 'https://api.openai.com');
@@ -24,7 +25,7 @@ void main() {
     });
 
     test('isConfigured returns false when apiKey empty', () {
-      final config = TranslationConfig(prefs);
+      final config = TranslationConfig(SharedPreferencesService(prefs));
       config.apiUrl.value = 'https://api.example.com';
       config.apiKey.value = '';
 
@@ -32,7 +33,7 @@ void main() {
     });
 
     test('isConfigured returns false when apiUrl empty', () {
-      final config = TranslationConfig(prefs);
+      final config = TranslationConfig(SharedPreferencesService(prefs));
       config.apiUrl.value = '';
       config.apiKey.value = 'sk-test-key';
 
@@ -40,7 +41,7 @@ void main() {
     });
 
     test('isConfigured returns true when both url and key set', () {
-      final config = TranslationConfig(prefs);
+      final config = TranslationConfig(SharedPreferencesService(prefs));
       config.apiUrl.value = 'https://api.openai.com';
       config.apiKey.value = 'sk-test-key';
 
@@ -48,7 +49,7 @@ void main() {
     });
 
     test('provider can be toggled between openai and custom', () {
-      final config = TranslationConfig(prefs);
+      final config = TranslationConfig(SharedPreferencesService(prefs));
 
       config.provider.value = 'custom';
       expect(config.provider.value, 'custom');
@@ -58,7 +59,7 @@ void main() {
     });
 
     test('values can be updated and persist in memory', () {
-      final config = TranslationConfig(prefs);
+      final config = TranslationConfig(SharedPreferencesService(prefs));
 
       config.apiUrl.value = 'https://custom.api.com';
       config.model.value = 'gpt-4';

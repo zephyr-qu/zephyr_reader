@@ -16,6 +16,12 @@ abstract class PreferencesService {
   Future<void> setDouble(String key, double value);
   double getDouble(String key, {double defaultValue = 0.0});
 
+  /// 获取可空整型值（区分"键不存在"和值为 0）
+  int? getIntOrNull(String key);
+
+
+  /// 检查键是否存在
+  bool containsKey(String key);
   Future<void> remove(String key);
   Future<void> clear();
 

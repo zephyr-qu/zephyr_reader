@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/theme/app_theme.dart';
 import 'package:zephyr_reader/core/theme/auto_theme_service.dart';
@@ -19,8 +19,8 @@ class ZephyrReaderApp extends HookWidget {
   Widget build(BuildContext context) {
     final themeManager = ThemeManager.instance;
 
-    // 从 DI 获取 SharedPreferences 单例
-    final prefs = useMemoized(() => getIt<SharedPreferences>());
+    // 从 DI 获取 PreferencesService
+    final prefs = useMemoized(() => getIt<PreferencesService>());
 
     final autoTheme = useMemoized(() => AutoThemeService(prefs));
     // 监听自动主题切换（根据时间切换亮/暗主题）

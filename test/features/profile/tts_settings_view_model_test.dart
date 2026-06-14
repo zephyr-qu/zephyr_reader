@@ -1,23 +1,23 @@
 // test/features/profile/tts_settings_view_model_test.dart
 //
-// TtsSettingsViewModel — 无 FFI 依赖，纯 SharedPreferences 持久化信号
+// TtsSettingsViewModel — 无 FFI 依赖，纯 PreferencesService 持久化信号
 //
 // 覆盖：默认值、读写持久化、dispose
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
 
-class _MockSharedPreferences extends Mock implements SharedPreferences {
+class _MockSharedPreferences extends Mock implements PreferencesService {
   _MockSharedPreferences() {
     when(() => setDouble(any(), any())).thenAnswer((_) async => true);
     when(() => setBool(any(), any())).thenAnswer((_) async => true);
     when(() => setInt(any(), any())).thenAnswer((_) async => true);
-    when(() => getDouble(any())).thenReturn(null);
-    when(() => getBool(any())).thenReturn(null);
-    when(() => getInt(any())).thenReturn(null);
+    when(() => getDouble(any(), defaultValue: any(named: 'defaultValue'))).thenReturn(null);
+    when(() => getBool(any(), defaultValue: any(named: 'defaultValue'))).thenReturn(null);
+    when(() => getInt(any(), defaultValue: any(named: 'defaultValue'))).thenReturn(null);
   }
 }
 
@@ -147,23 +147,23 @@ void main() {
   });
 
   group('TtsSettingsViewModel loading from persisted values', () {
-    test('reads speed from SharedPreferences', () {
-      when(() => mockPrefs.getDouble(SettingsKeys.ttsSpeed)).thenReturn(0.75);
+    test('reads speed from PreferencesService', () {
+      when(() => mockPrefs.getDouble(SettingsKeys.ttsSpeed, defaultValue: any(named: 'defaultValue'))).thenReturn(0.75);
       final vm2 = TtsSettingsViewModel(mockPrefs);
       expect(vm2.speed.value, 0.75);
     });
 
-    test('reads bilingualAlternate from SharedPreferences', () {
+    test('reads bilingualAlternate from PreferencesService', () {
       when(
-        () => mockPrefs.getBool(SettingsKeys.ttsBilingualAlternate),
+        () => mockPrefs.getBool(SettingsKeys.ttsBilingualAlternate, defaultValue: any(named: 'defaultValue')),
       ).thenReturn(false);
       final vm2 = TtsSettingsViewModel(mockPrefs);
       expect(vm2.bilingualAlternate.value, false);
     });
 
-    test('reads pauseBetween from SharedPreferences', () {
+    test('reads pauseBetween from PreferencesService', () {
       when(
-        () => mockPrefs.getInt(SettingsKeys.ttsPauseBetween),
+        () => mockPrefs.getInt(SettingsKeys.ttsPauseBetween, defaultValue: any(named: 'defaultValue')),
       ).thenReturn(800);
       final vm2 = TtsSettingsViewModel(mockPrefs);
       expect(vm2.pauseBetween.value, 800);

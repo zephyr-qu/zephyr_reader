@@ -6,7 +6,7 @@ library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 import '../settings/persisted_signal.dart';
@@ -14,35 +14,17 @@ import '../settings/settings_keys.dart';
 import '../utils/logging.dart';
 
 class AutoThemeService {
-  final SharedPreferences _prefs;
+  final PreferencesService _prefs;
   Timer? _autoSwitchTimer;
 
   /// 是否启用自动主题切换
-  late final autoThemeEnabled = persisted<bool>(
-    _prefs,
-    SettingsKeys.autoThemeEnabled,
-    false,
-    reader: (p, k) => p.getBool(k) ?? false,
-    writer: (p, k, v) => p.setBool(k, v),
-  );
+  late final autoThemeEnabled = persistedBool(_prefs, SettingsKeys.autoThemeEnabled, false);
 
   /// 深色模式开始时间（小时）
-  late final darkModeStartHour = persisted<int>(
-    _prefs,
-    SettingsKeys.darkModeStartHour,
-    18,
-    reader: (p, k) => p.getInt(k) ?? 18,
-    writer: (p, k, v) => p.setInt(k, v),
-  );
+  late final darkModeStartHour = persistedInt(_prefs, SettingsKeys.darkModeStartHour, 18);
 
   /// 深色模式结束时间（小时）
-  late final darkModeEndHour = persisted<int>(
-    _prefs,
-    SettingsKeys.darkModeEndHour,
-    6,
-    reader: (p, k) => p.getInt(k) ?? 6,
-    writer: (p, k, v) => p.setInt(k, v),
-  );
+  late final darkModeEndHour = persistedInt(_prefs, SettingsKeys.darkModeEndHour, 6);
 
   /// 当前主题模式
   final themeMode = signal<ThemeMode>(ThemeMode.system);

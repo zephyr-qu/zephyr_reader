@@ -6,6 +6,7 @@ import 'package:zephyr_reader/features/reader/data/translation/providers/openai_
 import 'package:zephyr_reader/features/reader/data/translation/providers/custom_translator.dart';
 import 'package:zephyr_reader/features/reader/domain/translation_service.dart';
 import 'package:zephyr_reader/features/reader/application/translation_config.dart';
+import 'package:zephyr_reader/core/local/shared_preferences_service.dart';
 
 class MockDio extends Mock implements Dio {}
 
@@ -18,7 +19,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
-    config = TranslationConfig(prefs);
+    config = TranslationConfig(SharedPreferencesService(prefs));
     config.apiKey.value = 'sk-test-key';
     mockDio = MockDio();
   });

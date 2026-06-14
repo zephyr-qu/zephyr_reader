@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/theme/auto_theme_service.dart';
 
-class _MockSharedPreferences extends Mock implements SharedPreferences {}
+class _MockSharedPreferences extends Mock implements PreferencesService {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -17,10 +17,13 @@ void main() {
       mockPrefs = _MockSharedPreferences();
 
       // 默认返回 false
-      when(() => mockPrefs.getBool(any())).thenReturn(null);
+      when(() => mockPrefs.getBool(any(), defaultValue: any(named: 'defaultValue'))).thenAnswer(
+        (inv) => inv.namedArguments[#defaultValue] as bool,
+      );
 
-      // 默认返回 null (使用默认值)
-      when(() => mockPrefs.getInt(any())).thenReturn(null);
+      when(() => mockPrefs.getInt(any(), defaultValue: any(named: 'defaultValue'))).thenAnswer(
+        (inv) => inv.namedArguments[#defaultValue] as int,
+      );
 
       when(() => mockPrefs.setBool(any(), any())).thenAnswer((_) async => true);
       when(() => mockPrefs.setInt(any(), any())).thenAnswer((_) async => true);

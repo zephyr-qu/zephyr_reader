@@ -48,6 +48,9 @@ class SharedPreferencesService implements PreferencesService {
       _prefs.getInt(key) ?? defaultValue;
 
   @override
+  int? getIntOrNull(String key) => _prefs.getInt(key);
+
+  @override
   Future<void> setDouble(String key, double value) async {
     await _prefs.setDouble(key, value);
     _notifySignal(key, value);
@@ -68,6 +71,9 @@ class SharedPreferencesService implements PreferencesService {
     await _prefs.clear();
     _signalCache.clear(); // 清空缓存的信号
   }
+
+  @override
+  bool containsKey(String key) => _prefs.containsKey(key);
 
   // --- Signal 集成逻辑 ---
 

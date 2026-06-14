@@ -1,5 +1,5 @@
 import 'package:injectable/injectable.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/cache_utils.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
@@ -12,7 +12,7 @@ import 'package:zephyr_reader/features/sync/application/services/webdav_sync_ser
 ///
 /// 管理 WebDAV 同步配置、同步状态和本地数据导出/导入。
 class StorageSyncViewModel {
-  final configService = WebDavConfigService(prefs: getIt<SharedPreferences>());
+  final configService = WebDavConfigService(prefs: getIt<PreferencesService>());
 
   final isConfigured = signal(false);
   final lastSyncTime = signal<DateTime?>(null);

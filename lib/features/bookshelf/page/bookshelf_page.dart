@@ -13,7 +13,6 @@ import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/book_import_service.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
@@ -41,18 +40,11 @@ class BookshelfPage extends HookWidget {
 
     final isSearching = useSignal(false);
     final searchController = useTextEditingController();
+    final selectedIds = useSignal<Set<String>>({});
     final batchMode = useSignal(false);
-    final selectedIds = useSetSignal<String>({});
-    final bool isListView = useSignalValue(vm.isListView);
     final debounceTimer = useRef<Timer?>(null);
+    final AsyncState<List<BookshelfBook>> asyncBooks = useSignalValue(vm.books);
 
-    useSignalEffect(() {
-      final msg = vm.feedback.value;
-      if (msg != null) {
-        showInfoSnack(context, msg);
-        vm.feedback.value = null;
-      }
-    });
     useEffect(() {
       vm.loadBooks();
       vm.categoryVM.loadCategories();
@@ -75,8 +67,8 @@ class BookshelfPage extends HookWidget {
                 style: TextStyle(color: theme.colorScheme.onSurface),
                 textInputAction: TextInputAction.search,
                 onSubmitted: (v) {
-                  if (v.isEmpty && vm.isSearching.value) vm.stopSearch();
-                  if (v.isNotEmpty && !vm.isSearching.value) vm.startSearch();
+                  if (v.isEmpty) vm.stopSearch();
+                  if (v.isNotEmpty) vm.updateSearchKeyword(v);
                   FocusScope.of(context).unfocus();
                 },
                 onChanged: (v) {
@@ -84,11 +76,10 @@ class BookshelfPage extends HookWidget {
                   debounceTimer.value = Timer(
                     const Duration(milliseconds: 300),
                     () {
-                      if (v.isEmpty && vm.isSearching.value) {
+                      if (v.isEmpty) {
                         vm.stopSearch();
-                      } else if (v.isNotEmpty) {
+                      } else {
                         vm.updateSearchKeyword(v);
-                        if (!vm.isSearching.value) vm.startSearch();
                       }
                     },
                   );
@@ -111,13 +102,8 @@ class BookshelfPage extends HookWidget {
               icon: const Icon(PhosphorIconsRegular.magnifyingGlass),
               onPressed: () => isSearching.value = true,
               tooltip: l10n.search,
-              // arrow closure — trivial, negligible rebuild cost
             ),
             PopupMenuButton<String>(
-              icon: const Icon(PhosphorIconsRegular.dotsThreeVertical),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
               color: Theme.of(context).colorScheme.surface,
               surfaceTintColor: Colors.transparent,
               elevation: 2,
@@ -234,56 +220,35 @@ class BookshelfPage extends HookWidget {
                       Spacing.lg.value,
                       0,
                     ),
-                    child: SignalBuilder(
-                      builder: (_) {
-                        return BookshelfStatusTabs(
-                          selectedStatus: vm.selectedStatus.value,
-                          onStatusChanged: (status) => vm.selectStatus(status),
-                        );
-                      },
+                    child: BookshelfStatusTabs(
+                      selectedStatus: vm.selectedStatus.value,
+                      onStatusChanged: (status) => vm.selectStatus(status),
                     ),
                   ),
-                  SignalBuilder(
-                    builder: (_) {
-                      return BookshelfCategoryChips(
-                        categories: vm.categoryVM.categories.value.value ?? [],
-                        selectedCategoryId:
-                            vm.categoryVM.selectedCategory.value?.id,
-                        onCategoryChanged: (category) =>
-                            vm.selectCategory(category),
-                      );
-                    },
+                  BookshelfCategoryChips(
+                    categories: vm.categoryVM.categories.value.value ?? [],
+                    selectedCategoryId:
+                        vm.categoryVM.selectedCategory.value?.id,
+                    onCategoryChanged: (category) =>
+                        vm.selectCategory(category),
                   ),
                   const Divider(height: 0.5),
                   Expanded(
-                    child: SignalBuilder(
-                      builder: (_) {
-                        final async = vm.books.value;
-                        final showProgress = vm.showReadingProgress.value;
-                        return BookshelfBookContent(
-                          isLoading: async.isLoading,
-                          hasError: async.hasError,
-                          books: async.value ?? [],
-                          crossAxisCount: crossAxisCount,
-                          isListView: isListView,
-                          batchMode: batchMode.value,
-                          selectedIds: selectedIds.value,
-                          readingProgress: vm.readingProgress.value.value ?? {},
-                          showProgressBadge: showProgress,
-                          onRetry: vm.loadBooks,
-                          onImportTap: () => _showImportDialog(context, vm),
-                          onRefresh: vm.loadBooks,
-                          onSelectionChanged: (ids) {
-                            selectedIds.value = ids;
-                          },
-                          onBookTap: (book) => context.pushNamed(
-                            AppRoute.bookDetail.name,
-                            pathParameters: {'id': book.bookId},
-                          ),
-                          onBookLongPress: (book) =>
-                              _showBookActions(context, vm, book),
-                        );
+                    child: BookshelfBookContent(
+                      asyncBooks: asyncBooks,
+                      crossAxisCount: crossAxisCount,
+                      batchMode: batchMode.value,
+                      selectedIds: selectedIds.value,
+                      onImportTap: () => _showImportDialog(context, vm),
+                      onSelectionChanged: (ids) {
+                        selectedIds.value = ids;
                       },
+                      onBookTap: (book) => context.pushNamed(
+                        AppRoute.bookDetail.name,
+                        pathParameters: {'id': book.bookId},
+                      ),
+                      onBookLongPress: (book) =>
+                          _showBookActions(context, vm, book),
                     ),
                   ),
                 ],
@@ -295,7 +260,6 @@ class BookshelfPage extends HookWidget {
       bottomNavigationBar: batchMode.value
           ? BookshelfBatchToolbar(
               selectedCount: selectedIds.value.length,
-              categories: vm.categoryVM.categories.value.value ?? [],
               onCancel: () {
                 selectedIds.value = {};
                 batchMode.value = false;

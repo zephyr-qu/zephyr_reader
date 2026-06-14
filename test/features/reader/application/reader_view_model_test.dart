@@ -9,7 +9,7 @@ import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:signals_flutter/signals_flutter.dart' hide PersistedSignal;
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
@@ -24,7 +24,7 @@ class _MockRepo extends Mock implements ReaderRepository {}
 
 class _MockTranslationService extends Mock implements TranslationService {}
 
-class _MockSharedPreferences extends Mock implements SharedPreferences {
+class _MockSharedPreferences extends Mock implements PreferencesService {
   _MockSharedPreferences() {
     when(() => setDouble(any(), any())).thenAnswer((_) async => true);
     when(() => setBool(any(), any())).thenAnswer((_) async => true);
@@ -36,7 +36,7 @@ class _MockSharedPreferences extends Mock implements SharedPreferences {
 
 class _TestConfig implements ReaderConfig {
   @override
-  final SharedPreferences prefs = _MockSharedPreferences();
+  final PreferencesService prefs = _MockSharedPreferences();
 
   @override
   late final theme = persistedEnum<ReaderTheme>(
@@ -151,15 +151,11 @@ class _TestConfig implements ReaderConfig {
   // TODO: implement textAlign
   PersistedSignal<TextAlign> get textAlign => throw UnimplementedError();
 }
-
 ReaderViewModel createVm({
   required ReaderRepository repo,
   required ReaderConfig config,
 }) {
-  final translatePrefs = _MockSharedPreferences();
-  final translateConfig = TranslationConfig(translatePrefs);
-  final translateService = _MockTranslationService();
-  return ReaderViewModel(repo, config, translateConfig, translateService);
+  return ReaderViewModel(repo: repo, config: config);
 }
 
 void main() {

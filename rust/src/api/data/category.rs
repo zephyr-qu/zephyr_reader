@@ -10,7 +10,7 @@ use super::async_storage;
 use crate::domain::AppError;
 use crate::storage::repos::CategoryRepository;
 
-pub use crate::storage::models::{Book, BookshelfBook, Category};
+pub use crate::storage::models::{Book, BookshelfBook, BookStatus, Category};
 
 /// 获取指定分类下的所有书籍列表
 ///
@@ -32,6 +32,20 @@ pub async fn list_books_by_category(category_id: String) -> Result<Vec<Book>, Ap
 pub async fn list_bookshelf_books_by_category(category_id: String) -> Result<Vec<BookshelfBook>, AppError> {
     tracing::debug!("[category] list_bookshelf_books_by_category: category_id={}", category_id);
     async_storage!(|pool| CategoryRepository::list_bookshelf_by_category(pool, &category_id))
+}
+
+/// 获取指定分类和状态下的所有书籍（书架版，含进度，一次 SQL 过滤）
+#[frb]
+pub async fn list_bookshelf_books_by_category_and_status(
+    category_id: String,
+    status: BookStatus,
+) -> Result<Vec<BookshelfBook>, AppError> {
+    tracing::debug!(
+        "[category] list_bookshelf_books_by_category_and_status: category_id={}, status={:?}",
+        category_id,
+        status,
+    );
+    async_storage!(|pool| CategoryRepository::list_bookshelf_by_category_and_status(pool, &category_id, status))
 }
 
 /// 获取所有分类列表
