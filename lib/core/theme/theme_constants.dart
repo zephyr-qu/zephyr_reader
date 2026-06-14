@@ -35,7 +35,9 @@ class DesignTokens {
   static double spacing(Spacing size) => switch (size) {
     Spacing.xs => 4.0,
     Spacing.sm => 8.0,
+    Spacing.smMd => 12.0,
     Spacing.md => 16.0,
+    Spacing.mdLg => 20.0,
     Spacing.lg => 24.0,
     Spacing.xl => 32.0,
     Spacing.xxl => 48.0,
@@ -43,18 +45,20 @@ class DesignTokens {
 
   // ===== 圆角系统 =====
   static double radius(RadiusSize size) => switch (size) {
+    RadiusSize.xs => 4.0,
     RadiusSize.sm => 6.0,
+    RadiusSize.smMd => 10.0,
     RadiusSize.md => 8.0,
     RadiusSize.lg => 12.0,
     RadiusSize.xl => 16.0,
   };
 }
 
-/// 间距枚举 — xs(4)、sm(8)、md(16)、lg(24)、xl(32)、xxl(48)
-enum Spacing { xs, sm, md, lg, xl, xxl }
+/// 间距枚举 — xs(4)、sm(8)、smMd(12)、md(16)、mdLg(20)、lg(24)、xl(32)、xxl(48)
+enum Spacing { xs, sm, smMd, md, mdLg, lg, xl, xxl }
 
-/// 圆角尺寸枚举 — sm(6)、md(8)、lg(12)、xl(16)
-enum RadiusSize { sm, md, lg, xl }
+/// 圆角尺寸枚举 — xs(4)、sm(6)、smMd(10)、md(8)、lg(12)、xl(16)
+enum RadiusSize { xs, sm, smMd, md, lg, xl }
 
 // ===== 图标尺寸系统 =====
 

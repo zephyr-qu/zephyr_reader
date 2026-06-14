@@ -37,7 +37,6 @@ class ReaderPageBindings {
   final int? pendingJumpCharOffset;
   final bool baselineAlign;
   final TextAlign textAlign;
-  final ThemeMode themeMode;
   final int effectiveTotalPages;
   final String progressText;
   final String currentChapterTitle;
@@ -66,7 +65,6 @@ class ReaderPageBindings {
     required this.pageMargin,
     required this.writingDirection,
     required this.pendingJumpCharOffset,
-    required this.themeMode,
     required this.effectiveTotalPages,
     required this.progressText,
     required this.baselineAlign,
@@ -109,11 +107,6 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
   final bool baselineAlign = useSignalValue(vm.config.baselineAlign.signal);
   final TextAlign textAlign = useSignalValue(vm.config.textAlign.signal);
 
-  final themeMode = switch (readerTheme) {
-    ReaderTheme.dark => ThemeMode.dark,
-    ReaderTheme.sepia => ThemeMode.light,
-    ReaderTheme.light => ThemeMode.light,
-  };
 
   return ReaderPageBindings(
     readerTheme: readerTheme,
@@ -139,7 +132,6 @@ ReaderPageBindings useReaderBindings(ReaderViewModel vm) {
     pageMargin: pageMargin,
     writingDirection: writingDirection,
     pendingJumpCharOffset: pendingJumpCharOffset,
-    themeMode: themeMode,
     textAlign: textAlign,
     baselineAlign: baselineAlign,
     effectiveTotalPages: math.max(1, totalPages),
@@ -181,11 +173,6 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
   final TextAlign textAlign = useSignalValue(vm.config.textAlign.signal);
   final int? pendingJumpCharOffset = useSignalValue(vm.pendingJumpCharOffset);
 
-  final themeMode = switch (readerTheme) {
-    ReaderTheme.dark => ThemeMode.dark,
-    ReaderTheme.sepia => ThemeMode.light,
-    ReaderTheme.light => ThemeMode.light,
-  };
 
   return ReaderPageBindings(
     readerTheme: readerTheme,
@@ -212,7 +199,6 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
     pageMargin: pageMargin,
     writingDirection: writingDirection,
     pendingJumpCharOffset: pendingJumpCharOffset,
-    themeMode: themeMode,
     effectiveTotalPages: math.max(1, totalPages),
     progressText: '',
     currentChapterTitle: '',

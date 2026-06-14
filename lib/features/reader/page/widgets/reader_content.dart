@@ -10,6 +10,7 @@ import 'package:zephyr_reader/features/reader/page/ui/page_curl_widget.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import '../../data/repositories/rust_reader_repository.dart';
 
 /// 阅读内容容器组件。
@@ -170,7 +171,7 @@ class ReaderContent extends HookWidget {
               pageIndex,
               duration: disableAnim
                   ? Duration.zero
-                  : const Duration(milliseconds: 200),
+                  : AnimTokens.medium,
               curve: Curves.easeInOut,
             );
           }
@@ -210,7 +211,7 @@ class ReaderContent extends HookWidget {
         if (newPosition < scrollController.position.maxScrollExtent) {
           scrollController.animateTo(
             newPosition,
-            duration: const Duration(milliseconds: 300),
+            duration: AnimTokens.slow,
             curve: Curves.easeInOut,
           );
         } else if (onReachEnd != null &&
@@ -225,7 +226,7 @@ class ReaderContent extends HookWidget {
         if (nextPage < totalPages) {
           pageController.animateToPage(
             nextPage,
-            duration: const Duration(milliseconds: 300),
+            duration: AnimTokens.slow,
             curve: Curves.easeInOut,
           );
           onPageChanged?.call(nextPage);
@@ -319,7 +320,7 @@ class ReaderContent extends HookWidget {
           final target = (maxExtent * ratio).clamp(0.0, maxExtent);
           scrollController.animateTo(
             target,
-            duration: const Duration(milliseconds: 250),
+            duration: AnimTokens.normal,
             curve: Curves.easeInOut,
           );
           onPositionChanged?.call(jumpToCharOffset!.clamp(0, content.length));
@@ -417,7 +418,7 @@ class ReaderContent extends HookWidget {
     if (readingMode == ReadingMode.pagination) {
       final slideX = isForward ? 1.0 : -1.0;
       return AnimatedSwitcher(
-        duration: const Duration(milliseconds: 200),
+        duration: AnimTokens.medium,
         switchInCurve: Curves.easeInOut,
         transitionBuilder: (child, animation) {
           // 进入 child: animation 0→1, Offset(slideX→0) ✓ 外→中

@@ -73,6 +73,7 @@ class ReadingSessionsPage extends HookWidget {
         bookCache,
         deleteSessionsByBook,
         () => vm.load(),
+        context,
       ),
     );
   }
@@ -84,10 +85,11 @@ class ReadingSessionsPage extends HookWidget {
     Map<String, Book> bookCache,
     Future<void> Function(String) deleteSessionsByBook,
     VoidCallback onRetry,
+    BuildContext context,
   ) {
     return switch (sessionsState) {
       AsyncLoading() => const Center(child: CircularProgressIndicator()),
-      AsyncError(:final error) => _buildError(l10n, cs, error, onRetry),
+      AsyncError(:final error) => _buildError(l10n, cs, error, onRetry, context),
       AsyncData(:final value) => _buildSessionList(
         l10n,
         cs,
@@ -103,6 +105,7 @@ class ReadingSessionsPage extends HookWidget {
     ColorScheme cs,
     Object error,
     VoidCallback onRetry,
+    BuildContext context,
   ) {
     return Center(
       child: Padding(
