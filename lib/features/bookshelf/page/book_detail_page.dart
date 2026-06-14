@@ -12,7 +12,7 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/book_detail_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
-import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
+import 'package:zephyr_reader/features/bookshelf/page/widgets/book_detail_dialogs.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_actions.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_bottom_actions.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_hero.dart';
@@ -169,24 +169,12 @@ class BookDetailPage extends HookWidget {
     BookDetailViewModel vm,
     Book book,
   ) async {
-    final result = await showEditMetadataDialog(context, book);
-    if (result == null || !context.mounted) return;
-    vm.updateMetadata(
-      (b) => b.copyWith(
-        title: result['title'] ?? b.title,
-        author: result['author']?.isNotEmpty == true ? result['author'] : null,
-        description: result['description']?.isNotEmpty == true
-            ? result['description']
-            : null,
-        publisher: result['publisher']?.isNotEmpty == true
-            ? result['publisher']
-            : null,
-        translator: result['translator']?.isNotEmpty == true
-            ? result['translator']
-            : null,
-        isbn: result['isbn']?.isNotEmpty == true ? result['isbn'] : null,
-      ),
-    );
+    final updated = await showEditMetadataDialog(context, book);
+    if (updated == null || !context.mounted) return;
+    final current = vm.state.value;
+    if (current is AsyncData<book_api.BookDetail>) {
+      vm.state.value = AsyncState.data(current.value.copyWith(book: updated));
+    }
   }
 
   Future<void> _onExportNotes(

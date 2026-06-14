@@ -1,8 +1,6 @@
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/core/app_config.dart';
 import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 书籍详情 ViewModel。
 ///
@@ -22,23 +20,6 @@ class BookDetailViewModel {
     );
   }
 
-  /// 删除本书及封面文件。
-  Future<void> deleteBook() async {
-    await book_api.deleteBook(
-      bookId: bookId,
-      coversDir: AppConfig.instance.coverDir,
-    );
-  }
-
-  /// 更新书籍元数据（标题、作者、描述等）。
-  void updateMetadata(Book Function(Book) updater) {
-    final current = state.value;
-    if (current is AsyncData<book_api.BookDetail>) {
-      state.value = AsyncState.data(
-        current.value.copyWith(book: updater(current.value.book)),
-      );
-    }
-  }
 
   /// 释放所有 signal 资源。
   void dispose() {

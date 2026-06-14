@@ -6,7 +6,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:zephyr_reader/core/presentation/widgets/adaptive_layout.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
@@ -16,7 +15,7 @@ import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/book_import_service.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
-import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
+import 'package:zephyr_reader/features/bookshelf/page/widgets/book_detail_dialogs.dart';
 import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_batch_toolbar.dart';
 import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_book_content.dart';
 import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_category_chips.dart';
@@ -188,9 +187,6 @@ class BookshelfPage extends HookWidget {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final crossAxisCount = LayoutBreakpoints.getGridCrossAxisCount(
-            constraints.maxWidth,
-          );
           return Stack(
             children: [
               Positioned(
@@ -236,7 +232,6 @@ class BookshelfPage extends HookWidget {
                   Expanded(
                     child: BookshelfBookContent(
                       asyncBooks: asyncBooks,
-                      crossAxisCount: crossAxisCount,
                       batchMode: batchMode.value,
                       selectedIds: selectedIds.value,
                       onImportTap: () => _showImportDialog(context, vm),
@@ -419,12 +414,7 @@ class BookshelfPage extends HookWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (c) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          20,
-          20,
-          Spacing.xl.value,
-        ),
+        padding: EdgeInsets.fromLTRB(20, 20, 20, Spacing.xl.value),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -469,9 +459,7 @@ class BookshelfPage extends HookWidget {
                 SignalBuilder(
                   builder: (_) {
                     return SortSettingTile(
-                      dialogTitle: l10n.sortDialogTitle,
                       currentSortType: vm.defaultSortType.value,
-                      label: l10n.defaultSort,
                       onChanged: (type) => vm.defaultSortType.value = type,
                     );
                   },

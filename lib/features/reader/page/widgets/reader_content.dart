@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
-import 'package:zephyr_reader/features/reader/page/renderer/bilingual_renderer.dart';
-import 'package:zephyr_reader/features/reader/page/renderer/paginated_renderer.dart';
 import 'package:zephyr_reader/features/reader/page/renderer/reader_render_config.dart';
-import 'package:zephyr_reader/features/reader/page/renderer/scroll_mode_renderer.dart';
 import 'package:zephyr_reader/features/reader/page/ui/page_curl_widget.dart';
+import 'package:zephyr_reader/features/reader/page/renderer/paginated_renderer.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -28,25 +26,23 @@ class ReaderContent extends HookWidget {
   final String content;
   final bool isLoading;
   final String? error;
-  final BilingualAlignment? bilingualAlignment;
-  final bool isBilingualLoading;
-  final String? bilingualError;
   final ValueChanged<int>? onPageChanged;
-  final VoidCallback? onRequestTranslation;
   final VoidCallback? onRetry;
-  final VoidCallback? onRetryTranslation;
   final int? autoScrollTick;
   final List<Note> highlights;
   final void Function(String text, int start, int end)? onSelectionChanged;
   final void Function(Note)? onHighlightTap;
   final ValueChanged<Offset?>? onSelectionGlobalPosition;
   final WritingDirection writingDirection;
-  final bool showSentenceSplit;
   final int? jumpToCharOffset;
   final ValueChanged<int>? onPositionChanged;
   final VoidCallback? onReachEnd;
   final bool hasNextChapter;
   final VoidCallback? onJumpHandled;
+
+  final Widget Function(BuildContext context, ScrollController scrollController) scrollBuilder;
+  final Widget Function(BuildContext context, ScrollController scrollController, List<BilingualHighlightPair> bilingualPairs) bilingualBuilder;
+  final Widget Function(BuildContext context, PageController pageController) paginatedBuilder;
 
   const ReaderContent({
     super.key,
@@ -59,13 +55,11 @@ class ReaderContent extends HookWidget {
     required this.readingMode,
     required this.content,
     required this.isLoading,
+    required this.scrollBuilder,
+    required this.bilingualBuilder,
+    required this.paginatedBuilder,
     this.error,
-    this.bilingualAlignment,
-    this.isBilingualLoading = false,
-    this.bilingualError,
     this.onPageChanged,
-    this.onRequestTranslation,
-    this.onRetryTranslation,
     this.onRetry,
     this.autoScrollTick,
     this.highlights = const [],
@@ -73,7 +67,6 @@ class ReaderContent extends HookWidget {
     this.onHighlightTap,
     this.onSelectionGlobalPosition,
     this.writingDirection = WritingDirection.horizontal,
-    this.showSentenceSplit = false,
     this.jumpToCharOffset,
     this.onPositionChanged,
     this.onJumpHandled,
@@ -150,7 +143,7 @@ class ReaderContent extends HookWidget {
       if (autoScrollTick == null) return null;
 
       if (readingMode == ReadingMode.scroll && scrollController.hasClients) {
-        final scrollAmount = renderConfig.fontSize * renderConfig.lineHeight * 3;
+        final scrollAmount = renderConfig.textRowHeight * 3;
         final newPosition = scrollController.offset + scrollAmount;
         if (newPosition < scrollController.position.maxScrollExtent) {
           scrollController.animateTo(
@@ -199,7 +192,7 @@ class ReaderContent extends HookWidget {
 
         // Auto-next-chapter: detect near bottom of scroll
         if (onReachEnd != null && !isLoading) {
-          final threshold = renderConfig.fontSize * renderConfig.lineHeight * 1.5;
+          final threshold = renderConfig.textRowHeight * 1.5;
           if (scrollController.offset >= maxExtent - threshold) {
             if (!reachEndTriggered.value) {
               reachEndTriggered.value = true;
@@ -222,15 +215,10 @@ class ReaderContent extends HookWidget {
           // 新版：使用描述符
           final descriptors = repo.descriptors;
           if (descriptors != null && descriptors.isNotEmpty) {
-            final targetIndex = (() {
-              for (int i = 0; i < descriptors.length; i++) {
-                if (jumpToCharOffset! >= descriptors[i].startOffset &&
-                    jumpToCharOffset! < descriptors[i].endOffset) {
-                  return i;
-                }
-              }
-              return descriptors.length - 1;
-            })();
+            final targetIndex = _indexForCharOffset(
+              descriptors, jumpToCharOffset!,
+              (d) => d.startOffset, (d) => d.endOffset,
+            );
             if (pageController.hasClients) {
               pageController.jumpToPage(targetIndex);
             }
@@ -240,15 +228,10 @@ class ReaderContent extends HookWidget {
             // 旧版：使用预计算的全量 PageInfo
             final pages = repo.currentPages;
             if (pages != null && pages.isNotEmpty) {
-              final targetIndex = (() {
-                for (int i = 0; i < pages.length; i++) {
-                  if (jumpToCharOffset! >= pages[i].startOffset &&
-                      jumpToCharOffset! < pages[i].endOffset) {
-                    return i;
-                  }
-                }
-                return pages.length - 1;
-              })();
+              final targetIndex = _indexForCharOffset(
+                pages, jumpToCharOffset!,
+                (p) => p.startOffset, (p) => p.endOffset,
+              );
               if (pageController.hasClients) {
                 pageController.jumpToPage(targetIndex);
               }
@@ -273,9 +256,6 @@ class ReaderContent extends HookWidget {
       });
       return null;
     }, [jumpToCharOffset, readingMode, bookId, chapterId, content]);
-    // Must call useRef unconditionally (hook ordering rule).
-    // ignore: unused_local_variable
-    final prevPageIndex = useRef(pageIndex);
     // 跨章节 slide 方向追踪（在 pageTurn/pagination 条件返回前声明）
     final prevChapterId = useRef<int?>(null);
     final isForward = prevChapterId.value != null &&
@@ -345,14 +325,9 @@ class ReaderContent extends HookWidget {
 
     final contentWidget = _buildContent(
       context,
-      content,
-      isLoading,
-      error,
       pageController,
       scrollController,
-      repo,
       bilingualPairs.value,
-      renderConfig,
     );
 
     if (readingMode == ReadingMode.pagination) {
@@ -383,39 +358,26 @@ class ReaderContent extends HookWidget {
 
   Widget _buildContent(
     BuildContext context,
-    String content,
-    bool isLoading,
-    String? error,
     PageController pageController,
     ScrollController scrollController,
-    ReaderRepository repo,
     List<BilingualHighlightPair> bilingualPairs,
-    ReaderRenderConfig renderConfig,
   ) {
     final l10n = AppLocalizations.of(context)!;
-
+    final error = this.error;
     if (isLoading) {
-      // 分段读取模式下首屏文字在 ~100ms 内到达，
-      // 骨架屏仅闪烁一帧反而影响体验，直接占位。
       return const SizedBox(key: ValueKey('reader_loading'));
     }
-
     if (error != null) {
       return Center(
         key: const ValueKey('reader_error'),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              PhosphorIconsRegular.warningCircle,
-              size: 64,
-              color: Colors.red[300],
-            ),
-            Text(
-              l10n.chapterLoadFailed(error),
+            Icon(PhosphorIconsRegular.warningCircle, size: 64,
+              color: Colors.red[300]),
+            Text(l10n.chapterLoadFailed(error),
               style: const TextStyle(fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
+              textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton(onPressed: onRetry, child: Text(l10n.retry)),
           ],
@@ -425,63 +387,33 @@ class ReaderContent extends HookWidget {
     if (content.isEmpty) {
       return Center(child: Text(l10n.contentEmpty));
     }
-
-    if (readingMode == ReadingMode.scroll) {
-      return RepaintBoundary(
-        child: ScrollModeRenderer(
-          config: renderConfig,
-          scrollController: scrollController,
-          repo: repo,
-          bookId: bookId,
-          chapterId: chapterId,
-          content: content,
-          highlights: highlights,
-          onHighlightTap: onHighlightTap,
-          onSelectionChanged: onSelectionChanged,
-          onSelectionGlobalPosition: onSelectionGlobalPosition,
-          writingDirection: writingDirection,
-          showSentenceSplit: showSentenceSplit,
-        ),
-      );
-    } else if (readingMode == ReadingMode.bilingual) {
-      return RepaintBoundary(
-        child: BilingualModeRenderer(
-          config: renderConfig,
-          scrollController: scrollController,
-          bilingualPairs: bilingualPairs,
-          isBilingualLoading: isBilingualLoading,
-          bilingualError: bilingualError,
-          bilingualAlignment: bilingualAlignment,
-          highlights: highlights,
-          onRequestTranslation: onRequestTranslation,
-          onRetryTranslation: onRetryTranslation,
-          onHighlightTap: onHighlightTap,
-          onSelectionChanged: onSelectionChanged,
-          onSelectionGlobalPosition: onSelectionGlobalPosition,
-          writingDirection: writingDirection,
-        ),
-      );
-    } else {
-      return RepaintBoundary(
-        child: PaginatedModeRenderer(
-          config: renderConfig,
-          pageController: pageController,
-          repo: repo,
-          bookId: bookId,
-          chapterId: chapterId,
-          pageIndex: pageIndex,
-          content: content,
-          highlights: highlights,
-          readingMode: readingMode,
-          onHighlightTap: onHighlightTap,
-          onSelectionChanged: onSelectionChanged,
-          onSelectionGlobalPosition: onSelectionGlobalPosition,
-          onPageChanged: onPageChanged,
-          onPositionChanged: onPositionChanged,
-          writingDirection: writingDirection,
-        ),
-      );
+    switch (readingMode) {
+      case ReadingMode.scroll:
+        return RepaintBoundary(child: scrollBuilder(context, scrollController));
+      case ReadingMode.bilingual:
+        return RepaintBoundary(child: bilingualBuilder(context, scrollController, bilingualPairs));
+      case ReadingMode.pagination:
+        return RepaintBoundary(child: paginatedBuilder(context, pageController));
+      case ReadingMode.pageTurn:
+        return const SizedBox.shrink();
     }
+  }
+
+  /// 在 [items] 中查找 [charOffset] 所在的区间 [startOffset, endOffset)。
+  /// 返回第一个匹配的索引；无匹配时返回最后一项的索引。
+  static int _indexForCharOffset<T>(
+    List<T> items,
+    int charOffset,
+    int Function(T) startOffset,
+    int Function(T) endOffset,
+  ) {
+    for (int i = 0; i < items.length; i++) {
+      final item = items[i];
+      if (charOffset >= startOffset(item) && charOffset < endOffset(item)) {
+        return i;
+      }
+    }
+    return items.length - 1;
   }
 
   static Color getTextColor(ThemeMode themeMode) {

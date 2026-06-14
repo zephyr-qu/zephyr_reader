@@ -1,15 +1,13 @@
-/// 阅读器数据仓库，封装 Rust FFI 调用。
-library;
-
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:injectable/injectable.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/data/rich_text_converter.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/chapter.dart' as chapter_api;
@@ -17,39 +15,23 @@ import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
 import 'package:zephyr_reader/src/rust/api/epub.dart' as epub_api;
 import 'package:zephyr_reader/src/rust/api/md.dart' as md_api;
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
-import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
+import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-
-/// 阅读进度数据
-class ReadingProgressData {
-  final String bookId;
-  final int chapterIndex;
-  final int charOffset;
-  final int pageIndex;
-  final int totalPages;
-  final int readingTimeSeconds;
-  final DateTime lastReadAt;
-  ReadingProgressData({
-    required this.bookId,
-    required this.chapterIndex,
-    required this.charOffset,
-    required this.pageIndex,
-    required this.totalPages,
-    required this.readingTimeSeconds,
-    required this.lastReadAt,
-  });
-}
+import '../../domain/reader_repository_interface.dart';
 
 @Injectable()
-class ReaderRepository {
+class ReaderRepository implements ReaderRepositoryInterface {
   ReadingProgressData? _currentProgress;
 
   /// 当前章节的分页结果
+  @override
   List<PageInfo>? currentPages;
 
   /// 当前章节的富文本内容（EPUB）
+  @override
   TextSpan? currentRichContent;
+  @override
   List<RichParagraph>? currentRichParagraphs;
 
   /// 页面描述符列表（轻量级，不包含文本内容）
@@ -78,13 +60,16 @@ class ReaderRepository {
   String? _preloadedNextPageContent;
 
   /// 每次预加载完成时递增，供 UI 监听重建。
+  @override
   final preloadGeneration = ValueNotifier<int>(0);
 
   /// 是否有预加载的下一章首页
+  @override
   bool get hasPreloadedNextChapter =>
       _preloadedNextChapterIdx != null && _preloadedNextPageContent != null;
 
   /// 获取预加载的下一章指定页内容（[pageIndex] 相对下一章首页 0）
+  @override
   String? getPreloadedNextChapterContent(
     int chapterIndex, {
     int pageIndex = 0,
@@ -96,6 +81,7 @@ class ReaderRepository {
   }
 
   /// 预加载下一章节的首页文本，用于跨章节翻页动画。
+  @override
   Future<void> preloadNextChapterFirstPage(
     String bookId,
     int chapterIndex, {
@@ -123,6 +109,7 @@ class ReaderRepository {
     }
   }
 
+  @override
   void clearPreloadedNextChapter() {
     _preloadedNextChapterIdx = null;
     _preloadedNextPageContent = null;
@@ -146,8 +133,23 @@ class ReaderRepository {
   }
 
   /// 公开 getter：页面描述符列表
+  @override
   List<PageDescriptor>? get descriptors => _descriptors;
 
+
+  TypesetConfig _buildConfig(PaginationParams p) => buildTypesetConfig(
+        width: p.width,
+        height: p.height,
+        fontSize: p.fontSize,
+        lineHeight: p.lineHeight,
+        padding: p.padding,
+        devicePixelRatio: p.devicePixelRatio,
+        calibration: p.calibration,
+        fontFamily: p.fontFamily,
+        letterSpacing: p.letterSpacing,
+        paragraphSpacing: p.paragraphSpacing,
+        punctuationSqueeze: p.punctuationSqueeze,
+      );
 
   /// 轻量级分页排版（只获取页面描述符，文本按需加载）。
   ///
@@ -164,11 +166,17 @@ class ReaderRepository {
     if (book.filePath.isEmpty) {
       throw Exception('_paginateChapter: book not found for bookId=$bookId');
     }
+    final sw = Stopwatch()..start();
     final result = await _pagination.paginateChapter(
       filePath: book.filePath,
       chapterIndex: chapterIndex,
       config: config,
       maxChars: maxChars,
+    );
+    final tRust = sw.elapsedMilliseconds;
+    Logging.info(
+      '[Timing] Rust paginateChapter: ${tRust}ms '
+      '(maxChars=${maxChars ?? "full"}, isPartial=${result.isPartial}, pages=${result.descriptors.length})',
     );
     _filePath = book.filePath;
     _chapterIndex = chapterIndex;
@@ -189,35 +197,14 @@ class ReaderRepository {
   ///
   /// 在部分分页之后调用。保留已有 pageCache，不再清空。
   /// 只对新扩展的页面进行预加载。
+  @override
   Future<int> paginateChapter({
     required String bookId,
     required int chapterIndex,
-    required double fontSize,
-    required double lineHeight,
-    required double width,
-    required double height,
-    required double padding,
-    double devicePixelRatio = 1.0,
-    CalibrationData? calibration,
-    String fontFamily = 'Noto Sans SC',
-    double letterSpacing = 0,
-    double paragraphSpacing = 16,
-    bool punctuationSqueeze = true,
+    required PaginationParams params,
   }) async {
     try {
-      final config = buildTypesetConfig(
-        width: width,
-        height: height,
-        fontSize: fontSize,
-        lineHeight: lineHeight,
-        padding: padding,
-        devicePixelRatio: devicePixelRatio,
-        calibration: calibration,
-        fontFamily: fontFamily,
-        letterSpacing: letterSpacing,
-        paragraphSpacing: paragraphSpacing,
-        punctuationSqueeze: punctuationSqueeze,
-      );
+      final config = _buildConfig(params);
       final oldLength = _descriptors?.length ?? 0;
       final result = await _paginateChapter(
         bookId: bookId,
@@ -236,40 +223,14 @@ class ReaderRepository {
     }
   }
 
-  /// 快速分页：只读取前 N 字符进行惰性分页（只转换必要的 spine）。
-  ///
-  /// 相比完整 `paginateChapter`（可能需 5s+），此方法在 ~300ms 内返回
-  /// 最初的 ~100-200 页的真实描述符，让用户可以立即翻页。
-  /// 返回 `(totalPages, isPartial)`，调用方根据 `isPartial` 决定是否需补全。
+  @override
   Future<({int totalPages, bool isPartial})> paginateChapterPartial({
     required String bookId,
     required int chapterIndex,
-    required double fontSize,
-    required double lineHeight,
-    required double width,
-    required double height,
-    required double padding,
-    double devicePixelRatio = 1.0,
-    CalibrationData? calibration,
-    String fontFamily = 'Noto Sans SC',
-    double letterSpacing = 0,
-    double paragraphSpacing = 16,
-    bool punctuationSqueeze = true,
+    required PaginationParams params,
   }) async {
     try {
-      final config = buildTypesetConfig(
-        width: width,
-        height: height,
-        fontSize: fontSize,
-        lineHeight: lineHeight,
-        padding: padding,
-        devicePixelRatio: devicePixelRatio,
-        calibration: calibration,
-        fontFamily: fontFamily,
-        letterSpacing: letterSpacing,
-        paragraphSpacing: paragraphSpacing,
-        punctuationSqueeze: punctuationSqueeze,
-      );
+      final config = _buildConfig(params);
       final result = await _paginateChapter(
         bookId: bookId,
         chapterIndex: chapterIndex,
@@ -285,6 +246,7 @@ class ReaderRepository {
     }
   }
 
+  @override
   String? getPageContent(int pageIndex) {
     if (_pageCache.containsKey(pageIndex)) {
       return _pageCache[pageIndex];
@@ -325,6 +287,7 @@ class ReaderRepository {
   /// 确保指定页面及其周围页面的内容已缓存。
   ///
   /// 同步获取 `centerPage`，同时异步预加载周围 ±3 页。
+  @override
   void ensurePageWindow(int centerPage) {
     if (_descriptors == null) return;
 
@@ -353,6 +316,7 @@ class ReaderRepository {
     _pageCache.removeWhere((key, _) => (key - center).abs() > 5);
   }
 
+  @override
   Future<List<Chapter>> getChapters(String bookId) async {
     return chapter_api.listChaptersByBook(bookId: bookId);
   }
@@ -361,6 +325,7 @@ class ReaderRepository {
   ///
   /// 用于分段读取的首屏渲染，通常在 ~100ms 内完成。
   /// 返回文本通常是章节前 2000 字符，用于第 0 页的近似渲染。
+  @override
   Future<String> loadChapterFirstSpine(String bookId, int chapterId) async {
     final book = await _getBook(bookId);
     if (book.filePath.isEmpty) {
@@ -374,6 +339,7 @@ class ReaderRepository {
   }
   // ===== From ChapterContentService =====
 
+  @override
   Future<String> loadChapterContent(String bookId, int chapterId,
       {ReadingMode? readingMode}) async {
     final sw = Stopwatch()..start();
@@ -482,6 +448,7 @@ class ReaderRepository {
     }
   }
 
+  @override
   Future<List<PageInfo>> calculatePages({
     required String bookId,
     required int chapterId,
@@ -493,7 +460,7 @@ class ReaderRepository {
   }) async {
     // 统一走字符估算分页：毫秒级完成，SelectableText 渲染时自行精确换行
     final content = await loadChapterContent(bookId, chapterId);
-    final pages = _paginateApproximate(
+    final pages = PaginationEngine.paginateApproximate(
       content,
       fontSize: fontSize,
       lineHeight: lineHeight,
@@ -505,34 +472,33 @@ class ReaderRepository {
     return pages;
   }
 
-  /// 字符估算分页（无需 TextPainter，毫秒级）
-  List<PageInfo> _paginateApproximate(
-    String content, {
-    required double fontSize,
-    required double lineHeight,
-    required double width,
-    required double height,
-    required double padding,
-  }) {
-    return PaginationEngine.paginateApproximate(
-      content,
-      fontSize: fontSize,
-      lineHeight: lineHeight,
-      width: width,
-      height: height,
-      padding: padding,
+
+  /// 仅获取纯文本内容（跳过 EPUB/MD 富文本处理）。
+  Future<String> _loadRawContent(String bookId, int chapterId) async {
+    final book = await _getBook(bookId);
+    if (book.filePath.isEmpty) {
+      throw Exception('Book not found: $bookId');
+    }
+    final result = await core_api.getChapter(
+      filePath: book.filePath,
+      chapterIndex: chapterId,
+    );
+    return result.when(
+      raw: (text) => text,
+      pages: (pages) => pages.map((p) => p.content).join('\n\n'),
     );
   }
 
-  /// 预加载章节内容（静默失败）
+  @override
   Future<void> preloadChapter(String bookId, int chapterId) async {
     try {
-      await loadChapterContent(bookId, chapterId);
+      await _loadRawContent(bookId, chapterId);
     } catch (e) {
       Logging.error('章节预加载失败', exception: e);
     }
   }
 
+  @override
   Future<ReadingProgressData?> loadReadingProgress(String bookId) async {
     if (_currentProgress != null && _currentProgress!.bookId == bookId) {
       return _currentProgress;
@@ -552,6 +518,7 @@ class ReaderRepository {
   }
 
   /// 对任意文本做近似分页（用于首屏快速估算）。
+  @override
   List<PageInfo> paginateApproximate(
     String content, {
     required double fontSize,
@@ -560,7 +527,7 @@ class ReaderRepository {
     required double height,
     required double padding,
   }) {
-    return _paginateApproximate(
+    return PaginationEngine.paginateApproximate(
       content,
       fontSize: fontSize,
       lineHeight: lineHeight,
@@ -571,6 +538,7 @@ class ReaderRepository {
   }
 
   /// 手动预热单个页面缓存（用于分段读取首屏）。
+  @override
   void warmPageCache(int pageIndex, String content) {
     _pageCache[pageIndex] = content;
   }

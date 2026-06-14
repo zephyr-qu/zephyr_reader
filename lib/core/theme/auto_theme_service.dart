@@ -29,6 +29,10 @@ class AutoThemeService {
   /// 当前主题模式
   final themeMode = signal<ThemeMode>(ThemeMode.system);
 
+  /// 定时触发 tick，供 app.dart 的 useSignalEffect 订阅。
+  /// _updateThemeMode 在定时器触发时递增此值，通知 app 重新计算主题。
+  final autoThemeTick = signal<int>(0);
+
   /// 当前小时是否在深色模式时间窗口内（支持跨天区间）
   static bool _isDarkHour(int currentHour, int startHour, int endHour) {
     if (startHour > endHour) {
@@ -80,7 +84,7 @@ class AutoThemeService {
       darkModeEndHour.value,
     );
     themeMode.value = isDark ? ThemeMode.dark : ThemeMode.light;
-    Logging.debug('自动主题切换${isDark ? "深色" : "浅色"} 模式');
+    autoThemeTick.value++;
   }
 
   /// 距离下一次主题切换的时长（精确到分钟）
@@ -151,6 +155,7 @@ class AutoThemeService {
     darkModeEndHour.dispose();
     themeMode.dispose();
     _autoSwitchTimer?.cancel();
+    autoThemeTick.dispose();
   }
 }
 

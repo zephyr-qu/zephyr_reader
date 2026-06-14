@@ -5,7 +5,7 @@ import 'package:zephyr_reader/core/settings/settings_keys.dart';
 
 /// TTS 设置 ViewModel
 ///
-/// 使用 [persisted]<T> 管理 TTS 所有设置项，
+/// 使用 [persisted] 管理 TTS 所有设置项，
 /// 赋值时自动持久化到 PreferencesService（带 debounce），无需手动 _save。
 @injectable
 class TtsSettingsViewModel {

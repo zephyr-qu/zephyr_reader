@@ -29,6 +29,8 @@ import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_mode
     as _i790;
 import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart'
     as _i5;
+import 'package:zephyr_reader/features/profile/application/dictionary_settings_view_model.dart'
+    as _i236;
 import 'package:zephyr_reader/features/profile/application/other_settings_view_model.dart'
     as _i362;
 import 'package:zephyr_reader/features/profile/application/theme_brightness_view_model.dart'
@@ -95,6 +97,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i985.PreferencesService>(),
         gh<_i5.CategoryViewModel>(),
       ),
+    );
+    gh.factory<_i236.DictionarySettingsViewModel>(
+      () => _i236.DictionarySettingsViewModel(gh<_i985.PreferencesService>()),
     );
     gh.factory<_i362.OtherSettingsViewModel>(
       () => _i362.OtherSettingsViewModel(gh<_i985.PreferencesService>()),

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
-
-import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/core/app_config.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 显示分类选择弹窗（多选 CheckboxListTile）。
 ///
@@ -101,7 +100,7 @@ Future<bool> showDeleteBookDialog(BuildContext context, Book book) async {
 }
 
 /// 显示编辑元数据对话框
-Future<Map<String, String>?> showEditMetadataDialog(
+Future<Book?> showEditMetadataDialog(
   BuildContext context,
   Book book,
 ) async {
@@ -177,12 +176,7 @@ Future<Map<String, String>?> showEditMetadataDialog(
 
   if (result != null) {
     try {
-      final updated = Book(
-        bookId: book.bookId,
-        filePath: book.filePath,
-        fileHash: book.fileHash,
-        fileSize: book.fileSize,
-        fileMtime: book.fileMtime,
+      final updated = book.copyWith(
         title: result['title'] ?? book.title,
         author: result['author']?.isNotEmpty == true ? result['author'] : null,
         description: result['description']?.isNotEmpty == true
@@ -195,17 +189,9 @@ Future<Map<String, String>?> showEditMetadataDialog(
             ? result['translator']
             : null,
         isbn: result['isbn']?.isNotEmpty == true ? result['isbn'] : null,
-        coverPath: book.coverPath,
-        chapterCount: book.chapterCount,
-        totalCharacters: book.totalCharacters,
-        format: book.format,
-        addedAt: book.addedAt,
-        lastOpenedAt: book.lastOpenedAt,
-        status: book.status,
-        isPinned: book.isPinned,
       );
       await book_api.upsertBook(book: updated);
-      return result;
+      return updated;
     } catch (e) {
       Logging.error('Failed to save book metadata', exception: e);
       return null;

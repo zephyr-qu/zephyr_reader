@@ -69,6 +69,9 @@ void main() {
             content: 'Page content text.',
             isLoading: false,
             highlights: const [],
+            scrollBuilder: (_, __) => const SizedBox(),
+            bilingualBuilder: (_, __, ___) => const SizedBox(),
+            paginatedBuilder: (_, __) => const SizedBox(),
           ),
         ),
       );
@@ -106,6 +109,9 @@ void main() {
             content: '',
             isLoading: true,
             highlights: const [],
+            scrollBuilder: (_, __) => const SizedBox(),
+            bilingualBuilder: (_, __, ___) => const SizedBox(),
+            paginatedBuilder: (_, __) => const SizedBox(),
           ),
         ),
       );
@@ -145,6 +151,9 @@ void main() {
             content: 'Scroll mode content.',
             isLoading: false,
             highlights: const [],
+            scrollBuilder: (_, __) => const SizedBox(),
+            bilingualBuilder: (_, __, ___) => const SizedBox(),
+            paginatedBuilder: (_, __) => const SizedBox(),
           ),
         ),
       );
@@ -183,6 +192,9 @@ void main() {
             content: 'Pagination mode content.',
             isLoading: false,
             highlights: const [],
+            scrollBuilder: (_, __) => const SizedBox(),
+            bilingualBuilder: (_, __, ___) => const SizedBox(),
+            paginatedBuilder: (_, __) => const SizedBox(),
           ),
         ),
       );
@@ -220,6 +232,9 @@ void main() {
             content: 'Content.',
             isLoading: false,
             highlights: const [],
+            scrollBuilder: (_, __) => const SizedBox(),
+            bilingualBuilder: (_, __, ___) => const SizedBox(),
+            paginatedBuilder: (_, __) => const SizedBox(),
           ),
         ),
       );
@@ -260,6 +275,9 @@ void main() {
             content: 'Content.',
             isLoading: false,
             highlights: const [],
+            scrollBuilder: (_, __) => const SizedBox(),
+            bilingualBuilder: (_, __, ___) => const SizedBox(),
+            paginatedBuilder: (_, __) => const SizedBox(),
           ),
         ),
       );

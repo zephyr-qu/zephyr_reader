@@ -6,15 +6,11 @@ import 'package:zephyr_reader/features/bookshelf/model/bookshelf_sort_type.dart'
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 class SortSettingTile extends StatelessWidget {
-  final String label;
-  final String dialogTitle;
   final BookshelfSortType currentSortType;
   final ValueChanged<BookshelfSortType> onChanged;
 
   const SortSettingTile({
     super.key,
-    required this.label,
-    required this.dialogTitle,
     required this.currentSortType,
     required this.onChanged,
   });
@@ -45,7 +41,7 @@ class SortSettingTile extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            label,
+            l10n.defaultSort,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -62,7 +58,7 @@ class SortSettingTile extends StatelessWidget {
                 final result = await showDialog<BookshelfSortType>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: Text(dialogTitle),
+                    title: Text(l10n.sortDialogTitle),
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: BookshelfSortType.values.map((type) {

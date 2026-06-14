@@ -28,6 +28,7 @@ class ZephyrReaderApp extends HookWidget {
     // 写入 themeType 不会触发回路——themeType 不被 autoTheme 读取，
     // 且 isDarkModeTime 基于系统时间（独立于 themeType）。
     useSignalEffect(() {
+      autoTheme.autoThemeTick.value; // 订阅定时器触发
       if (autoTheme.autoThemeEnabled.value) {
         themeManager.themeType.value = autoTheme.isDarkModeTime
             ? AppThemeType.dark

@@ -129,6 +129,16 @@ pub async fn get_category(category_id: String) -> Result<Option<Category>, AppEr
     async_storage!(|pool| CategoryRepository::find_by_id(pool, &category_id))
 }
 
+/// 批量重排分类顺序（原子操作）
+///
+/// 接收已更新 `sort_order` 的分类列表，在事务内一次性写入所有排序值。
+/// 替代 Dart 侧 N 次串行 `updateCategory` 调用，避免部分更新风险。
+#[frb]
+pub async fn reorder_categories(categories: Vec<Category>) -> Result<(), AppError> {
+    let pool = crate::storage::ensure_storage()?.pool()?;
+    CategoryRepository::reorder(&pool, &categories).await
+}
+
 /// 获取书籍的所有分类列表
 ///
 /// # 参数

@@ -192,20 +192,13 @@ class CategoryManagementPage extends HookWidget {
     final item = categories.removeAt(oldIndex);
     categories.insert(newIndex, item);
 
-    for (int i = 0; i < categories.length; i++) {
-      if (categories[i].sortOrder != i) {
-        final oldCategory = categories[i];
-        final updated = Category(
-          id: oldCategory.id,
-          name: oldCategory.name,
-          color: oldCategory.color,
-          sortOrder: i,
-          isSystem: oldCategory.isSystem,
-        );
-        categories[i] = updated;
-        await catVm.updateCategory(updated);
-      }
-    }
+    final reordered = categories
+        .asMap()
+        .entries
+        .map((e) => e.value.copyWith(sortOrder: e.key))
+        .toList();
+    await catVm.reorderCategories(reordered);
+    await catVm.loadCategories();
   }
 
   void _showAddCategoryDialog(
@@ -215,6 +208,7 @@ class CategoryManagementPage extends HookWidget {
     CategoryViewModel catVm,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
     nameController.clear();
     String selectedColor = _colors.first.key;
 
@@ -237,7 +231,6 @@ class CategoryManagementPage extends HookWidget {
                 maxLength: 10,
               ),
               SizedBox(height: Spacing.md.value),
-              const SizedBox.shrink(),
               const SizedBox(height: 12),
               Wrap(
                 spacing: Spacing.sm.value,
@@ -303,7 +296,7 @@ class CategoryManagementPage extends HookWidget {
                 );
                 if (!context.mounted) return;
                 Navigator.pop(context);
-                showInfoSnack(context, success ? l10n.success : l10n.failed);
+                messenger.showSnackBar(SnackBar(content: Text(success ? l10n.success : l10n.failed)));
               },
               child: Text(l10n.addCategory),
             ),
@@ -321,6 +314,7 @@ class CategoryManagementPage extends HookWidget {
     CategoryViewModel catVm,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
     nameController.text = category.name;
     String selectedColor = category.color;
 
@@ -342,7 +336,6 @@ class CategoryManagementPage extends HookWidget {
                 maxLength: 10,
               ),
               SizedBox(height: Spacing.md.value),
-              const SizedBox.shrink(),
               const SizedBox(height: 12),
               Wrap(
                 spacing: Spacing.sm.value,
@@ -405,13 +398,14 @@ class CategoryManagementPage extends HookWidget {
                   id: category.id,
                   name: name,
                   color: selectedColor,
+                  description: category.description,
                   sortOrder: category.sortOrder,
                   isSystem: category.isSystem,
                 );
                 final success = await catVm.updateCategory(updated);
                 if (!context.mounted) return;
                 Navigator.pop(context);
-                showInfoSnack(context, success ? l10n.success : l10n.failed);
+                messenger.showSnackBar(SnackBar(content: Text(success ? l10n.success : l10n.failed)));
               },
               child: Text(l10n.save),
             ),
@@ -428,6 +422,7 @@ class CategoryManagementPage extends HookWidget {
     CategoryViewModel catVm,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -443,7 +438,7 @@ class CategoryManagementPage extends HookWidget {
               Navigator.pop(context);
               final success = await catVm.removeCategory(category.id);
               if (!context.mounted) return;
-              showInfoSnack(context, success ? l10n.success : l10n.failed);
+              messenger.showSnackBar(SnackBar(content: Text(success ? l10n.success : l10n.failed)));
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.colorScheme.error,

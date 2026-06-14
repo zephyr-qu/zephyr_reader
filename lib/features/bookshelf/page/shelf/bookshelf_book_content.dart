@@ -19,7 +19,6 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 /// 书架书籍内容网格。
 class BookshelfBookContent extends StatelessWidget {
   final AsyncState<List<BookshelfBook>> asyncBooks;
-  final int crossAxisCount;
   final bool batchMode;
   final Set<String> selectedIds;
   final VoidCallback onImportTap;
@@ -30,7 +29,6 @@ class BookshelfBookContent extends StatelessWidget {
   const BookshelfBookContent({
     super.key,
     required this.asyncBooks,
-    required this.crossAxisCount,
     required this.batchMode,
     required this.selectedIds,
     required this.onImportTap,
@@ -72,15 +70,23 @@ class BookshelfBookContent extends StatelessWidget {
 
     content = slideFromRight
         ? content
-            .animate(delay: (index * 80).ms)
-            .fadeIn(duration: 400.ms, curve: Curves.easeOutCubic)
-            .slideX(
-              begin: 0.05, end: 0, duration: 400.ms, curve: Curves.easeOutCubic)
+              .animate(delay: (index * 80).ms)
+              .fadeIn(duration: 400.ms, curve: Curves.easeOutCubic)
+              .slideX(
+                begin: 0.05,
+                end: 0,
+                duration: 400.ms,
+                curve: Curves.easeOutCubic,
+              )
         : content
-            .animate(delay: (index * 80).ms)
-            .fadeIn(duration: 400.ms, curve: Curves.easeOutCubic)
-            .slideY(
-              begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutCubic);
+              .animate(delay: (index * 80).ms)
+              .fadeIn(duration: 400.ms, curve: Curves.easeOutCubic)
+              .slideY(
+                begin: 0.1,
+                end: 0,
+                duration: 400.ms,
+                curve: Curves.easeOutCubic,
+              );
 
     content = InkWell(
       onTap: batchMode
@@ -192,56 +198,76 @@ class BookshelfBookContent extends StatelessWidget {
     );
   }
 
-  Widget _buildGridContent(BuildContext context, ThemeData theme, AppLocalizations l10n, List<BookshelfBook> books, bool showProgress) {
+  Widget _buildGridContent(
+    BuildContext context,
+    ThemeData theme,
+    AppLocalizations l10n,
+    List<BookshelfBook> books,
+    bool showProgress,
+  ) {
     final cs = theme.colorScheme;
-    return GridView.builder(
-      key: const Key('bookshelf_grid'),
-      itemCount: books.length,
-      physics: adaptiveScrollPhysics(
-        context,
-        physics: const AlwaysScrollableScrollPhysics(),
-      ),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        childAspectRatio: 0.62,
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 18,
-      ),
-      itemBuilder: (context, index) {
-        final book = books[index];
-        final selected = selectedIds.contains(book.bookId);
-        return _buildBookItemWrapper(
-          index: index,
-          book: book,
-          selected: selected,
-          child: Stack(
-            children: [
-              BookCover(
-                book: book,
-                statusLabel: _statusLabel(context, book.status.name),
-                progress: showProgress ? book.progress : null,
-              ),
-              if (batchMode)
-                Positioned(
-                  top: 4, right: 4,
-                  child: Icon(
-                    selected
-                        ? PhosphorIconsFill.checkCircle
-                        : PhosphorIconsRegular.circle,
-                    color: selected
-                        ? cs.primary
-                        : Colors.white.withValues(alpha: 0.6),
-                    size: 22,
-                  ),
-                ),
-            ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = LayoutBreakpoints.getGridCrossAxisCount(
+          constraints.maxWidth,
+        );
+        return GridView.builder(
+          key: const Key('bookshelf_grid'),
+          itemCount: books.length,
+          physics: adaptiveScrollPhysics(
+            context,
+            physics: const AlwaysScrollableScrollPhysics(),
           ),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: 0.62,
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 18,
+          ),
+          itemBuilder: (context, index) {
+            final book = books[index];
+            final selected = selectedIds.contains(book.bookId);
+            return _buildBookItemWrapper(
+              index: index,
+              book: book,
+              selected: selected,
+              child: Stack(
+                children: [
+                  BookCover(
+                    book: book,
+                    statusLabel: _statusLabel(context, book.status.name),
+                    progress: showProgress ? book.progress : null,
+                  ),
+                  if (batchMode)
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Icon(
+                        selected
+                            ? PhosphorIconsFill.checkCircle
+                            : PhosphorIconsRegular.circle,
+                        color: selected
+                            ? cs.primary
+                            : Colors.white.withValues(alpha: 0.6),
+                        size: 22,
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildListContent(BuildContext context, ThemeData theme, AppLocalizations l10n, List<BookshelfBook> books, bool showProgress) {
+  Widget _buildListContent(
+    BuildContext context,
+    ThemeData theme,
+    AppLocalizations l10n,
+    List<BookshelfBook> books,
+    bool showProgress,
+  ) {
     final cs = theme.colorScheme;
     return ListView.builder(
       key: const Key('bookshelf_list'),
@@ -259,7 +285,8 @@ class BookshelfBookContent extends StatelessWidget {
           book: book,
           selected: selected,
           outerPadding: EdgeInsets.only(
-            left: 4, right: 4,
+            left: 4,
+            right: 4,
             bottom: index < books.length - 1 ? 8 : 0,
           ),
           inkWellBorderRadius: BorderRadius.circular(RadiusSize.lg.value),
@@ -274,27 +301,51 @@ class BookshelfBookContent extends StatelessWidget {
                   children: [
                     DecoratedBox(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(RadiusSize.sm.value),
+                        borderRadius: BorderRadius.circular(
+                          RadiusSize.sm.value,
+                        ),
                         boxShadow: [DesignTokens.cardShadow],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(RadiusSize.sm.value),
+                        borderRadius: BorderRadius.circular(
+                          RadiusSize.sm.value,
+                        ),
                         child: SizedBox(
-                          width: 100, height: 150,
+                          width: 100,
+                          height: 150,
                           child: book.coverPath != null
                               ? Image.file(
                                   File(resolveCoverPath(book.coverPath!)!),
                                   fit: BoxFit.cover,
-                                  width: 100, height: 150,
+                                  width: 100,
+                                  height: 150,
                                   cacheWidth: 200,
                                   errorBuilder: (_, _, _) => Container(
-                                    color: cs.primaryContainer.withValues(alpha: 0.5),
-                                    child: Center(child: Icon(PhosphorIconsRegular.book, size: 28, color: cs.primary.withValues(alpha: 0.35))),
+                                    color: cs.primaryContainer.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                    child: Center(
+                                      child: Icon(
+                                        PhosphorIconsRegular.book,
+                                        size: 28,
+                                        color: cs.primary.withValues(
+                                          alpha: 0.35,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 )
                               : Container(
-                                  color: cs.primaryContainer.withValues(alpha: 0.5),
-                                  child: Center(child: Icon(PhosphorIconsRegular.book, size: 28, color: cs.primary.withValues(alpha: 0.35))),
+                                  color: cs.primaryContainer.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      PhosphorIconsRegular.book,
+                                      size: 28,
+                                      color: cs.primary.withValues(alpha: 0.35),
+                                    ),
+                                  ),
                                 ),
                         ),
                       ),
@@ -377,7 +428,9 @@ class BookshelfBookContent extends StatelessWidget {
                         onChanged: (_) {
                           if (selected) {
                             onSelectionChanged(
-                              selectedIds.where((id) => id != book.bookId).toSet(),
+                              selectedIds
+                                  .where((id) => id != book.bookId)
+                                  .toSet(),
                             );
                           } else {
                             onSelectionChanged({...selectedIds, book.bookId});
