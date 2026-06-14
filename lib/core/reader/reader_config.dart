@@ -147,10 +147,6 @@ class ReaderConfig {
   /// 亮度遮罩（0.0–1.0，瞬态不持久化）
   final brightnessOverlay = signal<double>(0.0);
 
-  // ==================== 计算属性 ====================
-
-  /// 页边距兼容别名（→ padding）
-  double get pageMargin => padding.value;
 
   ReaderConfig(this.prefs);
 
@@ -190,8 +186,4 @@ class ReaderConfig {
     writingDirection.dispose();
     brightnessOverlay.dispose();
   }
-}
-
-extension ReaderConfigSignals on ReaderConfig {
-  ReadonlySignal<double> get fontSizeDouble => computed(() => fontSize.value);
 }

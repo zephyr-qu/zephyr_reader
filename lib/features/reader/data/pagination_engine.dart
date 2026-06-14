@@ -1,4 +1,3 @@
-import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
@@ -11,7 +10,7 @@ class PageInfo {
   final String content;
   final int startOffset;
   final int endOffset;
-  PageInfo({
+  const PageInfo({
     required this.pageIndex,
     required this.content,
     required this.startOffset,
@@ -34,19 +33,12 @@ class PaginationEngine {
     required TypesetConfig config,
     BigInt? maxChars,
   }) async {
-    final sw = Stopwatch()..start();
-    final result = await core_api.paginateChapter(
+    return core_api.paginateChapter(
       filePath: filePath,
       chapterIndex: chapterIndex,
       config: config,
       maxChars: maxChars,
     );
-    final tRust = sw.elapsedMilliseconds;
-    Logging.info(
-      '[Timing] Rust paginateChapter: ${tRust}ms '
-      '(maxChars=${maxChars ?? "full"}, isPartial=${result.isPartial}, pages=${result.descriptors.length})',
-    );
-    return result;
   }
 
   /// 部分分页截止字符数（50K 字符）。
@@ -122,45 +114,45 @@ class PaginationEngine {
     return pages;
   }
 
-  /// 二分查找字符偏移所在的页码（PageInfo 列表）。
-  static int resolvePageIndexFromPageInfo(
-    List<PageInfo> pages,
-    int charOffset,
-  ) {
+  static int _resolvePageIndex<T>(
+    List<T> pages,
+    int charOffset, {
+    required int Function(T) getStart,
+    required int Function(T) getEnd,
+  }) {
     if (pages.isEmpty) return 0;
     int lo = 0, hi = pages.length - 1;
     while (lo <= hi) {
       final mid = (lo + hi) >> 1;
       final page = pages[mid];
-      if (charOffset < page.startOffset) {
+      if (charOffset < getStart(page)) {
         hi = mid - 1;
-      } else if (charOffset >= page.endOffset) {
+      } else if (charOffset >= getEnd(page)) {
         lo = mid + 1;
       } else {
         return mid;
       }
     }
-    return charOffset < pages[0].startOffset ? 0 : pages.length - 1;
+    return charOffset < getStart(pages[0]) ? 0 : pages.length - 1;
   }
+
+  /// 二分查找字符偏移所在的页码（PageInfo 列表）。
+  static int resolvePageIndexFromPageInfo(
+    List<PageInfo> pages,
+    int charOffset,
+  ) =>
+      _resolvePageIndex(pages, charOffset,
+        getStart: (p) => p.startOffset,
+        getEnd: (p) => p.endOffset,
+      );
 
   /// 二分查找字符偏移所在的页码（PageDescriptor 列表）。
   static int resolvePageIndexForOffset(
     List<PageDescriptor> descriptors,
     int charOffset,
-  ) {
-    if (descriptors.isEmpty) return 0;
-    int lo = 0, hi = descriptors.length - 1;
-    while (lo <= hi) {
-      final mid = (lo + hi) >> 1;
-      final page = descriptors[mid];
-      if (charOffset < page.startOffset) {
-        hi = mid - 1;
-      } else if (charOffset >= page.endOffset) {
-        lo = mid + 1;
-      } else {
-        return mid;
-      }
-    }
-    return charOffset < descriptors[0].startOffset ? 0 : descriptors.length - 1;
-  }
+  ) =>
+      _resolvePageIndex(descriptors, charOffset,
+        getStart: (d) => d.startOffset,
+        getEnd: (d) => d.endOffset,
+      );
 }

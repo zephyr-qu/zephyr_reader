@@ -9,6 +9,7 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../../core/reader/reader_config.dart';
+import '../domain/reader_repository_interface.dart';
 import '../data/repositories/rust_reader_repository.dart';
 import 'chapter_view_model.dart';
 import 'reading_session_manager.dart';
@@ -28,7 +29,7 @@ import 'package:zephyr_reader/di/service_locator.dart';
 /// 翻译/双语 → TranslationViewModel。
 @lazySingleton
 class ReaderViewModel {
-  final ReaderRepository _repo;
+  final ReaderRepositoryInterface _repo;
   final ReaderConfig _config;
 
   /// 阅读配置

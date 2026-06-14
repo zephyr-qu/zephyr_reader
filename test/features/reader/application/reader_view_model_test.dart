@@ -141,8 +141,6 @@ class _TestConfig implements ReaderConfig {
     debounce: Duration.zero,
   );
   @override
-  double get pageMargin => padding.value;
-  @override
   Future<void> resetToDefault() async {}
   @override
   void dispose() {}

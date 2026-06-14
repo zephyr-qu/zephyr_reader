@@ -5,6 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/features/reader/page/renderer/reader_render_config.dart';
+import 'package:zephyr_reader/features/reader/page/renderer/scroll_mode_renderer.dart';
+import 'package:zephyr_reader/features/reader/page/renderer/bilingual_renderer.dart';
+import 'package:zephyr_reader/features/reader/page/renderer/paginated_renderer.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/reader/custom_font_service.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
@@ -198,85 +201,130 @@ class ReaderPage extends HookWidget {
       return [
         MediaQuery(
           data: MediaQuery.of(context).copyWith(textScaler: textScaler),
-          child: ReaderContent(
-            repo: readRepo,
-            bookId: b_currentBookId,
-            chapterId: b_chapterIndex,
-            pageIndex: b_pageIndex,
-            totalPages: b_totalPages,
-            renderConfig: ReaderRenderConfig(
-              textColor: ReaderContent.getTextColor(themeMode),
-              backgroundColor: ReaderContent.getBackgroundColor(themeMode, b_bgIndex),
-              fontSize: b_fontSize,
-              lineHeight: b_lineHeight,
-              fontFamily: fontFamily,
-              letterSpacing: b_letterSpacing,
-              paragraphSpacing: b_paragraphSpacing,
-              pageMargin: b_pageMargin,
-              showVocabularyMark: true,
-              vocabularyWords: vocabWords.value,
-              baselineAlign: b_baselineAlign,
-              textAlign: b_textAlign,
-            ),
-            readingMode: b_currentReadingMode,
-            content: b_content,
-            isLoading: b_isLoading,
-            error: b_error,
-            hasNextChapter:
-                b_chapterIndex < b_numChapters - 1,
-            bilingualAlignment: b_bilingualAlign,
-            isBilingualLoading: b_isBilingualLoading,
-            onRequestTranslation: () => showDialog<void>(
-              context: context,
-              builder: (_) => ReaderTranslationDialog(
-                onChanged: vm.translation.setTranslationContent,
-                translationConfigured: vm.translation.isConfigured,
-                onTranslateWithApi: () {
-                  Navigator.of(context).pop();
-                  unawaited(vm.translation.translateChapter());
-                },
-              ),
-            ),
-            onRetryTranslation: () => unawaited(vm.translation.translateChapter()),
-            onPageChanged: vm.loadPage,
-            onRetry: () => vm.loadChapter(
-              b_chapterIndex,
-              initialCharOffset: vm.state.currentCharOffset.value,
-              restartSession: false,
-            ),
-            autoScrollTick: b_autoScrollTick,
-            highlights: b_highlights,
-            onSelectionChanged: vm.annotations.updateSelection,
-            onSelectionGlobalPosition: (pos) => selectionGlobalPos.value = pos,
-            onHighlightTap: (note) => showModalBottomSheet<void>(
-              context: context,
-              builder: (_) => ReaderHighlightSheet(
-                note: note,
-                onEdit: () {
-                  showDialog<void>(
+          child: Builder(
+            builder: (context) {
+              final renderConfig = ReaderRenderConfig(
+                textColor: ReaderContent.getTextColor(themeMode),
+                backgroundColor: ReaderContent.getBackgroundColor(themeMode, b_bgIndex),
+                fontSize: b_fontSize,
+                lineHeight: b_lineHeight,
+                fontFamily: fontFamily,
+                letterSpacing: b_letterSpacing,
+                paragraphSpacing: b_paragraphSpacing,
+                pageMargin: b_pageMargin,
+                showVocabularyMark: true,
+                vocabularyWords: vocabWords.value,
+                baselineAlign: b_baselineAlign,
+                textAlign: b_textAlign,
+              );
+              final onHighlightTap = (Note note) => showModalBottomSheet<void>(
+                context: context,
+                builder: (_) => ReaderHighlightSheet(
+                  note: note,
+                  onEdit: () {
+                    showDialog<void>(
+                      context: context,
+                      builder: (_) => ReaderAnnotationDialog(
+                        selectedText: note.selectedText ?? '',
+                        initialContent: note.content,
+                        onSave: (text) {
+                          final updated = note.copyWith(
+                            content: text,
+                            updatedAt: DateTime.now(),
+                          );
+                          vm.updateNote(updated, l10n);
+                        },
+                      ),
+                    );
+                  },
+                  onDelete: () => vm.deleteNote(note.id, l10n),
+                ),
+              );
+              return ReaderContent(
+                repo: readRepo,
+                bookId: b_currentBookId,
+                chapterId: b_chapterIndex,
+                pageIndex: b_pageIndex,
+                totalPages: b_totalPages,
+                renderConfig: renderConfig,
+                readingMode: b_currentReadingMode,
+                content: b_content,
+                isLoading: b_isLoading,
+                error: b_error,
+                hasNextChapter:
+                    b_chapterIndex < b_numChapters - 1,
+                scrollBuilder: (_, sc) => ScrollModeRenderer(
+                  config: renderConfig,
+                  scrollController: sc,
+                  repo: readRepo,
+                  bookId: b_currentBookId,
+                  chapterId: b_chapterIndex,
+                  content: b_content,
+                  highlights: b_highlights,
+                  onHighlightTap: onHighlightTap,
+                  onSelectionChanged: vm.annotations.updateSelection,
+                  onSelectionGlobalPosition: (pos) => selectionGlobalPos.value = pos,
+                  writingDirection: b_writingDirection,
+                  showSentenceSplit: true,
+                ),
+                bilingualBuilder: (_, sc, pairs) => BilingualModeRenderer(
+                  config: renderConfig,
+                  scrollController: sc,
+                  bilingualPairs: pairs,
+                  isBilingualLoading: b_isBilingualLoading,
+                  bilingualAlignment: b_bilingualAlign,
+                  highlights: b_highlights,
+                  onRequestTranslation: () => showDialog<void>(
                     context: context,
-                    builder: (_) => ReaderAnnotationDialog(
-                      selectedText: note.selectedText ?? '',
-                      initialContent: note.content,
-                      onSave: (text) {
-                        final updated = note.copyWith(
-                          content: text,
-                          updatedAt: DateTime.now(),
-                        );
-                        vm.updateNote(updated, l10n);
+                    builder: (_) => ReaderTranslationDialog(
+                      onChanged: vm.translation.setTranslationContent,
+                      translationConfigured: vm.translation.isConfigured,
+                      onTranslateWithApi: () {
+                        Navigator.of(context).pop();
+                        unawaited(vm.translation.translateChapter());
                       },
                     ),
-                  );
-                },
-                onDelete: () => vm.deleteNote(note.id, l10n),
-              ),
-            ),
-            writingDirection: b_writingDirection,
-            showSentenceSplit: true,
-            jumpToCharOffset: b_pendingJumpCharOffset,
-            onPositionChanged: vm.chapterManager.updateCurrentCharOffset,
-            onJumpHandled: vm.chapterManager.consumePendingJumpOffset,
-            onReachEnd: () => unawaited(vm.chapterManager.nextChapter()),
+                  ),
+                  onRetryTranslation: () => unawaited(vm.translation.translateChapter()),
+                  onHighlightTap: onHighlightTap,
+                  onSelectionChanged: vm.annotations.updateSelection,
+                  onSelectionGlobalPosition: (pos) => selectionGlobalPos.value = pos,
+                  writingDirection: b_writingDirection,
+                ),
+                paginatedBuilder: (_, pc) => PaginatedModeRenderer(
+                  config: renderConfig,
+                  pageController: pc,
+                  repo: readRepo,
+                  bookId: b_currentBookId,
+                  chapterId: b_chapterIndex,
+                  pageIndex: b_pageIndex,
+                  content: b_content,
+                  highlights: b_highlights,
+                  readingMode: b_currentReadingMode,
+                  onHighlightTap: onHighlightTap,
+                  onSelectionChanged: vm.annotations.updateSelection,
+                  onSelectionGlobalPosition: (pos) => selectionGlobalPos.value = pos,
+                  onPageChanged: vm.loadPage,
+                  onPositionChanged: vm.chapterManager.updateCurrentCharOffset,
+                  writingDirection: b_writingDirection,
+                ),
+                onPageChanged: vm.loadPage,
+                onRetry: () => vm.loadChapter(
+                  b_chapterIndex,
+                  initialCharOffset: vm.state.currentCharOffset.value,
+                  restartSession: false,
+                ),
+                autoScrollTick: b_autoScrollTick,
+                highlights: b_highlights,
+                onSelectionChanged: vm.annotations.updateSelection,
+                onSelectionGlobalPosition: (pos) => selectionGlobalPos.value = pos,
+                writingDirection: b_writingDirection,
+                jumpToCharOffset: b_pendingJumpCharOffset,
+                onPositionChanged: vm.chapterManager.updateCurrentCharOffset,
+                onJumpHandled: vm.chapterManager.consumePendingJumpOffset,
+                onReachEnd: () => unawaited(vm.chapterManager.nextChapter()),
+              );
+            },
           ),
         ),
         BrightnessMask(

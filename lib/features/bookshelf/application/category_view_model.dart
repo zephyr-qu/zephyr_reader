@@ -20,7 +20,7 @@ class CategoryViewModel {
   Future<void> loadCategories() async {
     try {
       final data = await category_api.listCategories();
-      categories.value = AsyncState.data(data.cast<Category>());
+      categories.value = AsyncState.data(data);
     } catch (e, stack) {
       Logging.error(
         'CategoryViewModel.loadCategories error',
@@ -94,12 +94,14 @@ class CategoryViewModel {
         return true;
       }, onSuccess: loadCategories);
 
+  /// 批量重排分类顺序（原子操作）
+  Future<void> reorderCategories(List<Category> categories) =>
+      category_api.reorderCategories(categories: categories);
+
   /// 删除分类
   Future<bool> removeCategory(String id) => _safeAction(
     'removeCategory',
     () async {
-      final category = await category_api.getCategory(categoryId: id);
-      if (category == null) return false;
       await category_api.deleteCategory(categoryId: id);
       return true;
     },

@@ -5,7 +5,7 @@ import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
-import 'package:zephyr_reader/features/bookshelf/page/book_detail_dialogs.dart';
+import 'package:zephyr_reader/features/bookshelf/page/widgets/book_detail_dialogs.dart';
 
 /// 书架批量操作工具栏。
 ///

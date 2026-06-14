@@ -164,10 +164,6 @@ class BookshelfViewModel {
     }
   }
 
-  /// 获取书籍详情
-  Future<Book?> getBookDetail(String id) async {
-    return await book_api.getBook(bookId: id);
-  }
 
   /// 更新书籍分类
   Future<bool> updateBookCategories(String bookId, List<String> categoryIds) async {

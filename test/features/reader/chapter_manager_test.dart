@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/features/reader/application/chapter_view_model.dart';
@@ -162,8 +163,6 @@ class _MockConfig implements ReaderConfig {
     ),
     debounce: Duration.zero,
   );
-  @override
-  double get pageMargin => padding.value;
 
   @override
   Future<void> resetToDefault() async {
@@ -198,14 +197,7 @@ void _setupPaginateChapter(_MockRepo repo, {bool isFallback = false}) {
     () => repo.paginateChapter(
       bookId: any(named: 'bookId'),
       chapterIndex: any(named: 'chapterIndex'),
-      fontSize: any(named: 'fontSize'),
-      lineHeight: any(named: 'lineHeight'),
-      width: any(named: 'width'),
-      height: any(named: 'height'),
-      padding: any(named: 'padding'),
-      devicePixelRatio: any(named: 'devicePixelRatio'),
-      calibration: any(named: 'calibration'),
-      fontFamily: any(named: 'fontFamily'),
+      params: any(named: 'params'),
     ),
   ).thenAnswer((_) async => isFallback ? 0 : 2);
 
@@ -234,23 +226,20 @@ void _setupPaginateChapterPartial(_MockRepo repo) {
     () => repo.paginateChapterPartial(
       bookId: any(named: 'bookId'),
       chapterIndex: any(named: 'chapterIndex'),
-      fontSize: any(named: 'fontSize'),
-      lineHeight: any(named: 'lineHeight'),
-      width: any(named: 'width'),
-      height: any(named: 'height'),
-      padding: any(named: 'padding'),
-      devicePixelRatio: any(named: 'devicePixelRatio'),
-      calibration: any(named: 'calibration'),
-      fontFamily: any(named: 'fontFamily'),
-      letterSpacing: any(named: 'letterSpacing'),
-      paragraphSpacing: any(named: 'paragraphSpacing'),
-      punctuationSqueeze: any(named: 'punctuationSqueeze'),
+      params: any(named: 'params'),
     ),
   ).thenAnswer((_) async => (totalPages: 2, isPartial: false));
 }
 
 void _registerFallbackValues() {
   registerFallbackValue(ReadingMode.pagination);
+  registerFallbackValue(const PaginationParams(
+    fontSize: 16,
+    lineHeight: 1.5,
+    width: 400,
+    height: 600,
+    padding: 16,
+  ));
 }
 
 void main() {

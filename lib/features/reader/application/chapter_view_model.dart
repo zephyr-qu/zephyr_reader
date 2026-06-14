@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:async/async.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
@@ -10,7 +11,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 
 import '../../../core/reader/reader_config.dart';
-import '../data/repositories/rust_reader_repository.dart';
+import '../domain/reader_repository_interface.dart';
 import 'reader_page_state.dart';
 
 /// 章节视图模型
@@ -18,7 +19,7 @@ import 'reader_page_state.dart';
 /// 管理书籍/章节加载、分页导航、布局参数、自动滚动和搜索索引生命周期。
 /// 不持有 UI 面板状态（由 ReaderViewModel Facade 协调）。
 class ChapterViewModel {
-  final ReaderRepository _repo;
+  final ReaderRepositoryInterface _repo;
   final ReaderConfig _config;
   final ReaderPageState _pageState;
 
@@ -216,17 +217,19 @@ class ChapterViewModel {
       final partialResult = await _repo.paginateChapterPartial(
         bookId: _pageState.bookId.value,
         chapterIndex: chapterIndex,
-        fontSize: _config.fontSize.value,
-        lineHeight: _config.lineHeight.value,
-        width: pageWidth,
-        height: pageHeight,
-        padding: _config.padding.value,
-        devicePixelRatio: devicePixelRatio,
-        calibration: _calibration.value,
-        fontFamily: _fontFamily,
-        letterSpacing: _config.letterSpacing.value,
-        paragraphSpacing: _config.paragraphSpacing.value,
-        punctuationSqueeze: _config.punctuationSqueeze.value,
+        params: PaginationParams(
+          fontSize: _config.fontSize.value,
+          lineHeight: _config.lineHeight.value,
+          width: pageWidth,
+          height: pageHeight,
+          padding: _config.padding.value,
+          devicePixelRatio: devicePixelRatio,
+          calibration: _calibration.value,
+          fontFamily: _fontFamily,
+          letterSpacing: _config.letterSpacing.value,
+          paragraphSpacing: _config.paragraphSpacing.value,
+          punctuationSqueeze: _config.punctuationSqueeze.value,
+        ),
       );
       final partialTotal = partialResult.totalPages;
       if (partialTotal > 0) {
@@ -252,17 +255,19 @@ class ChapterViewModel {
         fullPaginateFuture = _repo.paginateChapter(
           bookId: _pageState.bookId.value,
           chapterIndex: chapterIndex,
-          fontSize: _config.fontSize.value,
-          lineHeight: _config.lineHeight.value,
-          width: pageWidth,
-          height: pageHeight,
-          padding: _config.padding.value,
-          devicePixelRatio: devicePixelRatio,
-          calibration: _calibration.value,
-          fontFamily: _fontFamily,
-          letterSpacing: _config.letterSpacing.value,
-          paragraphSpacing: _config.paragraphSpacing.value,
-          punctuationSqueeze: _config.punctuationSqueeze.value,
+          params: PaginationParams(
+            fontSize: _config.fontSize.value,
+            lineHeight: _config.lineHeight.value,
+            width: pageWidth,
+            height: pageHeight,
+            padding: _config.padding.value,
+            devicePixelRatio: devicePixelRatio,
+            calibration: _calibration.value,
+            fontFamily: _fontFamily,
+            letterSpacing: _config.letterSpacing.value,
+            paragraphSpacing: _config.paragraphSpacing.value,
+            punctuationSqueeze: _config.punctuationSqueeze.value,
+          ),
         );
       }
 

@@ -179,11 +179,11 @@ class ReaderSettingsOverlay extends StatelessWidget {
       ),
       _sliderTile(
         label: l10n.pageMargin,
-        value: config.pageMargin,
+        value: config.padding.value,
         min: 8,
         max: 40,
         divisions: 16,
-        display: '${config.pageMargin.toStringAsFixed(0)}px',
+        display: '${config.padding.value.toStringAsFixed(0)}px',
         onChanged: onPageMarginChanged,
         readerTheme: readerTheme,
       ),

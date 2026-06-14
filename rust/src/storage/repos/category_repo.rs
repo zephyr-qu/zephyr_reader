@@ -178,6 +178,26 @@ impl CategoryRepository {
         tx.commit().await?;
         Ok(())
     }
+
+    /// 批量更新分类排序（事务内原子操作）
+    ///
+    /// 接收已设置 `sort_order` 的分类列表，一次事务写入所有排序值。
+    /// 替代 N 次串行 save() 调用，避免部分更新风险。
+    pub async fn reorder(
+        pool: &SqlitePool,
+        categories: &[Category],
+    ) -> Result<(), AppError> {
+        let mut tx = pool.begin().await?;
+        for cat in categories {
+            sqlx::query("UPDATE categories SET sort_order = ? WHERE id = ?")
+                .bind(cat.sort_order)
+                .bind(&cat.id)
+                .execute(&mut *tx)
+                .await?;
+        }
+        tx.commit().await?;
+        Ok(())
+    }
 }
 // #[cfg(test)]
 // mod tests {
