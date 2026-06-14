@@ -1,7 +1,7 @@
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/features/reader/page/renderer/highlight_painter.dart';
+import 'package:zephyr_reader/features/reader/page/widgets/highlight_painter.dart';
 
 /// 划词批注视图模型。
 ///

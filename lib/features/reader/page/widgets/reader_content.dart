@@ -7,11 +7,11 @@ import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../data/repositories/rust_reader_repository.dart';
-import '../renderer/bilingual_renderer.dart';
-import '../ui/page_curl_widget.dart';
-import '../renderer/paginated_renderer.dart';
-import '../renderer/reader_render_config.dart';
-import '../renderer/scroll_mode_renderer.dart';
+import 'bilingual_renderer.dart';
+import 'page_curl_widget.dart';
+import 'paginated_renderer.dart';
+import 'reader_render_config.dart';
+import 'scroll_mode_renderer.dart';
 
 /// 阅读内容容器组件。
 ///

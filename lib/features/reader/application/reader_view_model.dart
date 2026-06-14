@@ -21,14 +21,12 @@ import 'translation_view_model.dart';
 
 /// 阅读器视图模型 — Facade
 ///
-/// 轻量协调层：持有各子 ViewModel，处理跨 ViewModel 的编排逻辑。
-/// 页面/测试通过公开字段直接访问子 VM。
-///
-/// 编排逻辑（保留在此）：
-/// - 初始化/重置各子 VM 的启动停止
-/// - 跨子 VM 的操作（deleteNote, setReadingMode）
-/// - 配置变更后的 debounced 重载
-/// - 带 toast 错误处理的便利方法
+/// 轻量协调层：持有各子 ViewModel，代理信号访问，处理跨 ViewModel 的编排逻辑。
+/// 书籍/章节状态和分页 → ChapterViewModel。
+/// 阅读计时和进度保存 → ReadingSessionManager。
+/// 书签 → BookmarkViewModel。
+/// 划词批注 → AnnotationViewModel。
+/// 翻译/双语 → TranslationViewModel。
 @lazySingleton
 class ReaderViewModel {
   final ReaderRepository _repo;
@@ -41,14 +39,57 @@ class ReaderViewModel {
 
   late final ChapterViewModel chapterManager;
   late final ReadingSessionManager sessionManager;
-  late final BookmarkViewModel bookmarks;
-  late final AnnotationViewModel annotations;
-  late final TranslationViewModel translation;
+  late final BookmarkViewModel _bookmarks;
+  late final AnnotationViewModel _annotations;
+  late final TranslationViewModel _translation;
+
+  // ==================== 快捷 getter（ChapterViewModel） ====================
+
+  Signal<String> get bookId => chapterManager.bookId;
+  Signal<int> get chapterIndex => chapterManager.chapterIndex;
+  AsyncSignal<List<Chapter>> get chapters => chapterManager.chapters;
+  AsyncSignal<String> get chapterContent => chapterManager.chapterContent;
+  Signal<int> get totalPages => chapterManager.totalPages;
+  Signal<int> get pageIndex => chapterManager.pageIndex;
+  Signal<int> get currentCharOffset => chapterManager.currentCharOffset;
+  Signal<int?> get pendingJumpCharOffset =>
+      chapterManager.pendingJumpCharOffset;
+  Signal<bool> get isLoading => chapterManager.isLoading;
+  Signal<String?> get error => chapterManager.error;
+  double get pageWidth => chapterManager.pageWidth;
+  double get pageHeight => chapterManager.pageHeight;
+  double get devicePixelRatio => chapterManager.devicePixelRatio;
+  set pageWidth(double value) => chapterManager.pageWidth = value;
+  set pageHeight(double value) => chapterManager.pageHeight = value;
+  set devicePixelRatio(double value) => chapterManager.devicePixelRatio = value;
+  Signal<ReadingMode> get readingMode => chapterManager.readingMode;
+  Signal<int> get autoScrollTick => chapterManager.autoScrollTick;
+  ReadonlySignal<String> get progressText => chapterManager.progressText;
+  ReadonlySignal<String> get currentChapterTitle =>
+      chapterManager.currentChapterTitle;
 
   /// 字体大小（double，供 bindings 消费）
   late final ReadonlySignal<double> fontSizeDouble = computed(
     () => _config.fontSize.value,
   );
+
+  // ==================== 书签 getter ====================
+
+  AsyncSignal<List<Bookmark>> get bookmarks => _bookmarks.bookmarks;
+
+  // ==================== 批注 getter ====================
+
+  Signal<String> get selectedText => _annotations.selectedText;
+  Signal<int> get selectionStart => _annotations.selectionStart;
+  Signal<int> get selectionEnd => _annotations.selectionEnd;
+  AsyncSignal<List<Note>> get highlights => _annotations.highlights;
+
+  // ==================== 翻译/双语 getter ====================
+
+  bool get isTranslationConfigured => _translation.isConfigured;
+  AsyncSignal<BilingualAlignment?> get bilingualAlignment =>
+      _translation.bilingualAlignment;
+  Signal<String> get translationContent => _translation.translationContent;
 
   // ==================== 跨切面信号 ====================
 
@@ -68,16 +109,16 @@ class ReaderViewModel {
     chapterManager = ChapterViewModel(_repo, _config);
     sessionManager = ReadingSessionManager(chapterManager);
 
-    bookmarks = BookmarkViewModel(
+    _bookmarks = BookmarkViewModel(
       chapterManager.bookId,
       chapterManager.chapterIndex,
       chapterManager.currentCharOffset,
     );
-    annotations = AnnotationViewModel(
+    _annotations = AnnotationViewModel(
       chapterManager.bookId,
       chapterManager.chapterIndex,
     );
-    translation = TranslationViewModel(
+    _translation = TranslationViewModel(
       chapterManager.bookId,
       chapterManager.chapterIndex,
       chapterManager.chapterContent,
@@ -95,8 +136,8 @@ class ReaderViewModel {
     chapterManager.bookId.value = bookId;
     chapterManager.currentCharOffset.value = 0;
 
-    chapterManager.isLoading.value = true;
-    chapterManager.error.value = null;
+    isLoading.value = true;
+    error.value = null;
 
     _disposers.add(
       effect(() {
@@ -112,7 +153,7 @@ class ReaderViewModel {
       await chapterManager.loadChapters();
       await chapterManager.loadLastProgress();
 
-      final chaptersList = chapterManager.chapters.value.value;
+      final chaptersList = chapters.value.value;
       if (chaptersList != null && chaptersList.isNotEmpty) {
         final restoredChapterIndex = chapterManager.chapterIndex.value;
         final restoredCharOffset = chapterManager.currentCharOffset.value;
@@ -127,24 +168,23 @@ class ReaderViewModel {
           targetChapterIndex,
           initialCharOffset: targetCharOffset,
           restartSession: false,
-          onChapterLoaded: annotations.loadHighlights,
+          onChapterLoaded: _annotations.loadHighlights,
         );
       }
 
-      await bookmarks.loadBookmarks();
+      await _bookmarks.loadBookmarks();
       sessionManager.startReading();
       sessionManager.startAutoSave();
     } catch (e) {
-      chapterManager.error.value = AppErrorMapper.humanReadable(e);
+      error.value = AppErrorMapper.humanReadable(e);
       Logging.error('ReaderViewModel.initialize error', exception: e);
     } finally {
-      chapterManager.isLoading.value = false;
+      isLoading.value = false;
     }
   }
 
-  // ==================== 加载/导航（代理章节管理器，带编排） ====================
+  // ==================== 章节导航 ====================
 
-  /// 加载指定章节（章节切换时自动加载高亮）。
   Future<void> loadChapter(
     int chapterIndex, {
     int initialCharOffset = 0,
@@ -154,21 +194,72 @@ class ReaderViewModel {
       chapterIndex,
       initialCharOffset: initialCharOffset,
       restartSession: restartSession,
-      onChapterLoaded: annotations.loadHighlights,
+      onChapterLoaded: _annotations.loadHighlights,
     );
   }
 
-  /// 翻页（自动保存进度）。
   Future<void> loadPage(int pageIndex) async {
     chapterManager.loadPage(pageIndex);
     unawaited(sessionManager.saveProgress());
   }
 
-  // ==================== 划词批注（带 toast 错误处理） ====================
+  Future<void> jumpToChapter(int chapterIndex) async {
+    await chapterManager.jumpToChapter(chapterIndex);
+  }
+
+  Future<void> jumpToPosition(int chapterIndex, int charOffset) async {
+    await chapterManager.jumpToPosition(chapterIndex, charOffset);
+  }
+
+  Future<void> previousChapter() => chapterManager.previousChapter();
+  Future<void> nextChapter() => chapterManager.nextChapter();
+  Future<void> previousPage() => chapterManager.previousPage();
+  Future<void> nextPage() => chapterManager.nextPage();
+
+  void updateCurrentCharOffset(int charOffset) =>
+      chapterManager.updateCurrentCharOffset(charOffset);
+
+  void consumePendingJumpOffset() => chapterManager.consumePendingJumpOffset();
+
+  void updateFont(String fontFamily) => chapterManager.updateFont(fontFamily);
+
+  // ==================== 书签（代理到 BookmarkController） ====================
+
+  Future<void> loadBookmarks() => _bookmarks.loadBookmarks();
+  Future<bool> addBookmark() => _bookmarks.addBookmark();
+  Future<bool> deleteBookmark(String bookmarkId) =>
+      _bookmarks.deleteBookmark(bookmarkId);
+
+  Future<void> jumpToBookmark(Bookmark bookmark) async {
+    await jumpToPosition(bookmark.chapterIndex, bookmark.charOffset.toInt());
+  }
+
+  bool get hasBookmarkAtCurrentPosition =>
+      _bookmarks.hasBookmarkAtCurrentPosition;
+  Bookmark? get currentBookmark => _bookmarks.currentBookmark;
+
+  Future<bool> toggleBookmarkAtCurrentPosition() async {
+    final existing = currentBookmark;
+    if (existing != null) {
+      return await _bookmarks.deleteBookmark(existing.id);
+    } else {
+      return await _bookmarks.addBookmark();
+    }
+  }
+
+  // ==================== 划词批注（代理到 AnnotationController） ====================
+
+  Future<void> loadHighlights({bool forceRefresh = false}) =>
+      _annotations.loadHighlights(forceRefresh: forceRefresh);
+
+  void updateSelection(String text, int start, int end) =>
+      _annotations.updateSelection(text, start, end);
+
+  void clearSelection() => _annotations.clearSelection();
 
   Future<void> saveHighlight(AppLocalizations l10n) async {
     try {
-      await annotations.saveHighlight();
+      await _annotations.saveHighlight();
     } catch (_) {
       toastMessage.value = l10n.saveHighlightFailed;
     }
@@ -179,18 +270,17 @@ class ReaderViewModel {
     AppLocalizations l10n,
   ) async {
     try {
-      await annotations.saveAnnotation(annotationContent);
+      await _annotations.saveAnnotation(annotationContent);
     } catch (_) {
       toastMessage.value = l10n.saveAnnotationFailed;
     }
   }
 
-  /// 删除笔记：同时清理双语高亮对，刷新高亮列表。
   Future<void> deleteNote(String noteId, AppLocalizations l10n) async {
     try {
-      await translation.deleteBilingualPair(noteId: noteId);
+      await _translation.deleteBilingualPair(noteId: noteId);
       await HapticFeedback.heavyImpact();
-      await annotations.loadHighlights(forceRefresh: true);
+      await _annotations.loadHighlights(forceRefresh: true);
     } catch (_) {
       toastMessage.value = l10n.deleteHighlightFailed;
     }
@@ -198,7 +288,7 @@ class ReaderViewModel {
 
   Future<void> updateNote(Note note, AppLocalizations l10n) async {
     try {
-      await annotations.updateNote(note);
+      await _annotations.updateNote(note);
     } catch (_) {
       toastMessage.value = l10n.updateNoteFailed;
     }
@@ -211,10 +301,10 @@ class ReaderViewModel {
     _reloadDebounce = Timer(const Duration(milliseconds: 300), () {
       unawaited(
         chapterManager.loadChapter(
-          chapterManager.chapterIndex.value,
-          initialCharOffset: chapterManager.currentCharOffset.value,
+          chapterIndex.value,
+          initialCharOffset: currentCharOffset.value,
           restartSession: false,
-          onChapterLoaded: annotations.loadHighlights,
+          onChapterLoaded: _annotations.loadHighlights,
         ),
       );
     });
@@ -246,11 +336,16 @@ class ReaderViewModel {
   }
 
   void setReadingMode(ReadingMode mode) {
-    chapterManager.readingMode.value = mode;
+    readingMode.value = mode;
     if (mode == ReadingMode.bilingual) {
-      translation.onEnterBilingualMode();
+      _translation.onEnterBilingualMode();
     }
   }
+
+  void setTranslationContent(String content) =>
+      _translation.setTranslationContent(content);
+
+  Future<void> translateChapter() => _translation.translateChapter();
 
   // ==================== 双语高亮 ====================
 
@@ -271,7 +366,7 @@ class ReaderViewModel {
     int highlightColor = 0xFFE91E63,
   }) async {
     try {
-      await translation.createBilingualHighlight(
+      await _translation.createBilingualHighlight(
         BilingualHighlightParams(
           sourceBookId: sourceBookId,
           sourceChapterIndex: sourceChapterIndex,
@@ -310,9 +405,9 @@ class ReaderViewModel {
     await sessionManager.stopReading();
     chapterManager.reset();
 
-    bookmarks.reset();
-    annotations.reset();
-    await translation.reset();
+    _bookmarks.reset();
+    _annotations.reset();
+    await _translation.reset();
 
     toastMessage.value = '';
   }

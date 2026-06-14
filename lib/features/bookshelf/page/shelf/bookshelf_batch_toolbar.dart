@@ -34,7 +34,7 @@ class BookshelfBatchToolbar extends StatelessWidget {
     return SafeArea(
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: DesignTokens.spacing(Spacing.md),
+          horizontal: 20,
           vertical: DesignTokens.spacing(Spacing.sm),
         ),
         decoration: BoxDecoration(

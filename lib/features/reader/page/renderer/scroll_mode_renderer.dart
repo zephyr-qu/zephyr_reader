@@ -8,7 +8,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import '../../data/repositories/rust_reader_repository.dart';
-import 'highlight_painter.dart';
+import 'package:zephyr_reader/features/reader/page/widgets/highlight_painter.dart';
 import 'reader_render_config.dart';
 import 'find_render_box.dart';
 

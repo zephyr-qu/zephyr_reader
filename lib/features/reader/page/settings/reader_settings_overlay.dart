@@ -102,7 +102,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final readerTheme = Theme.of(context).extension<ReaderThemeExtension>()!;
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
 
     return Container(
       decoration: BoxDecoration(
@@ -126,19 +125,16 @@ class ReaderSettingsOverlay extends StatelessWidget {
                     ReaderPanelType.typesetting => _buildTypesettingSection(
                       readerTheme,
                       l10n,
-                      theme,
                     ),
                     ReaderPanelType.display => _buildDisplaySection(
                       readerTheme,
                       l10n,
-                      theme,
                     ),
                     ReaderPanelType.more => _buildMoreSection(
                       readerTheme,
                       l10n,
-                      theme,
                     ),
-                    ReaderPanelType.tts => _buildTtsSection(readerTheme, l10n, theme),
+                    ReaderPanelType.tts => _buildTtsSection(readerTheme, l10n),
                   },
                 ],
               ),
@@ -177,14 +173,12 @@ class ReaderSettingsOverlay extends StatelessWidget {
   List<Widget> _buildTypesettingSection(
     ReaderThemeExtension readerTheme,
     AppLocalizations l10n,
-    ThemeData theme,
   ) {
     return [
       _sectionHeader(
         icon: PhosphorIconsRegular.textT,
         title: l10n.typographySection,
         mutedColor: readerTheme.mutedColor,
-        theme: theme,
       ),
       _sliderTile(
         label: l10n.fontSize,
@@ -195,7 +189,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
         display: '${fontSize.toStringAsFixed(0)}px',
         onChanged: onFontSizeChanged,
         readerTheme: readerTheme,
-        theme: theme,
       ),
       _sliderTile(
         label: l10n.lineHeight,
@@ -206,7 +199,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
         display: lineHeight.toStringAsFixed(1),
         onChanged: onLineHeightChanged,
         readerTheme: readerTheme,
-        theme: theme,
       ),
       _sliderTile(
         label: l10n.letterSpacing,
@@ -217,7 +209,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
         display: letterSpacing.toStringAsFixed(1),
         onChanged: onLetterSpacingChanged,
         readerTheme: readerTheme,
-        theme: theme,
       ),
       _sliderTile(
         label: l10n.paragraphSpacing,
@@ -228,7 +219,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
         display: paragraphSpacing.toStringAsFixed(0),
         onChanged: onParagraphSpacingChanged,
         readerTheme: readerTheme,
-        theme: theme,
       ),
       _sliderTile(
         label: l10n.pageMargin,
@@ -239,10 +229,9 @@ class ReaderSettingsOverlay extends StatelessWidget {
         display: '${pageMargin.toStringAsFixed(0)}px',
         onChanged: onPageMarginChanged,
         readerTheme: readerTheme,
-        theme: theme,
       ),
       const SizedBox(height: 4),
-      _textAlignSelector(readerTheme, l10n, theme),
+      _textAlignSelector(readerTheme, l10n),
     ];
   }
 
@@ -251,14 +240,12 @@ class ReaderSettingsOverlay extends StatelessWidget {
   List<Widget> _buildDisplaySection(
     ReaderThemeExtension readerTheme,
     AppLocalizations l10n,
-    ThemeData theme,
   ) {
     return [
       _sectionHeader(
         icon: PhosphorIconsRegular.palette,
         title: l10n.appearanceSection,
         mutedColor: readerTheme.mutedColor,
-        theme: theme,
       ),
       _sliderTile(
         label: l10n.brightness,
@@ -269,12 +256,11 @@ class ReaderSettingsOverlay extends StatelessWidget {
         display: '${((1 - brightnessValue) * 100).toStringAsFixed(0)}%',
         onChanged: (v) => onBrightnessChanged(1 - v),
         readerTheme: readerTheme,
-        theme: theme,
       ),
       const SizedBox(height: 8),
       _themeSelector(readerTheme, l10n),
       const SizedBox(height: 12),
-      _fontScaleTile(readerTheme, l10n, theme),
+      _fontScaleTile(readerTheme, l10n),
       const SizedBox(height: 8),
       _bgColorPicker(readerTheme, l10n),
     ];
@@ -285,14 +271,12 @@ class ReaderSettingsOverlay extends StatelessWidget {
   List<Widget> _buildMoreSection(
     ReaderThemeExtension readerTheme,
     AppLocalizations l10n,
-    ThemeData theme,
   ) {
     return [
       _sectionHeader(
         icon: PhosphorIconsRegular.bookOpenText,
         title: l10n.readingModeSection,
         mutedColor: readerTheme.mutedColor,
-        theme: theme,
       ),
       _readingModeSelector(readerTheme, l10n),
       const SizedBox(height: 12),
@@ -300,7 +284,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
         icon: PhosphorIconsRegular.handTap,
         title: l10n.tapLayout,
         mutedColor: readerTheme.mutedColor,
-        theme: theme,
       ),
       _tapLayoutToggle(readerTheme, l10n),
       const SizedBox(height: 12),
@@ -308,7 +291,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
         icon: PhosphorIconsRegular.paragraph,
         title: l10n.layoutSection,
         mutedColor: readerTheme.mutedColor,
-        theme: theme,
       ),
       _writingDirectionSelector(readerTheme, l10n),
       const SizedBox(height: 12),
@@ -316,9 +298,8 @@ class ReaderSettingsOverlay extends StatelessWidget {
         icon: PhosphorIconsRegular.scroll,
         title: l10n.autoScroll,
         mutedColor: readerTheme.mutedColor,
-        theme: theme,
       ),
-      _autoScrollTile(readerTheme, l10n, theme),
+      _autoScrollTile(readerTheme, l10n),
       if (autoScroll)
         _sliderTile(
           label: l10n.autoScrollSpeed,
@@ -329,7 +310,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
           display: '${autoScrollSpeed}s',
           onChanged: (v) => onAutoScrollSpeedChanged(v),
           readerTheme: readerTheme,
-          theme: theme,
         ),
     ];
   }
@@ -337,24 +317,23 @@ class ReaderSettingsOverlay extends StatelessWidget {
   List<Widget> _buildTtsSection(
     ReaderThemeExtension readerTheme,
     AppLocalizations l10n,
-    ThemeData theme,
   ) {
     return [
       _sectionHeader(
         icon: PhosphorIconsRegular.speakerHigh,
         title: l10n.readAloud,
         mutedColor: readerTheme.mutedColor,
-        theme: theme,
       ),
-      _ttsTile(readerTheme, l10n, theme),
+      _ttsTile(readerTheme, l10n),
     ];
   }
-  
+
+  // ── 通用构建方法 ──
+
   Widget _sectionHeader({
     required IconData icon,
     required String title,
     required Color mutedColor,
-    required ThemeData theme,
   }) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 2, 4, 6),
@@ -364,7 +343,12 @@ class ReaderSettingsOverlay extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             title,
-            style: theme.textTheme.labelLarge?.copyWith(color: mutedColor, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+            style: TextStyle(
+              color: mutedColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
           ),
         ],
       ),
@@ -380,7 +364,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
     required String display,
     required ValueChanged<double> onChanged,
     required ReaderThemeExtension readerTheme,
-    required ThemeData theme,
   }) {
     final accentColor = readerTheme.accentColor;
     final textColor = readerTheme.textColor;
@@ -392,7 +375,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
             width: 72,
             child: Text(
               label,
-              style: theme.textTheme.labelLarge?.copyWith(color: textColor),
+              style: TextStyle(color: textColor, fontSize: 13),
             ),
           ),
           Expanded(
@@ -573,11 +556,10 @@ class ReaderSettingsOverlay extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _fontScaleTile(
     ReaderThemeExtension readerTheme,
     AppLocalizations l10n,
-    ThemeData theme,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -592,7 +574,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.followSystemFontScale,
-              style: theme.textTheme.labelLarge?.copyWith(color: readerTheme.textColor),
+              style: TextStyle(color: readerTheme.textColor, fontSize: 13),
             ),
           ),
           Switch(
@@ -754,11 +736,10 @@ class ReaderSettingsOverlay extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _textAlignSelector(
     ReaderThemeExtension readerTheme,
     AppLocalizations l10n,
-    ThemeData theme,
   ) {
     final accentColor = readerTheme.accentColor;
     final options = [
@@ -788,7 +769,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
             width: 72,
             child: Text(
               l10n.textAlign,
-              style: theme.textTheme.labelLarge?.copyWith(color: readerTheme.textColor),
+              style: TextStyle(color: readerTheme.textColor, fontSize: 13),
             ),
           ),
           Expanded(
@@ -894,11 +875,10 @@ class ReaderSettingsOverlay extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _autoScrollTile(
     ReaderThemeExtension readerTheme,
     AppLocalizations l10n,
-    ThemeData theme,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -913,7 +893,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.autoScroll,
-              style: theme.textTheme.labelLarge?.copyWith(color: readerTheme.textColor),
+              style: TextStyle(color: readerTheme.textColor, fontSize: 13),
             ),
           ),
           Switch(
@@ -925,8 +905,8 @@ class ReaderSettingsOverlay extends StatelessWidget {
       ),
     );
   }
-  
-  Widget _ttsTile(ReaderThemeExtension readerTheme, AppLocalizations l10n, ThemeData theme) {
+
+  Widget _ttsTile(ReaderThemeExtension readerTheme, AppLocalizations l10n) {
     final textColor = readerTheme.textColor;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -945,7 +925,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.readAloud,
-              style: theme.textTheme.labelLarge?.copyWith(color: textColor),
+              style: TextStyle(color: textColor, fontSize: 13),
             ),
           ),
           TextButton(
@@ -958,7 +938,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
             ),
             child: Text(
               isTtsPlaying || isTtsPaused ? '停止' : '播放',
-              style: theme.textTheme.labelLarge?.copyWith(color: readerTheme.accentColor),
+              style: const TextStyle(fontSize: 13),
             ),
           ),
         ],
