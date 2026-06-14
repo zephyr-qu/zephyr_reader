@@ -170,16 +170,14 @@ void main() {
     });
   });
 
-  // ==================== 生命周期 ====================
-
   group('dispose()', () {
     test('dispose 后计时器停止', () async {
       session.startReading();
       await session.dispose();
 
       await Future<void>.delayed(const Duration(milliseconds: 500));
-      // dispose 不改变信号值
-      expect(session.isReading.value, isTrue);
+      // dispose 后 isReading 被置为 false
+      expect(session.isReading.value, isFalse);
     });
 
     test('dispose 后即使 isReading=true, duration 不再增长', () async {

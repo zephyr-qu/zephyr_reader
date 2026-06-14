@@ -69,6 +69,20 @@ static STREAMER_CACHE: LazyLock<Mutex<LruCache<StreamerKey, PageStreamer>>> =
     LazyLock::new(|| Mutex::new(LruCache::new(STREAMER_CACHE_CAPACITY)));
 
 
+// ==================== Book ID 路径缓存 ====================
+
+/// 文件路径 → book_id 的 LRU 缓存，避免重复 DB 查询。
+/// 每本书的文件路径 → book_id 在单次会话中不变，无需失效处理。
+const BOOK_ID_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(16) {
+    Some(v) => v,
+    None => unreachable!(),
+};
+
+type BookIdCache = LruCache<String, String>;  // file_path → book_id
+
+static BOOK_ID_CACHE: LazyLock<Mutex<BookIdCache>> =
+    LazyLock::new(|| Mutex::new(LruCache::new(BOOK_ID_CACHE_CAPACITY)));
+
 // ==================== 导入与解析 ====================
 
 /// 解析书籍文件：验证路径、检查大小限制、选择解析器、保存元数据。
@@ -653,23 +667,31 @@ pub async fn paginate_chapter(
 
     // 提取章节文本（只读取必要的 spine，惰性转换）
     let format = format_from_extension(&validated_path);
-    let content = if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
+    let (content, is_partial) = if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
         let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
-        match max_chars {
-            Some(limit) => provider.read_text_range(0, limit)?,
+        let content_len = provider.content_length();
+        // 短路：如果 max_chars >= 全文长度，降级为完整分页（避免不完整结果）
+        let effective_max = match max_chars {
+            Some(limit) if limit >= content_len => None,
+            x => x,
+        };
+        match effective_max {
+            Some(limit) => {
+                let content = provider.read_text_range(0, limit)?;
+                (content, true)
+            }
             None => {
-                let content_len = provider.content_length();
                 let (start, end) = if format == BookFormat::Epub {
                     (0u64, content_len)
                 } else {
                     let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
                     (cs.max(0) as u64, (ce.max(0) as u64).min(content_len))
                 };
-                provider.read_text_range(start, end)?
+                (provider.read_text_range(start, end)?, false)
             }
         }
     } else {
-        extract_chapter_content(&validated_path, chapter_index).await?
+        (extract_chapter_content(&validated_path, chapter_index).await?, false)
     };
 
     let streamer = PageStreamer::new(content, config);
@@ -684,6 +706,7 @@ pub async fn paginate_chapter(
     Ok(PaginateResult {
         descriptors,
         config_hash,
+        is_partial,
     })
 }
 
@@ -731,15 +754,33 @@ async fn get_chapter_bounds(
     chapter_index: i32,
 ) -> Result<(i32, i32), AppError> {
     let pool = storage_pool()?;
+    // 从 LRU 缓存获取 book_id，避免重复的 find_by_file_path DB 查询
+    // 注意：parking_lot::MutexGuard 不是 Send，必须在 await 前释放锁
+    if let Some(book_id) = {
+        let mut cache = BOOK_ID_CACHE.lock();
+        cache.get(validated_path).cloned()
+    } {
+        let chapter = ChapterRepository::find_by_index(&pool, &book_id, chapter_index)
+            .await?
+            .ok_or_else(|| AppError::chapter_extract_error(chapter_index, "chapter not found in DB"))?;
+        return Ok((chapter.start_index as i32, chapter.end_index as i32));
+    }
+
     let book = BookRepository::find_by_file_path(&pool, validated_path)
         .await?
         .ok_or_else(|| AppError::file_not_found(validated_path))?;
+    let book_id = book.book_id.clone();
+    // 填充缓存（不持有锁跨 await）
+    {
+        let mut cache = BOOK_ID_CACHE.lock();
+        cache.put(validated_path.to_string(), book_id.clone());
+    }
 
-    let chapter = ChapterRepository::find_by_index(&pool, &book.book_id, chapter_index)
+    let chapter = ChapterRepository::find_by_index(&pool, &book_id, chapter_index)
         .await?
         .ok_or_else(|| AppError::chapter_extract_error(chapter_index, "chapter not found in DB"))?;
 
-    Ok((chapter.start_index  as i32, chapter.end_index  as i32))
+    Ok((chapter.start_index as i32, chapter.end_index as i32))
 }
 
 /// 轻量分块排版：将文本按行分割为多页

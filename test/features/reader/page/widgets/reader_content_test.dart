@@ -33,6 +33,7 @@ void main() {
       tester,
     ) async {
       final repo = _MockRepo();
+      when(() => repo.preloadGeneration).thenReturn(ValueNotifier<int>(0));
       when(() => repo.descriptors).thenReturn([
         const PageDescriptor(
           pageIndex: 0,
@@ -69,6 +70,7 @@ void main() {
 
     testWidgets('首屏 pageTurn 且 loading 时不渲染 PageCurlWidget', (tester) async {
       final repo = _MockRepo();
+      when(() => repo.preloadGeneration).thenReturn(ValueNotifier<int>(0));
 
       await tester.pumpWidget(
         _wrapApp(
@@ -98,6 +100,7 @@ void main() {
   group('ReaderContent — scroll/pagination/bilingual', () {
     testWidgets('scroll 模式不渲染 PageCurlWidget', (tester) async {
       final repo = _MockRepo();
+      when(() => repo.preloadGeneration).thenReturn(ValueNotifier<int>(0));
 
       await tester.pumpWidget(
         _wrapApp(
@@ -127,6 +130,7 @@ void main() {
     ) async {
       final repo = _MockRepo();
 
+      when(() => repo.preloadGeneration).thenReturn(ValueNotifier<int>(0));
       await tester.pumpWidget(
         _wrapApp(
           ReaderContent(
@@ -154,6 +158,7 @@ void main() {
     testWidgets('阅读模式切换时不抛异常', (tester) async {
       final repo = _MockRepo();
 
+      when(() => repo.preloadGeneration).thenReturn(ValueNotifier<int>(0));
       await tester.pumpWidget(
         _wrapApp(
           ReaderContent(

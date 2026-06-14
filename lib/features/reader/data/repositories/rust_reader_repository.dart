@@ -4,6 +4,7 @@ library;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/data/rich_text_converter.dart';
@@ -16,6 +17,7 @@ import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
 import 'package:zephyr_reader/src/rust/api/epub.dart' as epub_api;
 import 'package:zephyr_reader/src/rust/api/md.dart' as md_api;
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -150,8 +152,43 @@ class ReaderRepository {
   /// 轻量级分页排版（只获取页面描述符，文本按需加载）。
   ///
   /// 调用 Rust `paginate_chapter` 获取轻量级页面描述符列表，
-  /// 预加载前 5 页内容到 `_pageCache`。
   /// 返回页面总数，0 表示失败。
+  /// 私有共享分页核心：构建 config，调用 PaginationEngine，更新状态。
+  Future<PaginateResult> _paginateChapter({
+    required String bookId,
+    required int chapterIndex,
+    required TypesetConfig config,
+    BigInt? maxChars,
+  }) async {
+    final book = await _getBook(bookId);
+    if (book.filePath.isEmpty) {
+      throw Exception('_paginateChapter: book not found for bookId=$bookId');
+    }
+    final result = await _pagination.paginateChapter(
+      filePath: book.filePath,
+      chapterIndex: chapterIndex,
+      config: config,
+      maxChars: maxChars,
+    );
+    _filePath = book.filePath;
+    _chapterIndex = chapterIndex;
+    _descriptors = result.descriptors;
+    _configHash = result.configHash;
+    return result;
+  }
+
+  void _preloadPageRange(int count) {
+    final total = _descriptors?.length ?? 0;
+    final limit = count.clamp(0, total);
+    for (int i = 0; i < limit; i++) {
+      _fetchPageSync(i);
+    }
+  }
+
+  /// 完整分页排版（所有字符）。
+  ///
+  /// 在部分分页之后调用。保留已有 pageCache，不再清空。
+  /// 只对新扩展的页面进行预加载。
   Future<int> paginateChapter({
     required String bookId,
     required int chapterIndex,
@@ -168,11 +205,6 @@ class ReaderRepository {
     bool punctuationSqueeze = true,
   }) async {
     try {
-      final book = await _getBook(bookId);
-      if (book.filePath.isEmpty) {
-        Logging.error('paginateChapter: book not found for bookId=$bookId');
-        return 0;
-      }
       final config = buildTypesetConfig(
         width: width,
         height: height,
@@ -186,25 +218,17 @@ class ReaderRepository {
         paragraphSpacing: paragraphSpacing,
         punctuationSqueeze: punctuationSqueeze,
       );
-
-      final result = await _pagination.paginateChapter(
-        filePath: book.filePath,
+      final oldLength = _descriptors?.length ?? 0;
+      final result = await _paginateChapter(
+        bookId: bookId,
         chapterIndex: chapterIndex,
         config: config,
       );
-
-      _filePath = book.filePath;
-      _chapterIndex = chapterIndex;
-      _descriptors = result.descriptors;
-      _configHash = result.configHash;
-      _pageCache.clear();
-
-      // 预加载前 5 页到缓存
+      // 保留 partial 阶段的 pageCache 不变，只预加载新增页
       final preloadCount = 5.clamp(0, result.descriptors.length);
-      for (int i = 0; i < preloadCount; i++) {
+      for (int i = oldLength; i < preloadCount; i++) {
         _fetchPageSync(i);
       }
-
       return result.descriptors.length;
     } catch (e) {
       Logging.error('paginateChapter error: $e');
@@ -216,8 +240,8 @@ class ReaderRepository {
   ///
   /// 相比完整 `paginateChapter`（可能需 5s+），此方法在 ~300ms 内返回
   /// 最初的 ~100-200 页的真实描述符，让用户可以立即翻页。
-  /// 后续应调用完整 `paginateChapter` 获得全部分页。
-  Future<int> paginateChapterPartial({
+  /// 返回 `(totalPages, isPartial)`，调用方根据 `isPartial` 决定是否需补全。
+  Future<({int totalPages, bool isPartial})> paginateChapterPartial({
     required String bookId,
     required int chapterIndex,
     required double fontSize,
@@ -233,9 +257,6 @@ class ReaderRepository {
     bool punctuationSqueeze = true,
   }) async {
     try {
-      final book = await _getBook(bookId);
-      if (book.filePath.isEmpty) return 0;
-
       final config = buildTypesetConfig(
         width: width,
         height: height,
@@ -249,29 +270,18 @@ class ReaderRepository {
         paragraphSpacing: paragraphSpacing,
         punctuationSqueeze: punctuationSqueeze,
       );
-
-      final result = await _pagination.paginateChapterPartial(
-        filePath: book.filePath,
+      final result = await _paginateChapter(
+        bookId: bookId,
         chapterIndex: chapterIndex,
         config: config,
+        maxChars: PaginationEngine.partialMaxChars,
       );
-
-      _filePath = book.filePath;
-      _chapterIndex = chapterIndex;
-      _descriptors = result.descriptors;
-      _configHash = result.configHash;
       _pageCache.clear();
-
-      // 预加载前 5 页
-      final preloadCount = 5.clamp(0, result.descriptors.length);
-      for (int i = 0; i < preloadCount; i++) {
-        _fetchPageSync(i);
-      }
-
-      return result.descriptors.length;
+      _preloadPageRange(5);
+      return (totalPages: result.descriptors.length, isPartial: result.isPartial);
     } catch (e) {
       Logging.error('paginateChapterPartial error: $e');
-      return 0;
+      return (totalPages: 0, isPartial: false);
     }
   }
 
@@ -364,7 +374,8 @@ class ReaderRepository {
   }
   // ===== From ChapterContentService =====
 
-  Future<String> loadChapterContent(String bookId, int chapterId) async {
+  Future<String> loadChapterContent(String bookId, int chapterId,
+      {ReadingMode? readingMode}) async {
     final sw = Stopwatch()..start();
     try {
       final book = await _getBook(bookId);
@@ -376,10 +387,12 @@ class ReaderRepository {
 
       // 2. 并行启动：getChapter（纯文本）和 EPUB 富文本（如果适用）
       final isEpub = filePath.toLowerCase().endsWith('.epub');
+      final isPaginated = readingMode == ReadingMode.pagination;
 
       // 同步构建 TypesetConfig（无 FFI 调用，不阻塞）
       Future<List<RichParagraph>>? epubRichFuture;
-      if (isEpub) {
+      // 仅滚动/双语模式需要 EPUB 富文本排版；分页模式下跳过以节省时间
+      if (isEpub && !isPaginated) {
         final config = buildTypesetConfig(
           width: 400,
           height: 600,
@@ -412,10 +425,7 @@ class ReaderRepository {
       );
 
       // 处理 EPUB 富文本结果
-      // 如果章节内容过大（>500KB 纯文本），丢弃富文本排版结果：
-      // 富文本对超大章节的排版样式收益远小于内存与计算开销，
-      // 且此类章节通常因 TOC 缺乏章节划分导致（导入时已自动拆分）。
-      if (isEpub && content.length > 500 * 1024) {
+      if (!isPaginated && isEpub && content.length > 500 * 1024) {
         Logging.warning(
           'loadChapterContent: content too large (${content.length} bytes), '
           'discarding rich text typesetting result',

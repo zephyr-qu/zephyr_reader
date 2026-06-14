@@ -52,19 +52,8 @@ pub struct PaginateResult {
     pub descriptors: Vec<PageDescriptor>,
     /// 排版配置哈希，用于后续按需获取页面内容
     pub config_hash: u64,
-}
-
-// ==================== 页面偏移量 ====================
-
-/// 页面偏移量
-/// 记录页面在源文件中的位置范围
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb(non_opaque)]
-pub struct PageOffset {
-    /// 起始偏移量（字节）
-    pub offset: i32,
-    /// 数据长度（字节）
-    pub length: i32,
+    /// 是否为部分分页（true=仅前 N 字符，需后续补全）
+    pub is_partial: bool,
 }
 
 /// 搜索结果

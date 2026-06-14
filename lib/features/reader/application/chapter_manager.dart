@@ -167,6 +167,7 @@ class ChapterManager {
       final contentFuture = _repo.loadChapterContent(
         bookId.value,
         chapterIndex,
+        readingMode: readingMode.value,
       );
 
       final calibFuture = _calibration.value != null
@@ -224,7 +225,7 @@ class ChapterManager {
       // █ 快速局部分页（~300ms，只转换必要 spine）█
       // 让用户在等全文时就可以翻页
       final tPartialStart = sw.elapsedMilliseconds;
-      final partialTotal = await _repo.paginateChapterPartial(
+      final partialResult = await _repo.paginateChapterPartial(
         bookId: bookId.value,
         chapterIndex: chapterIndex,
         fontSize: _config.fontSize.value,
@@ -239,6 +240,7 @@ class ChapterManager {
         paragraphSpacing: _config.paragraphSpacing.value,
         punctuationSqueeze: _config.punctuationSqueeze.value,
       );
+      final partialTotal = partialResult.totalPages;
       if (partialTotal > 0) {
         final partialDesc = _repo.descriptors;
         if (partialDesc != null && partialDesc.isNotEmpty) {
@@ -255,6 +257,27 @@ class ChapterManager {
         '${sw.elapsedMilliseconds - tPartialStart}ms',
       );
 
+      // 如果 partial 已经完整（isPartial=false，章节 <= 50K 字符），跳过后续 full 分页
+      Future<int>? fullPaginateFuture;
+      if (partialResult.isPartial) {
+        // █ 需要完整分页 → 立即发起（与 contentFuture/calibFuture 并行）█
+        fullPaginateFuture = _repo.paginateChapter(
+          bookId: bookId.value,
+          chapterIndex: chapterIndex,
+          fontSize: _config.fontSize.value,
+          lineHeight: _config.lineHeight.value,
+          width: pageWidth,
+          height: pageHeight,
+          padding: _config.padding.value,
+          devicePixelRatio: devicePixelRatio,
+          calibration: _calibration.value,
+          fontFamily: _fontFamily,
+          letterSpacing: _config.letterSpacing.value,
+          paragraphSpacing: _config.paragraphSpacing.value,
+          punctuationSqueeze: _config.punctuationSqueeze.value,
+        );
+      }
+
       // █ 等待后台：全文 + 校准 █
       final results = await Future.wait([contentFuture, calibFuture]);
       final tConcurrent = sw.elapsedMilliseconds;
@@ -265,27 +288,23 @@ class ChapterManager {
       final content = results[0] as String;
       _calibration.value ??= results[1] as CalibrationData?;
 
-      // █ 轻量级分页排版（仅页面描述符，文本按需加载） █
-      final tBeforePaginate = sw.elapsedMilliseconds;
-      final total = await _repo.paginateChapter(
-        bookId: bookId.value,
-        chapterIndex: chapterIndex,
-        fontSize: _config.fontSize.value,
-        lineHeight: _config.lineHeight.value,
-        width: pageWidth,
-        height: pageHeight,
-        padding: _config.padding.value,
-        devicePixelRatio: devicePixelRatio,
-        calibration: _calibration.value,
-        fontFamily: _fontFamily,
-        letterSpacing: _config.letterSpacing.value,
-        paragraphSpacing: _config.paragraphSpacing.value,
-        punctuationSqueeze: _config.punctuationSqueeze.value,
-      );
-      final tPaginate = sw.elapsedMilliseconds;
-      Logging.info(
-        '[Timing] paginateChapter: ${tPaginate - tBeforePaginate}ms (cumulative: ${tPaginate}ms)',
-      );
+      int total;
+      if (partialResult.isPartial) {
+        // █ 等待完整分页（如果尚未完成）█
+        final tBeforePaginate = sw.elapsedMilliseconds;
+        total = await fullPaginateFuture!;
+        final tPaginate = sw.elapsedMilliseconds;
+        Logging.info(
+          '[Timing] paginateChapter: ${tPaginate - tBeforePaginate}ms (cumulative: ${tPaginate}ms)',
+        );
+      } else {
+        // partial 已是完整分页
+        total = partialTotal;
+        Logging.info(
+          '[Timing] paginateChapter: skipped (partial covered full content, '
+          '$partialTotal pages)',
+        );
+      }
 
       final descriptors = _repo.descriptors;
       if (total == 0 || descriptors == null || descriptors.isEmpty) {

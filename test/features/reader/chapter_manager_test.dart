@@ -245,7 +245,7 @@ void _setupPaginateChapterPartial(_MockRepo repo) {
       paragraphSpacing: any(named: 'paragraphSpacing'),
       punctuationSqueeze: any(named: 'punctuationSqueeze'),
     ),
-  ).thenAnswer((_) async => 2);
+  ).thenAnswer((_) async => (totalPages: 2, isPartial: false));
 }
 
 void _registerFallbackValues() {
@@ -270,7 +270,7 @@ void main() {
       () => repo.getChapters(any()),
     ).thenAnswer((_) async => createTestChapters(count: 3));
     when(
-      () => repo.loadChapterContent(any(), any()),
+      () => repo.loadChapterContent(any(), any(), readingMode: any(named: 'readingMode')),
     ).thenAnswer((_) async => 'A' * 100);
     _setupPaginateChapter(repo);
     // paginateChapterPartial 也使用相同的结果（首 N 字符分页和全部分页返回一致的前几页）
@@ -298,6 +298,17 @@ void main() {
       ),
     ]);
     when(() => repo.warmPageCache(any(), any())).thenReturn(null);
+    when(
+      () => repo.preloadNextChapterFirstPage(
+        any(),
+        any(),
+        fontSize: any(named: 'fontSize'),
+        lineHeight: any(named: 'lineHeight'),
+        width: any(named: 'width'),
+        height: any(named: 'height'),
+        padding: any(named: 'padding'),
+      ),
+    ).thenAnswer((_) async {});
     when(() => repo.currentPages).thenReturn(null);
     when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {});
     when(() => repo.ensurePageWindow(any())).thenReturn(null);
@@ -410,7 +421,7 @@ void main() {
 
       test('加载失败设置 error 信号', () async {
         when(
-          () => repo.loadChapterContent(any(), any()),
+          () => repo.loadChapterContent(any(), any(), readingMode: any(named: 'readingMode')),
         ).thenThrow(Exception('network error'));
 
         await manager.loadChapter(0);

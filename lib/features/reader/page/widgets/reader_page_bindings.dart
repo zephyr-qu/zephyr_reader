@@ -59,7 +59,7 @@ class ReaderPageBindings {
     required this.bilingualAlign,
     required this.isBilingualLoading,
     required this.bilingualError,
-    required this.autoScrollTick,
+    this.autoScrollTick = 0,
     required this.highlights,
     required this.letterSpacing,
     required this.paragraphSpacing,
@@ -166,7 +166,8 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
   final AsyncState<BilingualAlignment?> bState = useSignalValue(
     vm.bilingualAlignment,
   );
-  final int autoScrollTick = useSignalValue(vm.autoScrollTick);
+  // autoScrollTick intentionally excluded — ReaderContent subscribes via local useEffect
+  // to avoid triggering rebuilds of widgets using this binding on every tick.
   final AsyncState<List<Note>> highlights = useSignalValue(vm.highlights);
   final double letterSpacing = useSignalValue(vm.config.letterSpacing.signal);
   final double paragraphSpacing = useSignalValue(
@@ -203,7 +204,7 @@ ReaderPageBindings useReaderContentBindings(ReaderViewModel vm) {
     bilingualAlign: bState.value,
     isBilingualLoading: bState.isLoading,
     bilingualError: bState.error?.toString(),
-    autoScrollTick: autoScrollTick,
+    // autoScrollTick excluded: consumer subscribes locally
     highlights: highlights.value ?? [],
     letterSpacing: letterSpacing,
     paragraphSpacing: paragraphSpacing,

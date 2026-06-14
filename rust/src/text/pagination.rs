@@ -1,7 +1,7 @@
 //! 页面排版分页
 //! 提供分页流式处理，支持懒加载模式以减少大文件内存占用
 
-use crate::domain::{LanguageType, PageContent, PageDescriptor, PageOffset, TypesetConfig};
+use crate::domain::{LanguageType, PageContent, PageDescriptor, TypesetConfig};
 use crate::text::char_width::CharWidthTable;
 use crate::text::constants::{is_cjk_char, is_cjk_punctuation, is_start_avoid_punctuation};
 use crate::text::typeset::{optimize_punctuation, optimize_spaces};
@@ -124,17 +124,19 @@ const LAZY_PAGINATION_CHAR_THRESHOLD: usize = 50_000;
 #[frb]
 impl PageStreamer {
     pub fn new(content: String, config: TypesetConfig) -> Self {
-        // 标点优化 + 空格优化（避头避尾、CJK/Latin 间距等）
+        // 先判断是否需要惰性分页，大章节直接跳过文本预处理（O(n) 字符串复制）
+        if content.chars().count() > LAZY_PAGINATION_CHAR_THRESHOLD {
+            return Self::new_lazy(content, config);
+        }
+        // 小章节：标点优化 + 空格优化（避头避尾、CJK/Latin 间距等）
         let lang = match config.language {
             LanguageType::Chinese => "zh",
             LanguageType::English => "en",
             LanguageType::Auto | LanguageType::Mixed => "auto",
         };
-        let content = optimize_spaces(&optimize_punctuation(&content, lang), lang);
-        if content.chars().count() > LAZY_PAGINATION_CHAR_THRESHOLD {
-            return Self::new_lazy(content, config);
-        }
-        Self::new_eager(content, config)
+        let punct = optimize_punctuation(&content, lang);
+        let optimized = optimize_spaces(&punct, lang);
+        Self::new_eager(optimized.into_owned(), config)
     }
 
     fn new_eager(content: String, config: TypesetConfig) -> Self {
@@ -418,48 +420,6 @@ impl PageStreamer {
         self.current_page * self.lines_per_page
     }
 
-    #[frb(sync)]
-    pub fn get_page_offsets(&self) -> Vec<PageOffset> {
-        if self.line_offsets.is_empty() {
-            let total = self.total_pages();
-            let chars_per_page = self.chars_per_line * self.lines_per_page;
-            let mut offsets = Vec::with_capacity(total);
-            for page_idx in 0..total {
-                let start = page_idx * chars_per_page;
-                let end = (start + chars_per_page).min(self.content.len());
-                offsets.push(PageOffset {
-                    offset: start as i32,
-                    length: (end - start) as i32,
-                });
-            }
-            return offsets;
-        }
-        let mut offsets = Vec::with_capacity(self.total_pages());
-
-        for page_idx in 0..self.total_pages() {
-            let start_line = page_idx * self.lines_per_page;
-            let end_line = (start_line + self.lines_per_page).min(self.total_lines);
-
-            if start_line >= self.line_offsets.len() {
-                offsets.push(PageOffset {
-                    offset: 0,
-                    length: 0,
-                });
-                continue;
-            }
-
-            let actual_end = end_line.min(self.line_offsets.len());
-            let (page_start, _) = self.line_offsets[start_line];
-            let (_, page_end) = self.line_offsets[actual_end.saturating_sub(1)];
-
-            offsets.push(PageOffset {
-                offset: page_start as i32,
-                length: (page_end - page_start) as i32,
-            });
-        }
-
-        offsets
-    }
 
     /// 获取所有页面的描述符（轻量级，不含文本内容）。
     ///
