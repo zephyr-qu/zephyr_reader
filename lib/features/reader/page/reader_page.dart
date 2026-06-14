@@ -17,23 +17,23 @@ import 'package:zephyr_reader/features/reader/application/reader_view_model.dart
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page_actions.dart';
-import 'package:zephyr_reader/features/reader/page/ui/battery_indicator.dart';
+import 'package:zephyr_reader/features/reader/page/widgets/battery_indicator.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 import 'reader_dictionary_panel.dart';
-import 'toolbar/animated_toolbar_panel.dart';
-import 'ui/brightness_mask.dart';
-import 'bookmarks/reader_annotation_dialog.dart';
-import 'navigation/reader_navigation_drawer.dart';
+import 'widgets/animated_toolbar_panel.dart';
+import 'widgets/brightness_mask.dart';
+import 'widgets/reader_annotation_dialog.dart';
+import 'widgets/reader_navigation_drawer.dart';
 import 'widgets/reader_content.dart';
-import 'bookmarks/reader_highlight_sheet.dart';
-import 'bookmarks/reader_note_sidebar.dart';
-import 'binding/reader_page_bindings.dart';
-import 'settings/reader_settings_overlay.dart';
-import 'toolbar/reader_toolbar.dart';
+import 'widgets/reader_highlight_sheet.dart';
+import 'widgets/reader_note_sidebar.dart';
+import 'widgets/reader_page_bindings.dart';
+import 'widgets/reader_settings_overlay.dart';
+import 'widgets/reader_toolbar.dart';
 import 'widgets/reader_translation_dialog.dart';
-import 'touch/selection_toolbar.dart';
-import 'touch/tap_zone.dart';
+import 'widgets/selection_toolbar.dart';
+import 'widgets/tap_zone.dart';
 
 /// 阅读器页面。
 ///
@@ -65,7 +65,7 @@ class ReaderPage extends HookWidget {
     final activePanel = useState<ReaderPanelType?>(null);
     final showToolbar = useSignal(false);
     final showSelection = useSignalValue<String, Signal<String>>(
-      vm.annotations.selectedText,
+      vm.selectedText,
     ).isNotEmpty;
     // Toast → SnackBar
     useSignalEffect(() {
@@ -84,7 +84,7 @@ class ReaderPage extends HookWidget {
 
     // Font → VM：依赖追踪 fontRepo.currentFont
     useSignalEffect(() {
-      vm.chapterManager.updateFont(fontRepo.currentFontFamily);
+      vm.updateFont(fontRepo.currentFontFamily);
     });
 
     // Init
@@ -93,10 +93,10 @@ class ReaderPage extends HookWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!context.mounted) return;
         final mq = MediaQuery.of(context);
-        vm.chapterManager.pageWidth = mq.size.width - mq.padding.horizontal;
-        vm.chapterManager.pageHeight = mq.size.height - mq.padding.vertical;
-        vm.chapterManager.devicePixelRatio = mq.devicePixelRatio;
-        vm.chapterManager.updateFont(fontRepo.currentFontFamily);
+        vm.pageWidth = mq.size.width - mq.padding.horizontal;
+        vm.pageHeight = mq.size.height - mq.padding.vertical;
+        vm.devicePixelRatio = mq.devicePixelRatio;
+        vm.updateFont(fontRepo.currentFontFamily);
         vm.initialize(bookId, initialChapterId: initialChapterId);
       });
       return () {
@@ -177,30 +177,30 @@ class ReaderPage extends HookWidget {
             isLoading: b.isLoading,
             error: b.error,
             hasNextChapter:
-                b.chapterIndex < (vm.chapterManager.chapters.value.value?.length ?? 0) - 1,
+                b.chapterIndex < (vm.chapters.value.value?.length ?? 0) - 1,
             bilingualAlignment: b.bilingualAlign,
             isBilingualLoading: b.isBilingualLoading,
             onRequestTranslation: () => showDialog<void>(
               context: context,
               builder: (_) => ReaderTranslationDialog(
-                onChanged: vm.translation.setTranslationContent,
-                translationConfigured: vm.translation.isConfigured,
+                onChanged: vm.setTranslationContent,
+                translationConfigured: vm.isTranslationConfigured,
                 onTranslateWithApi: () {
                   Navigator.of(context).pop();
-                  unawaited(vm.translation.translateChapter());
+                  unawaited(vm.translateChapter());
                 },
               ),
             ),
-            onRetryTranslation: () => unawaited(vm.translation.translateChapter()),
-            onPageChanged: vm.chapterManager.loadPage,
-            onRetry: () => vm.chapterManager.loadChapter(
+            onRetryTranslation: () => unawaited(vm.translateChapter()),
+            onPageChanged: vm.loadPage,
+            onRetry: () => vm.loadChapter(
               b.chapterIndex,
-              initialCharOffset: vm.chapterManager.currentCharOffset.value,
+              initialCharOffset: vm.currentCharOffset.value,
               restartSession: false,
             ),
             autoScrollTick: b.autoScrollTick,
             highlights: b.highlights,
-            onSelectionChanged: vm.annotations.updateSelection,
+            onSelectionChanged: vm.updateSelection,
             onSelectionGlobalPosition: (pos) => selectionGlobalPos.value = pos,
             onHighlightTap: (note) => showModalBottomSheet<void>(
               context: context,
@@ -217,7 +217,7 @@ class ReaderPage extends HookWidget {
                           content: text,
                           updatedAt: DateTime.now(),
                         );
-                        vm.annotations.updateNote(updated);
+                        vm.updateNote(updated, l10n);
                       },
                     ),
                   );
@@ -237,9 +237,9 @@ class ReaderPage extends HookWidget {
             showSentenceSplit: true,
             bgIndex: b.bgIndex,
             jumpToCharOffset: b.pendingJumpCharOffset,
-            onPositionChanged: vm.chapterManager.updateCurrentCharOffset,
-            onJumpHandled: vm.chapterManager.consumePendingJumpOffset,
-            onReachEnd: () => unawaited(vm.chapterManager.nextChapter()),
+            onPositionChanged: vm.updateCurrentCharOffset,
+            onJumpHandled: vm.consumePendingJumpOffset,
+            onReachEnd: () => unawaited(vm.nextChapter()),
           ),
         ),
         BrightnessMask(
@@ -282,7 +282,7 @@ class ReaderPage extends HookWidget {
               );
             },
             onToggleBookmarks: () =>
-                withTimer(vm.bookmarks.toggleAtCurrentPosition),
+                withTimer(vm.toggleBookmarkAtCurrentPosition),
             onToggleMore: () => withTimer(() {
               activePanel.value = activePanel.value == ReaderPanelType.more
                   ? null
@@ -376,29 +376,29 @@ class ReaderPage extends HookWidget {
         left: 0,
         right: 0,
         child: SelectionToolbar(
-          selectedText: vm.annotations.selectedText.value,
+          selectedText: vm.selectedText.value,
           onHighlight: () => vm.saveHighlight(l10n),
           onAnnotate: () => showDialog<void>(
             context: context,
             builder: (_) => ReaderAnnotationDialog(
-              selectedText: vm.annotations.selectedText.value,
+              selectedText: vm.selectedText.value,
               onSave: (text) => vm.saveAnnotation(text, l10n),
             ),
           ),
           onLookup: () =>
-              showDictionaryPanel(context, vm, vm.annotations.selectedText.value),
+              showDictionaryPanel(context, vm, vm.selectedText.value),
           onAddToVocabulary: () => addToVocabulary(
             context,
             vm,
-            vm.annotations.selectedText.value,
-            bookId: vm.chapterManager.bookId.value,
-            chapterIndex: vm.chapterManager.chapterIndex.value,
-            charOffset: vm.annotations.selectionStart.value,
+            vm.selectedText.value,
+            bookId: vm.bookId.value,
+            chapterIndex: vm.chapterIndex.value,
+            charOffset: vm.selectionStart.value,
           ),
           onBilingualHighlight: b.currentReadingMode == ReadingMode.bilingual
               ? () => onBilingualHighlight(context, vm)
               : null,
-          onDismiss: () => vm.annotations.clearSelection(),
+          onDismiss: () => vm.clearSelection(),
         ),
       );
     }
@@ -430,15 +430,15 @@ class ReaderPage extends HookWidget {
           endDrawerEnableOpenDragGesture: false,
           drawerEdgeDragWidth: 0,
           drawer: ReaderNavigationDrawer(
-            chapters: vm.chapterManager.chapters.value.value ?? [],
-            currentChapterIndex: vm.chapterManager.chapterIndex.value,
+            chapters: vm.chapters.value.value ?? [],
+            currentChapterIndex: vm.chapterIndex.value,
             onChapterSelected: (idx) {
-              vm.chapterManager.jumpToChapter(idx);
+              vm.jumpToChapter(idx);
             },
-            bookmarks: vm.bookmarks.bookmarks.value.value ?? [],
-            onBookmarkSelected: (bm) => vm.chapterManager.jumpToPosition(bm.chapterIndex, bm.charOffset.toInt()),
-            onAddBookmark: () => vm.bookmarks.toggleAtCurrentPosition(),
-            onDeleteBookmark: (id) => vm.bookmarks.deleteBookmark(id),
+            bookmarks: vm.bookmarks.value.value ?? [],
+            onBookmarkSelected: (bm) => vm.jumpToBookmark(bm),
+            onAddBookmark: () => vm.toggleBookmarkAtCurrentPosition(),
+            onDeleteBookmark: (id) => vm.deleteBookmark(id),
             themeMode: b.themeMode,
             bookId: b.currentBookId,
           ),
@@ -446,7 +446,7 @@ class ReaderPage extends HookWidget {
             bookId: b.currentBookId,
             bookTitle: b.currentChapterTitle,
             vm: vm,
-            onNoteTap: (ci, co) => vm.chapterManager.jumpToPosition(ci, co),
+            onNoteTap: (ci, co) => vm.jumpToPosition(ci, co),
           ),
           body: AnimatedContainer(
             duration: AnimTokens.slow,
@@ -478,14 +478,14 @@ class ReaderPage extends HookWidget {
                         b.currentReadingMode != ReadingMode.pageTurn)
                       TapZone(
                         tapLayout: tapLayout,
-                        pageIndex: vm.chapterManager.pageIndex.value,
-                        totalPages: vm.chapterManager.totalPages.value,
+                        pageIndex: vm.pageIndex.value,
+                        totalPages: vm.totalPages.value,
                         onPreviousPage: () {
-                          unawaited(vm.chapterManager.previousPage());
+                          unawaited(vm.previousPage());
                           HapticFeedback.lightImpact();
                         },
                         onNextPage: () {
-                          unawaited(vm.chapterManager.nextPage());
+                          unawaited(vm.nextPage());
                           HapticFeedback.lightImpact();
                         },
                         onCenterTap: () => withTimer(() {
@@ -514,7 +514,7 @@ class ReaderPage extends HookWidget {
   }
 
   void _toggleTts(ReaderViewModel vm, TtsService ttsService) {
-    final c = vm.chapterManager.chapterContent.value.value;
+    final c = vm.chapterContent.value.value;
     if (c == null || c.isEmpty) return;
     if (ttsService.isPlaying.value && !ttsService.isPaused.value) {
       // Playing → Pause
@@ -530,7 +530,7 @@ class ReaderPage extends HookWidget {
   }
 
   void _startTts(ReaderViewModel vm, TtsService ttsService) {
-    final c = vm.chapterManager.chapterContent.value.value;
+    final c = vm.chapterContent.value.value;
     if (c == null || c.isEmpty) return;
     final ttsSettings = getIt<TtsSettingsViewModel>();
     final autoPage = ttsSettings.autoPage.value;
@@ -539,7 +539,7 @@ class ReaderPage extends HookWidget {
       originalOnly: ttsSettings.originalOnly.value,
       bilingualAlternate: ttsSettings.bilingualAlternate.value,
       switchIntervalMs: ttsSettings.switchInterval.value,
-      onComplete: autoPage ? () => vm.chapterManager.nextPage() : null,
+      onComplete: autoPage ? () => vm.nextPage() : null,
     );
   }
 

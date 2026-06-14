@@ -1681,18 +1681,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get thousandCharsUnit => 'K';
 
   @override
-  String get byteUnit => 'B';
-
-  @override
-  String get kilobyteUnit => 'KB';
-
-  @override
-  String get megabyteUnit => 'MB';
-
-  @override
-  String get gigabyteUnit => 'GB';
-
-  @override
   String get livePreview => 'Live Preview';
 
   @override

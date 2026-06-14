@@ -1664,18 +1664,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get thousandCharsUnit => '千';
 
   @override
-  String get byteUnit => 'B';
-
-  @override
-  String get kilobyteUnit => 'KB';
-
-  @override
-  String get megabyteUnit => 'MB';
-
-  @override
-  String get gigabyteUnit => 'GB';
-
-  @override
   String get livePreview => '实时预览';
 
   @override

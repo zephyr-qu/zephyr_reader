@@ -132,7 +132,7 @@ class BookSearchPage extends HookWidget {
 
         return ListView.separated(
           padding: EdgeInsets.symmetric(
-            horizontal: DesignTokens.spacing(Spacing.md),
+            horizontal: 20,
             vertical: DesignTokens.spacing(Spacing.sm),
           ),
           itemCount: results.length,

@@ -32,13 +32,13 @@ const _cnNumerals = [
 /// 章节列表组件。
 ///
 /// 展示书籍的章节列表，支持点击跳转和当前章节高亮。
-class ChapterList extends HookWidget {
+class ChapterListWidget extends HookWidget {
   final List<Chapter> chapters;
   final int currentChapterIndex;
   final ValueChanged<int> onChapterSelected;
   final VoidCallback onClose;
 
-  const ChapterList({
+  const ChapterListWidget({
     super.key,
     required this.chapters,
     required this.currentChapterIndex,
@@ -60,40 +60,43 @@ class ChapterList extends HookWidget {
     final l10n = AppLocalizations.of(context)!;
     final readerTheme = Theme.of(context).extension<ReaderThemeExtension>()!;
 
-    return Container(
-      color: readerTheme.backgroundColor,
-      child: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(readerTheme, l10n),
-            Expanded(
-              child: ListView.builder(
-                controller: scrollController,
-                padding: EdgeInsets.only(
-                  top: 4,
-                  bottom: 24,
-                  left: DesignTokens.spacing(Spacing.md),
-                  right: DesignTokens.spacing(Spacing.sm),
+    return
+     Container(
+        color: readerTheme.backgroundColor,
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(readerTheme, l10n),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  padding: EdgeInsets.only(
+                    top: 4,
+                    bottom: 24,
+                    left: DesignTokens.spacing(Spacing.md),
+                    right: DesignTokens.spacing(Spacing.sm),
+                  ),
+                  itemCount: chapters.length,
+                  itemBuilder: (context, index) {
+                    final chapter = chapters[index];
+                    final isCurrent =
+                        chapter.chapterIndex == currentChapterIndex;
+                    final indent = (chapter.level - 1).clamp(0, 4);
+                    return _buildChapterItem(
+                      chapter: chapter,
+                      index: index,
+                      isCurrent: isCurrent,
+                      indent: indent,
+                      readerTheme: readerTheme,
+                    );
+                  },
                 ),
-                itemCount: chapters.length,
-                itemBuilder: (context, index) {
-                  final chapter = chapters[index];
-                  final isCurrent = chapter.chapterIndex == currentChapterIndex;
-                  final indent = (chapter.level - 1).clamp(0, 4);
-                  return _buildChapterItem(
-                    chapter: chapter,
-                    index: index,
-                    isCurrent: isCurrent,
-                    indent: indent,
-                    readerTheme: readerTheme,
-                  );
-                },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    );
+
   }
 
   void _scrollToCurrent(
@@ -115,7 +118,10 @@ class ChapterList extends HookWidget {
     }
   }
 
-  Widget _buildHeader(ReaderThemeExtension readerTheme, AppLocalizations l10n) {
+  Widget _buildHeader(
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+  ) {
     return Container(
       padding: EdgeInsets.fromLTRB(
         DesignTokens.spacing(Spacing.md),
@@ -124,9 +130,7 @@ class ChapterList extends HookWidget {
         DesignTokens.spacing(Spacing.sm),
       ),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: readerTheme.dividerColor, width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: readerTheme.dividerColor, width: 1)),
       ),
       child: Row(
         children: [
@@ -167,11 +171,7 @@ class ChapterList extends HookWidget {
           ),
           SizedBox(width: DesignTokens.spacing(Spacing.sm)),
           IconButton(
-            icon: Icon(
-              PhosphorIconsRegular.x,
-              color: readerTheme.mutedColor,
-              size: 22,
-            ),
+            icon: Icon(PhosphorIconsRegular.x, color: readerTheme.mutedColor, size: 22),
             onPressed: onClose,
             splashRadius: 20,
             tooltip: l10n.close,
@@ -217,12 +217,7 @@ class ChapterList extends HookWidget {
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
               border: isCurrent
-                  ? Border(
-                      left: BorderSide(
-                        color: readerTheme.accentColor,
-                        width: 3,
-                      ),
-                    )
+                  ? Border(left: BorderSide(color: readerTheme.accentColor, width: 3))
                   : null,
             ),
             child: Row(
@@ -262,9 +257,7 @@ class ChapterList extends HookWidget {
                       Text(
                         chapter.title,
                         style: TextStyle(
-                          color: isCurrent
-                              ? readerTheme.accentColor
-                              : readerTheme.textColor,
+                          color: isCurrent ? readerTheme.accentColor : readerTheme.textColor,
                           fontWeight: isCurrent
                               ? FontWeight.w600
                               : FontWeight.w400,
@@ -279,9 +272,7 @@ class ChapterList extends HookWidget {
                         Text(
                           '正在阅读',
                           style: TextStyle(
-                            color: readerTheme.accentColor.withValues(
-                              alpha: 0.7,
-                            ),
+                            color: readerTheme.accentColor.withValues(alpha: 0.7),
                             fontSize: 11,
                             letterSpacing: 0.3,
                           ),

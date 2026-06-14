@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:zephyr_reader/features/profile/page/user_agreement_page.dart';
@@ -64,7 +63,7 @@ class LinksSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: DesignTokens.spacing(Spacing.md)),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         decoration: BoxDecoration(
           color: cs.surface,

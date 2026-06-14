@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/presentation/widgets/go_reading_empty_state.dart';
 import 'package:zephyr_reader/features/learning_notes/application/learning_notes_view_model.dart';
@@ -28,7 +27,7 @@ class LearningNotesNoteList extends StatelessWidget {
     }
 
     return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: DesignTokens.spacing(Spacing.md)),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       itemCount: _totalItemCount(groups),
       itemBuilder: (context, index) => _buildItem(context, index),
     );

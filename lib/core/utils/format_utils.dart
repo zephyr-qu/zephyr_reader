@@ -7,13 +7,13 @@ library;
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 格式化字节数为可读字符串
-String formatFileSize(int bytes, AppLocalizations l10n) {
-  if (bytes < 1024) return '$bytes ${l10n.byteUnit}';
-  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} ${l10n.kilobyteUnit}';
+String formatFileSize(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
   if (bytes < 1024 * 1024 * 1024) {
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} ${l10n.megabyteUnit}';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
-  return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} ${l10n.gigabyteUnit}';
+  return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
 }
 
 /// 将字符数格式化为人类可读的字符串
