@@ -7,6 +7,7 @@ import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'reader_render_config.dart';
+import 'find_render_box.dart';
 
 /// 双语对照模式渲染器。
 ///
@@ -48,10 +49,8 @@ class BilingualModeRenderer extends StatelessWidget {
       onSelectionGlobalPosition?.call(null);
       return;
     }
-    final renderObject = context.findRenderObject();
-    if (renderObject is! RenderBox) return;
-    final box = renderObject;
-    if (!box.hasSize || !box.attached) return;
+    final box = findRenderBox(context);
+    if (box == null || !box.hasSize || !box.attached) return;
     onSelectionGlobalPosition?.call(box.localToGlobal(Offset.zero));
   }
 

@@ -24,12 +24,11 @@ class PageInfo {
 /// 封装 Rust 全量分页、部分分页和 Dart 估算分页算法。
 /// 所有方法为纯计算或 FFI 调用，不持有任何可变状态。
 class PaginationEngine {
-  /// Rust 全量分页。
+  /// Rust 分页排版。
   ///
-  /// 返回页面描述符列表和排版配置哈希。
+  /// 返回完整的 [PaginateResult]（含 isPartial 标记）。
   /// 调用方负责缓存描述符和预加载页面内容。
-  Future<({List<PageDescriptor> descriptors, BigInt configHash})>
-  paginateChapter({
+  Future<PaginateResult> paginateChapter({
     required String filePath,
     required int chapterIndex,
     required TypesetConfig config,
@@ -45,29 +44,13 @@ class PaginationEngine {
     final tRust = sw.elapsedMilliseconds;
     Logging.info(
       '[Timing] Rust paginateChapter: ${tRust}ms '
-      '(maxChars=${maxChars ?? "full"}, pages=${result.descriptors.length})',
+      '(maxChars=${maxChars ?? "full"}, isPartial=${result.isPartial}, pages=${result.descriptors.length})',
     );
-    return (descriptors: result.descriptors, configHash: result.configHash);
+    return result;
   }
 
-  /// Rust 部分量分页（前 maxChars 字符）。
-  ///
-  /// 用于首屏后快速解锁翻页，~300ms 内返回。
-  static const int _partialMaxChars = 50000;
-
-  Future<({List<PageDescriptor> descriptors, BigInt configHash})>
-  paginateChapterPartial({
-    required String filePath,
-    required int chapterIndex,
-    required TypesetConfig config,
-  }) async {
-    return paginateChapter(
-      filePath: filePath,
-      chapterIndex: chapterIndex,
-      config: config,
-      maxChars: BigInt.from(_partialMaxChars),
-    );
-  }
+  /// 部分分页截止字符数（50K 字符）。
+  static final BigInt partialMaxChars = BigInt.from(50000);
 
   /// Dart 估算分页（无需 TextPainter，毫秒级）。
   ///

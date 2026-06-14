@@ -110,9 +110,10 @@ class ReaderContent extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final repo = this.repo;
+    // 永不重建 PageController — 跨章时手动 jumpToPage(0)
     final pageController = useMemoized(
       () => PageController(initialPage: pageIndex),
-      [chapterId],
+      [],
     );
     final scrollController = useScrollController();
     final textColor = _getTextColor(themeMode);
@@ -149,6 +150,15 @@ class ReaderContent extends HookWidget {
       ],
     );
 
+    // 跨章时直接跳转第 0 页，不带动画
+    useEffect(() {
+      if (pageController.hasClients) {
+        pageController.jumpToPage(0);
+      }
+      return null;
+    }, [chapterId]);
+
+    // 章内翻页动画同步
     useEffect(() {
       if (readingMode != ReadingMode.pagination) {
         return null;

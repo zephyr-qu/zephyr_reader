@@ -5,6 +5,7 @@ import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repo
 import 'package:zephyr_reader/features/reader/page/widgets/highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'reader_render_config.dart';
+import 'find_render_box.dart';
 
 /// 分页模式渲染器。
 ///
@@ -50,10 +51,8 @@ class PaginatedModeRenderer extends StatelessWidget {
       onSelectionGlobalPosition?.call(null);
       return;
     }
-    final renderObject = context.findRenderObject();
-    if (renderObject is! RenderBox) return;
-    final box = renderObject;
-    if (!box.hasSize || !box.attached) return;
+    final box = findRenderBox(context);
+    if (box == null || !box.hasSize || !box.attached) return;
     onSelectionGlobalPosition?.call(box.localToGlobal(Offset.zero));
   }
 
@@ -374,10 +373,8 @@ void _reportSelectionPositionStandalone(
   void Function(Offset?)? onSelectionGlobalPosition,
 ) {
   if (onSelectionGlobalPosition == null) return;
-  final renderObject = context.findRenderObject();
-  if (renderObject is! RenderBox) return;
-  final box = renderObject;
-  if (!box.hasSize || !box.attached) return;
+  final box = findRenderBox(context);
+  if (box == null || !box.hasSize || !box.attached) return;
   onSelectionGlobalPosition(box.localToGlobal(Offset.zero));
 }
 

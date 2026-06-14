@@ -10,6 +10,7 @@ import 'package:zephyr_reader/core/reader/reader_config.dart';
 import '../../data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/highlight_painter.dart';
 import 'reader_render_config.dart';
+import 'find_render_box.dart';
 
 /// 滚动模式渲染器。
 ///
@@ -432,10 +433,8 @@ class ScrollModeRenderer extends HookWidget {
       onSelectionGlobalPosition?.call(null);
       return;
     }
-    final renderObject = context.findRenderObject();
-    if (renderObject is! RenderBox) return;
-    final box = renderObject;
-    if (!box.hasSize || !box.attached) return;
+    final box = findRenderBox(context);
+    if (box == null || !box.hasSize || !box.attached) return;
     onSelectionGlobalPosition?.call(box.localToGlobal(Offset.zero));
   }
 

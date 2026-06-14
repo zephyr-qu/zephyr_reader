@@ -48,12 +48,15 @@ TypesetConfig _cjkCompareConfig() {
 }
 
 void main() {
+  final ffiAvailable = isFfiAvailable();
+
   late String mixedFilePath;
   late String pureFilePath;
   late String mixedBookId;
   late String pureBookId;
 
   setUpAll(() async {
+    if (!ffiAvailable) return;
     await setupTestStorage(label: 'autospacing');
 
     // 混合中英文 fixture — BOM 前缀确保 chardetng 检测 UTF-8
@@ -115,98 +118,101 @@ of cultural fusion, 传统与现代交相辉映的美。
   });
 
   tearDownAll(() async {
+    if (!ffiAvailable) return;
     await deleteTestBook(mixedBookId);
     await deleteTestBook(pureBookId);
     await teardownTestStorage();
   });
 
-  // ==================== Font-size scaling ====================
+  group('auto-spacing integration tests', () {
+    // ==================== Font-size scaling ====================
 
-  group('Font-size scaling', () {
-    test('page count increases with larger font size', () async {
-      final smallFont = _makeConfig(fontSize: 14);
-      final largeFont = _makeConfig(fontSize: 28);
-      final smallPages = await core_api.paginateAllContent(
-        filePath: mixedFilePath,
-        chapterIndex: 0,
-        config: smallFont,
-      );
-      final largePages = await core_api.paginateAllContent(
-        filePath: mixedFilePath,
-        chapterIndex: 0,
-        config: largeFont,
-      );
-      expect(largePages.length, greaterThan(smallPages.length));
-    });
-
-    test('page content is non-empty at different font sizes', () async {
-      for (final size in [14, 20, 28]) {
-        final pages = await core_api.paginateAllContent(
+    group('Font-size scaling', () {
+      test('page count increases with larger font size', () async {
+        final smallFont = _makeConfig(fontSize: 14);
+        final largeFont = _makeConfig(fontSize: 28);
+        final smallPages = await core_api.paginateAllContent(
           filePath: mixedFilePath,
           chapterIndex: 0,
-          config: _makeConfig(fontSize: size),
+          config: smallFont,
         );
-        for (int i = 0; i < pages.length; i++) {
-          expect(
-            pages[i].content,
-            isNotEmpty,
-            reason: 'page $i at fontSize=$size is empty',
+        final largePages = await core_api.paginateAllContent(
+          filePath: mixedFilePath,
+          chapterIndex: 0,
+          config: largeFont,
+        );
+        expect(largePages.length, greaterThan(smallPages.length));
+      });
+
+      test('page content is non-empty at different font sizes', () async {
+        for (final size in [14, 20, 28]) {
+          final pages = await core_api.paginateAllContent(
+            filePath: mixedFilePath,
+            chapterIndex: 0,
+            config: _makeConfig(fontSize: size),
           );
+          for (int i = 0; i < pages.length; i++) {
+            expect(
+              pages[i].content,
+              isNotEmpty,
+              reason: 'page $i at fontSize=$size is empty',
+            );
+          }
         }
-      }
-    });
-  });
-
-  // ==================== CJK vs mixed content ====================
-
-  group('CJK vs mixed content', () {
-    test('pure CJK and mixed content produce different page layout', () async {
-      final cfg = _cjkCompareConfig();
-      final mixedPages = await core_api.paginateAllContent(
-        filePath: mixedFilePath,
-        chapterIndex: 0,
-        config: cfg,
-      );
-      final purePages = await core_api.paginateAllContent(
-        filePath: pureFilePath,
-        chapterIndex: 0,
-        config: cfg,
-      );
-      expect(mixedPages.length, isNot(equals(purePages.length)));
-    });
-  });
-
-  // ==================== Content cleanliness ====================
-
-  group('Content cleanliness', () {
-    test('paginated content preserves original characters', () async {
-      final pages = await core_api.paginateAllContent(
-        filePath: mixedFilePath,
-        chapterIndex: 0,
-        config: _makeConfig(fontSize: 16),
-      );
-      final allText = pages.map((p) => p.content).join('');
-      expect(allText, contains('摩天大楼'));
-      expect(allText, contains('茶香'));
-      expect(allText, contains('cultural fusion'));
-      expect(allText, contains('rhythm and energy'));
+      });
     });
 
-    test(
-      'no artificially inserted spaces within CJK consecutive characters',
-      () async {
-        final pages = await core_api.paginateAllContent(
+    // ==================== CJK vs mixed content ====================
+
+    group('CJK vs mixed content', () {
+      test('pure CJK and mixed content produce different page layout', () async {
+        final cfg = _cjkCompareConfig();
+        final mixedPages = await core_api.paginateAllContent(
+          filePath: mixedFilePath,
+          chapterIndex: 0,
+          config: cfg,
+        );
+        final purePages = await core_api.paginateAllContent(
           filePath: pureFilePath,
+          chapterIndex: 0,
+          config: cfg,
+        );
+        expect(mixedPages.length, isNot(equals(purePages.length)));
+      });
+    });
+
+    // ==================== Content cleanliness ====================
+
+    group('Content cleanliness', () {
+      test('paginated content preserves original characters', () async {
+        final pages = await core_api.paginateAllContent(
+          filePath: mixedFilePath,
           chapterIndex: 0,
           config: _makeConfig(fontSize: 16),
         );
         final allText = pages.map((p) => p.content).join('');
-        expect(allText, contains('城市'));
-        expect(allText, contains('故事'));
-        expect(allText, contains('清晨'));
-        expect(allText, contains('现代'));
-        expect(allText, contains('艺术'));
-      },
-    );
-  });
+        expect(allText, contains('摩天大楼'));
+        expect(allText, contains('茶香'));
+        expect(allText, contains('cultural fusion'));
+        expect(allText, contains('rhythm and energy'));
+      });
+
+      test(
+        'no artificially inserted spaces within CJK consecutive characters',
+        () async {
+          final pages = await core_api.paginateAllContent(
+            filePath: pureFilePath,
+            chapterIndex: 0,
+            config: _makeConfig(fontSize: 16),
+          );
+          final allText = pages.map((p) => p.content).join('');
+          expect(allText, contains('城市'));
+          expect(allText, contains('故事'));
+          expect(allText, contains('清晨'));
+          expect(allText, contains('现代'));
+          expect(allText, contains('艺术'));
+        },
+      );
+    });
+  }, skip: !ffiAvailable);
 }

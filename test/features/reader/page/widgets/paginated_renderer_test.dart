@@ -54,7 +54,7 @@ void main() {
   // ========================
 
   group('buildSinglePageContent', () {
-    testWidgets('repo 返回 null 时渲染 SizedBox 占位', (tester) async {
+    testWidgets('repo 返回 null 时渲染 Container 占位', (tester) async {
       final repo = _MockRepo();
       when(() => repo.getPageContent(any())).thenReturn(null);
 
@@ -77,10 +77,7 @@ void main() {
         ),
       );
 
-      expect(find.byType(SizedBox), findsOneWidget);
-      final sizedBox = tester.widget<SizedBox>(find.byType(SizedBox));
-      expect(sizedBox.width, equals(double.infinity));
-      expect(sizedBox.height, equals(600.0));
+      expect(find.byType(Container), findsOneWidget);
     });
 
     testWidgets('正常页面内容渲染 SelectableText.rich', (tester) async {

@@ -1,18 +1,20 @@
 //! 文本排版处理
 //! 包含中英文混排优化、标点避首避尾、段落处理
 
+use std::borrow::Cow;
 
 
 
 /// 优化标点符号（避首避尾）
 ///
 /// 单次遍历 O(n)，预分配容量避免重新分配。
-pub(crate) fn optimize_punctuation(text: &str, language: &str) -> String {
+/// 若无修改则返回 Cow::Borrowed 避免不必要的克隆。
+pub(crate) fn optimize_punctuation<'a>(text: &'a str, language: &str) -> Cow<'a, str> {
     let is_zh_or_mix = matches!(language, "zh" | "mix" | "auto");
     let is_en_or_mix = matches!(language, "en" | "mix" | "auto");
 
     if !is_zh_or_mix && !is_en_or_mix {
-        return text.to_string();
+        return Cow::Borrowed(text);
     }
 
     let mut result = String::with_capacity(text.len() + 32);
@@ -62,19 +64,33 @@ pub(crate) fn optimize_punctuation(text: &str, language: &str) -> String {
     }
 
     if !modified {
-        return text.to_string();
+        return Cow::Borrowed(text);
     }
-    result
+    Cow::Owned(result)
 }
 
 /// 优化空格
-pub(crate) fn optimize_spaces(text: &str, _language: &str) -> String {
-    let mut result = text.to_string();
-
-    // 移除多余空格（连续空白合并为单个空格）
-    result = remove_extra_spaces(&result);
-
-    result
+pub(crate) fn optimize_spaces<'a>(text: &'a str, _language: &str) -> Cow<'a, str> {
+    // 快速检查：是否有连续空白、前导或尾随空白
+    let mut prev_space = false;
+    let mut in_leading = true;
+    for c in text.chars() {
+        if c.is_whitespace() {
+            if in_leading || prev_space {
+                // 需要压缩空格
+                return Cow::Owned(remove_extra_spaces(text));
+            }
+            prev_space = true;
+        } else {
+            prev_space = false;
+            in_leading = false;
+        }
+    }
+    // 尾随空白检查
+    if prev_space || in_leading {
+        return Cow::Owned(remove_extra_spaces(text));
+    }
+    Cow::Borrowed(text)
 }
 
 /// 移除多余空格（连续空白合并为单个空格，并去除首尾空白）
