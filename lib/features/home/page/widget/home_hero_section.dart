@@ -130,9 +130,7 @@ class HomeHeroSection extends StatelessWidget {
     if (book case final b?) {
       return _HeroCard(
         leading: ClipRRect(
-          borderRadius: BorderRadius.circular(
-            RadiusSize.sm.value,
-          ),
+          borderRadius: BorderRadius.circular(RadiusSize.sm.value),
           child: SizedBox(
             width: 72,
             height: 100,

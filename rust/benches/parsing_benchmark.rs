@@ -114,6 +114,7 @@ fn bench_pagination(c: &mut Criterion) {
         line_spacing: 1.5,
         letter_spacing: 0.0,
         paragraph_spacing: 1.0,
+        auto_space_ratio: 0.25,
         first_line_indent: 2,
         language: LanguageType::Auto,
         enable_hyphenation: false,

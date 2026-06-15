@@ -107,10 +107,8 @@ class DictionarySettingsPage extends HookWidget {
                           loading
                               ? '...'
                               : currentMdx != null
-                                  ? currentMdx
-                                      .split(Platform.pathSeparator)
-                                      .last
-                                  : l10n.selectMdxDescription,
+                              ? currentMdx.split(Platform.pathSeparator).last
+                              : l10n.selectMdxDescription,
                           style: TextStyle(
                             fontSize: 12,
                             color: cs.onSurfaceVariant,
@@ -171,35 +169,33 @@ class DictionarySettingsPage extends HookWidget {
           ),
         ),
         SettingsCard(
-          children: dictionaries.isEmpty
-              ? [
-                  Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Center(
-                      child: Text(
-                        l10n.selectMdxDescription,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelLarge
-                            ?.copyWith(color: cs.onSurfaceVariant),
+              children: dictionaries.isEmpty
+                  ? [
+                      Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Center(
+                          child: Text(
+                            l10n.selectMdxDescription,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.labelLarge
+                                ?.copyWith(color: cs.onSurfaceVariant),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ]
-              : dictionaries
-                  .map(
-                    (dict) => _dictTile(
-                      context,
-                      cs,
-                      l10n,
-                      dict,
-                      currentMdx,
-                      vm,
-                    ),
-                  )
-                  .toList(),
-        )
+                    ]
+                  : dictionaries
+                        .map(
+                          (dict) => _dictTile(
+                            context,
+                            cs,
+                            l10n,
+                            dict,
+                            currentMdx,
+                            vm,
+                          ),
+                        )
+                        .toList(),
+            )
             .animate()
             .fadeIn(duration: 300.ms, delay: 150.ms)
             .slideY(begin: 0.03, end: 0),
@@ -250,9 +246,7 @@ class DictionarySettingsPage extends HookWidget {
     return Column(
       children: [
         InkWell(
-          onTap: active
-              ? null
-              : () => _switchDict(context, vm, l10n, dict),
+          onTap: active ? null : () => _switchDict(context, vm, l10n, dict),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
@@ -291,12 +285,7 @@ class DictionarySettingsPage extends HookWidget {
                   )
                 else
                   GestureDetector(
-                    onTap: () => _confirmDelete(
-                      context,
-                      l10n,
-                      dict,
-                      vm,
-                    ),
+                    onTap: () => _confirmDelete(context, l10n, dict, vm),
                     child: Icon(
                       PhosphorIconsRegular.trash,
                       size: 18,

@@ -224,9 +224,7 @@ class BookmarkManagePage extends HookWidget {
                   color: theme.colorScheme.primaryContainer.withValues(
                     alpha: 0.4,
                   ),
-                  borderRadius: BorderRadius.circular(
-                    RadiusSize.md.value,
-                  ),
+                  borderRadius: BorderRadius.circular(RadiusSize.md.value),
                 ),
                 child: Row(
                   children: [
@@ -238,7 +236,9 @@ class BookmarkManagePage extends HookWidget {
                     SizedBox(width: Spacing.sm.value),
                     Text(
                       l10n.totalBookmarks(bookmarkList.length),
-                      style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurface),
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                      ),
                     ),
                     const Spacer(),
                     Text(

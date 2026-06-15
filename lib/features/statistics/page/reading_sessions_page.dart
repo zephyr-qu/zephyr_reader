@@ -89,7 +89,13 @@ class ReadingSessionsPage extends HookWidget {
   ) {
     return switch (sessionsState) {
       AsyncLoading() => const Center(child: CircularProgressIndicator()),
-      AsyncError(:final error) => _buildError(l10n, cs, error, onRetry, context),
+      AsyncError(:final error) => _buildError(
+        l10n,
+        cs,
+        error,
+        onRetry,
+        context,
+      ),
       AsyncData(:final value) => _buildSessionList(
         l10n,
         cs,
@@ -122,9 +128,9 @@ class ReadingSessionsPage extends HookWidget {
             const SizedBox(height: 8),
             Text(
               error.toString(),
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant),
               textAlign: TextAlign.center,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,

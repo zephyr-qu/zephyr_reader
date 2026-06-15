@@ -6,8 +6,6 @@ import 'package:zephyr_reader/features/reader/page/navigation/chapter_list.dart'
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-
-
 /// 阅读器导航侧边栏 — 目录/书签 双 TabBar。
 class ReaderNavigationDrawer extends StatelessWidget {
   final List<Chapter> chapters;
@@ -118,4 +116,3 @@ class ReaderNavigationDrawer extends StatelessWidget {
     );
   }
 }
-

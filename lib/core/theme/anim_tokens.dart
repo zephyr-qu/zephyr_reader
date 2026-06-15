@@ -22,6 +22,7 @@ class AnimTokens {
 
   /// 骨架屏 shimmer、Toast 等较长时间
   static const Duration persistent = Duration(seconds: 3);
+
   /// 滚动动画（scrollTo、scrollController.animateTo）
   static const Duration scroll = Duration(milliseconds: 500);
 

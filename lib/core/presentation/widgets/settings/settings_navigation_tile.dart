@@ -32,10 +32,14 @@ class SettingsNavigationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final effectiveIconColor = iconColor ??
-        (semantic?.iconColor(Theme.of(context).brightness) ?? cs.onPrimaryContainer);
-    final effectiveIconBg = iconBackground ??
-        (semantic?.iconBackground(Theme.of(context).brightness) ?? cs.primaryContainer);
+    final effectiveIconColor =
+        iconColor ??
+        (semantic?.iconColor(Theme.of(context).brightness) ??
+            cs.onPrimaryContainer);
+    final effectiveIconBg =
+        iconBackground ??
+        (semantic?.iconBackground(Theme.of(context).brightness) ??
+            cs.primaryContainer);
 
     return InkWell(
       onTap: onTap,
@@ -61,7 +65,11 @@ class SettingsNavigationTile extends StatelessWidget {
                   color: effectiveIconBg,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, size: IconSize.inline, color: effectiveIconColor),
+                child: Icon(
+                  icon,
+                  size: IconSize.inline,
+                  color: effectiveIconColor,
+                ),
               ),
             const SizedBox(width: 12),
             Expanded(

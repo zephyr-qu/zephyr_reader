@@ -28,7 +28,11 @@ class BookDetailInfoSection extends StatelessWidget {
       child: Column(
         children: [
           _infoRow(theme, l10n.bookFormat, book.format.name.toUpperCase()),
-          _infoRow(theme, l10n.fileSize, formatFileSize(book.fileSize.toInt(), l10n)),
+          _infoRow(
+            theme,
+            l10n.fileSize,
+            formatFileSize(book.fileSize.toInt(), l10n),
+          ),
           if (book.publisher != null && book.publisher!.isNotEmpty)
             _infoRow(theme, l10n.publisher, book.publisher!),
           if (book.translator != null && book.translator!.isNotEmpty)
@@ -61,9 +65,9 @@ class BookDetailInfoSection extends StatelessWidget {
             width: 72,
             child: Text(
               key,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           const SizedBox(width: 8),

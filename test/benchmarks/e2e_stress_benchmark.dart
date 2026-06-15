@@ -233,8 +233,7 @@ void main() {
       if (!ffiOk) return;
 
       final filePath = await copyFixtureFile(_mediumFile);
-      final parseResult =
-          await core_api.parseBook(filePath: filePath);
+      final parseResult = await core_api.parseBook(filePath: filePath);
       final chapterCount = parseResult.chapters.length;
 
       emitResult({
@@ -260,7 +259,8 @@ void main() {
       }
 
       chapterLatencies.sort();
-      final avgMs = chapterLatencies.fold<int>(0, (a, b) => a + b) /
+      final avgMs =
+          chapterLatencies.fold<int>(0, (a, b) => a + b) /
           chapterLatencies.length;
       emitResult({
         'test': 'multi_chapter',

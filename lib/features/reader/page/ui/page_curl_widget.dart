@@ -39,15 +39,11 @@ class _PageCurlWidgetState extends State<PageCurlWidget>
   void initState() {
     super.initState();
     _direction = widget.isForward ? 1 : -1;
-    _ctrl =
-        AnimationController(
-            vsync: this,
-            duration: AnimTokens.slow,
-          )
-          ..addListener(() => setState(() {}))
-          ..addStatusListener((status) {
-            if (status == AnimationStatus.completed) _onTurnCompleted();
-          });
+    _ctrl = AnimationController(vsync: this, duration: AnimTokens.slow)
+      ..addListener(() => setState(() {}))
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) _onTurnCompleted();
+      });
   }
 
   @override

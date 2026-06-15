@@ -146,6 +146,8 @@ double _measureWidth(String text, double fontSize, String fontFamily) {
 /// [letterSpacing]: 字间距（逻辑像素 dp）
 /// [paragraphSpacing]: 段落间距（逻辑像素 dp）
 /// [punctuationSqueeze]: 标点挤压
+/// [enableHyphenation]: 英文连字符断词
+/// [language]: 语言类型
 TypesetConfig buildTypesetConfig({
   required double width,
   required double height,
@@ -153,12 +155,15 @@ TypesetConfig buildTypesetConfig({
   required double lineHeight,
   double padding = 16,
   double devicePixelRatio = 1.0,
+  double autoSpaceRatio = 0.25,
   int firstLineIndent = 2,
   CalibrationData? calibration,
   String fontFamily = 'Noto Sans SC',
   double letterSpacing = 0,
   double paragraphSpacing = 16,
   bool punctuationSqueeze = true,
+  bool enableHyphenation = false,
+  LanguageType language = LanguageType.auto,
 }) {
   final rustCalibration = calibration != null
       ? TypesetCalibration(
@@ -180,8 +185,10 @@ TypesetConfig buildTypesetConfig({
     letterSpacing: letterSpacing * devicePixelRatio,
     paragraphSpacing: (paragraphSpacing / fontSize).clamp(0.0, 10.0),
     firstLineIndent: firstLineIndent,
-    language: LanguageType.mixed,
-    enableHyphenation: false,
+    autoSpaceRatio: autoSpaceRatio,
+    language: language,
+    enableHyphenation: enableHyphenation,
+    hyphenationLanguage: enableHyphenation ? 'en-US' : null,
     punctuationSqueeze: punctuationSqueeze,
     fontFamily: fontFamily,
     calibration: rustCalibration,

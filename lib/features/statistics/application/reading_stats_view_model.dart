@@ -16,9 +16,15 @@ class ReadingStatsViewModel {
   /// 近 N 天阅读记录
   final dailyRecords = asyncSignal<List<ReadingStats>>(AsyncState.loading());
 
-  final vocabStats = signal(const VocabStats(
-    totalWords: 0, unstartedCount: 0, learningCount: 0, masteredCount: 0, ignoredCount: 0,
-  ));
+  final vocabStats = signal(
+    const VocabStats(
+      totalWords: 0,
+      unstartedCount: 0,
+      learningCount: 0,
+      masteredCount: 0,
+      ignoredCount: 0,
+    ),
+  );
 
   /// 按时段加载统计数据（全局统计、每日阅读记录、生词统计）。
   Future<void> loadData({

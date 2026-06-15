@@ -5,15 +5,34 @@ import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/theme/theme_extension.dart';
 
-
 // ==================== 排版常量（7 档，无 color，const 零开销） ====================
 
-const _hero = TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.5);
-const _screenTitle = TextStyle(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.3);
-const _sectionTitle = TextStyle(fontSize: 20, fontWeight: FontWeight.w600, letterSpacing: -0.2);
-const _itemTitle = TextStyle(fontSize: 17, fontWeight: FontWeight.w500, letterSpacing: -0.2);
+const _hero = TextStyle(
+  fontSize: 28,
+  fontWeight: FontWeight.w700,
+  letterSpacing: -0.5,
+);
+const _screenTitle = TextStyle(
+  fontSize: 24,
+  fontWeight: FontWeight.w700,
+  letterSpacing: -0.3,
+);
+const _sectionTitle = TextStyle(
+  fontSize: 20,
+  fontWeight: FontWeight.w600,
+  letterSpacing: -0.2,
+);
+const _itemTitle = TextStyle(
+  fontSize: 17,
+  fontWeight: FontWeight.w500,
+  letterSpacing: -0.2,
+);
 const _body = TextStyle(fontSize: 14, fontWeight: FontWeight.w400);
-const _label = TextStyle(fontSize: 12, fontWeight: FontWeight.w500, letterSpacing: 0.2);
+const _label = TextStyle(
+  fontSize: 12,
+  fontWeight: FontWeight.w500,
+  letterSpacing: 0.2,
+);
 const _caption = TextStyle(fontSize: 11, fontWeight: FontWeight.w400);
 
 /// 应用主题工厂
@@ -87,20 +106,21 @@ class AppThemes {
         },
       ),
       scaffoldBackgroundColor: scaffoldBg,
-      colorScheme: (brightness == Brightness.dark
-              ? ColorScheme.dark
-              : ColorScheme.light)(
-        primary: primary,
-        onPrimary: onPrimary,
-        secondary: DesignTokens.secondary,
-        tertiary: DesignTokens.tertiary,
-        error: DesignTokens.error,
-        surface: isDark ? _bgDark : _bgLight,
-        onSurface: isDark ? _textPriDark : _textPriLight,
-        onSurfaceVariant: isDark ? _textSecDark : _textSecLight,
-        outline: isDark ? _dividerDark : _dividerLight,
-        outlineVariant: isDark ? _dividerDark : _dividerLight,
-      ),
+      colorScheme:
+          (brightness == Brightness.dark
+          ? ColorScheme.dark
+          : ColorScheme.light)(
+            primary: primary,
+            onPrimary: onPrimary,
+            secondary: DesignTokens.secondary,
+            tertiary: DesignTokens.tertiary,
+            error: DesignTokens.error,
+            surface: isDark ? _bgDark : _bgLight,
+            onSurface: isDark ? _textPriDark : _textPriLight,
+            onSurfaceVariant: isDark ? _textSecDark : _textSecLight,
+            outline: isDark ? _dividerDark : _dividerLight,
+            outlineVariant: isDark ? _dividerDark : _dividerLight,
+          ),
       textTheme: _textTheme(onSurface: textPri, onSurfaceVariant: textSec),
 
       appBarTheme: AppBarTheme(
@@ -144,14 +164,16 @@ class AppThemes {
           textStyle: WidgetStateProperty.all(
             _body.copyWith(fontWeight: FontWeight.w500),
           ),
-          ),
         ),
+      ),
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: ButtonStyle(
-          shape: WidgetStateProperty.all(RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(RadiusSize.md.value),
-          )),
+          shape: WidgetStateProperty.all(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(RadiusSize.md.value),
+            ),
+          ),
           side: WidgetStateProperty.all(BorderSide(color: div, width: 0.5)),
           foregroundColor: WidgetStateProperty.all(textPri),
         ),

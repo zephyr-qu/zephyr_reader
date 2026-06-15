@@ -1,12 +1,10 @@
-
-
 import 'package:signals_flutter/signals_flutter.dart';
 
 abstract class PreferencesService {
   // 基础读写
   Future<void> setString(String key, String value);
   String? getString(String key);
-  
+
   Future<void> setBool(String key, bool value);
   bool getBool(String key, {bool defaultValue = false});
 
@@ -18,7 +16,6 @@ abstract class PreferencesService {
 
   /// 获取可空整型值（区分"键不存在"和值为 0）
   int? getIntOrNull(String key);
-
 
   /// 检查键是否存在
   bool containsKey(String key);

@@ -18,7 +18,6 @@ enum BackupStatus {
   error,
 }
 
-
 /// 本地备份 ViewModel
 ///
 /// 状态机：

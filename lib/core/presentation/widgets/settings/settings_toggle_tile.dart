@@ -49,7 +49,8 @@ class SettingsToggleTile extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: iconBackground ??
+                  color:
+                      iconBackground ??
                       (semantic?.iconBackground(Theme.of(context).brightness) ??
                           cs.primaryContainer),
                   borderRadius: BorderRadius.circular(8),
@@ -57,7 +58,8 @@ class SettingsToggleTile extends StatelessWidget {
                 child: Icon(
                   icon,
                   size: IconSize.inline,
-                  color: iconColor ??
+                  color:
+                      iconColor ??
                       (semantic?.iconColor(Theme.of(context).brightness) ??
                           cs.onPrimaryContainer),
                 ),

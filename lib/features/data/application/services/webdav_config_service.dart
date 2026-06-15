@@ -92,7 +92,6 @@ class WebDavConfigService {
 
   Future<DateTime?> getLastSyncTime() async {
     final timestamp = _prefs.getInt(_keyLastSyncTime);
-    if (timestamp == null) return null;
     return DateTime.fromMillisecondsSinceEpoch(timestamp);
   }
 

@@ -73,7 +73,8 @@ Future<void> onBilingualHighlight(
   }
 
   final startOffset = vm.annotations.selectionStart.value;
-  final length = vm.annotations.selectionEnd.value - vm.annotations.selectionStart.value;
+  final length =
+      vm.annotations.selectionEnd.value - vm.annotations.selectionStart.value;
 
   int segmentIndex = -1;
   String sourceLanguage = 'zh';

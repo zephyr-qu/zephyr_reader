@@ -11,8 +11,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/core/local/shared_preferences_service.dart';
-import 'package:zephyr_reader/features/sync/application/services/sync_models.dart';
-import 'package:zephyr_reader/features/sync/application/services/webdav_config_service.dart';
+import 'package:zephyr_reader/features/data/application/services/sync_models.dart';
+import 'package:zephyr_reader/features/data/application/services/webdav_config_service.dart';
 
 void main() {
   group('WebDAV 同步服务测试', () {
@@ -35,7 +35,9 @@ void main() {
       // 初始化测试用的 PreferencesService
       SharedPreferences.setMockInitialValues({});
       prefs = await SharedPreferences.getInstance();
-      configService = WebDavConfigService(prefs: SharedPreferencesService(prefs));
+      configService = WebDavConfigService(
+        prefs: SharedPreferencesService(prefs),
+      );
     });
 
     tearDown(() {

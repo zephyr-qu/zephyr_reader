@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/core/routing/not_found_page.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
-import 'package:zephyr_reader/features/backup/page/backup_page.dart';
 import 'package:zephyr_reader/features/bookshelf/page/book_detail_page.dart';
 import 'package:zephyr_reader/features/bookshelf/page/bookshelf_page.dart';
 import 'package:zephyr_reader/features/bookshelf/page/category_management_page.dart';
@@ -20,14 +19,13 @@ import 'package:zephyr_reader/features/profile/page/theme/theme_brightness_page.
 import 'package:zephyr_reader/features/profile/page/tts/tts_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/typography/typography_settings_page.dart';
 import 'package:zephyr_reader/features/reader/page/bookmark_manage_page.dart';
-import 'package:zephyr_reader/features/reader/page/cache_manage_page.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/translation_settings_page.dart';
 import 'package:zephyr_reader/features/search/page/book_search_page.dart';
 import 'package:zephyr_reader/features/search/page/search_page.dart';
 import 'package:zephyr_reader/features/statistics/page/reading_sessions_page.dart';
 import 'package:zephyr_reader/features/statistics/page/statistics_page.dart';
-import 'package:zephyr_reader/features/sync/page/storage_sync_page.dart';
+import 'package:zephyr_reader/features/data/page/data_management_page.dart';
 import 'package:zephyr_reader/features/vocabulary/page/vocabulary_page.dart';
 
 /// 解析深度链接 URI，返回重定向路径
@@ -108,47 +106,44 @@ final router = GoRouter(
           builder: (_, _) => const ProfilePage(),
         ),
 
-        GoRoute(
-          name: AppRoute.ttsSettings.name,
-          path: AppRoute.ttsSettings.path,
-          builder: (_, _) => const TtsSettingsPage(),
-        ),
-        GoRoute(
-          name: AppRoute.dictionarySettings.name,
-          path: AppRoute.dictionarySettings.path,
-          builder: (_, _) => const DictionarySettingsPage(),
-        ),
-        GoRoute(
-          name: AppRoute.typographySettings.name,
-          path: AppRoute.typographySettings.path,
-          builder: (_, _) => const TypographySettingsPage(),
-        ),
-        GoRoute(
-          name: AppRoute.themeBrightness.name,
-          path: AppRoute.themeBrightness.path,
-          builder: (_, _) => const ThemeBrightnessPage(),
-        ),
-        GoRoute(
-          name: AppRoute.otherSettings.name,
-          path: AppRoute.otherSettings.path,
-          builder: (_, _) => const OtherSettingsPage(),
-        ),
-        GoRoute(
-          name: AppRoute.about.name,
-          path: AppRoute.about.path,
-          builder: (_, _) => const AboutPage(),
-        ),
-        GoRoute(
-          name: AppRoute.localBackup.name,
-          path: AppRoute.localBackup.path,
-          builder: (_, _) => const BackupPage(),
-        ),
-        GoRoute(
-          name: AppRoute.translationApi.name,
-          path: AppRoute.translationApi.path,
-          builder: (_, _) => const TranslationSettingsPage(),
-        ),
       ],
+    ),
+
+    // 个人中心设置子页面（独立页面，不使用 MainLayout）
+    GoRoute(
+      name: AppRoute.ttsSettings.name,
+      path: AppRoute.ttsSettings.path,
+      builder: (_, _) => const TtsSettingsPage(),
+    ),
+    GoRoute(
+      name: AppRoute.dictionarySettings.name,
+      path: AppRoute.dictionarySettings.path,
+      builder: (_, _) => const DictionarySettingsPage(),
+    ),
+    GoRoute(
+      name: AppRoute.typographySettings.name,
+      path: AppRoute.typographySettings.path,
+      builder: (_, _) => const TypographySettingsPage(),
+    ),
+    GoRoute(
+      name: AppRoute.themeBrightness.name,
+      path: AppRoute.themeBrightness.path,
+      builder: (_, _) => const ThemeBrightnessPage(),
+    ),
+    GoRoute(
+      name: AppRoute.otherSettings.name,
+      path: AppRoute.otherSettings.path,
+      builder: (_, _) => const OtherSettingsPage(),
+    ),
+    GoRoute(
+      name: AppRoute.about.name,
+      path: AppRoute.about.path,
+      builder: (_, _) => const AboutPage(),
+    ),
+    GoRoute(
+      name: AppRoute.translationApi.name,
+      path: AppRoute.translationApi.path,
+      builder: (_, _) => const TranslationSettingsPage(),
     ),
 
     // 阅读器路由（独立页面，不使用 MainLayout）
@@ -197,9 +192,9 @@ final router = GoRouter(
 
     // 同步相关路由
     GoRoute(
-      name: AppRoute.storageSync.name,
-      path: AppRoute.storageSync.path,
-      builder: (_, _) => const StorageSyncPage(),
+      name: AppRoute.dataManagement.name,
+      path: AppRoute.dataManagement.path,
+      builder: (_, _) => const DataManagementPage(),
     ),
 
     // 全书搜索
@@ -245,12 +240,6 @@ final router = GoRouter(
       builder: (_, _) => const ReadingSessionsPage(),
     ),
 
-    // 缓存管理
-    GoRoute(
-      name: AppRoute.cacheManage.name,
-      path: AppRoute.cacheManage.path,
-      builder: (_, _) => const CacheManagePage(),
-    ),
 
     // WiFi 传书
     GoRoute(

@@ -35,7 +35,9 @@ class ThemeManager {
       // 兼容旧格式（int index），新格式为 string name
       final str = p.getString(k);
       if (str != null) {
-        try { return AppThemeType.values.byName(str); } catch (_) {}
+        try {
+          return AppThemeType.values.byName(str);
+        } catch (_) {}
       }
       final idx = p.getIntOrNull(k);
       if (idx != null && idx >= 0 && idx < AppThemeType.values.length) {
@@ -111,7 +113,9 @@ class ThemeManager {
     return switch (themeType.value) {
       AppThemeType.dark => true,
       AppThemeType.light => false,
-      AppThemeType.system => SchedulerBinding.instance.platformDispatcher.platformBrightness == Brightness.dark,
+      AppThemeType.system =>
+        SchedulerBinding.instance.platformDispatcher.platformBrightness ==
+            Brightness.dark,
     };
   }
 

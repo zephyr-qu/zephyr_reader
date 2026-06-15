@@ -151,9 +151,7 @@ class ReaderNoteSidebar extends HookWidget {
                                       ? theme.colorScheme.primary
                                       : theme.colorScheme.onSurfaceVariant,
                                 ),
-                                SizedBox(
-                                  width: Spacing.sm.value,
-                                ),
+                                SizedBox(width: Spacing.sm.value),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:

@@ -213,7 +213,10 @@ class _ServerCard extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(PhosphorIconsRegular.copySimple, size: IconSize.leading),
+                    icon: const Icon(
+                      PhosphorIconsRegular.copySimple,
+                      size: IconSize.leading,
+                    ),
                     onPressed: onCopyUrl,
                     tooltip: l10n.wifiCopyLink,
                   ),
@@ -299,7 +302,10 @@ class _LogItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(entry.message, style: theme.textTheme.labelLarge?.copyWith()),
+                  Text(
+                    entry.message,
+                    style: theme.textTheme.labelLarge?.copyWith(),
+                  ),
                   if (entry.fileName != null)
                     Text(
                       entry.fileName!,

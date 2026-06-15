@@ -9,7 +9,9 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 /// 格式化字节数为可读字符串
 String formatFileSize(int bytes, AppLocalizations l10n) {
   if (bytes < 1024) return '$bytes ${l10n.byteUnit}';
-  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} ${l10n.kilobyteUnit}';
+  if (bytes < 1024 * 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} ${l10n.kilobyteUnit}';
+  }
   if (bytes < 1024 * 1024 * 1024) {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} ${l10n.megabyteUnit}';
   }

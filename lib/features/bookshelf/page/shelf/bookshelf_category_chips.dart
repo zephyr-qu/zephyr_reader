@@ -39,8 +39,7 @@ class BookshelfCategoryChips extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           physics: adaptiveScrollPhysics(context),
           itemCount: categories.length,
-          separatorBuilder: (_, _) =>
-              SizedBox(width: Spacing.sm.value),
+          separatorBuilder: (_, _) => SizedBox(width: Spacing.sm.value),
           itemBuilder: (context, index) {
             final category = categories[index];
             final isSelected = selectedCategoryId == category.id;

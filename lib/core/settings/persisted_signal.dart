@@ -37,11 +37,10 @@ class PersistedSignal<T> {
     required T initialValue,
     required this.defaultValue,
     required this.key,
-    required PreferencesService service,
+    required this._service,
     required this._write,
     this._debounce = const Duration(milliseconds: 150),
-  }) : _service = service,
-       _signal = Signal<T>(initialValue);
+  }) : _signal = Signal<T>(initialValue);
 
   void _scheduleSave() {
     _saveTimer?.cancel();
@@ -83,7 +82,6 @@ class PersistedSignal<T> {
     _saveTimer?.cancel();
   }
 }
-
 
 // ==================== 通用工厂 ====================
 
@@ -128,7 +126,9 @@ PersistedSignal<bool> persistedBool(
   Duration debounce = const Duration(milliseconds: 150),
 }) {
   return persisted<bool>(
-    service, key, defaultValue,
+    service,
+    key,
+    defaultValue,
     reader: (s, k) => s.getBool(k, defaultValue: defaultValue),
     writer: (s, k, v) => s.setBool(k, v),
     debounce: debounce,
@@ -143,7 +143,9 @@ PersistedSignal<int> persistedInt(
   Duration debounce = const Duration(milliseconds: 150),
 }) {
   return persisted<int>(
-    service, key, defaultValue,
+    service,
+    key,
+    defaultValue,
     reader: (s, k) => s.getInt(k, defaultValue: defaultValue),
     writer: (s, k, v) => s.setInt(k, v),
     debounce: debounce,
@@ -158,7 +160,9 @@ PersistedSignal<double> persistedDouble(
   Duration debounce = const Duration(milliseconds: 150),
 }) {
   return persisted<double>(
-    service, key, defaultValue,
+    service,
+    key,
+    defaultValue,
     reader: (s, k) => s.getDouble(k, defaultValue: defaultValue),
     writer: (s, k, v) => s.setDouble(k, v),
     debounce: debounce,
@@ -173,7 +177,9 @@ PersistedSignal<String> persistedString(
   Duration debounce = const Duration(milliseconds: 150),
 }) {
   return persisted<String>(
-    service, key, defaultValue,
+    service,
+    key,
+    defaultValue,
     reader: (s, k) => s.getString(k) ?? defaultValue,
     writer: (s, k, v) => s.setString(k, v),
     debounce: debounce,
@@ -189,7 +195,9 @@ PersistedSignal<String?> persistedNullableString(
   Duration debounce = const Duration(milliseconds: 150),
 }) {
   return persisted<String?>(
-    service, key, null,
+    service,
+    key,
+    null,
     reader: (s, k) => s.getString(k),
     writer: (s, k, v) => v != null ? s.setString(k, v) : s.remove(k),
     debounce: debounce,
@@ -205,7 +213,9 @@ PersistedSignal<int?> persistedNullableInt(
   Duration debounce = const Duration(milliseconds: 150),
 }) {
   return persisted<int?>(
-    service, key, null,
+    service,
+    key,
+    null,
     reader: (s, k) => s.getIntOrNull(k),
     writer: (s, k, v) => v != null ? s.setInt(k, v) : s.remove(k),
     debounce: debounce,
@@ -223,7 +233,9 @@ PersistedSignal<T> persistedEnum<T extends Enum>(
   Duration debounce = const Duration(milliseconds: 150),
 }) {
   return persisted<T>(
-    service, key, defaultValue,
+    service,
+    key,
+    defaultValue,
     reader: (s, k) => readEnum(s, k, defaultValue, parser),
     writer: (s, k, v) => s.setString(k, v.name),
     debounce: debounce,
@@ -242,11 +254,15 @@ PersistedSignal<T> persistedEnumCustom<T extends Enum>(
   Duration debounce = const Duration(milliseconds: 150),
 }) {
   return persisted<T>(
-    service, key, defaultValue,
+    service,
+    key,
+    defaultValue,
     reader: (s, k) {
       final stored = s.getString(k);
       if (stored == null) return defaultValue;
-      try { return reader(stored); } catch (_) {}
+      try {
+        return reader(stored);
+      } catch (_) {}
       return defaultValue;
     },
     writer: (s, k, v) => s.setString(k, writer(v)),
@@ -263,7 +279,9 @@ PersistedSignal<Color?> persistedColor(
   Duration debounce = const Duration(milliseconds: 150),
 }) {
   return persisted<Color?>(
-    service, key, null,
+    service,
+    key,
+    null,
     reader: (s, k) => readColor(s, k),
     writer: (s, k, v) => v != null ? s.setInt(k, v.toARGB32()) : s.remove(k),
     debounce: debounce,

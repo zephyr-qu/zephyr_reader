@@ -1,46 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/presentation/widgets/confirm_action_dialog.dart';
 import 'package:zephyr_reader/core/presentation/widgets/danger_section.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_navigation_tile.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
-import 'package:zephyr_reader/core/routing/route_constants.dart';
-import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/utils/time_formatters.dart';
-import 'package:zephyr_reader/features/sync/application/storage_sync_view_model.dart';
-import 'package:zephyr_reader/features/sync/page/widgets/webdav_config_dialog.dart';
+import 'package:zephyr_reader/features/data/application/data_management_view_model.dart';
+import 'package:zephyr_reader/features/data/page/widgets/webdav_config_dialog.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/features/data/application/backup_view_model.dart';
+import 'package:zephyr_reader/features/data/page/restore_confirm_dialog.dart';
+import 'package:zephyr_reader/src/rust/api/backup.dart';
 
-/// 存储同步页面。
+/// 数据管理页面。
 ///
-/// 支持 WebDAV 协议的阅读数据同步，包括上传备份和下载恢复。
-/// 使用 [StorageSyncViewModel] 管理同步状态。
-class StorageSyncPage extends HookWidget {
-  const StorageSyncPage({super.key});
+/// 支持 WebDAV 协议的阅读数据同步，包括上传备份和下载恢复，
+/// 以及本地数据库备份与还原。
+/// 使用 [DataManagementViewModel] 管理同步状态。
+class DataManagementPage extends HookWidget {
+  const DataManagementPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final vm = useMemoized(() => StorageSyncViewModel());
-
+    final vm = useMemoized(() => DataManagementViewModel());
+    final backupVm = useMemoized(() => getIt<BackupViewModel>());
     useEffect(() {
       vm.initialize();
+      backupVm.initialize();
       return null;
     }, []);
 
     final cs = Theme.of(context).colorScheme;
 
     final l10n = AppLocalizations.of(context)!;
+    final DateTime? lastBackupAt = useSignalValue(backupVm.lastBackupAt);
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          '存储与同步',
-          style: TextStyle(
+        title: Text(
+          l10n.dataManagement,
+          style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.5,
@@ -66,7 +71,7 @@ class StorageSyncPage extends HookWidget {
               const SizedBox(height: 20),
               _buildSyncConfigSection(cs, vm, context),
               const SizedBox(height: 24),
-              _buildDataManagementSection(cs, l10n, context),
+              _buildBackupSection(cs, l10n, backupVm, lastBackupAt, context),
               const SizedBox(height: 24),
               _buildDangerZone(cs, vm, context),
             ],
@@ -80,7 +85,7 @@ class StorageSyncPage extends HookWidget {
 
   Widget _buildStatusHeader(
     ColorScheme cs,
-    StorageSyncViewModel vm,
+    DataManagementViewModel vm,
     BuildContext context,
     AppLocalizations l10n,
   ) {
@@ -204,7 +209,7 @@ class StorageSyncPage extends HookWidget {
 
   Widget _buildSyncConfigSection(
     ColorScheme cs,
-    StorageSyncViewModel vm,
+    DataManagementViewModel vm,
     BuildContext context,
   ) {
     return Column(
@@ -236,40 +241,12 @@ class StorageSyncPage extends HookWidget {
         .slideY(begin: 0.03, end: 0);
   }
 
-  // ==================== Data Management Section ====================
 
-  Widget _buildDataManagementSection(
-    ColorScheme cs,
-    AppLocalizations l10n,
-    BuildContext context,
-  ) {
-    return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionLabel(label: '数据管理'),
-            SettingsCard(
-              showDividers: false,
-              children: [
-                SettingsNavigationTile(
-                  icon: PhosphorIconsRegular.broom,
-                  semantic: MenuItemSemantic.info,
-                  title: l10n.cacheManage,
-                  subtitle: l10n.cacheInfoTip,
-                  onTap: () => context.push(AppRoute.cacheManage.path),
-                ),
-              ],
-            ),
-          ],
-        )
-        .animate()
-        .fadeIn(duration: 300.ms, delay: 200.ms)
-        .slideY(begin: 0.03, end: 0);
-  }
   // ==================== Danger Zone ====================
 
   Widget _buildDangerZone(
     ColorScheme cs,
-    StorageSyncViewModel vm,
+    DataManagementViewModel vm,
     BuildContext context,
   ) {
     final l10n = AppLocalizations.of(context)!;
@@ -289,9 +266,123 @@ class StorageSyncPage extends HookWidget {
         .slideY(begin: 0.03, end: 0);
   }
 
+  // ==================== Backup Section ====================
+
+  Widget _buildBackupSection(
+    ColorScheme cs,
+    AppLocalizations l10n,
+    BackupViewModel backupVm,
+    DateTime? lastBackupAt,
+    BuildContext context,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionLabel(label: '本地备份'),
+        SettingsCard(
+          showDividers: true,
+          children: [
+            SettingsNavigationTile(
+              iconWidget: const Icon(
+                PhosphorIconsRegular.cloudArrowUp,
+                size: 16,
+                color: Color(0xFF5C6BC0),
+              ),
+              iconBackground: const Color(0xFFE8EAF6),
+              title: l10n.backup,
+              subtitle: _backupSubtitle(lastBackupAt, l10n),
+              onTap: () => _performBackup(context, backupVm),
+            ),
+            SettingsNavigationTile(
+              iconWidget: const Icon(
+                PhosphorIconsRegular.cloudArrowDown,
+                size: 16,
+                color: Color(0xFF26A69A),
+              ),
+              iconBackground: const Color(0xFFE0F2F1),
+              title: l10n.restoreTitle,
+              subtitle: l10n.restoreSubtitle,
+              onTap: () => _performRestore(context, backupVm),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  String _backupSubtitle(DateTime? at, AppLocalizations l10n) {
+    if (at == null) return l10n.neverBackedUp;
+    return formatRelativeTime(at, l10n);
+  }
+
+  Future<void> _performBackup(BuildContext context, BackupViewModel vm) async {
+    final l10n = AppLocalizations.of(context)!;
+    await vm.performBackup();
+    if (!context.mounted) return;
+
+    if (vm.status.value == BackupStatus.exportingDone) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.backupSuccess)),
+      );
+    } else if (vm.status.value == BackupStatus.error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.backupFailed(vm.errorMessage.value ?? ''))),
+      );
+    }
+    await vm.dismissResult();
+  }
+
+  Future<void> _performRestore(BuildContext context, BackupViewModel vm) async {
+    final l10n = AppLocalizations.of(context)!;
+    final filePath = await _pickBackupFile();
+    if (filePath == null) return;
+    if (!context.mounted) return;
+
+    final manifest = await inspectBackup(backupPath: filePath);
+    if (!context.mounted) return;
+    if (manifest == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.restoreFailed(''))),
+      );
+      return;
+    }
+
+    final confirmed = await showRestoreConfirmDialog(context, manifest);
+    if (confirmed != true) return;
+    if (!context.mounted) return;
+
+    await vm.performRestore(filePath, manifest);
+    if (!context.mounted) return;
+
+    if (vm.status.value == BackupStatus.restoringDone) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.restoreSuccess}。${l10n.restoreRestartNotice}'),
+          duration: const Duration(seconds: 8),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else if (vm.status.value == BackupStatus.error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.restoreFailed(vm.errorMessage.value ?? ''))),
+      );
+    }
+    await vm.dismissResult();
+  }
+
+  Future<String?> _pickBackupFile() async {
+    final result = await FilePicker.pickFile(
+      dialogTitle: '选择备份文件',
+      type: FileType.custom,
+      allowedExtensions: ['db'],
+    );
+    return result?.path;
+  }
+
   // ==================== Dialogs ====================
 
-  void _confirmClearCache(StorageSyncViewModel vm, BuildContext context) {
+  void _confirmClearCache(DataManagementViewModel vm, BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     showConfirmActionDialog(
       context,
@@ -317,7 +408,7 @@ class StorageSyncPage extends HookWidget {
   // ==================== Sync Action ====================
 
   Future<void> _triggerSync(
-    StorageSyncViewModel vm,
+    DataManagementViewModel vm,
     BuildContext context,
   ) async {
     final l10n = AppLocalizations.of(context)!;

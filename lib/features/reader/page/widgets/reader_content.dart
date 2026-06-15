@@ -40,9 +40,16 @@ class ReaderContent extends HookWidget {
   final bool hasNextChapter;
   final VoidCallback? onJumpHandled;
 
-  final Widget Function(BuildContext context, ScrollController scrollController) scrollBuilder;
-  final Widget Function(BuildContext context, ScrollController scrollController, List<BilingualHighlightPair> bilingualPairs) bilingualBuilder;
-  final Widget Function(BuildContext context, PageController pageController) paginatedBuilder;
+  final Widget Function(BuildContext context, ScrollController scrollController)
+  scrollBuilder;
+  final Widget Function(
+    BuildContext context,
+    ScrollController scrollController,
+    List<BilingualHighlightPair> bilingualPairs,
+  )
+  bilingualBuilder;
+  final Widget Function(BuildContext context, PageController pageController)
+  paginatedBuilder;
 
   const ReaderContent({
     super.key,
@@ -106,9 +113,7 @@ class ReaderContent extends HookWidget {
           if (currentPage != null && currentPage != pageIndex) {
             pageController.animateToPage(
               pageIndex,
-              duration: disableAnim
-                  ? Duration.zero
-                  : AnimTokens.medium,
+              duration: disableAnim ? Duration.zero : AnimTokens.medium,
               curve: Curves.easeInOut,
             );
           }
@@ -216,8 +221,10 @@ class ReaderContent extends HookWidget {
           final descriptors = repo.descriptors;
           if (descriptors != null && descriptors.isNotEmpty) {
             final targetIndex = _indexForCharOffset(
-              descriptors, jumpToCharOffset!,
-              (d) => d.startOffset, (d) => d.endOffset,
+              descriptors,
+              jumpToCharOffset!,
+              (d) => d.startOffset,
+              (d) => d.endOffset,
             );
             if (pageController.hasClients) {
               pageController.jumpToPage(targetIndex);
@@ -229,8 +236,10 @@ class ReaderContent extends HookWidget {
             final pages = repo.currentPages;
             if (pages != null && pages.isNotEmpty) {
               final targetIndex = _indexForCharOffset(
-                pages, jumpToCharOffset!,
-                (p) => p.startOffset, (p) => p.endOffset,
+                pages,
+                jumpToCharOffset!,
+                (p) => p.startOffset,
+                (p) => p.endOffset,
               );
               if (pageController.hasClients) {
                 pageController.jumpToPage(targetIndex);
@@ -258,8 +267,8 @@ class ReaderContent extends HookWidget {
     }, [jumpToCharOffset, readingMode, bookId, chapterId, content]);
     // 跨章节 slide 方向追踪（在 pageTurn/pagination 条件返回前声明）
     final prevChapterId = useRef<int?>(null);
-    final isForward = prevChapterId.value != null &&
-        chapterId > prevChapterId.value!;
+    final isForward =
+        prevChapterId.value != null && chapterId > prevChapterId.value!;
     useEffect(() {
       prevChapterId.value = chapterId;
       return null;
@@ -373,11 +382,16 @@ class ReaderContent extends HookWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(PhosphorIconsRegular.warningCircle, size: 64,
-              color: Colors.red[300]),
-            Text(l10n.chapterLoadFailed(error),
+            Icon(
+              PhosphorIconsRegular.warningCircle,
+              size: 64,
+              color: Colors.red[300],
+            ),
+            Text(
+              l10n.chapterLoadFailed(error),
               style: const TextStyle(fontSize: 16),
-              textAlign: TextAlign.center),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 24),
             ElevatedButton(onPressed: onRetry, child: Text(l10n.retry)),
           ],
@@ -391,9 +405,13 @@ class ReaderContent extends HookWidget {
       case ReadingMode.scroll:
         return RepaintBoundary(child: scrollBuilder(context, scrollController));
       case ReadingMode.bilingual:
-        return RepaintBoundary(child: bilingualBuilder(context, scrollController, bilingualPairs));
+        return RepaintBoundary(
+          child: bilingualBuilder(context, scrollController, bilingualPairs),
+        );
       case ReadingMode.pagination:
-        return RepaintBoundary(child: paginatedBuilder(context, pageController));
+        return RepaintBoundary(
+          child: paginatedBuilder(context, pageController),
+        );
       case ReadingMode.pageTurn:
         return const SizedBox.shrink();
     }

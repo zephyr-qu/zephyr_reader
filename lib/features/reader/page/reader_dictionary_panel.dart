@@ -4,21 +4,21 @@ import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-import 'package:zephyr_reader/core/local/preferences_service.dart';
-import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/core/dictionary/builtin_dictionary.dart';
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import 'package:flutter/services.dart';
-import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/dictionary/models.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
+import 'package:zephyr_reader/core/settings/settings_keys.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:zephyr_reader/src/rust/api/dictionary.dart' as dict_api;
+import 'package:zephyr_reader/src/rust/dictionary/models.dart';
 
 import '../application/reader_view_model.dart';
-import 'package:zephyr_reader/src/rust/api/dictionary.dart' as dict_api;
 import 'reader_page_actions.dart';
 
 const _kPrefMdxPath = SettingsKeys.dictMdxPath;
@@ -41,7 +41,7 @@ void showDictionaryPanel(
   try {
     result = await dict_api.lookupMdict(word: text.trim());
     segments = await dict_api.segmentText(text: text.trim());
-    HapticFeedback.lightImpact();
+    await HapticFeedback.lightImpact();
   } catch (e) {
     error = e.toString();
   }
@@ -125,7 +125,9 @@ void showDictionaryPanel(
                       SizedBox(height: Spacing.sm.value),
                       Text(
                         l10n.noExactMatch,
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Colors.grey),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.labelLarge?.copyWith(color: Colors.grey),
                       ),
                       const SizedBox(height: 6),
                       Wrap(
@@ -137,7 +139,9 @@ void showDictionaryPanel(
                               (s) => ActionChip(
                                 label: Text(
                                   s,
-                                  style: Theme.of(context).textTheme.labelLarge?.copyWith(),
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.labelLarge?.copyWith(),
                                 ),
                                 onPressed: () {
                                   showDictionaryPanel(context, vm, s);
@@ -150,16 +154,12 @@ void showDictionaryPanel(
                   );
                 } else if (loading) {
                   return Padding(
-                    padding: EdgeInsets.only(
-                      top: Spacing.lg.value,
-                    ),
+                    padding: EdgeInsets.only(top: Spacing.lg.value),
                     child: const Center(child: CircularProgressIndicator()),
                   );
                 } else {
                   return Padding(
-                    padding: EdgeInsets.only(
-                      top: Spacing.lg.value,
-                    ),
+                    padding: EdgeInsets.only(top: Spacing.lg.value),
                     child: Text(
                       error ?? l10n.noDefinition,
                       style: const TextStyle(color: Colors.grey),
@@ -184,10 +184,14 @@ void showDictionaryPanel(
                             (s) => ActionChip(
                               label: Text(
                                 s,
-                                style: Theme.of(context).textTheme.labelLarge?.copyWith(),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelLarge?.copyWith(),
                               ),
                               onPressed: () {
-                                Theme.of(context).textTheme.labelLarge?.copyWith();
+                                Theme.of(
+                                  context,
+                                ).textTheme.labelLarge?.copyWith();
                               },
                             ),
                           )

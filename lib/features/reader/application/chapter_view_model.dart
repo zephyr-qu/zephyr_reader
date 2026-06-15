@@ -69,7 +69,6 @@ class ChapterViewModel {
   /// 章节全文索引操作，防止并发堆积
   CancelableOperation<void>? _searchIndexOperation;
 
-
   // ==================== 自动滚动 ====================
 
   /// 自动滚动触发器
@@ -90,7 +89,8 @@ class ChapterViewModel {
   /// 获取当前章节标题
   late final ReadonlySignal<String> currentChapterTitle = computed(() {
     final chapterList = chapters.value.value ?? [];
-    if (_pageState.chapterIndex.value >= 0 && _pageState.chapterIndex.value < chapterList.length) {
+    if (_pageState.chapterIndex.value >= 0 &&
+        _pageState.chapterIndex.value < chapterList.length) {
       return chapterList[_pageState.chapterIndex.value].title;
     }
     return '';
@@ -197,12 +197,16 @@ class ChapterViewModel {
       _pageState.chapterContent.value = AsyncState.data(firstText);
       totalPages.value = firstPages.length;
       _pageState.chapterIndex.value = chapterIndex;
-      _pageState.currentCharOffset.value = initialCharOffset.clamp(0, firstText.length);
+      _pageState.currentCharOffset.value = initialCharOffset.clamp(
+        0,
+        firstText.length,
+      );
       pageIndex.value = PaginationEngine.resolvePageIndexFromPageInfo(
         firstPages,
         _pageState.currentCharOffset.value,
       );
-      _pageState.pendingJumpCharOffset.value = _pageState.currentCharOffset.value;
+      _pageState.pendingJumpCharOffset.value =
+          _pageState.currentCharOffset.value;
       error.value = null;
 
       // 取消骨架屏
@@ -229,6 +233,10 @@ class ChapterViewModel {
           letterSpacing: _config.letterSpacing.value,
           paragraphSpacing: _config.paragraphSpacing.value,
           punctuationSqueeze: _config.punctuationSqueeze.value,
+          firstLineIndent: _config.firstLineIndent.value,
+          enableHyphenation: _config.enableHyphenation.value,
+          language: _config.language.value,
+          autoSpaceRatio: _config.autoSpaceRatio.value,
         ),
       );
       final partialTotal = partialResult.totalPages;
@@ -267,6 +275,10 @@ class ChapterViewModel {
             letterSpacing: _config.letterSpacing.value,
             paragraphSpacing: _config.paragraphSpacing.value,
             punctuationSqueeze: _config.punctuationSqueeze.value,
+            firstLineIndent: _config.firstLineIndent.value,
+            enableHyphenation: _config.enableHyphenation.value,
+            language: _config.language.value,
+            autoSpaceRatio: _config.autoSpaceRatio.value,
           ),
         );
       }
@@ -317,12 +329,16 @@ class ChapterViewModel {
 
         _pageState.chapterContent.value = AsyncState.data(content);
         totalPages.value = pages.length;
-        _pageState.currentCharOffset.value = initialCharOffset.clamp(0, content.length);
+        _pageState.currentCharOffset.value = initialCharOffset.clamp(
+          0,
+          content.length,
+        );
         pageIndex.value = PaginationEngine.resolvePageIndexFromPageInfo(
           pages,
           _pageState.currentCharOffset.value,
         );
-        _pageState.pendingJumpCharOffset.value = _pageState.currentCharOffset.value;
+        _pageState.pendingJumpCharOffset.value =
+            _pageState.currentCharOffset.value;
         error.value = null;
 
         // 确保当前页内容已缓存
@@ -335,12 +351,16 @@ class ChapterViewModel {
       } else {
         _pageState.chapterContent.value = AsyncState.data(content);
         totalPages.value = total;
-        _pageState.currentCharOffset.value = initialCharOffset.clamp(0, content.length);
+        _pageState.currentCharOffset.value = initialCharOffset.clamp(
+          0,
+          content.length,
+        );
         pageIndex.value = PaginationEngine.resolvePageIndexForOffset(
           descriptors,
           _pageState.currentCharOffset.value,
         );
-        _pageState.pendingJumpCharOffset.value = _pageState.currentCharOffset.value;
+        _pageState.pendingJumpCharOffset.value =
+            _pageState.currentCharOffset.value;
         error.value = null;
 
         // 确保当前页内容已缓存
@@ -419,7 +439,9 @@ class ChapterViewModel {
       final batch = indices.skip(b).take(batchSize);
       await Future.wait(
         batch.map(
-          (i) => _repo.preloadChapter(_pageState.bookId.value, i).catchError((_) {}),
+          (i) => _repo
+              .preloadChapter(_pageState.bookId.value, i)
+              .catchError((_) {}),
         ),
       );
     }
@@ -476,7 +498,8 @@ class ChapterViewModel {
       // 更新 char offset 到页末尾，确保阅读进度正确
       final descriptors = _repo.descriptors;
       if (descriptors != null && pageIndex.value < descriptors.length) {
-        _pageState.currentCharOffset.value = descriptors[pageIndex.value].endOffset;
+        _pageState.currentCharOffset.value =
+            descriptors[pageIndex.value].endOffset;
       } else if (_repo.currentPages != null &&
           pageIndex.value < _repo.currentPages!.length) {
         _pageState.currentCharOffset.value =

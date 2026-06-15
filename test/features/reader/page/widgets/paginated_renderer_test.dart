@@ -236,7 +236,7 @@ void main() {
       final repo = _MockRepo();
       when(() => repo.descriptors).thenReturn(null);
       when(() => repo.currentPages).thenReturn([
-        PageInfo(
+        const PageInfo(
           pageIndex: 0,
           content: 'Old page content.',
           startOffset: 0,

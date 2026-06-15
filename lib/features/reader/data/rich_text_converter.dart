@@ -17,13 +17,10 @@ import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 /// ```
 
 /// 从 [RichTextSpan] 提取纯文本内容的辅助函数。
-String _spanText(RichTextSpan span) => span.when(
-  styled: (_, data) => data.text,
-  link: (data, _) => data.text,
-);
+String _spanText(RichTextSpan span) =>
+    span.when(styled: (_, data) => data.text, link: (data, _) => data.text);
 
 class RichTextConverter {
-
   const RichTextConverter();
 
   /// 将 [RichParagraph] 列表转换为 [TextSpan] 树（保留样式），

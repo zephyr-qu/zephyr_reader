@@ -116,12 +116,14 @@ class BookDetailTocSection extends StatelessWidget {
                     Expanded(
                       child: Text(
                         chapter.title,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
-                        color: isCurrent
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurface,
-                      ),
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: isCurrent
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                          color: isCurrent
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurface,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

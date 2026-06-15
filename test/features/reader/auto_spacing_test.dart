@@ -165,20 +165,23 @@ of cultural fusion, 传统与现代交相辉映的美。
     // ==================== CJK vs mixed content ====================
 
     group('CJK vs mixed content', () {
-      test('pure CJK and mixed content produce different page layout', () async {
-        final cfg = _cjkCompareConfig();
-        final mixedPages = await core_api.paginateAllContent(
-          filePath: mixedFilePath,
-          chapterIndex: 0,
-          config: cfg,
-        );
-        final purePages = await core_api.paginateAllContent(
-          filePath: pureFilePath,
-          chapterIndex: 0,
-          config: cfg,
-        );
-        expect(mixedPages.length, isNot(equals(purePages.length)));
-      });
+      test(
+        'pure CJK and mixed content produce different page layout',
+        () async {
+          final cfg = _cjkCompareConfig();
+          final mixedPages = await core_api.paginateAllContent(
+            filePath: mixedFilePath,
+            chapterIndex: 0,
+            config: cfg,
+          );
+          final purePages = await core_api.paginateAllContent(
+            filePath: pureFilePath,
+            chapterIndex: 0,
+            config: cfg,
+          );
+          expect(mixedPages.length, isNot(equals(purePages.length)));
+        },
+      );
     });
 
     // ==================== Content cleanliness ====================

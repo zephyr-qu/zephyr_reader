@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-import 'package:zephyr_reader/features/sync/application/services/sync_models.dart';
-import 'package:zephyr_reader/features/sync/application/services/webdav_config_service.dart';
-import 'package:zephyr_reader/features/sync/application/storage_sync_view_model.dart';
+import 'package:zephyr_reader/features/data/application/services/sync_models.dart';
+import 'package:zephyr_reader/features/data/application/services/webdav_config_service.dart';
+import 'package:zephyr_reader/features/data/application/data_management_view_model.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
@@ -11,7 +11,7 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 /// 允许用户输入/编辑服务器地址、用户名、密码和远程路径。
 Future<void> showWebDavConfigDialog(
   BuildContext context,
-  StorageSyncViewModel viewModel,
+  DataManagementViewModel viewModel,
 ) async {
   final config = await viewModel.getConfig();
   if (!context.mounted) return;

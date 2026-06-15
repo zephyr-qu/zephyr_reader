@@ -14,6 +14,7 @@ import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repo
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/features/reader/application/reader_page_state.dart';
 
 import '../../helpers/fixtures.dart';
@@ -125,6 +126,42 @@ class _MockConfig implements ReaderConfig {
     debounce: Duration.zero,
   );
 
+
+  @override
+  late final firstLineIndent = persistedBool(
+    prefs,
+    '',
+    true,
+    debounce: Duration.zero,
+  );
+
+  @override
+  late final enableHyphenation = persistedBool(
+    prefs,
+    '',
+    false,
+    debounce: Duration.zero,
+  );
+
+  @override
+  late final language = persistedEnum<LanguageType>(
+    prefs,
+    '',
+    LanguageType.auto,
+    (name) => LanguageType.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => LanguageType.auto,
+    ),
+    debounce: Duration.zero,
+  );
+
+  @override
+  late final autoSpaceRatio = persistedDouble(
+    prefs,
+    '',
+    0.25,
+    debounce: Duration.zero,
+  );
   @override
   late final tapLayout = persistedEnum<TapLayout>(
     prefs,
@@ -178,6 +215,10 @@ class _MockConfig implements ReaderConfig {
     punctuationSqueeze.value = true;
 
     baselineAlign.value = true;
+    firstLineIndent.value = true;
+    enableHyphenation.value = false;
+    autoSpaceRatio.value = 0.25;
+    language.reset();
     tapLayout.value = TapLayout.rightHanded;
   }
 
@@ -188,7 +229,11 @@ class _MockConfig implements ReaderConfig {
 // ===== Helpers =====
 
 ChapterViewModel createManager({ReaderRepository? repo, ReaderConfig? config}) {
-  return ChapterViewModel(repo ?? _MockRepo(), config ?? _MockConfig(), ReaderPageState());
+  return ChapterViewModel(
+    repo ?? _MockRepo(),
+    config ?? _MockConfig(),
+    ReaderPageState(),
+  );
 }
 
 /// Mock 设置 `paginateChapter` 成功返回 2 页。
@@ -233,13 +278,15 @@ void _setupPaginateChapterPartial(_MockRepo repo) {
 
 void _registerFallbackValues() {
   registerFallbackValue(ReadingMode.pagination);
-  registerFallbackValue(const PaginationParams(
-    fontSize: 16,
-    lineHeight: 1.5,
-    width: 400,
-    height: 600,
-    padding: 16,
-  ));
+  registerFallbackValue(
+    const PaginationParams(
+      fontSize: 16,
+      lineHeight: 1.5,
+      width: 400,
+      height: 600,
+      padding: 16,
+    ),
+  );
 }
 
 void main() {
@@ -260,7 +307,11 @@ void main() {
       () => repo.getChapters(any()),
     ).thenAnswer((_) async => createTestChapters(count: 3));
     when(
-      () => repo.loadChapterContent(any(), any(), readingMode: any(named: 'readingMode')),
+      () => repo.loadChapterContent(
+        any(),
+        any(),
+        readingMode: any(named: 'readingMode'),
+      ),
     ).thenAnswer((_) async => 'A' * 100);
     _setupPaginateChapter(repo);
     // paginateChapterPartial 也使用相同的结果（首 N 字符分页和全部分页返回一致的前几页）
@@ -314,7 +365,7 @@ void main() {
       ),
     ).thenAnswer(
       (_) async => [
-        PageInfo(
+        const PageInfo(
           pageIndex: 0,
           content: 'fallback',
           startOffset: 0,
@@ -411,7 +462,11 @@ void main() {
 
       test('加载失败设置 error 信号', () async {
         when(
-          () => repo.loadChapterContent(any(), any(), readingMode: any(named: 'readingMode')),
+          () => repo.loadChapterContent(
+            any(),
+            any(),
+            readingMode: any(named: 'readingMode'),
+          ),
         ).thenThrow(Exception('network error'));
 
         await manager.loadChapter(0);

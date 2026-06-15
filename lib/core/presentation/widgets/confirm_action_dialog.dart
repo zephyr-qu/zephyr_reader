@@ -23,7 +23,11 @@ Future<void> showConfirmActionDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
-          Icon(PhosphorIconsRegular.warning, size: IconSize.leading, color: cs.error),
+          Icon(
+            PhosphorIconsRegular.warning,
+            size: IconSize.leading,
+            color: cs.error,
+          ),
           const SizedBox(width: 8),
           Text(title, style: const TextStyle(fontSize: 18)),
         ],

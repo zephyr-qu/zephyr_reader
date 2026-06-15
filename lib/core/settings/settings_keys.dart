@@ -68,6 +68,18 @@ abstract final class SettingsKeys {
   /// 中西文基线对齐
   static const readerBaselineAlign = 'reader_baseline_align';
 
+  /// 首行缩进
+  static const readerFirstLineIndent = 'reader_first_line_indent';
+
+  /// 英文连字符断词
+  static const readerEnableHyphenation = 'reader_enable_hyphenation';
+
+  /// 语言类型
+  static const readerLanguage = 'reader_language';
+
+  /// 中西文自动间距比例
+  static const readerAutoSpaceRatio = 'reader_auto_space_ratio';
+
   /// 翻页点击区域布局
   static const readerTapLayout = 'reader_tap_layout';
 

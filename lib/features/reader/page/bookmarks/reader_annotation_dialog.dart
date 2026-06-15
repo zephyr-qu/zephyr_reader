@@ -35,9 +35,7 @@ class ReaderAnnotationDialog extends HookWidget {
               padding: EdgeInsets.all(Spacing.sm.value),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(
-                  RadiusSize.md.value,
-                ),
+                borderRadius: BorderRadius.circular(RadiusSize.md.value),
               ),
               child: Text(
                 selectedText,

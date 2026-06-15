@@ -14,6 +14,7 @@ class ReaderRenderConfig {
   final double paragraphSpacing;
   final double pageMargin;
   final bool showVocabularyMark;
+
   /// 一行文本的像素高度（fontSize × lineHeight）。
   double get textRowHeight => fontSize * lineHeight;
   final bool baselineAlign;

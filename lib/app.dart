@@ -40,7 +40,9 @@ class ZephyrReaderApp extends HookWidget {
     final Color? customPrimary = useSignalValue(
       themeManager.customPrimaryColor.signal,
     );
-    final AppThemeType themeType = useSignalValue(themeManager.themeType.signal);
+    final AppThemeType themeType = useSignalValue(
+      themeManager.themeType.signal,
+    );
     final String? localeStr = useSignalValue(themeManager.locale.signal);
 
     // 缓存 ThemeData，仅在 customPrimary 变化时重建

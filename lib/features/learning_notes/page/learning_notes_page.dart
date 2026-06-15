@@ -35,11 +35,7 @@ class LearningNotesPage extends HookWidget {
             LearningNotesStatDashboard(
               noteTotalCount: noteTotalCount.value ?? 0,
             ),
-            Expanded(
-              child: LearningNotesNoteList(
-                groups: vm.groupedNotes,
-              ),
-            ),
+            Expanded(child: LearningNotesNoteList(groups: vm.groupedNotes)),
           ],
         ),
       ),

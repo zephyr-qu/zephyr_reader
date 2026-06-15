@@ -1,4 +1,5 @@
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
+import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
 /// 分页排版参数聚合体。
 ///
@@ -16,6 +17,10 @@ class PaginationParams {
   final double letterSpacing;
   final double paragraphSpacing;
   final bool punctuationSqueeze;
+  final bool firstLineIndent;
+  final bool enableHyphenation;
+  final LanguageType language;
+  final double autoSpaceRatio;
 
   const PaginationParams({
     required this.fontSize,
@@ -29,5 +34,9 @@ class PaginationParams {
     this.letterSpacing = 0,
     this.paragraphSpacing = 16,
     this.punctuationSqueeze = true,
+    this.firstLineIndent = true,
+    this.enableHyphenation = false,
+    this.language = LanguageType.auto,
+    this.autoSpaceRatio = 0.25,
   });
 }

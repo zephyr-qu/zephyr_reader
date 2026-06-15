@@ -24,6 +24,8 @@ const MAX_LETTER_SPACING: f32 = 10.0;
 const MIN_PARAGRAPH_SPACING: f32 = 0.0;
 const MAX_PARAGRAPH_SPACING: f32 = 10.0;
 const MAX_FIRST_LINE_INDENT: u8 = 10;
+const MIN_AUTO_SPACE_RATIO: f32 = 0.0;
+const MAX_AUTO_SPACE_RATIO: f32 = 1.0;
 
 // ==================== 语言类型 ====================
 
@@ -46,8 +48,6 @@ pub enum LanguageType {
 
 /// 字符宽度校准数据
 ///
-/// 来自 Flutter TextPainter 的真实测量值，用于替代 Rust 硬编码的字符宽度比例。
-/// 6 个 Unicode 区间覆盖全部字符类型，定长数组零堆分配。
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[frb(non_opaque)]
 pub struct TypesetCalibration {
@@ -67,6 +67,17 @@ pub struct TypesetCalibration {
     pub other_width: f32,
 }
 
+impl Hash for TypesetCalibration {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.dpr.to_bits().hash(state);
+        self.cjk_width.to_bits().hash(state);
+        self.ascii_width.to_bits().hash(state);
+        self.digit_width.to_bits().hash(state);
+        self.punct_width.to_bits().hash(state);
+        self.latin_ext_width.to_bits().hash(state);
+        self.other_width.to_bits().hash(state);
+    }
+}
 impl Default for TypesetCalibration {
     /// 保守默认值（字体未就绪时的回退）
     fn default() -> Self {
@@ -103,6 +114,9 @@ pub struct TypesetConfig {
     pub paragraph_spacing: f32,
     /// 首行缩进（字符数）
     pub first_line_indent: u8,
+    /// 中西文自动间距比例（相对于 font_size）。
+    /// 在 CJK↔Latin 边界产生视觉间隔，0.0 = 不间隔，1.0 = 1 个字符宽度
+    pub auto_space_ratio: f32,
     /// 标点挤压 — 连续 CJK 标点占用更少水平空间
     pub punctuation_squeeze: bool,
     /// 语言类型
@@ -126,6 +140,7 @@ impl Default for TypesetConfig {
             line_spacing: 1.5,
             letter_spacing: 0.0,
             paragraph_spacing: 1.0,
+            auto_space_ratio: 0.25,
             first_line_indent: 2,
             language: LanguageType::Auto,
             punctuation_squeeze: true,
@@ -139,32 +154,22 @@ impl Default for TypesetConfig {
 
 impl Hash for TypesetConfig {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let core = (
-            self.page_width,
-            self.page_height,
-            self.font_size,
-            self.line_spacing.to_bits(),
-            self.letter_spacing.to_bits(),
-            self.paragraph_spacing.to_bits(),
-            self.first_line_indent,
-            self.punctuation_squeeze,
-            self.enable_hyphenation,
-            self.language,
-            &self.hyphenation_language,
-            &self.font_family,
-        );
-        let cal = self.calibration.as_ref().map(|c| {
-            (
-                c.dpr.to_bits(),
-                c.cjk_width.to_bits(),
-                c.ascii_width.to_bits(),
-                c.digit_width.to_bits(),
-                c.punct_width.to_bits(),
-                c.latin_ext_width.to_bits(),
-                c.other_width.to_bits(),
-            )
-        });
-        (core, cal).hash(state);
+        self.page_width.hash(state);
+        self.page_height.hash(state);
+        self.font_size.hash(state);
+        self.line_spacing.to_bits().hash(state);
+        self.letter_spacing.to_bits().hash(state);
+        self.paragraph_spacing.to_bits().hash(state);
+        self.auto_space_ratio.to_bits().hash(state);
+        self.first_line_indent.hash(state);
+        self.punctuation_squeeze.hash(state);
+        self.enable_hyphenation.hash(state);
+        self.language.hash(state);
+        self.hyphenation_language.hash(state);
+        self.font_family.hash(state);
+        if let Some(ref cal) = self.calibration {
+            cal.hash(state);
+        }
     }
 }
 
@@ -206,6 +211,7 @@ impl TypesetConfig {
         check_range!(self, page_width, MIN_PAGE_WIDTH, MAX_PAGE_WIDTH, "page width", "px");
         check_range!(self, page_height, MIN_PAGE_HEIGHT, MAX_PAGE_HEIGHT, "page height", "px");
         check_range!(self, font_size, MIN_FONT_SIZE, MAX_FONT_SIZE, "font size", "px");
+        check_range!(self, auto_space_ratio, MIN_AUTO_SPACE_RATIO, MAX_AUTO_SPACE_RATIO, "auto space ratio", "");
         check_range!(self, line_spacing, MIN_LINE_SPACING, MAX_LINE_SPACING, "line spacing", "");
         check_range!(self, letter_spacing, MIN_LETTER_SPACING, MAX_LETTER_SPACING, "letter spacing", "");
         check_range!(self, paragraph_spacing, MIN_PARAGRAPH_SPACING, MAX_PARAGRAPH_SPACING, "paragraph spacing", "");
@@ -229,12 +235,9 @@ impl TypesetConfig {
             page_height: self.page_height.clamp(MIN_PAGE_HEIGHT, MAX_PAGE_HEIGHT),
             font_size: self.font_size.clamp(MIN_FONT_SIZE, MAX_FONT_SIZE),
             line_spacing: self.line_spacing.clamp(MIN_LINE_SPACING, MAX_LINE_SPACING),
-            letter_spacing: self
-                .letter_spacing
-                .clamp(MIN_LETTER_SPACING, MAX_LETTER_SPACING),
-            paragraph_spacing: self
-                .paragraph_spacing
-                .clamp(MIN_PARAGRAPH_SPACING, MAX_PARAGRAPH_SPACING),
+            letter_spacing: self.letter_spacing.clamp(MIN_LETTER_SPACING, MAX_LETTER_SPACING),
+            paragraph_spacing: self.paragraph_spacing.clamp(MIN_PARAGRAPH_SPACING, MAX_PARAGRAPH_SPACING),
+            auto_space_ratio: self.auto_space_ratio.clamp(MIN_AUTO_SPACE_RATIO, MAX_AUTO_SPACE_RATIO),
             first_line_indent: self.first_line_indent.clamp(0_u8, MAX_FIRST_LINE_INDENT),
             ..self.clone()
         }
@@ -253,6 +256,7 @@ impl TypesetConfig {
         bytes.extend_from_slice(&self.line_spacing.to_le_bytes());
         bytes.extend_from_slice(&self.letter_spacing.to_le_bytes());
         bytes.extend_from_slice(&self.paragraph_spacing.to_le_bytes());
+        bytes.extend_from_slice(&self.auto_space_ratio.to_le_bytes());
         bytes.push(self.first_line_indent);
         bytes.push(self.punctuation_squeeze as u8);
         bytes.push(self.enable_hyphenation as u8);
@@ -356,6 +360,17 @@ impl TypesetConfig {
                     fixes.push(format!(
                         "first line indent: {} -> {} (clamped to 0-{})",
                         original, fixed, MAX_FIRST_LINE_INDENT
+                    ));
+                }
+                fixed
+            },
+            auto_space_ratio: {
+                let original = self.auto_space_ratio;
+                let fixed = self.auto_space_ratio.clamp(MIN_AUTO_SPACE_RATIO, MAX_AUTO_SPACE_RATIO);
+                if (original - fixed).abs() > f32::EPSILON {
+                    fixes.push(format!(
+                        "auto space ratio: {} -> {} (clamped to {}-{})",
+                        original, fixed, MIN_AUTO_SPACE_RATIO, MAX_AUTO_SPACE_RATIO
                     ));
                 }
                 fixed
@@ -476,6 +491,16 @@ mod tests {
             base_hash,
             different_lang.config_hash(),
             "language change must affect hash"
+        );
+
+        let different_auto_space = TypesetConfig {
+            auto_space_ratio: 0.5,
+            ..base.clone()
+        };
+        assert_ne!(
+            base_hash,
+            different_auto_space.config_hash(),
+            "auto_space_ratio change must affect hash"
         );
     }
 

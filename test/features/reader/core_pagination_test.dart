@@ -90,7 +90,8 @@ void main() {
       expect(
         c0.endIndex,
         greaterThan(c0.startIndex),
-        reason: 'Chapter 0: startIndex=${c0.startIndex}, endIndex=${c0.endIndex}',
+        reason:
+            'Chapter 0: startIndex=${c0.startIndex}, endIndex=${c0.endIndex}',
       );
     });
 
@@ -422,17 +423,20 @@ void main() {
           }
         });
 
-        test('paginate chapter 1 (代码块示例) contains code block content', () async {
-          final pages = await core_api.paginateAllContent(
-            filePath: mdPath,
-            chapterIndex: 1,
-            config: _defaultConfig(),
-          );
-          final allText = pages.map((p) => p.content).join('');
-          expect(allText, contains('下面是一个 Python 代码块'));
-          expect(allText, contains('def hello'));
-          expect(allText, contains('Welcome to the future'));
-        });
+        test(
+          'paginate chapter 1 (代码块示例) contains code block content',
+          () async {
+            final pages = await core_api.paginateAllContent(
+              filePath: mdPath,
+              chapterIndex: 1,
+              config: _defaultConfig(),
+            );
+            final allText = pages.map((p) => p.content).join('');
+            expect(allText, contains('下面是一个 Python 代码块'));
+            expect(allText, contains('def hello'));
+            expect(allText, contains('Welcome to the future'));
+          },
+        );
 
         test(
           'paginate chapter 2 (中英文混合段落) contains CJK and Latin content',

@@ -54,10 +54,7 @@ class LearningNotesNoteList extends StatelessWidget {
       // Notes
       final notesEnd = cursor + group.notes.length;
       if (index < notesEnd) {
-        return NoteItemCard(
-          item: group.notes[index - cursor],
-          index: index,
-        );
+        return NoteItemCard(item: group.notes[index - cursor], index: index);
       }
       cursor = notesEnd;
 
@@ -77,11 +74,7 @@ class LearningNotesNoteList extends StatelessWidget {
       padding: const EdgeInsets.only(top: 20, bottom: 8),
       child: Row(
         children: [
-          Icon(
-            PhosphorIconsRegular.bookOpen,
-            size: 16,
-            color: cs.primary,
-          ),
+          Icon(PhosphorIconsRegular.bookOpen, size: 16, color: cs.primary),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

@@ -20,11 +20,7 @@ class LearningNotesViewModel {
       final key = n.note.bookId;
       map.putIfAbsent(
         key,
-        () => NoteGroup(
-          bookId: key,
-          bookTitle: n.bookTitle,
-          notes: [],
-        ),
+        () => NoteGroup(bookId: key, bookTitle: n.bookTitle, notes: []),
       );
       map[key]!.notes.add(n);
     }

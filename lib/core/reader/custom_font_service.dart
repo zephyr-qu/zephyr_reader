@@ -24,7 +24,6 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 ///
 /// 管理阅读器自定义字体的加载、切换和持久化
 @singleton
-@preResolve
 class FontRepository {
   final PreferencesService _prefs;
   final Completer<void> _ready = Completer<void>();
@@ -41,7 +40,10 @@ class FontRepository {
     }
   }
 
-  late final _currentFontId = persistedNullableString(_prefs, SettingsKeys.currentFont);
+  late final _currentFontId = persistedNullableString(
+    _prefs,
+    SettingsKeys.currentFont,
+  );
 
   /// 当前字体
   final currentFont = signal<FontInfo?>(null);
@@ -292,8 +294,9 @@ class FontRepository {
       }
 
       // 仅保留系统内置字体
-      availableFonts.value =
-          availableFonts.value.where((f) => f.isBuiltIn).toList();
+      availableFonts.value = availableFonts.value
+          .where((f) => f.isBuiltIn)
+          .toList();
       _registeredFamilies.clear();
 
       await setCurrentFont('system');

@@ -18,8 +18,9 @@ class ProfileMenuSections extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     final sections = [
+      // ── 阅读数据 ──
       _SectionData(
-        label: l10n.sectionStudyMgmt,
+        label: l10n.sectionReadingData,
         items: [
           _SectionItem(
             icon: PhosphorIconsRegular.bookmarkSimple,
@@ -39,28 +40,17 @@ class ProfileMenuSections extends StatelessWidget {
             semantic: MenuItemSemantic.reading,
             onTap: () => context.push(AppRoute.readingSessions.path),
           ),
-          _SectionItem(
-            icon: PhosphorIconsRegular.hardDrives,
-            title: l10n.storageSync,
-            semantic: MenuItemSemantic.success,
-            onTap: () => context.push(AppRoute.storageSync.path),
-          ),
         ],
       ),
+      // ── 阅读工具 ──
       _SectionData(
-        label: l10n.sectionReadingExp,
+        label: l10n.sectionReadingTools,
         items: [
           _SectionItem(
             icon: PhosphorIconsRegular.waveform,
             title: l10n.ttsSettings,
             semantic: MenuItemSemantic.info,
             onTap: () => context.push(AppRoute.ttsSettings.path),
-          ),
-          _SectionItem(
-            icon: PhosphorIconsRegular.textB,
-            title: l10n.typographySettings,
-            semantic: MenuItemSemantic.typography,
-            onTap: () => context.push(AppRoute.typographySettings.path),
           ),
           _SectionItem(
             icon: PhosphorIconsRegular.bookOpen,
@@ -74,28 +64,41 @@ class ProfileMenuSections extends StatelessWidget {
             semantic: MenuItemSemantic.info,
             onTap: () => context.push(AppRoute.translationApi.path),
           ),
+        ],
+      ),
+      // ── 显示与外观 ──
+      _SectionData(
+        label: l10n.sectionDisplayAppearance,
+        items: [
           _SectionItem(
             icon: PhosphorIconsRegular.palette,
             title: l10n.themeBrightness,
             semantic: MenuItemSemantic.primary,
             onTap: () => context.push(AppRoute.themeBrightness.path),
           ),
+          _SectionItem(
+            icon: PhosphorIconsRegular.textB,
+            title: l10n.typographySettings,
+            semantic: MenuItemSemantic.typography,
+            onTap: () => context.push(AppRoute.typographySettings.path),
+          ),
         ],
       ),
+      // ── 系统 ──
       _SectionData(
         label: l10n.sectionSystem,
         items: [
-          _SectionItem(
-            icon: PhosphorIconsRegular.hardDrive,
-            title: l10n.backupRestore,
-            semantic: MenuItemSemantic.success,
-            onTap: () => context.push(AppRoute.localBackup.path),
-          ),
           _SectionItem(
             icon: PhosphorIconsRegular.dotsThreeOutline,
             title: l10n.otherSettings,
             semantic: MenuItemSemantic.neutral,
             onTap: () => context.push(AppRoute.otherSettings.path),
+          ),
+          _SectionItem(
+            icon: PhosphorIconsRegular.hardDrives,
+            title: l10n.dataManagement,
+            semantic: MenuItemSemantic.success,
+            onTap: () => context.push(AppRoute.dataManagement.path),
           ),
           _SectionItem(
             icon: PhosphorIconsRegular.info,

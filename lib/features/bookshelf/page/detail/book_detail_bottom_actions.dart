@@ -35,7 +35,10 @@ class BookDetailBottomActions extends StatelessWidget {
                 foregroundColor: theme.colorScheme.onSurfaceVariant,
               ),
               onPressed: onEditMetadata,
-              icon: const Icon(PhosphorIconsRegular.pencilLine, size: IconSize.inline),
+              icon: const Icon(
+                PhosphorIconsRegular.pencilLine,
+                size: IconSize.inline,
+              ),
               label: Text(
                 l10n.editMetadata,
                 style: theme.textTheme.labelLarge?.copyWith(
@@ -56,7 +59,10 @@ class BookDetailBottomActions extends StatelessWidget {
                 foregroundColor: theme.colorScheme.onSurfaceVariant,
               ),
               onPressed: onExportNotes,
-              icon: const Icon(PhosphorIconsRegular.fileArrowUp, size: IconSize.inline),
+              icon: const Icon(
+                PhosphorIconsRegular.fileArrowUp,
+                size: IconSize.inline,
+              ),
               label: Text(
                 l10n.exportNotes,
                 style: theme.textTheme.labelLarge?.copyWith(
@@ -83,7 +89,10 @@ class BookDetailBottomActions extends StatelessWidget {
                     : const Color(0xFFEF5350),
               ),
               onPressed: onDeleteBook,
-              icon: const Icon(PhosphorIconsRegular.trash, size: IconSize.inline),
+              icon: const Icon(
+                PhosphorIconsRegular.trash,
+                size: IconSize.inline,
+              ),
               label: Text(
                 l10n.deleteBook,
                 style: theme.textTheme.labelLarge?.copyWith(
