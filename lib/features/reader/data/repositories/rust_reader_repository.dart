@@ -136,20 +136,23 @@ class ReaderRepository implements ReaderRepositoryInterface {
   @override
   List<PageDescriptor>? get descriptors => _descriptors;
 
-
   TypesetConfig _buildConfig(PaginationParams p) => buildTypesetConfig(
-        width: p.width,
-        height: p.height,
-        fontSize: p.fontSize,
-        lineHeight: p.lineHeight,
-        padding: p.padding,
-        devicePixelRatio: p.devicePixelRatio,
-        calibration: p.calibration,
-        fontFamily: p.fontFamily,
-        letterSpacing: p.letterSpacing,
-        paragraphSpacing: p.paragraphSpacing,
-        punctuationSqueeze: p.punctuationSqueeze,
-      );
+    width: p.width,
+    height: p.height,
+    fontSize: p.fontSize,
+    lineHeight: p.lineHeight,
+    padding: p.padding,
+    devicePixelRatio: p.devicePixelRatio,
+    calibration: p.calibration,
+    fontFamily: p.fontFamily,
+    letterSpacing: p.letterSpacing,
+    paragraphSpacing: p.paragraphSpacing,
+    punctuationSqueeze: p.punctuationSqueeze,
+    firstLineIndent: p.firstLineIndent ? 2 : 0,
+    enableHyphenation: p.enableHyphenation,
+    language: p.language,
+    autoSpaceRatio: p.autoSpaceRatio,
+  );
 
   /// 轻量级分页排版（只获取页面描述符，文本按需加载）。
   ///
@@ -239,7 +242,10 @@ class ReaderRepository implements ReaderRepositoryInterface {
       );
       _pageCache.clear();
       _preloadPageRange(5);
-      return (totalPages: result.descriptors.length, isPartial: result.isPartial);
+      return (
+        totalPages: result.descriptors.length,
+        isPartial: result.isPartial,
+      );
     } catch (e) {
       Logging.error('paginateChapterPartial error: $e');
       return (totalPages: 0, isPartial: false);
@@ -340,8 +346,11 @@ class ReaderRepository implements ReaderRepositoryInterface {
   // ===== From ChapterContentService =====
 
   @override
-  Future<String> loadChapterContent(String bookId, int chapterId,
-      {ReadingMode? readingMode}) async {
+  Future<String> loadChapterContent(
+    String bookId,
+    int chapterId, {
+    ReadingMode? readingMode,
+  }) async {
     final sw = Stopwatch()..start();
     try {
       final book = await _getBook(bookId);
@@ -471,7 +480,6 @@ class ReaderRepository implements ReaderRepositoryInterface {
     currentPages = pages;
     return pages;
   }
-
 
   /// 仅获取纯文本内容（跳过 EPUB/MD 富文本处理）。
   Future<String> _loadRawContent(String bookId, int chapterId) async {

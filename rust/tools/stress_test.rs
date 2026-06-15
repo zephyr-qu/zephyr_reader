@@ -20,6 +20,7 @@
 
 use rust_lib_zephyr_reader::api;
 use rust_lib_zephyr_reader::api::core as api_core;
+use rust_lib_zephyr_reader::api::data::chapter as api_chapter;
 use rust_lib_zephyr_reader::domain::{LanguageType, TypesetConfig};
 use rust_lib_zephyr_reader::text::paginate_all;
 use std::fs;
@@ -72,6 +73,7 @@ fn default_config() -> TypesetConfig {
         line_spacing: 1.5,
         letter_spacing: 0.0,
         paragraph_spacing: 1.0,
+        auto_space_ratio: 0.25,
         first_line_indent: 2,
         language: LanguageType::Auto,
         enable_hyphenation: false,
@@ -286,17 +288,15 @@ fn stress_production_pipeline(sample_size: usize) {
 
         if large_txt.exists() {
             let path_str = large_txt.to_string_lossy().to_string();
-            let parse_result = rt.block_on(api::parse_book(path_str.clone())).unwrap();
+            let book_id = rt.block_on(api::parse_book(path_str.clone())).unwrap();
+            let chapters = rt.block_on(api_chapter::list_chapters_by_book(book_id)).unwrap();
 
-            // 找最大章节
-            let (max_ch_idx, max_ch_size) = parse_result
-                .chapters
+            let (max_ch_idx, max_ch_size) = chapters
                 .iter()
                 .map(|ch| (ch.chapter_index as i32, ch.end_index - ch.start_index))
                 .max_by_key(|&(_, s)| s)
                 .unwrap_or((0, 0));
-
-            result_line("pipeline", "large_txt_chapters", parse_result.chapters.len() as f64, "chapters");
+            result_line("pipeline", "large_txt_chapters", chapters.len() as f64, "chapters");
             result_line("pipeline", "largest_chapter_bytes", max_ch_size as f64, "bytes");
             result_line("pipeline", "largest_chapter_idx", max_ch_idx as f64, "idx");
 

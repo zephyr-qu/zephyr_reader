@@ -14,7 +14,6 @@ import 'package:signals_flutter/signals_flutter.dart' hide PersistedSignal;
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
-import 'package:zephyr_reader/features/reader/application/translation_config.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/domain/translation_service.dart';
 
@@ -149,6 +148,7 @@ class _TestConfig implements ReaderConfig {
   // TODO: implement textAlign
   PersistedSignal<TextAlign> get textAlign => throw UnimplementedError();
 }
+
 ReaderViewModel createVm({
   required ReaderRepository repo,
   required ReaderConfig config,

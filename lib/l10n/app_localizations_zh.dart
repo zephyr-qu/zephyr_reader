@@ -439,9 +439,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get weekly => '每周一次';
 
   @override
-  String get backupRestore => '备份与恢复';
-
-  @override
   String get backup => '备份数据';
 
   @override
@@ -858,13 +855,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sectionSystem => '系统';
 
   @override
-  String get learningNotes => '学习与笔记';
+  String get sectionReadingData => '阅读数据';
 
   @override
-  String get readingSessions => '阅读会话';
+  String get sectionReadingTools => '阅读工具';
 
   @override
-  String get storageSync => '存储与同步';
+  String get sectionDisplayAppearance => '显示与外观';
+
+  @override
+  String get learningNotes => '阅读笔记';
+
+  @override
+  String get readingSessions => '阅读记录';
+
+  @override
+  String get dataManagement => '数据管理';
 
   @override
   String get ttsSettings => '朗读设置';
@@ -1084,6 +1090,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get readAloud => '朗读';
+
+  @override
+  String get readingAssist => '阅读辅助';
 
   @override
   String addedToVocabulary(Object word) {
@@ -1471,27 +1480,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get restoreRestartNotice => '数据已还原，请重启应用以生效。';
 
   @override
-  String get backupSubtitleNever => '从未备份';
-
-  @override
-  String backupSubtitleDays(Object days) {
-    return '$days 天前备份 — 建议立即备份';
-  }
-
-  @override
-  String backupSubtitleHours(Object hours) {
-    return '$hours 小时前备份';
-  }
-
-  @override
-  String backupSubtitleMinutes(Object minutes) {
-    return '$minutes 分钟前备份';
-  }
-
-  @override
-  String get backupSubtitleJustNow => '刚刚备份';
-
-  @override
   String get restoreTitle => '从备份还原';
 
   @override
@@ -1703,6 +1691,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get baselineAlignDesc => '强制统一行高，避免混排时文字跳动';
 
   @override
+  String get firstLineIndent => '首行缩进';
+
+  @override
+  String get firstLineIndentDesc => '每个段落缩进 2 个字符';
+
+  @override
   String get autoScroll => '自动翻页';
 
   @override
@@ -1722,6 +1716,33 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get ttsAutoRefresh => '修改后自动刷新';
+
+  @override
+  String get enableHyphenation => '英文连字符断词';
+
+  @override
+  String get autoSpaceRatio => '中西文间距';
+
+  @override
+  String get autoSpaceRatioDesc => '中文和英文之间的视觉间隔比例';
+
+  @override
+  String get enableHyphenationDesc => '英文单词在行末以连字符断开';
+
+  @override
+  String get typesetLanguage => '语言类型';
+
+  @override
+  String get typesetLanguageAuto => '自动检测';
+
+  @override
+  String get typesetLanguageChinese => '中文';
+
+  @override
+  String get typesetLanguageEnglish => '英文';
+
+  @override
+  String get typesetLanguageMixed => '中英混合';
 
   @override
   String get ttsVoiceEngine => '语音引擎';
@@ -2013,44 +2034,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get confirmClearAllBookmarks => '确定要清空本书的所有书签吗？此操作不可恢复';
-
-  @override
-  String get cacheManage => '缓存管理';
-
-  @override
-  String clearedProgress(String title) {
-    return '已清除《$title》阅读进度';
-  }
-
-  @override
-  String get noProgressData => '暂无阅读进度数据';
-
-  @override
-  String get cacheInfoTip => '缓存包含已加载的章节内容。清空后需重新加载，不影响书籍文件和阅读进度';
-
-  @override
-  String get bookCount => '书籍数';
-
-  @override
-  String get withProgress => '有进度';
-
-  @override
-  String get labelTotalChapters => '总章节';
-
-  @override
-  String get indexLoadFailed => '索引加载失败';
-
-  @override
-  String get indexChunks => '索引块';
-
-  @override
-  String get indexBooks => '索引书籍';
-
-  @override
-  String get indexChapters => '索引章节';
-
-  @override
-  String get clearProgress => '清除进度';
 
   @override
   String get clearedAllBookmarks => '已清空所有书签';

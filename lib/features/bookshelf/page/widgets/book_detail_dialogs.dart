@@ -100,10 +100,7 @@ Future<bool> showDeleteBookDialog(BuildContext context, Book book) async {
 }
 
 /// 显示编辑元数据对话框
-Future<Book?> showEditMetadataDialog(
-  BuildContext context,
-  Book book,
-) async {
+Future<Book?> showEditMetadataDialog(BuildContext context, Book book) async {
   final l10n = AppLocalizations.of(context)!;
   final nameController = TextEditingController(text: book.title);
   final authorController = TextEditingController(text: book.author ?? '');

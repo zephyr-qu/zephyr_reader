@@ -20,7 +20,6 @@ class BookDetailViewModel {
     );
   }
 
-
   /// 释放所有 signal 资源。
   void dispose() {
     state.dispose();

@@ -30,13 +30,33 @@ class TranslationConfig {
   /// 请求超时秒数
   final PersistedSignal<int> timeoutSeconds;
 
-  TranslationConfig(PreferencesService prefs) :
-      provider = persistedString(prefs, SettingsKeys.translationProvider, 'openai'),
-      apiUrl = persistedString(prefs, SettingsKeys.translationApiUrl, 'https://api.openai.com'),
+  TranslationConfig(PreferencesService prefs)
+    : provider = persistedString(
+        prefs,
+        SettingsKeys.translationProvider,
+        'openai',
+      ),
+      apiUrl = persistedString(
+        prefs,
+        SettingsKeys.translationApiUrl,
+        'https://api.openai.com',
+      ),
       apiKey = persistedString(prefs, SettingsKeys.translationApiKey, ''),
-      model = persistedString(prefs, SettingsKeys.translationModel, 'gpt-4o-mini'),
-      targetLang = persistedString(prefs, SettingsKeys.translationTargetLang, 'zh'),
-      sourceLang = persistedString(prefs, SettingsKeys.translationSourceLang, 'auto'),
+      model = persistedString(
+        prefs,
+        SettingsKeys.translationModel,
+        'gpt-4o-mini',
+      ),
+      targetLang = persistedString(
+        prefs,
+        SettingsKeys.translationTargetLang,
+        'zh',
+      ),
+      sourceLang = persistedString(
+        prefs,
+        SettingsKeys.translationSourceLang,
+        'auto',
+      ),
       timeoutSeconds = persistedInt(prefs, SettingsKeys.translationTimeout, 30);
 
   /// 是否已配置（API URL 和 Key 均非空）。

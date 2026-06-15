@@ -14,13 +14,11 @@ class ResetButton extends StatelessWidget {
         onPressed: onTap,
         child: Text(
           label,
-          style: Theme.of(context)
-              .textTheme
-              .labelLarge
-              ?.copyWith(color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+          ),
         ),
       ),
     );
-
   }
 }

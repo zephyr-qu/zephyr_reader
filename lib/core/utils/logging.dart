@@ -30,9 +30,7 @@ class Logging {
     _logger = Logger(printer: _defaultPrinter());
   }
 
-  static Logger get _instance => _logger ??= Logger(
-    printer: _defaultPrinter(),
-  );
+  static Logger get _instance => _logger ??= Logger(printer: _defaultPrinter());
 
   /// 记录信息级别日志。
   ///

@@ -75,8 +75,10 @@ class SystemCache {
     if (!await dir.exists()) return 0;
     int total = 0;
     try {
-      await for (final entity
-          in dir.list(recursive: true, followLinks: false)) {
+      await for (final entity in dir.list(
+        recursive: true,
+        followLinks: false,
+      )) {
         total += await action(entity);
       }
     } catch (e) {

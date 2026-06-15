@@ -7,11 +7,9 @@ use crate::text::constants::{is_cjk_char, is_cjk_punctuation, is_start_avoid_pun
 use crate::text::typeset::{optimize_punctuation, optimize_spaces};
 use flutter_rust_bridge::frb;
 
+
 /// 排版安全余量（像素），防止字符恰好贴边
 const SAFETY_MARGIN_PX: f32 = 2.0;
-/// 中西文自动间距比例（相对于 font_size）。
-/// 用于在 CJK↔Latin 边界产生视觉间隔，不影响存储的文本内容。
-const AUTO_SPACE_RATIO: f32 = 0.25;
 
 /// 使用预计算的 char_indices 计算行分割
 fn compute_line_breaks_from_indices(
@@ -162,7 +160,7 @@ impl PageStreamer {
         let effective_width = (page_width_px - SAFETY_MARGIN_PX).max(1.0);
         let max_line_width = (effective_width - indent_width).max(font_size);
 
-        let auto_space_px = (font_size * AUTO_SPACE_RATIO).max(1.0);
+        let auto_space_px = (font_size * config.auto_space_ratio).max(1.0);
 
         let width_table = CharWidthTable::from_calibration(
             config.calibration.as_ref().unwrap_or(&Default::default()),

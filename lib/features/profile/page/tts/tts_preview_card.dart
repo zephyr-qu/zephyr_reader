@@ -67,9 +67,9 @@ class TtsPreviewCard extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 isPlaying ? stopLabel : playLabel,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: cs.onPrimary,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(color: cs.onPrimary),
               ),
               const Spacer(),
               Text(

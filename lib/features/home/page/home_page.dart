@@ -117,9 +117,7 @@ class HomePage extends HookWidget {
                       ),
                     ),
                     SliverPadding(
-                      padding: EdgeInsets.only(
-                        top: Spacing.xl.value,
-                      ),
+                      padding: EdgeInsets.only(top: Spacing.xl.value),
                     ),
                     recentBooks.map(
                       loading: () =>

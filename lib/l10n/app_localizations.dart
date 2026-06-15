@@ -938,12 +938,6 @@ abstract class AppLocalizations {
   /// **'每周一次'**
   String get weekly;
 
-  /// No description provided for @backupRestore.
-  ///
-  /// In zh, this message translates to:
-  /// **'备份与恢复'**
-  String get backupRestore;
-
   /// No description provided for @backup.
   ///
   /// In zh, this message translates to:
@@ -1736,23 +1730,41 @@ abstract class AppLocalizations {
   /// **'系统'**
   String get sectionSystem;
 
+  /// No description provided for @sectionReadingData.
+  ///
+  /// In zh, this message translates to:
+  /// **'阅读数据'**
+  String get sectionReadingData;
+
+  /// No description provided for @sectionReadingTools.
+  ///
+  /// In zh, this message translates to:
+  /// **'阅读工具'**
+  String get sectionReadingTools;
+
+  /// No description provided for @sectionDisplayAppearance.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示与外观'**
+  String get sectionDisplayAppearance;
+
   /// No description provided for @learningNotes.
   ///
   /// In zh, this message translates to:
-  /// **'学习与笔记'**
+  /// **'阅读笔记'**
   String get learningNotes;
 
   /// No description provided for @readingSessions.
   ///
   /// In zh, this message translates to:
-  /// **'阅读会话'**
+  /// **'阅读记录'**
   String get readingSessions;
 
-  /// No description provided for @storageSync.
+  /// No description provided for @dataManagement.
   ///
   /// In zh, this message translates to:
-  /// **'存储与同步'**
-  String get storageSync;
+  /// **'数据管理'**
+  String get dataManagement;
 
   /// No description provided for @ttsSettings.
   ///
@@ -2179,6 +2191,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'朗读'**
   String get readAloud;
+
+  /// No description provided for @readingAssist.
+  ///
+  /// In zh, this message translates to:
+  /// **'阅读辅助'**
+  String get readingAssist;
 
   /// No description provided for @addedToVocabulary.
   ///
@@ -2882,36 +2900,6 @@ abstract class AppLocalizations {
   /// **'数据已还原，请重启应用以生效。'**
   String get restoreRestartNotice;
 
-  /// No description provided for @backupSubtitleNever.
-  ///
-  /// In zh, this message translates to:
-  /// **'从未备份'**
-  String get backupSubtitleNever;
-
-  /// No description provided for @backupSubtitleDays.
-  ///
-  /// In zh, this message translates to:
-  /// **'{days} 天前备份 — 建议立即备份'**
-  String backupSubtitleDays(Object days);
-
-  /// No description provided for @backupSubtitleHours.
-  ///
-  /// In zh, this message translates to:
-  /// **'{hours} 小时前备份'**
-  String backupSubtitleHours(Object hours);
-
-  /// No description provided for @backupSubtitleMinutes.
-  ///
-  /// In zh, this message translates to:
-  /// **'{minutes} 分钟前备份'**
-  String backupSubtitleMinutes(Object minutes);
-
-  /// No description provided for @backupSubtitleJustNow.
-  ///
-  /// In zh, this message translates to:
-  /// **'刚刚备份'**
-  String get backupSubtitleJustNow;
-
   /// No description provided for @restoreTitle.
   ///
   /// In zh, this message translates to:
@@ -3290,6 +3278,18 @@ abstract class AppLocalizations {
   /// **'强制统一行高，避免混排时文字跳动'**
   String get baselineAlignDesc;
 
+  /// No description provided for @firstLineIndent.
+  ///
+  /// In zh, this message translates to:
+  /// **'首行缩进'**
+  String get firstLineIndent;
+
+  /// No description provided for @firstLineIndentDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'每个段落缩进 2 个字符'**
+  String get firstLineIndentDesc;
+
   /// No description provided for @autoScroll.
   ///
   /// In zh, this message translates to:
@@ -3331,6 +3331,60 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'修改后自动刷新'**
   String get ttsAutoRefresh;
+
+  /// No description provided for @enableHyphenation.
+  ///
+  /// In zh, this message translates to:
+  /// **'英文连字符断词'**
+  String get enableHyphenation;
+
+  /// No description provided for @autoSpaceRatio.
+  ///
+  /// In zh, this message translates to:
+  /// **'中西文间距'**
+  String get autoSpaceRatio;
+
+  /// No description provided for @autoSpaceRatioDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'中文和英文之间的视觉间隔比例'**
+  String get autoSpaceRatioDesc;
+
+  /// No description provided for @enableHyphenationDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'英文单词在行末以连字符断开'**
+  String get enableHyphenationDesc;
+
+  /// No description provided for @typesetLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'语言类型'**
+  String get typesetLanguage;
+
+  /// No description provided for @typesetLanguageAuto.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动检测'**
+  String get typesetLanguageAuto;
+
+  /// No description provided for @typesetLanguageChinese.
+  ///
+  /// In zh, this message translates to:
+  /// **'中文'**
+  String get typesetLanguageChinese;
+
+  /// No description provided for @typesetLanguageEnglish.
+  ///
+  /// In zh, this message translates to:
+  /// **'英文'**
+  String get typesetLanguageEnglish;
+
+  /// No description provided for @typesetLanguageMixed.
+  ///
+  /// In zh, this message translates to:
+  /// **'中英混合'**
+  String get typesetLanguageMixed;
 
   /// No description provided for @ttsVoiceEngine.
   ///
@@ -3883,78 +3937,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'确定要清空本书的所有书签吗？此操作不可恢复'**
   String get confirmClearAllBookmarks;
-
-  /// No description provided for @cacheManage.
-  ///
-  /// In zh, this message translates to:
-  /// **'缓存管理'**
-  String get cacheManage;
-
-  /// 清除阅读进度提示
-  ///
-  /// In zh, this message translates to:
-  /// **'已清除《{title}》阅读进度'**
-  String clearedProgress(String title);
-
-  /// No description provided for @noProgressData.
-  ///
-  /// In zh, this message translates to:
-  /// **'暂无阅读进度数据'**
-  String get noProgressData;
-
-  /// No description provided for @cacheInfoTip.
-  ///
-  /// In zh, this message translates to:
-  /// **'缓存包含已加载的章节内容。清空后需重新加载，不影响书籍文件和阅读进度'**
-  String get cacheInfoTip;
-
-  /// No description provided for @bookCount.
-  ///
-  /// In zh, this message translates to:
-  /// **'书籍数'**
-  String get bookCount;
-
-  /// No description provided for @withProgress.
-  ///
-  /// In zh, this message translates to:
-  /// **'有进度'**
-  String get withProgress;
-
-  /// No description provided for @labelTotalChapters.
-  ///
-  /// In zh, this message translates to:
-  /// **'总章节'**
-  String get labelTotalChapters;
-
-  /// No description provided for @indexLoadFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'索引加载失败'**
-  String get indexLoadFailed;
-
-  /// No description provided for @indexChunks.
-  ///
-  /// In zh, this message translates to:
-  /// **'索引块'**
-  String get indexChunks;
-
-  /// No description provided for @indexBooks.
-  ///
-  /// In zh, this message translates to:
-  /// **'索引书籍'**
-  String get indexBooks;
-
-  /// No description provided for @indexChapters.
-  ///
-  /// In zh, this message translates to:
-  /// **'索引章节'**
-  String get indexChapters;
-
-  /// No description provided for @clearProgress.
-  ///
-  /// In zh, this message translates to:
-  /// **'清除进度'**
-  String get clearProgress;
 
   /// No description provided for @clearedAllBookmarks.
   ///

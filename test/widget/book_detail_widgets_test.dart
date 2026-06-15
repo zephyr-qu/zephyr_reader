@@ -28,7 +28,6 @@ Widget _wrapWithMaterial(Widget child) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-
   group('BookDetailInfoSection', () {
     testWidgets('renders book info rows', (tester) async {
       final book = createTestBook(
@@ -214,7 +213,6 @@ void main() {
 
       expect(find.byType(SizedBox), findsOneWidget);
     });
-
   });
 
   group('BookDetailTocSection', () {

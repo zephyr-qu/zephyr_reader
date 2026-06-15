@@ -12,6 +12,7 @@ import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle
 import 'package:zephyr_reader/core/reader/custom_font_service.dart';
 import 'package:zephyr_reader/core/reader/models/font_info.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/page/typography/font_tile.dart';
@@ -44,6 +45,7 @@ class TypographySettingsPage extends HookWidget {
           const SizedBox(height: 16),
           _buildSliders(context, cs, config),
           const SizedBox(height: 16),
+          _buildTextAlign(context, cs, config),
           _buildAdvancedCjk(context, cs, config),
           const SizedBox(height: 12),
           ResetButton(
@@ -63,7 +65,12 @@ class TypographySettingsPage extends HookWidget {
     config.padding.value = 16.0;
     config.letterSpacing.value = 0.0;
     config.punctuationSqueeze.value = true;
+    config.textAlign.reset();
     config.baselineAlign.value = true;
+    config.firstLineIndent.value = true;
+    config.enableHyphenation.reset();
+    config.language.reset();
+    config.autoSpaceRatio.reset();
     config.writingDirection.value = WritingDirection.horizontal;
     await fontRepo.setCurrentFont('system');
   }
@@ -126,6 +133,9 @@ class TypographySettingsPage extends HookWidget {
     final double paragraphSpacing = useSignalValue(
       config.paragraphSpacing.signal,
     );
+    final double autoSpaceRatio = useSignalValue(
+      config.autoSpaceRatio.signal,
+    );
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -177,6 +187,15 @@ class TypographySettingsPage extends HookWidget {
                   onChanged: (v) => config.padding.value = v.roundToDouble(),
                   step: 2,
                 ),
+                SettingsSliderTile(
+                  label: l10n.autoSpaceRatio,
+                  value: '${(autoSpaceRatio * 100).toInt()}%',
+                  current: autoSpaceRatio,
+                  min: 0.0,
+                  max: 1.0,
+                  onChanged: (v) => config.autoSpaceRatio.value = v,
+                  step: 0.05,
+                ),
               ],
             ),
           ],
@@ -185,6 +204,176 @@ class TypographySettingsPage extends HookWidget {
         .fadeIn(duration: 300.ms, delay: 150.ms)
         .slideY(begin: 0.04, end: 0);
   }
+
+  Widget _buildTextAlign(
+    BuildContext context,
+    ColorScheme cs,
+    ReaderConfig config,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final currentAlign = useSignalValue<TextAlign, Signal<TextAlign>>(config.textAlign.signal);
+    final options = [
+      (
+        TextAlign.justify,
+        l10n.textAlignJustify,
+        PhosphorIconsRegular.textAlignCenter,
+      ),
+      (
+        TextAlign.start,
+        l10n.textAlignStart,
+        PhosphorIconsRegular.textAlignLeft,
+      ),
+      (
+        TextAlign.center,
+        l10n.textAlignCenter,
+        PhosphorIconsRegular.textAlignCenter,
+      ),
+      (
+        TextAlign.end,
+        l10n.textAlignEnd,
+        PhosphorIconsRegular.textAlignRight,
+      ),
+    ];
+
+    return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SectionLabel(label: l10n.textAlign),
+            SettingsCard(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: options.map((o) {
+                      final isSelected = currentAlign == o.$1;
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: GestureDetector(
+                            onTap: () => config.textAlign.value = o.$1,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? cs.primary.withValues(alpha: 0.08)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? cs.primary
+                                      : cs.outlineVariant.withValues(alpha: 0.3),
+                                  width: isSelected ? 1.5 : 0.5,
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    o.$3,
+                                    size: 20,
+                                    color: isSelected
+                                        ? cs.primary
+                                        : cs.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    o.$2,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.w400,
+                                      color: isSelected
+                                          ? cs.primary
+                                          : cs.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        )
+        .animate()
+        .fadeIn(duration: 300.ms, delay: 175.ms)
+        .slideY(begin: 0.04, end: 0);
+  }
+  Widget _buildLanguageTile(BuildContext context, ReaderConfig config) {
+    final l10n = AppLocalizations.of(context)!;
+    final currentLanguage = useSignalValue<LanguageType, Signal<LanguageType>>(config.language.signal);
+    final options = [
+      (LanguageType.auto, l10n.typesetLanguageAuto),
+      (LanguageType.chinese, l10n.typesetLanguageChinese),
+      (LanguageType.english, l10n.typesetLanguageEnglish),
+      (LanguageType.mixed, l10n.typesetLanguageMixed),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.typesetLanguage,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: options.map((o) {
+              final isSelected = currentLanguage == o.$1;
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: GestureDetector(
+                    onTap: () => config.language.value = o.$1,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                          width: isSelected ? 1.5 : 0.5,
+                        ),
+                      ),
+                      child: Text(
+                        o.$2,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                          color: isSelected
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Widget _buildAdvancedCjk(
     BuildContext context,
@@ -256,6 +445,23 @@ class TypographySettingsPage extends HookWidget {
                   value: useSignalValue(config.baselineAlign.signal),
                   onChanged: (v) => config.baselineAlign.value = v,
                 ),
+                SettingsToggleTile(
+                  icon: PhosphorIconsRegular.textIndent,
+                  semantic: MenuItemSemantic.typography,
+                  title: l10n.firstLineIndent,
+                  subtitle: l10n.firstLineIndentDesc,
+                  value: useSignalValue(config.firstLineIndent.signal),
+                  onChanged: (v) => config.firstLineIndent.value = v,
+                ),
+                SettingsToggleTile(
+                  icon: PhosphorIconsRegular.textBolder,
+                  semantic: MenuItemSemantic.typography,
+                  title: l10n.enableHyphenation,
+                  subtitle: l10n.enableHyphenationDesc,
+                  value: useSignalValue(config.enableHyphenation.signal),
+                  onChanged: (v) => config.enableHyphenation.value = v,
+                ),
+                _buildLanguageTile(context, config),
                 SettingsToggleTile(
                   icon: PhosphorIconsRegular.arrowDown,
                   semantic: MenuItemSemantic.typography,

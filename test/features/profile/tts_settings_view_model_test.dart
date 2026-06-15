@@ -15,9 +15,15 @@ class _MockSharedPreferences extends Mock implements PreferencesService {
     when(() => setDouble(any(), any())).thenAnswer((_) async => true);
     when(() => setBool(any(), any())).thenAnswer((_) async => true);
     when(() => setInt(any(), any())).thenAnswer((_) async => true);
-    when(() => getDouble(any(), defaultValue: any(named: 'defaultValue'))).thenReturn(null);
-    when(() => getBool(any(), defaultValue: any(named: 'defaultValue'))).thenReturn(null);
-    when(() => getInt(any(), defaultValue: any(named: 'defaultValue'))).thenReturn(null);
+    when(
+      () => getDouble(any(), defaultValue: any(named: 'defaultValue')),
+    ).thenReturn(null);
+    when(
+      () => getBool(any(), defaultValue: any(named: 'defaultValue')),
+    ).thenReturn(null);
+    when(
+      () => getInt(any(), defaultValue: any(named: 'defaultValue')),
+    ).thenReturn(null);
   }
 }
 
@@ -148,14 +154,22 @@ void main() {
 
   group('TtsSettingsViewModel loading from persisted values', () {
     test('reads speed from PreferencesService', () {
-      when(() => mockPrefs.getDouble(SettingsKeys.ttsSpeed, defaultValue: any(named: 'defaultValue'))).thenReturn(0.75);
+      when(
+        () => mockPrefs.getDouble(
+          SettingsKeys.ttsSpeed,
+          defaultValue: any(named: 'defaultValue'),
+        ),
+      ).thenReturn(0.75);
       final vm2 = TtsSettingsViewModel(mockPrefs);
       expect(vm2.speed.value, 0.75);
     });
 
     test('reads bilingualAlternate from PreferencesService', () {
       when(
-        () => mockPrefs.getBool(SettingsKeys.ttsBilingualAlternate, defaultValue: any(named: 'defaultValue')),
+        () => mockPrefs.getBool(
+          SettingsKeys.ttsBilingualAlternate,
+          defaultValue: any(named: 'defaultValue'),
+        ),
       ).thenReturn(false);
       final vm2 = TtsSettingsViewModel(mockPrefs);
       expect(vm2.bilingualAlternate.value, false);
@@ -163,7 +177,10 @@ void main() {
 
     test('reads pauseBetween from PreferencesService', () {
       when(
-        () => mockPrefs.getInt(SettingsKeys.ttsPauseBetween, defaultValue: any(named: 'defaultValue')),
+        () => mockPrefs.getInt(
+          SettingsKeys.ttsPauseBetween,
+          defaultValue: any(named: 'defaultValue'),
+        ),
       ).thenReturn(800);
       final vm2 = TtsSettingsViewModel(mockPrefs);
       expect(vm2.pauseBetween.value, 800);

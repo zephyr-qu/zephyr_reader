@@ -19,8 +19,10 @@ class DictionarySettingsViewModel {
   final PreferencesService _prefs;
 
   /// 当前词典文件路径（持久化）。
-  late final currentMdxPath =
-      persistedNullableString(_prefs, SettingsKeys.dictMdxPath);
+  late final currentMdxPath = persistedNullableString(
+    _prefs,
+    SettingsKeys.dictMdxPath,
+  );
 
   /// 已注册词典列表。
   final dictionaries = signal<List<Dictionary>>([]);
@@ -70,8 +72,10 @@ class DictionarySettingsViewModel {
       );
       currentMdxPath.value = filePath;
 
-      final name =
-          filePath.split(Platform.pathSeparator).last.replaceAll('.mdx', '');
+      final name = filePath
+          .split(Platform.pathSeparator)
+          .last
+          .replaceAll('.mdx', '');
       await dict_api.upsertDictionary(
         dict: Dictionary(
           id: '',

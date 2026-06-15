@@ -34,13 +34,15 @@ class BookmarkViewModel {
   }
 
   /// 在当前阅读位置添加书签。
-  Future<bool> addBookmark() async {
+  ///
+  /// [chapterTitle] 作为书签标题，默认使用章节名。
+  Future<bool> addBookmark({String chapterTitle = '书签'}) async {
     try {
       await bookmark_api.createBookmark(
         bookId: _pageState.bookId.value,
         chapterIndex: _pageState.chapterIndex.value,
         charOffset: _pageState.currentCharOffset.value,
-        title: '书签',
+        title: chapterTitle,
       );
       await loadBookmarks();
       return true;

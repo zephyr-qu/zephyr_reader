@@ -342,9 +342,7 @@ class ScrollModeRenderer extends HookWidget {
           if (rp.imageData.isEmpty) return const SizedBox.shrink();
           return RepaintBoundary(
             child: Padding(
-              padding: EdgeInsets.symmetric(
-                vertical: Spacing.sm.value,
-              ),
+              padding: EdgeInsets.symmetric(vertical: Spacing.sm.value),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: Image.memory(

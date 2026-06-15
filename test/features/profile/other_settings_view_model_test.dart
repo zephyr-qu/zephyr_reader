@@ -17,7 +17,9 @@ import 'package:zephyr_reader/features/profile/application/other_settings_view_m
 class _MockSharedPreferences extends Mock implements PreferencesService {
   _MockSharedPreferences() {
     when(() => setBool(any(), any())).thenAnswer((_) async => true);
-    when(() => getBool(any(), defaultValue: any(named: 'defaultValue'))).thenReturn(null);
+    when(
+      () => getBool(any(), defaultValue: any(named: 'defaultValue')),
+    ).thenReturn(null);
     when(() => getString(any())).thenReturn(null);
   }
 }
@@ -102,7 +104,10 @@ void main() {
   group('OtherSettingsViewModel loading from persisted values', () {
     test('reads notificationsEnabled from PreferencesService', () {
       when(
-        () => mockPrefs.getBool(SettingsKeys.otherNotifications, defaultValue: any(named: 'defaultValue')),
+        () => mockPrefs.getBool(
+          SettingsKeys.otherNotifications,
+          defaultValue: any(named: 'defaultValue'),
+        ),
       ).thenReturn(false);
       final vm2 = OtherSettingsViewModel(mockPrefs);
       expect(vm2.notificationsEnabled.value, false);
@@ -110,7 +115,10 @@ void main() {
 
     test('reads markdownPreview from PreferencesService', () {
       when(
-        () => mockPrefs.getBool(SettingsKeys.otherMarkdownPreview, defaultValue: any(named: 'defaultValue')),
+        () => mockPrefs.getBool(
+          SettingsKeys.otherMarkdownPreview,
+          defaultValue: any(named: 'defaultValue'),
+        ),
       ).thenReturn(true);
       final vm2 = OtherSettingsViewModel(mockPrefs);
       expect(vm2.markdownPreview.value, true);

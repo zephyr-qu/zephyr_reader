@@ -18,13 +18,25 @@ class AutoThemeService {
   Timer? _autoSwitchTimer;
 
   /// 是否启用自动主题切换
-  late final autoThemeEnabled = persistedBool(_prefs, SettingsKeys.autoThemeEnabled, false);
+  late final autoThemeEnabled = persistedBool(
+    _prefs,
+    SettingsKeys.autoThemeEnabled,
+    false,
+  );
 
   /// 深色模式开始时间（小时）
-  late final darkModeStartHour = persistedInt(_prefs, SettingsKeys.darkModeStartHour, 18);
+  late final darkModeStartHour = persistedInt(
+    _prefs,
+    SettingsKeys.darkModeStartHour,
+    18,
+  );
 
   /// 深色模式结束时间（小时）
-  late final darkModeEndHour = persistedInt(_prefs, SettingsKeys.darkModeEndHour, 6);
+  late final darkModeEndHour = persistedInt(
+    _prefs,
+    SettingsKeys.darkModeEndHour,
+    6,
+  );
 
   /// 当前主题模式
   final themeMode = signal<ThemeMode>(ThemeMode.system);
@@ -135,7 +147,6 @@ class AutoThemeService {
       _scheduleNextCheck();
     });
   }
-
 
   bool get isDarkModeTime {
     if (!autoThemeEnabled.value) {

@@ -304,7 +304,7 @@ class BookshelfBookContent extends StatelessWidget {
                         borderRadius: BorderRadius.circular(
                           RadiusSize.sm.value,
                         ),
-                        boxShadow: [DesignTokens.cardShadow],
+                        boxShadow: const [DesignTokens.cardShadow],
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(
@@ -415,7 +415,7 @@ class BookshelfBookContent extends StatelessWidget {
                                   size: 16,
                                   color: cs.error,
                                 ),
-                                SizedBox(width: 8),
+                                const SizedBox(width: 8),
                                 Text(l10n.deleteBook),
                               ],
                             ),

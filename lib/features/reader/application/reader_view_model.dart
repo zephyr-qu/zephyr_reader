@@ -55,11 +55,9 @@ class ReaderViewModel {
 
   final ReaderPageState state = ReaderPageState();
 
-  ReaderViewModel({
-    ReaderRepository? repo,
-    ReaderConfig? config,
-  }) : _repo = repo ?? getIt<ReaderRepository>(),
-       _config = config ?? getIt<ReaderConfig>() {
+  ReaderViewModel({ReaderRepository? repo, ReaderConfig? config})
+    : _repo = repo ?? getIt<ReaderRepository>(),
+      _config = config ?? getIt<ReaderConfig>() {
     chapterManager = ChapterViewModel(_repo, _config, state);
     sessionManager = ReadingSessionManager(state, chapterManager);
     bookmarks = BookmarkViewModel(state);
@@ -145,7 +143,10 @@ class ReaderViewModel {
   // ==================== 书签 ====================
 
   Future<void> jumpToBookmark(Bookmark bookmark) async {
-    await chapterManager.jumpToPosition(bookmark.chapterIndex, bookmark.charOffset.toInt());
+    await chapterManager.jumpToPosition(
+      bookmark.chapterIndex,
+      bookmark.charOffset.toInt(),
+    );
   }
 
   Bookmark? get currentBookmark => bookmarks.currentBookmark;
@@ -155,10 +156,11 @@ class ReaderViewModel {
     if (existing != null) {
       return await bookmarks.deleteBookmark(existing.id);
     } else {
-      return await bookmarks.addBookmark();
+      return await bookmarks.addBookmark(
+        chapterTitle: chapterManager.currentChapterTitle.value,
+      );
     }
   }
-
 
   // ==================== 划词批注 ====================
 

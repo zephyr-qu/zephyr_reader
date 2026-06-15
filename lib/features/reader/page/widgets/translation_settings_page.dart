@@ -351,9 +351,7 @@ class _TestSection extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      RadiusSize.md.value,
-                    ),
+                    borderRadius: BorderRadius.circular(RadiusSize.md.value),
                   ),
                 ),
               ),

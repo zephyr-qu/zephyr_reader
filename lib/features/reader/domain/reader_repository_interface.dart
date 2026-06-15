@@ -37,8 +37,11 @@ abstract class ReaderRepositoryInterface {
   Future<List<Chapter>> getChapters(String bookId);
 
   /// 加载章节纯文本内容。
-  Future<String> loadChapterContent(String bookId, int chapterId,
-      {ReadingMode? readingMode});
+  Future<String> loadChapterContent(
+    String bookId,
+    int chapterId, {
+    ReadingMode? readingMode,
+  });
 
   /// 快速获取章节首段文本。
   Future<String> loadChapterFirstSpine(String bookId, int chapterId);

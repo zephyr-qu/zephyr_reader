@@ -138,9 +138,7 @@ class CategoryManagementPage extends HookWidget {
           height: 40,
           decoration: BoxDecoration(
             color: category.colorValue,
-            borderRadius: BorderRadius.circular(
-              RadiusSize.md.value,
-            ),
+            borderRadius: BorderRadius.circular(RadiusSize.md.value),
           ),
           child: Icon(
             category.isSystem
@@ -296,7 +294,9 @@ class CategoryManagementPage extends HookWidget {
                 );
                 if (!context.mounted) return;
                 Navigator.pop(context);
-                messenger.showSnackBar(SnackBar(content: Text(success ? l10n.success : l10n.failed)));
+                messenger.showSnackBar(
+                  SnackBar(content: Text(success ? l10n.success : l10n.failed)),
+                );
               },
               child: Text(l10n.addCategory),
             ),
@@ -405,7 +405,9 @@ class CategoryManagementPage extends HookWidget {
                 final success = await catVm.updateCategory(updated);
                 if (!context.mounted) return;
                 Navigator.pop(context);
-                messenger.showSnackBar(SnackBar(content: Text(success ? l10n.success : l10n.failed)));
+                messenger.showSnackBar(
+                  SnackBar(content: Text(success ? l10n.success : l10n.failed)),
+                );
               },
               child: Text(l10n.save),
             ),
@@ -438,7 +440,9 @@ class CategoryManagementPage extends HookWidget {
               Navigator.pop(context);
               final success = await catVm.removeCategory(category.id);
               if (!context.mounted) return;
-              messenger.showSnackBar(SnackBar(content: Text(success ? l10n.success : l10n.failed)));
+              messenger.showSnackBar(
+                SnackBar(content: Text(success ? l10n.success : l10n.failed)),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.colorScheme.error,

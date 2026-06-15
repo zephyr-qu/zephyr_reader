@@ -140,19 +140,21 @@ class PaginationEngine {
   static int resolvePageIndexFromPageInfo(
     List<PageInfo> pages,
     int charOffset,
-  ) =>
-      _resolvePageIndex(pages, charOffset,
-        getStart: (p) => p.startOffset,
-        getEnd: (p) => p.endOffset,
-      );
+  ) => _resolvePageIndex(
+    pages,
+    charOffset,
+    getStart: (p) => p.startOffset,
+    getEnd: (p) => p.endOffset,
+  );
 
   /// 二分查找字符偏移所在的页码（PageDescriptor 列表）。
   static int resolvePageIndexForOffset(
     List<PageDescriptor> descriptors,
     int charOffset,
-  ) =>
-      _resolvePageIndex(descriptors, charOffset,
-        getStart: (d) => d.startOffset,
-        getEnd: (d) => d.endOffset,
-      );
+  ) => _resolvePageIndex(
+    descriptors,
+    charOffset,
+    getStart: (d) => d.startOffset,
+    getEnd: (d) => d.endOffset,
+  );
 }

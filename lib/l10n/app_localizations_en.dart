@@ -439,9 +439,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weekly => 'Weekly';
 
   @override
-  String get backupRestore => 'Backup & Restore';
-
-  @override
   String get backup => 'Backup';
 
   @override
@@ -862,13 +859,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sectionSystem => 'System';
 
   @override
+  String get sectionReadingData => 'Reading Data';
+
+  @override
+  String get sectionReadingTools => 'Reading Tools';
+
+  @override
+  String get sectionDisplayAppearance => 'Display & Appearance';
+
+  @override
   String get learningNotes => 'Learning Notes';
 
   @override
-  String get readingSessions => 'Reading Sessions';
+  String get readingSessions => 'Reading History';
 
   @override
-  String get storageSync => 'Storage & Sync';
+  String get dataManagement => 'Data Management';
 
   @override
   String get ttsSettings => 'TTS Settings';
@@ -1094,6 +1100,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readAloud => 'Read Aloud';
+
+  @override
+  String get readingAssist => 'Reading Assist';
 
   @override
   String addedToVocabulary(Object word) {
@@ -1483,27 +1492,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restoreRestartNotice => 'Data restored. Please restart the app.';
 
   @override
-  String get backupSubtitleNever => 'Never backed up';
-
-  @override
-  String backupSubtitleDays(Object days) {
-    return 'Backed up $days days ago — backup now';
-  }
-
-  @override
-  String backupSubtitleHours(Object hours) {
-    return 'Backed up $hours hours ago';
-  }
-
-  @override
-  String backupSubtitleMinutes(Object minutes) {
-    return 'Backed up $minutes minutes ago';
-  }
-
-  @override
-  String get backupSubtitleJustNow => 'Just backed up';
-
-  @override
   String get restoreTitle => 'Restore from backup';
 
   @override
@@ -1722,6 +1710,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Force uniform line height to prevent text jumping';
 
   @override
+  String get firstLineIndent => 'First-line Indent';
+
+  @override
+  String get firstLineIndentDesc => 'Indent each paragraph by 2 characters';
+
+  @override
   String get autoScroll => 'Auto Scroll';
 
   @override
@@ -1742,6 +1736,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ttsAutoRefresh => 'Auto-refresh on change';
+
+  @override
+  String get enableHyphenation => 'Hyphenation';
+
+  @override
+  String get autoSpaceRatio => 'CJK-Latin Spacing';
+
+  @override
+  String get autoSpaceRatioDesc =>
+      'Visual gap between Chinese and Latin characters';
+
+  @override
+  String get enableHyphenationDesc =>
+      'Break English words at line ends with hyphens';
+
+  @override
+  String get typesetLanguage => 'Language';
+
+  @override
+  String get typesetLanguageAuto => 'Auto';
+
+  @override
+  String get typesetLanguageChinese => 'Chinese';
+
+  @override
+  String get typesetLanguageEnglish => 'English';
+
+  @override
+  String get typesetLanguageMixed => 'Mixed';
 
   @override
   String get ttsVoiceEngine => 'Voice Engine';
@@ -2041,45 +2064,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get confirmClearAllBookmarks =>
       'Clear all bookmarks in this book? This cannot be undone.';
-
-  @override
-  String get cacheManage => 'Cache Management';
-
-  @override
-  String clearedProgress(String title) {
-    return 'Cleared reading progress for $title';
-  }
-
-  @override
-  String get noProgressData => 'No reading progress data';
-
-  @override
-  String get cacheInfoTip =>
-      'Cache contains loaded chapter content. Clearing requires reloading. Book files and reading progress are unaffected.';
-
-  @override
-  String get bookCount => 'Books';
-
-  @override
-  String get withProgress => 'In Progress';
-
-  @override
-  String get labelTotalChapters => 'Total Chapters';
-
-  @override
-  String get indexLoadFailed => 'Index load failed';
-
-  @override
-  String get indexChunks => 'Index Chunks';
-
-  @override
-  String get indexBooks => 'Indexed Books';
-
-  @override
-  String get indexChapters => 'Indexed Chapters';
-
-  @override
-  String get clearProgress => 'Clear Progress';
 
   @override
   String get clearedAllBookmarks => 'All bookmarks cleared';

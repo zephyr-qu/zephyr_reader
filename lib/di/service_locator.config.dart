@@ -21,14 +21,18 @@ import 'package:zephyr_reader/core/reader/reader_config.dart' as _i849;
 import 'package:zephyr_reader/core/reader/tts_service.dart' as _i825;
 import 'package:zephyr_reader/core/theme/theme_manager.dart' as _i182;
 import 'package:zephyr_reader/di/app_module.dart' as _i431;
-import 'package:zephyr_reader/features/backup/application/backup_view_model.dart'
-    as _i341;
 import 'package:zephyr_reader/features/bookshelf/application/book_import_service.dart'
     as _i339;
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart'
     as _i790;
 import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart'
     as _i5;
+import 'package:zephyr_reader/features/data/application/backup_view_model.dart'
+    as _i1022;
+import 'package:zephyr_reader/features/data/application/data_management_view_model.dart'
+    as _i965;
+import 'package:zephyr_reader/features/data/application/services/webdav_sync_service.dart'
+    as _i415;
 import 'package:zephyr_reader/features/profile/application/dictionary_settings_view_model.dart'
     as _i236;
 import 'package:zephyr_reader/features/profile/application/other_settings_view_model.dart'
@@ -51,10 +55,6 @@ import 'package:zephyr_reader/features/reader/domain/translation_service.dart'
     as _i625;
 import 'package:zephyr_reader/features/search/application/search_view_model.dart'
     as _i1;
-import 'package:zephyr_reader/features/sync/application/services/webdav_sync_service.dart'
-    as _i9;
-import 'package:zephyr_reader/features/sync/application/storage_sync_view_model.dart'
-    as _i657;
 
 extension GetItInjectableX on _i174.GetIt {
   // initializes the registration of main-scope dependencies inside of GetIt
@@ -71,8 +71,10 @@ extension GetItInjectableX on _i174.GetIt {
       preResolve: true,
     );
     gh.factory<_i5.CategoryViewModel>(() => _i5.CategoryViewModel());
+    gh.factory<_i965.DataManagementViewModel>(
+      () => _i965.DataManagementViewModel(),
+    );
     gh.factory<_i1054.ReaderRepository>(() => _i1054.ReaderRepository());
-    gh.factory<_i657.StorageSyncViewModel>(() => _i657.StorageSyncViewModel());
     gh.singleton<_i849.ReaderBgColors>(() => _i849.ReaderBgColors());
     gh.lazySingletonAsync<_i772.FileStorage>(() {
       final i = _i772.FileStorage();
@@ -81,11 +83,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
     gh.lazySingleton<_i825.TtsService>(() => _i825.TtsService());
     gh.lazySingleton<_i339.BookImportService>(() => _i339.BookImportService());
+    gh.lazySingleton<_i415.WebDavSyncService>(() => _i415.WebDavSyncService());
     gh.lazySingleton<_i880.VocabularyMarkerService>(
       () => _i880.VocabularyMarkerService(),
     );
     gh.lazySingleton<_i1.SearchViewModel>(() => _i1.SearchViewModel());
-    gh.lazySingleton<_i9.WebDavSyncService>(() => _i9.WebDavSyncService());
     gh.lazySingleton<_i335.ReaderViewModel>(
       () => _i335.ReaderViewModel(
         repo: gh<_i1054.ReaderRepository>(),
@@ -113,12 +115,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i82.WifiTransferService>(
       () => _i82.WifiTransferService(gh<_i985.PreferencesService>()),
     );
-    await gh.singleton<_i851.FontRepository>(
+    gh.singleton<_i851.FontRepository>(
       () => _i851.FontRepository(gh<_i985.PreferencesService>()),
-      preResolve: true,
     );
-    gh.lazySingleton<_i341.BackupViewModel>(
-      () => _i341.BackupViewModel(gh<_i985.PreferencesService>()),
+    gh.lazySingleton<_i1022.BackupViewModel>(
+      () => _i1022.BackupViewModel(gh<_i985.PreferencesService>()),
     );
     gh.singleton<_i849.ReaderConfig>(
       () => _i849.ReaderConfig(gh<_i985.PreferencesService>()),

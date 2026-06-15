@@ -4,6 +4,7 @@ import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/local/preferences_service.dart';
+import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
 /// 阅读器翻页点击区域布局（右手/左手习惯）
 enum TapLayout { rightHanded, leftHanded }
@@ -83,33 +84,108 @@ class ReaderConfig {
   );
 
   /// 字体大小
-  late final fontSize = persistedDouble(prefs, SettingsKeys.readerFontSize, 16.0);
+  late final fontSize = persistedDouble(
+    prefs,
+    SettingsKeys.readerFontSize,
+    16.0,
+  );
 
   /// 行间距
-  late final lineHeight = persistedDouble(prefs, SettingsKeys.readerLineHeight, 1.6);
+  late final lineHeight = persistedDouble(
+    prefs,
+    SettingsKeys.readerLineHeight,
+    1.6,
+  );
 
   /// 段落间距
-  late final paragraphSpacing = persistedDouble(prefs, SettingsKeys.readerParagraphSpacing, 16.0);
+  late final paragraphSpacing = persistedDouble(
+    prefs,
+    SettingsKeys.readerParagraphSpacing,
+    16.0,
+  );
 
   /// 页边距
   late final padding = persistedDouble(prefs, SettingsKeys.readerPadding, 16.0);
 
   /// 阅读背景色预设索引
-  late final readerBgColorIndex = persistedInt(prefs, SettingsKeys.readerBgColorIndex, 0);
+  late final readerBgColorIndex = persistedInt(
+    prefs,
+    SettingsKeys.readerBgColorIndex,
+    0,
+  );
 
   /// 是否自动翻页
-  late final autoScroll = persistedBool(prefs, SettingsKeys.readerAutoScroll, false, debounce: Duration.zero);
+  late final autoScroll = persistedBool(
+    prefs,
+    SettingsKeys.readerAutoScroll,
+    false,
+    debounce: Duration.zero,
+  );
 
   /// 自动翻页速度（秒）
-  late final autoScrollSpeed = persistedInt(prefs, SettingsKeys.readerAutoScrollSpeed, 30);
+  late final autoScrollSpeed = persistedInt(
+    prefs,
+    SettingsKeys.readerAutoScrollSpeed,
+    30,
+  );
 
   /// 字间距
-  late final letterSpacing = persistedDouble(prefs, SettingsKeys.readerLetterSpacing, 0.0);
+  late final letterSpacing = persistedDouble(
+    prefs,
+    SettingsKeys.readerLetterSpacing,
+    0.0,
+  );
 
   /// 标点挤压
-  late final punctuationSqueeze = persistedBool(prefs, SettingsKeys.readerPunctuationSqueeze, true, debounce: Duration.zero);
+  late final punctuationSqueeze = persistedBool(
+    prefs,
+    SettingsKeys.readerPunctuationSqueeze,
+    true,
+    debounce: Duration.zero,
+  );
 
-  late final baselineAlign = persistedBool(prefs, SettingsKeys.readerBaselineAlign, true, debounce: Duration.zero);
+  late final baselineAlign = persistedBool(
+    prefs,
+    SettingsKeys.readerBaselineAlign,
+    true,
+    debounce: Duration.zero,
+  );
+
+  /// 首行缩进
+  late final firstLineIndent = persistedBool(
+    prefs,
+    SettingsKeys.readerFirstLineIndent,
+    true,
+    debounce: Duration.zero,
+  );
+
+  /// 英文连字符断词
+  late final enableHyphenation = persistedBool(
+    prefs,
+    SettingsKeys.readerEnableHyphenation,
+    false,
+    debounce: Duration.zero,
+  );
+
+  /// 语言类型
+  late final language = persistedEnum<LanguageType>(
+    prefs,
+    SettingsKeys.readerLanguage,
+    LanguageType.auto,
+    (name) => LanguageType.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => LanguageType.auto,
+    ),
+    debounce: Duration.zero,
+  );
+
+  /// 中西文自动间距比例（相对于 font_size，0.0 ~ 1.0）
+  late final autoSpaceRatio = persistedDouble(
+    prefs,
+    SettingsKeys.readerAutoSpaceRatio,
+    0.25,
+    debounce: Duration.zero,
+  );
 
   late final textAlign = persistedEnum(
     prefs,
@@ -135,7 +211,12 @@ class ReaderConfig {
   );
 
   /// 是否跟随系统字体缩放（而非仅阅读器自有字号）
-  late final followSystemFontScale = persistedBool(prefs, SettingsKeys.readerFollowSystemFontScale, false, debounce: Duration.zero);
+  late final followSystemFontScale = persistedBool(
+    prefs,
+    SettingsKeys.readerFollowSystemFontScale,
+    false,
+    debounce: Duration.zero,
+  );
 
   // ==================== 非持久化信号 ====================
 
@@ -146,7 +227,6 @@ class ReaderConfig {
 
   /// 亮度遮罩（0.0–1.0，瞬态不持久化）
   final brightnessOverlay = signal<double>(0.0);
-
 
   ReaderConfig(this.prefs);
 
@@ -163,6 +243,10 @@ class ReaderConfig {
     letterSpacing.reset();
     punctuationSqueeze.reset();
     baselineAlign.reset();
+    autoSpaceRatio.reset();
+    firstLineIndent.reset();
+    enableHyphenation.reset();
+    language.reset();
     tapLayout.reset();
     textAlign.reset();
   }
@@ -179,7 +263,11 @@ class ReaderConfig {
     autoScrollSpeed.dispose();
     letterSpacing.dispose();
     punctuationSqueeze.dispose();
+    firstLineIndent.dispose();
+    autoSpaceRatio.dispose();
     baselineAlign.dispose();
+    enableHyphenation.dispose();
+    language.dispose();
     tapLayout.dispose();
     followSystemFontScale.dispose();
     textAlign.dispose();

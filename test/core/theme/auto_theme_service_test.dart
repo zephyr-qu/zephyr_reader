@@ -17,13 +17,14 @@ void main() {
       mockPrefs = _MockSharedPreferences();
 
       // 默认返回 false
-      when(() => mockPrefs.getBool(any(), defaultValue: any(named: 'defaultValue'))).thenAnswer(
-        (inv) => inv.namedArguments[#defaultValue] as bool,
-      );
+      when(
+        () =>
+            mockPrefs.getBool(any(), defaultValue: any(named: 'defaultValue')),
+      ).thenAnswer((inv) => inv.namedArguments[#defaultValue] as bool);
 
-      when(() => mockPrefs.getInt(any(), defaultValue: any(named: 'defaultValue'))).thenAnswer(
-        (inv) => inv.namedArguments[#defaultValue] as int,
-      );
+      when(
+        () => mockPrefs.getInt(any(), defaultValue: any(named: 'defaultValue')),
+      ).thenAnswer((inv) => inv.namedArguments[#defaultValue] as int);
 
       when(() => mockPrefs.setBool(any(), any())).thenAnswer((_) async => true);
       when(() => mockPrefs.setInt(any(), any())).thenAnswer((_) async => true);
@@ -85,18 +86,30 @@ void main() {
 
     group('日出日落时间计算', () {
       test('日出时间应等于深色模式结束时间', () {
-        expect(Duration(hours: service.darkModeEndHour.value).inHours, equals(6));
+        expect(
+          Duration(hours: service.darkModeEndHour.value).inHours,
+          equals(6),
+        );
       });
 
       test('日落时间应等于深色模式开始时间', () {
-        expect(Duration(hours: service.darkModeStartHour.value).inHours, equals(18));
+        expect(
+          Duration(hours: service.darkModeStartHour.value).inHours,
+          equals(18),
+        );
       });
 
       test('修改时间后应反映新的日出日落', () async {
         await service.setDarkModeTime(20, 7);
 
-        expect(Duration(hours: service.darkModeEndHour.value).inHours, equals(7));
-        expect(Duration(hours: service.darkModeStartHour.value).inHours, equals(20));
+        expect(
+          Duration(hours: service.darkModeEndHour.value).inHours,
+          equals(7),
+        );
+        expect(
+          Duration(hours: service.darkModeStartHour.value).inHours,
+          equals(20),
+        );
       });
     });
 
@@ -115,7 +128,6 @@ void main() {
         final preset = ThemeTimePreset.fromHours(19, 8);
         expect(preset, equals(ThemeTimePreset.custom));
       });
-
     });
 
     // 注: _updateThemeMode 和 _startAutoSwitch 是私有方法

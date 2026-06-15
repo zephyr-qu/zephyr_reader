@@ -31,9 +31,7 @@ class HomeRecentBookCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(
-                RadiusSize.sm.value,
-              ),
+              borderRadius: BorderRadius.circular(RadiusSize.sm.value),
               child: SizedBox(
                 width: 72,
                 height: 96,

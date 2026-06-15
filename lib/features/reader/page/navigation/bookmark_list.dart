@@ -81,7 +81,10 @@ class BookmarkList extends StatelessWidget {
                 ),
                 label: Text(
                   l10n.bookmarkManage,
-                  style: TextStyle(fontSize: 13, color: readerTheme.accentColor),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: readerTheme.accentColor,
+                  ),
                 ),
                 onPressed: () {
                   Navigator.of(context).pop();

@@ -44,9 +44,7 @@ class BookCover extends StatelessWidget {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: cs.primaryContainer,
-                  borderRadius: BorderRadius.circular(
-                    RadiusSize.sm.value,
-                  ),
+                  borderRadius: BorderRadius.circular(RadiusSize.sm.value),
                 ),
                 child: book.coverPath != null
                     ? ClipRRect(

@@ -21,9 +21,7 @@ class ProfileHeader extends StatelessWidget {
           backgroundColor: DesignTokens.warmAccent,
           child: Text(
             '书',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-            ),
+            style: theme.textTheme.headlineSmall?.copyWith(color: Colors.white),
           ),
         ),
         const SizedBox(width: 16),

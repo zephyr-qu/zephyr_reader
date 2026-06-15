@@ -5,13 +5,13 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 阅读器底部工具栏（五按钮功能面布局）。
 ///
-///  目录 | 笔记 | 排版 | 显示 | 朗读
+///  目录 | 笔记 | 排版 | 显示 | 阅读辅助
 class ReaderBottomToolbar extends StatelessWidget {
   final VoidCallback? onShowCatalog;
   final VoidCallback? onShowNotes;
   final VoidCallback? onToggleTypesetting;
   final VoidCallback? onToggleDisplay;
-  final VoidCallback? onToggleTts;
+  final VoidCallback? onToggleAssist;
 
   const ReaderBottomToolbar({
     super.key,
@@ -19,7 +19,7 @@ class ReaderBottomToolbar extends StatelessWidget {
     this.onShowNotes,
     this.onToggleTypesetting,
     this.onToggleDisplay,
-    this.onToggleTts,
+    this.onToggleAssist,
   });
 
   @override
@@ -68,9 +68,9 @@ class ReaderBottomToolbar extends StatelessWidget {
             ),
             Expanded(
               child: _buildButton(
-                icon: PhosphorIconsLight.speakerHigh,
-                label: l10n.readAloud,
-                onTap: onToggleTts,
+                icon: PhosphorIconsLight.waveform,
+                label: l10n.readingAssist,
+                onTap: onToggleAssist,
                 color: readerTheme.textColor,
               ),
             ),

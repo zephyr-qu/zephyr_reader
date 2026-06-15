@@ -23,7 +23,6 @@ class BookshelfViewModel {
   /// 自增世代计数器
   int _reloadGeneration = 0;
 
-
   /// 所有书籍
   final books = asyncSignal<List<BookshelfBook>>(AsyncState.loading());
   CategoryViewModel get categoryVM => _categoryVM;
@@ -33,7 +32,6 @@ class BookshelfViewModel {
 
   /// 搜索关键词
   final searchKeyword = signal<String>('');
-
 
   late final showReadingProgress = persistedBool(
     _prefs,
@@ -54,12 +52,10 @@ class BookshelfViewModel {
   );
   Signal<bool> get isListView => _isListView.signal;
 
-
   BookshelfViewModel(this._prefs, this._categoryVM)
     : _instanceId = ++_instanceCounter;
   @override
   String toString() => 'BookshelfVM#$_instanceId';
-
 
   /// 加载书籍列表 + 排序（最常用的刷新）
   Future<void> reloadBooks() async {
@@ -155,18 +151,16 @@ class BookshelfViewModel {
       await loadBooks();
       return true;
     } catch (e, stack) {
-      Logging.error(
-        'deleteBook error',
-        exception: e,
-        stackTrace: stack,
-      );
+      Logging.error('deleteBook error', exception: e, stackTrace: stack);
       return false;
     }
   }
 
-
   /// 更新书籍分类
-  Future<bool> updateBookCategories(String bookId, List<String> categoryIds) async {
+  Future<bool> updateBookCategories(
+    String bookId,
+    List<String> categoryIds,
+  ) async {
     try {
       await category_api.setCategoriesForBook(
         bookId: bookId,

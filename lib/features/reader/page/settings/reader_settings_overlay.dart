@@ -4,6 +4,8 @@ import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:zephyr_reader/core/reader/custom_font_service.dart';
+import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
 
 /// 阅读器设置浮层面板类型。
 enum ReaderPanelType {
@@ -16,8 +18,8 @@ enum ReaderPanelType {
   /// 更多：阅读模式、点按布局、书写方向、自动滚动
   more,
 
-  /// 朗读：TTS 播放控制
-  tts,
+  /// 阅读辅助：朗读者 + 自动翻页
+  assist,
 }
 
 /// 阅读器设置浮层面板。
@@ -32,11 +34,11 @@ class ReaderSettingsOverlay extends StatelessWidget {
   final ValueChanged<ReadingMode> onReadingModeChanged;
   final ValueChanged<double> onFontSizeChanged;
   final ValueChanged<double> onLineHeightChanged;
-  final ValueChanged<double> onLetterSpacingChanged;
-  final ValueChanged<double> onParagraphSpacingChanged;
   final ValueChanged<double> onPageMarginChanged;
   final VoidCallback onTtsToggle;
   final VoidCallback onClose;
+  final FontRepository fontRepo;
+  final TtsSettingsViewModel ttsVm;
 
   const ReaderSettingsOverlay({
     super.key,
@@ -48,11 +50,11 @@ class ReaderSettingsOverlay extends StatelessWidget {
     required this.onReadingModeChanged,
     required this.onFontSizeChanged,
     required this.onLineHeightChanged,
-    required this.onLetterSpacingChanged,
-    required this.onParagraphSpacingChanged,
     required this.onPageMarginChanged,
     required this.onTtsToggle,
     required this.onClose,
+    required this.ttsVm,
+    required this.fontRepo,
   });
 
   @override
@@ -80,6 +82,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
                 children: [
                   ...switch (panelType) {
                     ReaderPanelType.typesetting => _buildTypesettingSection(
+                      context,
                       readerTheme,
                       l10n,
                     ),
@@ -91,7 +94,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
                       readerTheme,
                       l10n,
                     ),
-                    ReaderPanelType.tts => _buildTtsSection(readerTheme, l10n),
+                    ReaderPanelType.assist => _buildAssistSection(readerTheme, l10n),
                   },
                 ],
               ),
@@ -128,6 +131,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
   // ── 排版 ──
 
   List<Widget> _buildTypesettingSection(
+    BuildContext context,
     ReaderThemeExtension readerTheme,
     AppLocalizations l10n,
   ) {
@@ -158,26 +162,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
         readerTheme: readerTheme,
       ),
       _sliderTile(
-        label: l10n.letterSpacing,
-        value: config.letterSpacing.value,
-        min: 0,
-        max: 8,
-        divisions: 16,
-        display: config.letterSpacing.value.toStringAsFixed(1),
-        onChanged: onLetterSpacingChanged,
-        readerTheme: readerTheme,
-      ),
-      _sliderTile(
-        label: l10n.paragraphSpacing,
-        value: config.paragraphSpacing.value,
-        min: 4,
-        max: 32,
-        divisions: 14,
-        display: config.paragraphSpacing.value.toStringAsFixed(0),
-        onChanged: onParagraphSpacingChanged,
-        readerTheme: readerTheme,
-      ),
-      _sliderTile(
         label: l10n.pageMargin,
         value: config.padding.value,
         min: 8,
@@ -189,7 +173,213 @@ class ReaderSettingsOverlay extends StatelessWidget {
       ),
       const SizedBox(height: 4),
       _textAlignSelector(readerTheme, l10n),
+      const SizedBox(height: 2),
+      _fontSelectionTile(readerTheme, l10n, () => _showFontSheet(context, readerTheme, l10n)),
+      _readingModeSelectionTile(readerTheme, l10n, () => _showReadingModeSheet(context, readerTheme, l10n)),
     ];
+  }
+
+  String _readingModeLabel(AppLocalizations l10n) {
+    return switch (readingMode) {
+      ReadingMode.scroll => l10n.scrollMode,
+      ReadingMode.pageTurn => l10n.pageTurnMode,
+      ReadingMode.pagination => l10n.paginationMode,
+      ReadingMode.bilingual => l10n.bilingualMode,
+    };
+  }
+
+  Widget _fontSelectionTile(
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+    VoidCallback onTap,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Row(
+          children: [
+            Icon(
+              PhosphorIconsRegular.textT,
+              size: 15,
+              color: readerTheme.mutedColor,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                l10n.fontSelection,
+                style: TextStyle(color: readerTheme.textColor, fontSize: 13),
+              ),
+            ),
+            Text(
+              fontRepo.currentFont.value?.displayName ?? '',
+              style: TextStyle(color: readerTheme.mutedColor, fontSize: 11),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              PhosphorIconsRegular.caretRight,
+              size: 14,
+              color: readerTheme.mutedColor,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFontSheet(
+    BuildContext context,
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+  ) {
+    final fonts = fontRepo.availableFonts.value;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                l10n.fontSelection,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: readerTheme.textColor,
+                ),
+              ),
+            ),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: fonts.map((font) {
+                  final isSelected = fontRepo.currentFont.value?.id == font.id;
+                  return ListTile(
+                    title: Text(
+                      font.displayName,
+                      style: TextStyle(color: readerTheme.textColor),
+                    ),
+                    trailing: isSelected
+                        ? Icon(Icons.check, color: readerTheme.accentColor)
+                        : null,
+                    onTap: () {
+                      fontRepo.setCurrentFont(font.id);
+                      Navigator.pop(context);
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _readingModeSelectionTile(
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+    VoidCallback onTap,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Row(
+          children: [
+            Icon(
+              PhosphorIconsRegular.bookOpenText,
+              size: 15,
+              color: readerTheme.mutedColor,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                l10n.readingModeSection,
+                style: TextStyle(color: readerTheme.textColor, fontSize: 13),
+              ),
+            ),
+            Text(
+              _readingModeLabel(l10n),
+              style: TextStyle(color: readerTheme.mutedColor, fontSize: 11),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              PhosphorIconsRegular.caretRight,
+              size: 14,
+              color: readerTheme.mutedColor,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showReadingModeSheet(
+    BuildContext context,
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+  ) {
+    final accentColor = readerTheme.accentColor;
+    final modes = [
+      (ReadingMode.scroll, l10n.scrollMode, PhosphorIconsRegular.arrowsDownUp),
+      (ReadingMode.pageTurn, l10n.pageTurnMode, PhosphorIconsRegular.book),
+      (
+        ReadingMode.pagination,
+        l10n.paginationMode,
+        PhosphorIconsFill.bookOpenText,
+      ),
+      (
+        ReadingMode.bilingual,
+        l10n.bilingualMode,
+        PhosphorIconsRegular.translate,
+      ),
+    ];
+
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                l10n.readingModeSection,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: readerTheme.textColor,
+                ),
+              ),
+            ),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: modes.map((m) {
+                  final isSelected = readingMode == m.$1;
+                  return ListTile(
+                    leading: Icon(m.$3, color: readerTheme.textColor),
+                    title: Text(
+                      m.$2,
+                      style: TextStyle(color: readerTheme.textColor),
+                    ),
+                    trailing: isSelected
+                        ? Icon(Icons.check, color: accentColor)
+                        : null,
+                    onTap: () {
+                      onReadingModeChanged(m.$1);
+                      Navigator.pop(context);
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ── 显示 ──
@@ -210,7 +400,8 @@ class ReaderSettingsOverlay extends StatelessWidget {
         min: 0.3,
         max: 1.0,
         divisions: 14,
-        display: '${((1 - config.brightnessOverlay.value) * 100).toStringAsFixed(0)}%',
+        display:
+            '${((1 - config.brightnessOverlay.value) * 100).toStringAsFixed(0)}%',
         onChanged: (v) => config.brightnessOverlay.value = 1 - v,
         readerTheme: readerTheme,
       ),
@@ -231,13 +422,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
   ) {
     return [
       _sectionHeader(
-        icon: PhosphorIconsRegular.bookOpenText,
-        title: l10n.readingModeSection,
-        mutedColor: readerTheme.mutedColor,
-      ),
-      _readingModeSelector(readerTheme, l10n),
-      const SizedBox(height: 12),
-      _sectionHeader(
         icon: PhosphorIconsRegular.handTap,
         title: l10n.tapLayout,
         mutedColor: readerTheme.mutedColor,
@@ -250,39 +434,114 @@ class ReaderSettingsOverlay extends StatelessWidget {
         mutedColor: readerTheme.mutedColor,
       ),
       _writingDirectionSelector(readerTheme, l10n),
-      const SizedBox(height: 12),
-      _sectionHeader(
-        icon: PhosphorIconsRegular.scroll,
-        title: l10n.autoScroll,
-        mutedColor: readerTheme.mutedColor,
-      ),
-      _autoScrollTile(readerTheme, l10n),
-      if (config.autoScroll.value)
-        _sliderTile(
-          label: l10n.autoScrollSpeed,
-          value: config.autoScrollSpeed.value.toDouble(),
-          min: 10,
-          max: 120,
-          divisions: 22,
-          display: '${config.autoScrollSpeed.value}s',
-          onChanged: (v) => config.autoScrollSpeed.value = v.round(),
-          readerTheme: readerTheme,
-        ),
     ];
   }
 
-  List<Widget> _buildTtsSection(
+  List<Widget> _buildAssistSection(
     ReaderThemeExtension readerTheme,
     AppLocalizations l10n,
   ) {
     return [
       _sectionHeader(
-        icon: PhosphorIconsRegular.speakerHigh,
-        title: l10n.readAloud,
+        icon: PhosphorIconsRegular.waveform,
+        title: l10n.readingAssist,
         mutedColor: readerTheme.mutedColor,
       ),
       _ttsTile(readerTheme, l10n),
+      _ttsSpeedSlider(readerTheme, l10n),
+      _ttsAutoPageTile(readerTheme, l10n),
+      _ttsOriginalOnlyTile(readerTheme, l10n),
+      _autoScrollTile(readerTheme, l10n),
+      _sliderTile(
+        label: l10n.autoScrollSpeed,
+        value: config.autoScrollSpeed.value.toDouble(),
+        min: 10,
+        max: 120,
+        divisions: 22,
+        display: '${config.autoScrollSpeed.value}s',
+        onChanged: (v) => config.autoScrollSpeed.value = v.round(),
+        readerTheme: readerTheme,
+        enabled: config.autoScroll.value,
+      ),
     ];
+  }
+
+  // ── TTS 快捷控制 ──
+
+  Widget _ttsSpeedSlider(
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+  ) {
+    return _sliderTile(
+      label: l10n.ttsSpeed,
+      value: ttsVm.speed.value,
+      min: 0.5,
+      max: 2.0,
+      divisions: 15,
+      display: '${ttsVm.speed.value.toStringAsFixed(1)}x',
+      onChanged: (v) => ttsVm.speed.value = v,
+      readerTheme: readerTheme,
+    );
+  }
+
+  Widget _ttsAutoPageTile(
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          Icon(
+            PhosphorIconsRegular.arrowSquareRight,
+            size: 15,
+            color: readerTheme.mutedColor,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              l10n.ttsAutoPage,
+              style: TextStyle(color: readerTheme.textColor, fontSize: 13),
+            ),
+          ),
+          Switch(
+            value: ttsVm.autoPage.value,
+            onChanged: (v) => ttsVm.autoPage.value = v,
+            activeThumbColor: readerTheme.accentColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ttsOriginalOnlyTile(
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          Icon(
+            PhosphorIconsRegular.translate,
+            size: 15,
+            color: readerTheme.mutedColor,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              l10n.ttsOriginalOnly,
+              style: TextStyle(color: readerTheme.textColor, fontSize: 13),
+            ),
+          ),
+          Switch(
+            value: ttsVm.originalOnly.value,
+            onChanged: (v) => ttsVm.originalOnly.value = v,
+            activeThumbColor: readerTheme.accentColor,
+          ),
+        ],
+      ),
+    );
   }
 
   // ── 通用构建方法 ──
@@ -321,6 +580,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
     required String display,
     required ValueChanged<double> onChanged,
     required ReaderThemeExtension readerTheme,
+    bool enabled = true,
   }) {
     final accentColor = readerTheme.accentColor;
     final textColor = readerTheme.textColor;
@@ -332,7 +592,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
             width: 72,
             child: Text(
               label,
-              style: TextStyle(color: textColor, fontSize: 13),
+              style: TextStyle(color: enabled ? textColor : textColor.withValues(alpha: 0.25), fontSize: 13),
             ),
           ),
           Expanded(
@@ -351,7 +611,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
                 min: min,
                 max: max,
                 divisions: divisions,
-                onChanged: onChanged,
+                onChanged: enabled ? onChanged : null,
               ),
             ),
           ),
@@ -360,7 +620,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
             child: Text(
               display,
               style: TextStyle(
-                color: textColor,
+                color: enabled ? textColor : textColor.withValues(alpha: 0.25),
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
               ),
@@ -372,77 +632,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
     );
   }
 
-  Widget _readingModeSelector(
-    ReaderThemeExtension readerTheme,
-    AppLocalizations l10n,
-  ) {
-    final accentColor = readerTheme.accentColor;
-    final modes = [
-      (ReadingMode.scroll, l10n.scrollMode, PhosphorIconsRegular.arrowsDownUp),
-      (ReadingMode.pageTurn, l10n.pageTurnMode, PhosphorIconsRegular.book),
-      (
-        ReadingMode.pagination,
-        l10n.paginationMode,
-        PhosphorIconsFill.bookOpenText,
-      ),
-      (
-        ReadingMode.bilingual,
-        l10n.bilingualMode,
-        PhosphorIconsRegular.translate,
-      ),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      child: Wrap(
-        spacing: 4,
-        runSpacing: 4,
-        children: modes.map((m) {
-          final isSelected = readingMode == m.$1;
-          return GestureDetector(
-            onTap: () => onReadingModeChanged(m.$1),
-            child: AnimatedContainer(
-              duration: AnimTokens.medium,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? accentColor.withValues(alpha: 0.1)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: isSelected
-                      ? accentColor
-                      : readerTheme.mutedColor.withValues(alpha: 0.2),
-                  width: isSelected ? 1.5 : 0.5,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    m.$3,
-                    size: 14,
-                    color: isSelected ? accentColor : readerTheme.mutedColor,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    m.$2,
-                    style: TextStyle(
-                      color: isSelected ? accentColor : readerTheme.textColor,
-                      fontSize: 12,
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.w400,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
 
   Widget _themeSelector(
     ReaderThemeExtension readerTheme,
