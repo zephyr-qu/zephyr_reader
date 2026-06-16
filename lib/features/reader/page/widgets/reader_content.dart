@@ -272,7 +272,8 @@ class ReaderContent extends HookWidget {
         // 虚拟跨章页：使用预加载 staging 内容
         if (idx >= totalPages) {
           final staging = dataSource.nextChapterStaging;
-          if (staging != null) {
+          // 校验 staging 属于下一章（防御性，正常流程由 _stagingGen 防护）
+          if (staging != null && staging.chapterIndex == chapterId + 1) {
             dataSource.warmPageCache(totalPages, staging.firstPageContent);
             final startOffset = staging.descriptors.isNotEmpty
                 ? staging.descriptors[0].startOffset

@@ -1,6 +1,6 @@
 # CLAUDE.md — 12 Rules
 
-Drop this file in your project root. Claude Code / Codex / Cursor / Hermes all read it. Keep it short — past ~200 lines compliance drops sharply.
+Drop this file in your project root. Claude Code / Codex / Cursor / Hermes all read it. Keep it short — past \~200 lines compliance drops sharply.
 
 ## Rules
 
@@ -19,13 +19,43 @@ Drop this file in your project root. Claude Code / Codex / Cursor / Hermes all r
 
 ## Project specifics
 
-- Stack: Flutter (Dart) + Rust (FRB) + flutter_rust_bridge
-- 绝对禁区: 严禁读取、修改或建议改动 `frb_generated.rs`、`frb_generated.h`、`lib/src/rust/` 等任何自动生成文件。如需调整 FFI 接口，仅允许修改 Rust 侧源文件并重新执行 `flutter_rust_bridge_codegen generate`
-- Rust API 规范: 所有导出函数必须返回 `Result<T, AppError>`，禁止 panic 跨越 FFI 边界
-- 类型映射: 优先使用 FRB 原生支持的零拷贝类型（如 `Uint8List`, `String`），避免自定义 Struct 的冗余序列化
-- 测试策略: Rust 侧单元测试覆盖纯逻辑；Dart 侧仅做集成测试与 UI 绑定验证，不重复测试 Rust 已覆盖的逻辑
-- 异步模型: Rust 侧统一使用 `tokio::spawn` + `channel`，Dart 侧通过 FRB Stream/Sink 消费，禁止在 FFI 层阻塞主线程
-- Lint: Rust 侧 `cargo clippy -- -D warnings`；Dart 侧 `dart analyze --fatal-infos`，CI 前必须双端通过
+FRB 自动生成文件禁区：
+
+- 绝不手动修改 frb\_generated.rs、frb\_generated.h 或 lib/src/rust/ 下的生成代码。
+- 接口调整仅通过修改 Rust 源文件 (rust/src/api/...) 并重新运行 flutter\_rust\_bridge\_codegen generate 实现。
+
+Rust API 健壮性：
+
+- 所有 FFI 导出函数签名必须为 pub fn xxx(...) -> Result\<T, AppError>。
+- &#x20;严禁 panic! 跨越边界，所有错误必须转换为 AppError 变体。
+
+性能与类型映射：
+
+- 优先使用零拷贝类型（Vec<u8> ↔ Uint8List, String ↔ String）。
+- 避免不必要的自定义 Struct 序列化开销。
+
+异步与并发模型：
+
+- Rust 侧：tokio::spawn + channel (mpsc/broadcast)。
+- Dart 侧：通过 FRB 生成的 Stream/Sink 消费数据。
+- 严禁在 FFI 调用中执行阻塞操作。
+
+测试与质量门禁：
+
+-  Rust: cargo clippy -- -D warnings + 单元测试覆盖纯逻辑。
+- &#x20;Dart: dart analyze --fatal-infos + 集成/UI 测试验证绑定。
+- 测试纪律: 发现生产代码 Bug 时，仅记录在文档/TODO 中，严禁为了通过测试而临时修改生产逻辑。
+
+GIT铁律：
+
+- Git 操作限制：在任何情况下，严禁执行 git reset、git revert、git checkout . 或任何可能丢弃用户本地未提交更改的 Git 命令。
+- 代码恢复策略：如果建议的代码修改导致问题，提供修复补丁（Patch）或增量修改建议，由用户手动决定是否应用或回退。
+
+编码与提交规范：
+
+- 在大型任务（如重构、新功能实现）执行完毕后，主动提醒或协助准备本地提交（Commit），确保进度存档。
+-
+  在使用脚本（Python/Bash等）批量修改文本文件时，必须显式指定 UTF-8 编码，严禁依赖系统默认编码，防止中文注释或字符串乱码。
 
 ## Launching Dart and Flutter Applications
 
@@ -44,3 +74,4 @@ Before returning a task as done:
 - [ ] Did any change touch code outside the stated scope? If yes, revert or justify.
 - [ ] Did any test pass without actually verifying behavior? Re-check assertions.
 - [ ] Any partial failure, skipped record, truncated output? Surface it in the summary.
+
