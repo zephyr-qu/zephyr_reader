@@ -174,6 +174,30 @@ class RustPaginationSession implements PaginationSession {
   }
 
   @override
+  Future<({int totalPages, bool isPartial})> paginateQuickFirstScreen({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+  }) async {
+    try {
+      final result = await _createSession(
+        bookId: bookId,
+        chapterIndex: chapterIndex,
+        config: _buildConfig(params),
+        maxChars: PaginationEngine.firstScreenMaxChars,
+      );
+      _preloadPageRange(5);
+      return (
+        totalPages: result.descriptors.length,
+        isPartial: result.isPartial,
+      );
+    } catch (e) {
+      Logging.error('paginateQuickFirstScreen error: $e');
+      return (totalPages: 0, isPartial: false);
+    }
+  }
+
+  @override
   String? pageContent(int pageIndex) {
     if (_pageCache.containsKey(pageIndex)) {
       return _pageCache[pageIndex];

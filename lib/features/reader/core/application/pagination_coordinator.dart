@@ -1,4 +1,4 @@
-﻿import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
@@ -67,6 +67,17 @@ class PaginationCoordinator {
     int chapterIndex,
   ) {
     return _repo.paginateChapterPartial(
+      bookId: _pageState.bookId.value,
+      chapterIndex: chapterIndex,
+      params: buildPaginationParams(),
+    );
+  }
+
+  /// Rust 首屏快速分页（2000 字符上限），复用同一 session。
+  Future<({int totalPages, bool isPartial})> paginateQuickFirstScreen(
+    int chapterIndex,
+  ) {
+    return _repo.paginateChapterQuickFirstScreen(
       bookId: _pageState.bookId.value,
       chapterIndex: chapterIndex,
       params: buildPaginationParams(),

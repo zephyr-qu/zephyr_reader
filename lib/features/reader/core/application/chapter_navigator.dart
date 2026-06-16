@@ -1,4 +1,4 @@
-﻿import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_loader.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
@@ -37,10 +37,6 @@ class ChapterNavigator {
       if (descriptors != null && _pageIndex.value < descriptors.length) {
         _pageState.currentCharOffset.value =
             descriptors[_pageIndex.value].endOffset;
-      } else if (_repo.currentPages != null &&
-          _pageIndex.value < _repo.currentPages!.length) {
-        _pageState.currentCharOffset.value =
-            _repo.currentPages![_pageIndex.value].endOffset;
       }
     }
   }
@@ -87,11 +83,6 @@ class ChapterNavigator {
     final descriptors = _repo.descriptors;
     if (descriptors != null && pageIndex < descriptors.length) {
       _pageState.currentCharOffset.value = descriptors[pageIndex].startOffset;
-    } else {
-      final pages = _repo.currentPages;
-      if (pages != null && pageIndex < pages.length) {
-        _pageState.currentCharOffset.value = pages[pageIndex].startOffset;
-      }
     }
 
     _repo.ensurePageWindow(pageIndex);

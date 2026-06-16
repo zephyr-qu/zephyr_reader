@@ -25,6 +25,12 @@ abstract class PaginationSession {
     required PaginationParams params,
   });
 
+  Future<({int totalPages, bool isPartial})> paginateQuickFirstScreen({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+  });
+
   String? pageContent(int pageIndex);
 
   void ensureWindow(int centerPage);

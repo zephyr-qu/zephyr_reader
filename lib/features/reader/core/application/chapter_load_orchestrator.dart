@@ -109,29 +109,23 @@ class ChapterLoadOrchestrator {
             .catchError((_) {}),
       );
 
-      await _runFirstSpine(
+      final quickResult = await _runFirstSpine(
         gen,
         request,
         preloadAdjacentFirstPages: preloadAdjacentFirstPages,
       );
-      if (_isStale(gen)) {
-        _setPhase(gen, ChapterLoadPhase.cancelled);
-        return;
-      }
-
-      final partialResult = await _runPartialPaginate(gen, request);
-      if (_isStale(gen)) {
+      if (_isStale(gen) || quickResult == null) {
         _setPhase(gen, ChapterLoadPhase.cancelled);
         return;
       }
 
       Logging.info(
-        '[Timing] gen=$gen phase=partialPaginate partialPaginate: '
+        '[Timing] gen=$gen phase=quickPaginate quickPaginate: '
         '${sw.elapsedMilliseconds}ms cumulative',
       );
 
       Future<int>? fullPaginateFuture;
-      if (partialResult.isPartial) {
+      if (quickResult.isPartial) {
         _setPhase(gen, ChapterLoadPhase.fullPaginate);
         fullPaginateFuture = _pagination.paginateFull(request.chapterIndex);
       }
@@ -155,7 +149,7 @@ class ChapterLoadOrchestrator {
       });
 
       int total;
-      if (partialResult.isPartial) {
+      if (quickResult.isPartial) {
         final tBeforePaginate = sw.elapsedMilliseconds;
         total = await fullPaginateFuture!;
         if (_isStale(gen)) {
@@ -168,10 +162,10 @@ class ChapterLoadOrchestrator {
           '(cumulative: ${sw.elapsedMilliseconds}ms)',
         );
       } else {
-        total = partialResult.totalPages;
+        total = quickResult.totalPages;
         Logging.info(
           '[Timing] gen=$gen phase=fullPaginate skipped '
-          '(partial covered full content, ${partialResult.totalPages} pages)',
+          '(partial covered full content, ${quickResult.totalPages} pages)',
         );
       }
 
@@ -218,7 +212,7 @@ class ChapterLoadOrchestrator {
     }
   }
 
-  Future<void> _runFirstSpine(
+  Future<({int totalPages, bool isPartial})?> _runFirstSpine(
     int gen,
     ChapterLoadRequest request, {
     Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages,
@@ -229,60 +223,41 @@ class ChapterLoadOrchestrator {
       _pageState.bookId.value,
       request.chapterIndex,
     );
-    if (_isStale(gen)) return;
+    if (_isStale(gen)) return null;
 
-    final firstPages = _pagination.paginateApproximate(firstText);
+    final quickResult = await _pagination.paginateQuickFirstScreen(
+      request.chapterIndex,
+    );
+    if (_isStale(gen)) return null;
 
-    _contentRepo.currentPages = firstPages;
-    if (firstPages.isNotEmpty) {
-      _contentRepo.warmPageCache(
-        firstPages[0].pageIndex,
-        firstPages[0].content,
+    final descriptors = _contentRepo.descriptors;
+    if (descriptors != null && descriptors.isNotEmpty) {
+      final charOffset = request.initialCharOffset.clamp(0, firstText.length);
+      final resolvedPage = PaginationEngine.resolvePageIndexForOffset(
+        descriptors,
+        charOffset,
       );
+
+      _applyIfCurrent(gen, () {
+        _pageState.chapterContent.value = AsyncState.data(firstText);
+        _totalPages.value = quickResult.totalPages;
+        _pageState.chapterIndex.value = request.chapterIndex;
+        _pageState.currentCharOffset.value = charOffset;
+        _pageIndex.value = resolvedPage;
+        _pageState.pendingJumpCharOffset.value = charOffset;
+        _error.value = null;
+        _isLoading.value = false;
+      });
     }
 
-    unawaited(preloadAdjacentFirstPages?.call(request.chapterIndex) ?? Future.value());
-
-    final charOffset = request.initialCharOffset.clamp(0, firstText.length);
-    final resolvedPage = PaginationEngine.resolvePageIndexFromPageInfo(
-      firstPages,
-      charOffset,
+    unawaited(
+      preloadAdjacentFirstPages?.call(request.chapterIndex) ?? Future.value(),
     );
 
-    _applyIfCurrent(gen, () {
-      _pageState.chapterContent.value = AsyncState.data(firstText);
-      _totalPages.value = firstPages.length;
-      _pageState.chapterIndex.value = request.chapterIndex;
-      _pageState.currentCharOffset.value = charOffset;
-      _pageIndex.value = resolvedPage;
-      _pageState.pendingJumpCharOffset.value = charOffset;
-      _error.value = null;
-      _isLoading.value = false;
-    });
-
     Logging.info('[Timing] gen=$gen phase=firstSpine firstSpine done');
+    return quickResult;
   }
 
-  Future<({int totalPages, bool isPartial})> _runPartialPaginate(
-    int gen,
-    ChapterLoadRequest request,
-  ) async {
-    _setPhase(gen, ChapterLoadPhase.partialPaginate);
-
-    final partialResult = await _pagination.paginatePartial(request.chapterIndex);
-    if (_isStale(gen)) return partialResult;
-
-    _applyIfCurrent(gen, () {
-      _pagination.applyPartialResult(
-        partialTotal: partialResult.totalPages,
-        charOffset: _pageState.currentCharOffset.value,
-        totalPages: _totalPages,
-        pageIndex: _pageIndex,
-      );
-    });
-
-    return partialResult;
-  }
 
   Future<void> _runFinalize(
     int gen,

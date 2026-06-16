@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
@@ -217,7 +217,6 @@ class ReaderContent extends HookWidget {
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (readingMode == ReadingMode.pagination) {
-          // 新版：使用描述符
           final descriptors = dataSource.descriptors;
           if (descriptors != null && descriptors.isNotEmpty) {
             final targetIndex = _indexForCharOffset(
@@ -231,22 +230,6 @@ class ReaderContent extends HookWidget {
             }
             onPageChanged?.call(targetIndex);
             onPositionChanged?.call(descriptors[targetIndex].startOffset);
-          } else {
-            // 旧版：使用预计算的全量 PageInfo
-            final pages = dataSource.approximatePages;
-            if (pages != null && pages.isNotEmpty) {
-              final targetIndex = _indexForCharOffset(
-                pages,
-                jumpToCharOffset!,
-                (p) => p.startOffset,
-                (p) => p.endOffset,
-              );
-              if (pageController.hasClients) {
-                pageController.jumpToPage(targetIndex);
-              }
-              onPageChanged?.call(targetIndex);
-              onPositionChanged?.call(pages[targetIndex].startOffset);
-            }
           }
         } else if (scrollController.hasClients) {
           final maxExtent = scrollController.position.maxScrollExtent;
