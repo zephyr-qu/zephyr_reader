@@ -140,6 +140,7 @@ class ChapterLoadOrchestrator {
             gen,
             request,
             calibFuture: calibFuture,
+            preloadAdjacentFirstPages: preloadAdjacentFirstPages,
           );
         case ChapterPaginationIntent.expandOnly:
           quickResult = await _runExpandOnly(
@@ -298,11 +299,11 @@ class ChapterLoadOrchestrator {
   }
 
   /// configReload：等 calib 完成后用新 config in-place repaginate。
-  /// 不 dispose handle，不重走 firstSpine。
   Future<({int totalPages, bool isPartial})?> _runConfigReload(
     int gen,
     ChapterLoadRequest request, {
     required Future<CalibrationData?> calibFuture,
+    Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages,
   }) async {
     _setPhase(gen, ChapterLoadPhase.firstSpine);
     final calibResult = await calibFuture;
@@ -339,6 +340,9 @@ class ChapterLoadOrchestrator {
       _contentRepo.ensurePageWindow(resolvedPage);
     }
     Logging.info('[Timing] gen=$gen phase=firstSpine configReload done');
+    unawaited(
+      preloadAdjacentFirstPages?.call(request.chapterIndex) ?? Future.value(),
+    );
     return quickResult;
   }
 
