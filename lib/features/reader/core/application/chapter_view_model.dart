@@ -105,6 +105,7 @@ class ChapterViewModel {
     int chapterIndex, {
     int initialCharOffset = 0,
     ChapterPaginationIntent intent = ChapterPaginationIntent.normalLoad,
+    ReadingMode readingMode = ReadingMode.pagination,
     Future<void> Function()? onChapterLoaded,
     bool preserveContent = false,
   }) =>
@@ -112,6 +113,7 @@ class ChapterViewModel {
         chapterIndex,
         initialCharOffset: initialCharOffset,
         intent: intent,
+        readingMode: readingMode,
         onChapterLoaded: onChapterLoaded,
         preserveContent: preserveContent,
       );

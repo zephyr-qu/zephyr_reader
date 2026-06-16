@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:dio/dio.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
@@ -42,9 +41,8 @@ class TranslationViewModel {
   void setTranslationContent(String content) {
     _cancelToken?.cancel();
     translationContent.value = content;
-    if (_pageState.readingMode.value == ReadingMode.bilingual) {
-      _runBilingualAlignment();
-    }
+    // 始终尝试双语对齐 — 非 bilingual 模式下 _runBilingualAlignment 自身是 no-op
+    _runBilingualAlignment();
   }
 
   /// 切换到双语模式时的处理逻辑。

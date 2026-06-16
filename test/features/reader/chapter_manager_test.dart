@@ -401,7 +401,6 @@ void main() {
         expect(manager.isLoading.value, false);
         expect(manager.error.value, null);
         expect(manager.autoScrollTick.value, 0);
-        expect(manager.pageState.readingMode.value, ReadingMode.pagination);
         expect(manager.pageWidth, 400);
         expect(manager.pageHeight, 600);
         expect(manager.devicePixelRatio, 1.0);

@@ -11,7 +11,8 @@
 | 阶段 | 状态 | 证据 |
 |------|------|------|
 | Phase 2 (core/reader → features/reader) | ✅ 已完成 | 4 文件已迁移；53+ import 路径已更新；DI 注册路径已通过 build_runner 重新生成 |
-| Phase 3 (ReaderPageState 拆分) | ⏳ 待办 | **15 文件** 依赖 ReaderPageState（远超原 ~6 估算）；跨 5 个分层 |
+| Phase 3.1 (readingMode → ReaderViewModel) | ✅ 已完成 | `readingMode` signal 已从 `ReaderPageState` 移到 `ReaderViewModel`；`ChapterLoadRequest` 增加 `readingMode` 字段以传递到 orchestrator；`TranslationViewModel.setTranslationContent` 移除 readingMode 依赖；4 widget 消费者切换到 `vm.readingMode` |
+| Phase 3.2 (chapter signals → ChapterViewModel) | ⏳ 待办 | **15 文件** 依赖 `bookId/chapterIndex/currentCharOffset/chapterContent/pendingJumpCharOffset`；跨 5 个分层 |
 | Phase 4 (reader_page.dart 拆分) | ✅ 已完成 | `reader_page.dart` 27 行（薄壳），7 个独立 widget 文件 |
 | Phase 5 (DI 自动注入) | ⏳ 待办 | `ReaderViewModel` 构造函数内 `new` 子 VM |
 | Phase 6 (遗留清理) | ⏳ 待办 | 4 项全部仍未动 |
@@ -73,6 +74,7 @@ class ReaderPageState {
   final chapterContent = asyncSignal<String>…;  // → ChapterViewModel
   final readingMode = signal<ReadingMode>(…);   // → ReaderViewModel, TranslationViewModel
   final pendingJumpCharOffset = signal<int?>(null); // → ChapterViewModel
+## Phase 3.1: `readingMode` → `ReaderViewModel` ✅
 }
 ```
 

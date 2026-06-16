@@ -32,45 +32,45 @@ impl LayoutCacheRepository {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::storage::models::LayoutCacheKey;
-//     use crate::storage::repos::test_utils::*;
-//     use crate::storage::repos::book_repo::BookRepository;
-//     use tempfile::TempDir;
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
 
-//     #[tokio::test]
-//     async fn test_invalidate_book_cache() {
-//         let pool = setup_test_db().await;
-//         BookRepository::save(&pool, &test_book()).await.unwrap();
+    use super::*;
+    use crate::storage::models::LayoutCache;
+    use crate::storage::models::LayoutCacheKey;
+    use crate::domain::PageContent;
+    use tempfile::TempDir;
 
-//         let temp_dir = TempDir::new().unwrap();
-//         let kv = std::sync::Arc::new(crate::storage::kv_store::KvStore::new(temp_dir.path()).unwrap());
+    #[test]
+    fn invalidate_book_cache_removes_entries() {
+        let dir = TempDir::new().unwrap();
+        let kv = Arc::new(KvStore::new(dir.path()).unwrap());
 
-//         let key = LayoutCacheKey {
-//             book_id: "book1".to_string(),
-//             chapter_index: 0,
-//             chunk_index: None,
-//             config_hash: 0x1234,
-//         };
-//         let cache = crate::storage::models::LayoutCache::new(
-//             0x1234,
-//             vec![crate::domain::PageContent {
-//                 chapter_index: 0,
-//                 page_index: 0,
-//                 content: "test page".into(),
-//                 is_last_page: true,
-//                 start_offset: 0,
-//                 end_offset: 9,
-//             }],
-//         );
-//         kv.save_layout_cache(&key, &cache).unwrap();
+        let key = LayoutCacheKey {
+            book_id: "book1".into(),
+            chapter_index: 0,
+            chunk_index: None,
+            config_hash: 0x1234,
+        };
+        let cache = LayoutCache::new(
+            0x1234,
+            vec![PageContent {
+                chapter_index: 0,
+                page_index: 0,
+                content: "test page".into(),
+                is_last_page: true,
+                start_offset: 0,
+                end_offset: 9,
+            }],
+        );
+        kv.save_layout_cache(&key, &cache).unwrap();
+        assert!(kv.get_layout_cache(&key).unwrap().is_some());
 
-//         let repo = LayoutCacheRepository::new(kv.clone());
-//         repo.invalidate_book_cache("book1").unwrap();
+        let repo = LayoutCacheRepository::new(kv.clone());
+        repo.invalidate_book_cache("book1").unwrap();
 
-//         let loaded = kv.get_layout_cache(&key).unwrap();
-//         assert!(loaded.is_none());
-//     }
-// }
+        assert!(kv.get_layout_cache(&key).unwrap().is_none());
+    }
+}
+

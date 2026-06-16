@@ -233,16 +233,6 @@ mod tests {
         assert!(metadata.author.is_none());
     }
 
-    // #[test]
-    // #[ignore = "requires Pdfium library, skipped in CI"]
-    // fn test_get_pdf_page_count_empty_file() {
-    //     let temp_dir = TempDir::new().unwrap();
-    //     let file_path = temp_dir.path().join("empty.pdf");
-    //     fs::write(&file_path, b"").unwrap();
-
-    //     let count = get_pdf_page_count(file_path.to_str().unwrap().to_string());
-    //     assert_eq!(count, 0);
-    // }
 
     #[test]
     #[ignore = "requires real PDF file, skipped in CI"]
