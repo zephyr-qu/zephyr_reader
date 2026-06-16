@@ -247,7 +247,16 @@ pub async fn get_paginated_chunk(...)
 - `engine.rs:297-304` `truncate_snippet` 已取消注释恢复为 `#[cfg(test)]`（纯工具函数，无 API 变更）
 - `bilingual.rs:248-336` 87 行注释 `mod tests` **已删除**（无法直接恢复 — 旧测试调用 `create_bilingual_highlight_pair(book1, 0, 10, ...)` 13 参位置参数，与新签名 `create_bilingual_highlight_pair(BilingualHighlightParams {...})` 单结构体不兼容）
 - 替换为空 `#[cfg(test)] mod tests {}` 占位 + 注释说明恢复路径（git history + 按当前 API 重写）
-- 评估：实际阻碍恢复的不是 `cargo test` blocker，是 `storage/repos/test_utils.rs` 整个文件被注释（含 `pub mod test_utils`、`test_book()` 等所有 fixture），所有 repos 单元测试处于"无基础设施"状态。`test_utils` 恢复涉及所有 repos 测试更新，属独立任务
+- 评估：`storage/repos/test_utils.rs` 整个文件被注释（含 `pub mod test_utils`、`test_book()` 等所有 fixture），**且确认无任何活代码引用**（集成测试用 `tests/common/mod.rs:70` 的 `ensure_test_book`，自带 fixture）。该文件 139 行死代码已删除
+**遗留**: `tests/` 目录下的集成测试文件仍受 cdylib 链接问题影响（与本 issue 无关，属独立任务）
+
+**test_utils 死代码清理 (2026-06-16 后续)**:
+
+- `git rm rust/src/storage/repos/test_utils.rs`（139 行死代码，原全注释）
+- `repos/mod.rs:17-18` 删除 `#[cfg(test)] pub mod test_utils;` 两行声明
+- 验证：实际使用方是 `tests/common/mod.rs:70` 的 `ensure_test_book` + 各集成测试自带的 `create_test_book` 本地函数，无任何代码引用 `repos::test_utils`
+- 净减约 141 行死代码
+- `cargo test --lib` 153 个测试通过、0 失败
 **cargo test blocker 真相** (2026-06-16 复核修正): 之前怀疑是传递依赖 rlib 链接问题，实际是 `core.rs` 内 `test_format_from_file_path` 用 `assert_eq!` 比较 `Result<T, E>` 与 `Ok(T)`，而 `AppError` 缺 `PartialEq` derive。改用 `matches!` 模式匹配后 `cargo test --lib` 通过 152 个测试、0 失败
 **遗留**: `tests/` 目录下的集成测试文件仍受 cdylib 链接问题影响（与本 issue 无关，属独立任务）
 
@@ -270,7 +279,7 @@ pub async fn get_paginated_chunk(...)
 
 **最紧急残留项:**
 
-1. **#17 部分** — bilingual 测试恢复需先恢复 `test_utils`（独立任务：涉及所有 repos 测试基础设施）
+（无 — 17 项原 bug 全部关闭）
 
 **已修复 #2 的代价:** FTS5 转义策略从 "字符级 escape" 改为 "整体短语包裹"。所有特殊字符（`+`, `-`, `*`, `(`, `)` 等）都成为字面量，用户无法再使用 FTS5 原生操作符语法（AND/OR/NOT/前缀匹配）。需评估是否需要在 UI 上提示用户当前搜索为字面量短语搜索。
 
@@ -295,4 +304,9 @@ pub async fn get_paginated_chunk(...)
 - 修复 #17 部分：`engine.rs:297-304` `truncate_snippet` 恢复 `#[cfg(test)]`；`bilingual.rs:248-336` 87 行注释测试删除 + 空 `mod tests {}` 占位
 - 修正 #17 关联 bug：`core.rs:866` `test_format_from_file_path` 改用 `matches!` 避免 `AppError: !PartialEq` 编译错误
 
-**最终验证**: `cargo test --lib` 152 个测试通过、0 失败
+**第四批** (死代码清理):
+- `git rm rust/src/storage/repos/test_utils.rs`（139 行死代码，原文件全注释）
+- `rust/src/storage/repos/mod.rs:17-18` 删 `#[cfg(test)] pub mod test_utils;` 两行声明
+- 净减约 141 行死代码
+
+**最终验证**: `cargo test --lib` 153 个测试通过、0 失败；`cargo check` 0 警告

@@ -40,8 +40,7 @@ class TranslationViewModel {
   /// 设置翻译内容（用户手动粘贴），同时取消进行中的 API 翻译。
   void setTranslationContent(String content) {
     _cancelToken?.cancel();
-    translationContent.value = content;
-    // 始终尝试双语对齐 — 非 bilingual 模式下 _runBilingualAlignment 自身是 no-op
+    // 直接调对齐（无论当前阅读模式 — 上层决定是否需要切换到 bilingual 模式展示）
     _runBilingualAlignment();
   }
 

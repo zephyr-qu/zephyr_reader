@@ -10,7 +10,7 @@ use thiserror::Error;
 /// - 安全错误、输入验证错误等
 /// 使用 [thiserror::Error] 派生，自动实现 [std::error::Error]。
 /// 标注 `#[frb(non_opaque)]` 允许 Dart 侧接收此错误类型。
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq, Eq)]
 #[frb(non_opaque)]
 pub enum AppError {
 
