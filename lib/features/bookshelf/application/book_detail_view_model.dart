@@ -20,6 +20,16 @@ class BookDetailViewModel {
     );
   }
 
+  /// 将编辑后的 Book 写回当前 state（用于编辑元数据后的乐观更新）。
+  ///
+  /// 集中在此处以便未来加入持久化、通知等副作用。调用方不应直接写入 [state]。
+  void applyEditedBook(book_api.Book updated) {
+    final current = state.value;
+    if (current is AsyncData<book_api.BookDetail>) {
+      state.value = AsyncState.data(current.value.copyWith(book: updated));
+    }
+  }
+
   /// 释放所有 signal 资源。
   void dispose() {
     state.dispose();

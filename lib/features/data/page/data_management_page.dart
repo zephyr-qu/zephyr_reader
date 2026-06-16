@@ -317,17 +317,20 @@ class DataManagementPage extends HookWidget {
 
   Future<void> _performBackup(BuildContext context, BackupViewModel vm) async {
     final l10n = AppLocalizations.of(context)!;
-    await vm.performBackup();
+    final result = await vm.performBackup();
     if (!context.mounted) return;
 
-    if (vm.status.value == BackupStatus.exportingDone) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.backupSuccess)),
-      );
-    } else if (vm.status.value == BackupStatus.error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.backupFailed(vm.errorMessage.value ?? ''))),
-      );
+    switch (result) {
+      case BackupResult.success:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.backupSuccess)),
+        );
+      case BackupResult.error:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.backupFailed(vm.errorMessage.value ?? ''))),
+        );
+      case BackupResult.cancelled:
+        break;
     }
     await vm.dismissResult();
   }
@@ -351,22 +354,22 @@ class DataManagementPage extends HookWidget {
     if (confirmed != true) return;
     if (!context.mounted) return;
 
-    await vm.performRestore(filePath, manifest);
+    final result = await vm.performRestore(filePath, manifest);
     if (!context.mounted) return;
 
-    if (vm.status.value == BackupStatus.restoringDone) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${l10n.restoreSuccess}。${l10n.restoreRestartNotice}'),
-          duration: const Duration(seconds: 8),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } else if (vm.status.value == BackupStatus.error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.restoreFailed(vm.errorMessage.value ?? ''))),
-      );
+    switch (result) {
+      case RestoreResult.success:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${l10n.restoreSuccess}。${l10n.restoreRestartNotice}'),
+            duration: const Duration(seconds: 8),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      case RestoreResult.error:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.restoreFailed(vm.errorMessage.value ?? ''))),
+        );
     }
     await vm.dismissResult();
   }

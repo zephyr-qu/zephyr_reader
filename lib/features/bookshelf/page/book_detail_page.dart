@@ -170,11 +170,8 @@ class BookDetailPage extends HookWidget {
     Book book,
   ) async {
     final updated = await showEditMetadataDialog(context, book);
-    if (updated == null || !context.mounted) return;
-    final current = vm.state.value;
-    if (current is AsyncData<book_api.BookDetail>) {
-      vm.state.value = AsyncState.data(current.value.copyWith(book: updated));
-    }
+    if (!context.mounted) return;
+    vm.applyEditedBook(updated);
   }
 
   Future<void> _onExportNotes(

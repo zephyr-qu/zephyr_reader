@@ -5,19 +5,18 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
 import 'package:zephyr_reader/src/rust/api/data/session.dart' as session_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
 
 import 'chapter_view_model.dart';
 
 /// 阅读会话管理器
 ///
 /// 管理阅读计时、进度保存和自动保存。
-/// 依赖 ReaderPageState 读取共享信号和 ChapterViewModel 读取分页信号。
+/// 直接从 [ChapterViewModel] 读取 bookId/chapterIndex/currentCharOffset 等
+/// chapter-level signals（PR2 移除 _pageState 中间层）。
 class ReadingSessionManager {
-  final ReaderPageState _pageState;
   final ChapterViewModel _chapterManager;
 
-  ReadingSessionManager(this._pageState, this._chapterManager);
+  ReadingSessionManager(this._chapterManager);
 
   // ==================== 信号 ====================
 
@@ -58,7 +57,7 @@ class ReadingSessionManager {
     if (_isReading.value) return;
     _isReading.value = true;
 
-    _sessionStartOffset = _pageState.currentCharOffset.value;
+    _sessionStartOffset = _chapterManager.currentCharOffset.value;
     _sessionStartTime = DateTime.now();
 
     _readingTimer?.cancel();
@@ -79,10 +78,10 @@ class ReadingSessionManager {
     _isReading.value = false;
     try {
       await session_api.createSession(
-        bookId: _pageState.bookId.value,
-        chapterIndex: _pageState.chapterIndex.value,
+        bookId: _chapterManager.bookId.value,
+        chapterIndex: _chapterManager.chapterIndex.value,
         startCharOffset: _sessionStartOffset,
-        endCharOffset: _pageState.currentCharOffset.value,
+        endCharOffset: _chapterManager.currentCharOffset.value,
         startedAt: _sessionStartTime.millisecondsSinceEpoch ~/ 1000,
       );
     } catch (e) {
@@ -115,10 +114,10 @@ class ReadingSessionManager {
           : 0.0;
       await progress_api.upsertProgress(
         progress: ReadingProgress(
-          bookId: _pageState.bookId.value,
-          chapterIndex: _pageState.chapterIndex.value,
+          bookId: _chapterManager.bookId.value,
+          chapterIndex: _chapterManager.chapterIndex.value,
           chunkIndex: 0,
-          charOffset: _pageState.currentCharOffset.value,
+          charOffset: _chapterManager.currentCharOffset.value,
           pageIndex: cm.pageIndex.value,
           totalPages: totalPages,
           progress: pct,
@@ -148,10 +147,10 @@ class ReadingSessionManager {
     // 记录本次阅读会话
     try {
       await session_api.createSession(
-        bookId: _pageState.bookId.value,
-        chapterIndex: _pageState.chapterIndex.value,
+        bookId: _chapterManager.bookId.value,
+        chapterIndex: _chapterManager.chapterIndex.value,
         startCharOffset: _sessionStartOffset,
-        endCharOffset: _pageState.currentCharOffset.value,
+        endCharOffset: _chapterManager.currentCharOffset.value,
         startedAt: _sessionStartTime.millisecondsSinceEpoch ~/ 1000,
       );
     } catch (e) {
