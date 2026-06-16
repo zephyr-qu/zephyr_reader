@@ -18,7 +18,7 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/dictionary.dart' as dict_api;
 import 'package:zephyr_reader/src/rust/dictionary/models.dart';
 
-import '../application/reader_view_model.dart';
+import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
 import 'reader_page_actions.dart';
 
 const _kPrefMdxPath = SettingsKeys.dictMdxPath;

@@ -5,10 +5,10 @@ import 'package:dio/dio.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
-import 'package:zephyr_reader/features/reader/domain/translation_service.dart';
-import 'package:zephyr_reader/features/reader/data/translation/translation_cache.dart';
-import 'package:zephyr_reader/features/reader/application/translation_config.dart';
-import 'reader_page_state.dart';
+import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
+import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart';
+import 'package:zephyr_reader/features/reader/translation/data/translation_cache.dart';
+import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 
 /// 翻译视图模型。
@@ -16,8 +16,8 @@ import 'package:zephyr_reader/di/service_locator.dart';
 /// 管理翻译 API 调用、双语对齐、双语高亮和翻译缓存。
 class TranslationViewModel {
   final ReaderPageState _pageState;
-  final TranslationConfig _config = getIt<TranslationConfig>();
-  final TranslationService _service = getIt<TranslationService>();
+  final TranslationConfig _config;
+  final TranslationService _service;
   final TranslationCache _cache = TranslationCache();
   CancelToken? _cancelToken;
 
@@ -26,7 +26,14 @@ class TranslationViewModel {
   );
   final translationContent = signal<String>('');
 
-  TranslationViewModel(this._pageState);
+  TranslationViewModel(
+    ReaderPageState pageState, {
+    TranslationConfig? config,
+    TranslationService? service,
+  })
+      : _pageState = pageState,
+        _config = config ?? getIt<TranslationConfig>(),
+        _service = service ?? getIt<TranslationService>();
 
   /// 翻译 API 是否已配置。
   bool get isConfigured => _config.isConfigured;

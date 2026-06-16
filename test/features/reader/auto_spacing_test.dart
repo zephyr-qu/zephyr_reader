@@ -29,6 +29,7 @@ TypesetConfig _makeConfig({
     punctuationSqueeze: true,
     language: LanguageType.mixed,
     enableHyphenation: false,
+    autoSpaceRatio: 0.5,
     fontFamily: 'Noto Sans SC',
     calibration: null,
   );
@@ -91,7 +92,7 @@ of cultural fusion, 传统与现代交相辉映的美。
     mixedFilePath = await createTestFile('mixed_book.txt', mixedContent);
     final mixedParse = await parseTestBook(mixedFilePath);
     mixedFilePath = mixedParse.$2;
-    mixedBookId = mixedParse.$1.bookInfo.bookId;
+    mixedBookId = mixedParse.$1;
 
     // 纯中文 fixture（同样添加 BOM）
     const pureBase = '''$_utf8Bom第一章 纯中文篇章
@@ -114,7 +115,7 @@ of cultural fusion, 传统与现代交相辉映的美。
     pureFilePath = await createTestFile('pure_book.txt', pureContent);
     final pureParse = await parseTestBook(pureFilePath);
     pureFilePath = pureParse.$2;
-    pureBookId = pureParse.$1.bookInfo.bookId;
+    pureBookId = pureParse.$1;
   });
 
   tearDownAll(() async {

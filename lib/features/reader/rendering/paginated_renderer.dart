@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
-import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
-import 'package:zephyr_reader/features/reader/page/renderer/highlight_painter.dart';
+import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
+import 'highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'reader_render_config.dart';
 import 'find_render_box.dart';
@@ -13,7 +13,7 @@ import 'find_render_box.dart';
 class PaginatedModeRenderer extends StatelessWidget {
   final ReaderRenderConfig config;
   final PageController pageController;
-  final ReaderRepository repo;
+  final ReaderRenderDataSource dataSource;
   final String bookId;
   final int chapterId;
   final int pageIndex;
@@ -31,7 +31,7 @@ class PaginatedModeRenderer extends StatelessWidget {
     super.key,
     required this.config,
     required this.pageController,
-    required this.repo,
+    required this.dataSource,
     required this.bookId,
     required this.chapterId,
     required this.pageIndex,
@@ -158,13 +158,13 @@ class PaginatedModeRenderer extends StatelessWidget {
 
   Widget _buildPageTurn(BuildContext context) {
     // 新版：使用描述符 + 按需加载的内容
-    final descriptors = repo.descriptors;
+    final descriptors = dataSource.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
       final index = pageIndex.clamp(0, descriptors.length - 1);
       return _buildPageContent(context, index, descriptors[index].startOffset);
     }
     // 旧版：使用预计算的全量 PageInfo
-    final cachedPages = repo.currentPages;
+    final cachedPages = dataSource.approximatePages;
     if (cachedPages != null && cachedPages.isNotEmpty) {
       final index = pageIndex.clamp(0, cachedPages.length - 1);
       final page = cachedPages[index];
@@ -196,7 +196,7 @@ class PaginatedModeRenderer extends StatelessWidget {
     int pageIndex,
     int startOffset,
   ) {
-    final pageContent = repo.getPageContent(pageIndex);
+    final pageContent = dataSource.pageContent(pageIndex);
     if (pageContent == null) {
       return const SizedBox(width: double.infinity, height: 600);
     }
@@ -315,7 +315,7 @@ class PaginatedModeRenderer extends StatelessWidget {
       return _buildPageTurn(context);
     }
     // 新版：使用描述符 + 按需加载的内容
-    final descriptors = repo.descriptors;
+    final descriptors = dataSource.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
       return PageView.builder(
         controller: pageController,
@@ -330,7 +330,7 @@ class PaginatedModeRenderer extends StatelessWidget {
       );
     }
     // 旧版：使用预计算的全量 PageInfo
-    final cachedPages = repo.currentPages;
+    final cachedPages = dataSource.approximatePages;
     if (cachedPages != null && cachedPages.isNotEmpty) {
       return PageView.builder(
         controller: pageController,
@@ -466,7 +466,7 @@ Widget buildSinglePageContent({
   required BuildContext context,
   required int pageIndex,
   required int startOffset,
-  required ReaderRepository repo,
+  required ReaderRenderDataSource dataSource,
   required ReaderRenderConfig config,
   required List<Note> highlights,
   required WritingDirection writingDirection,
@@ -474,7 +474,7 @@ Widget buildSinglePageContent({
   required void Function(String text, int start, int end)? onSelectionChanged,
   required void Function(Offset?)? onSelectionGlobalPosition,
 }) {
-  final pageContent = repo.getPageContent(pageIndex);
+  final pageContent = dataSource.pageContent(pageIndex);
   if (pageContent == null) {
     return Container(color: config.backgroundColor);
   }

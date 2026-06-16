@@ -3,7 +3,7 @@ import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/data/bookmark.dart' as bookmark_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'reader_page_state.dart';
+import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
 
 /// 书签视图模型。
 ///

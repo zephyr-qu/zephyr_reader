@@ -86,12 +86,15 @@ class BookmarkList extends StatelessWidget {
                     color: readerTheme.accentColor,
                   ),
                 ),
-                onPressed: () {
+                onPressed: () async {
                   Navigator.of(context).pop();
-                  context.pushNamed(
+                  final bookmark = await context.pushNamed<Bookmark>(
                     AppRoute.bookmarkManage.name,
                     pathParameters: {'bookId': bookId},
                   );
+                  if (bookmark != null) {
+                    onBookmarkSelected(bookmark);
+                  }
                 },
               ),
               if (onAddBookmark != null)

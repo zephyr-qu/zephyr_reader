@@ -1,4 +1,4 @@
-// test/features/reader/page/widgets/reader_content_test.dart
+﻿// test/features/reader/page/widgets/reader_content_test.dart
 //
 // 覆盖 P1.2 — PageCurlWidget + ReaderContent 集成
 //
@@ -9,14 +9,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
-import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
-import 'package:zephyr_reader/features/reader/page/ui/page_curl_widget.dart';
-import 'package:zephyr_reader/features/reader/page/renderer/reader_render_config.dart';
+import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
+import 'package:zephyr_reader/features/reader/rendering/page_curl_widget.dart';
+import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/reader_content.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
-class _MockRepo extends Mock implements ReaderRepository {}
+class _MockDataSource extends Mock implements ReaderRenderDataSource {}
 
 Widget _wrapApp(Widget child) {
   return MaterialApp(
@@ -33,9 +33,9 @@ void main() {
     testWidgets('pageTurn 模式渲染 PageCurlWidget 而非 AnimatedSwitcher', (
       tester,
     ) async {
-      final repo = _MockRepo();
-      when(() => repo.preloadGeneration).thenReturn(ValueNotifier<int>(0));
-      when(() => repo.descriptors).thenReturn([
+      final dataSource = _MockDataSource();
+      when(() => dataSource.preloadGeneration).thenReturn(ValueNotifier<int>(0));
+      when(() => dataSource.descriptors).thenReturn([
         const PageDescriptor(
           pageIndex: 0,
           startOffset: 0,
@@ -43,12 +43,12 @@ void main() {
           isLastPage: false,
         ),
       ]);
-      when(() => repo.getPageContent(0)).thenReturn('Page content text.');
+      when(() => dataSource.pageContent(0)).thenReturn('Page content text.');
 
       await tester.pumpWidget(
         _wrapApp(
           ReaderContent(
-            repo: repo,
+            dataSource: dataSource,
             bookId: 'test_book',
             chapterId: 0,
             pageIndex: 0,
@@ -82,13 +82,13 @@ void main() {
     });
 
     testWidgets('首屏 pageTurn 且 loading 时不渲染 PageCurlWidget', (tester) async {
-      final repo = _MockRepo();
-      when(() => repo.preloadGeneration).thenReturn(ValueNotifier<int>(0));
+      final dataSource = _MockDataSource();
+      when(() => dataSource.preloadGeneration).thenReturn(ValueNotifier<int>(0));
 
       await tester.pumpWidget(
         _wrapApp(
           ReaderContent(
-            repo: repo,
+            dataSource: dataSource,
             bookId: 'test_book',
             chapterId: 0,
             pageIndex: 0,
@@ -124,13 +124,13 @@ void main() {
 
   group('ReaderContent — scroll/pagination/bilingual', () {
     testWidgets('scroll 模式不渲染 PageCurlWidget', (tester) async {
-      final repo = _MockRepo();
-      when(() => repo.preloadGeneration).thenReturn(ValueNotifier<int>(0));
+      final dataSource = _MockDataSource();
+      when(() => dataSource.preloadGeneration).thenReturn(ValueNotifier<int>(0));
 
       await tester.pumpWidget(
         _wrapApp(
           ReaderContent(
-            repo: repo,
+            dataSource: dataSource,
             bookId: 'test_book',
             chapterId: 0,
             pageIndex: 0,
@@ -165,13 +165,13 @@ void main() {
     testWidgets('pagination 模式不渲染 PageCurlWidget（走 AnimatedSwitcher）', (
       tester,
     ) async {
-      final repo = _MockRepo();
+      final dataSource = _MockDataSource();
 
-      when(() => repo.preloadGeneration).thenReturn(ValueNotifier<int>(0));
+      when(() => dataSource.preloadGeneration).thenReturn(ValueNotifier<int>(0));
       await tester.pumpWidget(
         _wrapApp(
           ReaderContent(
-            repo: repo,
+            dataSource: dataSource,
             bookId: 'test_book',
             chapterId: 0,
             pageIndex: 0,
@@ -205,13 +205,13 @@ void main() {
     });
 
     testWidgets('阅读模式切换时不抛异常', (tester) async {
-      final repo = _MockRepo();
+      final dataSource = _MockDataSource();
 
-      when(() => repo.preloadGeneration).thenReturn(ValueNotifier<int>(0));
+      when(() => dataSource.preloadGeneration).thenReturn(ValueNotifier<int>(0));
       await tester.pumpWidget(
         _wrapApp(
           ReaderContent(
-            repo: repo,
+            dataSource: dataSource,
             bookId: 'test_book',
             chapterId: 0,
             pageIndex: 0,
@@ -241,7 +241,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // 切到 pageTurn 模式
-      when(() => repo.descriptors).thenReturn([
+      when(() => dataSource.descriptors).thenReturn([
         const PageDescriptor(
           pageIndex: 0,
           startOffset: 0,
@@ -249,12 +249,12 @@ void main() {
           isLastPage: false,
         ),
       ]);
-      when(() => repo.getPageContent(0)).thenReturn('Content.');
+      when(() => dataSource.pageContent(0)).thenReturn('Content.');
 
       await tester.pumpWidget(
         _wrapApp(
           ReaderContent(
-            repo: repo,
+            dataSource: dataSource,
             bookId: 'test_book',
             chapterId: 0,
             pageIndex: 0,

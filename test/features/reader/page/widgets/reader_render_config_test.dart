@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zephyr_reader/features/reader/page/widgets/reader_render_config.dart';
+import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 
 ReaderRenderConfig _config({
   double fontSize = 16,

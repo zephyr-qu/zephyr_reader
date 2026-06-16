@@ -1,4 +1,4 @@
-// test/features/reader/page/widgets/paginated_renderer_test.dart
+﻿// test/features/reader/page/widgets/paginated_renderer_test.dart
 //
 // 覆盖：
 //   P1.1 — buildSinglePageContent 单元测试
@@ -11,14 +11,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
-import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
+import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
-import 'package:zephyr_reader/features/reader/page/widgets/paginated_renderer.dart';
-import 'package:zephyr_reader/features/reader/page/widgets/reader_render_config.dart';
+import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart';
+import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
-class _MockRepo extends Mock implements ReaderRepository {}
+class _MockDataSource extends Mock implements ReaderRenderDataSource {}
 
 ReaderRenderConfig _config({
   double fontSize = 16,
@@ -54,9 +54,9 @@ void main() {
   // ========================
 
   group('buildSinglePageContent', () {
-    testWidgets('repo 返回 null 时渲染 Container 占位', (tester) async {
-      final repo = _MockRepo();
-      when(() => repo.getPageContent(any())).thenReturn(null);
+    testWidgets('dataSource 返回 null 时渲染 Container 占位', (tester) async {
+      final dataSource = _MockDataSource();
+      when(() => dataSource.pageContent(any())).thenReturn(null);
 
       await tester.pumpWidget(
         _buildInApp(
@@ -65,7 +65,7 @@ void main() {
               context: context,
               pageIndex: 0,
               startOffset: 0,
-              repo: repo,
+              dataSource: dataSource,
               config: _config(),
               highlights: const [],
               writingDirection: WritingDirection.horizontal,
@@ -81,8 +81,8 @@ void main() {
     });
 
     testWidgets('正常页面内容渲染 SelectableText.rich', (tester) async {
-      final repo = _MockRepo();
-      when(() => repo.getPageContent(0)).thenReturn('Hello world.');
+      final dataSource = _MockDataSource();
+      when(() => dataSource.pageContent(0)).thenReturn('Hello world.');
 
       await tester.pumpWidget(
         _buildInApp(
@@ -91,7 +91,7 @@ void main() {
               context: context,
               pageIndex: 0,
               startOffset: 0,
-              repo: repo,
+              dataSource: dataSource,
               config: _config(),
               highlights: const [],
               writingDirection: WritingDirection.horizontal,
@@ -107,8 +107,8 @@ void main() {
     });
 
     testWidgets('竖排书写方向走 Directionality.rtl 分支', (tester) async {
-      final repo = _MockRepo();
-      when(() => repo.getPageContent(0)).thenReturn('竖排\n测试');
+      final dataSource = _MockDataSource();
+      when(() => dataSource.pageContent(0)).thenReturn('竖排\n测试');
 
       await tester.pumpWidget(
         _buildInApp(
@@ -117,7 +117,7 @@ void main() {
               context: context,
               pageIndex: 0,
               startOffset: 0,
-              repo: repo,
+              dataSource: dataSource,
               config: _config(),
               highlights: const [],
               writingDirection: WritingDirection.vertical,
@@ -136,8 +136,8 @@ void main() {
     });
 
     testWidgets('空内容不崩溃', (tester) async {
-      final repo = _MockRepo();
-      when(() => repo.getPageContent(0)).thenReturn('');
+      final dataSource = _MockDataSource();
+      when(() => dataSource.pageContent(0)).thenReturn('');
 
       await tester.pumpWidget(
         _buildInApp(
@@ -146,7 +146,7 @@ void main() {
               context: context,
               pageIndex: 0,
               startOffset: 0,
-              repo: repo,
+              dataSource: dataSource,
               config: _config(),
               highlights: const [],
               writingDirection: WritingDirection.horizontal,
@@ -168,8 +168,8 @@ void main() {
 
   group('PaginatedModeRenderer', () {
     testWidgets('pageTurn 模式+descriptors 走 _buildPageTurn 分支', (tester) async {
-      final repo = _MockRepo();
-      when(() => repo.descriptors).thenReturn([
+      final dataSource = _MockDataSource();
+      when(() => dataSource.descriptors).thenReturn([
         const PageDescriptor(
           pageIndex: 0,
           startOffset: 0,
@@ -177,14 +177,14 @@ void main() {
           isLastPage: false,
         ),
       ]);
-      when(() => repo.getPageContent(0)).thenReturn('Page content.');
+      when(() => dataSource.pageContent(0)).thenReturn('Page content.');
 
       await tester.pumpWidget(
         _buildInApp(
           PaginatedModeRenderer(
             config: _config(),
             pageController: PageController(),
-            repo: repo,
+            dataSource: dataSource,
             bookId: 'test_book',
             chapterId: 0,
             pageIndex: 0,
@@ -202,8 +202,8 @@ void main() {
     testWidgets('非 pageTurn 模式+descriptors 渲染 PageView.builder', (
       tester,
     ) async {
-      final repo = _MockRepo();
-      when(() => repo.descriptors).thenReturn([
+      final dataSource = _MockDataSource();
+      when(() => dataSource.descriptors).thenReturn([
         const PageDescriptor(
           pageIndex: 0,
           startOffset: 0,
@@ -211,14 +211,14 @@ void main() {
           isLastPage: false,
         ),
       ]);
-      when(() => repo.getPageContent(0)).thenReturn('Page content.');
+      when(() => dataSource.pageContent(0)).thenReturn('Page content.');
 
       await tester.pumpWidget(
         _buildInApp(
           PaginatedModeRenderer(
             config: _config(),
             pageController: PageController(),
-            repo: repo,
+            dataSource: dataSource,
             bookId: 'test_book',
             chapterId: 0,
             pageIndex: 0,
@@ -232,10 +232,10 @@ void main() {
       expect(find.byType(PageView), findsOneWidget);
     });
 
-    testWidgets('无 descriptors 有 currentPages 走旧版分支', (tester) async {
-      final repo = _MockRepo();
-      when(() => repo.descriptors).thenReturn(null);
-      when(() => repo.currentPages).thenReturn([
+    testWidgets('无 descriptors 有 approximatePages 走旧版分支', (tester) async {
+      final dataSource = _MockDataSource();
+      when(() => dataSource.descriptors).thenReturn(null);
+      when(() => dataSource.approximatePages).thenReturn([
         const PageInfo(
           pageIndex: 0,
           content: 'Old page content.',
@@ -249,7 +249,7 @@ void main() {
           PaginatedModeRenderer(
             config: _config(),
             pageController: PageController(),
-            repo: repo,
+            dataSource: dataSource,
             bookId: 'test_book',
             chapterId: 0,
             pageIndex: 0,
@@ -264,17 +264,17 @@ void main() {
       expect(find.text('Old page content.'), findsOneWidget);
     });
 
-    testWidgets('无 descriptors 无 currentPages 走 fallback 分页', (tester) async {
-      final repo = _MockRepo();
-      when(() => repo.descriptors).thenReturn(null);
-      when(() => repo.currentPages).thenReturn(null);
+    testWidgets('无 descriptors 无 approximatePages 走 fallback 分页', (tester) async {
+      final dataSource = _MockDataSource();
+      when(() => dataSource.descriptors).thenReturn(null);
+      when(() => dataSource.approximatePages).thenReturn(null);
 
       await tester.pumpWidget(
         _buildInApp(
           PaginatedModeRenderer(
             config: _config(),
             pageController: PageController(),
-            repo: repo,
+            dataSource: dataSource,
             bookId: 'test_book',
             chapterId: 0,
             pageIndex: 0,

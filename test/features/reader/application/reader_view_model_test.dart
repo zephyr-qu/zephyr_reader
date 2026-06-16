@@ -1,4 +1,4 @@
-// test/features/reader/application/reader_view_model_test.dart
+﻿// test/features/reader/application/reader_view_model_test.dart
 //
 // 覆盖 P2.3 — ReaderViewModel 翻页逻辑
 //
@@ -13,13 +13,20 @@ import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:signals_flutter/signals_flutter.dart' hide PersistedSignal;
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
-import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
+import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
-import 'package:zephyr_reader/features/reader/domain/translation_service.dart';
+import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart';
+import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart';
+import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
 // ===== Mocks =====
 
 class _MockRepo extends Mock implements ReaderRepository {}
+
+class _MockTranslationConfig extends Mock implements TranslationConfig {
+  @override
+  bool get isConfigured => false;
+}
 
 class _MockTranslationService extends Mock implements TranslationService {}
 
@@ -145,15 +152,60 @@ class _TestConfig implements ReaderConfig {
   void dispose() {}
 
   @override
-  // TODO: implement textAlign
-  PersistedSignal<TextAlign> get textAlign => throw UnimplementedError();
+  late final firstLineIndent = persistedBool(
+    prefs,
+    '',
+    false,
+    debounce: Duration.zero,
+  );
+  @override
+  late final enableHyphenation = persistedBool(
+    prefs,
+    '',
+    false,
+    debounce: Duration.zero,
+  );
+  @override
+  late final language = persistedEnum<LanguageType>(
+    prefs,
+    '',
+    LanguageType.mixed,
+    (name) => LanguageType.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => LanguageType.mixed,
+    ),
+    debounce: Duration.zero,
+  );
+  @override
+  late final autoSpaceRatio = persistedDouble(
+    prefs,
+    '',
+    0.5,
+    debounce: Duration.zero,
+  );
+  @override
+  late final textAlign = persistedEnum<TextAlign>(
+    prefs,
+    '',
+    TextAlign.start,
+    (name) => TextAlign.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => TextAlign.start,
+    ),
+    debounce: Duration.zero,
+  );
 }
 
 ReaderViewModel createVm({
   required ReaderRepository repo,
   required ReaderConfig config,
 }) {
-  return ReaderViewModel(repo: repo, config: config);
+  return ReaderViewModel(
+    repo: repo,
+    config: config,
+    translationConfig: _MockTranslationConfig(),
+    translationService: _MockTranslationService(),
+  );
 }
 
 void main() {
@@ -168,27 +220,27 @@ void main() {
   });
 
   group('ReaderViewModel pagination', () {
-    test('previousPage 在第 0 页时不变', () {
+    test('previousPage 在第 0 页时不变', () async {
       vm.chapterManager.totalPages.value = 3;
       vm.chapterManager.pageIndex.value = 0;
 
-      vm.previousPage();
+      await vm.chapterManager.previousPage();
       expect(vm.chapterManager.pageIndex.value, equals(0));
     });
 
-    test('nextPage 从第 0 页到第 1 页', () {
+    test('nextPage 从第 0 页到第 1 页', () async {
       vm.chapterManager.totalPages.value = 3;
       vm.chapterManager.pageIndex.value = 0;
 
-      vm.nextPage();
+      await vm.chapterManager.nextPage();
       expect(vm.chapterManager.pageIndex.value, equals(1));
     });
 
-    test('nextPage 边界：最后一页时不变', () {
+    test('nextPage 边界：最后一页时不变', () async {
       vm.chapterManager.totalPages.value = 3;
       vm.chapterManager.pageIndex.value = 2;
 
-      vm.nextPage();
+      await vm.chapterManager.nextPage();
       expect(vm.chapterManager.pageIndex.value, equals(2));
     });
 

@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/core/routing/not_found_page.dart';
@@ -18,9 +18,9 @@ import 'package:zephyr_reader/features/profile/page/profile/profile_page.dart';
 import 'package:zephyr_reader/features/profile/page/theme/theme_brightness_page.dart';
 import 'package:zephyr_reader/features/profile/page/tts/tts_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/typography/typography_settings_page.dart';
-import 'package:zephyr_reader/features/reader/page/bookmark_manage_page.dart';
+import 'package:zephyr_reader/features/reader/annotations/presentation/bookmark_manage_page.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page.dart';
-import 'package:zephyr_reader/features/reader/page/widgets/translation_settings_page.dart';
+import 'package:zephyr_reader/features/reader/translation/presentation/translation_settings_page.dart';
 import 'package:zephyr_reader/features/search/page/book_search_page.dart';
 import 'package:zephyr_reader/features/search/page/search_page.dart';
 import 'package:zephyr_reader/features/statistics/page/reading_sessions_page.dart';

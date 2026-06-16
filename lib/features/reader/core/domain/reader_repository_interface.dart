@@ -1,30 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import '../../../core/reader/reader_config.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
 
-/// 阅读进度数据。
-class ReadingProgressData {
-  final String bookId;
-  final int chapterIndex;
-  final int charOffset;
-  final int pageIndex;
-  final int totalPages;
-  final int readingTimeSeconds;
-  final DateTime lastReadAt;
-  const ReadingProgressData({
-    required this.bookId,
-    required this.chapterIndex,
-    required this.charOffset,
-    required this.pageIndex,
-    required this.totalPages,
-    required this.readingTimeSeconds,
-    required this.lastReadAt,
-  });
-}
+export 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart'
+    show ReadingProgressData;
 
 /// 阅读器数据仓库抽象接口。
 ///
@@ -113,10 +97,10 @@ abstract class ReaderRepositoryInterface {
   List<PageInfo>? currentPages;
 
   /// 当前章节的富文本内容（EPUB）。
-  TextSpan? currentRichContent;
+  TextSpan? get currentRichContent;
 
   /// 当前章节的富文本段落（EPUB）。
-  List<RichParagraph>? currentRichParagraphs;
+  List<RichParagraph>? get currentRichParagraphs;
 
   /// 页面描述符列表（轻量级）。
   List<PageDescriptor>? get descriptors;

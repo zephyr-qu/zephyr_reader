@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
-import 'package:zephyr_reader/features/reader/page/renderer/highlight_painter.dart';
+import 'highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import 'package:zephyr_reader/core/reader/reader_config.dart';
-import '../../data/repositories/rust_reader_repository.dart';
+import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'reader_render_config.dart';
 import 'find_render_box.dart';
 
@@ -18,7 +18,7 @@ import 'find_render_box.dart';
 class ScrollModeRenderer extends HookWidget {
   final ReaderRenderConfig config;
   final ScrollController scrollController;
-  final ReaderRepository repo;
+  final ReaderRenderDataSource dataSource;
   final String bookId;
   final int chapterId;
   final String content;
@@ -33,7 +33,7 @@ class ScrollModeRenderer extends HookWidget {
     super.key,
     required this.config,
     required this.scrollController,
-    required this.repo,
+    required this.dataSource,
     required this.bookId,
     required this.chapterId,
     required this.content,
@@ -59,7 +59,7 @@ class ScrollModeRenderer extends HookWidget {
       config.lineHeight,
       config.fontFamily,
     ]);
-    final richSpan = repo.currentRichContent;
+    final richSpan = dataSource.currentRichContent;
     final paragraphList = useMemoized(
       () => content
           .split('\n\n')
@@ -68,7 +68,7 @@ class ScrollModeRenderer extends HookWidget {
           .toList(),
       [content],
     );
-    final richParagraphs = repo.currentRichParagraphs;
+    final richParagraphs = dataSource.currentRichParagraphs;
     final richTextParagraphs = useMemoized(
       () => richSpan != null ? _extractParagraphSpans(richSpan) : null,
       [richSpan],

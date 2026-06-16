@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
-import 'package:zephyr_reader/features/reader/page/navigation/bookmark_list.dart';
-import 'package:zephyr_reader/features/reader/page/navigation/chapter_list.dart';
+import 'package:zephyr_reader/features/reader/navigation/bookmark_list.dart';
+import 'package:zephyr_reader/features/reader/navigation/chapter_list.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
