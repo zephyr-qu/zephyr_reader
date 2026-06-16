@@ -1,5 +1,7 @@
 # Reader Feature
 
+架构规划文档索引：[doc/README.md](../../../doc/README.md)（含引擎优化、跨章预加载等设计文档）。
+
 Modular reader feature organized by subdirectories.
 
 ## Structure

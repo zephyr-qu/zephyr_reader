@@ -24,8 +24,6 @@ class RustChapterContentRepository implements ChapterContentRepository {
   String? _cachedBookId;
   Book? _cachedBook;
 
-  int? _preloadedNextChapterIdx;
-  String? _preloadedNextPageContent;
   NextChapterStaging? _nextChapterStaging;
   /// staging 预加载 generation 计数器，用于丢弃过期结果。
   int _stagingGen = 0;
@@ -40,10 +38,6 @@ class RustChapterContentRepository implements ChapterContentRepository {
 
   @override
   List<RichParagraph>? get currentRichParagraphs => _currentRichParagraphs;
-
-  @override
-  bool get hasPreloadedNextChapter =>
-      _preloadedNextChapterIdx != null && _preloadedNextPageContent != null;
 
   Future<Book> _getBook(String bookId) async {
     if (_cachedBookId == bookId && _cachedBook != null) {
@@ -201,42 +195,6 @@ class RustChapterContentRepository implements ChapterContentRepository {
     } catch (e) {
       Logging.error('章节预加载失败', exception: e);
     }
-  }
-
-  @override
-  Future<void> preloadNextChapterFirstPage(
-    String bookId,
-    int chapterIndex, {
-    double fontSize = 16,
-    double lineHeight = 1.6,
-    double width = 400,
-    double height = 600,
-    double padding = 20,
-  }) async {
-    try {
-      _preloadedNextChapterIdx = chapterIndex;
-      _preloadedNextPageContent = await loadFirstSpine(bookId, chapterIndex);
-      preloadGeneration.value++;
-    } catch (e) {
-      Logging.debug('[Preload] next chapter first page failed: $e');
-    }
-  }
-
-  @override
-  String? getPreloadedNextChapterContent(
-    int chapterIndex, {
-    int pageIndex = 0,
-  }) {
-    if (_preloadedNextChapterIdx == chapterIndex && pageIndex == 0) {
-      return _preloadedNextPageContent;
-    }
-    return null;
-  }
-
-  @override
-  void clearPreloadedNextChapter() {
-    _preloadedNextChapterIdx = null;
-    _preloadedNextPageContent = null;
   }
 
   @override

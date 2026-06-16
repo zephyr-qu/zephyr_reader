@@ -544,6 +544,7 @@ pub async fn paginate_chapter(
     let validated_path = validate_file_path(&file_path)?;
     let config = config.validate_and_fix();
     let config_hash = config.config_hash();
+    let start = std::time::Instant::now();
 
     // 提取章节文本（只读取必要的 spine，惰性转换）
     let format = format_from_file_path(&validated_path)?;
@@ -574,15 +575,54 @@ pub async fn paginate_chapter(
         (extract_chapter_content(&validated_path, chapter_index).await?, false)
     };
 
+    // 全章分页 KV 缓存命中路径：跳过 CPU 排版直接复用
+    if max_chars.is_none() {
+        if let Some(pages) = try_get_cached(&validated_path, chapter_index, None, config_hash).await {
+            let streamer = PageStreamer::from_pages(pages);
+            let descriptors = streamer.get_descriptors();
+            STREAMER_CACHE.lock().put((validated_path, chapter_index, config_hash), streamer);
+            tracing::info!(
+                "[Timing] paginate_chapter cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
+                config_hash, chapter_index, start.elapsed()
+            );
+            return Ok(PaginateResult {
+                descriptors,
+                config_hash,
+                is_partial: false,
+            });
+        }
+    }
+
     let streamer = PageStreamer::new(content, config);
     let descriptors = streamer.get_descriptors();
+
+    // 提取全页内容用于 KV 缓存保存（在 streamer 移入 STREAMER_CACHE 之前完成）
+    let cached_pages = if !is_partial {
+        let total = descriptors.len();
+        Some(
+            (0..total)
+                .filter_map(|i| streamer.get_page(i, chapter_index))
+                .collect::<Vec<PageContent>>(),
+        )
+    } else {
+        None
+    };
 
     // 缓存 PageStreamer 供后续按需获取页面内容
     {
         let mut cache = STREAMER_CACHE.lock();
-        cache.put((validated_path, chapter_index, config_hash), streamer);
+        cache.put((validated_path.clone(), chapter_index, config_hash), streamer);
     }
 
+    // 全章分页完成后写入持久化 KV 缓存
+    if let Some(pages) = cached_pages {
+        try_save_cached(&validated_path, chapter_index, None, config_hash, pages).await;
+    }
+
+    tracing::info!(
+        "[Timing] paginate_chapter cache=MISS config_hash={:016x} chapter={} elapsed={:?}",
+        config_hash, chapter_index, start.elapsed()
+    );
     Ok(PaginateResult {
         descriptors,
         config_hash,
@@ -872,11 +912,39 @@ pub fn supports_chunked_pagination(file_path: String) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
+    use crate::storage::{STORAGE, db::StorageManager};
+    use tempfile::TempDir;
+    use std::sync::LazyLock;
 
+    /// Shared temp dir for all storage-dependent tests — leaks the TempDir.
+    static SHARED_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().to_path_buf();
+        let _ = Box::leak(Box::new(tmp));
+        path
+    });
+    /// Initialize STORAGE exactly once, using the shared temp dir.
+    async fn ensure_shared_storage() {
+        use tokio::sync::Mutex;
+        static INIT: Mutex<bool> = Mutex::const_new(false);
+        if STORAGE.get().is_some() {
+            return;
+        }
+        let mut done = INIT.lock().await;
+        if *done {
+            return;
+        }
+        if STORAGE.get().is_some() {
+            return;
+        }
+        let mgr = StorageManager::new(SHARED_DIR.as_path()).await.unwrap();
+        STORAGE.set(mgr).unwrap_or_else(|_| panic!("STORAGE init conflict"));
+        *done = true;
+    }
 
     #[test]
     fn test_format_from_file_path() {
-        // 验证：AppError: PartialEq 使 assert_eq! 可用，错误内容精确匹配
         assert_eq!(format_from_file_path("book.txt"), Ok(BookFormat::Txt));
         assert_eq!(format_from_file_path("book.epub"), Ok(BookFormat::Epub));
         assert_eq!(format_from_file_path("book.md"), Ok(BookFormat::Md));
@@ -900,85 +968,134 @@ mod tests {
         assert!(!supports_chunked_pagination("book.pdf".to_string()));
     }
 
-
-
-    /// 诊断测试：验证内容提取管线
-    /// 
-    /// 创建临时 TXT 文件，执行 parse_book → get_chapter_bounds → read_text_range，
-    /// 验证每一步的输出。
     #[tokio::test]
     async fn diagnose_content_extraction_pipeline() {
-        use crate::storage::{STORAGE, db::StorageManager};
-        use tempfile::TempDir;
-
-        let tmp = TempDir::new().unwrap();
-        let mgr = StorageManager::new(tmp.path()).await.unwrap();
-        STORAGE.set(mgr).unwrap_or_else(|_| panic!("STORAGE already set"));
-        // 创建测试文件
+        ensure_shared_storage().await;
         let content = "第一章 混合内容\n\nToday was the day. 他站在窗前。\n";
-        let file_path_buf = tmp.path().join("test_book.txt");
+        let file_path_buf = SHARED_DIR.join("test_book_diag.txt");
         std::fs::write(&file_path_buf, content).unwrap();
         let file_path = file_path_buf.to_string_lossy().to_string();
 
-        // 解析并持久化，返回 book_id
         let book_id = parse_book(file_path.clone()).await
             .expect("parse_book should succeed");
-
-        // 从 DB 读取持久化的书籍和章节
         let pool = storage_pool().unwrap();
-        let book = BookRepository::find_by_id(&pool, &book_id).await
+        let _book = BookRepository::find_by_id(&pool, &book_id).await
             .expect("find_by_id should succeed")
             .expect("book should exist");
-        let chapters = ChapterRepository::find_by_book(&pool, &book_id).await
+        let _chapters = ChapterRepository::find_by_book(&pool, &book_id).await
             .expect("find_by_book should succeed");
 
-        eprintln!("[DIAG] parsed: title={}, chapters={}, chars={}",
-            book.title,
-            chapters.len(),
-            book.total_characters,
-        );
-        for c in &chapters {
-            eprintln!("[DIAG] chapter: idx={}, start={}, end={}",
-                c.chapter_index, c.start_index, c.end_index);
-        }
-
-        // 获取 validated path（与 parse_book 内部使用的相同）
         let validated = validate_file_path(&file_path)
             .expect("validate should succeed");
-        eprintln!("[DIAG] original path: {}", file_path);
-        eprintln!("[DIAG] validated path: {}", validated);
-
-        // 直接调用 get_chapter_bounds（使用 validated path）
         let bounds = get_chapter_bounds(&validated, 0).await
             .expect("get_chapter_bounds should succeed");
-
-
-        // 创建 provider
-        let format = format_from_file_path(&validated).expect("test TXT file should have known extension");
-        eprintln!("[DIAG] format: {:?}", format);
+        let format = format_from_file_path(&validated)
+            .expect("test TXT file should have known extension");
         let provider = get_or_create_provider(&validated, 0, &format).await
             .expect("get_or_create_provider should succeed");
         let content_len = provider.content_length();
-        eprintln!("[DIAG] provider content_len: {}", content_len);
 
         let (start, end) = {
             let (cs, ce) = bounds;
             (cs.max(0) as u64, (ce.max(0) as u64).min(content_len))
         };
-        eprintln!("[DIAG] read_range: start={}, end={}", start, end);
-
         let text = provider.read_text_range(start, end)
             .expect("read_text_range should succeed");
-        eprintln!("[DIAG] text.len()={}, text={:?}", text.len(),
-            &text[..text.len().min(80)]);
 
-        // 现在调用 paginate_all_content
         let config = TypesetConfig::default();
         let pages = paginate_all_content(file_path.clone(), 0, config).await
             .expect("paginate_all_content should succeed");
-        eprintln!("[DIAG] pages.len()={}", pages.len());
 
         assert!(!text.is_empty(), "Content extraction should return non-empty text");
         assert!(!pages.is_empty(), "PaginateAllContent should produce at least 1 page");
+    }
+
+    #[tokio::test]
+    async fn test_paginate_chapter_cache_hit_roundtrip() {
+        ensure_shared_storage().await;
+        let content = "第一章 测试内容\n\nThis is a test chapter for cache roundtrip.\n我们来测试缓存是否正常工作。";
+        let file_path_buf = SHARED_DIR.join("test_cache_hit.txt");
+        std::fs::write(&file_path_buf, content).unwrap();
+        let file_path = file_path_buf.to_string_lossy().to_string();
+
+        parse_book(file_path.clone()).await
+            .expect("parse_book should succeed");
+
+        let config = TypesetConfig::default();
+
+        // First call: cache MISS, should compute and save to KV
+        let result1 = paginate_chapter(
+            file_path.clone(), 0, config.clone(), None,
+        ).await.expect("paginate_chapter should succeed (MISS)");
+        assert!(!result1.is_partial, "full chapter should not be partial");
+        assert!(!result1.descriptors.is_empty(), "should have at least 1 page");
+
+        // Second call: cache HIT, should return immediately from KV
+        let result2 = paginate_chapter(
+            file_path.clone(), 0, config.clone(), None,
+        ).await.expect("paginate_chapter should succeed (HIT)");
+
+        assert_eq!(
+            result1.descriptors, result2.descriptors,
+            "cache HIT should return same descriptors as MISS"
+        );
+        assert_eq!(result1.config_hash, result2.config_hash,
+            "same config should produce same hash");
+    }
+
+    #[tokio::test]
+    async fn test_paginate_chapter_config_change_misses_cache() {
+        ensure_shared_storage().await;
+        let content = "Different config test content 不同配置测试\nThis should produce different pagination.";
+        let file_path_buf = SHARED_DIR.join("test_config_miss.txt");
+        std::fs::write(&file_path_buf, content).unwrap();
+        let file_path = file_path_buf.to_string_lossy().to_string();
+
+        parse_book(file_path.clone()).await
+            .expect("parse_book should succeed");
+
+        let config1 = TypesetConfig::default();
+
+        // First call with default config (populates KV cache)
+        paginate_chapter(
+            file_path.clone(), 0, config1.clone(), None,
+        ).await.expect("first paginate should succeed");
+
+        // Second call with different font_size → different config_hash → MISS
+        let mut config2 = TypesetConfig::default();
+        config2.font_size = config2.font_size + 8;
+        let result2 = paginate_chapter(
+            file_path.clone(), 0, config2.clone(), None,
+        ).await.expect("second paginate (diff config) should succeed");
+
+        assert_ne!(result2.config_hash, config1.config_hash(),
+            "different config should produce different hash");
+    }
+
+    #[tokio::test]
+    async fn test_paginate_chapter_partial_skips_full_cache() {
+        ensure_shared_storage().await;
+        let content = "Partial cache test. This is a longer text that should have enough content for partial pagination. 部分缓存测试内容用来验证跳过全章缓存逻辑。";
+        let file_path_buf = SHARED_DIR.join("test_partial_skip.txt");
+        std::fs::write(&file_path_buf, content).unwrap();
+        let file_path = file_path_buf.to_string_lossy().to_string();
+
+        parse_book(file_path.clone()).await
+            .expect("parse_book should succeed");
+
+        let config = TypesetConfig::default();
+
+        // First do full paginate to populate KV cache
+        paginate_chapter(
+            file_path.clone(), 0, config.clone(), None,
+        ).await.expect("full paginate should succeed");
+
+        // Partial paginate should NOT read from full KV cache
+        let partial_result = paginate_chapter(
+            file_path.clone(), 0, config.clone(), Some(15),
+        ).await.expect("partial paginate should succeed");
+
+        assert!(partial_result.is_partial, "partial pagination should be marked partial");
+        assert!(!partial_result.descriptors.is_empty(), "partial paginate should still produce pages");
     }
 }

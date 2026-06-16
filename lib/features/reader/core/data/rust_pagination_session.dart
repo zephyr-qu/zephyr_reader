@@ -158,13 +158,17 @@ class RustPaginationSession implements PaginationSession {
 
       if (_handle != null) {
         final sw = Stopwatch()..start();
+        // config hash 未变 → 复用 session 已有 config，避免重复 validate
+        final newHash = core_api.computeConfigHash(config: newConfig);
+        final configArg =
+            (newHash.toInt() == _sessionConfigHash) ? null : newConfig;
         result = await core_api.paginateSessionFull(
           handle: _handle!,
-          config: newConfig,
+          config: configArg,
         );
         Logging.info(
           '[Timing] paginateSessionFull: ${sw.elapsedMilliseconds}ms '
-          '(pages=${result.descriptors.length})',
+          '(pages=${result.descriptors.length}, config=${configArg == null ? "reuse" : "new"})',
         );
       } else {
         result = await _createSession(

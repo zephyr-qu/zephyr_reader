@@ -13,8 +13,6 @@ abstract class ReaderRenderDataSource {
 
   ValueNotifier<int> get preloadGeneration;
 
-  String? getPreloadedNextChapterContent(int chapterIndex, {int pageIndex = 0});
-
   TextSpan? get currentRichContent;
 
   List<RichParagraph>? get currentRichParagraphs;

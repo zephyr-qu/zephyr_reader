@@ -18,22 +18,6 @@ abstract class ChapterContentRepository {
 
   Future<void> preload(String bookId, int chapterId);
 
-  Future<void> preloadNextChapterFirstPage(
-    String bookId,
-    int chapterIndex, {
-    double fontSize = 16,
-    double lineHeight = 1.6,
-    double width = 400,
-    double height = 600,
-    double padding = 20,
-  });
-
-  void clearPreloadedNextChapter();
-
-  bool get hasPreloadedNextChapter;
-
-  String? getPreloadedNextChapterContent(int chapterIndex, {int pageIndex = 0});
-
   /// 当前章节的富文本内容（EPUB/MD）。
   TextSpan? get currentRichContent;
 
