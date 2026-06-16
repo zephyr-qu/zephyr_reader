@@ -5,7 +5,7 @@ import 'package:zephyr_reader/features/profile/application/tts_settings_view_mod
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
 
 void toggleReaderTts(ReaderViewModel vm, TtsService ttsService) {
-  final c = vm.state.chapterContent.value.value;
+  final c = vm.chapterManager.chapterContent.value.value;
   if (c == null || c.isEmpty) return;
   if (ttsService.isPlaying.value && !ttsService.isPaused.value) {
     ttsService.pause();
@@ -18,7 +18,7 @@ void toggleReaderTts(ReaderViewModel vm, TtsService ttsService) {
 }
 
 void startReaderTts(ReaderViewModel vm, TtsService ttsService) {
-  final c = vm.state.chapterContent.value.value;
+  final c = vm.chapterManager.chapterContent.value.value;
   if (c == null || c.isEmpty) return;
   final ttsSettings = getIt<TtsSettingsViewModel>();
   final autoPage = ttsSettings.autoPage.value;

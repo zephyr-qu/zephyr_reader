@@ -42,7 +42,7 @@ class ReaderSelectionToolbarLayer extends HookWidget {
     final ReadingMode bCurrentreadingmode = useSignalValue(
       vm.readingMode,
     );
-    final Offset? selectionGlobalPos = useSignalValue<Offset?, Signal<Offset?>>(
+    final Offset? selectionGlobalPos = useSignalValue(
       uiState.selectionGlobalPos,
     );
 
@@ -72,8 +72,8 @@ class ReaderSelectionToolbarLayer extends HookWidget {
           context,
           vm,
           bSelectedtext,
-          bookId: vm.state.bookId.value,
-          chapterIndex: vm.state.chapterIndex.value,
+          bookId: vm.chapterManager.bookId.value,
+          chapterIndex: vm.chapterManager.chapterIndex.value,
           charOffset: bSelectionstart,
         ),
         onBilingualHighlight: bCurrentreadingmode == ReadingMode.bilingual
@@ -101,7 +101,7 @@ class ReaderTapZoneLayer extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool showToolbar = useSignalValue<bool, Signal<bool>>(
+    final bool showToolbar = useSignalValue(
       uiState.showToolbar,
     );
     final String bSelectedtext = useSignalValue(vm.annotations.selectedText);

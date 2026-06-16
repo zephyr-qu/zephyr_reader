@@ -912,6 +912,23 @@ void main() {
         expect(manager.loadPhase.value, ChapterLoadPhase.idle);
         expect(manager.autoScrollTick.value, 0);
       });
+
+      test('PR1+PR2 fix: chapterManager.bookId/chapterIndex 是 loadChapters 的查询源', () async {
+        // 模拟 ReaderViewModel.initialize 的写入路径：写入 chapterManager，
+        // 然后 loadChapters 必须用新值查询 _repo.getChapters(bookId: ...)
+        manager.bookId.value = 'new_book_id';
+        manager.chapterIndex.value = 5;
+        manager.currentCharOffset.value = 1234;
+
+        // 验证写入确实到了 ChapterViewModel 的 signals（PR1 迁入）
+        expect(manager.bookId.value, 'new_book_id');
+        expect(manager.chapterIndex.value, 5);
+        expect(manager.currentCharOffset.value, 1234);
+
+        // 验证 _repo.getChapters 是用 manager.bookId 调用的（PR1+PR2 修复的关键）
+        await manager.loadChapters();
+        verify(() => repo.getChapters('new_book_id')).called(1);
+      });
     });
   });
 }

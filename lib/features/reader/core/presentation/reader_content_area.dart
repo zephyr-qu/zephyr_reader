@@ -47,8 +47,8 @@ class ReaderContentArea extends HookWidget {
     final l10n = AppLocalizations.of(context)!;
     final int bBgindex = useSignalValue(vm.config.readerBgColorIndex.signal);
     final double bBrightness = useSignalValue(vm.config.brightnessOverlay);
-    final String bCurrentbookid = useSignalValue(vm.state.bookId);
-    final int bChapterindex = useSignalValue(vm.state.chapterIndex);
+    final String bCurrentbookid = useSignalValue(vm.chapterManager.bookId);
+    final int bChapterindex = useSignalValue(vm.chapterManager.chapterIndex);
     final int bPageindex = useSignalValue(vm.chapterManager.pageIndex);
     final int bTotalpages = useSignalValue(vm.chapterManager.totalPages);
     final ReadingMode bCurrentreadingmode = useSignalValue(
@@ -57,7 +57,7 @@ class ReaderContentArea extends HookWidget {
     final double bFontsize = useSignalValue(vm.config.fontSize.signal);
     final double bLineheight = useSignalValue(vm.config.lineHeight.signal);
     final AsyncState<String> chContent = useSignalValue(
-      vm.state.chapterContent,
+      vm.chapterManager.chapterContent,
     );
     final String bContent = chContent.value ?? '';
     final bool bIsloading = useSignalValue(vm.chapterManager.isLoading);
@@ -85,7 +85,7 @@ class ReaderContentArea extends HookWidget {
       vm.config.writingDirection,
     );
     final int? bPendingjumpcharoffset = useSignalValue(
-      vm.state.pendingJumpCharOffset,
+      vm.chapterManager.pendingJumpCharOffset,
     );
     final String bProgresstext = useSignalValue(
       vm.chapterManager.progressText,
@@ -96,7 +96,7 @@ class ReaderContentArea extends HookWidget {
       vm.chapterManager.chapters,
     );
     final int bNumchapters = (chaptersState.value as List?)?.length ?? 0;
-    final vocabWordSet = useSignalValue<Set<String>, Signal<Set<String>>>(
+    final Set<String> vocabWordSet = useSignalValue(
       vocabWords,
     );
     final fontFamily = fontRepo.currentFontFamily;
@@ -235,7 +235,7 @@ class ReaderContentArea extends HookWidget {
                 onPageChanged: vm.loadPage,
                 onRetry: () => vm.loadChapter(
                   bChapterindex,
-                  initialCharOffset: vm.state.currentCharOffset.value,
+                  initialCharOffset: vm.chapterManager.currentCharOffset.value,
                   intent: ChapterPaginationIntent.expandOnly,
                 ),
                 autoScrollTick: bAutoscrolltick,

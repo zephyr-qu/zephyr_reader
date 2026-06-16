@@ -117,14 +117,14 @@ Future<void> onBilingualHighlight(
   try {
     await vm.translation.createBilingualHighlight(
       BilingualHighlightParams(
-        sourceBookId: vm.state.bookId.value,
-        sourceChapterIndex: vm.state.chapterIndex.value,
+        sourceBookId: vm.chapterManager.bookId.value,
+        sourceChapterIndex: vm.chapterManager.chapterIndex.value,
         sourceCharOffset: startOffset,
         sourceLength: length,
         sourceSelectedText: text,
         sourceLanguage: sourceLanguage,
-        targetBookId: vm.state.bookId.value,
-        targetChapterIndex: vm.state.chapterIndex.value,
+        targetBookId: vm.chapterManager.bookId.value,
+        targetChapterIndex: vm.chapterManager.chapterIndex.value,
         targetCharOffset: targetOffset,
         targetLength: targetText.length,
         targetSelectedText: targetText,
