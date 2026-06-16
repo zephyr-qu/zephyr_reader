@@ -109,11 +109,30 @@ class ChapterLoadOrchestrator {
             .catchError((_) {}),
       );
 
-      final quickResult = await _runFirstSpine(
-        gen,
-        request,
-        preloadAdjacentFirstPages: preloadAdjacentFirstPages,
-      );
+      final ({int totalPages, bool isPartial})? quickResult;
+
+      if (!request.restartSession && _contentRepo.descriptors != null) {
+        // 复用现有 session — descriptors 已有效，跳过 _runFirstSpine
+        _setPhase(gen, ChapterLoadPhase.firstSpine);
+        quickResult = (
+          totalPages: _contentRepo.descriptors!.length,
+          isPartial: true, // 始终全量分页以保证内容/配置最新
+        );
+        _applyIfCurrent(gen, () {
+          _isLoading.value = false;
+        });
+        Logging.info(
+          '[Timing] gen=$gen phase=firstSpine skipped (restartSession=false)',
+        );
+      } else {
+        quickResult = await _runFirstSpine(
+          gen,
+          request,
+          calibFuture: calibFuture,
+          preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+        );
+      }
+
       if (_isStale(gen) || quickResult == null) {
         _setPhase(gen, ChapterLoadPhase.cancelled);
         return;
@@ -124,12 +143,6 @@ class ChapterLoadOrchestrator {
         '${sw.elapsedMilliseconds}ms cumulative',
       );
 
-      Future<int>? fullPaginateFuture;
-      if (quickResult.isPartial) {
-        _setPhase(gen, ChapterLoadPhase.fullPaginate);
-        fullPaginateFuture = _pagination.paginateFull(request.chapterIndex);
-      }
-
       _setPhase(gen, ChapterLoadPhase.awaitingConcurrent);
       final results = await Future.wait([contentFuture, calibFuture]);
       if (_isStale(gen)) {
@@ -137,21 +150,24 @@ class ChapterLoadOrchestrator {
         return;
       }
 
+      final content = results[0] as String;
+      _applyIfCurrent(gen, () {
+        _pagination.calibration.value ??= results[1] as CalibrationData?;
+      });
+
       final tConcurrent = sw.elapsedMilliseconds;
       Logging.info(
         '[Timing] gen=$gen phase=awaitingConcurrent '
         '(content+calibration): ${tConcurrent}ms cumulative',
       );
 
-      final content = results[0] as String;
-      _applyIfCurrent(gen, () {
-        _pagination.calibration.value ??= results[1] as CalibrationData?;
-      });
-
       int total;
       if (quickResult.isPartial) {
+        _setPhase(gen, ChapterLoadPhase.fullPaginate);
+        final fullPaginateFuture =
+            _pagination.expandToFullChapter(request.chapterIndex);
         final tBeforePaginate = sw.elapsedMilliseconds;
-        total = await fullPaginateFuture!;
+        total = await fullPaginateFuture;
         if (_isStale(gen)) {
           _setPhase(gen, ChapterLoadPhase.cancelled);
           return;
@@ -179,7 +195,6 @@ class ChapterLoadOrchestrator {
         '[Timing] gen=$gen phase=completed loadChapter total: '
         '${sw.elapsedMilliseconds}ms',
       );
-
       await _runComplete(gen, request);
       _setPhase(gen, ChapterLoadPhase.completed);
       _applyIfCurrent(gen, () {
@@ -192,9 +207,6 @@ class ChapterLoadOrchestrator {
         _loadPhase.value = ChapterLoadPhase.failed;
       });
       Logging.error('ChapterLoadOrchestrator.run error', exception: e);
-      _applyIfCurrent(gen, () {
-        _loadPhase.value = ChapterLoadPhase.idle;
-      });
     } finally {
       _applyIfCurrent(gen, () {
         _isLoading.value = false;
@@ -215,6 +227,7 @@ class ChapterLoadOrchestrator {
   Future<({int totalPages, bool isPartial})?> _runFirstSpine(
     int gen,
     ChapterLoadRequest request, {
+    required Future<CalibrationData?> calibFuture,
     Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages,
   }) async {
     _setPhase(gen, ChapterLoadPhase.firstSpine);
@@ -225,7 +238,14 @@ class ChapterLoadOrchestrator {
     );
     if (_isStale(gen)) return null;
 
-    final quickResult = await _pagination.paginateQuickFirstScreen(
+    // 等待校准完成，并把结果写入 calibration.value，使后续 buildPaginationParams
+    // 能读到非 null 的 CharWidthTable。session 内的 config 由 beginPaginate 当下构建，
+    // 后续 paginate_session_full 也会沿用带校准的存储 config。
+    final calibResult = await calibFuture;
+    if (_isStale(gen)) return null;
+    _pagination.calibration.value ??= calibResult;
+
+    final quickResult = await _pagination.paginateFirstScreen(
       request.chapterIndex,
     );
     if (_isStale(gen)) return null;
@@ -248,6 +268,7 @@ class ChapterLoadOrchestrator {
         _error.value = null;
         _isLoading.value = false;
       });
+      _contentRepo.ensurePageWindow(resolvedPage);
     }
 
     unawaited(

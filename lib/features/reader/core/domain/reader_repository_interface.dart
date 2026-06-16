@@ -67,27 +67,6 @@ abstract class ReaderRepositoryInterface {
     required double padding,
   });
 
-  /// Rust 全量分页排版（返回页面总数，0 表示失败）。
-  Future<int> paginateChapter({
-    required String bookId,
-    required int chapterIndex,
-    required PaginationParams params,
-  });
-
-  /// Rust 局部分页排版（50K 字符上限），用于首屏快速分页。
-  Future<({int totalPages, bool isPartial})> paginateChapterPartial({
-    required String bookId,
-    required int chapterIndex,
-    required PaginationParams params,
-  });
-
-  /// Rust 首屏快速分页（2000 字符上限），复用同一 session。
-  Future<({int totalPages, bool isPartial})> paginateChapterQuickFirstScreen({
-    required String bookId,
-    required int chapterIndex,
-    required PaginationParams params,
-  });
-
   /// 完整分页加载（从 Rust 获取轻量级描述符，文本按需加载）。
   /// 返回 [PageInfo] 列表。
   Future<List<PageInfo>> calculatePages({
@@ -102,8 +81,6 @@ abstract class ReaderRepositoryInterface {
 
   // ==================== 缓存和页面内容 ====================
 
-  /// 当前章节的分页结果（Dart 估算路径的降级数据）。
-  List<PageInfo>? currentPages;
 
   /// 当前章节的富文本内容（EPUB）。
   TextSpan? get currentRichContent;
@@ -117,8 +94,6 @@ abstract class ReaderRepositoryInterface {
   /// 预加载生成计数器。
   ValueNotifier<int> get preloadGeneration;
 
-  /// 获取缓存的指定页内容。
-  String? getPageContent(int pageIndex);
 
   /// 手动预热单页缓存（用于分段读取）。
   void warmPageCache(int pageIndex, String content);
@@ -126,6 +101,23 @@ abstract class ReaderRepositoryInterface {
   /// 确保指定页面及其周围页面的内容已缓存。
   void ensurePageWindow(int centerPage);
 
+  /// 释放 Rust 分页会话并清空本地页缓存。
+  void disposePagination();
+
+  /// 创建分页会话并分页。maxChars=null 表示全章。
+  Future<({int totalPages, bool isPartial})> beginPaginate({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+    BigInt? maxChars,
+  });
+
+  /// 在同一会话上扩展到全章。
+  Future<({int totalPages, bool isPartial})> expandToFullChapter({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+  });
   // ==================== 阅读进度 ====================
 
   /// 加载书籍的阅读进度。

@@ -83,8 +83,8 @@ pub struct PaginationSessionHandle {
 struct PaginationSessionEntry {
     file_path: String,
     chapter_index: i32,
-    config_hash: u64,
     config: TypesetConfig,
+    streamer: PageStreamer,
 }
 
 static NEXT_SESSION_ID: AtomicU64 = AtomicU64::new(1);
@@ -701,21 +701,28 @@ pub async fn create_pagination_session(
     .await?;
 
     let session_id = allocate_session_id();
+    let streamer_key = (validated_path.clone(), chapter_index, result.config_hash);
+    let streamer = STREAMER_CACHE
+        .lock()
+        .get(&streamer_key)
+        .cloned()
+        .ok_or_else(|| AppError::NotFound {
+            entity: format!("page streamer for session {session_id}"),
+        })?;
+
     SESSION_MAP.lock().insert(
         session_id,
         PaginationSessionEntry {
             file_path: validated_path,
             chapter_index,
-            config_hash: result.config_hash,
             config,
+            streamer,
         },
     );
 
     Ok((PaginationSessionHandle { session_id }, result))
 }
 
-/// Re-paginate the full chapter content for an existing session.
-#[frb]
 pub async fn paginate_session_full(
     handle: PaginationSessionHandle,
 ) -> Result<PaginateResult, AppError> {
@@ -728,10 +735,19 @@ pub async fn paginate_session_full(
     )
     .await?;
 
+    let streamer_key = (entry.file_path.clone(), entry.chapter_index, result.config_hash);
+    let streamer = STREAMER_CACHE
+        .lock()
+        .get(&streamer_key)
+        .cloned()
+        .ok_or_else(|| AppError::NotFound {
+            entity: format!("page streamer for session full {}", handle.session_id),
+        })?;
+
     SESSION_MAP.lock().insert(
         handle.session_id,
         PaginationSessionEntry {
-            config_hash: result.config_hash,
+            streamer,
             ..entry
         },
     );
@@ -739,30 +755,30 @@ pub async fn paginate_session_full(
     Ok(result)
 }
 
-/// Fetch a single page's text using the session's stored file/chapter/config key.
-#[frb(sync)]
 pub fn get_session_page_content(
     handle: PaginationSessionHandle,
     page_index: i32,
 ) -> Result<String, AppError> {
     let entry = lookup_pagination_session(handle.session_id)?;
-    Ok(get_page_content(
-        entry.file_path,
-        entry.chapter_index,
-        entry.config_hash,
-        page_index,
-    ))
+    Ok(entry
+        .streamer
+        .get_page(page_index as usize, entry.chapter_index)
+        .map(|p| p.content)
+        .unwrap_or_default())
 }
 
-/// Remove a pagination session and release its server-side binding.
-#[frb(sync)]
 pub fn dispose_pagination_session(handle: PaginationSessionHandle) -> Result<(), AppError> {
-    SESSION_MAP
+    let entry = SESSION_MAP
         .lock()
         .remove(&handle.session_id)
         .ok_or_else(|| AppError::NotFound {
             entity: format!("pagination session {}", handle.session_id),
         })?;
+
+    // Evict the streamer from STREAMER_CACHE — the entry holds its own clone
+    let streamer_key = (entry.file_path, entry.chapter_index, entry.config.config_hash());
+    STREAMER_CACHE.lock().pop(&streamer_key);
+
     Ok(())
 }
 

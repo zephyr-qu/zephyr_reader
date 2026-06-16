@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:injectable/injectable.dart';
+
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/pagination_session_factory.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
@@ -16,7 +16,6 @@ import 'package:zephyr_reader/features/reader/core/domain/reader_repository_inte
 export 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart'
     show ReadingProgressData;
 
-@Injectable()
 class ReaderRepository
     implements ReaderRepositoryInterface, ReaderRenderDataSource {
   ReaderRepository(
@@ -33,9 +32,6 @@ class ReaderRepository
 
   @override
   List<PageDescriptor>? get descriptors => _session.descriptors;
-
-  @override
-  List<PageInfo>? get approximatePages => _session.approximatePages;
 
   @override
   String? pageContent(int pageIndex) => _session.pageContent(pageIndex);
@@ -82,6 +78,35 @@ class ReaderRepository
         bookId,
         chapterId,
         readingMode: readingMode,
+      );
+
+  @override
+  void disposePagination() => _session.dispose();
+
+  @override
+  Future<({int totalPages, bool isPartial})> beginPaginate({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+    BigInt? maxChars,
+  }) =>
+      _session.beginPaginate(
+        bookId: bookId,
+        chapterIndex: chapterIndex,
+        params: params,
+        maxChars: maxChars,
+      );
+
+  @override
+  Future<({int totalPages, bool isPartial})> expandToFullChapter({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+  }) =>
+      _session.expandToFullChapter(
+        bookId: bookId,
+        chapterIndex: chapterIndex,
+        params: params,
       );
 
   @override
@@ -140,42 +165,6 @@ class ReaderRepository
   }
 
   @override
-  Future<int> paginateChapter({
-    required String bookId,
-    required int chapterIndex,
-    required PaginationParams params,
-  }) =>
-      _session.paginateFull(
-        bookId: bookId,
-        chapterIndex: chapterIndex,
-        params: params,
-      );
-
-  @override
-  Future<({int totalPages, bool isPartial})> paginateChapterPartial({
-    required String bookId,
-    required int chapterIndex,
-    required PaginationParams params,
-  }) =>
-      _session.paginatePartial(
-        bookId: bookId,
-        chapterIndex: chapterIndex,
-        params: params,
-      );
-
-  @override
-  Future<({int totalPages, bool isPartial})> paginateChapterQuickFirstScreen({
-    required String bookId,
-    required int chapterIndex,
-    required PaginationParams params,
-  }) =>
-      _session.paginateQuickFirstScreen(
-        bookId: bookId,
-        chapterIndex: chapterIndex,
-        params: params,
-      );
-
-  @override
   Future<List<PageInfo>> calculatePages({
     required String bookId,
     required int chapterId,
@@ -194,21 +183,12 @@ class ReaderRepository
       height: height,
       padding: padding,
     );
-    currentPages = pages;
     return pages;
   }
 
   @override
-  List<PageInfo>? get currentPages => _session.approximatePages;
-
-  @override
-  set currentPages(List<PageInfo>? pages) => _session.approximatePages = pages;
-
-  @override
-  String? getPageContent(int pageIndex) => _session.pageContent(pageIndex);
-
-  @override
   void ensurePageWindow(int centerPage) => _session.ensureWindow(centerPage);
+
 
   @override
   Future<ReadingProgressData?> loadReadingProgress(String bookId) =>

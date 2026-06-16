@@ -30,7 +30,7 @@ class ReaderShell extends HookWidget {
     final session = useMemoized(() => getIt<ReaderSessionFactory>().create());
     final vm = session.vm;
     final fontRepo = useMemoized(() => getIt<FontRepository>());
-    final readRepo = useMemoized(() => getIt<ReaderRepository>());
+    final readRepo = vm.repo as ReaderRepository;
     final ttsService = useMemoized(() => getIt<TtsService>());
     final config = useMemoized(() => getIt<ReaderConfig>());
     final ttsVm = useMemoized(() => getIt<TtsSettingsViewModel>());

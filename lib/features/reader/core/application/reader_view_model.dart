@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:flutter/services.dart';
@@ -12,7 +11,6 @@ import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/bookmark_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
-import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart';
 import 'package:zephyr_reader/features/reader/translation/application/translation_view_model.dart';
 import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart';
@@ -29,7 +27,6 @@ import 'package:zephyr_reader/di/service_locator.dart';
 /// 书签 → BookmarkViewModel。
 /// 划词批注 → AnnotationViewModel。
 /// 翻译/双语 → TranslationViewModel。
-@injectable
 class ReaderViewModel {
   final ReaderRepositoryInterface _repo;
   final ReaderConfig _config;
@@ -58,12 +55,12 @@ class ReaderViewModel {
   final ReaderPageState state = ReaderPageState();
 
   ReaderViewModel({
-    ReaderRepository? repo,
+    required ReaderRepositoryInterface repo,
     ReaderConfig? config,
     TranslationConfig? translationConfig,
     TranslationService? translationService,
   })
-    : _repo = repo ?? getIt<ReaderRepository>(),
+    : _repo = repo,
       _config = config ?? getIt<ReaderConfig>() {
     chapterManager = ChapterViewModel(_repo, _config, state);
     sessionManager = ReadingSessionManager(state, chapterManager);
@@ -75,6 +72,9 @@ class ReaderViewModel {
       service: translationService,
     );
   }
+
+  /// 公开仓库访问（渲染层使用）。
+  ReaderRepositoryInterface get repo => _repo;
 
   // ==================== 编排方法 ====================
 
@@ -221,7 +221,7 @@ class ReaderViewModel {
         chapterManager.loadChapter(
           state.chapterIndex.value,
           initialCharOffset: state.currentCharOffset.value,
-          restartSession: false,
+          restartSession: true,
           onChapterLoaded: annotations.loadHighlights,
         ),
       );

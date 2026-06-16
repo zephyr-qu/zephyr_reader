@@ -3,8 +3,8 @@ import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
 /// 分页排版参数聚合体。
 ///
-/// 消除 [ReaderRepository.paginateChapter] 和
-/// [ReaderRepository.paginateChapterPartial] 中重复的 13 个布局参数。
+/// 消除 [ReaderRepository.beginPaginate] 和
+/// [ReaderRepository.expandToFullChapter] 中重复的 13 个布局参数。
 class PaginationParams {
   final double fontSize;
   final double lineHeight;

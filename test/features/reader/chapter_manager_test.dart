@@ -244,15 +244,18 @@ ChapterViewModel createManager({ReaderRepository? repo, ReaderConfig? config}) {
   );
 }
 
-/// Mock 设置 `paginateChapter` 成功返回 2 页。
+/// Mock 设置 `expandToFullChapter` 成功返回 2 页。
 void _setupPaginateChapter(_MockRepo repo, {bool isFallback = false}) {
   when(
-    () => repo.paginateChapter(
+    () => repo.expandToFullChapter(
       bookId: any(named: 'bookId'),
       chapterIndex: any(named: 'chapterIndex'),
       params: any(named: 'params'),
     ),
-  ).thenAnswer((_) async => isFallback ? 0 : 2);
+  ).thenAnswer((_) async =>
+      isFallback
+          ? (totalPages: 0, isPartial: false)
+          : (totalPages: 2, isPartial: false));
 
   if (isFallback) {
     when(() => repo.descriptors).thenReturn(null);
@@ -273,15 +276,34 @@ void _setupPaginateChapter(_MockRepo repo, {bool isFallback = false}) {
     ]);
   }
 }
-
-void _setupPaginateChapterQuickFirstScreen(_MockRepo repo) {
+void _setupBeginPaginate(_MockRepo repo) {
   when(
-    () => repo.paginateChapterQuickFirstScreen(
+    () => repo.beginPaginate(
       bookId: any(named: 'bookId'),
       chapterIndex: any(named: 'chapterIndex'),
       params: any(named: 'params'),
+      maxChars: any(named: 'maxChars'),
     ),
   ).thenAnswer((_) async => (totalPages: 2, isPartial: false));
+}
+
+/// Capture the [PaginationParams] passed to [beginPaginate] for assertion.
+void _setupBeginPaginateCapturing(
+  _MockRepo repo,
+  List<PaginationParams> sink,
+) {
+  when(
+    () => repo.beginPaginate(
+      bookId: any(named: 'bookId'),
+      chapterIndex: any(named: 'chapterIndex'),
+      params: any(named: 'params'),
+      maxChars: any(named: 'maxChars'),
+    ),
+  ).thenAnswer((invocation) async {
+    final params = invocation.namedArguments[#params] as PaginationParams;
+    sink.add(params);
+    return (totalPages: 2, isPartial: false);
+  });
 }
 
 void _registerFallbackValues() {
@@ -322,7 +344,7 @@ void main() {
       ),
     ).thenAnswer((_) async => 'A' * 100);
     _setupPaginateChapter(repo);
-    _setupPaginateChapterQuickFirstScreen(repo);
+    _setupBeginPaginate(repo);
     when(() => repo.loadReadingProgress(any())).thenAnswer((_) async => null);
     when(
       () => repo.loadChapterFirstSpine(any(), any()),
@@ -492,6 +514,23 @@ void main() {
         );
         expect(called, isTrue);
       });
+
+      test('beginPaginate 调用前 calibration.value 已写入 signal', () async {
+        // 重置 mock：捕获每次 beginPaginate 的 params
+        final captured = <PaginationParams>[];
+        _setupBeginPaginateCapturing(repo, captured);
+
+        await manager.loadChapter(0);
+
+        expect(captured, isNotEmpty, reason: 'beginPaginate should be called');
+        final firstParams = captured.first;
+        expect(
+          firstParams.calibration,
+          isNotNull,
+          reason: 'calibration must be set before beginPaginate so config '
+              'carries CharWidthTable into the session entry',
+        );
+      });
     });
 
     group('loadChapter 竞态', () {
@@ -528,10 +567,11 @@ void main() {
         final partialGate = Completer<void>();
 
         when(
-          () => repo.paginateChapterQuickFirstScreen(
+          () => repo.beginPaginate(
             bookId: any(named: 'bookId'),
             chapterIndex: any(named: 'chapterIndex'),
             params: any(named: 'params'),
+            maxChars: any(named: 'maxChars'),
           ),
         ).thenAnswer((invocation) async {
           final chapterIndex =
