@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/features/reader/core/data/page_content_cache.dart';
 import 'package:zephyr_reader/features/reader/core/domain/pagination_session.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
@@ -13,21 +13,15 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class RustPaginationSession implements PaginationSession {
   List<PageDescriptor>? _descriptors;
-  List<PageInfo>? _approximatePages;
+
   core_api.PaginationSessionHandle? _handle;
-  final Map<int, String> _pageCache = {};
+  final _contentCache = PageContentCache();
 
   String? _cachedBookId;
   Book? _cachedBook;
 
   @override
   List<PageDescriptor>? get descriptors => _descriptors;
-
-  @override
-  List<PageInfo>? get approximatePages => _approximatePages;
-
-  @override
-  set approximatePages(List<PageInfo>? pages) => _approximatePages = pages;
 
   Future<Book> _getBook(String bookId) async {
     if (_cachedBookId == bookId && _cachedBook != null) {
@@ -85,7 +79,7 @@ class RustPaginationSession implements PaginationSession {
     }
 
     _releaseHandle();
-    _pageCache.clear();
+    _contentCache.clear();
 
     final sw = Stopwatch()..start();
     final (handle, result) = await core_api.createPaginationSession(
@@ -112,15 +106,41 @@ class RustPaginationSession implements PaginationSession {
     }
   }
 
+
   @override
-  Future<int> paginateFull({
+  Future<({int totalPages, bool isPartial})> beginPaginate({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+    BigInt? maxChars,
+  }) async {
+    try {
+      final result = await _createSession(
+        bookId: bookId,
+        chapterIndex: chapterIndex,
+        config: _buildConfig(params),
+        maxChars: maxChars,
+      );
+      _preloadPageRange(5);
+      return (
+        totalPages: result.descriptors.length,
+        isPartial: result.isPartial,
+      );
+    } catch (e) {
+      Logging.error('beginPaginate error: $e');
+      return (totalPages: 0, isPartial: false);
+    }
+  }
+
+  @override
+  Future<({int totalPages, bool isPartial})> expandToFullChapter({
     required String bookId,
     required int chapterIndex,
     required PaginationParams params,
   }) async {
     try {
       final oldLength = _descriptors?.length ?? 0;
-      final PaginateResult result;
+      late final PaginateResult result;
 
       if (_handle != null) {
         final sw = Stopwatch()..start();
@@ -142,74 +162,21 @@ class RustPaginationSession implements PaginationSession {
       for (int i = oldLength; i < preloadCount; i++) {
         _fetchPageSync(i);
       }
-      return result.descriptors.length;
-    } catch (e) {
-      Logging.error('paginateFull error: $e');
-      return 0;
-    }
-  }
-
-  @override
-  Future<({int totalPages, bool isPartial})> paginatePartial({
-    required String bookId,
-    required int chapterIndex,
-    required PaginationParams params,
-  }) async {
-    try {
-      final result = await _createSession(
-        bookId: bookId,
-        chapterIndex: chapterIndex,
-        config: _buildConfig(params),
-        maxChars: PaginationEngine.partialMaxChars,
-      );
-      _preloadPageRange(5);
       return (
         totalPages: result.descriptors.length,
         isPartial: result.isPartial,
       );
     } catch (e) {
-      Logging.error('paginatePartial error: $e');
+      Logging.error('expandToFullChapter error: $e');
       return (totalPages: 0, isPartial: false);
     }
   }
 
   @override
-  Future<({int totalPages, bool isPartial})> paginateQuickFirstScreen({
-    required String bookId,
-    required int chapterIndex,
-    required PaginationParams params,
-  }) async {
-    try {
-      final result = await _createSession(
-        bookId: bookId,
-        chapterIndex: chapterIndex,
-        config: _buildConfig(params),
-        maxChars: PaginationEngine.firstScreenMaxChars,
-      );
-      _preloadPageRange(5);
-      return (
-        totalPages: result.descriptors.length,
-        isPartial: result.isPartial,
-      );
-    } catch (e) {
-      Logging.error('paginateQuickFirstScreen error: $e');
-      return (totalPages: 0, isPartial: false);
-    }
-  }
-
-  @override
-  String? pageContent(int pageIndex) {
-    if (_pageCache.containsKey(pageIndex)) {
-      return _pageCache[pageIndex];
-    }
-    if (_approximatePages != null && pageIndex < _approximatePages!.length) {
-      return _approximatePages![pageIndex].content;
-    }
-    return null;
-  }
+  String? pageContent(int pageIndex) => _contentCache.get(pageIndex);
 
   void _fetchPageSync(int pageIndex) {
-    if (_pageCache.containsKey(pageIndex)) return;
+    if (_contentCache.containsKey(pageIndex)) return;
     final handle = _handle;
     if (handle == null || _descriptors == null) return;
     if (pageIndex < 0 || pageIndex >= _descriptors!.length) return;
@@ -220,7 +187,7 @@ class RustPaginationSession implements PaginationSession {
         pageIndex: pageIndex,
       );
       if (content.isNotEmpty) {
-        _pageCache[pageIndex] = content;
+        _contentCache.put(pageIndex, content);
       }
     } catch (e) {
       Logging.error('_fetchPageSync error for page $pageIndex: $e');
@@ -247,21 +214,20 @@ class RustPaginationSession implements PaginationSession {
       }
     });
 
-    _pageCache.removeWhere((key, _) => (key - center).abs() > 5);
+    _contentCache.trimAround(center);
   }
 
   @override
-  void warmPageCache(int pageIndex, String content) {
-    _pageCache[pageIndex] = content;
-  }
+  void warmPageCache(int pageIndex, String content) =>
+      _contentCache.warm(pageIndex, content);
 
   @override
   void dispose() {
     _releaseHandle();
     _descriptors = null;
-    _approximatePages = null;
-    _pageCache.clear();
+    _contentCache.clear();
     _cachedBook = null;
     _cachedBookId = null;
   }
 }
+

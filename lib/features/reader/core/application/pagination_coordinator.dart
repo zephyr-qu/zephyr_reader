@@ -62,55 +62,28 @@ class PaginationCoordinator {
     );
   }
 
-  /// 快速局部分页（50K 字符上限）。
-  Future<({int totalPages, bool isPartial})> paginatePartial(
+
+  /// 首屏分页（统一入口，maxChars=2000）。
+  Future<({int totalPages, bool isPartial})> paginateFirstScreen(
     int chapterIndex,
   ) {
-    return _repo.paginateChapterPartial(
+    return _repo.beginPaginate(
+      bookId: _pageState.bookId.value,
+      chapterIndex: chapterIndex,
+      params: buildPaginationParams(),
+      maxChars: PaginationEngine.firstScreenMaxChars,
+    );
+  }
+
+  /// 全量 Rust 分页（升级现有会话）。
+  Future<int> expandToFullChapter(int chapterIndex) async {
+    final r = await _repo.expandToFullChapter(
       bookId: _pageState.bookId.value,
       chapterIndex: chapterIndex,
       params: buildPaginationParams(),
     );
+    return r.totalPages;
   }
-
-  /// Rust 首屏快速分页（2000 字符上限），复用同一 session。
-  Future<({int totalPages, bool isPartial})> paginateQuickFirstScreen(
-    int chapterIndex,
-  ) {
-    return _repo.paginateChapterQuickFirstScreen(
-      bookId: _pageState.bookId.value,
-      chapterIndex: chapterIndex,
-      params: buildPaginationParams(),
-    );
-  }
-
-  /// 全量 Rust 分页。
-  Future<int> paginateFull(int chapterIndex) {
-    return _repo.paginateChapter(
-      bookId: _pageState.bookId.value,
-      chapterIndex: chapterIndex,
-      params: buildPaginationParams(),
-    );
-  }
-
-  /// 应用局部分页结果到 totalPages / pageIndex。
-  void applyPartialResult({
-    required int partialTotal,
-    required int charOffset,
-    required Signal<int> totalPages,
-    required Signal<int> pageIndex,
-  }) {
-    if (partialTotal <= 0) return;
-    final partialDesc = _repo.descriptors;
-    if (partialDesc == null || partialDesc.isEmpty) return;
-    totalPages.value = partialTotal;
-    pageIndex.value = PaginationEngine.resolvePageIndexForOffset(
-      partialDesc,
-      charOffset,
-    );
-    _repo.ensurePageWindow(pageIndex.value);
-  }
-
   /// Rust 分页失败时回退到 Dart 估算分页。
   Future<({int totalPages, int pageIndex})> fallbackToCalculatePages({
     required int chapterIndex,
@@ -120,6 +93,7 @@ class PaginationCoordinator {
     Logging.warning(
       'loadChapter: Rust pagination fallback, using Dart approximate',
     );
+    _repo.disposePagination();
     final pages = await _repo.calculatePages(
       bookId: _pageState.bookId.value,
       chapterId: chapterIndex,
@@ -166,6 +140,9 @@ class PaginationCoordinator {
 
     return (totalPages: total, pageIndex: resolvedPage);
   }
+
+  /// 释放 Rust 会话并清空本地缓存。
+  void disposePagination() => _repo.disposePagination();
 
   /// 判断 Rust 分页是否有效。
   bool isPaginationValid(int total) {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
@@ -7,7 +6,6 @@ import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 abstract class ReaderRenderDataSource {
   List<PageDescriptor>? get descriptors;
 
-  List<PageInfo>? get approximatePages;
 
   String? pageContent(int pageIndex);
 

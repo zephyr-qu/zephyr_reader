@@ -269,15 +269,6 @@ class ReaderContent extends HookWidget {
       final hasNext = hasNextChapter;
       final extendedTotal = totalPages + (hasNext ? 1 : 0);
       Widget pageBuilder(int idx) {
-        // 跨章节翻页：缓存预加载内容到 pageCache，通过 buildSinglePageContent 统一渲染
-        if (idx >= (descriptors?.length ?? totalPages) &&
-            hasNext &&
-            idx < extendedTotal) {
-          final preloaded = dataSource.getPreloadedNextChapterContent(chapterId + 1);
-          if (preloaded != null) {
-            dataSource.warmPageCache(idx, preloaded);
-          }
-        }
         final startOffset = (descriptors != null && idx < descriptors.length)
             ? descriptors[idx].startOffset
             : 0;

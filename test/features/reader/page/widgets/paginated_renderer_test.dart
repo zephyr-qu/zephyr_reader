@@ -1,4 +1,4 @@
-﻿// test/features/reader/page/widgets/paginated_renderer_test.dart
+// test/features/reader/page/widgets/paginated_renderer_test.dart
 //
 // 覆盖：
 //   P1.1 — buildSinglePageContent 单元测试
@@ -12,7 +12,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
@@ -232,42 +231,10 @@ void main() {
       expect(find.byType(PageView), findsOneWidget);
     });
 
-    testWidgets('无 descriptors 有 approximatePages 走旧版分支', (tester) async {
+
+    testWidgets('无 descriptors 走 fallback 分页', (tester) async {
       final dataSource = _MockDataSource();
       when(() => dataSource.descriptors).thenReturn(null);
-      when(() => dataSource.approximatePages).thenReturn([
-        const PageInfo(
-          pageIndex: 0,
-          content: 'Old page content.',
-          startOffset: 0,
-          endOffset: 18,
-        ),
-      ]);
-
-      await tester.pumpWidget(
-        _buildInApp(
-          PaginatedModeRenderer(
-            config: _config(),
-            pageController: PageController(),
-            dataSource: dataSource,
-            bookId: 'test_book',
-            chapterId: 0,
-            pageIndex: 0,
-            content: '',
-            highlights: const [],
-            readingMode: ReadingMode.pagination,
-          ),
-        ),
-      );
-
-      expect(find.byType(PageView), findsOneWidget);
-      expect(find.text('Old page content.'), findsOneWidget);
-    });
-
-    testWidgets('无 descriptors 无 approximatePages 走 fallback 分页', (tester) async {
-      final dataSource = _MockDataSource();
-      when(() => dataSource.descriptors).thenReturn(null);
-      when(() => dataSource.approximatePages).thenReturn(null);
 
       await tester.pumpWidget(
         _buildInApp(

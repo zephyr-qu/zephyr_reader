@@ -1,4 +1,3 @@
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
@@ -9,23 +8,16 @@ import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 abstract class PaginationSession {
   List<PageDescriptor>? get descriptors;
 
-  List<PageInfo>? get approximatePages;
-
-  set approximatePages(List<PageInfo>? pages);
-
-  Future<({int totalPages, bool isPartial})> paginatePartial({
+  /// 创建分页会话并分页。maxChars=null 表示全章。
+  Future<({int totalPages, bool isPartial})> beginPaginate({
     required String bookId,
     required int chapterIndex,
     required PaginationParams params,
+    BigInt? maxChars,
   });
 
-  Future<int> paginateFull({
-    required String bookId,
-    required int chapterIndex,
-    required PaginationParams params,
-  });
-
-  Future<({int totalPages, bool isPartial})> paginateQuickFirstScreen({
+  /// 在同一会话上扩展到全章。
+  Future<({int totalPages, bool isPartial})> expandToFullChapter({
     required String bookId,
     required int chapterIndex,
     required PaginationParams params,

@@ -120,3 +120,54 @@ async fn test_get_page_content_after_dispose_returns_not_found() {
         "expected NotFound, got: {err}"
     );
 }
+
+#[tokio::test]
+async fn test_dispose_evicts_streamer() {
+    let content = "One.\nTwo.\nThree.\nFour.\nFive.\n";
+    let (_dir, file_path) = setup_parsed_txt_book(content).await;
+    let config = TypesetConfig::default();
+    let config_hash = config.config_hash();
+    let validated_path =
+        rust_lib_zephyr_reader::utils::security::validate_file_path(&file_path)
+            .expect("validate should succeed");
+
+    let (handle, _) = create_pagination_session(file_path, 0, config, None)
+        .await
+        .expect("create should succeed");
+
+    // Session content available before dispose
+    let session_page = get_session_page_content(handle.clone(), 0)
+        .expect("session page should work before dispose");
+    assert!(!session_page.is_empty(), "session page content should be available");
+
+    // Streamer accessible via bare get_page_content before dispose
+    let bare_before = rust_lib_zephyr_reader::api::core::get_page_content(
+        validated_path.clone(),
+        0,
+        config_hash,
+        0,
+    );
+    assert!(!bare_before.is_empty(), "bare get_page_content before dispose");
+
+    let clone_before_dispose = handle.clone();
+    dispose_pagination_session(handle).expect("dispose should succeed");
+
+    // Session-level access fails after dispose
+    let session_result = get_session_page_content(clone_before_dispose, 0);
+    assert!(
+        session_result.is_err(),
+        "session page access should fail after dispose"
+    );
+
+    // STREAMER_CACHE entry evicted — bare get_page_content returns empty
+    let bare_after = rust_lib_zephyr_reader::api::core::get_page_content(
+        validated_path,
+        0,
+        config_hash,
+        0,
+    );
+    assert!(
+        bare_after.is_empty(),
+        "bare get_page_content should return empty after dispose evicts streamer"
+    );
+}

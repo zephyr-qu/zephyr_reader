@@ -142,6 +142,7 @@ class ChapterViewModel {
   // ==================== 重置 ====================
 
   void reset() {
+    _pagination.disposePagination();
     _autoScroll.reset();
     _searchIndex.cancel();
     _pageState.bookId.value = '0';
