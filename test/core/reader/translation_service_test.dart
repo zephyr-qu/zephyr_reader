@@ -1,11 +1,11 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:zephyr_reader/features/reader/data/translation/providers/openai_translator.dart';
-import 'package:zephyr_reader/features/reader/data/translation/providers/custom_translator.dart';
-import 'package:zephyr_reader/features/reader/domain/translation_service.dart';
-import 'package:zephyr_reader/features/reader/application/translation_config.dart';
+import 'package:zephyr_reader/features/reader/translation/data/providers/openai_translator.dart';
+import 'package:zephyr_reader/features/reader/translation/data/providers/custom_translator.dart';
+import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart';
+import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart';
 import 'package:zephyr_reader/core/local/shared_preferences_service.dart';
 
 class MockDio extends Mock implements Dio {}

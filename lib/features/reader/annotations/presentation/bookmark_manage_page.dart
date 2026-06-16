@@ -6,12 +6,9 @@ import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/time_formatters.dart';
-import 'package:zephyr_reader/features/reader/application/reader_view_model.dart';
+import 'package:zephyr_reader/features/reader/annotations/application/bookmark_manage_view_model.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/api/data/bookmark.dart' as bookmark_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-
-import '../../../../di/service_locator.dart';
 
 /// 书签排序类型。
 enum BookmarkSortType { createdAt, chapterIndex, position }
@@ -24,7 +21,7 @@ class BookmarkManagePage extends HookWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final vm = useMemoized(() => getIt<ReaderViewModel>());
+    final vm = useMemoized(() => BookmarkManageViewModel(bookId));
     final searchController = useTextEditingController();
     final isSearchMode = useSignal(false);
     final selectedBookmarks = useSetSignal<String>({});
@@ -32,12 +29,12 @@ class BookmarkManagePage extends HookWidget {
     final ascending = useSignal(false);
 
     useEffect(() {
-      vm.bookmarks.loadBookmarks();
+      vm.loadBookmarks();
       return null;
     }, []);
 
     final AsyncState<List<Bookmark>> bookmarksState = useSignalValue(
-      vm.bookmarks.bookmarks,
+      vm.bookmarks,
     );
 
     return Scaffold(
@@ -71,7 +68,7 @@ class BookmarkManagePage extends HookWidget {
               onPressed: () {
                 isSearchMode.value = false;
                 searchController.clear();
-                vm.bookmarks.loadBookmarks();
+                vm.loadBookmarks();
               },
               tooltip: l10n.closeSearch,
             ),
@@ -137,7 +134,7 @@ class BookmarkManagePage extends HookWidget {
                 ),
                 SizedBox(height: Spacing.md.value),
                 FilledButton.icon(
-                  onPressed: () => vm.bookmarks.loadBookmarks(),
+                  onPressed: () => vm.loadBookmarks(),
                   label: Text(l10n.reload),
                 ),
               ],
@@ -267,10 +264,7 @@ class BookmarkManagePage extends HookWidget {
                   return _BookmarkTile(
                     bookmark: bookmark,
                     isSelected: isSelected,
-                    onTap: () {
-                      vm.jumpToBookmark(bookmark);
-                      context.pop();
-                    },
+                    onTap: () => context.pop(bookmark),
                     onDelete: () async {
                       final confirmed = await showDialog<bool>(
                         context: context,
@@ -292,7 +286,7 @@ class BookmarkManagePage extends HookWidget {
                         ),
                       );
                       if (confirmed == true) {
-                        await vm.bookmarks.deleteBookmark(bookmark.id);
+                        await vm.deleteBookmark(bookmark.id);
                       }
                     },
                     onLongPress: () {
@@ -325,7 +319,7 @@ class BookmarkManagePage extends HookWidget {
 
   Future<void> _batchDelete(
     BuildContext context,
-    ReaderViewModel vm,
+    BookmarkManageViewModel vm,
     Set<String> bookmarkIds,
   ) async {
     final l10n = AppLocalizations.of(context)!;
@@ -347,8 +341,7 @@ class BookmarkManagePage extends HookWidget {
       ),
     );
     if (confirmed == true) {
-      await bookmark_api.deleteBookmarks(bookmarkIds: bookmarkIds.toList());
-      await vm.bookmarks.loadBookmarks();
+      await vm.batchDelete(bookmarkIds.toList());
       if (context.mounted) {
         showInfoSnack(context, l10n.deletedBookmarks(bookmarkIds.length));
       }
@@ -357,7 +350,7 @@ class BookmarkManagePage extends HookWidget {
 
   Future<void> _confirmClearBookmarks(
     BuildContext context,
-    ReaderViewModel vm,
+    BookmarkManageViewModel vm,
   ) async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
@@ -378,8 +371,7 @@ class BookmarkManagePage extends HookWidget {
       ),
     );
     if (confirmed == true) {
-      await bookmark_api.clearBookmarksByBook(bookId: bookId);
-      await vm.bookmarks.loadBookmarks();
+      await vm.clearAll();
       if (context.mounted) {
         showInfoSnack(context, l10n.clearedAllBookmarks);
       }

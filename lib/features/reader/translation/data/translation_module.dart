@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
-import 'package:zephyr_reader/features/reader/domain/translation_service.dart';
-import 'package:zephyr_reader/features/reader/application/translation_config.dart';
-import 'package:zephyr_reader/features/reader/data/translation/providers/openai_translator.dart';
-import 'package:zephyr_reader/features/reader/data/translation/providers/custom_translator.dart';
+import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart';
+import 'package:zephyr_reader/features/reader/translation/data/providers/custom_translator.dart';
+import 'package:zephyr_reader/features/reader/translation/data/providers/openai_translator.dart';
+import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart';
 
 /// 翻译服务依赖注入模块。
 ///

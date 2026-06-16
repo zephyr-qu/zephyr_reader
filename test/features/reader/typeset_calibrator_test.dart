@@ -20,7 +20,7 @@ void main() {
       expect(config.paragraphSpacing, equals(2.0));
       expect(config.letterSpacing, equals(0));
       expect(config.firstLineIndent, equals(2));
-      expect(config.language, equals(LanguageType.mixed));
+      expect(config.language, equals(LanguageType.auto));
       expect(config.enableHyphenation, isFalse);
       expect(config.punctuationSqueeze, isTrue);
       expect(config.fontFamily, equals('Noto Sans SC'));

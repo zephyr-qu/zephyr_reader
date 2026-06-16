@@ -7,7 +7,9 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
-import 'package:zephyr_reader/src/rust/domain/types/metadata.dart';
+import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/data/chapter.dart' as chapter_api;
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
@@ -45,6 +47,7 @@ TypesetConfig _defaultConfig() {
     punctuationSqueeze: true,
     language: LanguageType.mixed,
     enableHyphenation: false,
+    autoSpaceRatio: 0.5,
     fontFamily: 'Noto Sans SC',
     calibration: null,
   );
@@ -55,7 +58,7 @@ void main() {
 
   late String? filePath;
   late String? bookId;
-  late ParseResult? parseResult;
+  late List<Chapter> chapters = [];
 
   setUpAll(() async {
     if (!ffiAvailable) return;
@@ -63,8 +66,8 @@ void main() {
     filePath = await createTestFile('pagination_test.txt', _fixtureContent);
     final parse = await parseTestBook(filePath!);
     filePath = parse.$2;
-    parseResult = parse.$1;
-    bookId = parseResult!.bookInfo.bookId;
+    bookId = parse.$1;
+    chapters = await chapter_api.listChaptersByBook(bookId: bookId!);
   });
 
   tearDownAll(() async {
@@ -76,16 +79,16 @@ void main() {
   group('core pagination integration tests', () {
     // ==================== Parse pipeline ====================
 
-    test('parseBook returns valid book metadata and chapters', () {
-      final pr = parseResult!;
-      expect(pr.bookInfo.title, isNotEmpty);
-      expect(pr.bookInfo.filePath, isNotEmpty);
-      expect(pr.chapters.length, greaterThan(0));
-      expect(pr.chapters.first.chapterIndex, 0);
+    test('parseBook returns valid book metadata and chapters', () async {
+      final book = await book_api.getBook(bookId: bookId!);
+      expect(book!.title, isNotEmpty);
+      expect(book.filePath, isNotEmpty);
+      expect(chapters.length, greaterThan(0));
+      expect(chapters.first.chapterIndex, 0);
     });
 
     test('parseBook chapter bounds are valid', () {
-      final c0 = parseResult!.chapters.firstWhere((c) => c.chapterIndex == 0);
+      final c0 = chapters.firstWhere((c) => c.chapterIndex == 0);
       expect(c0.startIndex, greaterThanOrEqualTo(0));
       expect(
         c0.endIndex,
@@ -93,6 +96,53 @@ void main() {
         reason:
             'Chapter 0: startIndex=${c0.startIndex}, endIndex=${c0.endIndex}',
       );
+    });
+
+    // ==================== PaginationSessionHandle API ====================
+
+    group('PaginationSessionHandle API', () {
+      test('create, fetch page, dispose', () async {
+        final (handle, result) = await core_api.createPaginationSession(
+          filePath: filePath!,
+          chapterIndex: 0,
+          config: _defaultConfig(),
+        );
+        expect(handle.sessionId, greaterThan(BigInt.zero));
+        expect(result.descriptors, isNotEmpty);
+
+        final pageText = core_api.getSessionPageContent(
+          handle: handle,
+          pageIndex: 0,
+        );
+        expect(pageText, isNotEmpty);
+
+        core_api.disposePaginationSession(handle: handle);
+      });
+
+      test('partial session upgrades via paginateSessionFull', () async {
+        final (handle, partial) = await core_api.createPaginationSession(
+          filePath: filePath!,
+          chapterIndex: 0,
+          config: _defaultConfig(),
+          maxChars: BigInt.from(500),
+        );
+        expect(partial.isPartial, isTrue);
+
+        final full = await core_api.paginateSessionFull(handle: handle);
+        expect(full.isPartial, isFalse);
+        expect(
+          full.descriptors.length,
+          greaterThanOrEqualTo(partial.descriptors.length),
+        );
+
+        final pageText = core_api.getSessionPageContent(
+          handle: handle,
+          pageIndex: 0,
+        );
+        expect(pageText, isNotEmpty);
+
+        core_api.disposePaginationSession(handle: handle);
+      });
     });
 
     // ==================== paginateChapter (lightweight descriptors) ====================
@@ -171,7 +221,7 @@ void main() {
       });
 
       test('pages cover the full chapter text range', () {
-        final c0 = parseResult!.chapters.firstWhere((c) => c.chapterIndex == 0);
+        final c0 = chapters.firstWhere((c) => c.chapterIndex == 0);
         final first = pages.first;
         final last = pages.last;
         expect(first.startOffset, equals(0));
@@ -198,31 +248,31 @@ void main() {
 
     group('Real book (活着.txt)', () {
       late String huozhePath;
-      late ParseResult huozheResult;
+      late List<Chapter> huozheChapters;
       late String huozheBookId;
 
       setUpAll(() async {
         huozhePath = await copyFixtureFile('活着.txt');
         final result = await parseTestBook(huozhePath);
-        huozheResult = result.$1;
+        huozheBookId = result.$1;
         huozhePath = result.$2;
-        huozheBookId = huozheResult.bookInfo.bookId;
+        huozheChapters = await chapter_api.listChaptersByBook(bookId: huozheBookId);
       });
 
       tearDownAll(() async {
         await deleteTestBook(huozheBookId);
       });
 
-      test('parses without error and has valid metadata', () {
-        expect(huozheResult.bookInfo.title, isNotEmpty);
-        expect(huozheResult.chapters.length, greaterThanOrEqualTo(1));
+      test('parses without error and has valid metadata', () async {
+        final book = await book_api.getBook(bookId: huozheBookId);
+        expect(book!.title, isNotEmpty);
+        expect(huozheChapters.length, greaterThanOrEqualTo(1));
       });
       test('detects multiple chapters (中文版自序, 韩文版自序)', () {
-        final chapters = huozheResult.chapters;
-        expect(chapters.length, greaterThanOrEqualTo(2));
-        expect(chapters[0].title, contains('中文版自序'));
-        expect(chapters[1].title, contains('韩文版自序'));
-        expect(chapters[0].endIndex, lessThan(chapters[1].endIndex));
+        expect(huozheChapters.length, greaterThanOrEqualTo(2));
+        expect(huozheChapters[0].title, contains('中文版自序'));
+        expect(huozheChapters[1].title, contains('韩文版自序'));
+        expect(huozheChapters[0].endIndex, lessThan(huozheChapters[1].endIndex));
       });
 
       test('paginateChapter produces at least 1 descriptor', () async {
@@ -282,28 +332,30 @@ void main() {
 
       group('Real book (活着.epub)', () {
         late String huozheEpubPath;
-        late ParseResult huozheEpubResult;
+        late List<Chapter> huozheEpubChapters;
         late String huozheEpubBookId;
 
         setUpAll(() async {
           huozheEpubPath = await copyFixtureFile('活着.epub');
           final result = await parseTestBook(huozheEpubPath);
-          huozheEpubResult = result.$1;
+          huozheEpubBookId = result.$1;
           huozheEpubPath = result.$2;
-          huozheEpubBookId = huozheEpubResult.bookInfo.bookId;
+          huozheEpubChapters =
+              await chapter_api.listChaptersByBook(bookId: huozheEpubBookId);
         });
 
         tearDownAll(() async {
           await deleteTestBook(huozheEpubBookId);
         });
 
-        test('parses without error and has valid metadata', () {
-          expect(huozheEpubResult.bookInfo.title, isNotEmpty);
-          expect(huozheEpubResult.chapters.length, greaterThanOrEqualTo(1));
+        test('parses without error and has valid metadata', () async {
+          final book = await book_api.getBook(bookId: huozheEpubBookId);
+          expect(book!.title, isNotEmpty);
+          expect(huozheEpubChapters.length, greaterThanOrEqualTo(1));
         });
 
         test('chapter bounds are valid', () {
-          for (final c in huozheEpubResult.chapters) {
+          for (final c in huozheEpubChapters) {
             expect(c.startIndex, greaterThanOrEqualTo(0));
             expect(
               c.endIndex,
@@ -356,28 +408,29 @@ void main() {
 
       group('Real book (mixed_content.md)', () {
         late String mdPath;
-        late ParseResult mdResult;
+        late List<Chapter> mdChapters;
         late String mdBookId;
 
         setUpAll(() async {
           mdPath = await copyFixtureFile('mixed_content.md');
           final result = await parseTestBook(mdPath);
-          mdResult = result.$1;
+          mdBookId = result.$1;
           mdPath = result.$2;
-          mdBookId = mdResult.bookInfo.bookId;
+          mdChapters = await chapter_api.listChaptersByBook(bookId: mdBookId);
         });
 
         tearDownAll(() async {
           await deleteTestBook(mdBookId);
         });
 
-        test('parses without error and has valid metadata', () {
-          expect(mdResult.bookInfo.title, isNotEmpty);
-          expect(mdResult.chapters.length, greaterThanOrEqualTo(1));
+        test('parses without error and has valid metadata', () async {
+          final book = await book_api.getBook(bookId: mdBookId);
+          expect(book!.title, isNotEmpty);
+          expect(mdChapters.length, greaterThanOrEqualTo(1));
         });
 
         test('chapter bounds are valid', () {
-          for (final c in mdResult.chapters) {
+          for (final c in mdChapters) {
             expect(c.startIndex, greaterThanOrEqualTo(0));
             expect(
               c.endIndex,
@@ -389,7 +442,7 @@ void main() {
         });
 
         test('chapter titles match H2 headings', () {
-          final titles = mdResult.chapters.map((c) => c.title).toList();
+          final titles = mdChapters.map((c) => c.title).toList();
           expect(titles.length, 5);
           expect(titles[0], '前言');
           expect(titles[1], '代码块示例');

@@ -1,92 +1,88 @@
-import 'dart:async';
-
-import 'package:async/async.dart';
-import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
-import 'package:zephyr_reader/src/rust/api/search.dart' as search_api;
+import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
+import 'package:zephyr_reader/features/reader/core/application/auto_scroll_controller.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_loader.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_navigator.dart';
+import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
+import 'package:zephyr_reader/features/reader/core/application/search_index_lifecycle.dart';
+import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 
-import '../../../core/reader/reader_config.dart';
-import '../domain/reader_repository_interface.dart';
-import 'reader_page_state.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
 
 /// 章节视图模型
 ///
-/// 管理书籍/章节加载、分页导航、布局参数、自动滚动和搜索索引生命周期。
+/// Facade：委托给 ChapterLoader、PaginationCoordinator、ChapterNavigator、
+/// AutoScrollController 和 SearchIndexLifecycle。
 /// 不持有 UI 面板状态（由 ReaderViewModel Facade 协调）。
 class ChapterViewModel {
-  final ReaderRepositoryInterface _repo;
-  final ReaderConfig _config;
   final ReaderPageState _pageState;
 
-  ChapterViewModel(this._repo, this._config, this._pageState);
+  late final PaginationCoordinator _pagination;
+  late final ChapterLoader _loader;
+  late final SearchIndexLifecycle _searchIndex;
+  late final ChapterNavigator _navigator;
+  late final AutoScrollController _autoScroll;
+
+  ChapterViewModel(
+    ReaderRepositoryInterface repo,
+    ReaderConfig config,
+    ReaderPageState pageState,
+  ) : _pageState = pageState {
+    _pageState.bookId.value = '0';
+    _pagination = PaginationCoordinator(repo, config, pageState);
+    _loader = ChapterLoader(repo, config, pageState, _pagination);
+    _searchIndex = SearchIndexLifecycle(pageState, _loader.chapters);
+    _loader.scheduleSearchIndex = _searchIndex.scheduleIndex;
+    _navigator = ChapterNavigator(
+      repo,
+      config,
+      pageState,
+      _loader,
+      _pagination,
+      _loader.chapters,
+      _loader.totalPages,
+      _loader.pageIndex,
+    );
+    _loader.preloadAdjacentFirstPages = _navigator.preloadAdjacentFirstPages;
+    _autoScroll = AutoScrollController(config);
+  }
 
   /// 测试用 — 暴露共享状态供测试断言。
   ReaderPageState get pageState => _pageState;
 
-  // ==================== 章节列表 ====================
+  // ==================== 委托信号 ====================
 
-  /// 章节列表
-  final chapters = asyncSignal<List<Chapter>>(AsyncState.data([]));
+  AsyncSignal<List<Chapter>> get chapters => _loader.chapters;
+  Signal<int> get totalPages => _loader.totalPages;
+  Signal<int> get pageIndex => _loader.pageIndex;
+  Signal<bool> get isLoading => _loader.isLoading;
+  Signal<String?> get error => _loader.error;
+  Signal<ChapterLoadPhase> get loadPhase => _loader.loadPhase;
+  Signal<int> get autoScrollTick => _autoScroll.autoScrollTick;
 
-  /// 总页数（分页模式）
-  final totalPages = signal<int>(0);
+  // ==================== 布局参数（委托 PaginationCoordinator）====================
 
-  /// 当前页码
-  final pageIndex = signal<int>(0);
+  double get pageWidth => _pagination.pageWidth;
+  set pageWidth(double value) => _pagination.pageWidth = value;
 
-  // ==================== UI 加载状态 ====================
+  double get pageHeight => _pagination.pageHeight;
+  set pageHeight(double value) => _pagination.pageHeight = value;
 
-  /// 是否正在加载
-  final isLoading = signal<bool>(false);
-
-  /// 错误信息
-  final error = signal<String?>(null);
-
-  // ==================== 布局参数 ====================
-
-  /// 页面宽度（逻辑像素）
-  double pageWidth = 400;
-
-  /// 页面高度（逻辑像素）
-  double pageHeight = 600;
-
-  /// 设备像素比，用于 dp → px 转换
-  double devicePixelRatio = 1.0;
-
-  /// 字符宽度校准数据（首次排版前测量一次，缓存复用）
-  final _calibration = signal<CalibrationData?>(null);
-
-  /// 当前字体系列名（由 FontRepository 提供）
-  String _fontFamily = 'Noto Sans SC';
-
-  // ==================== 搜索索引生命周期 ====================
-
-  /// 章节全文索引操作，防止并发堆积
-  CancelableOperation<void>? _searchIndexOperation;
-
-  // ==================== 自动滚动 ====================
-
-  /// 自动滚动触发器
-  final autoScrollTick = signal<int>(0);
-
-  Timer? _autoScrollTimer;
+  double get devicePixelRatio => _pagination.devicePixelRatio;
+  set devicePixelRatio(double value) => _pagination.devicePixelRatio = value;
 
   // ==================== 计算信号 ====================
 
-  /// 获取阅读进度百分比
   late final ReadonlySignal<String> progressText = computed(() {
     final totalChapters = chapters.value.value?.length ?? 0;
     if (totalChapters == 0) return '0%';
-    final chapterProgress = (_pageState.chapterIndex.value + 1) / totalChapters;
+    final chapterProgress =
+        (_pageState.chapterIndex.value + 1) / totalChapters;
     return '${(chapterProgress * 100).toStringAsFixed(1)}%';
   });
 
-  /// 获取当前章节标题
   late final ReadonlySignal<String> currentChapterTitle = computed(() {
     final chapterList = chapters.value.value ?? [];
     if (_pageState.chapterIndex.value >= 0 &&
@@ -96,502 +92,63 @@ class ChapterViewModel {
     return '';
   });
 
-  static const int _preloadCount = 3;
-
   // ==================== 字体与校准 ====================
 
-  /// 设置字体信息并重新校准
-  void updateFont(String fontFamily) {
-    _fontFamily = fontFamily;
-    _calibration.value = null; // 字体变化后校准失效
-  }
+  void updateFont(String fontFamily) => _loader.updateFont(fontFamily);
 
-  // ==================== 章节加载 ====================
+  // ==================== 章节加载（委托 ChapterLoader）====================
 
-  /// 加载章节列表
-  Future<void> loadChapters() async {
-    chapters.value = AsyncState.loading();
-    try {
-      final data = await _repo.getChapters(_pageState.bookId.value);
-      chapters.value = AsyncState.data(data);
-    } catch (e) {
-      chapters.value = AsyncState.error(e);
-      rethrow;
-    }
-  }
+  Future<void> loadChapters() => _loader.loadChapters();
+  Future<void> loadLastProgress() => _loader.loadLastProgress();
 
-  /// 加载上次的阅读进度
-  Future<void> loadLastProgress() async {
-    try {
-      final progress = await _repo.loadReadingProgress(_pageState.bookId.value);
-      if (progress != null) {
-        _pageState.chapterIndex.value = progress.chapterIndex;
-        _pageState.currentCharOffset.value = progress.charOffset;
-      }
-    } catch (e) {
-      Logging.error('Failed to load reading progress', exception: e);
-    }
-  }
-
-  /// 加载章节内容
-  ///
-  /// [onChapterLoaded] 在章节内容和分页完成后调用（用于 VM 加载高亮）。
   Future<void> loadChapter(
     int chapterIndex, {
     int initialCharOffset = 0,
     bool restartSession = true,
     Future<void> Function()? onChapterLoaded,
-
-    /// 跨章节翻页时保留当前内容，不显示 loading 状态。
     bool preserveContent = false,
-  }) async {
-    final sw = Stopwatch()..start();
-    if (!preserveContent) {
-      _pageState.chapterContent.value = AsyncState.loading();
-      isLoading.value = true;
-    }
-
-    try {
-      // █ 启动后台 futures（不等待）█
-      final contentFuture = _repo.loadChapterContent(
-        _pageState.bookId.value,
+  }) =>
+      _loader.loadChapter(
         chapterIndex,
-        readingMode: _pageState.readingMode.value,
+        initialCharOffset: initialCharOffset,
+        restartSession: restartSession,
+        onChapterLoaded: onChapterLoaded,
+        preserveContent: preserveContent,
       );
 
-      final calibFuture = _calibration.value != null
-          ? Future<CalibrationData?>.value(_calibration.value)
-          : calibrateSafely(
-              fontSize: _config.fontSize.value,
-              devicePixelRatio: devicePixelRatio,
-              fontFamily: _fontFamily,
-            );
+  // ==================== 章节导航（委托 ChapterNavigator）====================
 
-      // _postLoadTasks 不阻塞关键路径，内容就绪立即触发
-      unawaited(contentFuture.then((c) => _postLoadTasks(chapterIndex, c)));
+  Future<void> previousChapter() => _navigator.previousChapter();
+  Future<void> nextChapter() => _navigator.nextChapter();
+  Future<void> jumpToChapter(int chapterIndex) =>
+      _navigator.jumpToChapter(chapterIndex);
+  Future<void> jumpToPosition(int chapterIndex, int charOffset) =>
+      _navigator.jumpToPosition(chapterIndex, charOffset);
 
-      // █ 快速读取首屏（~100ms）█
-      final firstText = await _repo.loadChapterFirstSpine(
-        _pageState.bookId.value,
-        chapterIndex,
-      );
+  // ==================== 页面导航（委托 ChapterNavigator）====================
 
-      // █ 首屏就绪 → 立即渲染 █
-      final firstPages = _repo.paginateApproximate(
-        firstText,
-        fontSize: _config.fontSize.value,
-        lineHeight: _config.lineHeight.value,
-        width: pageWidth,
-        height: pageHeight,
-        padding: _config.padding.value,
-      );
+  Future<void> previousPage() => _navigator.previousPage();
+  Future<void> nextPage() => _navigator.nextPage();
+  void loadPage(int pageIndex) => _navigator.loadPage(pageIndex);
+  void updateCurrentCharOffset(int charOffset) =>
+      _navigator.updateCurrentCharOffset(charOffset);
+  void consumePendingJumpOffset() => _navigator.consumePendingJumpOffset();
 
-      _repo.currentPages = firstPages;
-      if (firstPages.isNotEmpty) {
-        _repo.warmPageCache(firstPages[0].pageIndex, firstPages[0].content);
-      }
+  // ==================== 自动滚动（委托 AutoScrollController）====================
 
-      // 首屏就绪后立即启动相邻章节的首页预加载（不阻塞后续渲染）
-      unawaited(_preloadAdjacentFirstPages(chapterIndex));
-
-      _pageState.chapterContent.value = AsyncState.data(firstText);
-      totalPages.value = firstPages.length;
-      _pageState.chapterIndex.value = chapterIndex;
-      _pageState.currentCharOffset.value = initialCharOffset.clamp(
-        0,
-        firstText.length,
-      );
-      pageIndex.value = PaginationEngine.resolvePageIndexFromPageInfo(
-        firstPages,
-        _pageState.currentCharOffset.value,
-      );
-      _pageState.pendingJumpCharOffset.value =
-          _pageState.currentCharOffset.value;
-      error.value = null;
-
-      // 取消骨架屏
-      isLoading.value = false;
-
-      final tFast = sw.elapsedMilliseconds;
-      Logging.info('[Timing] firstSpine: ${tFast}ms');
-
-      // █ 快速局部分页（~300ms，只转换必要 spine）█
-      // 让用户在等全文时就可以翻页
-      final tPartialStart = sw.elapsedMilliseconds;
-      final partialResult = await _repo.paginateChapterPartial(
-        bookId: _pageState.bookId.value,
-        chapterIndex: chapterIndex,
-        params: PaginationParams(
-          fontSize: _config.fontSize.value,
-          lineHeight: _config.lineHeight.value,
-          width: pageWidth,
-          height: pageHeight,
-          padding: _config.padding.value,
-          devicePixelRatio: devicePixelRatio,
-          calibration: _calibration.value,
-          fontFamily: _fontFamily,
-          letterSpacing: _config.letterSpacing.value,
-          paragraphSpacing: _config.paragraphSpacing.value,
-          punctuationSqueeze: _config.punctuationSqueeze.value,
-          firstLineIndent: _config.firstLineIndent.value,
-          enableHyphenation: _config.enableHyphenation.value,
-          language: _config.language.value,
-          autoSpaceRatio: _config.autoSpaceRatio.value,
-        ),
-      );
-      final partialTotal = partialResult.totalPages;
-      if (partialTotal > 0) {
-        final partialDesc = _repo.descriptors;
-        if (partialDesc != null && partialDesc.isNotEmpty) {
-          totalPages.value = partialTotal;
-          pageIndex.value = PaginationEngine.resolvePageIndexForOffset(
-            partialDesc,
-            _pageState.currentCharOffset.value,
-          );
-          _repo.ensurePageWindow(pageIndex.value);
-        }
-      }
-      Logging.info(
-        '[Timing] partialPaginate: '
-        '${sw.elapsedMilliseconds - tPartialStart}ms',
-      );
-
-      // 如果 partial 已经完整（isPartial=false，章节 <= 50K 字符），跳过后续 full 分页
-      Future<int>? fullPaginateFuture;
-      if (partialResult.isPartial) {
-        // █ 需要完整分页 → 立即发起（与 contentFuture/calibFuture 并行）█
-        fullPaginateFuture = _repo.paginateChapter(
-          bookId: _pageState.bookId.value,
-          chapterIndex: chapterIndex,
-          params: PaginationParams(
-            fontSize: _config.fontSize.value,
-            lineHeight: _config.lineHeight.value,
-            width: pageWidth,
-            height: pageHeight,
-            padding: _config.padding.value,
-            devicePixelRatio: devicePixelRatio,
-            calibration: _calibration.value,
-            fontFamily: _fontFamily,
-            letterSpacing: _config.letterSpacing.value,
-            paragraphSpacing: _config.paragraphSpacing.value,
-            punctuationSqueeze: _config.punctuationSqueeze.value,
-            firstLineIndent: _config.firstLineIndent.value,
-            enableHyphenation: _config.enableHyphenation.value,
-            language: _config.language.value,
-            autoSpaceRatio: _config.autoSpaceRatio.value,
-          ),
-        );
-      }
-
-      // █ 等待后台：全文 + 校准 █
-      final results = await Future.wait([contentFuture, calibFuture]);
-      final tConcurrent = sw.elapsedMilliseconds;
-      Logging.info(
-        '[Timing] concurrent (content+calibration): ${tConcurrent - tFast}ms',
-      );
-
-      final content = results[0] as String;
-      _calibration.value ??= results[1] as CalibrationData?;
-
-      int total;
-      if (partialResult.isPartial) {
-        // █ 等待完整分页（如果尚未完成）█
-        final tBeforePaginate = sw.elapsedMilliseconds;
-        total = await fullPaginateFuture!;
-        final tPaginate = sw.elapsedMilliseconds;
-        Logging.info(
-          '[Timing] paginateChapter: ${tPaginate - tBeforePaginate}ms (cumulative: ${tPaginate}ms)',
-        );
-      } else {
-        // partial 已是完整分页
-        total = partialTotal;
-        Logging.info(
-          '[Timing] paginateChapter: skipped (partial covered full content, '
-          '$partialTotal pages)',
-        );
-      }
-
-      final descriptors = _repo.descriptors;
-      if (total == 0 || descriptors == null || descriptors.isEmpty) {
-        // █ Rust 分页失败，回退到 Dart 估算分页 █
-        Logging.warning(
-          'loadChapter: Rust pagination fallback, using Dart approximate',
-        );
-        final pages = await _repo.calculatePages(
-          bookId: _pageState.bookId.value,
-          chapterId: chapterIndex,
-          fontSize: _config.fontSize.value,
-          lineHeight: _config.lineHeight.value,
-          width: pageWidth,
-          height: pageHeight,
-          padding: _config.padding.value,
-        );
-
-        _pageState.chapterContent.value = AsyncState.data(content);
-        totalPages.value = pages.length;
-        _pageState.currentCharOffset.value = initialCharOffset.clamp(
-          0,
-          content.length,
-        );
-        pageIndex.value = PaginationEngine.resolvePageIndexFromPageInfo(
-          pages,
-          _pageState.currentCharOffset.value,
-        );
-        _pageState.pendingJumpCharOffset.value =
-            _pageState.currentCharOffset.value;
-        error.value = null;
-
-        // 确保当前页内容已缓存
-        _repo.ensurePageWindow(pageIndex.value);
-
-        Logging.debug(
-          'loadChapter (fallback): pages=${pages.length} '
-          'resolvePage=$pageIndex off=${_pageState.currentCharOffset.value}',
-        );
-      } else {
-        _pageState.chapterContent.value = AsyncState.data(content);
-        totalPages.value = total;
-        _pageState.currentCharOffset.value = initialCharOffset.clamp(
-          0,
-          content.length,
-        );
-        pageIndex.value = PaginationEngine.resolvePageIndexForOffset(
-          descriptors,
-          _pageState.currentCharOffset.value,
-        );
-        _pageState.pendingJumpCharOffset.value =
-            _pageState.currentCharOffset.value;
-        error.value = null;
-
-        // 确保当前页内容已缓存
-        _repo.ensurePageWindow(pageIndex.value);
-
-        Logging.debug(
-          'loadChapter: pages=${descriptors.length} '
-          'resolvePage=$pageIndex off=${_pageState.currentCharOffset.value}',
-        );
-      }
-
-      final tDone = sw.elapsedMilliseconds;
-      Logging.info('[Timing] loadChapter total: ${tDone}ms');
-
-      // 回调：加载高亮等 VM 层数据
-      if (onChapterLoaded != null) {
-        await onChapterLoaded();
-      }
-    } catch (e) {
-      _pageState.chapterContent.value = AsyncState.error(e);
-      error.value = AppErrorMapper.humanReadable(e);
-      Logging.error('ChapterManager.loadChapter error', exception: e);
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> _postLoadTasks(int chapterIndex, String content) async {
-    await _searchIndexOperation?.cancel();
-    _searchIndexOperation = CancelableOperation.fromFuture(
-      _indexForSearch(chapterIndex, content),
-      onCancel: () => Logging.debug('_searchIndexOperation cancelled'),
-    );
-    unawaited(_prefetchChapters(chapterIndex));
-  }
-
-  /// 加载指定页（不保存进度 — 由调用方负责）
-  void loadPage(int pageIndex) {
-    if (pageIndex < 0 || pageIndex > totalPages.value) return;
-    this.pageIndex.value = pageIndex;
-
-    // 从新版 descriptors 获取偏移
-    final descriptors = _repo.descriptors;
-    if (descriptors != null && pageIndex < descriptors.length) {
-      _pageState.currentCharOffset.value = descriptors[pageIndex].startOffset;
-    } else {
-      // 回退到旧版 currentPages
-      final pages = _repo.currentPages;
-      if (pages != null && pageIndex < pages.length) {
-        _pageState.currentCharOffset.value = pages[pageIndex].startOffset;
-      }
-    }
-
-    // 确保周围页面内容已缓存
-    _repo.ensurePageWindow(pageIndex);
-  }
-
-  /// 预加载前后章节到缓存（限制并发数为 2，避免堆积）。
-  Future<void> _prefetchChapters(int centerIndex) async {
-    final chapterList = chapters.value.value ?? [];
-    if (chapterList.isEmpty) return;
-
-    final start = (centerIndex - _preloadCount).clamp(
-      0,
-      chapterList.length - 1,
-    );
-    final end = (centerIndex + _preloadCount).clamp(0, chapterList.length - 1);
-
-    final indices = <int>[];
-    for (int i = start; i <= end; i++) {
-      if (i != centerIndex) indices.add(i);
-    }
-    // 批次限制并发数为 2，减轻 Rust 层压力
-    const batchSize = 2;
-    for (int b = 0; b < indices.length; b += batchSize) {
-      final batch = indices.skip(b).take(batchSize);
-      await Future.wait(
-        batch.map(
-          (i) => _repo
-              .preloadChapter(_pageState.bookId.value, i)
-              .catchError((_) {}),
-        ),
-      );
-    }
-  }
-
-  /// 预加载相邻章节的首页文本内容（当前章节 +1 / -1），用于跨章节翻页。
-  Future<void> _preloadAdjacentFirstPages(int centerIndex) async {
-    final chapterList = chapters.value.value ?? [];
-    if (chapterList.isEmpty) return;
-    if (centerIndex + 1 < chapterList.length) {
-      final nextIdx = centerIndex + 1;
-      await _repo.preloadNextChapterFirstPage(
-        _pageState.bookId.value,
-        nextIdx,
-        fontSize: _config.fontSize.value,
-        lineHeight: _config.lineHeight.value,
-        width: pageWidth,
-        height: pageHeight,
-        padding: _config.padding.value,
-      );
-    }
-  }
-
-  /// 将章节内容索引到 FTS5（不阻塞 UI，失败静默忽略）
-  Future<void> _indexForSearch(int chapterIndex, String content) async {
-    try {
-      final chapterList = chapters.value.value ?? [];
-      final title =
-          chapterList
-              .where((c) => c.chapterIndex == chapterIndex)
-              .firstOrNull
-              ?.title ??
-          '';
-      await search_api.indexChapter(
-        bookId: _pageState.bookId.value,
-        chapterId: '${_pageState.bookId.value}_$chapterIndex',
-        chapterIndex: chapterIndex,
-        chapterTitle: title,
-        content: content,
-      );
-    } catch (e) {
-      Logging.error('Failed to build full-text search index', exception: e);
-    }
-  }
-
-  // ==================== 章节导航 ====================
-
-  Future<void> previousChapter() async {
-    if (_pageState.chapterIndex.value > 0) {
-      final newChapterIndex = _pageState.chapterIndex.value - 1;
-      await loadChapter(newChapterIndex, preserveContent: true);
-      // 向前翻页进入上一章 → 落在末页
-      pageIndex.value = (totalPages.value - 1).clamp(0, 0x7FFFFFFF);
-      // 更新 char offset 到页末尾，确保阅读进度正确
-      final descriptors = _repo.descriptors;
-      if (descriptors != null && pageIndex.value < descriptors.length) {
-        _pageState.currentCharOffset.value =
-            descriptors[pageIndex.value].endOffset;
-      } else if (_repo.currentPages != null &&
-          pageIndex.value < _repo.currentPages!.length) {
-        _pageState.currentCharOffset.value =
-            _repo.currentPages![pageIndex.value].endOffset;
-      }
-    }
-  }
-
-  /// 下一章
-  Future<void> nextChapter() async {
-    final chapterList = chapters.value.value ?? [];
-    if (_pageState.chapterIndex.value < chapterList.length - 1) {
-      final newChapterIndex = _pageState.chapterIndex.value + 1;
-      await loadChapter(newChapterIndex, preserveContent: true);
-    }
-  }
-
-  /// 跳转到指定章节
-  Future<void> jumpToChapter(int chapterIndex) async {
-    await loadChapter(chapterIndex);
-  }
-
-  /// 跳转到指定位置
-  Future<void> jumpToPosition(int chapterIndex, int charOffset) async {
-    await loadChapter(chapterIndex, initialCharOffset: charOffset);
-  }
-
-  // ==================== 页面导航 ====================
-
-  /// 上一页（支持跨章节连续翻页）
-  Future<void> previousPage() async {
-    if (pageIndex.value > 0) {
-      loadPage(pageIndex.value - 1);
-    } else {
-      await previousChapter();
-    }
-  }
-
-  /// 下一页（支持跨章节连续翻页）
-  Future<void> nextPage() async {
-    if (pageIndex.value < totalPages.value - 1) {
-      loadPage(pageIndex.value + 1);
-    } else {
-      await nextChapter();
-    }
-  }
-
-  /// 更新当前阅读位置
-  void updateCurrentCharOffset(int charOffset) {
-    final contentLength = _pageState.chapterContent.value.value?.length ?? 0;
-    _pageState.currentCharOffset.value = charOffset.clamp(0, contentLength);
-  }
-
-  /// 消费待消费的跳转目标偏移
-  void consumePendingJumpOffset() {
-    _pageState.pendingJumpCharOffset.value = null;
-  }
-
-  // ==================== 自动滚动 ====================
-
-  void startAutoScroll() {
-    stopAutoScroll();
-    _autoScrollTimer = Timer.periodic(
-      Duration(seconds: _config.autoScrollSpeed.value),
-      (timer) {
-        autoScrollTick.value++;
-      },
-    );
-  }
-
-  void stopAutoScroll() {
-    _autoScrollTimer?.cancel();
-    _autoScrollTimer = null;
-  }
+  void startAutoScroll() => _autoScroll.startAutoScroll();
+  void stopAutoScroll() => _autoScroll.stopAutoScroll();
 
   // ==================== 重置 ====================
 
-  /// 重置所有信号到默认值，取消定时器和搜索索引操作。
   void reset() {
-    stopAutoScroll();
-    _searchIndexOperation?.cancel();
-    _searchIndexOperation = null;
+    _autoScroll.reset();
+    _searchIndex.cancel();
     _pageState.bookId.value = '0';
     _pageState.chapterIndex.value = 0;
-    chapters.value = AsyncState.data([]);
+    _loader.resetSignals();
     _pageState.chapterContent.value = AsyncState.data('');
-    totalPages.value = 0;
-    pageIndex.value = 0;
     _pageState.currentCharOffset.value = 0;
     _pageState.pendingJumpCharOffset.value = null;
-    isLoading.value = false;
-    error.value = null;
-    autoScrollTick.value = 0;
   }
 }

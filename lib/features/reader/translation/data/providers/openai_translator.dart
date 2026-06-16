@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:zephyr_reader/features/reader/domain/translation_service.dart';
-import 'package:zephyr_reader/features/reader/application/translation_config.dart';
+import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart';
+import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart';
 
 /// OpenAI-compatible API 翻译适配器。
 ///

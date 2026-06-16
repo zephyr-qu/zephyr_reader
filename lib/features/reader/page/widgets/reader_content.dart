@@ -1,15 +1,15 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
-import 'package:zephyr_reader/features/reader/page/renderer/reader_render_config.dart';
-import 'package:zephyr_reader/features/reader/page/ui/page_curl_widget.dart';
-import 'package:zephyr_reader/features/reader/page/renderer/paginated_renderer.dart';
+import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/features/reader/rendering/page_curl_widget.dart';
+import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
-import '../../data/repositories/rust_reader_repository.dart';
+import '../../core/data/reader_render_data_source.dart';
 
 /// 阅读内容容器组件。
 ///
@@ -20,7 +20,7 @@ class ReaderContent extends HookWidget {
   final int chapterId;
   final int pageIndex;
   final int totalPages;
-  final ReaderRepository repo;
+  final ReaderRenderDataSource dataSource;
   final ReaderRenderConfig renderConfig;
   final ReadingMode readingMode;
   final String content;
@@ -53,7 +53,7 @@ class ReaderContent extends HookWidget {
 
   const ReaderContent({
     super.key,
-    required this.repo,
+    required this.dataSource,
     required this.bookId,
     required this.chapterId,
     required this.pageIndex,
@@ -83,7 +83,7 @@ class ReaderContent extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final repo = this.repo;
+    final dataSource = this.dataSource;
     final renderConfig = this.renderConfig;
     // 永不重建 PageController — 跨章时手动 jumpToPage(0)
     final pageController = useMemoized(
@@ -218,7 +218,7 @@ class ReaderContent extends HookWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (readingMode == ReadingMode.pagination) {
           // 新版：使用描述符
-          final descriptors = repo.descriptors;
+          final descriptors = dataSource.descriptors;
           if (descriptors != null && descriptors.isNotEmpty) {
             final targetIndex = _indexForCharOffset(
               descriptors,
@@ -233,7 +233,7 @@ class ReaderContent extends HookWidget {
             onPositionChanged?.call(descriptors[targetIndex].startOffset);
           } else {
             // 旧版：使用预计算的全量 PageInfo
-            final pages = repo.currentPages;
+            final pages = dataSource.approximatePages;
             if (pages != null && pages.isNotEmpty) {
               final targetIndex = _indexForCharOffset(
                 pages,
@@ -279,10 +279,10 @@ class ReaderContent extends HookWidget {
         !isLoading &&
         error == null &&
         content.isNotEmpty) {
-      final descriptors = repo.descriptors;
+      final descriptors = dataSource.descriptors;
       // 始终允许跨章节翻页（preload 异步完成后通过 notifier 触发重建更新内容）
       // ignore: unused_local_variable
-      final preloadGen = useListenable(repo.preloadGeneration);
+      final preloadGen = useListenable(dataSource.preloadGeneration);
       final hasNext = hasNextChapter;
       final extendedTotal = totalPages + (hasNext ? 1 : 0);
       Widget pageBuilder(int idx) {
@@ -290,10 +290,9 @@ class ReaderContent extends HookWidget {
         if (idx >= (descriptors?.length ?? totalPages) &&
             hasNext &&
             idx < extendedTotal) {
-          final preloaded = repo.getPreloadedNextChapterContent(chapterId + 1);
+          final preloaded = dataSource.getPreloadedNextChapterContent(chapterId + 1);
           if (preloaded != null) {
-            // 存入 pageCache，使 getPageContent 可查询 → buildSinglePageContent 统一渲染
-            repo.warmPageCache(idx, preloaded);
+            dataSource.warmPageCache(idx, preloaded);
           }
         }
         final startOffset = (descriptors != null && idx < descriptors.length)
@@ -303,7 +302,7 @@ class ReaderContent extends HookWidget {
           context: context,
           pageIndex: idx,
           startOffset: startOffset,
-          repo: repo,
+          dataSource: dataSource,
           config: renderConfig,
           highlights: highlights,
           writingDirection: writingDirection,

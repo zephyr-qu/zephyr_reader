@@ -86,13 +86,10 @@ Future<String> copyFixtureFile(String fixtureName) async {
   return dst.absolute.path;
 }
 
-/// 解析测试文件并返回解析结果。
-///
-/// [filePath] 必须是 [createTestFile] 返回的绝对路径。
-/// 返回 ([ParseResult], filePath) 元组。
-Future<(ParseResult, String)> parseTestBook(String filePath) async {
-  final result = await core_api.parseBook(filePath: filePath);
-  return (result, filePath);
+/// 解析测试文件并返回书籍 ID。
+Future<(String, String)> parseTestBook(String filePath) async {
+  final bookId = await core_api.parseBook(filePath: filePath);
+  return (bookId, filePath);
 }
 
 /// 从数据库中删除指定书籍（清理用）。

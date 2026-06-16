@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:zephyr_reader/features/reader/page/widgets/page_curl_widget.dart';
+import 'package:zephyr_reader/features/reader/rendering/page_curl_widget.dart';
 
 /// 构建测试用 PageCurlWidget 包装
 Widget _buildCurlApp({

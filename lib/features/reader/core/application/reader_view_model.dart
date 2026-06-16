@@ -8,15 +8,17 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-import '../../../core/reader/reader_config.dart';
-import '../domain/reader_repository_interface.dart';
-import '../data/repositories/rust_reader_repository.dart';
+import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart';
+import 'package:zephyr_reader/features/reader/annotations/application/bookmark_view_model.dart';
+import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
+import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
+import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart';
+import 'package:zephyr_reader/features/reader/translation/application/translation_view_model.dart';
+import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart';
 import 'chapter_view_model.dart';
-import 'reading_session_manager.dart';
-import 'bookmark_view_model.dart';
-import 'annotation_view_model.dart';
 import 'reader_page_state.dart';
-import 'translation_view_model.dart';
+import 'reading_session_manager.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 
 /// 阅读器视图模型 — Facade
@@ -27,7 +29,7 @@ import 'package:zephyr_reader/di/service_locator.dart';
 /// 书签 → BookmarkViewModel。
 /// 划词批注 → AnnotationViewModel。
 /// 翻译/双语 → TranslationViewModel。
-@lazySingleton
+@injectable
 class ReaderViewModel {
   final ReaderRepositoryInterface _repo;
   final ReaderConfig _config;
@@ -55,14 +57,23 @@ class ReaderViewModel {
 
   final ReaderPageState state = ReaderPageState();
 
-  ReaderViewModel({ReaderRepository? repo, ReaderConfig? config})
+  ReaderViewModel({
+    ReaderRepository? repo,
+    ReaderConfig? config,
+    TranslationConfig? translationConfig,
+    TranslationService? translationService,
+  })
     : _repo = repo ?? getIt<ReaderRepository>(),
       _config = config ?? getIt<ReaderConfig>() {
     chapterManager = ChapterViewModel(_repo, _config, state);
     sessionManager = ReadingSessionManager(state, chapterManager);
     bookmarks = BookmarkViewModel(state);
     annotations = AnnotationViewModel(state);
-    translation = TranslationViewModel(state);
+    translation = TranslationViewModel(
+      state,
+      config: translationConfig,
+      service: translationService,
+    );
   }
 
   // ==================== 编排方法 ====================

@@ -5,7 +5,7 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
 import 'package:zephyr_reader/src/rust/api/data/session.dart' as session_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'reader_page_state.dart';
+import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
 
 import 'chapter_view_model.dart';
 

@@ -1,5 +1,7 @@
 use parking_lot::Mutex;
+use std::collections::HashMap;
 use std::num::NonZeroUsize;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, LazyLock};
 
 pub(crate) use crate::domain::{AppError, TypesetConfig};
@@ -68,6 +70,41 @@ const STREAMER_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(4) {
 static STREAMER_CACHE: LazyLock<Mutex<LruCache<StreamerKey, PageStreamer>>> =
     LazyLock::new(|| Mutex::new(LruCache::new(STREAMER_CACHE_CAPACITY)));
 
+// ==================== Pagination Session ====================
+
+/// Handle to a server-side pagination session (file/chapter/config binding).
+#[derive(Debug, Clone)]
+#[frb]
+pub struct PaginationSessionHandle {
+    pub session_id: u64,
+}
+
+#[derive(Clone)]
+struct PaginationSessionEntry {
+    file_path: String,
+    chapter_index: i32,
+    config_hash: u64,
+    config: TypesetConfig,
+}
+
+static NEXT_SESSION_ID: AtomicU64 = AtomicU64::new(1);
+
+static SESSION_MAP: LazyLock<Mutex<HashMap<u64, PaginationSessionEntry>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+fn allocate_session_id() -> u64 {
+    NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed)
+}
+
+fn lookup_pagination_session(session_id: u64) -> Result<PaginationSessionEntry, AppError> {
+    SESSION_MAP
+        .lock()
+        .get(&session_id)
+        .cloned()
+        .ok_or_else(|| AppError::NotFound {
+            entity: format!("pagination session {session_id}"),
+        })
+}
 
 // ==================== Book ID 路径缓存 ====================
 
@@ -640,6 +677,93 @@ pub fn get_page_content(
         }
     }
     String::new()
+}
+
+/// Create a pagination session and run initial pagination for the chapter.
+///
+/// Stores `(file_path, chapter_index, config_hash)` server-side so Dart can
+/// fetch page text via [get_session_page_content] without repeating path/config args.
+#[frb]
+pub async fn create_pagination_session(
+    file_path: String,
+    chapter_index: i32,
+    config: TypesetConfig,
+    max_chars: Option<u64>,
+) -> Result<(PaginationSessionHandle, PaginateResult), AppError> {
+    let validated_path = validate_file_path(&file_path)?;
+    let config = config.validate_and_fix();
+    let result = paginate_chapter(
+        validated_path.clone(),
+        chapter_index,
+        config.clone(),
+        max_chars,
+    )
+    .await?;
+
+    let session_id = allocate_session_id();
+    SESSION_MAP.lock().insert(
+        session_id,
+        PaginationSessionEntry {
+            file_path: validated_path,
+            chapter_index,
+            config_hash: result.config_hash,
+            config,
+        },
+    );
+
+    Ok((PaginationSessionHandle { session_id }, result))
+}
+
+/// Re-paginate the full chapter content for an existing session.
+#[frb]
+pub async fn paginate_session_full(
+    handle: PaginationSessionHandle,
+) -> Result<PaginateResult, AppError> {
+    let entry = lookup_pagination_session(handle.session_id)?;
+    let result = paginate_chapter(
+        entry.file_path.clone(),
+        entry.chapter_index,
+        entry.config.clone(),
+        None,
+    )
+    .await?;
+
+    SESSION_MAP.lock().insert(
+        handle.session_id,
+        PaginationSessionEntry {
+            config_hash: result.config_hash,
+            ..entry
+        },
+    );
+
+    Ok(result)
+}
+
+/// Fetch a single page's text using the session's stored file/chapter/config key.
+#[frb(sync)]
+pub fn get_session_page_content(
+    handle: PaginationSessionHandle,
+    page_index: i32,
+) -> Result<String, AppError> {
+    let entry = lookup_pagination_session(handle.session_id)?;
+    Ok(get_page_content(
+        entry.file_path,
+        entry.chapter_index,
+        entry.config_hash,
+        page_index,
+    ))
+}
+
+/// Remove a pagination session and release its server-side binding.
+#[frb(sync)]
+pub fn dispose_pagination_session(handle: PaginationSessionHandle) -> Result<(), AppError> {
+    SESSION_MAP
+        .lock()
+        .remove(&handle.session_id)
+        .ok_or_else(|| AppError::NotFound {
+            entity: format!("pagination session {}", handle.session_id),
+        })?;
+    Ok(())
 }
 
 // ==================== Provider 管理 ====================

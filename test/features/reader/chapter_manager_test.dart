@@ -1,4 +1,4 @@
-import 'dart:ui' show TextAlign;
+﻿import 'dart:ui' show TextAlign;
 
 import 'dart:async';
 
@@ -9,13 +9,14 @@ import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
-import 'package:zephyr_reader/features/reader/application/chapter_view_model.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
-import 'package:zephyr_reader/features/reader/application/reader_page_state.dart';
+import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
 
 import '../../helpers/fixtures.dart';
 
@@ -25,6 +26,13 @@ class _MockRepo extends Mock implements ReaderRepository {}
 
 class _MockSharedPreferences extends Mock implements PreferencesService {
   _MockSharedPreferences() {
+    when(() => getDouble(any(), defaultValue: any(named: 'defaultValue')))
+        .thenAnswer((invocation) => invocation.namedArguments[#defaultValue] as double);
+    when(() => getInt(any(), defaultValue: any(named: 'defaultValue')))
+        .thenAnswer((invocation) => invocation.namedArguments[#defaultValue] as int);
+    when(() => getBool(any(), defaultValue: any(named: 'defaultValue')))
+        .thenAnswer((invocation) => invocation.namedArguments[#defaultValue] as bool);
+    when(() => getString(any())).thenReturn(null);
     when(() => setDouble(any(), any())).thenAnswer((_) async => true);
     when(() => setBool(any(), any())).thenAnswer((_) async => true);
     when(() => setInt(any(), any())).thenAnswer((_) async => true);
@@ -506,6 +514,75 @@ void main() {
       });
     });
 
+    group('loadChapter 竞态', () {
+      test('快速连续换章最终以最后一章为准', () async {
+        var callbackCount = 0;
+
+        when(
+          () => repo.loadChapterFirstSpine(any(), any()),
+        ).thenAnswer((invocation) async {
+          final chapterIndex = invocation.positionalArguments[1] as int;
+          return 'C' * (chapterIndex + 1) * 10;
+        });
+
+        final first = manager.loadChapter(
+          0,
+          onChapterLoaded: () async {
+            callbackCount++;
+          },
+        );
+        final second = manager.loadChapter(
+          1,
+          onChapterLoaded: () async {
+            callbackCount++;
+          },
+        );
+        await Future.wait([first, second]);
+
+        expect(manager.pageState.chapterIndex.value, 1);
+        expect(callbackCount, 1);
+        expect(manager.loadPhase.value, ChapterLoadPhase.idle);
+      });
+
+      test('partial 分页延迟期间新 load 不覆盖信号', () async {
+        final partialGate = Completer<void>();
+
+        when(
+          () => repo.paginateChapterPartial(
+            bookId: any(named: 'bookId'),
+            chapterIndex: any(named: 'chapterIndex'),
+            params: any(named: 'params'),
+          ),
+        ).thenAnswer((invocation) async {
+          final chapterIndex =
+              invocation.namedArguments[#chapterIndex] as int;
+          if (chapterIndex == 0) {
+            await partialGate.future;
+            return (totalPages: 99, isPartial: false);
+          }
+          return (totalPages: 2, isPartial: false);
+        });
+
+        when(
+          () => repo.loadChapterFirstSpine(any(), any()),
+        ).thenAnswer((invocation) async {
+          final chapterIndex = invocation.positionalArguments[1] as int;
+          return 'A' * (100 + chapterIndex);
+        });
+
+        final load0 = manager.loadChapter(0);
+        await Future<void>.delayed(Duration.zero);
+        final load1 = manager.loadChapter(1);
+        await load1;
+        partialGate.complete();
+        await load0;
+
+        expect(manager.pageState.chapterIndex.value, 1);
+        expect(manager.totalPages.value, 2);
+        expect(manager.loadPhase.value, ChapterLoadPhase.idle);
+      });
+    });
+
     // ==================== 章节导航 ====================
 
     group('章节导航', () {
@@ -778,6 +855,7 @@ void main() {
         expect(manager.pageState.pendingJumpCharOffset.value, null);
         expect(manager.isLoading.value, false);
         expect(manager.error.value, null);
+        expect(manager.loadPhase.value, ChapterLoadPhase.idle);
         expect(manager.autoScrollTick.value, 0);
       });
     });

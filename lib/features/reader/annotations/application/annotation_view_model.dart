@@ -1,8 +1,7 @@
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/features/reader/page/renderer/highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'reader_page_state.dart';
+import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
 
 /// 划词批注视图模型。
 ///
@@ -43,7 +42,6 @@ class AnnotationViewModel {
     } catch (_) {
       highlights.value = AsyncState.data([]);
     }
-    HighlightPainter.invalidateCache();
   }
 
   /// 更新当前选中的文本范围和内容。
