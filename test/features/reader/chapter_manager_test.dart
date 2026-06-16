@@ -240,7 +240,6 @@ ChapterViewModel createManager({ReaderRepository? repo, ReaderConfig? config}) {
   return ChapterViewModel(
     repo ?? _MockRepo(),
     config ?? _MockConfig(),
-    ReaderPageState(),
   );
 }
 
@@ -392,12 +391,12 @@ void main() {
 
     group('初始状态', () {
       test('创建时所有信号应有默认值', () {
-        expect(manager.pageState.bookId.value, '0');
-        expect(manager.pageState.chapterIndex.value, 0);
+        expect(manager.bookId.value, '0');
+        expect(manager.chapterIndex.value, 0);
         expect(manager.totalPages.value, 0);
         expect(manager.pageIndex.value, 0);
-        expect(manager.pageState.currentCharOffset.value, 0);
-        expect(manager.pageState.pendingJumpCharOffset.value, null);
+        expect(manager.currentCharOffset.value, 0);
+        expect(manager.pendingJumpCharOffset.value, null);
         expect(manager.isLoading.value, false);
         expect(manager.error.value, null);
         expect(manager.autoScrollTick.value, 0);
@@ -446,19 +445,20 @@ void main() {
       test('成功加载章节并更新分页信号', () async {
         await manager.loadChapter(1);
 
-        expect(manager.pageState.chapterIndex.value, 1);
+        expect(manager.chapterIndex.value, 1);
         expect(manager.totalPages.value, 2);
         expect(manager.pageIndex.value, 0);
-        expect(manager.pageState.currentCharOffset.value, 0);
-        expect(manager.pageState.pendingJumpCharOffset.value, 0);
+        expect(manager.currentCharOffset.value, 0);
+        expect(manager.pendingJumpCharOffset.value, 0);
         expect(manager.error.value, null);
         expect(manager.isLoading.value, false);
+        expect(manager.chapterContent.value.value, equals('A' * 100));
       });
 
       test('initialCharOffset 定位到正确渲染行', () async {
         await manager.loadChapter(0, initialCharOffset: 60);
 
-        expect(manager.pageState.currentCharOffset.value, 60);
+        expect(manager.currentCharOffset.value, 60);
         // offset 60 落在第二页 (startOffset=50, endOffset=100)
         expect(manager.pageIndex.value, 1);
       });
@@ -466,7 +466,7 @@ void main() {
       test('initialCharOffset 超 content 长度时归零到上限', () async {
         await manager.loadChapter(0, initialCharOffset: 9999);
 
-        expect(manager.pageState.currentCharOffset.value, lessThan(101));
+        expect(manager.currentCharOffset.value, lessThan(101));
       });
 
       test('加载失败设置 error 信号', () async {
@@ -592,7 +592,7 @@ void main() {
         );
         await Future.wait([first, second]);
 
-        expect(manager.pageState.chapterIndex.value, 1);
+        expect(manager.chapterIndex.value, 1);
         expect(callbackCount, 1);
         expect(manager.loadPhase.value, ChapterLoadPhase.idle);
       });
@@ -631,7 +631,7 @@ void main() {
         partialGate.complete();
         await load0;
 
-        expect(manager.pageState.chapterIndex.value, 1);
+        expect(manager.chapterIndex.value, 1);
         expect(manager.totalPages.value, 2);
         expect(manager.loadPhase.value, ChapterLoadPhase.idle);
       });
@@ -648,38 +648,38 @@ void main() {
       });
 
       test('previousChapter 在第一章时不移动', () async {
-        manager.pageState.chapterIndex.value = 0;
+        manager.chapterIndex.value = 0;
         await manager.previousChapter();
-        expect(manager.pageState.chapterIndex.value, 0);
+        expect(manager.chapterIndex.value, 0);
       });
 
       test('previousChapter 从第2章移动到第1章', () async {
-        manager.pageState.chapterIndex.value = 1;
+        manager.chapterIndex.value = 1;
         await manager.previousChapter();
-        expect(manager.pageState.chapterIndex.value, 0);
+        expect(manager.chapterIndex.value, 0);
       });
 
       test('nextChapter 在最后一章时不移动', () async {
-        manager.pageState.chapterIndex.value = 4;
+        manager.chapterIndex.value = 4;
         await manager.nextChapter();
-        expect(manager.pageState.chapterIndex.value, 4);
+        expect(manager.chapterIndex.value, 4);
       });
 
       test('nextChapter 从第0章移动到第1章', () async {
-        manager.pageState.chapterIndex.value = 0;
+        manager.chapterIndex.value = 0;
         await manager.nextChapter();
-        expect(manager.pageState.chapterIndex.value, 1);
+        expect(manager.chapterIndex.value, 1);
       });
 
       test('jumpToChapter 跳转到指定章节', () async {
         await manager.jumpToChapter(3);
-        expect(manager.pageState.chapterIndex.value, 3);
+        expect(manager.chapterIndex.value, 3);
       });
 
       test('jumpToPosition 跳转到指定章节和偏移', () async {
         await manager.jumpToPosition(2, 42);
-        expect(manager.pageState.chapterIndex.value, 2);
-        expect(manager.pageState.currentCharOffset.value, 42);
+        expect(manager.chapterIndex.value, 2);
+        expect(manager.currentCharOffset.value, 42);
       });
     });
 
@@ -733,7 +733,7 @@ void main() {
         manager.loadPage(1);
 
         expect(manager.pageIndex.value, 1);
-        expect(manager.pageState.currentCharOffset.value, 50);
+        expect(manager.currentCharOffset.value, 50);
       });
 
       test('loadPage 越界时忽略', () {
@@ -866,7 +866,7 @@ void main() {
         ).thenAnswer((_) async => createTestChapters(count: 5));
         await manager.loadChapters();
 
-        manager.pageState.chapterIndex.value = 1; // 2/5 = 40.0%
+        manager.chapterIndex.value = 1; // 2/5 = 40.0%
         expect(manager.progressText.value, contains('40.0%'));
       });
 
@@ -880,7 +880,7 @@ void main() {
         ).thenAnswer((_) async => createTestChapters(count: 3));
         await manager.loadChapters();
 
-        manager.pageState.chapterIndex.value = 1;
+        manager.chapterIndex.value = 1;
         expect(manager.currentChapterTitle.value, '第2章');
       });
 
@@ -893,7 +893,7 @@ void main() {
 
     group('reset', () {
       setUp(() async {
-        manager.pageState.bookId.value = 'book_1';
+        manager.bookId.value = 'book_1';
         await manager.loadChapters();
         await manager.loadChapter(0);
       });
@@ -901,12 +901,12 @@ void main() {
       test('重置所有信号到默认值', () {
         manager.reset();
 
-        expect(manager.pageState.bookId.value, '0');
-        expect(manager.pageState.chapterIndex.value, 0);
+        expect(manager.bookId.value, '0');
+        expect(manager.chapterIndex.value, 0);
         expect(manager.totalPages.value, 0);
         expect(manager.pageIndex.value, 0);
-        expect(manager.pageState.currentCharOffset.value, 0);
-        expect(manager.pageState.pendingJumpCharOffset.value, null);
+        expect(manager.currentCharOffset.value, 0);
+        expect(manager.pendingJumpCharOffset.value, null);
         expect(manager.isLoading.value, false);
         expect(manager.error.value, null);
         expect(manager.loadPhase.value, ChapterLoadPhase.idle);

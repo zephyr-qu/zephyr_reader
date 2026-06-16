@@ -1,6 +1,6 @@
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
@@ -11,10 +11,9 @@ import 'package:signals_flutter/signals_flutter.dart';
 class PaginationCoordinator {
   final ReaderRepositoryInterface _repo;
   final ReaderConfig _config;
-  final ReaderPageState _pageState;
+  final ChapterViewModel _chapterVM;
 
-  PaginationCoordinator(this._repo, this._config, this._pageState);
-
+  PaginationCoordinator(this._repo, this._config, this._chapterVM);
   /// 页面宽度（逻辑像素）
   double pageWidth = 400;
 
@@ -68,7 +67,7 @@ class PaginationCoordinator {
     int chapterIndex,
   ) {
     return _repo.beginPaginate(
-      bookId: _pageState.bookId.value,
+      bookId: _chapterVM.bookId.value,
       chapterIndex: chapterIndex,
       params: buildPaginationParams(),
       maxChars: PaginationEngine.firstScreenMaxChars,
@@ -78,7 +77,7 @@ class PaginationCoordinator {
   /// 全量 Rust 分页（升级现有会话）。
   Future<int> expandToFullChapter(int chapterIndex) async {
     final r = await _repo.expandToFullChapter(
-      bookId: _pageState.bookId.value,
+      bookId: _chapterVM.bookId.value,
       chapterIndex: chapterIndex,
       params: buildPaginationParams(),
     );
@@ -91,8 +90,8 @@ class PaginationCoordinator {
     BigInt? maxChars,
   }) {
     return _repo.repaginateInPlace(
-      bookId: _pageState.bookId.value,
-      chapterIndex: _pageState.chapterIndex.value,
+      bookId: _chapterVM.bookId.value,
+      chapterIndex: _chapterVM.chapterIndex.value,
       params: buildPaginationParams(),
       maxChars: maxChars ?? PaginationEngine.firstScreenMaxChars,
     );
@@ -109,7 +108,7 @@ class PaginationCoordinator {
     );
     _repo.disposePagination();
     final pages = await _repo.calculatePages(
-      bookId: _pageState.bookId.value,
+      bookId: _chapterVM.bookId.value,
       chapterId: chapterIndex,
       fontSize: _config.fontSize.value,
       lineHeight: _config.lineHeight.value,

@@ -98,6 +98,31 @@ class ReaderPageState {
 
 **风险**：中高 — 信号所有权变更可能引入时序问题。需要逐个 VM 迁移，不可一次性全改。
 
+**实施状态**（2026-06）：readingMode 已迁移（Phase 3.1 ✅）。剩余 5 个 chapter signals 实测依赖范围（远超原计划估算的 ~6 文件）：
+
+| Signal | 引用点（grep 验证） | 涉及文件 |
+|--------|---------------------|----------|
+| `bookId` | 多处 | 15 文件 |
+| `chapterIndex` | 多处 | 14 文件 |
+| `currentCharOffset` | 多处 | 8 文件 |
+| `chapterContent` | 多处 | 6 文件 |
+| `pendingJumpCharOffset` | 多处 | 4 文件 |
+
+**关键挑战**：
+- `ReadingSessionManager` 接受 `ReaderPageState` 并在多处读 `chapterIndex`/`currentCharOffset`/`bookId`（5 处）— 改为方法参数意味着 4 个公共方法签名变更
+- `SearchIndexLifecycle` 同样依赖 `bookId`/`chapterContent`
+- `AnnotationViewModel`/`BookmarkViewModel` 读 `bookId`+`chapterIndex`（8 处）— 需要 `ChapterViewModel` 注入
+- Widget 层 4 个文件 + `page/reader_page_actions.dart` 共 ~10 个 widget 读 `state.bookId`/`state.chapterIndex`
+
+**建议实施路径**（每个独立 PR）：
+1. **PR1** — `ChapterViewModel` 加 5 signals，删除自身对 `_pageState` 的引用（orchestrator/loader/navigator 在同 PR 内改）
+2. **PR2** — `ReadingSessionManager` 改构造（注入 `ChapterViewModel`），方法签名改
+3. **PR3** — `SearchIndexLifecycle` 改构造
+4. **PR4** — `AnnotationViewModel`/`BookmarkViewModel` 改构造（注入 `ChapterViewModel`）
+5. **PR5** — Widget 层切换到 `vm.chapterManager.bookId` 等
+6. **PR6** — 删除 `ReaderPageState` 类
+
+**预估**: 6 PR × 半天 = 3 工作日
 ---
 
 ## Phase 4: 拆分 `reader_page.dart` ✅

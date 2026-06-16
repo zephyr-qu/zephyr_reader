@@ -1,5 +1,5 @@
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
+
 import 'package:zephyr_reader/features/reader/core/application/auto_scroll_controller.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
@@ -16,9 +16,16 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 ///
 /// Facade：委托给 ChapterLoader、PaginationCoordinator、ChapterNavigator、
 /// AutoScrollController 和 SearchIndexLifecycle。
-/// 不持有 UI 面板状态（由 ReaderViewModel Facade 协调）。
+/// 持有 5 个 chapter-level signals（bookId/chapterIndex/currentCharOffset/
+/// chapterContent/pendingJumpCharOffset），原 ReaderPageState 字段，Phase 3.2 PR1 迁入。
+/// 不持有 readingMode（ReaderViewModel 持有）。
 class ChapterViewModel {
-  final ReaderPageState _pageState;
+  // ==================== 章节级状态（PR1 迁入；原 ReaderPageState）====================
+  final bookId = signal<String>('0');
+  final chapterIndex = signal<int>(0);
+  final currentCharOffset = signal<int>(0);
+  final chapterContent = asyncSignal<String>(AsyncState.data(''));
+  final pendingJumpCharOffset = signal<int?>(null);
 
   late final PaginationCoordinator _pagination;
   late final ChapterLoader _loader;
@@ -29,17 +36,15 @@ class ChapterViewModel {
   ChapterViewModel(
     ReaderRepositoryInterface repo,
     ReaderConfig config,
-    ReaderPageState pageState,
-  ) : _pageState = pageState {
-    _pageState.bookId.value = '0';
-    _pagination = PaginationCoordinator(repo, config, pageState);
-    _loader = ChapterLoader(repo, config, pageState, _pagination);
-    _searchIndex = SearchIndexLifecycle(pageState, _loader.chapters);
+  ) {
+    _pagination = PaginationCoordinator(repo, config, this);
+    _loader = ChapterLoader(repo, config, this, _pagination);
+    _searchIndex = SearchIndexLifecycle(this, _loader.chapters);
     _loader.scheduleSearchIndex = _searchIndex.scheduleIndex;
     _navigator = ChapterNavigator(
       repo,
       config,
-      pageState,
+      this,
       _loader,
       _pagination,
       _loader.chapters,
@@ -50,11 +55,7 @@ class ChapterViewModel {
     _autoScroll = AutoScrollController(config);
   }
 
-  /// 测试用 — 暴露共享状态供测试断言。
-  ReaderPageState get pageState => _pageState;
-
   // ==================== 委托信号 ====================
-
   AsyncSignal<List<Chapter>> get chapters => _loader.chapters;
   Signal<int> get totalPages => _loader.totalPages;
   Signal<int> get pageIndex => _loader.pageIndex;
@@ -73,22 +74,18 @@ class ChapterViewModel {
 
   double get devicePixelRatio => _pagination.devicePixelRatio;
   set devicePixelRatio(double value) => _pagination.devicePixelRatio = value;
-
-  // ==================== 计算信号 ====================
-
   late final ReadonlySignal<String> progressText = computed(() {
     final totalChapters = chapters.value.value?.length ?? 0;
     if (totalChapters == 0) return '0%';
-    final chapterProgress =
-        (_pageState.chapterIndex.value + 1) / totalChapters;
+    final chapterProgress = (chapterIndex.value + 1) / totalChapters;
     return '${(chapterProgress * 100).toStringAsFixed(1)}%';
   });
 
   late final ReadonlySignal<String> currentChapterTitle = computed(() {
     final chapterList = chapters.value.value ?? [];
-    if (_pageState.chapterIndex.value >= 0 &&
-        _pageState.chapterIndex.value < chapterList.length) {
-      return chapterList[_pageState.chapterIndex.value].title;
+    if (chapterIndex.value >= 0 &&
+        chapterIndex.value < chapterList.length) {
+      return chapterList[chapterIndex.value].title;
     }
     return '';
   });
@@ -139,18 +136,15 @@ class ChapterViewModel {
 
   void startAutoScroll() => _autoScroll.startAutoScroll();
   void stopAutoScroll() => _autoScroll.stopAutoScroll();
-
-  // ==================== 重置 ====================
-
   void reset() {
     _pagination.disposePagination();
     _autoScroll.reset();
     _searchIndex.cancel();
-    _pageState.bookId.value = '0';
-    _pageState.chapterIndex.value = 0;
+    bookId.value = '0';
+    chapterIndex.value = 0;
     _loader.resetSignals();
-    _pageState.chapterContent.value = AsyncState.data('');
-    _pageState.currentCharOffset.value = 0;
-    _pageState.pendingJumpCharOffset.value = null;
+    chapterContent.value = AsyncState.data('');
+    currentCharOffset.value = 0;
+    pendingJumpCharOffset.value = null;
   }
 }
