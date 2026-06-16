@@ -2,6 +2,7 @@
 enum ChapterLoadPhase {
   idle,
   starting,
+  quickPaginate,
   firstSpine,
   partialPaginate,
   awaitingConcurrent,

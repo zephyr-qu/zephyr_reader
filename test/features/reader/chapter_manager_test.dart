@@ -1,4 +1,4 @@
-﻿import 'dart:ui' show TextAlign;
+import 'dart:ui' show TextAlign;
 
 import 'dart:async';
 
@@ -274,9 +274,9 @@ void _setupPaginateChapter(_MockRepo repo, {bool isFallback = false}) {
   }
 }
 
-void _setupPaginateChapterPartial(_MockRepo repo) {
+void _setupPaginateChapterQuickFirstScreen(_MockRepo repo) {
   when(
-    () => repo.paginateChapterPartial(
+    () => repo.paginateChapterQuickFirstScreen(
       bookId: any(named: 'bookId'),
       chapterIndex: any(named: 'chapterIndex'),
       params: any(named: 'params'),
@@ -322,30 +322,11 @@ void main() {
       ),
     ).thenAnswer((_) async => 'A' * 100);
     _setupPaginateChapter(repo);
-    // paginateChapterPartial 也使用相同的结果（首 N 字符分页和全部分页返回一致的前几页）
-    _setupPaginateChapterPartial(repo);
+    _setupPaginateChapterQuickFirstScreen(repo);
     when(() => repo.loadReadingProgress(any())).thenAnswer((_) async => null);
     when(
       () => repo.loadChapterFirstSpine(any(), any()),
     ).thenAnswer((_) async => 'A' * 100);
-    when(
-      () => repo.paginateApproximate(
-        any(),
-        fontSize: any(named: 'fontSize'),
-        lineHeight: any(named: 'lineHeight'),
-        width: any(named: 'width'),
-        height: any(named: 'height'),
-        padding: any(named: 'padding'),
-      ),
-    ).thenReturn([
-      PageInfo(pageIndex: 0, content: 'A' * 50, startOffset: 0, endOffset: 50),
-      PageInfo(
-        pageIndex: 1,
-        content: 'A' * 50,
-        startOffset: 50,
-        endOffset: 100,
-      ),
-    ]);
     when(() => repo.warmPageCache(any(), any())).thenReturn(null);
     when(
       () => repo.preloadNextChapterFirstPage(
@@ -358,7 +339,6 @@ void main() {
         padding: any(named: 'padding'),
       ),
     ).thenAnswer((_) async {});
-    when(() => repo.currentPages).thenReturn(null);
     when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {});
     when(() => repo.ensurePageWindow(any())).thenReturn(null);
     when(
@@ -548,7 +528,7 @@ void main() {
         final partialGate = Completer<void>();
 
         when(
-          () => repo.paginateChapterPartial(
+          () => repo.paginateChapterQuickFirstScreen(
             bookId: any(named: 'bookId'),
             chapterIndex: any(named: 'chapterIndex'),
             params: any(named: 'params'),

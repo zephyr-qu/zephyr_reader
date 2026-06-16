@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/pagination_session_factory.dart';
@@ -158,6 +158,18 @@ class ReaderRepository
     required PaginationParams params,
   }) =>
       _session.paginatePartial(
+        bookId: bookId,
+        chapterIndex: chapterIndex,
+        params: params,
+      );
+
+  @override
+  Future<({int totalPages, bool isPartial})> paginateChapterQuickFirstScreen({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+  }) =>
+      _session.paginateQuickFirstScreen(
         bookId: bookId,
         chapterIndex: chapterIndex,
         params: params,

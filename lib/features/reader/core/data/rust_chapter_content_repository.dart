@@ -3,7 +3,6 @@ import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/data/rich_text_converter.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
@@ -211,17 +210,8 @@ class RustChapterContentRepository implements ChapterContentRepository {
     double padding = 20,
   }) async {
     try {
-      final text = await loadFirstSpine(bookId, chapterIndex);
-      final pages = PaginationEngine.paginateApproximate(
-        text,
-        fontSize: fontSize,
-        lineHeight: lineHeight,
-        width: width,
-        height: height,
-        padding: padding,
-      );
       _preloadedNextChapterIdx = chapterIndex;
-      _preloadedNextPageContent = pages.isNotEmpty ? pages[0].content : text;
+      _preloadedNextPageContent = await loadFirstSpine(bookId, chapterIndex);
       preloadGeneration.value++;
     } catch (e) {
       Logging.debug('[Preload] next chapter first page failed: $e');

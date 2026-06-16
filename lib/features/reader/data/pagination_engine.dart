@@ -44,6 +44,8 @@ class PaginationEngine {
   /// 部分分页截止字符数（50K 字符）。
   static final BigInt partialMaxChars = BigInt.from(50000);
 
+  /// 首屏快速分页截止字符数（2000 字符）。
+  static final BigInt firstScreenMaxChars = BigInt.from(2000);
   /// Dart 估算分页（无需 TextPainter，毫秒级）。
   ///
   /// 基于字符宽度和行高近似计算每页容纳的字符数，

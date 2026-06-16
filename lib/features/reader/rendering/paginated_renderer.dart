@@ -157,34 +157,10 @@ class PaginatedModeRenderer extends StatelessWidget {
   }
 
   Widget _buildPageTurn(BuildContext context) {
-    // 新版：使用描述符 + 按需加载的内容
     final descriptors = dataSource.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
       final index = pageIndex.clamp(0, descriptors.length - 1);
       return _buildPageContent(context, index, descriptors[index].startOffset);
-    }
-    // 旧版：使用预计算的全量 PageInfo
-    final cachedPages = dataSource.approximatePages;
-    if (cachedPages != null && cachedPages.isNotEmpty) {
-      final index = pageIndex.clamp(0, cachedPages.length - 1);
-      final page = cachedPages[index];
-      final textStyle = config.buildTextStyle();
-      final strutStyle = config.buildStrutStyle();
-      final paintedSpan = HighlightPainter.paintPlain(
-        page.content,
-        textStyle,
-        highlights,
-        onHighlightTap: onHighlightTap,
-        vocabularyWords: config.effectiveVocabWords,
-      );
-      return _renderPageContent(
-        context,
-        page.content,
-        paintedSpan,
-        textStyle,
-        strutStyle,
-        page.startOffset,
-      );
     }
     return _buildFallbackPagination(context);
   }
@@ -314,7 +290,6 @@ class PaginatedModeRenderer extends StatelessWidget {
     if (readingMode == ReadingMode.pageTurn) {
       return _buildPageTurn(context);
     }
-    // 新版：使用描述符 + 按需加载的内容
     final descriptors = dataSource.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
       return PageView.builder(
@@ -327,39 +302,6 @@ class PaginatedModeRenderer extends StatelessWidget {
         },
         itemBuilder: (context, index) =>
             _buildPageContent(context, index, descriptors[index].startOffset),
-      );
-    }
-    // 旧版：使用预计算的全量 PageInfo
-    final cachedPages = dataSource.approximatePages;
-    if (cachedPages != null && cachedPages.isNotEmpty) {
-      return PageView.builder(
-        controller: pageController,
-        physics: adaptiveScrollPhysics(context),
-        itemCount: cachedPages.length,
-        onPageChanged: (index) {
-          onPageChanged?.call(index);
-          onPositionChanged?.call(cachedPages[index].startOffset);
-        },
-        itemBuilder: (context, index) {
-          final page = cachedPages[index];
-          final textStyle = config.buildTextStyle();
-          final strutStyle = config.buildStrutStyle();
-          final paintedSpan = HighlightPainter.paintPlain(
-            page.content,
-            textStyle,
-            highlights,
-            onHighlightTap: onHighlightTap,
-            vocabularyWords: config.effectiveVocabWords,
-          );
-          return _renderPageContent(
-            context,
-            page.content,
-            paintedSpan,
-            textStyle,
-            strutStyle,
-            page.startOffset,
-          );
-        },
       );
     }
     return _buildFallbackPagination(context);

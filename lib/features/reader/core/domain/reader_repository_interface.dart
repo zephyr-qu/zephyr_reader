@@ -56,6 +56,8 @@ abstract class ReaderRepositoryInterface {
   // ==================== 分页排版 ====================
 
   /// Dart 估算分页（毫秒级，无需 TextPainter）。
+  /// 仅用于 Rust 分页失败时的显式 fallback 路径。
+  @Deprecated('Rust fallback only — do not use in production flow')
   List<PageInfo> paginateApproximate(
     String content, {
     required double fontSize,
@@ -74,6 +76,13 @@ abstract class ReaderRepositoryInterface {
 
   /// Rust 局部分页排版（50K 字符上限），用于首屏快速分页。
   Future<({int totalPages, bool isPartial})> paginateChapterPartial({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+  });
+
+  /// Rust 首屏快速分页（2000 字符上限），复用同一 session。
+  Future<({int totalPages, bool isPartial})> paginateChapterQuickFirstScreen({
     required String bookId,
     required int chapterIndex,
     required PaginationParams params,
