@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zephyr_reader/core/routing/not_found_page.dart';
@@ -105,7 +105,6 @@ final router = GoRouter(
           path: AppRoute.profile.path,
           builder: (_, _) => const ProfilePage(),
         ),
-
       ],
     ),
 
@@ -239,7 +238,6 @@ final router = GoRouter(
       path: AppRoute.readingSessions.path,
       builder: (_, _) => const ReadingSessionsPage(),
     ),
-
 
     // WiFi 传书
     GoRoute(

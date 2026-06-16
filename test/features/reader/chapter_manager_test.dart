@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/core/local/preferences_service.dart';
+import 'package:zephyr_reader/features/reader/domain/model/page_info.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -16,7 +17,6 @@ import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
-import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import '../../helpers/fixtures.dart';
 
@@ -26,12 +26,21 @@ class _MockRepo extends Mock implements ReaderRepository {}
 
 class _MockSharedPreferences extends Mock implements PreferencesService {
   _MockSharedPreferences() {
-    when(() => getDouble(any(), defaultValue: any(named: 'defaultValue')))
-        .thenAnswer((invocation) => invocation.namedArguments[#defaultValue] as double);
-    when(() => getInt(any(), defaultValue: any(named: 'defaultValue')))
-        .thenAnswer((invocation) => invocation.namedArguments[#defaultValue] as int);
-    when(() => getBool(any(), defaultValue: any(named: 'defaultValue')))
-        .thenAnswer((invocation) => invocation.namedArguments[#defaultValue] as bool);
+    when(
+      () => getDouble(any(), defaultValue: any(named: 'defaultValue')),
+    ).thenAnswer(
+      (invocation) => invocation.namedArguments[#defaultValue] as double,
+    );
+    when(
+      () => getInt(any(), defaultValue: any(named: 'defaultValue')),
+    ).thenAnswer(
+      (invocation) => invocation.namedArguments[#defaultValue] as int,
+    );
+    when(
+      () => getBool(any(), defaultValue: any(named: 'defaultValue')),
+    ).thenAnswer(
+      (invocation) => invocation.namedArguments[#defaultValue] as bool,
+    );
     when(() => getString(any())).thenReturn(null);
     when(() => setDouble(any(), any())).thenAnswer((_) async => true);
     when(() => setBool(any(), any())).thenAnswer((_) async => true);
@@ -133,7 +142,6 @@ class _MockConfig implements ReaderConfig {
     true,
     debounce: Duration.zero,
   );
-
 
   @override
   late final firstLineIndent = persistedBool(
@@ -237,10 +245,7 @@ class _MockConfig implements ReaderConfig {
 // ===== Helpers =====
 
 ChapterViewModel createManager({ReaderRepository? repo, ReaderConfig? config}) {
-  return ChapterViewModel(
-    repo ?? _MockRepo(),
-    config ?? _MockConfig(),
-  );
+  return ChapterViewModel(repo ?? _MockRepo(), config ?? _MockConfig());
 }
 
 /// Mock 设置 `expandToFullChapter` 成功返回 2 页。
@@ -251,10 +256,11 @@ void _setupPaginateChapter(_MockRepo repo, {bool isFallback = false}) {
       chapterIndex: any(named: 'chapterIndex'),
       params: any(named: 'params'),
     ),
-  ).thenAnswer((_) async =>
-      isFallback
-          ? (totalPages: 0, isPartial: false)
-          : (totalPages: 2, isPartial: false));
+  ).thenAnswer(
+    (_) async => isFallback
+        ? (totalPages: 0, isPartial: false)
+        : (totalPages: 2, isPartial: false),
+  );
 
   if (isFallback) {
     when(() => repo.descriptors).thenReturn(null);
@@ -275,6 +281,7 @@ void _setupPaginateChapter(_MockRepo repo, {bool isFallback = false}) {
     ]);
   }
 }
+
 void _setupBeginPaginate(_MockRepo repo) {
   when(
     () => repo.beginPaginate(
@@ -287,10 +294,7 @@ void _setupBeginPaginate(_MockRepo repo) {
 }
 
 /// Capture the [PaginationParams] passed to [beginPaginate] for assertion.
-void _setupBeginPaginateCapturing(
-  _MockRepo repo,
-  List<PaginationParams> sink,
-) {
+void _setupBeginPaginateCapturing(_MockRepo repo, List<PaginationParams> sink) {
   when(
     () => repo.beginPaginate(
       bookId: any(named: 'bookId'),
@@ -526,54 +530,61 @@ void main() {
         expect(
           firstParams.calibration,
           isNotNull,
-          reason: 'calibration must be set before beginPaginate so config '
+          reason:
+              'calibration must be set before beginPaginate so config '
               'carries CharWidthTable into the session entry',
         );
       });
 
-      test('configReload intent 不调用 disposePagination, 调用 repaginateInPlace', () async {
-        // 默认 mock 的 _setupPaginateChapter 已经设了 descriptors，所以 repaginateInPlace
-        // 有 handle 可用。
-        var disposeCalls = 0;
-        when(() => repo.disposePagination()).thenAnswer((_) {
-          disposeCalls++;
-        });
-        when(() => repo.sessionConfigHash).thenReturn(12345);
-        when(
-          () => repo.repaginateInPlace(
-            bookId: any(named: 'bookId'),
-            chapterIndex: any(named: 'chapterIndex'),
-            params: any(named: 'params'),
-            maxChars: any(named: 'maxChars'),
-          ),
-        ).thenAnswer((_) async => (totalPages: 2, isPartial: false));
+      test(
+        'configReload intent 不调用 disposePagination, 调用 repaginateInPlace',
+        () async {
+          // 默认 mock 的 _setupPaginateChapter 已经设了 descriptors，所以 repaginateInPlace
+          // 有 handle 可用。
+          var disposeCalls = 0;
+          when(() => repo.disposePagination()).thenAnswer((_) {
+            disposeCalls++;
+          });
+          when(() => repo.sessionConfigHash).thenReturn(12345);
+          when(
+            () => repo.repaginateInPlace(
+              bookId: any(named: 'bookId'),
+              chapterIndex: any(named: 'chapterIndex'),
+              params: any(named: 'params'),
+              maxChars: any(named: 'maxChars'),
+            ),
+          ).thenAnswer((_) async => (totalPages: 2, isPartial: false));
 
-        await manager.loadChapter(
-          0,
-          intent: ChapterPaginationIntent.configReload,
-        );
+          await manager.loadChapter(
+            0,
+            intent: ChapterPaginationIntent.configReload,
+          );
 
-        expect(disposeCalls, 0,
-            reason: 'configReload should NOT dispose existing session');
-        verify(
-          () => repo.repaginateInPlace(
-            bookId: any(named: 'bookId'),
-            chapterIndex: any(named: 'chapterIndex'),
-            params: any(named: 'params'),
-            maxChars: any(named: 'maxChars'),
-          ),
-        ).called(1);
-        expect(repo.sessionConfigHash, isNotNull);
-      });
+          expect(
+            disposeCalls,
+            0,
+            reason: 'configReload should NOT dispose existing session',
+          );
+          verify(
+            () => repo.repaginateInPlace(
+              bookId: any(named: 'bookId'),
+              chapterIndex: any(named: 'chapterIndex'),
+              params: any(named: 'params'),
+              maxChars: any(named: 'maxChars'),
+            ),
+          ).called(1);
+          expect(repo.sessionConfigHash, isNotNull);
+        },
+      );
     });
 
     group('loadChapter 竞态', () {
       test('快速连续换章最终以最后一章为准', () async {
         var callbackCount = 0;
 
-        when(
-          () => repo.loadChapterFirstSpine(any(), any()),
-        ).thenAnswer((invocation) async {
+        when(() => repo.loadChapterFirstSpine(any(), any())).thenAnswer((
+          invocation,
+        ) async {
           final chapterIndex = invocation.positionalArguments[1] as int;
           return 'C' * (chapterIndex + 1) * 10;
         });
@@ -608,8 +619,7 @@ void main() {
             maxChars: any(named: 'maxChars'),
           ),
         ).thenAnswer((invocation) async {
-          final chapterIndex =
-              invocation.namedArguments[#chapterIndex] as int;
+          final chapterIndex = invocation.namedArguments[#chapterIndex] as int;
           if (chapterIndex == 0) {
             await partialGate.future;
             return (totalPages: 99, isPartial: false);
@@ -617,9 +627,9 @@ void main() {
           return (totalPages: 2, isPartial: false);
         });
 
-        when(
-          () => repo.loadChapterFirstSpine(any(), any()),
-        ).thenAnswer((invocation) async {
+        when(() => repo.loadChapterFirstSpine(any(), any())).thenAnswer((
+          invocation,
+        ) async {
           final chapterIndex = invocation.positionalArguments[1] as int;
           return 'A' * (100 + chapterIndex);
         });
@@ -913,22 +923,25 @@ void main() {
         expect(manager.autoScrollTick.value, 0);
       });
 
-      test('PR1+PR2 fix: chapterManager.bookId/chapterIndex 是 loadChapters 的查询源', () async {
-        // 模拟 ReaderViewModel.initialize 的写入路径：写入 chapterManager，
-        // 然后 loadChapters 必须用新值查询 _repo.getChapters(bookId: ...)
-        manager.bookId.value = 'new_book_id';
-        manager.chapterIndex.value = 5;
-        manager.currentCharOffset.value = 1234;
+      test(
+        'PR1+PR2 fix: chapterManager.bookId/chapterIndex 是 loadChapters 的查询源',
+        () async {
+          // 模拟 ReaderViewModel.initialize 的写入路径：写入 chapterManager，
+          // 然后 loadChapters 必须用新值查询 _repo.getChapters(bookId: ...)
+          manager.bookId.value = 'new_book_id';
+          manager.chapterIndex.value = 5;
+          manager.currentCharOffset.value = 1234;
 
-        // 验证写入确实到了 ChapterViewModel 的 signals（PR1 迁入）
-        expect(manager.bookId.value, 'new_book_id');
-        expect(manager.chapterIndex.value, 5);
-        expect(manager.currentCharOffset.value, 1234);
+          // 验证写入确实到了 ChapterViewModel 的 signals（PR1 迁入）
+          expect(manager.bookId.value, 'new_book_id');
+          expect(manager.chapterIndex.value, 5);
+          expect(manager.currentCharOffset.value, 1234);
 
-        // 验证 _repo.getChapters 是用 manager.bookId 调用的（PR1+PR2 修复的关键）
-        await manager.loadChapters();
-        verify(() => repo.getChapters('new_book_id')).called(1);
-      });
+          // 验证 _repo.getChapters 是用 manager.bookId 调用的（PR1+PR2 修复的关键）
+          await manager.loadChapters();
+          verify(() => repo.getChapters('new_book_id')).called(1);
+        },
+      );
     });
   });
 }

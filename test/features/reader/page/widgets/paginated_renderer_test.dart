@@ -231,7 +231,6 @@ void main() {
       expect(find.byType(PageView), findsOneWidget);
     });
 
-
     testWidgets('无 descriptors 走 fallback 分页', (tester) async {
       final dataSource = _MockDataSource();
       when(() => dataSource.descriptors).thenReturn(null);

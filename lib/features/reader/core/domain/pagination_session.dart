@@ -19,6 +19,7 @@ abstract class PaginationSession {
     required PaginationParams params,
     BigInt? maxChars,
   });
+
   /// 创建分页会话并分页。maxChars=null 表示全章。
   Future<({int totalPages, bool isPartial})> beginPaginate({
     required String bookId,

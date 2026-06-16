@@ -18,6 +18,13 @@ import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repo
 import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart';
 import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
+import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
+import 'package:get_it/get_it.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
+import 'package:zephyr_reader/features/reader/core/application/reading_session_manager.dart';
+import 'package:zephyr_reader/features/reader/annotations/application/bookmark_view_model.dart';
+import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart';
+import 'package:zephyr_reader/features/reader/translation/application/translation_view_model.dart';
 
 // ===== Mocks =====
 
@@ -200,19 +207,43 @@ ReaderViewModel createVm({
   required ReaderRepository repo,
   required ReaderConfig config,
 }) {
-  return ReaderViewModel(
-    repo: repo,
-    config: config,
-    translationConfig: _MockTranslationConfig(),
-    translationService: _MockTranslationService(),
-  );
+  return ReaderViewModel(repo: repo, config: config);
 }
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
   late ReaderViewModel vm;
 
+  setUp(() {
+    GetIt.I.reset();
+    // Mock translation deps for TranslationViewModel's getIt fallback
+    GetIt.I.registerFactory<TranslationConfig>(() => _MockTranslationConfig());
+    GetIt.I.registerFactory<TranslationService>(
+      () => _MockTranslationService(),
+    );
+    // Register sub-VMs as factoryParam for DI
+    GetIt.I.registerFactoryParam<
+      ChapterViewModel,
+      ReaderRepositoryInterface,
+      ReaderConfig
+    >(
+      (repo, config) => ChapterViewModel(
+        repo as ReaderRepositoryInterface,
+        config as ReaderConfig,
+      ),
+    );
+    GetIt.I.registerFactoryParam<ReadingSessionManager, ChapterViewModel, void>(
+      (vm, _) => ReadingSessionManager(vm as ChapterViewModel),
+    );
+    GetIt.I.registerFactoryParam<BookmarkViewModel, ChapterViewModel, void>(
+      (vm, _) => BookmarkViewModel(vm as ChapterViewModel),
+    );
+    GetIt.I.registerFactoryParam<AnnotationViewModel, ChapterViewModel, void>(
+      (vm, _) => AnnotationViewModel(vm as ChapterViewModel),
+    );
+    GetIt.I.registerFactoryParam<TranslationViewModel, ChapterViewModel, void>(
+      (vm, _) => TranslationViewModel(vm as ChapterViewModel),
+    );
+  });
   setUp(() {
     final repo = _MockRepo();
     final config = _TestConfig();

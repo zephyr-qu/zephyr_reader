@@ -1,9 +1,10 @@
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
+import 'package:zephyr_reader/features/reader/domain/model/page_info.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
@@ -14,6 +15,7 @@ class PaginationCoordinator {
   final ChapterViewModel _chapterVM;
 
   PaginationCoordinator(this._repo, this._config, this._chapterVM);
+
   /// 页面宽度（逻辑像素）
   double pageWidth = 400;
 
@@ -60,7 +62,6 @@ class PaginationCoordinator {
       padding: _config.padding.value,
     );
   }
-
 
   /// 首屏分页（统一入口，maxChars=2000）。
   Future<({int totalPages, bool isPartial})> paginateFirstScreen(

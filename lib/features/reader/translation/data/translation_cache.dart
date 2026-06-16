@@ -52,7 +52,7 @@ class TranslationCache {
     _cache.remove(oldest.key);
   }
 
-  /// 简单 SHA256 摘要（纯 Dart，无 crypto 依赖）。
+  /// 简单 Adler-32 摘要（纯 Dart，无 crypto 依赖）。
   static String sha256(String input) {
     final bytes = utf8.encode(input);
     // 用 Adler-32 近似哈希（足够区分章节内容变更）

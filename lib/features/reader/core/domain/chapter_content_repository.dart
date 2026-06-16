@@ -31,10 +31,7 @@ abstract class ChapterContentRepository {
 
   bool get hasPreloadedNextChapter;
 
-  String? getPreloadedNextChapterContent(
-    int chapterIndex, {
-    int pageIndex = 0,
-  });
+  String? getPreloadedNextChapterContent(int chapterIndex, {int pageIndex = 0});
 
   /// 当前章节的富文本内容（EPUB/MD）。
   TextSpan? get currentRichContent;

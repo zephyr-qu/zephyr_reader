@@ -34,9 +34,7 @@ class ReaderShell extends HookWidget {
     final ttsService = useMemoized(() => getIt<TtsService>());
     final config = useMemoized(() => getIt<ReaderConfig>());
     final ttsVm = useMemoized(() => getIt<TtsSettingsViewModel>());
-    final TapLayout tapLayout = useSignalValue(
-      config.tapLayout.signal,
-    );
+    final TapLayout tapLayout = useSignalValue(config.tapLayout.signal);
     final scaffoldKey = useMemoized(() => GlobalKey<ScaffoldState>());
 
     final showToolbar = useSignal(false);

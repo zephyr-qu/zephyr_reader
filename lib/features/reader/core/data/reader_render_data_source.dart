@@ -6,17 +6,13 @@ import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 abstract class ReaderRenderDataSource {
   List<PageDescriptor>? get descriptors;
 
-
   String? pageContent(int pageIndex);
 
   void warmPageCache(int pageIndex, String content);
 
   ValueNotifier<int> get preloadGeneration;
 
-  String? getPreloadedNextChapterContent(
-    int chapterIndex, {
-    int pageIndex = 0,
-  });
+  String? getPreloadedNextChapterContent(int chapterIndex, {int pageIndex = 0});
 
   TextSpan? get currentRichContent;
 

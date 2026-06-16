@@ -45,11 +45,7 @@ class AssistPanel extends StatelessWidget {
         _ttsSpeedSlider(readerTheme, l10n),
         _ttsAutoPageTile(readerTheme, l10n),
         _ttsOriginalOnlyTile(readerTheme, l10n),
-        autoScrollTile(
-          readerTheme: readerTheme,
-          l10n: l10n,
-          config: config,
-        ),
+        autoScrollTile(readerTheme: readerTheme, l10n: l10n, config: config),
         sliderTile(
           label: l10n.autoScrollSpeed,
           value: config.autoScrollSpeed.value.toDouble(),

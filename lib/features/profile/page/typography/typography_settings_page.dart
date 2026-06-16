@@ -133,9 +133,7 @@ class TypographySettingsPage extends HookWidget {
     final double paragraphSpacing = useSignalValue(
       config.paragraphSpacing.signal,
     );
-    final double autoSpaceRatio = useSignalValue(
-      config.autoSpaceRatio.signal,
-    );
+    final double autoSpaceRatio = useSignalValue(config.autoSpaceRatio.signal);
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -211,7 +209,7 @@ class TypographySettingsPage extends HookWidget {
     ReaderConfig config,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final  TextAlign currentAlign = useSignalValue(config.textAlign.signal);
+    final TextAlign currentAlign = useSignalValue(config.textAlign.signal);
     final options = [
       (
         TextAlign.justify,
@@ -228,11 +226,7 @@ class TypographySettingsPage extends HookWidget {
         l10n.textAlignCenter,
         PhosphorIconsRegular.textAlignCenter,
       ),
-      (
-        TextAlign.end,
-        l10n.textAlignEnd,
-        PhosphorIconsRegular.textAlignRight,
-      ),
+      (TextAlign.end, l10n.textAlignEnd, PhosphorIconsRegular.textAlignRight),
     ];
 
     return Column(
@@ -262,7 +256,9 @@ class TypographySettingsPage extends HookWidget {
                                 border: Border.all(
                                   color: isSelected
                                       ? cs.primary
-                                      : cs.outlineVariant.withValues(alpha: 0.3),
+                                      : cs.outlineVariant.withValues(
+                                          alpha: 0.3,
+                                        ),
                                   width: isSelected ? 1.5 : 0.5,
                                 ),
                               ),
@@ -305,6 +301,7 @@ class TypographySettingsPage extends HookWidget {
         .fadeIn(duration: 300.ms, delay: 175.ms)
         .slideY(begin: 0.04, end: 0);
   }
+
   Widget _buildLanguageTile(BuildContext context, ReaderConfig config) {
     final l10n = AppLocalizations.of(context)!;
     final LanguageType currentLanguage = useSignalValue(config.language.signal);
@@ -342,13 +339,16 @@ class TypographySettingsPage extends HookWidget {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
+                            ? Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.08)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: isSelected
                               ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                              : Theme.of(context).colorScheme.outlineVariant
+                                    .withValues(alpha: 0.3),
                           width: isSelected ? 1.5 : 0.5,
                         ),
                       ),
@@ -357,7 +357,9 @@ class TypographySettingsPage extends HookWidget {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                           color: isSelected
                               ? Theme.of(context).colorScheme.primary
                               : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -373,7 +375,6 @@ class TypographySettingsPage extends HookWidget {
       ),
     );
   }
-
 
   Widget _buildAdvancedCjk(
     BuildContext context,

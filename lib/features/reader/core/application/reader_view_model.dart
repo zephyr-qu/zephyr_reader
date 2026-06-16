@@ -11,11 +11,8 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_paginatio
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
-import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart';
 import 'package:zephyr_reader/features/reader/translation/application/translation_view_model.dart';
-import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart';
 import 'chapter_view_model.dart';
-import 'reader_page_state.dart';
 import 'reading_session_manager.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 
@@ -45,7 +42,6 @@ class ReaderViewModel {
   // ==================== 跨切面信号 ====================
 
   final toastMessage = signal<String>('');
-  // 跨 VM 共享状态 — readingMode 之前在 ReaderPageState，移到此处
   final readingMode = signal<ReadingMode>(ReadingMode.pagination);
 
   // ==================== 定时器 ====================
@@ -54,25 +50,13 @@ class ReaderViewModel {
 
   final List<void Function()> _disposers = [];
 
-  final ReaderPageState state = ReaderPageState();
-
-  ReaderViewModel({
-    required ReaderRepositoryInterface repo,
-    ReaderConfig? config,
-    TranslationConfig? translationConfig,
-    TranslationService? translationService,
-  })
-    : _repo = repo,
-      _config = config ?? getIt<ReaderConfig>() {
-    chapterManager = ChapterViewModel(_repo, _config);
-    sessionManager = ReadingSessionManager(chapterManager);
-    bookmarks = BookmarkViewModel(state);
-    annotations = AnnotationViewModel(state);
-    translation = TranslationViewModel(
-      state,
-      config: translationConfig,
-      service: translationService,
-    );
+  ReaderViewModel({required this._repo, ReaderConfig? config})
+    : _config = config ?? getIt<ReaderConfig>() {
+    chapterManager = getIt<ChapterViewModel>(param1: _repo, param2: _config);
+    sessionManager = getIt<ReadingSessionManager>(param1: chapterManager);
+    bookmarks = getIt<BookmarkViewModel>(param1: chapterManager);
+    annotations = getIt<AnnotationViewModel>(param1: chapterManager);
+    translation = getIt<TranslationViewModel>(param1: chapterManager);
   }
 
   /// 公开仓库访问（渲染层使用）。
@@ -281,9 +265,8 @@ class ReaderViewModel {
     bookmarks.reset();
     annotations.reset();
     await translation.reset();
-
     toastMessage.value = '';
+
     readingMode.value = ReadingMode.pagination;
-    state.reset();
   }
 }

@@ -69,7 +69,8 @@ class ChapterLoadOrchestrator {
 
   Future<void> run(
     ChapterLoadRequest request, {
-    Future<void> Function(int chapterIndex, String content)? scheduleSearchIndex,
+    Future<void> Function(int chapterIndex, String content)?
+    scheduleSearchIndex,
     Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages,
   }) async {
     final gen = ++_generation;
@@ -179,8 +180,9 @@ class ChapterLoadOrchestrator {
       int total;
       if (quickResult.isPartial) {
         _setPhase(gen, ChapterLoadPhase.fullPaginate);
-        final fullPaginateFuture =
-            _pagination.expandToFullChapter(request.chapterIndex);
+        final fullPaginateFuture = _pagination.expandToFullChapter(
+          request.chapterIndex,
+        );
         final tBeforePaginate = sw.elapsedMilliseconds;
         total = await fullPaginateFuture;
         if (_isStale(gen)) {
@@ -370,7 +372,6 @@ class ChapterLoadOrchestrator {
     );
   }
 
-
   Future<void> _runFinalize(
     int gen,
     ChapterLoadRequest request, {
@@ -437,7 +438,8 @@ class ChapterLoadOrchestrator {
     int gen,
     int chapterIndex,
     String content, {
-    Future<void> Function(int chapterIndex, String content)? scheduleSearchIndex,
+    Future<void> Function(int chapterIndex, String content)?
+    scheduleSearchIndex,
   }) async {
     if (_isStale(gen)) return;
     await scheduleSearchIndex?.call(chapterIndex, content);

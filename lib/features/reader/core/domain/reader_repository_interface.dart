@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
+import 'package:zephyr_reader/features/reader/domain/model/page_info.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
@@ -93,7 +93,6 @@ abstract class ReaderRepositoryInterface {
 
   // ==================== 缓存和页面内容 ====================
 
-
   /// 当前章节的富文本内容（EPUB）。
   TextSpan? get currentRichContent;
 
@@ -105,7 +104,6 @@ abstract class ReaderRepositoryInterface {
 
   /// 预加载生成计数器。
   ValueNotifier<int> get preloadGeneration;
-
 
   /// 手动预热单页缓存（用于分段读取）。
   void warmPageCache(int pageIndex, String content);

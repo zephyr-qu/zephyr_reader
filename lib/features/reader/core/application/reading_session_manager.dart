@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:injectable/injectable.dart';
+
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
@@ -12,11 +14,11 @@ import 'chapter_view_model.dart';
 ///
 /// 管理阅读计时、进度保存和自动保存。
 /// 直接从 [ChapterViewModel] 读取 bookId/chapterIndex/currentCharOffset 等
-/// chapter-level signals（PR2 移除 _pageState 中间层）。
+@injectable
 class ReadingSessionManager {
   final ChapterViewModel _chapterManager;
 
-  ReadingSessionManager(this._chapterManager);
+  ReadingSessionManager(@factoryParam this._chapterManager);
 
   // ==================== 信号 ====================
 
@@ -127,7 +129,7 @@ class ReadingSessionManager {
         ),
       );
     } catch (e) {
-      Logging.error('保存阅读进度失败', exception: e);
+      Logging.warning('保存阅读进度失败: $e');
     }
   }
 

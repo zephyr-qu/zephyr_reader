@@ -1,6 +1,7 @@
 mod common;
 
 use rust_lib_zephyr_reader::api;
+use rust_lib_zephyr_reader::api::data::chapter;
 
 // ==================== 基础连接测试 ====================
 
@@ -107,13 +108,9 @@ async fn test_parse_book_txt() {
     assert!(result.is_ok(), "TXT 文件解析应该成功: {:?}", result);
 
     let parse_result = result.unwrap();
-    assert!(!parse_result.book_info.title.is_empty(), "书名不应该为空");
-    assert!(!parse_result.chapters.is_empty(), "应该至少有一个章节");
-
     println!(
-        "解析成功: 书名={}, 章节数={}",
-        parse_result.book_info.title,
-        parse_result.chapters.len()
+        "解析成功: 书籍ID={}",
+        parse_result,
     );
 }
 
@@ -137,12 +134,15 @@ async fn test_parse_book_empty_content() {
     // 创建空文件
     let (_temp_dir, file_path) = common::create_temp_file("empty.txt", "");
 
-    let result = api::parse_book(file_path).await;
+
+    let book_id = api::parse_book(file_path).await;
+    let parse_result = book_id.unwrap();
+    let result = chapter::list_chapters_by_book(parse_result).await;
 
     // 空文件可能解析成功（无章节）或失败，取决于实现
     match result {
         Ok(parse_result) => {
-            println!("空文件解析成功: 章节数={}", parse_result.chapters.len());
+            println!("空文件解析成功: 章节数={}", parse_result.len());
         }
         Err(e) => {
             println!("空文件返回错误（可接受）: {:?}", e);

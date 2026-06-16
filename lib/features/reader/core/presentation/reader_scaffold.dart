@@ -16,6 +16,10 @@ import 'package:zephyr_reader/features/reader/core/presentation/reader_ui_state.
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/navigation/reader_navigation_drawer.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_note_sidebar.dart';
+import 'package:zephyr_reader/features/reader/settings/reader_panel_type.dart';
+import 'package:zephyr_reader/features/reader/page/toolbar/animated_toolbar_panel.dart';
+import 'package:zephyr_reader/features/reader/page/toolbar/reader_bottom_toolbar.dart';
+import 'package:zephyr_reader/features/reader/page/ui/reader_progress_bar.dart';
 
 class ReaderScaffold extends HookWidget {
   const ReaderScaffold({
@@ -50,6 +54,10 @@ class ReaderScaffold extends HookWidget {
     final String bCurrentchaptertitle = useSignalValue(
       vm.chapterManager.currentChapterTitle,
     );
+    final bool showToolbar = useSignalValue(uiState.showToolbar);
+    final ReaderPanelType? activePanel = useSignalValue(uiState.activePanel);
+    final int pageIndex = useSignalValue(vm.chapterManager.pageIndex);
+    final int totalPages = useSignalValue(vm.chapterManager.totalPages);
 
     final themeMode = switch (bReadertheme) {
       ReaderTheme.dark => ThemeMode.dark,
@@ -142,9 +150,42 @@ class ReaderScaffold extends HookWidget {
                         ttsVm: ttsVm,
                         uiState: uiState,
                       ),
-                      ReaderSelectionToolbarLayer(
-                        vm: vm,
-                        uiState: uiState,
+                      ReaderSelectionToolbarLayer(vm: vm, uiState: uiState),
+                      AnimatedToolbarPanel(
+                        visible: showToolbar && activePanel == null,
+                        slideBeginY: 1,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ReaderProgressBar(
+                              pageIndex: pageIndex,
+                              totalPages: totalPages,
+                              onPageChanged: (targetPage) =>
+                                  vm.chapterManager.loadPage(targetPage),
+                            ),
+                            ReaderBottomToolbar(
+                              onShowCatalog: () =>
+                                  scaffoldKey.currentState?.openDrawer(),
+                              onShowNotes: () =>
+                                  scaffoldKey.currentState?.openEndDrawer(),
+                              onToggleTypesetting: () => uiState.activePanel.value =
+                                  uiState.activePanel.value ==
+                                      ReaderPanelType.typesetting
+                                  ? null
+                                  : ReaderPanelType.typesetting,
+                              onToggleDisplay: () => uiState.activePanel.value =
+                                  uiState.activePanel.value ==
+                                      ReaderPanelType.display
+                                  ? null
+                                  : ReaderPanelType.display,
+                              onToggleAssist: () => uiState.activePanel.value =
+                                  uiState.activePanel.value ==
+                                      ReaderPanelType.assist
+                                  ? null
+                                  : ReaderPanelType.assist,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

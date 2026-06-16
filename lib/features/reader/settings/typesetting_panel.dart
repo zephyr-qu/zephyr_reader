@@ -70,11 +70,7 @@ class TypesettingPanel extends StatelessWidget {
           readerTheme: readerTheme,
         ),
         const SizedBox(height: 4),
-        textAlignSelector(
-          readerTheme: readerTheme,
-          l10n: l10n,
-          config: config,
-        ),
+        textAlignSelector(readerTheme: readerTheme, l10n: l10n, config: config),
         const SizedBox(height: 2),
         _fontSelectionTile(
           readerTheme,

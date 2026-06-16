@@ -65,28 +65,18 @@ pub async fn get_book_detail(book_id: String) -> Result<BookDetail, AppError> {
     })
 }
 
-/// 获取所有书籍列表（支持可选排序）
-///
-/// # 参数
-/// * `sort_by` - 排序字段（可选，默认无排序：title/last_opened_at/added_at/author/file_size）
-/// * `sort_order` - 排序方向（可选，默认 desc：asc/desc）
+/// 获取所有书籍列表（按添加时间倒序）
 ///
 /// # 返回
 /// 所有书籍列表
 #[frb]
-pub async fn list_books(
-    sort_by: Option<String>,
-    sort_order: Option<String>,
-) -> Result<Vec<Book>, AppError> {
-    tracing::debug!("[book] list_books: sort_by={:?}, sort_order={:?}", sort_by, sort_order);
-    let sort_by = sort_by.unwrap_or_else(|| "last_opened_at".to_string());
-    let sort_order = sort_order.unwrap_or_else(|| "desc".to_string());
-    async_storage!(|pool| BookRepository::list(pool, &sort_by, &sort_order))
+pub async fn list_books() -> Result<Vec<Book>, AppError> {
+    async_storage!(|pool|BookRepository::list(pool))
 }
 
 /// 获取书架展示用的书籍列表（含阅读进度，单次 JOIN 查询）
 ///
-/// 相比 listBooks + listAllProgresses 两步调用，一次查询完成所有书架所需数据。
+/// 一次查询完成所有书架所需数据。
 /// 排序字段支持：title / author / last_opened_at / added_at / progress
 #[frb]
 pub async fn list_bookshelf_books(

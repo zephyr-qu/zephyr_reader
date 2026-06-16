@@ -241,7 +241,6 @@ class DataManagementPage extends HookWidget {
         .slideY(begin: 0.03, end: 0);
   }
 
-
   // ==================== Danger Zone ====================
 
   Widget _buildDangerZone(
@@ -322,12 +321,14 @@ class DataManagementPage extends HookWidget {
 
     switch (result) {
       case BackupResult.success:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.backupSuccess)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.backupSuccess)));
       case BackupResult.error:
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.backupFailed(vm.errorMessage.value ?? ''))),
+          SnackBar(
+            content: Text(l10n.backupFailed(vm.errorMessage.value ?? '')),
+          ),
         );
       case BackupResult.cancelled:
         break;
@@ -344,9 +345,9 @@ class DataManagementPage extends HookWidget {
     final manifest = await inspectBackup(backupPath: filePath);
     if (!context.mounted) return;
     if (manifest == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.restoreFailed(''))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.restoreFailed(''))));
       return;
     }
 
@@ -361,14 +362,18 @@ class DataManagementPage extends HookWidget {
       case RestoreResult.success:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${l10n.restoreSuccess}。${l10n.restoreRestartNotice}'),
+            content: Text(
+              '${l10n.restoreSuccess}。${l10n.restoreRestartNotice}',
+            ),
             duration: const Duration(seconds: 8),
             behavior: SnackBarBehavior.floating,
           ),
         );
       case RestoreResult.error:
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.restoreFailed(vm.errorMessage.value ?? ''))),
+          SnackBar(
+            content: Text(l10n.restoreFailed(vm.errorMessage.value ?? '')),
+          ),
         );
     }
     await vm.dismissResult();

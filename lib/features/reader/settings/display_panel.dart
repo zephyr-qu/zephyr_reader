@@ -8,10 +8,7 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 class DisplayPanel extends StatelessWidget {
   final ReaderConfig config;
 
-  const DisplayPanel({
-    super.key,
-    required this.config,
-  });
+  const DisplayPanel({super.key, required this.config});
 
   @override
   Widget build(BuildContext context) {
@@ -38,23 +35,11 @@ class DisplayPanel extends StatelessWidget {
           readerTheme: readerTheme,
         ),
         const SizedBox(height: 8),
-        themeSelector(
-          readerTheme: readerTheme,
-          l10n: l10n,
-          config: config,
-        ),
+        themeSelector(readerTheme: readerTheme, l10n: l10n, config: config),
         const SizedBox(height: 12),
-        fontScaleTile(
-          readerTheme: readerTheme,
-          l10n: l10n,
-          config: config,
-        ),
+        fontScaleTile(readerTheme: readerTheme, l10n: l10n, config: config),
         const SizedBox(height: 8),
-        bgColorPicker(
-          readerTheme: readerTheme,
-          l10n: l10n,
-          config: config,
-        ),
+        bgColorPicker(readerTheme: readerTheme, l10n: l10n, config: config),
       ],
     );
   }

@@ -80,33 +80,13 @@ impl BookRepository {
         tx.commit().await?;
         Ok(())
     }
-    /// 获取所有书籍列表（按指定字段排序）
-    pub async fn list(
-        pool: &SqlitePool,
-        sort_by: &str,
-        sort_order: &str,
-    ) -> Result<Vec<Book>, AppError> {
-        // 白名单校验
-        let sort_column = match sort_by {
-            "title" => "title",
-            "last_opened_at" => "last_opened_at",
-            "added_at" => "added_at",
-            "author" => "author",
-            "file_size" => "file_size",
-            _ => "added_at",
-        };
-        let order = if sort_order.eq_ignore_ascii_case("asc") {
-            "ASC"
-        } else {
-            "DESC"
-        };
-        let mut builder = sqlx::QueryBuilder::<sqlx::Sqlite>::new(
-            "SELECT * FROM books ORDER BY ",
-        );
-        builder.push(sort_column);
-        builder.push(" ");
-        builder.push(order);
-        Ok(builder.build_query_as::<Book>().fetch_all(pool).await?)
+    /// 获取所有书籍列表（按添加时间倒序）
+    pub async fn list(pool: &SqlitePool) -> Result<Vec<Book>, AppError> {
+        Ok(
+            sqlx::query_as::<_, Book>("SELECT * FROM books ORDER BY added_at DESC")
+                .fetch_all(pool)
+                .await?,
+        )
     }
 
     /// 获取所有书籍列表（无排序，供 progress_repo 等内部使用）
