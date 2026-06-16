@@ -27,6 +27,18 @@ abstract class ReaderRepositoryInterface {
     ReadingMode? readingMode,
   });
 
+  /// 上次分页的 configHash；null 表示无 session。
+  int? get sessionConfigHash;
+
+  /// In-place repaginate：复用现有 session handle，更新 config。
+  /// handle 不存在时退化到 [beginPaginate]（用真实 bookId/chapterIndex）。
+  Future<({int totalPages, bool isPartial})> repaginateInPlace({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+    BigInt? maxChars,
+  });
+
   /// 快速获取章节首段文本。
   Future<String> loadChapterFirstSpine(String bookId, int chapterId);
 

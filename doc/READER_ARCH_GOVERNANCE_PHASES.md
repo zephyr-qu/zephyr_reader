@@ -1,6 +1,20 @@
 # Reader Module 架构治理 — 后续阶段计划
 
-已完成 Phase 1（Repository 抽象接口提取），本文档记录剩余治理阶段。
+已完成的治理工作：
+- **Phase 1** ✅ Repository 抽象接口提取
+- **Phase 4** ✅ `reader_page.dart` 拆分（见下表）
+
+本文档记录剩余治理阶段。
+
+## 当前状态总览
+
+| 阶段 | 状态 | 证据 |
+|------|------|------|
+| Phase 2 (core/reader → features/reader) | ⏳ 待办 | `lib/core/reader/` 仍存在；`lib/features/reader/domain/` 不存在 |
+| Phase 3 (ReaderPageState 拆分) | ⏳ 待办 | `ReaderPageState` 6 个 signal 仍共享 |
+| Phase 4 (reader_page.dart 拆分) | ✅ 已完成 | `reader_page.dart` 27 行（薄壳），7 个独立 widget 文件 |
+| Phase 5 (DI 自动注入) | ⏳ 待办 | `ReaderViewModel` 构造函数内 `new` 子 VM |
+| Phase 6 (遗留清理) | ⏳ 待办 | 4 项全部仍未动 |
 
 ---
 
@@ -36,7 +50,7 @@ core/reader/
 
 **目标**：消除 5 个子 VM 共享同一个可变状态对象的隐式耦合。
 
-**现状**：
+**现状**（实际代码 2026-06）：
 
 ```dart
 class ReaderPageState {
@@ -74,35 +88,24 @@ class ReaderPageState {
 
 ---
 
-## Phase 4: 拆分 `reader_page.dart`
+## Phase 4: 拆分 `reader_page.dart` ✅
 
 **目标**：将 606 行、25 个信号订阅的单体 widget 拆分为可维护的模块。
 
-**现状问题**：
-- 三种渲染模式（scroll/bilingual/paginated）的 builder 内联在同一个 `build()` 中
-- Toolbar 显示/隐藏 + 自动隐藏 timer 逻辑混在 widget 层
-- Toast → SnackBar 的 `useSignalEffect` 在 `build()` 中声明
-- 25 个 `useSignalValue` 订阅散落在 `build()` 开头
+**完成时间**：在归档时（2026-06）已落地。
 
-**方案**：
+**实际产出**（`lib/features/reader/core/presentation/`）：
 
-```
-reader_page.dart（～250 行，仅保留编排逻辑）
-  ├── widgets/reader_content_area.dart  → 三种渲染模式 builder 提取
-  ├── widgets/reader_toolbar_handler.dart → toolbar 显示/隐藏/auto-hide
-  └── widgets/reader_toast_handler.dart  → toast effect + snackbar
-```
-
-**步骤**：
-1. 提取 `_buildContentArea()` 为独立 `ReaderContentArea` widget
-2. 提取 toast effect 为 `ReaderToastHandler` widget（或在 Scaffold 外层包装）
-3. 提取 toolbar timer 逻辑为 `ReaderToolbarController`（非 widget）
-4. 整理 `build()` 中的信号订阅，按功能分组
-5. 删除无用的 `b_` 前缀变量（改用 `useSignalValue` 内联）
-
-**影响范围**：~4 新文件，1 修改文件。
-
-**风险**：低 — 纯提取，逻辑不变。
+| 文件 | 行数 | 职责 |
+|------|------|------|
+| `reader_page.dart` | 27 | 薄壳，构造 `ReaderShell` |
+| `reader_shell.dart` | 112 | 顶层编排 |
+| `reader_scaffold.dart` | 171 | Scaffold 框架 |
+| `reader_content_area.dart` | 269 | 三种渲染模式 builder |
+| `reader_chrome.dart` | 160 | 工具栏/目录/封面容器 |
+| `reader_interaction_layer.dart` | 138 | toast / snackbar / selection |
+| `reader_tts_helpers.dart` | 32 | TTS 辅助 |
+| `reader_ui_state.dart` | 43 | UI 局部 state |
 
 ---
 
@@ -110,7 +113,7 @@ reader_page.dart（～250 行，仅保留编排逻辑）
 
 **目标**：使子 VM 可单独测试、可单独替换。
 
-**现状**：
+**现状**（实际代码 2026-06）：
 
 ```dart
 ReaderViewModel({...}) {
@@ -118,7 +121,7 @@ ReaderViewModel({...}) {
   sessionManager = ReadingSessionManager(state, chapterManager);
   bookmarks = BookmarkViewModel(state);
   annotations = AnnotationViewModel(state);
-  translation = TranslationViewModel(state);
+  translation = TranslationViewModel(state, ...);
 }
 ```
 
@@ -142,8 +145,8 @@ ReaderViewModel({...}) {
 **目标**：低风险小问题集中清理。
 
 **清单**：
-- `data/translation/translation_cache.dart:56` — "SHA256" 注释改为 "Adler-32"
-- `data/vocabulary_marker_service.dart:26-35` — 更新或删除 TODO（多词库管理页面）
+- `data/translation/translation_cache.dart:55` — 注释 "简单 SHA256 摘要" 改为 "Adler-32 摘要"（实际实现就是 Adler-32）
+- `data/vocabulary_marker_service.dart:26-35` — 3 处 TODO 需更新或删除（多词库管理页面）
 - `data/renderer/find_render_box.dart`（989B）— 合并到调用方或删除
 - `data/pagination_engine.dart` 中 `PageInfo` 是否可迁入 `domain/`（与 Phase 2 联动）
 
@@ -157,6 +160,7 @@ ReaderViewModel({...}) {
 
 ```
 Phase 1 ✅ 已完成
+Phase 4 ✅ 已完成
    │
    ▼
 Phase 2 (core→feature 迁移) ──→ Phase 6（部分联动）
@@ -165,13 +169,10 @@ Phase 2 (core→feature 迁移) ──→ Phase 6（部分联动）
 Phase 3 (ReaderPageState 拆分) ── 可并行
    │
    ▼
-Phase 4 (reader_page.dart 拆分) ── 依赖 Phase 3 的信号拆分
-   │
-   ▼
 Phase 5 (DI 自动注入) ── 依赖 Phase 3
    │
    ▼
 Phase 6 (遗留清理) ── 随时可做
 ```
 
-**建议**：Phase 2 → Phase 6（部分）→ Phase 3 → Phase 4 → Phase 5。Phase 6 中 SHA256 注释可随时改。
+**建议**：Phase 6（独立小清理）→ Phase 2 → Phase 3 → Phase 5。Phase 4 已完成，无需再动。

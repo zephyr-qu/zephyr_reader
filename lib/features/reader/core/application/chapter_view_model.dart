@@ -1,6 +1,7 @@
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
 import 'package:zephyr_reader/features/reader/core/application/auto_scroll_controller.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_loader.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_navigator.dart';
@@ -100,22 +101,20 @@ class ChapterViewModel {
 
   Future<void> loadChapters() => _loader.loadChapters();
   Future<void> loadLastProgress() => _loader.loadLastProgress();
-
   Future<void> loadChapter(
     int chapterIndex, {
     int initialCharOffset = 0,
-    bool restartSession = true,
+    ChapterPaginationIntent intent = ChapterPaginationIntent.normalLoad,
     Future<void> Function()? onChapterLoaded,
     bool preserveContent = false,
   }) =>
       _loader.loadChapter(
         chapterIndex,
         initialCharOffset: initialCharOffset,
-        restartSession: restartSession,
+        intent: intent,
         onChapterLoaded: onChapterLoaded,
         preserveContent: preserveContent,
       );
-
   // ==================== 章节导航（委托 ChapterNavigator）====================
 
   Future<void> previousChapter() => _navigator.previousChapter();

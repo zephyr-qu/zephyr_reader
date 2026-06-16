@@ -84,6 +84,20 @@ class PaginationCoordinator {
     );
     return r.totalPages;
   }
+
+  /// 设置重载专用：in-place repaginate 同 handle。
+  /// maxChars 留空表示首屏 2000 字符。
+  Future<({int totalPages, bool isPartial})> repaginateCurrentChapter({
+    BigInt? maxChars,
+  }) {
+    return _repo.repaginateInPlace(
+      bookId: _pageState.bookId.value,
+      chapterIndex: _pageState.chapterIndex.value,
+      params: buildPaginationParams(),
+      maxChars: maxChars ?? PaginationEngine.firstScreenMaxChars,
+    );
+  }
+
   /// Rust 分页失败时回退到 Dart 估算分页。
   Future<({int totalPages, int pageIndex})> fallbackToCalculatePages({
     required int chapterIndex,

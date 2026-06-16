@@ -723,36 +723,89 @@ pub async fn create_pagination_session(
     Ok((PaginationSessionHandle { session_id }, result))
 }
 
-pub async fn paginate_session_full(
-    handle: PaginationSessionHandle,
+/// Internal helper: re-paginate a session and atomically update config + streamer.
+///
+/// `config` should already be validated. The old streamer cache entry is
+/// evicted when the (path, chapter, hash) key changes, mirroring the dispose
+/// strategy so orphans cannot accumulate.
+async fn apply_session_repagination(
+    session_id: u64,
+    entry: PaginationSessionEntry,
+    config: Option<TypesetConfig>,
+    max_chars: Option<u64>,
 ) -> Result<PaginateResult, AppError> {
-    let entry = lookup_pagination_session(handle.session_id)?;
+    let config = config
+        .map(|c| c.validate_and_fix())
+        .unwrap_or_else(|| entry.config.clone());
+    let old_key = (
+        entry.file_path.clone(),
+        entry.chapter_index,
+        entry.config.config_hash(),
+    );
+
     let result = paginate_chapter(
         entry.file_path.clone(),
         entry.chapter_index,
-        entry.config.clone(),
-        None,
+        config.clone(),
+        max_chars,
     )
     .await?;
 
-    let streamer_key = (entry.file_path.clone(), entry.chapter_index, result.config_hash);
+    let new_key = (
+        entry.file_path.clone(),
+        entry.chapter_index,
+        result.config_hash,
+    );
     let streamer = STREAMER_CACHE
         .lock()
-        .get(&streamer_key)
+        .get(&new_key)
         .cloned()
         .ok_or_else(|| AppError::NotFound {
-            entity: format!("page streamer for session full {}", handle.session_id),
+            entity: format!("page streamer for session {session_id}"),
         })?;
 
+    if old_key != new_key {
+        STREAMER_CACHE.lock().pop(&old_key);
+    }
+
     SESSION_MAP.lock().insert(
-        handle.session_id,
+        session_id,
         PaginationSessionEntry {
+            file_path: entry.file_path,
+            chapter_index: entry.chapter_index,
+            config,
             streamer,
-            ..entry
         },
     );
 
     Ok(result)
+}
+
+/// Re-paginate an existing session with a new config in-place.
+/// `max_chars` is `None` to expand to full chapter.
+#[frb]
+pub async fn repaginate_session(
+    handle: PaginationSessionHandle,
+    config: TypesetConfig,
+    max_chars: Option<u64>,
+) -> Result<PaginateResult, AppError> {
+    let entry = lookup_pagination_session(handle.session_id)?;
+    apply_session_repagination(handle.session_id, entry, Some(config), max_chars).await
+}
+
+/// Expand session to full chapter.
+/// `config = None` reuses the entry's stored config; `Some(c)` swaps in new
+/// config first (delegates to [repaginate_session]).
+#[frb]
+pub async fn paginate_session_full(
+    handle: PaginationSessionHandle,
+    config: Option<TypesetConfig>,
+) -> Result<PaginateResult, AppError> {
+    if let Some(cfg) = config {
+        return repaginate_session(handle, cfg, None).await;
+    }
+    let entry = lookup_pagination_session(handle.session_id)?;
+    apply_session_repagination(handle.session_id, entry, None, None).await
 }
 
 pub fn get_session_page_content(

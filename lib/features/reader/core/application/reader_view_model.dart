@@ -6,10 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-
+import 'package:zephyr_reader/features/reader/annotations/application/bookmark_view_model.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart';
-import 'package:zephyr_reader/features/reader/annotations/application/bookmark_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart';
 import 'package:zephyr_reader/features/reader/translation/application/translation_view_model.dart';
@@ -115,7 +115,7 @@ class ReaderViewModel {
         await chapterManager.loadChapter(
           targetChapterIndex,
           initialCharOffset: targetCharOffset,
-          restartSession: false,
+          intent: ChapterPaginationIntent.expandOnly,
           onChapterLoaded: annotations.loadHighlights,
         );
       }
@@ -136,12 +136,12 @@ class ReaderViewModel {
   Future<void> loadChapter(
     int chapterIndex, {
     int initialCharOffset = 0,
-    bool restartSession = true,
+    ChapterPaginationIntent intent = ChapterPaginationIntent.normalLoad,
   }) async {
     await chapterManager.loadChapter(
       chapterIndex,
       initialCharOffset: initialCharOffset,
-      restartSession: restartSession,
+      intent: intent,
       onChapterLoaded: annotations.loadHighlights,
     );
   }
@@ -221,7 +221,8 @@ class ReaderViewModel {
         chapterManager.loadChapter(
           state.chapterIndex.value,
           initialCharOffset: state.currentCharOffset.value,
-          restartSession: true,
+          intent: ChapterPaginationIntent.configReload,
+          preserveContent: true,
           onChapterLoaded: annotations.loadHighlights,
         ),
       );

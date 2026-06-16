@@ -8,6 +8,17 @@ import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 abstract class PaginationSession {
   List<PageDescriptor>? get descriptors;
 
+  /// 上次分页的 configHash；null 表示无 session。
+  int? get sessionConfigHash;
+
+  /// In-place repaginate：复用现有 session handle，更新 config。
+  /// handle 不存在时退化到 [beginPaginate]（用真实 bookId/chapterIndex）。
+  Future<({int totalPages, bool isPartial})> repaginateInPlace({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+    BigInt? maxChars,
+  });
   /// 创建分页会话并分页。maxChars=null 表示全章。
   Future<({int totalPages, bool isPartial})> beginPaginate({
     required String bookId,
