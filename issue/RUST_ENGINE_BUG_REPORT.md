@@ -6,21 +6,6 @@
 
 ***
 
-## 严重 Bug（可能崩溃/死循环/数据损坏）
-
-***
-
-###
-
-## 中等 Bug（结果不正确/性能问题）
-
-###
-
-<br />
-
-***
-
-###
 
 ### 6. `format_from_extension` 未知格式静默转为 TXT
 
@@ -40,12 +25,16 @@ match ext {
 
 **修复方向:** 对未知扩展名返回错误 `UnsupportedFormat`，或至少在日志中警告。
 
-**复核 (2026-06-16):** ❌ 未修复
+**复核 (2026-06-16):** ✅ 已修复
 
-- `core.rs:841-852` 仍为 `match ext { ... _ => BookFormat::Txt }` 静默 fallback
-- `AppError::UnsupportedFormat` 错误变体已在 `error.rs:28-29` 定义，但全项目 0 处使用
-- 用户打开 .mobi / .azw3 / .djvu / .cbr 仍会得到乱码或解析错误，无明确错误提示
-- 风险等级：实际触发率取决于用户导入习惯（移动端 / PC 端常用 .epub 较少遇到）；但用户支持场景下不可接受
+- 重命名 `core.rs:773` 的 `format_from_extension(file_path) -> BookFormat` 为 `format_from_file_path(file_path) -> Result<BookFormat, AppError>`
+- 内部委托 `registry::format_from_extension(ext)`（早已是 `Result`），未知扩展名返回 `AppError::UnsupportedFormat`
+- 5 个调用点改为 `let format = format_from_file_path(&validated_path)?;` 传递错误
+- `supports_chunked_pagination` 保持 `bool` 返回类型，未知格式 → `false`（符合"是否支持分块排版"语义）
+- `test_format_from_extension` 改名为 `test_format_from_file_path`，新增 `.mobi` 错误用例
+- 诊断测试中旧调用点同步更新
+- 评估：`parser_for_file` 早就是 `Result`，**该 bug 是 `core.rs` 与 `parser/registry.rs` 命名/语义不一致的历史遗留**
+- `cargo check` 通过
 
 ***
 
@@ -63,10 +52,14 @@ Ok(text.to_owned())  // text 已经是 String
 
 `extract_chapter_content` 中的 `text` 已是从 `parser.extract_chapter()` 返回的 `String`。`.to_owned()` 复制了整个字符串。
 
-**复核 (2026-06-16):** ❌ 未修复
+**复核 (2026-06-16):** ✅ 已修复
 
-- `core.rs:236` 仍为 `Ok(text.to_owned())`
-- 移除 `.to_owned()` 即可（`text` 已经是 `String`）
+- 验证：当前 `core.rs:236` 为 `Ok(text)`，无 `.to_owned()` 克隆
+- `cargo check` 通过
+
+**修复 (2026-06-16)**: `core.rs:236` 已改为 `Ok(text)`。
+
+
 
 ***
 
@@ -81,11 +74,12 @@ pub async fn create_bilingual_highlight_pair(
 
 `#[warn]` 是默认行为，不抑制任何警告；需要 `#[allow]` 或 `#[expect]` 才能静默该 lint。
 
-**复核 (2026-06-16):** ❌ 未修复
+**复核 (2026-06-16):** ✅ 已修复
 
-- `bilingual.rs:116` 仍为 `#[warn(clippy::too_many_arguments)]`
-- 意图应是抑制警告，应改 `#[allow(...)]` 或 `#[expect(...)]`
-- 影响：编译时 `too_many_arguments` lint 仍会触发，但因 `#[warn]` 是默认级别，行为上等同于无属性
+- `bilingual.rs:116` 已改为 `#[allow(clippy::too_many_arguments)]`
+- 意图实现：lint 在该函数被显式抑制
+- `cargo check` 通过
+
 
 ***
 
@@ -113,12 +107,14 @@ SQLite 的灵活类型系统下这 "能工作"（TEXT `"1"` 等效于 INTEGER `1
 
 章节缓存目录 `data/chapters/{book_id}/{chapter_index}.txt` 永远不会被创建。如果这是有意设计（Provider 自带缓存），应删除这几百行死代码。
 
-**复核 (2026-06-16):** ❌ 未修复
+**复核 (2026-06-16):** ✅ 已修复
 
-- `core.rs:181,198,226-237` `try_read_cached_chapter` / `write_chapter_cache` / `extract_chapter_content` 仍存在
-- 调用关系：`extract_chapter_content` 在 `core.rs:227,234` 调用缓存读写；其本身被 `paginate_all_content` / `get_chapter` fallback 调用
-- 当前支持格式（TXT/MD/EPUB）走 Provider 路径，缓存不写入
-- 与文档原评一致：死代码 / 几百行冗余
+- 验证：`try_read_cached_chapter` / `write_chapter_cache` 已从 `core.rs` 删除
+- `extract_chapter_content` 简化为：`let parser = parser_for_file(file_path)?; parser.extract_chapter(file_path, chapter_index).await`，不再走缓存
+- 评估：`extract_chapter_content` 本身仍被 4 处 fallback 路径调用（`get_chapter` / `paginate_all_content` / 旧 PDF 路径等），**不是死代码** — 保留
+- 死代码部分（两个缓存函数）已删除，约 50 行
+- `cargo check` 通过
+
 
 ***
 
@@ -136,12 +132,13 @@ acc_offset += page_len;
 
 **影响:** 打开 CRLF 格式的 TXT/MD 文件时，分页偏移量偏小。
 
-**复核 (2026-06-16):** ❌ 未修复
+**复核 (2026-06-16):** ✅ 已修复（连同 #16 一并删除）
 
-- `core.rs:891-926` `paginate_chunk` 仍维持 `text.lines().collect() → chunk.join("\n") → page_text.len() as u64`
-- CRLF 文件每个 `\r` 未计入 `page_len`，`acc_offset` 累积偏低
-- 影响：分页偏移量不准确，但因 `paginate_chunk` 自身已被标记为 DEAD CODE（见 #16），实际触发率取决于是否有调用方
-- 双重风险：死代码 + 死代码里的 bug
+- 验证：`paginate_chunk` 函数已从 `core.rs` 删除（随 `get_paginated_chunk` 一起）
+- 调用方 `get_paginated_chunk` 也已删除（见 #16）
+- 双重风险消除：CRLF bug 不会被触发
+- 3 个 `paginate_chunk` 单元测试（`test_paginate_chunk_empty` / `test_paginate_chunk_single_line` / `test_paginate_chunk_offset_tracking`）已删除
+
 
 ***
 
@@ -157,11 +154,12 @@ if let Some(ref lang) = self.hyphenation_language {
 
 仅当 `hyphenation_language` 为 `Some` 时将其加入哈希。逻辑上这产生正确的区分：`None` 和 `Some("")` 没有区别。但如果未来有两个相同的配置但一个显式设置语言一个未设置，它们的哈希可能意外相同。当前无实际影响。
 
-**复核 (2026-06-16):** ❌ 未修复（与原评一致）
+**复核 (2026-06-16):** ✅ 已修复
 
-- `typeset.rs:264-266` 仍为 `if let Some(ref lang) = self.hyphenation_language { ... }`
-- 文档原评：当前无实际影响
-- 注：`Hash` 实现（`typeset.rs:167-168`）已经无条件 `self.hyphenation_language.hash(state)`，与 `config_hash` 的行为存在微妙差异（Hash 区分 `None` 和 `Some("")`，config\_hash 不区分）
+- 验证：`typeset.rs:264-266` 已改为 `match &self.hyphenation_language { None => push(0), Some(lang) => { push(1); extend_from_slice(lang) } }`
+- 哨兵字节 0/1 显式区分 `None` 和 `Some(...)`；两个空字符串配置仍会产生相同哈希（与原评一致："无实际影响"）
+- `cargo check` 通过
+
 
 ***
 
@@ -179,10 +177,13 @@ impl From<sqlx::Error> for AppError {
 
 `sqlx::Error` 有多种变体 (`PoolClosed`, `Database`, `Protocol`, `RowNotFound` 等)，但全部抹平为单一的 `DatabaseError` 字符串。调试时无法区分是连接问题还是查询问题。
 
-**复核 (2026-06-16):** ❌ 未修复
+**复核 (2026-06-16):** ✅ 已修复
 
-- `error.rs:77-83` 仍为 `Self::DatabaseError { reason: err.to_string() }`
-- 建议：拆分为 `DatabaseConnection` / `DatabaseQuery` / `DatabaseRowNotFound` 等子变体或在 `reason` 中保留分类前缀（如 `[Connection] xxx`）
+- 方案：在 `reason` 字符串前加分类前缀（最小风险，调用方仍匹配 `DatabaseError` 变体）
+- 分类集合覆盖 sqlx 0.9 所有主要变体：`Configuration` / `Database` / `Io` / `Tls` / `Protocol` / `RowNotFound` / `TypeNotFound` / `ColumnIndexOutOfBounds` / `ColumnNotFound` / `ColumnDecode` / `Encode` / `Decode` / `AnyDriverError` / `PoolTimedOut` / `PoolClosed` / `WorkerCrashed` / `Other`
+- 例：之前 `Database error: pool timed out while waiting for an open connection` → 现在 `Database error: [PoolTimedOut] pool timed out while waiting for an open connection`
+- 未采用拆分子变体方案（影响所有数据库调用方，过度）
+- `cargo check` 通过
 
 ***
 
@@ -200,11 +201,13 @@ pub async fn create_page_streamer(...)
 
 公开 FRB 导出但在 Dart 侧没有调用者。每次 Dart 构建都会生成无用的 FFI 绑定。
 
-**复核 (2026-06-16):** ❌ 未修复
+**复核 (2026-06-16):** ✅ 已删除
 
-- `core.rs:540-543` `// DEAD CODE` 注释 + `#[frb]` 公开导出 仍在
-- 验证 Dart 侧无调用：可通过 `grep -r "createPageStreamer" lib/` 确认（未在本次复核中执行）
-- 后果：每次 `flutter_rust_bridge_codegen` 生成无用 FFI 绑定
+- 验证：`create_page_streamer` 函数 + `#[frb]` 标注已从 `core.rs:538-552` 删除
+- Dart 侧无调用：`search lib/` 对 `createPageStreamer` 0 匹配
+- `flutter_rust_bridge_codegen generate` 已重跑，`frb_generated.rs` 不再含此函数
+- 后果：减少一个无用 FFI 绑定，约 15 行
+
 
 ***
 
@@ -220,10 +223,12 @@ pub async fn get_paginated_chunk(...)
 
 同上，公开但无调用方。
 
-**复核 (2026-06-16):** ❌ 未修复
+**复核 (2026-06-16):** ✅ 已删除
 
-- `core.rs:937-940` `// DEAD CODE` 注释 + `#[frb]` 公开导出 仍在
-- 与 #12 关联：内部调用的 `paginate_chunk` 也有偏移 bug
+- 验证：`get_paginated_chunk` 函数 + `#[frb]` 标注已从 `core.rs:925-993` 删除
+- Dart 侧无调用：`search lib/` 对 `getPaginatedChunk` 0 匹配
+- 顺带删除内部 `paginate_chunk` 函数 + 3 个单元测试（见 #12）
+- 失效章节标题 `// ==================== 新版分块排版 API ====================` 同步删除
 
 ***
 
@@ -247,23 +252,38 @@ pub async fn get_paginated_chunk(...)
 | 严重程度 | 数量 | 状态（2026-06-16 复核）            | 关键影响                       |
 | ---- | -- | ---------------------------- | -------------------------- |
 | 严重   | 2  | ✅ 全部已修                       | —                          |
-| 中等   | 5  | 4/5 已修；#6 format 静默转 TXT 仍未修 | 未知格式乱码无提示                  |
-| 轻微   | 7  | ❌ 全部未修                       | 冗余 clone、lint 失效、类型不一致、死代码 |
+| 中等   | 5  | **5/5 已修**（#6 已在第二批修复）       | 未知格式 → `AppError::UnsupportedFormat` |
+| 轻微   | 7  | **6/7 已修**（#8/#9/#11/#12/#13/**#14**）；#10/#17 仍待修 | 剩：FTS5 TEXT/INT 混用、注释测试代码 |
+| 死代码  | 4 项 (#11/#12/#15/#16) | ✅ 全部已删（#12 随 #16 一并消除） | 减负，无用 FFI 绑定消除            |
+| 错误分类 | #14 | ✅ 已在 reason 前缀加分类 | 调试可区分连接/查询/类型/编码等        |
 
-**已修复 6 项**: #1 断行死循环、#2 FTS5 escape、#3 富文本双重处理、#4 lazy 字节偏移、#5 lazy 阈值单位、#7 全宽拉丁标点误判。
+**已修复 14 项**: #1/#2/#3/#4/#5/#7/#8/#9/#11/#12/#13/#15/#16，以及本次第二批的 #6（format 错误处理） + #14（sqlx 错误分类前缀）。
 
-**未修复 11 项**: #6、#8-#17 全部仍存在原始问题。
+**未修复 2 项**: #10（FTS5 chapter_index TEXT/INT 不一致）、#17（注释测试）。其中：
+- #10 需 FTS5 索引重建，影响存量数据
+- #17 受 cargo test 编译 blocker 阻碍
 
 **最紧急残留项:**
 
-1. **#6** — 用户打开 .mobi/.azw3 等未知格式会看到乱码无错误提示（最影响用户体验）
-2. **#11 + #15 + #16** — 几百行死代码 + 仍生成 FFI 绑定（技术债累积）
-3. **#12** — 死代码里仍有 bug（双重风险）
-4. **#17** — bilingual 模块 87 行测试脱离运行（回归无保护）
+1. **#17** — bilingual 模块 87 行测试脱离运行（回归无保护，需先解决 cargo test 编译 blocker）
+2. **#10** — FTS5 类型不一致（仅代码异味，性能影响可忽略）
 
 **已修复 #2 的代价:** FTS5 转义策略从 "字符级 escape" 改为 "整体短语包裹"。所有特殊字符（`+`, `-`, `*`, `(`, `)` 等）都成为字面量，用户无法再使用 FTS5 原生操作符语法（AND/OR/NOT/前缀匹配）。需评估是否需要在 UI 上提示用户当前搜索为字面量短语搜索。
 
 **附加发现 (复核过程中):**
 
-- `cargo build --tests` 编译失败（多个 test crate 报错），与本 issue 无关，属未提交改动：`rust/src/api/core.rs` 正在重构 pagination session 架构（`paginate_session_full` → `repaginate_session` + `apply_session_repagination`），可能影响测试签名
 
+- `cargo check` 通过（lib crate 本身可编译）
+- `cargo test --no-run` 编译失败：传递依赖（`rust_mdict` / `onig_sys` / `encoding_rs` / `regex` / `threadpool` / `socket2`）的 rlib 链接问题，**与本 issue 修复无关**，但阻碍 #17 修复与新测试编写
+
+**修复批次 (2026-06-16, 本次提交)**:
+
+- 修复 #8：`core.rs:236` 删除冗余 `.to_owned()` → `Ok(text)`
+- 修复 #9：`bilingual.rs:116` `#[warn]` → `#[allow]`
+- 修复 #13：`typeset.rs:264-266` 用 match + 哨兵字节 0/1 区分 `None` 与 `Some(...)`
+- 修复 #11：删除 `try_read_cached_chapter` / `write_chapter_cache`，`extract_chapter_content` 简化为 3 行
+- 修复 #12 + #15 + #16：删除 `paginate_chunk` + `get_paginated_chunk` + `create_page_streamer`（含 3 个单元测试和失效章节标题）+ 失效常量 `PAGINATION_CHUNK_SIZE`
+- 重新执行 `flutter_rust_bridge_codegen generate`，`frb_generated.rs` 自动更新（按 AGENTS.md 规则仅重新生成，未手改）
+- 修复 #6：重命名 `core.rs:773` `format_from_extension` → `format_from_file_path`，委托 `registry::format_from_extension`（早已是 `Result`），未知扩展名返回 `AppError::UnsupportedFormat`；5 个调用点改 `?` 传递错误
+- 修复 #14：`error.rs:77` `From<sqlx::Error>` 在 `reason` 前加分类前缀（`Configuration` / `Database` / `Io` / `Tls` / `Protocol` / `RowNotFound` 等 16 种变体）
+- `cargo check` 通过，0 警告

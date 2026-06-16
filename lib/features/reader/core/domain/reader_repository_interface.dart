@@ -5,7 +5,7 @@ import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 
 export 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart'
     show ReadingProgressData;

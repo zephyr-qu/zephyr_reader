@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/rendering/page_curl_widget.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart';

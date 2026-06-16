@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:dio/dio.dart';
-import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/core/reader/models/font_info.dart';
+import 'package:zephyr_reader/features/reader/domain/model/font_info.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 
 class FontTile extends StatelessWidget {

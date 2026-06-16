@@ -2,9 +2,9 @@
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:zephyr_reader/core/reader/custom_font_service.dart';
-import 'package:zephyr_reader/core/reader/reader_config.dart';
-import 'package:zephyr_reader/core/reader/tts_service.dart';
+import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/service/tts_service.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';

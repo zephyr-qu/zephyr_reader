@@ -1,6 +1,8 @@
 # Doc Archive — 已完成规划
 
-本目录存放**已完成**的规划文档，仅作历史参考。活跃待办见 [doc/READER_ARCH_GOVERNANCE_PHASES.md](../READER_ARCH_GOVERNANCE_PHASES.md)。
+本目录存放**已完成**的规划文档，仅作历史参考。
+
+活跃规划索引见 [doc/README.md](../README.md)（引擎优化）；架构治理见 [READER_ARCH_GOVERNANCE_PHASES.md](../READER_ARCH_GOVERNANCE_PHASES.md)。
 
 ---
 

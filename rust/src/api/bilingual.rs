@@ -113,7 +113,7 @@ pub struct BilingualHighlightParams {
 /// 同时创建两个高亮 Note，通过 `paired_note_id` 互相链接。
 /// 创建后两个高亮可通过 `paired_note_id` 相互查询。
 #[frb]
-#[warn(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments)]
 pub async fn create_bilingual_highlight_pair(
     params: BilingualHighlightParams,
 ) -> Result<BilingualHighlightPair, AppError> {

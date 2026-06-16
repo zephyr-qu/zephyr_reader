@@ -76,8 +76,28 @@ pub enum AppError {
 
 impl From<sqlx::Error> for AppError {
     fn from(err: sqlx::Error) -> Self {
+        // 保留 sqlx 变体分类信息，便于日志/调试区分连接/查询/协议/类型/编码错误
+        let category = match &err {
+            sqlx::Error::Configuration(_) => "Configuration",
+            sqlx::Error::Database(_) => "Database",
+            sqlx::Error::Io(_) => "Io",
+            sqlx::Error::Tls(_) => "Tls",
+            sqlx::Error::Protocol(_) => "Protocol",
+            sqlx::Error::RowNotFound => "RowNotFound",
+            sqlx::Error::TypeNotFound { .. } => "TypeNotFound",
+            sqlx::Error::ColumnIndexOutOfBounds { .. } => "ColumnIndexOutOfBounds",
+            sqlx::Error::ColumnNotFound(_) => "ColumnNotFound",
+            sqlx::Error::ColumnDecode { .. } => "ColumnDecode",
+            sqlx::Error::Encode(_) => "Encode",
+            sqlx::Error::Decode(_) => "Decode",
+            sqlx::Error::AnyDriverError(_) => "AnyDriverError",
+            sqlx::Error::PoolTimedOut => "PoolTimedOut",
+            sqlx::Error::PoolClosed => "PoolClosed",
+            sqlx::Error::WorkerCrashed => "WorkerCrashed",
+            _ => "Other",
+        };
         Self::DatabaseError {
-            reason: err.to_string(),
+            reason: format!("[{}] {}", category, err).into(),
         }
     }
 }

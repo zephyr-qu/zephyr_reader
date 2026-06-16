@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
-import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';

@@ -1,5 +1,5 @@
 ﻿import 'package:flutter/services.dart';
-import 'package:zephyr_reader/core/reader/tts_service.dart';
+import 'package:zephyr_reader/features/reader/domain/service/tts_service.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';

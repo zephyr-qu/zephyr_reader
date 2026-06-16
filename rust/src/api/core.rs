@@ -45,7 +45,6 @@ fn chapter_content_pages(pages: Vec<PageContent>) -> ChapterContent {
 }
 
 const MAX_FILE_SIZE: u64 = 500 * 1024 * 1024;
-const PAGINATION_CHUNK_SIZE: u64 = 8192;
 const PROVIDER_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(16) {
     Some(v) => v,
     None => unreachable!(),
@@ -178,63 +177,11 @@ pub async fn parse_book(file_path: String) -> Result<String, AppError> {
 
 // ==================== 章节内容 ====================
 
-async fn try_read_cached_chapter(validated_path: &str, chapter_index: i32) -> Option<String> {
-    let storage = crate::storage::storage()?;
-    let pool = storage.pool().ok()?;
-
-    let book = BookRepository::find_by_file_path(&pool, validated_path)
-        .await
-        .ok()??;
-
-    let chapter_path = storage
-        .data_dir()
-        .join("chapters")
-        .join(&book.book_id)
-        .join(format!("{}.txt", chapter_index));
-
-    tokio::fs::read_to_string(&chapter_path).await.ok()
-}
-
-async fn write_chapter_cache(validated_path: &str, chapter_index: i32, content: &str) {
-    let storage = match crate::storage::storage() {
-        Some(s) => s,
-        None => return,
-    };
-    let pool = match storage.pool() {
-        Ok(p) => p,
-        Err(_) => return,
-    };
-    let book = match BookRepository::find_by_file_path(&pool, validated_path).await {
-        Ok(Some(b)) => b,
-        _ => return,
-    };
-    let chapter_path = storage
-        .data_dir()
-        .join("chapters")
-        .join(&book.book_id)
-        .join(format!("{}.txt", chapter_index));
-    if let Some(parent) = chapter_path.parent() {
-        if let Err(e) = tokio::fs::create_dir_all(parent).await {
-            tracing::warn!("failed to create chapter cache directory: {}", e);
-        }
-    }
-    if let Err(e) = tokio::fs::write(&chapter_path, content).await {
-        tracing::warn!("failed to write chapter cache: {}", e);
-    }
-}
-
 async fn extract_chapter_content(file_path: &str, chapter_index: i32) -> Result<String, AppError> {
-    if let Some(cached) = try_read_cached_chapter(file_path, chapter_index).await {
-        return Ok(cached);
-    }
-
     let parser = parser_for_file(file_path)?;
-    let text = parser.extract_chapter(file_path, chapter_index).await?;
-
-    write_chapter_cache(file_path, chapter_index, &text).await;
-
-    Ok(text.to_owned())
+    parser.extract_chapter(file_path, chapter_index).await
 }
+
 
 // ==================== 排版缓存 ====================
 
@@ -384,7 +331,7 @@ pub async fn get_chapter_first_spine_only(
     chapter_index: i32,
 ) -> Result<FirstSpineResult, AppError> {
     let validated_path = validate_file_path(&file_path)?;
-    let format = format_from_extension(&validated_path);
+    let format = format_from_file_path(&validated_path)?;
 
     let text = if format == BookFormat::Epub {
         let path = validated_path.clone();
@@ -444,7 +391,7 @@ pub async fn get_chapter_partial(
     max_chars: u64,
 ) -> Result<String, AppError> {
     let validated_path = validate_file_path(&file_path)?;
-    let format = format_from_extension(&validated_path);
+    let format = format_from_file_path(&validated_path)?;
 
     if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
         let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
@@ -465,7 +412,7 @@ pub async fn get_chapter(
     config: Option<TypesetConfig>,
 ) -> Result<ChapterContent, AppError> {
     let validated_path = validate_file_path(&file_path)?;
-    let format = format_from_extension(&validated_path);
+    let format = format_from_file_path(&validated_path)?;
 
     // 支持分块格式走 Provider 路径
     if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
@@ -535,21 +482,6 @@ pub async fn get_chapter(
     }
 }
 
-/// 创建分页流式读取器 [PageStreamer]。
-///
-/// PageStreamer 支持按 chunk 分段读取章节内容，减少大章节的首屏等待时间。
-// DEAD CODE: Dart 侧无调用，当前走 paginateAllContent
-#[frb]
-pub async fn create_page_streamer(
-    file_path: String,
-    chapter_index: i32,
-    config: TypesetConfig,
-) -> Result<PageStreamer, AppError> {
-    let validated_path = validate_file_path(&file_path)?;
-    let content = extract_chapter_content(&validated_path, chapter_index).await?;
-    let config = config.validate_and_fix();
-    Ok(PageStreamer::new(content, config))
-}
 
 /// 分页排版指定文件的所有章节。
 ///
@@ -571,7 +503,7 @@ pub async fn paginate_all_content(
     }
 
     // 优先使用 Provider LRU 路径（与 getChapter 共享解析器缓存，避免重复 I/O）
-    let format = format_from_extension(&validated_path);
+    let format = format_from_file_path(&validated_path)?;
     let content = if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
         let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
         let content_len = provider.content_length();
@@ -614,7 +546,7 @@ pub async fn paginate_chapter(
     let config_hash = config.config_hash();
 
     // 提取章节文本（只读取必要的 spine，惰性转换）
-    let format = format_from_extension(&validated_path);
+    let format = format_from_file_path(&validated_path)?;
     let (content, is_partial) = if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
         let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
         let content_len = provider.content_length();
@@ -838,18 +770,16 @@ pub fn dispose_pagination_session(handle: PaginationSessionHandle) -> Result<(),
 // ==================== Provider 管理 ====================
 
 /// 从文件路径推断格式
-fn format_from_extension(file_path: &str) -> BookFormat {
+fn format_from_file_path(file_path: &str) -> Result<BookFormat, AppError> {
     let ext = std::path::Path::new(file_path)
         .extension()
         .and_then(|e| e.to_str())
-        .unwrap_or("");
-    match ext {
-        "txt" | "text" => BookFormat::Txt,
-        "epub" => BookFormat::Epub,
-        "md" | "markdown" | "mdown" | "mkdn" => BookFormat::Md,
-        "pdf" => BookFormat::Pdf,
-        _ => BookFormat::Txt,
-    }
+        .ok_or_else(|| {
+            AppError::UnsupportedFormat {
+                format: "file has no extension".into(),
+            }
+        })?;
+    crate::parser::registry::format_from_extension(ext)
 }
 
 /// 从 DB 获取章节边界信息（TXT/MD 的文件字节偏移，EPUB/PDF 的 spine/页索引）
@@ -887,125 +817,7 @@ async fn get_chapter_bounds(
     Ok((chapter.start_index as i32, chapter.end_index as i32))
 }
 
-/// 轻量分块排版：将文本按行分割为多页
-fn paginate_chunk(
-    text: &str,
-    chunk_start_offset: u64,
-    chapter_index: i32,
-    config: &TypesetConfig,
-) -> Vec<PageContent> {
-    let lines: Vec<&str> = text.lines().collect();
-    if lines.is_empty() {
-        return Vec::new();
-    }
 
-    let font_size = config.font_size as f32;
-    let line_spacing = config.line_spacing;
-    let page_height_px = config.page_height as f32;
-    let line_height = (font_size * line_spacing).max(1.0);
-    let lines_per_page = ((page_height_px / line_height) as usize).max(5);
-
-    let mut pages = Vec::new();
-    let mut acc_offset = chunk_start_offset;
-
-    for (page_idx, chunk) in lines.chunks(lines_per_page).enumerate() {
-        let page_text = chunk.join("\n");
-        let page_len = page_text.len() as u64;
-        pages.push(PageContent {
-            chapter_index,
-            page_index: page_idx as i32,
-            content: page_text,
-            is_last_page: false,
-            start_offset: acc_offset as i32,
-            end_offset: (acc_offset + page_len) as i32,
-        });
-        acc_offset += page_len;
-    }
-
-    pages
-}
-
-// ==================== 新版分块排版 API ====================
-
-/// 获取分块排版内容
-///
-/// 按 chunk 粒度读取章节内容并排版，适用于 TXT/MD/EPUB 格式。
-/// PDF 格式应使用 `get_pdf_page` / `get_pdf_total_pages`。
-///
-/// 偏移语义因格式而异：
-/// - TXT/MD：章节字节偏移（相对于文件的 start_index/end_index）
-// DEAD CODE: Dart 侧无调用
-/// - EPUB：0-based 纯文本偏移
-#[frb]
-pub async fn get_paginated_chunk(
-    file_path: String,
-    chapter_index: i32,
-    chunk_index: u32,
-    config: TypesetConfig,
-) -> Result<Vec<PageContent>, AppError> {
-    let validated_path = validate_file_path(&file_path)?;
-    let config = config.validate_and_fix();
-    let config_hash = config.config_hash();
-    let format = format_from_extension(&validated_path);
-
-    if format == BookFormat::Pdf {
-        return Err(AppError::InvalidInput { reason: "PDF does not support chunked text access, use get_pdf_page instead".into() });
-    }
-
-    // 查 chunk 缓存
-    if let Some(pages) =
-        try_get_cached(&validated_path, chapter_index, Some(chunk_index), config_hash).await
-    {
-        return Ok(pages);
-    }
-
-    let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
-    let content_len = provider.content_length();
-
-    // 计算偏移范围
-    // EPUB：0-based，TXT/MD：文件字节偏移 + chunk 偏移
-    let (range_start, range_end) = if format == BookFormat::Epub {
-        let s = chunk_index as u64 * PAGINATION_CHUNK_SIZE;
-        let e = (s + PAGINATION_CHUNK_SIZE).min(content_len);
-        (s, e)
-    } else {
-        let (chapter_start, chapter_end) =
-            get_chapter_bounds(&validated_path, chapter_index).await?;
-        let chapter_start = chapter_start.max(0) as u64;
-        let chapter_end = (chapter_end.max(0) as u64).min(content_len);
-
-        let s = chapter_start + chunk_index as u64 * PAGINATION_CHUNK_SIZE;
-        let e = (s + PAGINATION_CHUNK_SIZE).min(chapter_end);
-        (s, e)
-    };
-
-    if range_start >= range_end || range_start >= content_len {
-        return Ok(Vec::new());
-    }
-
-    let text = provider.read_text_range(range_start, range_end)?;
-    if text.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    let pages = paginate_chunk(&text, range_start, chapter_index, &config);
-
-    // 写 chunk 缓存
-    try_save_cached(
-        &validated_path,
-        chapter_index,
-        Some(chunk_index),
-        config_hash,
-        pages.clone(),
-    ).await;
-
-    let mut pages = pages;
-    if let Some(last) = pages.last_mut() {
-        last.is_last_page = range_end >= content_len;
-    }
-
-    Ok(pages)
-}
 
 /// 获取 PDF 指定页面的文本内容
 ///
@@ -1040,8 +852,10 @@ pub async fn get_pdf_total_pages(file_path: String) -> Result<u32, AppError> {
 // TODO: Dart 侧尚未接入 PDF 阅读
 #[frb(sync)]
 pub fn supports_chunked_pagination(file_path: String) -> bool {
-    let format = format_from_extension(&file_path);
-    matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub)
+    matches!(
+        format_from_file_path(&file_path),
+        Ok(BookFormat::Txt | BookFormat::Md | BookFormat::Epub)
+    )
 }
 
 #[cfg(test)]
@@ -1050,12 +864,13 @@ mod tests {
 
 
     #[test]
-    fn test_format_from_extension() {
-        assert_eq!(format_from_extension("book.txt"), BookFormat::Txt);
-        assert_eq!(format_from_extension("book.epub"), BookFormat::Epub);
-        assert_eq!(format_from_extension("book.md"), BookFormat::Md);
-        assert_eq!(format_from_extension("book.pdf"), BookFormat::Pdf);
-        assert_eq!(format_from_extension("book.markdown"), BookFormat::Md);
+    fn test_format_from_file_path() {
+        assert_eq!(format_from_file_path("book.txt"), Ok(BookFormat::Txt));
+        assert_eq!(format_from_file_path("book.epub"), Ok(BookFormat::Epub));
+        assert_eq!(format_from_file_path("book.md"), Ok(BookFormat::Md));
+        assert_eq!(format_from_file_path("book.pdf"), Ok(BookFormat::Pdf));
+        assert_eq!(format_from_file_path("book.markdown"), Ok(BookFormat::Md));
+        assert!(format_from_file_path("book.mobi").is_err());
     }
 
     #[test]
@@ -1066,39 +881,7 @@ mod tests {
         assert!(!supports_chunked_pagination("book.pdf".to_string()));
     }
 
-    #[test]
-    fn test_paginate_chunk_empty() {
-        let config = TypesetConfig::default();
-        let pages = paginate_chunk("", 0, 0, &config);
-        assert!(pages.is_empty());
-    }
 
-    #[test]
-    fn test_paginate_chunk_single_line() {
-        let config = TypesetConfig {
-            font_size: 100,
-            page_height: 1000,
-            line_spacing: 1.0,
-            ..Default::default()
-        };
-        let pages = paginate_chunk("Hello World", 0, 0, &config);
-        assert_eq!(pages.len(), 1);
-        assert_eq!(pages[0].content, "Hello World");
-    }
-
-    #[test]
-    fn test_paginate_chunk_offset_tracking() {
-        let config = TypesetConfig {
-            font_size: 100,
-            page_height: 100,
-            line_spacing: 1.0,
-            ..Default::default()
-        };
-        let text = "Line1\nLine2\nLine3\nLine4";
-        let pages = paginate_chunk(text, 100, 0, &config);
-        assert!(pages.len() >= 1);
-        assert!(pages[0].start_offset >= 100);
-    }
 
     /// 诊断测试：验证内容提取管线
     /// 
@@ -1152,7 +935,7 @@ mod tests {
 
 
         // 创建 provider
-        let format = format_from_extension(&validated);
+        let format = format_from_file_path(&validated).expect("test TXT file should have known extension");
         eprintln!("[DIAG] format: {:?}", format);
         let provider = get_or_create_provider(&validated, 0, &format).await
             .expect("get_or_create_provider should succeed");
