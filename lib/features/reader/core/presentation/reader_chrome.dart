@@ -33,11 +33,11 @@ class ReaderTopChrome extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final showToolbar = useSignalValue<bool, Signal<bool>>(uiState.showToolbar);
-    final activePanel = useSignalValue<ReaderPanelType?, Signal<ReaderPanelType?>>(
+    final bool showToolbar = useSignalValue(uiState.showToolbar);
+    final ReaderPanelType? activePanel = useSignalValue(
       uiState.activePanel,
     );
-    final String bCurrentbookid = useSignalValue(vm.state.bookId);
+    final String bCurrentbookid = useSignalValue(vm.chapterManager.bookId);
     final String bCurrentchaptertitle = useSignalValue(
       vm.chapterManager.currentChapterTitle,
     );
@@ -104,14 +104,14 @@ class ReaderBottomChrome extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activePanel = useSignalValue<ReaderPanelType?, Signal<ReaderPanelType?>>(
+    final ReaderPanelType? activePanel = useSignalValue(
       uiState.activePanel,
     );
     final ReadingMode bCurrentreadingmode = useSignalValue(
       vm.readingMode,
     );
-    final isTtsPlaying = useSignalValue<bool, Signal<bool>>(ttsService.isPlaying);
-    final isTtsPaused = useSignalValue<bool, Signal<bool>>(ttsService.isPaused);
+    final bool isTtsPlaying = useSignalValue(ttsService.isPlaying);
+    final bool isTtsPaused = useSignalValue(ttsService.isPaused);
 
     return Stack(
       clipBehavior: Clip.hardEdge,

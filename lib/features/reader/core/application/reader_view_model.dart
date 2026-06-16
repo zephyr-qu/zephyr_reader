@@ -105,8 +105,8 @@ class ReaderViewModel {
 
       final chaptersList = chapterManager.chapters.value.value;
       if (chaptersList != null && chaptersList.isNotEmpty) {
-        final restoredChapterIndex = state.chapterIndex.value;
-        final restoredCharOffset = state.currentCharOffset.value;
+        final restoredChapterIndex = chapterManager.chapterIndex.value;
+        final restoredCharOffset = chapterManager.currentCharOffset.value;
         final targetChapterIndex = initialChapterId > 0
             ? initialChapterId
             : restoredChapterIndex;
@@ -223,8 +223,8 @@ class ReaderViewModel {
     _reloadDebounce = Timer(const Duration(milliseconds: 300), () {
       unawaited(
         chapterManager.loadChapter(
-          state.chapterIndex.value,
-          initialCharOffset: state.currentCharOffset.value,
+          chapterManager.chapterIndex.value,
+          initialCharOffset: chapterManager.currentCharOffset.value,
           intent: ChapterPaginationIntent.configReload,
           readingMode: readingMode.value,
           preserveContent: true,

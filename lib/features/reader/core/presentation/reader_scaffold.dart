@@ -45,8 +45,8 @@ class ReaderScaffold extends HookWidget {
   Widget build(BuildContext context) {
     final ReaderTheme bReadertheme = useSignalValue(vm.config.theme.signal);
     final int bBgindex = useSignalValue(vm.config.readerBgColorIndex.signal);
-    final String bCurrentbookid = useSignalValue(vm.state.bookId);
-    final int bChapterindex = useSignalValue(vm.state.chapterIndex);
+    final String bCurrentbookid = useSignalValue(vm.chapterManager.bookId);
+    final int bChapterindex = useSignalValue(vm.chapterManager.chapterIndex);
     final String bCurrentchaptertitle = useSignalValue(
       vm.chapterManager.currentChapterTitle,
     );
