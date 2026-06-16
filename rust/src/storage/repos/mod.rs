@@ -14,8 +14,6 @@ pub mod session_repo;
 pub mod stats_repo;
 pub mod vocab_repo;
 
-#[cfg(test)]
-pub mod test_utils;
 
 pub use book_repo::BookRepository;
 pub use bookmark_repo::BookmarkRepository;

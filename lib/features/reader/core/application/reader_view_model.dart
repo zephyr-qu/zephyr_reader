@@ -118,6 +118,7 @@ class ReaderViewModel {
           targetChapterIndex,
           initialCharOffset: targetCharOffset,
           intent: ChapterPaginationIntent.expandOnly,
+          readingMode: readingMode.value,
           onChapterLoaded: annotations.loadHighlights,
         );
       }
@@ -225,6 +226,7 @@ class ReaderViewModel {
           state.chapterIndex.value,
           initialCharOffset: state.currentCharOffset.value,
           intent: ChapterPaginationIntent.configReload,
+          readingMode: readingMode.value,
           preserveContent: true,
           onChapterLoaded: annotations.loadHighlights,
         ),

@@ -72,11 +72,8 @@ class ReaderPageState {
   final chapterIndex = signal<int>(0);          // → ChapterViewModel, ReadingSessionManager
   final currentCharOffset = signal<int>(0);     // → ChapterViewModel, ReadingSessionManager
   final chapterContent = asyncSignal<String>…;  // → ChapterViewModel
-  final readingMode = signal<ReadingMode>(…);   // → ReaderViewModel, TranslationViewModel
   final pendingJumpCharOffset = signal<int?>(null); // → ChapterViewModel
-## Phase 3.1: `readingMode` → `ReaderViewModel` ✅
 }
-```
 
 **方案**：将信号按所有者拆分到各子 VM 内部，VM 之间通过方法调用而非共享信号通信。
 
