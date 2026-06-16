@@ -101,11 +101,11 @@ class ChapterLoader {
     }
   }
 
-  /// 加载章节内容
   Future<void> loadChapter(
     int chapterIndex, {
     int initialCharOffset = 0,
     ChapterPaginationIntent intent = ChapterPaginationIntent.normalLoad,
+    ReadingMode readingMode = ReadingMode.pagination,
     Future<void> Function()? onChapterLoaded,
     bool preserveContent = false,
   }) {
@@ -114,6 +114,7 @@ class ChapterLoader {
         chapterIndex: chapterIndex,
         initialCharOffset: initialCharOffset,
         intent: intent,
+        readingMode: readingMode,
         preserveContent: preserveContent,
         onChapterLoaded: onChapterLoaded,
       ),

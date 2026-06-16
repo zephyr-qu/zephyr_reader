@@ -865,12 +865,13 @@ mod tests {
 
     #[test]
     fn test_format_from_file_path() {
-        assert_eq!(format_from_file_path("book.txt"), Ok(BookFormat::Txt));
-        assert_eq!(format_from_file_path("book.epub"), Ok(BookFormat::Epub));
-        assert_eq!(format_from_file_path("book.md"), Ok(BookFormat::Md));
-        assert_eq!(format_from_file_path("book.pdf"), Ok(BookFormat::Pdf));
-        assert_eq!(format_from_file_path("book.markdown"), Ok(BookFormat::Md));
+        assert!(matches!(format_from_file_path("book.txt"), Ok(BookFormat::Txt)));
+        assert!(matches!(format_from_file_path("book.epub"), Ok(BookFormat::Epub)));
+        assert!(matches!(format_from_file_path("book.md"), Ok(BookFormat::Md)));
+        assert!(matches!(format_from_file_path("book.pdf"), Ok(BookFormat::Pdf)));
+        assert!(matches!(format_from_file_path("book.markdown"), Ok(BookFormat::Md)));
         assert!(format_from_file_path("book.mobi").is_err());
+        assert!(format_from_file_path("book_no_ext").is_err());
     }
 
     #[test]

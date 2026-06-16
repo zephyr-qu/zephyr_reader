@@ -86,7 +86,7 @@ class ChapterLoadOrchestrator {
       final contentFuture = _contentRepo.loadChapterContent(
         _pageState.bookId.value,
         request.chapterIndex,
-        readingMode: _pageState.readingMode.value,
+        readingMode: request.readingMode,
       );
 
       final calibFuture = _pagination.calibration.value != null

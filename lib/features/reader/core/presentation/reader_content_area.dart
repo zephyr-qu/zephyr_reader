@@ -52,7 +52,7 @@ class ReaderContentArea extends HookWidget {
     final int bPageindex = useSignalValue(vm.chapterManager.pageIndex);
     final int bTotalpages = useSignalValue(vm.chapterManager.totalPages);
     final ReadingMode bCurrentreadingmode = useSignalValue(
-      vm.state.readingMode,
+      vm.readingMode,
     );
     final double bFontsize = useSignalValue(vm.config.fontSize.signal);
     final double bLineheight = useSignalValue(vm.config.lineHeight.signal);

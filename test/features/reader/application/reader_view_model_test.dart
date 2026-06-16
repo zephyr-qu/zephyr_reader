@@ -1,4 +1,4 @@
-﻿// test/features/reader/application/reader_view_model_test.dart
+// test/features/reader/application/reader_view_model_test.dart
 //
 // 覆盖 P2.3 — ReaderViewModel 翻页逻辑
 //
@@ -253,13 +253,13 @@ void main() {
     });
 
     test('setReadingMode 更新 readingMode 信号', () {
-      expect(vm.state.readingMode.value, equals(ReadingMode.pagination));
+      expect(vm.readingMode.value, equals(ReadingMode.pagination));
 
       vm.setReadingMode(ReadingMode.scroll);
-      expect(vm.state.readingMode.value, equals(ReadingMode.scroll));
+      expect(vm.readingMode.value, equals(ReadingMode.scroll));
 
       vm.setReadingMode(ReadingMode.pageTurn);
-      expect(vm.state.readingMode.value, equals(ReadingMode.pageTurn));
+      expect(vm.readingMode.value, equals(ReadingMode.pageTurn));
     });
   });
 }

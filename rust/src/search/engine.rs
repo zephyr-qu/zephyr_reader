@@ -95,7 +95,7 @@ impl SearchEngine {
         let mut tx = self.pool.begin().await?;
 
         // 幂等：先清除该章节的旧索引
-        sqlx::query("DELETE FROM search_index WHERE book_id = ? AND CAST(chapter_index AS INTEGER) = ?")
+        sqlx::query("DELETE FROM search_index WHERE book_id = ? AND chapter_index = ?")
             .bind(book_id)
             .bind(chapter_index)
             .execute(&mut *tx)
@@ -216,7 +216,7 @@ impl SearchEngine {
          FROM search_index \
          WHERE search_index MATCH ? \
          ORDER BY \
-            CASE WHEN CAST(chapter_index AS INTEGER) = -1 THEN 0 ELSE 1 END, \
+            CASE WHEN chapter_index = '-1' THEN 0 ELSE 1 END, \
             score \
          LIMIT ? OFFSET ?",
         )
@@ -294,14 +294,15 @@ fn escape_fts5_query(query: &str) -> String {
     format!("\"{escaped}\"")
 }
 
-// #[cfg(test)]
-// fn truncate_snippet(text: &str, max_len: usize) -> String {
-//     let char_count = text.chars().count();
-//     if char_count <= max_len {
-//         return text.to_string();
-//     }
-//     text.chars().take(max_len).collect::<String>() + "..."
-// }
+
+#[cfg(test)]
+fn truncate_snippet(text: &str, max_len: usize) -> String {
+    let char_count = text.chars().count();
+    if char_count <= max_len {
+        return text.to_string();
+    }
+    text.chars().take(max_len).collect::<String>() + "..."
+}
 
 #[cfg(test)]
 mod tests {

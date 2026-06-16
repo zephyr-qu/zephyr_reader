@@ -45,6 +45,8 @@ class ReaderViewModel {
   // ==================== 跨切面信号 ====================
 
   final toastMessage = signal<String>('');
+  // 跨 VM 共享状态 — readingMode 之前在 ReaderPageState，移到此处
+  final readingMode = signal<ReadingMode>(ReadingMode.pagination);
 
   // ==================== 定时器 ====================
 
@@ -142,6 +144,7 @@ class ReaderViewModel {
       chapterIndex,
       initialCharOffset: initialCharOffset,
       intent: intent,
+      readingMode: readingMode.value,
       onChapterLoaded: annotations.loadHighlights,
     );
   }
@@ -255,7 +258,7 @@ class ReaderViewModel {
   }
 
   void setReadingMode(ReadingMode mode) {
-    state.readingMode.value = mode;
+    readingMode.value = mode;
     if (mode == ReadingMode.bilingual) {
       translation.onEnterBilingualMode();
     }
@@ -278,6 +281,7 @@ class ReaderViewModel {
     await translation.reset();
 
     toastMessage.value = '';
+    readingMode.value = ReadingMode.pagination;
     state.reset();
   }
 }
