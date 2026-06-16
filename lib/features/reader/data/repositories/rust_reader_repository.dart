@@ -82,6 +82,22 @@ class ReaderRepository
 
   @override
   void disposePagination() => _session.dispose();
+  @override
+  int? get sessionConfigHash => _session.sessionConfigHash;
+
+  @override
+  Future<({int totalPages, bool isPartial})> repaginateInPlace({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+    BigInt? maxChars,
+  }) =>
+      _session.repaginateInPlace(
+        bookId: bookId,
+        chapterIndex: chapterIndex,
+        params: params,
+        maxChars: maxChars,
+      );
 
   @override
   Future<({int totalPages, bool isPartial})> beginPaginate({
@@ -96,7 +112,6 @@ class ReaderRepository
         params: params,
         maxChars: maxChars,
       );
-
   @override
   Future<({int totalPages, bool isPartial})> expandToFullChapter({
     required String bookId,

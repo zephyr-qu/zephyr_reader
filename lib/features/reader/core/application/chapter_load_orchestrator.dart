@@ -6,6 +6,7 @@ import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
@@ -111,26 +112,41 @@ class ChapterLoadOrchestrator {
 
       final ({int totalPages, bool isPartial})? quickResult;
 
-      if (!request.restartSession && _contentRepo.descriptors != null) {
-        // 复用现有 session — descriptors 已有效，跳过 _runFirstSpine
-        _setPhase(gen, ChapterLoadPhase.firstSpine);
-        quickResult = (
-          totalPages: _contentRepo.descriptors!.length,
-          isPartial: true, // 始终全量分页以保证内容/配置最新
-        );
-        _applyIfCurrent(gen, () {
-          _isLoading.value = false;
-        });
-        Logging.info(
-          '[Timing] gen=$gen phase=firstSpine skipped (restartSession=false)',
-        );
-      } else {
-        quickResult = await _runFirstSpine(
-          gen,
-          request,
-          calibFuture: calibFuture,
-          preloadAdjacentFirstPages: preloadAdjacentFirstPages,
-        );
+      switch (request.intent) {
+        case ChapterPaginationIntent.normalLoad:
+          quickResult = await _runFirstSpine(
+            gen,
+            request,
+            calibFuture: calibFuture,
+            preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+          );
+        case ChapterPaginationIntent.configReload:
+          if (_contentRepo.sessionConfigHash == null) {
+            // 首屏未完成，handle 不存在 → 退回 normalLoad
+            Logging.info(
+              '[Timing] gen=$gen phase=firstSpine configReload fell back to firstSpine '
+              '(no session yet)',
+            );
+            quickResult = await _runFirstSpine(
+              gen,
+              request,
+              calibFuture: calibFuture,
+              preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+            );
+          } else {
+            quickResult = await _runConfigReload(
+              gen,
+              request,
+              calibFuture: calibFuture,
+            );
+          }
+        case ChapterPaginationIntent.expandOnly:
+          quickResult = await _runExpandOnly(
+            gen,
+            request,
+            calibFuture: calibFuture,
+            preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+          );
       }
 
       if (_isStale(gen) || quickResult == null) {
@@ -277,6 +293,82 @@ class ChapterLoadOrchestrator {
 
     Logging.info('[Timing] gen=$gen phase=firstSpine firstSpine done');
     return quickResult;
+  }
+
+  /// configReload：等 calib 完成后用新 config in-place repaginate。
+  /// 不 dispose handle，不重走 firstSpine。
+  Future<({int totalPages, bool isPartial})?> _runConfigReload(
+    int gen,
+    ChapterLoadRequest request, {
+    required Future<CalibrationData?> calibFuture,
+  }) async {
+    _setPhase(gen, ChapterLoadPhase.firstSpine);
+    final calibResult = await calibFuture;
+    if (_isStale(gen)) return null;
+    _pagination.calibration.value ??= calibResult;
+
+    final quickResult = await _pagination.repaginateCurrentChapter(
+      maxChars: PaginationEngine.firstScreenMaxChars,
+    );
+    if (_isStale(gen)) return null;
+
+    // 按 request.initialCharOffset + 新 descriptors 重算 pageIndex
+    // （request 是统一入口，currentCharOffset 可能是 stale 值）
+    final descriptors = _contentRepo.descriptors;
+    final charOffset = request.initialCharOffset;
+    int resolvedPage = _pageIndex.value;
+    if (descriptors != null && descriptors.isNotEmpty) {
+      final newResolved = PaginationEngine.resolvePageIndexForOffset(
+        descriptors,
+        charOffset,
+      );
+      if (newResolved >= 0) resolvedPage = newResolved;
+    }
+
+    _applyIfCurrent(gen, () {
+      _totalPages.value = quickResult.totalPages;
+      _pageState.chapterIndex.value = request.chapterIndex;
+      _pageIndex.value = resolvedPage;
+      _pageState.pendingJumpCharOffset.value = charOffset;
+      _error.value = null;
+      _isLoading.value = false;
+    });
+    if (resolvedPage >= 0) {
+      _contentRepo.ensurePageWindow(resolvedPage);
+    }
+    Logging.info('[Timing] gen=$gen phase=firstSpine configReload done');
+    return quickResult;
+  }
+
+  /// expandOnly：同章同 config，handle 已存在则直接 expand to full。
+  /// session 不存在时退回 [firstSpine] 流程。
+  Future<({int totalPages, bool isPartial})?> _runExpandOnly(
+    int gen,
+    ChapterLoadRequest request, {
+    Future<CalibrationData?>? calibFuture,
+    Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages,
+  }) async {
+    _setPhase(gen, ChapterLoadPhase.firstSpine);
+    final descriptors = _contentRepo.descriptors;
+    if (descriptors == null || descriptors.isEmpty) {
+      // session 不存在 → 退回 firstSpine（normalLoad 等价路径）
+      Logging.info(
+        '[Timing] gen=$gen phase=firstSpine expandOnly fell back to firstSpine',
+      );
+      return _runFirstSpine(
+        gen,
+        request,
+        calibFuture: calibFuture ?? Future.value(_pagination.calibration.value),
+        preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+      );
+    }
+    _applyIfCurrent(gen, () {
+      _isLoading.value = false;
+    });
+    return (
+      totalPages: descriptors.length,
+      isPartial: true, // 强制 full expand
+    );
   }
 
 

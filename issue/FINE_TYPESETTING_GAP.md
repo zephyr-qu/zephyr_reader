@@ -1,163 +1,75 @@
-# 精排版差距分析 — 多看阅读对标
+# 排版差距分析 — 双语小说阅读器
 
-> 当前覆盖约 30% 的精排能力，完整差距约 15-25d。
+> 产品目标：中英双语**小说**离线阅读。不追求多看级通用 EPUB 精排。
+> 当前小说场景覆盖约 **70%**（基础样式 + 纯文本分页 + 滚动/双语富文本）；剩余可做工约 **1–2d**。
 
-## 当前已有
+## 当前已有（小说场景够用）
 
-| 能力 | 当前状态 | 链路 |
-|------|----------|------|
-| 粗体/斜体 | ✅ `RichTextSpan::Bold/Italic` | html5ever → FRB → `RichTextConverter` |
-| 标题识别 | ✅ `heading_level` + `is_heading` | html5ever DOM 遍历 |
-| 行内颜色/字号 | ✅ `span.color` + `span.font_size` | 内联 CSS 提取 |
-| 文本对齐 | ✅ `text_align` → `TextAlign` | CSS 解析 |
-| CSS class 选择器 | ✅ 简单 `style_map` 映射 | 正则 CSS 解析 |
-| 代码块 | ✅ `RichTextSpan::Code` | html5ever |
-| 图片（滚动模式） | ✅ `image_data` + `Image.memory` | html5ever → FRB → 滚动渲染器 |
-
----
-
-## 差距
-
-### 1. 分页模式无图片
-
-当前 `paginate_chapter` 使用 `provider.read_text_range()`（纯文本），图片信息不存在于分页引擎中。分页模式只能显示纯文字，图片仅在滚动模式可见。
-
-```
-多看: 分页模式下图片占位 + 文字环绕 + 分页避让
-当前: 分页模式纯文字，图片仅滚动模式可见
-
-估算: 2-3d（影响 PageStreamer 核心抽象）
-```
-
-### 2. 表格
-
-当前 `traverse_dom` 处理 `<table>`/`<tr>`/`<td>` 时只拼接内部文本，丢失所有表格结构。
-
-```
-多看: 表格有网格线、列宽分配、表头样式
-当前: 表格内容以纯文本流出，无结构
-
-估算: 2-3d（Rust 解析 TableRow/TableCell + Dart Table widget）
-```
-
-### 3. Ruby 注音与注释
-
-Ruby 文本（汉字上方标注拼音/假名）和弹出式脚注是中文/日文 EPUB 的标配，当前无支持。
-
-```
-多看:
-  ruby: 汉字上方悬浮拼音
-  脚注: 上标数字 → 点击弹出底部 sheet
-当前: 无 ruby 解析，无 footnote 弹出
-
-估算: 3-4d（含 Rust 解析 + Dart 交互）
-```
-
-### 4. 缺失 CSS 属性
-
-当前 CSS 解析只处理：`font-size`、`color`、`line-height`、`text-align`、`font-weight`（粗体检测）、`font-style`（斜体检测）。
-
-精排会用到的缺失属性：
-
-| CSS 属性 | 用途 | 难度 |
-|----------|------|------|
-| `margin`/`padding` | 段落间距、缩进 | 低 |
-| `text-indent` | 首行缩进 | 低 |
-| `font-family` | 嵌入字体切换 | 低 |
-| `page-break-before/after` | 分页控制 | 中 |
-| `float` | 图片文字环绕 | 中 |
-| `width`/`height` | 图片尺寸控制 | 低 |
-| `background-color` | 高亮/代码块背景 | 低 |
-| `list-style-type` | 有序/无序列表 | 中 |
-| `writing-mode` | 竖排文字 | 高 |
-
-```
-估算: 1-2d（逐个属性在 ComputedStyle 中添加 + RichTextSpan 携带新字段）
-```
-
-### 5. 公式与 SVG
-
-多看支持 MathML 公式和 SVG 矢量图。当前无任何支持。
-
-```
-缺口: Flutter 侧 math 公式渲染无成熟方案（需 flutter_math 或自定义 TeX 引擎）
-估算: 3-5d（MathML→Flutter widget 转换 + 依赖评估）
-```
+| 能力 | 状态 | 链路 |
+|------|------|------|
+| 粗体/斜体/下划线 | ✅ | html5ever → `RichTextConverter` |
+| 标题 | ✅ | `heading_level` |
+| 行内颜色/字号 | ✅ | 内联 CSS |
+| 文本对齐 | ✅ | `text_align` |
+| 段落/列表（纯文本） | ✅ | DOM 遍历 → 纯文本流出 |
+| 分页排版（TXT/EPUB 正文） | ✅ | `PageStreamer` + `PaginationSession` |
+| 滚动模式富文本 | ✅ | EPUB/MD → `ScrollModeRenderer` |
+| 双语对齐 / 对照高亮 | ✅ | `align_bilingual_content` + Translation VM |
 
 ---
 
-## 差距总览
+## 值得做的差距（按优先级）
 
-| 维度 | 多看 | 当前 | 估算 | 优先级 |
-|------|------|------|------|--------|
-| 基础样式（B/I/H/颜色） | ✅ | ✅ | — | — |
-| 图片（滚动模式） | ✅ | ✅ | — | — |
-| 图片（分页模式） | ✅ | ❌ | 2-3d | **P2** |
-| 表格 | ✅ | ❌ | 2-3d | P3 |
-| Ruby 注音 | ✅ | ❌ | 1-2d | P3 |
-| 交互式脚注 | ✅ | ❌ | 1-2d | P3 |
-| 缺失 CSS 属性 | ✅ | ❌ | 1-2d | **P2** |
-| 嵌入字体 | ✅ | ❌ | 0.5d | **P2** |
-| 分页控制 | ✅ | ❌ | 1d | P3 |
-| 公式 (MathML) | ⚠️ | ❌ | 3-5d | P4 |
-| 竖排文字 | ⚠️ | ❌ | >5d | P4 |
-| **总计** | | | **~15-25d** | |
+### P1 — 段落排版 CSS（~1–2d）
 
----
+小说最常见：首行缩进、段间距。Rust 已解析部分 CSS，但未完整投射到 `RichParagraph` / Dart。
 
-## 第一优先路径
+| CSS 属性 | 用途（小说） | 改动面 |
+|----------|-------------|--------|
+| `text-indent` | 中文段落首行缩进 | `ComputedStyle` → `RichParagraph` → `RichTextConverter` |
+| `margin` / `padding`（块级） | 段间距、引用块留白 | 同上 |
+| `font-family` | 英文/中文字体族映射到系统字体 | Rust 已解析，需写入 span 并映射 `TextStyle.fontFamily` |
 
-按收益/成本排序：
+**不涉及** `PageStreamer` 改造，仅滚动模式 + 双语渲染链路。
 
-### 第一波（~3.5d，覆盖 80% 用户感知差距）
+### P2 — 双语模式与富文本一致性（~0.5d，按需）
 
-1. **分页模式支持图片**（2-3d）
-   - `PageStreamer` 需要感知段落中的非文本单元
-   - `PageDescriptor` 需要携带图片引用信息
-   - Dart 分页渲染器需要支持图片占位
-
-2. **缺失 CSS 属性**（1-2d）
-   - `margin/padding/text-indent` → `RichParagraph` 字段
-   - `font-family` → Dart `TextStyle.fontFamily`
-   - `background-color` → 代码块/高亮背景
-
-3. **嵌入字体**（0.5d）
-   - `font-family` 属性投射到 Dart 的 `FontResolver`
-
-### 第二波（~3d）
-
-4. **表格**（2-3d）
-   - Rust: `RichTextSpan` 新增 `Table` 变体
-   - Dart: `Table`/`TableRow` widget 适配
-
-### 第三波（~5d）
-
-5. Ruby 注音 + 脚注 + 公式 — 按实际用户反馈决定
+确认双语模式下 EPUB 段落样式与滚动模式一致（`text-indent`、对齐），避免「分页用 Rust 真理、双语用 stripped plain text」的视觉割裂。若双语已走 `currentRichParagraphs`，随 P1 自动受益。
 
 ---
 
-## 架构影响
+## 明确不做（已从路线图删除）
 
-精排的核心架构挑战：`PageStreamer` 的输入需要从纯文本改为带结构的富文本。
+以下能力对标通用 EPUB 阅读器 / 学术书，**与双语小说目标无关**，不立项：
 
-```rust
-// 当前：纯文本输入
-fn paginate_chapter(…) -> PaginateResult {
-    let content = provider.read_text_range(start, end)?;
-    let streamer = PageStreamer::new(content, config);
-    // …
-}
+| 能力 | 删除原因 |
+|------|----------|
+| 分页模式图片 + float 环绕 | 小说以纯文本为主；需重构 `PageStreamer`，ROI 低 |
+| 表格 | 教材/技术书场景，非小说 |
+| Ruby 注音 | 日语/注音教材，非中英小说 |
+| 交互式脚注 | 学术 EPUB；小说极少依赖 |
+| MathML / SVG 公式 | 学术/理工 EPUB |
+| 竖排 `writing-mode` | 古典竖排书籍，非目标用户 |
+| EPUB 嵌入字体二进制 | 授权与校准成本高；系统字体 + 用户设置足够 |
+| `page-break-*` 分页控制 | 依赖结构感知分页，小说 EPUB 很少需要 |
+| `list-style-type` 精细列表 | 小说内列表极少，现有 `•` 前缀可接受 |
+| 完整多看精排对标（15–25d） | 投入接近独立排版引擎，与产品主线（双语 + 离线 + 分页性能）冲突 |
 
-// 需要：分页层能感知段落/图片/表格边界
-enum PaginateUnit {
-    Text(String),
-    Image(Vec<u8>),
-    Table(TableData),
-    // 分页时按单元切分，而非按字符偏移
-}
+---
+
+## 实施路径
+
+```
+Phase 1（1–2d）— 段落 CSS 补全
+  rust/src/text/rich_text.rs     ComputedStyle + RichParagraph 字段
+  lib/.../rich_text_converter.dart  TextStyle / Padding 投射
+  验收：带 text-indent 的 EPUB 段落首行缩进正确；段间距可见
+
+Phase 2（按需）— 双语模式渲染走同一 RichParagraph 样式
+  验收：bilingual 与 scroll 段落样式一致
 ```
 
-这是架构级改动——不是简单加字段，而是改变分页引擎的基本抽象单元。也是估算天数较多的根本原因。
+**架构影响：无。** 不改动 `PageStreamer`、不分页单元泛型化。
 
 ---
 
@@ -165,8 +77,7 @@ enum PaginateUnit {
 
 | 指标 | 数值 |
 |------|------|
-| 当前覆盖 | ~30%（基础样式 + 纯文本分页 + 滚动模式图片）|
-| 多看精排覆盖率目标 | ~80%（分页图片 + CSS 补充 + 字体 + 表格）|
-| 第一优先工作量 | ~3.5d（分页图片 + CSS 补充 + 字体）|
-| 总计差距 | ~15-25d（完整精排）|
-| 架构影响 | 中型。`PageStreamer` 需泛型化以支持非文本分页单元 |
+| 小说场景当前覆盖 | ~70% |
+| 目标覆盖 | ~85%（P1 段落 CSS 完成后） |
+| 建议工作量 | **1–2d** |
+| 架构影响 | **低**（富文本解析 + Dart 转换器） |

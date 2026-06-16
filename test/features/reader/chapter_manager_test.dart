@@ -10,14 +10,14 @@ import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
-import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
-
+import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import '../../helpers/fixtures.dart';
 
 // ===== Mocks =====
@@ -530,6 +530,41 @@ void main() {
           reason: 'calibration must be set before beginPaginate so config '
               'carries CharWidthTable into the session entry',
         );
+      });
+
+      test('configReload intent 不调用 disposePagination, 调用 repaginateInPlace', () async {
+        // 默认 mock 的 _setupPaginateChapter 已经设了 descriptors，所以 repaginateInPlace
+        // 有 handle 可用。
+        var disposeCalls = 0;
+        when(() => repo.disposePagination()).thenAnswer((_) {
+          disposeCalls++;
+        });
+        when(() => repo.sessionConfigHash).thenReturn(12345);
+        when(
+          () => repo.repaginateInPlace(
+            bookId: any(named: 'bookId'),
+            chapterIndex: any(named: 'chapterIndex'),
+            params: any(named: 'params'),
+            maxChars: any(named: 'maxChars'),
+          ),
+        ).thenAnswer((_) async => (totalPages: 2, isPartial: false));
+
+        await manager.loadChapter(
+          0,
+          intent: ChapterPaginationIntent.configReload,
+        );
+
+        expect(disposeCalls, 0,
+            reason: 'configReload should NOT dispose existing session');
+        verify(
+          () => repo.repaginateInPlace(
+            bookId: any(named: 'bookId'),
+            chapterIndex: any(named: 'chapterIndex'),
+            params: any(named: 'params'),
+            maxChars: any(named: 'maxChars'),
+          ),
+        ).called(1);
+        expect(repo.sessionConfigHash, isNotNull);
       });
     });
 

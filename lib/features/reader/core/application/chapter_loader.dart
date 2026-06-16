@@ -1,9 +1,10 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:zephyr_reader/core/reader/reader_config.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_orchestrator.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
@@ -104,7 +105,7 @@ class ChapterLoader {
   Future<void> loadChapter(
     int chapterIndex, {
     int initialCharOffset = 0,
-    bool restartSession = true,
+    ChapterPaginationIntent intent = ChapterPaginationIntent.normalLoad,
     Future<void> Function()? onChapterLoaded,
     bool preserveContent = false,
   }) {
@@ -112,7 +113,7 @@ class ChapterLoader {
       ChapterLoadRequest(
         chapterIndex: chapterIndex,
         initialCharOffset: initialCharOffset,
-        restartSession: restartSession,
+        intent: intent,
         preserveContent: preserveContent,
         onChapterLoaded: onChapterLoaded,
       ),

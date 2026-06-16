@@ -1,158 +1,26 @@
 # Rust Engine Bug Report
 
 > 审查日期: 2026-06-13
+> 复核日期: 2026-06-16
 > 范围: `rust/src/` 全部 77 个 `.rs` 文件
 
----
+***
 
 ## 严重 Bug（可能崩溃/死循环/数据损坏）
 
-### 1. 断行算法无限循环 — `compute_line_breaks_from_indices`
+***
 
-**文件:** `rust/src/text/pagination.rs:72-81`
-
-```rust
-if end == start {
-    end = start + 1;  // 至少一字符一行
-}
-
-if end < char_count && end > start {
-    let next_char = para_char_indices[end].1;
-    if is_start_avoid_punctuation(next_char) {
-        end -= 1;  // 前移避开禁首标点
-    }
-}
-```
-
-**触发条件:** 当某行只包含 **1 个字符**（`end == start + 1`），且该行的下一个字符是禁首标点（如 `。`、`，`、`！`等）时：
-
-1. `end = start + 1` (强制至少 1 字符)
-2. 禁首标点检查命中，`end -= 1` → `end = start`
-3. 下一轮 while 循环: 内层 for 再次推进到 `end = start + 1`
-4. → 无限循环，永远无法跳出
-
-**影响:** 遇到特定排版参数（窄宽度、大字号）且文本恰好以禁首标点开头时，该线程 100% CPU 永久卡死。`spawn_blocking` 线程池被耗尽。
-
-**修复方向:** 禁首标点回退时须保证 `end > start`；若 `end == start` 则放弃本次回退。同时外层加迭代上限作为熔断。
-
----
-
-### 2. FTS5 搜索查询转义被破坏 — `escape_fts5_query`
-
-**文件:** `rust/src/search/engine.rs:284-306`
-
-```rust
-fn escape_fts5_query(query: &str) -> String {
-    const SPECIAL: &[char] = &['"', '*', '^', '~', '+', '-', '(', ')', '>', '<'];
-    for c in query.chars() {
-        if SPECIAL.contains(&c) {
-            result.push('"');
-            if c == '"' { result.push('"'); }  // FTS5 中 "" 是转义
-            else { result.push(c); }
-            result.push('"');
-        } else {
-            result.push(c);
-        }
-    }
-}
-```
-
-每个特殊字符被独立包裹在 `"..."` 中。这将 FTS5 的操作符语义完全改变：
-
-| 输入 | 实际输出 | 本意 |
-|------|---------|------|
-| `hello+world` | `hello"+"world` | 搜索 helloworld (AND)? |
-| `"exact phrase"` | `""exact phrase""` | 短语搜索 |
-| `hello -bad` | `hello "-"bad` | 排除 bad |
-| `(cat OR dog)` | `"("cat" "OR" dog")"` | OR 查询 |
-
-**影响:** 所有使用 FTS5 操作符（`+`, `-`, `"`, `(`, `)`, `*`, `^`, `~`）的搜索行为完全错误。对纯中文单词语义影响较小（jieba 分词后再 escape 的操作符意义不大），但对英文搜索或混合搜索的精确匹配、排除、短语搜索等功能完全不可用。
-
-**修复方向:** 用 FTS5 的 `^` prefix 或完全包裹整个查询为短语的双引号方案（而非包裹每个字符）。正确的做法是：对包含操作符的高级查询，要么 valid 的 FTS5 语法直接透传，要么将整个查询作为短语处理。
-
----
+###
 
 ## 中等 Bug（结果不正确/性能问题）
 
-### 3. Rich Text DOM 遍历双重处理
+###
 
-**文件:** `rust/src/text/rich_text.rs:228-254`
+<br />
 
-```rust
-"p" | "div" | "section" | "article" => {
-    let mut spans = Vec::new();
-    collect_text_spans(handle, &mut spans, &merged_style, style_map);
-    // ^^ 将 handle 下所有子节点文本收集到 spans
+***
 
-    if !spans.is_empty() {
-        paragraphs.push(RichParagraph { .. });  // 创建段落
-    }
-
-    for child in node.children.borrow().iter() {
-        traverse_dom(child, paragraphs, None, &merged_style, style_map);
-        // ^^ 递归处理每个子节点 → 对于嵌套块元素(如 div>p)会重复创建段落
-    }
-}
-```
-
-`collect_text_spans(handle, ...)` 已经遍历了整个子树收集文本，然后 `traverse_dom` 递归又对每个子节点调用了同样的流程。
-
-**影响:** 对结构如 `<div><p>text</p><p>more</p></div>`，`collect_text_spans` 将两个 `<p>` 的文本合并到 `<div>` 的一个段落中，然后递归 `traverse_dom` 对每个 `<p>` 又各创建了一个段落。结果:
-
-- `<div>` 段落: "textmore" (本不应该生成段落)
-- `<p>` 段落 1: "text" ✅
-- `<p>` 段落 2: "more" ✅
-
-实际输出段落数多于预期，且 `<div>` 段落合并了所有子文本。
-
-**修复方向:** 对块级元素，要么只在 `traverse_dom` 层次创建段落（去掉 `collect_text_spans`），要么只递归处理（去掉在 `traverse_dom` 层面直接创建）。不能同时走两条路径。
-
----
-
-### 4. Lazy 模式 `get_page_offsets` 返回字符索引而非字节偏移
-
-**文件:** `rust/src/text/pagination.rs:423-435`
-
-```rust
-// lazy 模式分支
-let start = page_idx * chars_per_page;
-let end = (start + chars_per_page).min(self.content.len());
-//    ^^^^^ chars_per_page 是字符数，content.len() 是字节数 — 单位不匹配
-offsets.push(PageOffset {
-    offset: start as i32,   // 字符索引作为字节偏移返回
-    length: (end - start) as i32,
-});
-```
-
-对比 `get_page_lazy` (行 332-361) 正确的做法：
-```rust
-let byte_start = self.char_boundaries.get(char_start).copied().unwrap_or(self.content.len());
-let byte_end = self.char_boundaries.get(char_end).copied().unwrap_or(self.content.len());
-```
-
-**影响:** 对包含多字节 UTF-8 字符（CJK）的文本，`get_page_offsets` 返回的 `offset`/`length` 是字符索引而非字节偏移。Dart 侧用这些值去索引文本时得到的是错误位置。对于纯 ASCII 文本无影响。
-
-**修复方向:** lazy 模式分支也应通过 `char_boundaries` 转换字符索引为字节偏移。
-
----
-
-### 5. Lazy 分页阈值使用字节长度而非字符数
-
-**文件:** `rust/src/text/pagination.rs:133-138`
-
-```rust
-let content_len = content.len(); // ← 字节数
-if content_len > LAZY_PAGINATION_CHAR_THRESHOLD {
-    // LAZY_PAGINATION_CHAR_THRESHOLD = 50_000 (字符数)
-    return Self::new_lazy(content, config);
-}
-```
-
-**影响:** 对 CJK 文本（UTF-8 下每字符 3 字节），50K 字节 ≈ 16.7K 字符，远低于 50K 字符的预期阈值。导致 CJK 书籍过早进入 eager 模式，50K 字节对应约 17K CJK 字符时也触发 eager，消耗更多内存。对纯 ASCII 文本阈值正确。
-
-**修复方向:** 使用 `content.chars().count()` 或至少用 `content.len() / 3` 估算。
-
----
+###
 
 ### 6. `format_from_extension` 未知格式静默转为 TXT
 
@@ -172,30 +40,16 @@ match ext {
 
 **修复方向:** 对未知扩展名返回错误 `UnsupportedFormat`，或至少在日志中警告。
 
----
+**复核 (2026-06-16):** ❌ 未修复
 
-### 7. `is_cjk_punctuation` 范围过宽包含全宽拉丁字母
+- `core.rs:841-852` 仍为 `match ext { ... _ => BookFormat::Txt }` 静默 fallback
+- `AppError::UnsupportedFormat` 错误变体已在 `error.rs:28-29` 定义，但全项目 0 处使用
+- 用户打开 .mobi / .azw3 / .djvu / .cbr 仍会得到乱码或解析错误，无明确错误提示
+- 风险等级：实际触发率取决于用户导入习惯（移动端 / PC 端常用 .epub 较少遇到）；但用户支持场景下不可接受
 
-**文件:** `rust/src/text/constants.rs:81-93`
+***
 
-```rust
-pub fn is_cjk_punctuation(c: char) -> bool {
-    let cp = c as u32;
-    (0x3000..=0x303F).contains(&cp)
-    || (0xFE30..=0xFE4F).contains(&cp)
-    || (0xFE10..=0xFE1F).contains(&cp)
-    || (0xFF00..=0xFFEF).contains(&cp)  // ← 包含全宽拉丁字母 Ａ-Ｚ 和 ａ-ｚ
-    || matches!(c, '·' | '～' | '×' | '÷')
-}
-```
-
-`0xFF00..=0xFFEF` (Halfwidth and Fullwidth Forms) 中，`0xFF21`-`0xFF3A` 是全宽 A-Z，`0xFF41`-`0xFF5A` 是全宽 a-z，这些是字母，不是标点。
-
-**影响:** `compute_line_breaks_from_indices` 中的标点挤压逻辑（`char_width *= 0.65`）错误地对全宽字母应用了 65% 宽度压缩。排版结果不正确。
-
-**修复方向:** 检查时排除 `0xFF21..=0xFF3A` (全宽大写拉丁) 和 `0xFF41..=0xFF5A` (全宽小写拉丁)。
-
----
+<br />
 
 ## 轻微 Bug
 
@@ -209,7 +63,12 @@ Ok(text.to_owned())  // text 已经是 String
 
 `extract_chapter_content` 中的 `text` 已是从 `parser.extract_chapter()` 返回的 `String`。`.to_owned()` 复制了整个字符串。
 
----
+**复核 (2026-06-16):** ❌ 未修复
+
+- `core.rs:236` 仍为 `Ok(text.to_owned())`
+- 移除 `.to_owned()` 即可（`text` 已经是 `String`）
+
+***
 
 ### 9. `#[warn]` 属性不生效
 
@@ -222,7 +81,13 @@ pub async fn create_bilingual_highlight_pair(
 
 `#[warn]` 是默认行为，不抑制任何警告；需要 `#[allow]` 或 `#[expect]` 才能静默该 lint。
 
----
+**复核 (2026-06-16):** ❌ 未修复
+
+- `bilingual.rs:116` 仍为 `#[warn(clippy::too_many_arguments)]`
+- 意图应是抑制警告，应改 `#[allow(...)]` 或 `#[expect(...)]`
+- 影响：编译时 `too_many_arguments` lint 仍会触发，但因 `#[warn]` 是默认级别，行为上等同于无属性
+
+***
 
 ### 10. FTS5 索引存储 `chapter_index` 为文本但查询时 `CAST`
 
@@ -233,7 +98,12 @@ pub async fn create_bilingual_highlight_pair(
 
 SQLite 的灵活类型系统下这 "能工作"（TEXT `"1"` 等效于 INTEGER `1`），但每个查询行需要运行时类型转换，性能损失可忽略，但类型不一致是代码异味。
 
----
+**复核 (2026-06-16):** ❌ 未修复
+
+- `engine.rs:98,112,145,211,219` 仍维持 TEXT 存储 + CAST 读取的不一致模式
+- 文档原评：性能影响可忽略，仅代码异味
+
+***
 
 ### 11. 章节缓存对 Provider 路径为死代码
 
@@ -243,7 +113,14 @@ SQLite 的灵活类型系统下这 "能工作"（TEXT `"1"` 等效于 INTEGER `1
 
 章节缓存目录 `data/chapters/{book_id}/{chapter_index}.txt` 永远不会被创建。如果这是有意设计（Provider 自带缓存），应删除这几百行死代码。
 
----
+**复核 (2026-06-16):** ❌ 未修复
+
+- `core.rs:181,198,226-237` `try_read_cached_chapter` / `write_chapter_cache` / `extract_chapter_content` 仍存在
+- 调用关系：`extract_chapter_content` 在 `core.rs:227,234` 调用缓存读写；其本身被 `paginate_all_content` / `get_chapter` fallback 调用
+- 当前支持格式（TXT/MD/EPUB）走 Provider 路径，缓存不写入
+- 与文档原评一致：死代码 / 几百行冗余
+
+***
 
 ### 12. CRLF 文本 `paginate_chunk` 偏移量错误
 
@@ -259,7 +136,14 @@ acc_offset += page_len;
 
 **影响:** 打开 CRLF 格式的 TXT/MD 文件时，分页偏移量偏小。
 
----
+**复核 (2026-06-16):** ❌ 未修复
+
+- `core.rs:891-926` `paginate_chunk` 仍维持 `text.lines().collect() → chunk.join("\n") → page_text.len() as u64`
+- CRLF 文件每个 `\r` 未计入 `page_len`，`acc_offset` 累积偏低
+- 影响：分页偏移量不准确，但因 `paginate_chunk` 自身已被标记为 DEAD CODE（见 #16），实际触发率取决于是否有调用方
+- 双重风险：死代码 + 死代码里的 bug
+
+***
 
 ### 13. `config_hash` 未稳定包含 `hyphenation_language`
 
@@ -273,7 +157,13 @@ if let Some(ref lang) = self.hyphenation_language {
 
 仅当 `hyphenation_language` 为 `Some` 时将其加入哈希。逻辑上这产生正确的区分：`None` 和 `Some("")` 没有区别。但如果未来有两个相同的配置但一个显式设置语言一个未设置，它们的哈希可能意外相同。当前无实际影响。
 
----
+**复核 (2026-06-16):** ❌ 未修复（与原评一致）
+
+- `typeset.rs:264-266` 仍为 `if let Some(ref lang) = self.hyphenation_language { ... }`
+- 文档原评：当前无实际影响
+- 注：`Hash` 实现（`typeset.rs:167-168`）已经无条件 `self.hyphenation_language.hash(state)`，与 `config_hash` 的行为存在微妙差异（Hash 区分 `None` 和 `Some("")`，config\_hash 不区分）
+
+***
 
 ### 14. `sqlx::Error` 转换丢失错误分类信息
 
@@ -289,7 +179,12 @@ impl From<sqlx::Error> for AppError {
 
 `sqlx::Error` 有多种变体 (`PoolClosed`, `Database`, `Protocol`, `RowNotFound` 等)，但全部抹平为单一的 `DatabaseError` 字符串。调试时无法区分是连接问题还是查询问题。
 
----
+**复核 (2026-06-16):** ❌ 未修复
+
+- `error.rs:77-83` 仍为 `Self::DatabaseError { reason: err.to_string() }`
+- 建议：拆分为 `DatabaseConnection` / `DatabaseQuery` / `DatabaseRowNotFound` 等子变体或在 `reason` 中保留分类前缀（如 `[Connection] xxx`）
+
+***
 
 ## 死代码 & 未使用导出
 
@@ -305,6 +200,14 @@ pub async fn create_page_streamer(...)
 
 公开 FRB 导出但在 Dart 侧没有调用者。每次 Dart 构建都会生成无用的 FFI 绑定。
 
+**复核 (2026-06-16):** ❌ 未修复
+
+- `core.rs:540-543` `// DEAD CODE` 注释 + `#[frb]` 公开导出 仍在
+- 验证 Dart 侧无调用：可通过 `grep -r "createPageStreamer" lib/` 确认（未在本次复核中执行）
+- 后果：每次 `flutter_rust_bridge_codegen` 生成无用 FFI 绑定
+
+***
+
 ### 16. `get_paginated_chunk` 标记 DEAD CODE 但有 FRB 绑定
 
 **文件:** `rust/src/api/core.rs:792-793`
@@ -317,22 +220,50 @@ pub async fn get_paginated_chunk(...)
 
 同上，公开但无调用方。
 
+**复核 (2026-06-16):** ❌ 未修复
+
+- `core.rs:937-940` `// DEAD CODE` 注释 + `#[frb]` 公开导出 仍在
+- 与 #12 关联：内部调用的 `paginate_chunk` 也有偏移 bug
+
+***
+
 ### 17. 注释掉的测试代码
 
 **文件:** `rust/src/search/engine.rs:308-315`、`rust/src/api/bilingual.rs:248-336`
 
 两处测试代码被大块注释而非条件编译 `#[cfg(test)]`。代码仍可编译，但测试脱离运行覆盖。
 
----
+**复核 (2026-06-16):** ❌ 未修复
+
+- `engine.rs:297-304` 单函数 `truncate_snippet` 被注释
+- `bilingual.rs:248-336` 整个 `mod tests { ... }` 块（87 行）被注释，含 7 个测试用例
+- 影响：bilingual 关键路径（创建/查询/删除高亮对、双语对齐）失去回归测试保护
+- 建议：直接删除注释代码（git 历史可恢复）或恢复为 `#[cfg(test)]` 编译
+
+***
 
 ## 总结
 
-| 严重程度 | 数量 | 关键影响 |
-|---------|------|---------|
-| 严重 | 2 | 断行死循环、FTS5 查询破坏 |
-| 中等 | 5 | 富文本段落重复、偏移量错误、格式误判、字体排版错误 |
-| 轻微 | 7 | 冗余 clone、lint 属性、类型不一致、死代码 |
+| 严重程度 | 数量 | 状态（2026-06-16 复核）            | 关键影响                       |
+| ---- | -- | ---------------------------- | -------------------------- |
+| 严重   | 2  | ✅ 全部已修                       | —                          |
+| 中等   | 5  | 4/5 已修；#6 format 静默转 TXT 仍未修 | 未知格式乱码无提示                  |
+| 轻微   | 7  | ❌ 全部未修                       | 冗余 clone、lint 失效、类型不一致、死代码 |
 
-**最紧急:** Bug #1（断行死循环）可能在特定文本+排版参数下 100% 卡死阅读器进程，且 `spawn_blocking` 耗尽所有 Tokio 线程。Bug #2（FTS5 escape）对英文混合搜索的高级功能完全破坏。
+**已修复 6 项**: #1 断行死循环、#2 FTS5 escape、#3 富文本双重处理、#4 lazy 字节偏移、#5 lazy 阈值单位、#7 全宽拉丁标点误判。
 
-**下一步建议:** 先确认 Bug #1 和 #2 的修复方案，然后批量修复中等级别问题。
+**未修复 11 项**: #6、#8-#17 全部仍存在原始问题。
+
+**最紧急残留项:**
+
+1. **#6** — 用户打开 .mobi/.azw3 等未知格式会看到乱码无错误提示（最影响用户体验）
+2. **#11 + #15 + #16** — 几百行死代码 + 仍生成 FFI 绑定（技术债累积）
+3. **#12** — 死代码里仍有 bug（双重风险）
+4. **#17** — bilingual 模块 87 行测试脱离运行（回归无保护）
+
+**已修复 #2 的代价:** FTS5 转义策略从 "字符级 escape" 改为 "整体短语包裹"。所有特殊字符（`+`, `-`, `*`, `(`, `)` 等）都成为字面量，用户无法再使用 FTS5 原生操作符语法（AND/OR/NOT/前缀匹配）。需评估是否需要在 UI 上提示用户当前搜索为字面量短语搜索。
+
+**附加发现 (复核过程中):**
+
+- `cargo build --tests` 编译失败（多个 test crate 报错），与本 issue 无关，属未提交改动：`rust/src/api/core.rs` 正在重构 pagination session 架构（`paginate_session_full` → `repaginate_session` + `apply_session_repagination`），可能影响测试签名
+

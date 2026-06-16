@@ -1,6 +1,7 @@
 # Flutter UI Bug 评估
 
 > 生成日期: 2026-06-13
+> 复核日期: 2026-06-16
 > 范围: `lib/` (Reader UI 为主)
 
 ***
@@ -33,30 +34,9 @@ ListView.builder(
 
 ***
 
-## B2. `reader_page.dart` — `showCatalog` 信号永不置 `true`
+B3. `reader_note_sidebar.dart` — `ListView.builder` 缺 key
 
-**文件**: `lib/features/reader/page/reader_page.dart:68,482,524`
-
-```dart
-final showCatalog = useSignal(false);   // 声明
-// ...
-onShowCatalog: () =>
-    withTimer(() => scaffoldKey.currentState?.openDrawer()),  // 未置 true
-// ...
-showCatalog.value = false;              // 仅置 false
-// ...
-!showCatalog.value &&                   // 始终为 true
-```
-
-**评估**: Drawer 打开时 Scaffold 自带的 ModalBarrier 已拦截下层触摸，`showCatalog` 即使正确 toggle 也是冗余。该信号从未被置 `true`，是死代码。
-
-**结论**: 🟢 Low — 死代码，无 visible impact
-
-***
-
-## B3. `reader_note_sidebar.dart` — `ListView.builder` 缺 key
-
-**文件**: `lib/features/reader/page/widgets/reader_note_sidebar.dart:117`
+**文件 (当前)**: `lib/features/reader/annotations/presentation/reader_note_sidebar.dart:117`
 
 ```dart
 ListView.builder(
@@ -74,43 +54,9 @@ ListView.builder(
 
 ***
 
-## B4. `bookmark_widget.dart` — `ListView.builder` 缺 key
-
-**文件**: `lib/features/reader/page/widgets/bookmark_widget.dart:97`
-
-```dart
-ListView.builder(
-  itemBuilder: (context, index) {
-    return _buildBookmarkItem(bookmark, textColor, l10n);  // 无 key
-```
-
-**评估**: 全项目搜索确认 `BookmarkWidget` **从未被实例化**，是死代码。
-
-**结论**: 🟢 Low — 死代码，影响为零
-
-***
-
-## B5. `ReaderPage` 全量 rebuild — `useReaderBindings`
-
-**文件**: `lib/features/reader/page/reader_page.dart:116`
-
-```dart
-final b = useReaderBindings(vm);
-```
-
-`useReaderBindings` 订阅 \~30 个信号（字体、行距、主题、页码、进度、autoScrollTick 等）。**任一**信号变化时 `b` 重建，触发整棵 widget 树（Scaffold + drawer + endDrawer + toolbar + overlay 面板）全量 build。
-
-`ReaderContent` 内部使用 `useReaderContentBindings` 隔离了部分重建，但 `ReaderNavigationDrawer`、`ReaderNoteSidebar`、`ReaderBottomToolbar` 无条件跟随重建。
-
-**关键路径**: auto-scroll tick（TTS 滚动时每 \~100ms 触发一次） → `b` 重建 → 全量 rebuild。在低端设备上可感知 jank。
-
-**结论**: ⚠️ Medium — 低端设备 auto-scroll/TTS 场景下可感知的性能问题
-
-***
-
 ## B6. `ReaderNoteSidebar` — `useState` 非响应式加载
 
-**文件**: `lib/features/reader/page/widgets/reader_note_sidebar.dart:31-46`
+**文件 (当前)**: `lib/features/reader/annotations/presentation/reader_note_sidebar.dart:31-32`
 
 ```dart
 final notes = useState<List<Note>>([]);
@@ -119,15 +65,23 @@ final loading = useState<bool>(true);
 Future<void> loadNotes() async { ... }
 ```
 
-**评估**: 和 B3 中 `useEffect` 讨论的问题同源。`useState` + async 在 flutter\_hooks 中不会泄漏。信号范式不一致，但不影响功能正确性。竞态条件需快速双击刷新按钮才可能触发，概率低。
+**评估 (2026-06-13)**: 和 B3 中 `useEffect` 讨论的问题同源。`useState` + async 在 flutter\_hooks 中不会泄漏。信号范式不一致，但不影响功能正确性。竞态条件需快速双击刷新按钮才可能触发，概率低。
 
-**结论**: 🟢 Low — 范式不一致，实际风险低
+**修复 (2026-06-16)**: 迁移到 `signals_hooks` 的 `useFutureSignal<List<Note>>`，并抽取 `_NotesBody` 子 widget 持有列表渲染逻辑。
+
+- `useFutureSignal` 内部 `useExistingSignal` 绑定 widget 生命周期，dispose 时自动取消订阅
+- `keys: [bookId]` 在 bookId 变化时自动丢弃旧请求，**解决竞态**
+- `FutureSignal.reload()` 替代原 `loadNotes` 函数，提供刷新能力
+- 文件中已无 `useState` / `useEffect` 关键字，移除 `flutter_hooks` 中这两个 API 的间接依赖
+- `dart analyze` 单文件 0 issue
+
+**结论**: ✅ 已迁移 — `useFutureSignal` 一次解决范式不一致、生命周期、竞态三件事
 
 ***
 
 ## B7. `PopScope` + 双 Drawer — `scaffoldKey.currentState` 可能为 null
 
-**文件**: `lib/features/reader/page/reader_page.dart:453-471`
+**文件 (当前)**: `lib/features/reader/core/presentation/reader_scaffold.dart:72-80`
 
 ```dart
 onPopInvokedWithResult: (didPop, _) {
@@ -139,23 +93,20 @@ onPopInvokedWithResult: (didPop, _) {
   // ...
 ```
 
-**评估**: `scaffoldKey.currentState` 在 widget dispose 后才为 null。Drawer 关闭动画 \~200ms，要在动画期间按返回键且 state 恰好在 null 窗口期才可能触发。即使触发，drawer 已在关闭中，fallthrough 到 `context.pop()` 不会产生可见的异常行为。双边缘条件叠加，实际不可复现。
-
 **结论**: 🟢 Low — 边缘条件的边缘条件，实际不可复现
 
-***
+## 最终汇总 (复核于 2026-06-16)
 
-## 最终汇总
+| ID  | 文件 (当前)                                                 | 问题                             | 评级     | 备注                                     |
+| --- | ------------------------------------------------------- | ------------------------------ | ------ | -------------------------------------- |
+| B2  | `reader_page.dart` → `reader_shell.dart`                | `showCatalog` 永不置 true         | ✅ 已消除  | reader\_page 拆分重构后原信号随宿主文件移除           |
+| B4  | `bookmark_widget.dart`                                  | 死代码                            | ✅ 已删除  | 文件已删除，被 `bookmark_manage_page.dart` 替代 |
+| B5  | `reader_page.dart` → `reader_scaffold.dart`             | `useReaderBindings` 全量 rebuild | ✅ 已消除  | reader\_page 拆分重构后 hook 整体移除           |
+| B6  | `annotations/presentation/reader_note_sidebar.dart`     | useState 非响应式                  | ✅ 已迁移  | 迁移到 `useFutureSignal` + `_NotesBody`   |
+| B9  | `reader_catalog_drawer.dart`                            | 死代码                            | ✅ 已删除  | 旧实现，被 `ReaderNavigationDrawer` 替代      |
+| B10 | `bookmark_widget.dart`                                  | 死代码                            | ✅ 已删除  | 旧实现，`bookmark_manage_page.dart` 替代     |
+| B1  | `reader_dictionary_panel.dart:68`                       | `itemCount` 硬编码                | 🟢 Low | default 兜底                             |
+| B3  | `annotations/presentation/reader_note_sidebar.dart:117` | 列表无 key                        | 🟢 Low | 只读列表无影响                                |
+| B7  | `core/presentation/reader_scaffold.dart:72-80`          | PopScope null                  | 🟢 Low | 双边缘条件不可达                               |
 
-| ID  | 文件                             | 问题                     | 评级     | 备注                                 |
-| --- | ------------------------------ | ---------------------- | ------ | ---------------------------------- |
-| B9  | `reader_catalog_drawer.dart`   | 死代码                    | ✅ 已删除  | 旧实现，被 `ReaderNavigationDrawer` 替代  |
-| B10 | `bookmark_widget.dart`         | 死代码                    | ✅ 已删除  | 旧实现，`bookmark_manage_page.dart` 替代 |
-| B1  | `reader_dictionary_panel.dart` | `itemCount` 硬编码        | 🟢 Low | default 兜底                         |
-| B2  | `reader_page.dart`             | `showCatalog` 永不置 true | 🟢 Low | 死代码                                |
-| B3  | `reader_note_sidebar.dart`     | 列表无 key                | 🟢 Low | 只读列表无影响                            |
-| B5  | `reader_page.dart`             | 全量 rebuild             | 🟢 Low | 实际 impact 已降级                      |
-| B6  | `reader_note_sidebar.dart`     | useState 非响应式          | 🟢 Low | 范式不一致                              |
-| B7  | `reader_page.dart`             | PopScope null          | 🟢 Low | 双边缘条件不可达                           |
-
-**最终结论**: 10 项初检项中，2 项死代码已删除，1 项误报，其余 7 项均为 🟢 Low。整体 Flutter UI 质量良好，无紧急待修复项。
+**最终结论 (复核于 2026-06-16)**: 10 项初检项中，6 项已解决（B2 / B4 / B5 / B6 / B9 / B10），其余 4 项均为 🟢 Low 风险（B1 / B3 / B7）。B6 通过 `useFutureSignal` 迁移解决范式与竞态问题。整体 Flutter UI 质量良好，无紧急待修复项。
