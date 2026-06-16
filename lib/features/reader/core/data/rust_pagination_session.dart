@@ -14,6 +14,8 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 class RustPaginationSession implements PaginationSession {
   List<PageDescriptor>? _descriptors;
   int? _sessionConfigHash;
+  int? _sessionChapterIndex;
+  bool _sessionIsPartial = false;
   core_api.PaginationSessionHandle? _handle;
   final _contentCache = PageContentCache();
 
@@ -26,6 +28,12 @@ class RustPaginationSession implements PaginationSession {
   /// 上次分页的 configHash；null 表示无 session。
   @override
   int? get sessionConfigHash => _sessionConfigHash;
+
+  @override
+  int? get sessionChapterIndex => _sessionChapterIndex;
+
+  @override
+  bool get sessionIsPartial => _sessionIsPartial;
   Future<Book> _getBook(String bookId) async {
     if (_cachedBookId == bookId && _cachedBook != null) {
       return _cachedBook!;
@@ -66,9 +74,11 @@ class RustPaginationSession implements PaginationSession {
     _handle = null;
   }
 
-  void _applyPaginateResult(PaginateResult result) {
+  void _applyPaginateResult(PaginateResult result, {int? chapterIndex}) {
     _descriptors = result.descriptors;
     _sessionConfigHash = result.configHash.toInt();
+    _sessionIsPartial = result.isPartial;
+    if (chapterIndex != null) _sessionChapterIndex = chapterIndex;
   }
 
   Future<PaginateResult> _createSession({
@@ -98,7 +108,7 @@ class RustPaginationSession implements PaginationSession {
     );
 
     _handle = handle;
-    _applyPaginateResult(result);
+    _applyPaginateResult(result, chapterIndex: chapterIndex);
     return result;
   }
 
@@ -106,7 +116,7 @@ class RustPaginationSession implements PaginationSession {
     final total = _descriptors?.length ?? 0;
     final limit = count.clamp(0, total);
     for (int i = 0; i < limit; i++) {
-      _fetchPageSync(i);
+      _fetchAndCachePage(i);
     }
   }
 
@@ -164,10 +174,10 @@ class RustPaginationSession implements PaginationSession {
         );
       }
 
-      _applyPaginateResult(result);
+      _applyPaginateResult(result, chapterIndex: chapterIndex);
       final preloadCount = 5.clamp(0, result.descriptors.length);
       for (int i = oldLength; i < preloadCount; i++) {
-        unawaited(_fetchPageSync(i));
+        _fetchAndCachePage(i);
       }
       return (
         totalPages: result.descriptors.length,
@@ -216,14 +226,14 @@ class RustPaginationSession implements PaginationSession {
         '(pages=${result.descriptors.length})',
       );
 
-      _applyPaginateResult(result);
+      _applyPaginateResult(result, chapterIndex: chapterIndex);
       // Config 变更时清空页缓存（页边界可能变了）
       if (oldHash != result.configHash.toInt()) {
         _contentCache.clear();
       }
       final preloadCount = 5.clamp(0, result.descriptors.length);
       for (int i = 0; i < preloadCount; i++) {
-        unawaited(_fetchPageSync(i));
+        _fetchAndCachePage(i);
       }
       return (
         totalPages: result.descriptors.length,
@@ -236,32 +246,40 @@ class RustPaginationSession implements PaginationSession {
   }
 
   @override
-  String? pageContent(int pageIndex) => _contentCache.get(pageIndex);
+  String? pageContent(int pageIndex) {
+    final cached = _contentCache.get(pageIndex);
+    if (cached != null) return cached;
+    return _fetchAndCachePage(pageIndex);
+  }
 
-  Future<void> _fetchPageSync(int pageIndex) async {
-    if (_contentCache.containsKey(pageIndex)) return;
+  /// Sync fetch-and-cache for a single page.
+  /// Returns null on invalid state or fetch error.
+  String? _fetchAndCachePage(int pageIndex) {
+    if (_contentCache.containsKey(pageIndex)) return _contentCache.get(pageIndex);
     final handle = _handle;
-    if (handle == null || _descriptors == null) return;
-    if (pageIndex < 0 || pageIndex >= _descriptors!.length) return;
-
+    if (handle == null || _descriptors == null) return null;
+    if (pageIndex < 0 || pageIndex >= _descriptors!.length) return null;
     try {
-      final content = await core_api.getSessionPageContent(
+      final content = core_api.getSessionPageContent(
         handle: handle,
         pageIndex: pageIndex,
       );
       if (content.isNotEmpty) {
         _contentCache.put(pageIndex, content);
       }
+      return content.isEmpty ? null : content;
     } catch (e) {
-      Logging.error('_fetchPageSync error for page $pageIndex: $e');
+      Logging.error('_fetchAndCachePage error for page $pageIndex: $e');
+      return null;
     }
   }
+
 
   @override
   void ensureWindow(int centerPage) {
     if (_descriptors == null) return;
 
-    _fetchPageSync(centerPage);
+    _fetchAndCachePage(centerPage);
     _prefetchSurrounding(centerPage);
   }
 
@@ -273,7 +291,7 @@ class RustPaginationSession implements PaginationSession {
 
     Future.microtask(() {
       for (int i = start; i <= end; i++) {
-        _fetchPageSync(i);
+        _fetchAndCachePage(i);
       }
     });
 
@@ -289,6 +307,8 @@ class RustPaginationSession implements PaginationSession {
     _releaseHandle();
     _descriptors = null;
     _sessionConfigHash = null;
+    _sessionChapterIndex = null;
+    _sessionIsPartial = false;
     _contentCache.clear();
     _cachedBook = null;
     _cachedBookId = null;

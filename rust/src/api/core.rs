@@ -740,6 +740,9 @@ pub async fn paginate_session_full(
     apply_session_repagination(handle.session_id, entry, None, None).await
 }
 
+/// Get page content by session handle (sync).
+/// Throws `AppError` if session not found.
+#[frb(sync)]
 pub fn get_session_page_content(
     handle: PaginationSessionHandle,
     page_index: i32,
@@ -750,6 +753,14 @@ pub fn get_session_page_content(
         .get_page(page_index as usize, entry.chapter_index)
         .map(|p| p.content)
         .unwrap_or_default())
+}
+
+/// Compute config hash from a TypesetConfig (sync).
+/// Exposes `TypesetConfig::config_hash()` to Dart since FRB
+/// does not expose impl methods for non_opaque structs.
+#[frb(sync)]
+pub fn compute_config_hash(config: TypesetConfig) -> u64 {
+    config.config_hash()
 }
 
 pub fn dispose_pagination_session(handle: PaginationSessionHandle) -> Result<(), AppError> {

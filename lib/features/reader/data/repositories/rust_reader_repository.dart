@@ -3,6 +3,7 @@ import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/pagination_session_factory.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
+import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/core/domain/pagination_session.dart';
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
@@ -56,6 +57,10 @@ class ReaderRepository
   );
 
   @override
+  NextChapterStaging? get nextChapterStaging =>
+      _chapterContent.nextChapterStaging;
+
+  @override
   TextSpan? get currentRichContent => _chapterContent.currentRichContent;
 
   @override
@@ -80,6 +85,10 @@ class ReaderRepository
   void disposePagination() => _session.dispose();
   @override
   int? get sessionConfigHash => _session.sessionConfigHash;
+  @override
+  int? get sessionChapterIndex => _session.sessionChapterIndex;
+  @override
+  bool get sessionIsPartial => _session.sessionIsPartial;
 
   @override
   Future<({int totalPages, bool isPartial})> repaginateInPlace({
@@ -150,6 +159,32 @@ class ReaderRepository
   @override
   void clearPreloadedNextChapter() =>
       _chapterContent.clearPreloadedNextChapter();
+
+  @override
+  Future<void> preloadNextChapterStaging(
+    String bookId,
+    int chapterIndex, {
+    double fontSize = 16,
+    double lineHeight = 1.6,
+    double width = 400,
+    double height = 600,
+    double padding = 20,
+    double devicePixelRatio = 1.0,
+    String fontFamily = 'Noto Sans SC',
+  }) => _chapterContent.preloadNextChapterStaging(
+    bookId,
+    chapterIndex,
+    fontSize: fontSize,
+    lineHeight: lineHeight,
+    width: width,
+    height: height,
+    padding: padding,
+    devicePixelRatio: devicePixelRatio,
+    fontFamily: fontFamily,
+  );
+
+  @override
+  void clearNextChapterStaging() => _chapterContent.clearNextChapterStaging();
 
   @override
   List<PageInfo> paginateApproximate(

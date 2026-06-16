@@ -7,7 +7,6 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/bookmark_view_model.dart';
-import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
@@ -101,7 +100,6 @@ class ReaderViewModel {
         await chapterManager.loadChapter(
           targetChapterIndex,
           initialCharOffset: targetCharOffset,
-          intent: ChapterPaginationIntent.expandOnly,
           readingMode: readingMode.value,
           onChapterLoaded: annotations.loadHighlights,
         );
@@ -123,12 +121,10 @@ class ReaderViewModel {
   Future<void> loadChapter(
     int chapterIndex, {
     int initialCharOffset = 0,
-    ChapterPaginationIntent intent = ChapterPaginationIntent.normalLoad,
   }) async {
     await chapterManager.loadChapter(
       chapterIndex,
       initialCharOffset: initialCharOffset,
-      intent: intent,
       readingMode: readingMode.value,
       onChapterLoaded: annotations.loadHighlights,
     );
@@ -209,7 +205,6 @@ class ReaderViewModel {
         chapterManager.loadChapter(
           chapterManager.chapterIndex.value,
           initialCharOffset: chapterManager.currentCharOffset.value,
-          intent: ChapterPaginationIntent.configReload,
           readingMode: readingMode.value,
           preserveContent: true,
           onChapterLoaded: annotations.loadHighlights,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
 import 'package:zephyr_reader/features/reader/domain/model/page_info.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
+import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -29,6 +30,12 @@ abstract class ReaderRepositoryInterface {
 
   /// 上次分页的 configHash；null 表示无 session。
   int? get sessionConfigHash;
+
+  /// 当前分页会话对应的章节索引；null 表示无 session。
+  int? get sessionChapterIndex;
+
+  /// 当前分页结果是否为部分分页。
+  bool get sessionIsPartial;
 
   /// In-place repaginate：复用现有 session handle，更新 config。
   /// handle 不存在时退化到 [beginPaginate]（用真实 bookId/chapterIndex）。
@@ -114,6 +121,25 @@ abstract class ReaderRepositoryInterface {
   /// 释放 Rust 分页会话并清空本地页缓存。
   void disposePagination();
 
+  /// 当前分页会话的下一章预加载 staging。
+  NextChapterStaging? get nextChapterStaging;
+
+  /// 预加载下一章 descriptors + 首页 content。
+  Future<void> preloadNextChapterStaging(
+    String bookId,
+    int chapterIndex, {
+    double fontSize = 16,
+    double lineHeight = 1.6,
+    double width = 400,
+    double height = 600,
+    double padding = 20,
+    double devicePixelRatio = 1.0,
+    String fontFamily = 'Noto Sans SC',
+  });
+
+  /// 清除预加载 staging。
+  void clearNextChapterStaging();
+
   /// 创建分页会话并分页。maxChars=null 表示全章。
   Future<({int totalPages, bool isPartial})> beginPaginate({
     required String bookId,
@@ -132,4 +158,5 @@ abstract class ReaderRepositoryInterface {
 
   /// 加载书籍的阅读进度。
   Future<ReadingProgressData?> loadReadingProgress(String bookId);
+
 }

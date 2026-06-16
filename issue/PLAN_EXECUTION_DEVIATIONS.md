@@ -7,10 +7,11 @@ PR1（pageContent fetch-on-miss）+ PR2（auto intent）全部落地。
 
 ### 已修正的偏差
 
-1. **`get_session_page_content` 同步化** — plan 假设 `Result<String, AppError>` 可通过 FRB 生成同步绑定。
-   实际 `#[frb(sync)]` 需返回非 `Result` 类型。
-   **方案**：改为返回 `String`，session 不存在时返回空串。
-
+1. ~~`get_session_page_content` 同步化~~ — **不成立**。
+   `#[frb(sync)]` 完全支持 `Result<T, E>`，生成的 Dart 绑定是同步的（`String`
+   直接返回，FFI 错误时抛 Dart 异常）。最初判断错误，已恢复 Rust 原版签名
+   `Result<String, AppError>`，仅加 `#[frb(sync)]`。Dart 侧不需改调用方式。
+   已在二次执行中修正。
 2. **`TypesetConfig.config_hash()` 暴露** — plan 说"无需新增 Rust FFI"。
    实际 FRB 2.x 不暴露 `non_opaque` impl 方法。
    **方案**：新增 `compute_config_hash` standalone fn。

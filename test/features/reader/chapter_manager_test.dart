@@ -364,7 +364,21 @@ void main() {
         padding: any(named: 'padding'),
       ),
     ).thenAnswer((_) async {});
+    when(
+      () => repo.preloadNextChapterStaging(
+        any(),
+        any(),
+        fontSize: any(named: 'fontSize'),
+        lineHeight: any(named: 'lineHeight'),
+        width: any(named: 'width'),
+        height: any(named: 'height'),
+        padding: any(named: 'padding'),
+        devicePixelRatio: any(named: 'devicePixelRatio'),
+        fontFamily: any(named: 'fontFamily'),
+      ),
+    ).thenAnswer((_) async {});
     when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {});
+    when(() => repo.clearNextChapterStaging()).thenReturn(null);
     when(() => repo.ensurePageWindow(any())).thenReturn(null);
     when(
       () => repo.calculatePages(
@@ -537,43 +551,21 @@ void main() {
       });
 
       test(
-        'configReload intent 不调用 disposePagination, 调用 repaginateInPlace',
+        'loadChapter without intent triggers beginPaginate (firstSpine)',
         () async {
-          // 默认 mock 的 _setupPaginateChapter 已经设了 descriptors，所以 repaginateInPlace
-          // 有 handle 可用。
-          var disposeCalls = 0;
-          when(() => repo.disposePagination()).thenAnswer((_) {
-            disposeCalls++;
-          });
-          when(() => repo.sessionConfigHash).thenReturn(12345);
-          when(
-            () => repo.repaginateInPlace(
-              bookId: any(named: 'bookId'),
-              chapterIndex: any(named: 'chapterIndex'),
-              params: any(named: 'params'),
-              maxChars: any(named: 'maxChars'),
-            ),
-          ).thenAnswer((_) async => (totalPages: 2, isPartial: false));
+          await manager.loadChapter(0);
 
-          await manager.loadChapter(
-            0,
-            intent: ChapterPaginationIntent.configReload,
-          );
-
-          expect(
-            disposeCalls,
-            0,
-            reason: 'configReload should NOT dispose existing session',
-          );
           verify(
-            () => repo.repaginateInPlace(
+            () => repo.loadChapterFirstSpine(any(), any()),
+          ).called(1);
+          verify(
+            () => repo.beginPaginate(
               bookId: any(named: 'bookId'),
               chapterIndex: any(named: 'chapterIndex'),
               params: any(named: 'params'),
               maxChars: any(named: 'maxChars'),
             ),
           ).called(1);
-          expect(repo.sessionConfigHash, isNotNull);
         },
       );
     });

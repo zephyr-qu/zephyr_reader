@@ -3,7 +3,6 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:injectable/injectable.dart';
 
 import 'package:zephyr_reader/features/reader/core/application/auto_scroll_controller.dart';
-import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_loader.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_navigator.dart';
@@ -101,14 +100,12 @@ class ChapterViewModel {
   Future<void> loadChapter(
     int chapterIndex, {
     int initialCharOffset = 0,
-    ChapterPaginationIntent intent = ChapterPaginationIntent.normalLoad,
     ReadingMode readingMode = ReadingMode.pagination,
     Future<void> Function()? onChapterLoaded,
-    bool preserveContent = false,
+    bool? preserveContent,
   }) => _loader.loadChapter(
     chapterIndex,
     initialCharOffset: initialCharOffset,
-    intent: intent,
     readingMode: readingMode,
     onChapterLoaded: onChapterLoaded,
     preserveContent: preserveContent,

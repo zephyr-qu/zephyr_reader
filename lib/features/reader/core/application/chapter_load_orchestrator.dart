@@ -74,10 +74,25 @@ class ChapterLoadOrchestrator {
     Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages,
   }) async {
     final gen = ++_generation;
+    // 新章节加载 → 无效化上一章预加载 staging
+    _contentRepo.clearNextChapterStaging();
     final sw = Stopwatch()..start();
 
     try {
-      await _runStarting(gen, request);
+      // 自动推导分页意图（必须在 _runStarting 之前，以得到正确的 preserveContent 默认值）
+      final intent = resolveIntent(
+        chapterIndex: request.chapterIndex,
+        repo: _contentRepo,
+        pagination: _pagination,
+      );
+      final effectivePreserveContent = request.preserveContent ??
+          (intent != ChapterPaginationIntent.normalLoad);
+
+      Logging.info(
+        '[Timing] gen=$gen intent=$intent preserveContent=$effectivePreserveContent',
+      );
+
+      await _runStarting(gen, effectivePreserveContent: effectivePreserveContent);
       if (_isStale(gen)) {
         _setPhase(gen, ChapterLoadPhase.cancelled);
         return;
@@ -112,7 +127,7 @@ class ChapterLoadOrchestrator {
 
       final ({int totalPages, bool isPartial})? quickResult;
 
-      switch (request.intent) {
+      switch (intent) {
         case ChapterPaginationIntent.normalLoad:
           quickResult = await _runFirstSpine(
             gen,
@@ -121,25 +136,11 @@ class ChapterLoadOrchestrator {
             preloadAdjacentFirstPages: preloadAdjacentFirstPages,
           );
         case ChapterPaginationIntent.configReload:
-          if (_contentRepo.sessionConfigHash == null) {
-            // 首屏未完成，handle 不存在 → 退回 normalLoad
-            Logging.info(
-              '[Timing] gen=$gen phase=firstSpine configReload fell back to firstSpine '
-              '(no session yet)',
-            );
-            quickResult = await _runFirstSpine(
-              gen,
-              request,
-              calibFuture: calibFuture,
-              preloadAdjacentFirstPages: preloadAdjacentFirstPages,
-            );
-          } else {
-            quickResult = await _runConfigReload(
-              gen,
-              request,
-              calibFuture: calibFuture,
-            );
-          }
+          quickResult = await _runConfigReload(
+            gen,
+            request,
+            calibFuture: calibFuture,
+          );
         case ChapterPaginationIntent.expandOnly:
           quickResult = await _runExpandOnly(
             gen,
@@ -231,9 +232,9 @@ class ChapterLoadOrchestrator {
     }
   }
 
-  Future<void> _runStarting(int gen, ChapterLoadRequest request) async {
+  Future<void> _runStarting(int gen, {required bool effectivePreserveContent}) async {
     _setPhase(gen, ChapterLoadPhase.starting);
-    if (!request.preserveContent) {
+    if (!effectivePreserveContent) {
       _applyIfCurrent(gen, () {
         _chapterVM.chapterContent.value = AsyncState.loading();
         _isLoading.value = true;
@@ -368,7 +369,7 @@ class ChapterLoadOrchestrator {
     });
     return (
       totalPages: descriptors.length,
-      isPartial: true, // 强制 full expand
+      isPartial: _contentRepo.sessionIsPartial,
     );
   }
 
@@ -480,5 +481,27 @@ class ChapterLoadOrchestrator {
   void resetPhase() {
     ++_generation;
     _loadPhase.value = ChapterLoadPhase.idle;
+  }
+
+  /// 根据当前 session 状态与请求参数自动推导分页意图。
+  static ChapterPaginationIntent resolveIntent({
+    required int chapterIndex,
+    required ReaderRepositoryInterface repo,
+    required PaginationCoordinator pagination,
+  }) {
+    final hash = repo.sessionConfigHash;
+    final descriptors = repo.descriptors;
+    final sessionChapterIndex = repo.sessionChapterIndex;
+
+    final sessionValid = hash != null &&
+        (descriptors?.isNotEmpty == true) &&
+        sessionChapterIndex == chapterIndex;
+
+    if (!sessionValid) return ChapterPaginationIntent.normalLoad;
+
+    final currentHash = pagination.computeConfigHash();
+    if (currentHash != hash) return ChapterPaginationIntent.configReload;
+
+    return ChapterPaginationIntent.expandOnly;
   }
 }
