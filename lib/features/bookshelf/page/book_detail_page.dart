@@ -170,7 +170,7 @@ class BookDetailPage extends HookWidget {
     Book book,
   ) async {
     final updated = await showEditMetadataDialog(context, book);
-    if (!context.mounted) return;
+    if (updated == null || !context.mounted) return;
     vm.applyEditedBook(updated);
   }
 

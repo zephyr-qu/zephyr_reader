@@ -1,6 +1,7 @@
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/storage/models.dart' show Book;
 
 /// 书籍详情 ViewModel。
 ///
@@ -21,9 +22,8 @@ class BookDetailViewModel {
   }
 
   /// 将编辑后的 Book 写回当前 state（用于编辑元数据后的乐观更新）。
-  ///
   /// 集中在此处以便未来加入持久化、通知等副作用。调用方不应直接写入 [state]。
-  void applyEditedBook(book_api.Book updated) {
+  void applyEditedBook(Book updated) {
     final current = state.value;
     if (current is AsyncData<book_api.BookDetail>) {
       state.value = AsyncState.data(current.value.copyWith(book: updated));
