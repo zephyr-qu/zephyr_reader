@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-
+import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/pagination_session_factory.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/core/domain/pagination_session.dart';
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
+import 'package:zephyr_reader/features/reader/domain/model/page_info.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -16,6 +17,7 @@ import 'package:zephyr_reader/features/reader/core/domain/reader_repository_inte
 export 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart'
     show ReadingProgressData;
 
+@Injectable(as: ReaderRepositoryInterface)
 class ReaderRepository
     implements ReaderRepositoryInterface, ReaderRenderDataSource {
   ReaderRepository(
@@ -42,18 +44,16 @@ class ReaderRepository
   }
 
   @override
-  ValueNotifier<int> get preloadGeneration =>
-      _chapterContent.preloadGeneration;
+  ValueNotifier<int> get preloadGeneration => _chapterContent.preloadGeneration;
 
   @override
   String? getPreloadedNextChapterContent(
     int chapterIndex, {
     int pageIndex = 0,
-  }) =>
-      _chapterContent.getPreloadedNextChapterContent(
-        chapterIndex,
-        pageIndex: pageIndex,
-      );
+  }) => _chapterContent.getPreloadedNextChapterContent(
+    chapterIndex,
+    pageIndex: pageIndex,
+  );
 
   @override
   TextSpan? get currentRichContent => _chapterContent.currentRichContent;
@@ -74,11 +74,7 @@ class ReaderRepository
     int chapterId, {
     ReadingMode? readingMode,
   }) =>
-      _chapterContent.loadContent(
-        bookId,
-        chapterId,
-        readingMode: readingMode,
-      );
+      _chapterContent.loadContent(bookId, chapterId, readingMode: readingMode);
 
   @override
   void disposePagination() => _session.dispose();
@@ -91,13 +87,12 @@ class ReaderRepository
     required int chapterIndex,
     required PaginationParams params,
     BigInt? maxChars,
-  }) =>
-      _session.repaginateInPlace(
-        bookId: bookId,
-        chapterIndex: chapterIndex,
-        params: params,
-        maxChars: maxChars,
-      );
+  }) => _session.repaginateInPlace(
+    bookId: bookId,
+    chapterIndex: chapterIndex,
+    params: params,
+    maxChars: maxChars,
+  );
 
   @override
   Future<({int totalPages, bool isPartial})> beginPaginate({
@@ -105,24 +100,22 @@ class ReaderRepository
     required int chapterIndex,
     required PaginationParams params,
     BigInt? maxChars,
-  }) =>
-      _session.beginPaginate(
-        bookId: bookId,
-        chapterIndex: chapterIndex,
-        params: params,
-        maxChars: maxChars,
-      );
+  }) => _session.beginPaginate(
+    bookId: bookId,
+    chapterIndex: chapterIndex,
+    params: params,
+    maxChars: maxChars,
+  );
   @override
   Future<({int totalPages, bool isPartial})> expandToFullChapter({
     required String bookId,
     required int chapterIndex,
     required PaginationParams params,
-  }) =>
-      _session.expandToFullChapter(
-        bookId: bookId,
-        chapterIndex: chapterIndex,
-        params: params,
-      );
+  }) => _session.expandToFullChapter(
+    bookId: bookId,
+    chapterIndex: chapterIndex,
+    params: params,
+  );
 
   @override
   Future<String> loadChapterFirstSpine(String bookId, int chapterId) =>
@@ -141,20 +134,18 @@ class ReaderRepository
     double width = 400,
     double height = 600,
     double padding = 20,
-  }) =>
-      _chapterContent.preloadNextChapterFirstPage(
-        bookId,
-        chapterIndex,
-        fontSize: fontSize,
-        lineHeight: lineHeight,
-        width: width,
-        height: height,
-        padding: padding,
-      );
+  }) => _chapterContent.preloadNextChapterFirstPage(
+    bookId,
+    chapterIndex,
+    fontSize: fontSize,
+    lineHeight: lineHeight,
+    width: width,
+    height: height,
+    padding: padding,
+  );
 
   @override
-  bool get hasPreloadedNextChapter =>
-      _chapterContent.hasPreloadedNextChapter;
+  bool get hasPreloadedNextChapter => _chapterContent.hasPreloadedNextChapter;
 
   @override
   void clearPreloadedNextChapter() =>
@@ -203,7 +194,6 @@ class ReaderRepository
 
   @override
   void ensurePageWindow(int centerPage) => _session.ensureWindow(centerPage);
-
 
   @override
   Future<ReadingProgressData?> loadReadingProgress(String bookId) =>

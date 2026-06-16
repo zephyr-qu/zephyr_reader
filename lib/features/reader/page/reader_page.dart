@@ -19,9 +19,6 @@ class ReaderPage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ReaderShell(
-      bookId: bookId,
-      initialChapterId: initialChapterId,
-    );
+    return ReaderShell(bookId: bookId, initialChapterId: initialChapterId);
   }
 }

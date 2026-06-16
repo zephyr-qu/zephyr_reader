@@ -1,15 +1,19 @@
 import 'package:signals_flutter/signals_flutter.dart';
+
+import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/data/bookmark.dart' as bookmark_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 
 /// 书签视图模型。
 ///
 /// 管理当前书籍的书签信号和 CRUD 操作、位置索引和跨章节跳转。
+/// 从 [ChapterViewModel] 读取 bookId/chapterIndex/currentCharOffset
+@injectable
 class BookmarkViewModel {
-  final ReaderPageState _pageState;
+  final ChapterViewModel _chapterVM;
 
   final bookmarks = asyncSignal<List<Bookmark>>(AsyncState.data([]));
 
@@ -23,12 +27,12 @@ class BookmarkViewModel {
     return map;
   });
 
-  BookmarkViewModel(this._pageState);
+  BookmarkViewModel(@factoryParam this._chapterVM);
 
   /// 加载当前书籍的所有书签。
   Future<void> loadBookmarks() async {
     await bookmarks.loadAsync(
-      () => bookmark_api.listBookmarksByBook(bookId: _pageState.bookId.value),
+      () => bookmark_api.listBookmarksByBook(bookId: _chapterVM.bookId.value),
       label: 'loadBookmarks',
     );
   }
@@ -39,9 +43,9 @@ class BookmarkViewModel {
   Future<bool> addBookmark({String chapterTitle = '书签'}) async {
     try {
       await bookmark_api.createBookmark(
-        bookId: _pageState.bookId.value,
-        chapterIndex: _pageState.chapterIndex.value,
-        charOffset: _pageState.currentCharOffset.value,
+        bookId: _chapterVM.bookId.value,
+        chapterIndex: _chapterVM.chapterIndex.value,
+        charOffset: _chapterVM.currentCharOffset.value,
         title: chapterTitle,
       );
       await loadBookmarks();
@@ -67,14 +71,14 @@ class BookmarkViewModel {
   /// 当前阅读位置是否存在书签。
   bool get hasBookmarkAtCurrentPosition {
     final key =
-        '${_pageState.chapterIndex.value}:${_pageState.currentCharOffset.value}';
+        '${_chapterVM.chapterIndex.value}:${_chapterVM.currentCharOffset.value}';
     return bookmarkIndex.value.containsKey(key);
   }
 
   /// 获取当前阅读位置的书签（如果存在）。
   Bookmark? get currentBookmark {
     final key =
-        '${_pageState.chapterIndex.value}:${_pageState.currentCharOffset.value}';
+        '${_chapterVM.chapterIndex.value}:${_chapterVM.currentCharOffset.value}';
     return bookmarkIndex.value[key];
   }
 

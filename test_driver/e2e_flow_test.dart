@@ -8,16 +8,18 @@
 // 测试数据: 在 setUpAll 中导入 test/fixtures/ 下的书籍文件，
 //           确保每个测试 group 有真实数据可操作。
 
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:ui';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:zephyr_reader/features/main_layout.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/app.dart';
 import 'package:zephyr_reader/core/app_config.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/features/main_layout.dart';
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
+import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/search.dart';
 import 'package:zephyr_reader/src/rust/frb_generated.dart';
 
@@ -34,8 +36,9 @@ Future<List<String>> _seedFixtures() async {
   final titles = <String>[];
   for (final name in fixtures) {
     final path = await copyFixtureFile(name);
-    final result = await core_api.parseBook(filePath: path);
-    titles.add(result.bookInfo.title);
+    final bookId = await core_api.parseBook(filePath: path);
+    final result = await book_api.getBook(bookId: bookId);
+    titles.add(result!.title);
   }
   return titles;
 }

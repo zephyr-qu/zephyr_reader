@@ -256,7 +256,9 @@ void main() {
         final result = await parseTestBook(huozhePath);
         huozheBookId = result.$1;
         huozhePath = result.$2;
-        huozheChapters = await chapter_api.listChaptersByBook(bookId: huozheBookId);
+        huozheChapters = await chapter_api.listChaptersByBook(
+          bookId: huozheBookId,
+        );
       });
 
       tearDownAll(() async {
@@ -272,7 +274,10 @@ void main() {
         expect(huozheChapters.length, greaterThanOrEqualTo(2));
         expect(huozheChapters[0].title, contains('中文版自序'));
         expect(huozheChapters[1].title, contains('韩文版自序'));
-        expect(huozheChapters[0].endIndex, lessThan(huozheChapters[1].endIndex));
+        expect(
+          huozheChapters[0].endIndex,
+          lessThan(huozheChapters[1].endIndex),
+        );
       });
 
       test('paginateChapter produces at least 1 descriptor', () async {
@@ -340,8 +345,9 @@ void main() {
           final result = await parseTestBook(huozheEpubPath);
           huozheEpubBookId = result.$1;
           huozheEpubPath = result.$2;
-          huozheEpubChapters =
-              await chapter_api.listChaptersByBook(bookId: huozheEpubBookId);
+          huozheEpubChapters = await chapter_api.listChaptersByBook(
+            bookId: huozheEpubBookId,
+          );
         });
 
         tearDownAll(() async {

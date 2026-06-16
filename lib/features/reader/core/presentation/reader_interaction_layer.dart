@@ -39,9 +39,7 @@ class ReaderSelectionToolbarLayer extends HookWidget {
     final l10n = AppLocalizations.of(context)!;
     final String bSelectedtext = useSignalValue(vm.annotations.selectedText);
     final int bSelectionstart = useSignalValue(vm.annotations.selectionStart);
-    final ReadingMode bCurrentreadingmode = useSignalValue(
-      vm.readingMode,
-    );
+    final ReadingMode bCurrentreadingmode = useSignalValue(vm.readingMode);
     final Offset? selectionGlobalPos = useSignalValue(
       uiState.selectionGlobalPos,
     );
@@ -101,19 +99,17 @@ class ReaderTapZoneLayer extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool showToolbar = useSignalValue(
-      uiState.showToolbar,
-    );
+    final bool showToolbar = useSignalValue(uiState.showToolbar);
     final String bSelectedtext = useSignalValue(vm.annotations.selectedText);
     final int bPageindex = useSignalValue(vm.chapterManager.pageIndex);
     final int bTotalpages = useSignalValue(vm.chapterManager.totalPages);
-    final ReadingMode bCurrentreadingmode = useSignalValue(
-      vm.readingMode,
-    );
+    final ReadingMode bCurrentreadingmode = useSignalValue(vm.readingMode);
 
     final showSelection = bSelectedtext.isNotEmpty;
 
-    if (showToolbar || showSelection || bCurrentreadingmode == ReadingMode.pageTurn) {
+    if (showToolbar ||
+        showSelection ||
+        bCurrentreadingmode == ReadingMode.pageTurn) {
       return const SizedBox.shrink();
     }
 

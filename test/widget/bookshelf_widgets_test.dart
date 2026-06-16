@@ -8,29 +8,23 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 final _date = DateTime(2020);
 
-final _testBook = Book(
+final _testBook = BookshelfBook(
   bookId: 'test_1',
   title: 'Test Book',
   author: 'Author',
   filePath: '/test/test.txt',
-  fileSize: 1024,
   chapterCount: 10,
-  totalCharacters: 50000,
-  format: BookFormat.txt,
   addedAt: _date,
   status: BookStatus.reading,
   isPinned: false,
 );
 
-final _testBookNotReading = Book(
+final _testBookNotReading = BookshelfBook(
   bookId: 'test_2',
   title: 'Second Book',
   author: 'Author',
   filePath: '/test/test2.txt',
-  fileSize: 512,
   chapterCount: 5,
-  totalCharacters: 25000,
-  format: BookFormat.txt,
   addedAt: _date,
   status: BookStatus.planned,
   isPinned: false,

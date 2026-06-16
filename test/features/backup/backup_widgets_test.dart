@@ -6,8 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr_reader/core/local/shared_preferences_service.dart';
 
 import 'package:zephyr_reader/features/data/application/backup_view_model.dart';
-import 'package:zephyr_reader/features/backup/page/widgets/backup_action_tile.dart';
-import 'package:zephyr_reader/features/backup/page/widgets/backup_status_card.dart';
 import 'package:zephyr_reader/features/data/page/restore_confirm_dialog.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/backup.dart';

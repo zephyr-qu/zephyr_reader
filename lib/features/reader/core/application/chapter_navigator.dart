@@ -53,10 +53,7 @@ class ChapterNavigator {
   }
 
   Future<void> jumpToPosition(int chapterIndex, int charOffset) async {
-    await _loader.loadChapter(
-      chapterIndex,
-      initialCharOffset: charOffset,
-    );
+    await _loader.loadChapter(chapterIndex, initialCharOffset: charOffset);
   }
 
   Future<void> previousPage() async {

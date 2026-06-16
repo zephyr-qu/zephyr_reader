@@ -38,8 +38,16 @@ import 'package:zephyr_reader/features/profile/application/theme_brightness_view
     as _i583;
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart'
     as _i136;
+import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart'
+    as _i407;
+import 'package:zephyr_reader/features/reader/annotations/application/bookmark_view_model.dart'
+    as _i474;
+import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart'
+    as _i642;
 import 'package:zephyr_reader/features/reader/core/application/reader_session.dart'
     as _i305;
+import 'package:zephyr_reader/features/reader/core/application/reading_session_manager.dart'
+    as _i306;
 import 'package:zephyr_reader/features/reader/core/data/pagination_session_factory.dart'
     as _i693;
 import 'package:zephyr_reader/features/reader/core/data/rust_chapter_content_repository.dart'
@@ -50,6 +58,10 @@ import 'package:zephyr_reader/features/reader/core/domain/chapter_content_reposi
     as _i291;
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart'
     as _i768;
+import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart'
+    as _i421;
+import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart'
+    as _i1054;
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart'
     as _i880;
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart'
@@ -60,6 +72,8 @@ import 'package:zephyr_reader/features/reader/domain/service/tts_service.dart'
     as _i1020;
 import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart'
     as _i466;
+import 'package:zephyr_reader/features/reader/translation/application/translation_view_model.dart'
+    as _i769;
 import 'package:zephyr_reader/features/reader/translation/data/translation_module.dart'
     as _i401;
 import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart'
@@ -105,6 +119,27 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i109.RustChapterContentRepository(),
     );
     gh.factory<_i768.ProgressRepository>(() => _i433.RustProgressRepository());
+    gh.factoryParam<
+      _i642.ChapterViewModel,
+      _i421.ReaderRepositoryInterface,
+      _i402.ReaderConfig
+    >((repo, config) => _i642.ChapterViewModel(repo, config));
+    gh.factoryParam<
+      _i769.TranslationViewModel,
+      _i642.ChapterViewModel,
+      dynamic
+    >(
+      (chapterVM, _) => _i769.TranslationViewModel(
+        chapterVM,
+        config: gh<_i466.TranslationConfig>(),
+        service: gh<_i877.TranslationService>(),
+      ),
+    );
+    gh.factoryParam<
+      _i306.ReadingSessionManager,
+      _i642.ChapterViewModel,
+      dynamic
+    >((_chapterManager, _) => _i306.ReadingSessionManager(_chapterManager));
     gh.lazySingleton<_i790.BookshelfViewModel>(
       () => _i790.BookshelfViewModel(
         gh<_i985.PreferencesService>(),
@@ -132,6 +167,12 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i1022.BackupViewModel>(
       () => _i1022.BackupViewModel(gh<_i985.PreferencesService>()),
     );
+    gh.factoryParam<_i407.AnnotationViewModel, _i642.ChapterViewModel, dynamic>(
+      (_chapterVM, _) => _i407.AnnotationViewModel(_chapterVM),
+    );
+    gh.factoryParam<_i474.BookmarkViewModel, _i642.ChapterViewModel, dynamic>(
+      (_chapterVM, _) => _i474.BookmarkViewModel(_chapterVM),
+    );
     gh.singleton<_i182.ThemeManager>(
       () => _i182.ThemeManager(gh<_i985.PreferencesService>()),
     );
@@ -140,6 +181,13 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.singleton<_i466.TranslationConfig>(
       () => _i466.TranslationConfig(gh<_i985.PreferencesService>()),
+    );
+    gh.factory<_i421.ReaderRepositoryInterface>(
+      () => _i1054.ReaderRepository(
+        gh<_i291.ChapterContentRepository>(),
+        gh<_i768.ProgressRepository>(),
+        gh<_i693.PaginationSessionFactory>(),
+      ),
     );
     gh.factory<_i305.ReaderSessionFactory>(
       () => _i305.ReaderSessionFactory(

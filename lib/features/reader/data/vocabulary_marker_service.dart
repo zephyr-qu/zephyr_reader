@@ -22,15 +22,17 @@ class VocabularyMarkerService {
   /// 判断单词是否在词汇表中（不区分大小写）。
   bool isVocabularyWord(String word) => _allWords.contains(word.toLowerCase());
 
-  /// CET-6 词汇（当前返回全量词库）。
-  /// TODO: 多词库管理页面完成后返回独立词库
+  /// CET-6 词汇。
+  /// 当前返回全量词库（多词库拆分待实现）。
   UnmodifiableSetView<String> get cet6 => allWords;
 
-  /// IELTS 词汇（当前返回全量词库）。
-  /// TODO: 多词库管理页面完成后返回独立词库
+  ///
+  /// IELTS 词汇。
+  /// 当前返回全量词库（多词库拆分待实现）。
   UnmodifiableSetView<String> get ielts => allWords;
 
-  /// TOEFL 词汇（当前返回全量词库）。
-  /// TODO: 多词库管理页面完成后返回独立词库
+  ///
+  /// TOEFL 词汇。
+  /// 当前返回全量词库（多词库拆分待实现）。
   UnmodifiableSetView<String> get toefl => allWords;
 }

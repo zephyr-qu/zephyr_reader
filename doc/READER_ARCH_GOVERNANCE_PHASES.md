@@ -12,10 +12,10 @@
 |------|------|------|
 | Phase 2 (core/reader → features/reader) | ✅ 已完成 | 4 文件已迁移；53+ import 路径已更新；DI 注册路径已通过 build_runner 重新生成 |
 | Phase 3.1 (readingMode → ReaderViewModel) | ✅ 已完成 | `readingMode` signal 已从 `ReaderPageState` 移到 `ReaderViewModel`；`ChapterLoadRequest` 增加 `readingMode` 字段以传递到 orchestrator；`TranslationViewModel.setTranslationContent` 移除 readingMode 依赖；4 widget 消费者切换到 `vm.readingMode` |
-| Phase 3.2 (chapter signals → ChapterViewModel) | ⏳ 待办 | **15 文件** 依赖 `bookId/chapterIndex/currentCharOffset/chapterContent/pendingJumpCharOffset`；跨 5 个分层 |
+| Phase 3.2 (chapter signals → ChapterViewModel) | ✅ 已完成（6 PRs） | PR1: `ChapterViewModel` 加 5 signals，4 sub-VMs 改构造；PR2: `ReadingSessionManager` 改 method params；PR3+4: `Annotation/Bookmark/TranslationViewModel` 改构造；PR5（提前）: widget 层 `vm.state.X` → `vm.chapterManager.X`；PR6: 删除 `ReaderPageState` 类。0 活跃 `state.X` 引用，113/113 tests pass |
 | Phase 4 (reader_page.dart 拆分) | ✅ 已完成 | `reader_page.dart` 27 行（薄壳），7 个独立 widget 文件 |
-| Phase 5 (DI 自动注入) | ⏳ 待办 | `ReaderViewModel` 构造函数内 `new` 子 VM |
-| Phase 6 (遗留清理) | ⏳ 待办 | 4 项全部仍未动 |
+| Phase 5 (DI 自动注入) | ✅ 已完成 | 6 个子 VM + `ReaderRepository` 添加 `@injectable` / `@Injectable(as:)`；`ReaderViewModel` 构造改为 `getIt<>()`；`@factoryParam` 处理运行时参数；DI 配置生成器通过；113/113 tests pass |
+| Phase 6 (遗留清理) | ✅ 已完成 | 45 个 reader_settings_overlay 错误已修复（0 error）；`translation_cache` 注释修正；`vocabulary_marker_service` TODO 清理；`PageInfo` 从 `data/` 迁入 `domain/model/`；`find_render_box` 保持不动（4 处调用方，需内联评估） |
 
 ---
 
@@ -177,19 +177,20 @@ ReaderViewModel({...}) {
 
 ---
 
-## Phase 6: 遗留清理
+## Phase 6: 遗留清理 ✅
 
 **目标**：低风险小问题集中清理。
 
-**清单**：
-- `data/translation/translation_cache.dart:55` — 注释 "简单 SHA256 摘要" 改为 "Adler-32 摘要"（实际实现就是 Adler-32）
-- `data/vocabulary_marker_service.dart:26-35` — 3 处 TODO 需更新或删除（多词库管理页面）
-- `data/renderer/find_render_box.dart`（989B）— 合并到调用方或删除
-- `data/pagination_engine.dart` 中 `PageInfo` 是否可迁入 `domain/`（与 Phase 2 联动）
+**完成清单**：
+- ✅ `reader_settings_overlay.dart` 45 个错误修复（GestureDetector/AnimatedContainer 误用），dart analyze 降至 0 error
+- ✅ `translation_cache.dart:55` — 注释 "简单 SHA256 摘要" → "简单 Adler-32 摘要"
+- ✅ `vocabulary_marker_service.dart:25-35` — 3 个 TODO 替换为精简实现备注
+- ✅ `pagination_engine.dart` `PageInfo` → `domain/model/page_info.dart`（消除领域层对数据层的类型依赖）
+- ⏭️ `find_render_box.dart` — 评估后保持不动（4 处调用方，内联会引入重复代码；作为共用工具函数存在合理）
 
-**影响范围**：~4 文件。
+**影响范围**：6 文件（含测试文件 import 更新）。
 
-**风险**：极低。
+**风险**：已完成。
 
 ---
 

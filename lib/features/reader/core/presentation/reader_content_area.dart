@@ -51,9 +51,7 @@ class ReaderContentArea extends HookWidget {
     final int bChapterindex = useSignalValue(vm.chapterManager.chapterIndex);
     final int bPageindex = useSignalValue(vm.chapterManager.pageIndex);
     final int bTotalpages = useSignalValue(vm.chapterManager.totalPages);
-    final ReadingMode bCurrentreadingmode = useSignalValue(
-      vm.readingMode,
-    );
+    final ReadingMode bCurrentreadingmode = useSignalValue(vm.readingMode);
     final double bFontsize = useSignalValue(vm.config.fontSize.signal);
     final double bLineheight = useSignalValue(vm.config.lineHeight.signal);
     final AsyncState<String> chContent = useSignalValue(
@@ -87,18 +85,14 @@ class ReaderContentArea extends HookWidget {
     final int? bPendingjumpcharoffset = useSignalValue(
       vm.chapterManager.pendingJumpCharOffset,
     );
-    final String bProgresstext = useSignalValue(
-      vm.chapterManager.progressText,
-    );
+    final String bProgresstext = useSignalValue(vm.chapterManager.progressText);
     final bool bBaselinealign = useSignalValue(vm.config.baselineAlign.signal);
     final TextAlign bTextalign = useSignalValue(vm.config.textAlign.signal);
     final AsyncState<List<Chapter>> chaptersState = useSignalValue(
       vm.chapterManager.chapters,
     );
     final int bNumchapters = (chaptersState.value as List?)?.length ?? 0;
-    final Set<String> vocabWordSet = useSignalValue(
-      vocabWords,
-    );
+    final Set<String> vocabWordSet = useSignalValue(vocabWords);
     final fontFamily = fontRepo.currentFontFamily;
     void cycleBrightness() {
       final current = vm.config.brightnessOverlay.value;

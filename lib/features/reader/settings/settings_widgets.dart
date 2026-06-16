@@ -171,8 +171,9 @@ Widget themeSelector({
                       style: TextStyle(
                         color: isSelected ? accentColor : readerTheme.textColor,
                         fontSize: 12,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w400,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
                       ),
                     ),
                   ],
@@ -275,8 +276,9 @@ Widget tapLayoutToggle({
                       style: TextStyle(
                         color: isSelected ? accentColor : readerTheme.textColor,
                         fontSize: 12,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w400,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
                       ),
                     ),
                   ],
@@ -297,11 +299,7 @@ Widget writingDirectionSelector({
 }) {
   final accentColor = readerTheme.accentColor;
   final directions = [
-    (
-      WritingDirection.horizontal,
-      l10n.horizontal,
-      PhosphorIconsRegular.textT,
-    ),
+    (WritingDirection.horizontal, l10n.horizontal, PhosphorIconsRegular.textT),
     (WritingDirection.vertical, l10n.vertical, PhosphorIconsRegular.textAa),
   ];
 
@@ -344,8 +342,9 @@ Widget writingDirectionSelector({
                       style: TextStyle(
                         color: isSelected ? accentColor : readerTheme.textColor,
                         fontSize: 12,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w400,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
                       ),
                     ),
                   ],
@@ -371,11 +370,7 @@ Widget textAlignSelector({
       l10n.textAlignJustify,
       PhosphorIconsRegular.textAlignCenter,
     ),
-    (
-      TextAlign.start,
-      l10n.textAlignStart,
-      PhosphorIconsRegular.textAlignLeft,
-    ),
+    (TextAlign.start, l10n.textAlignStart, PhosphorIconsRegular.textAlignLeft),
     (
       TextAlign.center,
       l10n.textAlignCenter,
@@ -487,11 +482,7 @@ Widget bgColorPicker({
               ),
             ),
             child: isSelected
-                ? Icon(
-                    PhosphorIconsRegular.check,
-                    size: 16,
-                    color: accentColor,
-                  )
+                ? Icon(PhosphorIconsRegular.check, size: 16, color: accentColor)
                 : null,
           ),
         );

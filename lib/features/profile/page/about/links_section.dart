@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/features/profile/page/user_agreement_page.dart';
 import 'package:zephyr_reader/features/profile/page/privacy_policy_page.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
@@ -15,33 +16,30 @@ class LinksSection extends StatelessWidget {
   const LinksSection({super.key, required this.links, required this.version});
 
   void _handleTap(BuildContext context, String title) {
-    if (title == AppLocalizations.of(context)!.aboutCheckUpdate) {
+    final l10n = AppLocalizations.of(context)!;
+    if (title == l10n.aboutCheckUpdate) {
+      // TODO: 接入检查更新逻辑
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.aboutLatestVersion),
-        ),
+        SnackBar(content: Text('v$version ${l10n.aboutLatestVersion}')),
       );
-    } else if (title == AppLocalizations.of(context)!.aboutUserAgreement) {
-      Navigator.push(
-        context,
+    } else if (title == l10n.aboutUserAgreement) {
+      Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => const UserAgreementPage()),
       );
-    } else if (title == AppLocalizations.of(context)!.aboutPrivacyPolicy) {
-      Navigator.push(
-        context,
+    } else if (title == l10n.aboutPrivacyPolicy) {
+      Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => const PrivacyPolicyPage()),
       );
-    } else if (title == AppLocalizations.of(context)!.aboutOpenSourceLicense) {
+    } else if (title == l10n.aboutOpenSourceLicense) {
       showLicensePage(
         context: context,
         applicationName: 'Zephyr Reader',
-        applicationVersion: version,
-        applicationLegalese: 'MIT License',
+        applicationVersion: 'v$version',
       );
-    } else if (title == AppLocalizations.of(context)!.aboutFeedback) {
+    } else if (title == l10n.aboutFeedback) {
       _launchUrl(
         context,
-        'https://github.com/zephyr-reader/zephyr_reader/issues',
+        'https://github.com/Zephyr-Reader/zephyr-reader/issues',
       );
     }
   }
@@ -53,7 +51,9 @@ class LinksSection extends StatelessWidget {
     } else if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!.aboutCannotOpenLink),
+          content: Text(
+            '${AppLocalizations.of(context)!.aboutCannotOpenLink}: $url',
+          ),
         ),
       );
     }
@@ -67,9 +67,9 @@ class LinksSection extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: cs.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: cs.outlineVariant.withValues(alpha: 0.25),
+            color: DesignTokens.warmAccent.withValues(alpha: 0.12),
             width: 0.5,
           ),
         ),
@@ -95,8 +95,8 @@ class LinksSection extends StatelessWidget {
                             ? null
                             : Border(
                                 bottom: BorderSide(
-                                  color: cs.outlineVariant.withValues(
-                                    alpha: 0.15,
+                                  color: DesignTokens.warmAccent.withValues(
+                                    alpha: 0.08,
                                   ),
                                   width: 0.5,
                                 ),
@@ -108,10 +108,16 @@ class LinksSection extends StatelessWidget {
                             width: 34,
                             height: 34,
                             decoration: BoxDecoration(
-                              color: cs.primaryContainer.withValues(alpha: 0.4),
-                              borderRadius: BorderRadius.circular(8),
+                              color: DesignTokens.primary.withValues(
+                                alpha: 0.1,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            child: Icon(icon, size: 17, color: cs.primary),
+                            child: Icon(
+                              icon,
+                              size: 17,
+                              color: DesignTokens.primary,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -142,7 +148,9 @@ class LinksSection extends StatelessWidget {
                                 ? PhosphorIconsRegular.arrowSquareOut
                                 : PhosphorIconsRegular.caretRight,
                             size: 16,
-                            color: cs.onSurface.withValues(alpha: 0.3),
+                            color: DesignTokens.warmAccent.withValues(
+                              alpha: 0.35,
+                            ),
                           ),
                         ],
                       ),

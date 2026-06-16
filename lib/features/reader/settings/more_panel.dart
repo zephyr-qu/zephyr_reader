@@ -8,10 +8,7 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 class MorePanel extends StatelessWidget {
   final ReaderConfig config;
 
-  const MorePanel({
-    super.key,
-    required this.config,
-  });
+  const MorePanel({super.key, required this.config});
 
   @override
   Widget build(BuildContext context) {
@@ -26,11 +23,7 @@ class MorePanel extends StatelessWidget {
           title: l10n.tapLayout,
           mutedColor: readerTheme.mutedColor,
         ),
-        tapLayoutToggle(
-          readerTheme: readerTheme,
-          l10n: l10n,
-          config: config,
-        ),
+        tapLayoutToggle(readerTheme: readerTheme, l10n: l10n, config: config),
         const SizedBox(height: 12),
         sectionHeader(
           icon: PhosphorIconsRegular.paragraph,

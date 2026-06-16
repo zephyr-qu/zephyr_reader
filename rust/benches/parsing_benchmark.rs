@@ -22,6 +22,7 @@
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use rust_lib_zephyr_reader::api;
+use rust_lib_zephyr_reader::api::data::chapter;
 use rust_lib_zephyr_reader::api::core as api_core;
 use rust_lib_zephyr_reader::domain::{LanguageType, TypesetConfig};
 use rust_lib_zephyr_reader::text::paginate_all;
@@ -275,7 +276,7 @@ fn bench_search(c: &mut Criterion) {
     let path_str = path.to_string_lossy().to_string();
 
     // (1) 解析书籍获取 book_id
-    let result = rt
+    let book_id = rt
         .block_on(api::parse_book(path_str.clone()))
         .unwrap();
 
@@ -291,9 +292,11 @@ fn bench_search(c: &mut Criterion) {
         _ => panic!("get_chapter with config=None should return Raw variant"),
     };
 
-    let book_id = result.book_info.book_id.clone();
-    let chapter_id = result.chapters[0].id.clone();
-    let chapter_title = result.chapters[0].title.clone();
+    let result = rt
+        .block_on(chapter::list_chapters_by_book(book_id.clone()))
+        .unwrap();
+    let chapter_id = result[0].id.clone();
+    let chapter_title = result[0].title.clone();
 
     // (4) 索引
     rt.block_on(api::index_chapter(

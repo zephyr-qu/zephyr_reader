@@ -1,5 +1,7 @@
 import 'package:signals_flutter/signals_flutter.dart';
 
+import 'package:injectable/injectable.dart';
+
 import 'package:zephyr_reader/features/reader/core/application/auto_scroll_controller.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
@@ -18,9 +20,8 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 /// AutoScrollController 和 SearchIndexLifecycle。
 /// 持有 5 个 chapter-level signals（bookId/chapterIndex/currentCharOffset/
 /// chapterContent/pendingJumpCharOffset），原 ReaderPageState 字段，Phase 3.2 PR1 迁入。
-/// 不持有 readingMode（ReaderViewModel 持有）。
+@injectable
 class ChapterViewModel {
-  // ==================== 章节级状态（PR1 迁入；原 ReaderPageState）====================
   final bookId = signal<String>('0');
   final chapterIndex = signal<int>(0);
   final currentCharOffset = signal<int>(0);
@@ -34,8 +35,8 @@ class ChapterViewModel {
   late final AutoScrollController _autoScroll;
 
   ChapterViewModel(
-    ReaderRepositoryInterface repo,
-    ReaderConfig config,
+    @factoryParam ReaderRepositoryInterface repo,
+    @factoryParam ReaderConfig config,
   ) {
     _pagination = PaginationCoordinator(repo, config, this);
     _loader = ChapterLoader(repo, config, this, _pagination);
@@ -83,8 +84,7 @@ class ChapterViewModel {
 
   late final ReadonlySignal<String> currentChapterTitle = computed(() {
     final chapterList = chapters.value.value ?? [];
-    if (chapterIndex.value >= 0 &&
-        chapterIndex.value < chapterList.length) {
+    if (chapterIndex.value >= 0 && chapterIndex.value < chapterList.length) {
       return chapterList[chapterIndex.value].title;
     }
     return '';
@@ -105,15 +105,14 @@ class ChapterViewModel {
     ReadingMode readingMode = ReadingMode.pagination,
     Future<void> Function()? onChapterLoaded,
     bool preserveContent = false,
-  }) =>
-      _loader.loadChapter(
-        chapterIndex,
-        initialCharOffset: initialCharOffset,
-        intent: intent,
-        readingMode: readingMode,
-        onChapterLoaded: onChapterLoaded,
-        preserveContent: preserveContent,
-      );
+  }) => _loader.loadChapter(
+    chapterIndex,
+    initialCharOffset: initialCharOffset,
+    intent: intent,
+    readingMode: readingMode,
+    onChapterLoaded: onChapterLoaded,
+    preserveContent: preserveContent,
+  );
   // ==================== 章节导航（委托 ChapterNavigator）====================
 
   Future<void> previousChapter() => _navigator.previousChapter();

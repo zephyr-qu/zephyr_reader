@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:injectable/injectable.dart';
+
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:dio/dio.dart';
 import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
-import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart';
 import 'package:zephyr_reader/features/reader/translation/data/translation_cache.dart';
 import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart';
@@ -13,8 +15,10 @@ import 'package:zephyr_reader/di/service_locator.dart';
 /// 翻译视图模型。
 ///
 /// 管理翻译 API 调用、双语对齐、双语高亮和翻译缓存。
+/// 从 [ChapterViewModel] 读取 chapterIndex/chapterContent
+@injectable
 class TranslationViewModel {
-  final ReaderPageState _pageState;
+  final ChapterViewModel _chapterVM;
   final TranslationConfig _config;
   final TranslationService _service;
   final TranslationCache _cache = TranslationCache();
@@ -26,13 +30,12 @@ class TranslationViewModel {
   final translationContent = signal<String>('');
 
   TranslationViewModel(
-    ReaderPageState pageState, {
+    @factoryParam ChapterViewModel chapterVM, {
     TranslationConfig? config,
     TranslationService? service,
-  })
-      : _pageState = pageState,
-        _config = config ?? getIt<TranslationConfig>(),
-        _service = service ?? getIt<TranslationService>();
+  }) : _chapterVM = chapterVM,
+       _config = config ?? getIt<TranslationConfig>(),
+       _service = service ?? getIt<TranslationService>();
 
   /// 翻译 API 是否已配置。
   bool get isConfigured => _config.isConfigured;
@@ -57,10 +60,10 @@ class TranslationViewModel {
   ///
   /// 自动处理: 缓存命中、取消前次请求、错误回退。
   Future<void> translateChapter() async {
-    final content = _pageState.chapterContent.value.value ?? '';
+    final content = _chapterVM.chapterContent.value.value ?? '';
     if (content.isEmpty) return;
 
-    final idx = _pageState.chapterIndex.value;
+    final idx = _chapterVM.chapterIndex.value;
 
     // 缓存命中
     final cached = _cache.get(idx, content);
@@ -126,7 +129,7 @@ class TranslationViewModel {
 
   /// 运行双语对齐（将原文与译文按段落对齐）。
   Future<void> _runBilingualAlignment() async {
-    final content = _pageState.chapterContent.value.value ?? '';
+    final content = _chapterVM.chapterContent.value.value ?? '';
     final translation = translationContent.value;
     if (translation.isEmpty) return;
     await bilingualAlignment.loadAsync(

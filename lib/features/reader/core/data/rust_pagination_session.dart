@@ -110,7 +110,6 @@ class RustPaginationSession implements PaginationSession {
     }
   }
 
-
   @override
   Future<({int totalPages, bool isPartial})> beginPaginate({
     required String bookId,
@@ -193,7 +192,9 @@ class RustPaginationSession implements PaginationSession {
     final handle = _handle;
     if (handle == null) {
       // 无 handle → 退化到 beginPaginate（用真实 bookId/chapterIndex）
-      Logging.warning('repaginateInPlace: no handle, falling back to beginPaginate');
+      Logging.warning(
+        'repaginateInPlace: no handle, falling back to beginPaginate',
+      );
       return beginPaginate(
         bookId: bookId,
         chapterIndex: chapterIndex,
@@ -293,4 +294,3 @@ class RustPaginationSession implements PaginationSession {
     _cachedBookId = null;
   }
 }
-

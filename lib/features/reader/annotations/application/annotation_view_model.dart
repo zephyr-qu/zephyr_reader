@@ -1,14 +1,16 @@
 import 'package:signals_flutter/signals_flutter.dart';
+
+import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 
 /// 划词批注视图模型。
 ///
 /// 管理选区文本、高亮和笔记的加载、保存、删除。
-/// 不持有 ViewModel 引用，所有依赖通过构造注入。
+@injectable
 class AnnotationViewModel {
-  final ReaderPageState _pageState;
+  final ChapterViewModel _chapterVM;
 
   /// 高亮/笔记缓存（按章节索引），避免切换章节时重复 API 调用。
   final Map<int, List<Note>> highlightsCache = {};
@@ -18,13 +20,13 @@ class AnnotationViewModel {
   final selectionEnd = signal<int>(0);
   final highlights = asyncSignal<List<Note>>(AsyncState.data([]));
 
-  AnnotationViewModel(this._pageState);
+  AnnotationViewModel(@factoryParam this._chapterVM);
 
   /// 加载当前章节的全部高亮和笔记。
   ///
   /// [forceRefresh] 为 `true` 时绕过缓存，强制从 API 重新获取。
   Future<void> loadHighlights({bool forceRefresh = false}) async {
-    final idx = _pageState.chapterIndex.value;
+    final idx = _chapterVM.chapterIndex.value;
     if (!forceRefresh) {
       final cached = highlightsCache[idx];
       if (cached != null) {
@@ -34,7 +36,7 @@ class AnnotationViewModel {
     }
     try {
       final notes = await note_api.listNotesInChapter(
-        bookId: _pageState.bookId.value,
+        bookId: _chapterVM.bookId.value,
         chapterIndex: idx,
       );
       highlightsCache[idx] = notes;
@@ -63,8 +65,8 @@ class AnnotationViewModel {
     if (selectedText.value.isEmpty) return;
     try {
       await note_api.createHighlight(
-        bookId: _pageState.bookId.value,
-        chapterIndex: _pageState.chapterIndex.value,
+        bookId: _chapterVM.bookId.value,
+        chapterIndex: _chapterVM.chapterIndex.value,
         charOffset: selectionStart.value,
         length: selectionEnd.value - selectionStart.value,
         selectedText: selectedText.value,
@@ -83,8 +85,8 @@ class AnnotationViewModel {
     if (selectedText.value.isEmpty || annotationContent.isEmpty) return;
     try {
       await note_api.createAnnotation(
-        bookId: _pageState.bookId.value,
-        chapterIndex: _pageState.chapterIndex.value,
+        bookId: _chapterVM.bookId.value,
+        chapterIndex: _chapterVM.chapterIndex.value,
         charOffset: selectionStart.value,
         content: annotationContent,
         selectedText: selectedText.value,

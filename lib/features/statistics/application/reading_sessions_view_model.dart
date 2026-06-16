@@ -9,7 +9,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 /// 加载历史阅读会话记录及其关联的书籍信息。
 class ReadingSessionsViewModel {
   final sessions = asyncSignal<List<ReadingSession>>(AsyncState.loading());
-  final bookCache = mapSignal<String, Book>({});
+  final bookCache = signal<Map<String, Book>>({});
 
   /// 加载最近 100 条阅读会话及其关联书籍信息。
   Future<void> load() async {

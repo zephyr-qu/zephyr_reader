@@ -1,22 +1,7 @@
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
-
-/// 估算分页结果。
-///
-/// 用于无需 FFI 的快速分页场景（首屏渲染、预加载）。
-class PageInfo {
-  final int pageIndex;
-  final String content;
-  final int startOffset;
-  final int endOffset;
-  const PageInfo({
-    required this.pageIndex,
-    required this.content,
-    required this.startOffset,
-    required this.endOffset,
-  });
-}
+import 'package:zephyr_reader/features/reader/domain/model/page_info.dart';
 
 /// 无状态分页引擎。
 ///
@@ -40,8 +25,10 @@ class PaginationEngine {
       maxChars: maxChars,
     );
   }
+
   /// 首屏快速分页截止字符数（2000 字符）。
   static final BigInt firstScreenMaxChars = BigInt.from(2000);
+
   /// Dart 估算分页（无需 TextPainter，毫秒级）。
   ///
   /// 基于字符宽度和行高近似计算每页容纳的字符数，
