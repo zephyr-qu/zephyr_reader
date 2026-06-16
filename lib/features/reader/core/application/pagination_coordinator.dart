@@ -1,4 +1,6 @@
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
+
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/domain/model/page_info.dart';
@@ -49,6 +51,31 @@ class PaginationCoordinator {
       language: _config.language.value,
       autoSpaceRatio: _config.autoSpaceRatio.value,
     );
+  }
+
+  /// 计算当前排版配置的哈希值，用于检测配置变更。
+  /// 与 Rust 侧 `TypesetConfig::config_hash()` 算法一致。
+  int computeConfigHash() {
+    final p = buildPaginationParams();
+    return core_api.computeConfigHash(
+      config: buildTypesetConfig(
+        width: p.width,
+        height: p.height,
+        fontSize: p.fontSize,
+        lineHeight: p.lineHeight,
+        padding: p.padding,
+        devicePixelRatio: p.devicePixelRatio,
+        calibration: p.calibration,
+        fontFamily: p.fontFamily,
+        letterSpacing: p.letterSpacing,
+        paragraphSpacing: p.paragraphSpacing,
+        punctuationSqueeze: p.punctuationSqueeze,
+        firstLineIndent: p.firstLineIndent ? 2 : 0,
+        enableHyphenation: p.enableHyphenation,
+        language: p.language,
+        autoSpaceRatio: p.autoSpaceRatio,
+      ),
+    ).toInt();
   }
 
   /// 首屏近似分页（毫秒级）。

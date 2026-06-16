@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_loader.dart';
@@ -93,12 +94,13 @@ class ChapterNavigator {
     _chapterVM.pendingJumpCharOffset.value = null;
   }
 
-  /// 预加载相邻章节的首页文本内容（当前章节 +1），用于跨章节翻页。
+  /// 预加载相邻章节的首页文本 + staging（descriptors + 首页 content），用于跨章节翻页。
   Future<void> preloadAdjacentFirstPages(int centerIndex) async {
     final chapterList = _chapters.value.value ?? [];
     if (chapterList.isEmpty) return;
     if (centerIndex + 1 < chapterList.length) {
       final nextIdx = centerIndex + 1;
+      // 保留旧 firstSpine 预加载（scroll/pagination 模式仍需）
       await _repo.preloadNextChapterFirstPage(
         _chapterVM.bookId.value,
         nextIdx,
@@ -108,6 +110,18 @@ class ChapterNavigator {
         height: _pagination.pageHeight,
         padding: _config.padding.value,
       );
+      unawaited(_repo.preloadNextChapterStaging(
+        _chapterVM.bookId.value,
+        nextIdx,
+        fontSize: _config.fontSize.value,
+        lineHeight: _config.lineHeight.value,
+        width: _pagination.pageWidth,
+        height: _pagination.pageHeight,
+        padding: _config.padding.value,
+        devicePixelRatio: _pagination.devicePixelRatio,
+        fontFamily: _pagination.fontFamily,
+      ));
     }
   }
+
 }

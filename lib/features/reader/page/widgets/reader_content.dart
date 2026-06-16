@@ -269,6 +269,28 @@ class ReaderContent extends HookWidget {
       final hasNext = hasNextChapter;
       final extendedTotal = totalPages + (hasNext ? 1 : 0);
       Widget pageBuilder(int idx) {
+        // 虚拟跨章页：使用预加载 staging 内容
+        if (idx >= totalPages) {
+          final staging = dataSource.nextChapterStaging;
+          if (staging != null) {
+            dataSource.warmPageCache(totalPages, staging.firstPageContent);
+            final startOffset = staging.descriptors.isNotEmpty
+                ? staging.descriptors[0].startOffset
+                : 0;
+            return buildSinglePageContent(
+              context: context,
+              pageIndex: totalPages,
+              startOffset: startOffset,
+              dataSource: dataSource,
+              config: renderConfig,
+              highlights: highlights,
+              writingDirection: writingDirection,
+              onHighlightTap: onHighlightTap,
+              onSelectionChanged: onSelectionChanged,
+              onSelectionGlobalPosition: onSelectionGlobalPosition,
+            );
+          }
+        }
         final startOffset = (descriptors != null && idx < descriptors.length)
             ? descriptors[idx].startOffset
             : 0;

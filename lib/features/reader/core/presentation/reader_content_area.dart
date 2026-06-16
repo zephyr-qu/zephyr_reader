@@ -5,7 +5,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
-import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_annotation_dialog.dart';
@@ -230,7 +229,6 @@ class ReaderContentArea extends HookWidget {
                 onRetry: () => vm.loadChapter(
                   bChapterindex,
                   initialCharOffset: vm.chapterManager.currentCharOffset.value,
-                  intent: ChapterPaginationIntent.expandOnly,
                 ),
                 autoScrollTick: bAutoscrolltick,
                 highlights: bHighlights,

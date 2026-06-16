@@ -11,6 +11,12 @@ abstract class PaginationSession {
   /// 上次分页的 configHash；null 表示无 session。
   int? get sessionConfigHash;
 
+  /// 当前分页会话对应的章节索引；null 表示无 session。
+  int? get sessionChapterIndex;
+
+  /// 当前分页结果是否为部分分页。
+  bool get sessionIsPartial;
+
   /// In-place repaginate：复用现有 session handle，更新 config。
   /// handle 不存在时退化到 [beginPaginate]（用真实 bookId/chapterIndex）。
   Future<({int totalPages, bool isPartial})> repaginateInPlace({

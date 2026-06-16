@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
+import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/rendering/page_curl_widget.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/reader_content.dart';
@@ -123,6 +124,73 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(PageCurlWidget), findsNothing);
+    });
+
+    testWidgets('pageTurn 跨章虚拟页使用预加载 staging 内容', (tester) async {
+      final dataSource = _MockDataSource();
+      when(() => dataSource.preloadGeneration)
+          .thenReturn(ValueNotifier<int>(0));
+      when(() => dataSource.descriptors).thenReturn([
+        const PageDescriptor(
+          pageIndex: 0,
+          startOffset: 0,
+          endOffset: 100,
+          isLastPage: true,
+        ),
+      ]);
+      when(() => dataSource.nextChapterStaging).thenReturn(
+        const NextChapterStaging(
+          chapterIndex: 1,
+          configHash: 0x1234,
+          descriptors: [
+            PageDescriptor(
+              pageIndex: 0,
+              startOffset: 0,
+              endOffset: 80,
+              isLastPage: false,
+            ),
+          ],
+          firstPageContent: 'Preloaded next chapter text.',
+          isPartial: true,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _wrapApp(
+          ReaderContent(
+            dataSource: dataSource,
+            bookId: 'test_book',
+            chapterId: 0,
+            pageIndex: 1,
+            totalPages: 1,
+            renderConfig: const ReaderRenderConfig(
+              textColor: Colors.black87,
+              backgroundColor: Color(0xFFFAFAFA),
+              fontSize: 16,
+              lineHeight: 1.5,
+              fontFamily: '',
+              letterSpacing: 0,
+              paragraphSpacing: 12,
+              pageMargin: 16,
+              showVocabularyMark: false,
+              vocabularyWords: {},
+            ),
+            readingMode: ReadingMode.pageTurn,
+            content: 'Page content text.',
+            isLoading: false,
+            hasNextChapter: true,
+            highlights: const [],
+            scrollBuilder: (_, _) => const SizedBox(),
+            bilingualBuilder: (_, _, _) => const SizedBox(),
+            paginatedBuilder: (_, _) => const SizedBox(),
+          ),
+        ),
+      );
+
+      // PageCurlWidget 渲染
+      expect(find.byType(PageCurlWidget), findsOneWidget);
+      // 虚拟页 branch 应触发 pageContent(1) 渲染
+      verify(() => dataSource.pageContent(1)).called(1);
     });
   });
 

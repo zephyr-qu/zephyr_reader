@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/data/rich_text_converter.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
@@ -25,6 +26,9 @@ class RustChapterContentRepository implements ChapterContentRepository {
 
   int? _preloadedNextChapterIdx;
   String? _preloadedNextPageContent;
+  NextChapterStaging? _nextChapterStaging;
+  /// staging 预加载 generation 计数器，用于丢弃过期结果。
+  int _stagingGen = 0;
 
   @override
   final preloadGeneration = ValueNotifier<int>(0);
@@ -233,5 +237,81 @@ class RustChapterContentRepository implements ChapterContentRepository {
   void clearPreloadedNextChapter() {
     _preloadedNextChapterIdx = null;
     _preloadedNextPageContent = null;
+  }
+
+  @override
+  NextChapterStaging? get nextChapterStaging => _nextChapterStaging;
+
+  @override
+  Future<void> preloadNextChapterStaging(
+    String bookId,
+    int chapterIndex, {
+    double fontSize = 16,
+    double lineHeight = 1.6,
+    double width = 400,
+    double height = 600,
+    double padding = 20,
+    double devicePixelRatio = 1.0,
+    String fontFamily = 'Noto Sans SC',
+  }) async {
+    final gen = ++_stagingGen;
+    final sw = Stopwatch()..start();
+    try {
+      final book = await _getBook(bookId);
+      if (book.filePath.isEmpty) return;
+
+      final config = buildTypesetConfig(
+        width: width,
+        height: height,
+        fontSize: fontSize,
+        lineHeight: lineHeight,
+        padding: padding,
+        devicePixelRatio: devicePixelRatio,
+        fontFamily: fontFamily,
+      );
+
+      final result = await core_api.paginateChapter(
+        filePath: book.filePath,
+        chapterIndex: chapterIndex,
+        config: config,
+        maxChars: BigInt.from(2000),
+      );
+      if (gen != _stagingGen) return;
+
+      Logging.info(
+        '[Timing] preloadNextChapterStaging: ${sw.elapsedMilliseconds}ms '
+        '(chapter=$chapterIndex, isPartial=${result.isPartial}, pages=${result.descriptors.length})',
+      );
+
+      final firstContent = core_api.getPageContent(
+        filePath: book.filePath,
+        chapterIndex: chapterIndex,
+        configHash: result.configHash,
+        pageIndex: 0,
+      );
+      if (gen != _stagingGen) return;
+
+      _nextChapterStaging = NextChapterStaging(
+        chapterIndex: chapterIndex,
+        configHash: result.configHash.toInt(),
+        descriptors: result.descriptors,
+        firstPageContent: firstContent,
+        isPartial: result.isPartial,
+      );
+      preloadGeneration.value++;
+      Logging.info(
+        '[Timing] preloadNextChapterStaging complete: ${sw.elapsedMilliseconds}ms '
+        '(staging ready for chapter=$chapterIndex)',
+      );
+    } catch (e) {
+      if (gen == _stagingGen) _nextChapterStaging = null;
+      Logging.debug('[Preload] next chapter staging failed: $e');
+    }
+  }
+
+  @override
+  void clearNextChapterStaging() {
+    _stagingGen++;
+    _nextChapterStaging = null;
   }
 }

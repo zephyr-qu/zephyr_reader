@@ -1,21 +1,18 @@
-import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 
 /// 单次章节加载请求的不可变参数。
 class ChapterLoadRequest {
   final int chapterIndex;
   final int initialCharOffset;
-  final ChapterPaginationIntent intent;
   final ReadingMode readingMode;
-  final bool preserveContent;
+  final bool? preserveContent;
   final Future<void> Function()? onChapterLoaded;
 
   const ChapterLoadRequest({
     required this.chapterIndex,
     this.initialCharOffset = 0,
-    this.intent = ChapterPaginationIntent.normalLoad,
     this.readingMode = ReadingMode.pagination,
-    this.preserveContent = false,
+    this.preserveContent,
     this.onChapterLoaded,
   });
 }
