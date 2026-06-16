@@ -20,6 +20,7 @@ import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_info_se
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_note_stats.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_progress_card.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_toc_section.dart';
+import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_desc_section.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
@@ -89,6 +90,9 @@ class BookDetailPage extends HookWidget {
                     highlightCount: detail.noteStats.highlightCount,
                     annotationCount: detail.noteStats.annotationCount,
                     vocabCount: detail.vocabCount,
+                  ),
+                  if (book.description != null) BookDetailDescSection(
+                    description: book.description!,
                   ),
                   BookDetailTocSection(
                     chapters: detail.chapters,

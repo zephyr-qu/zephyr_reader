@@ -48,15 +48,6 @@ class ReaderRepository
   ValueNotifier<int> get preloadGeneration => _chapterContent.preloadGeneration;
 
   @override
-  String? getPreloadedNextChapterContent(
-    int chapterIndex, {
-    int pageIndex = 0,
-  }) => _chapterContent.getPreloadedNextChapterContent(
-    chapterIndex,
-    pageIndex: pageIndex,
-  );
-
-  @override
   NextChapterStaging? get nextChapterStaging =>
       _chapterContent.nextChapterStaging;
 
@@ -133,32 +124,6 @@ class ReaderRepository
   @override
   Future<void> preloadChapter(String bookId, int chapterId) =>
       _chapterContent.preload(bookId, chapterId);
-
-  @override
-  Future<void> preloadNextChapterFirstPage(
-    String bookId,
-    int chapterIndex, {
-    double fontSize = 16,
-    double lineHeight = 1.6,
-    double width = 400,
-    double height = 600,
-    double padding = 20,
-  }) => _chapterContent.preloadNextChapterFirstPage(
-    bookId,
-    chapterIndex,
-    fontSize: fontSize,
-    lineHeight: lineHeight,
-    width: width,
-    height: height,
-    padding: padding,
-  );
-
-  @override
-  bool get hasPreloadedNextChapter => _chapterContent.hasPreloadedNextChapter;
-
-  @override
-  void clearPreloadedNextChapter() =>
-      _chapterContent.clearPreloadedNextChapter();
 
   @override
   Future<void> preloadNextChapterStaging(

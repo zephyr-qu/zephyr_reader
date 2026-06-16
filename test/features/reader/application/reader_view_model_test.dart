@@ -8,23 +8,23 @@
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:signals_flutter/signals_flutter.dart' hide PersistedSignal;
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
+import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart';
+import 'package:zephyr_reader/features/reader/annotations/application/bookmark_view_model.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
+import 'package:zephyr_reader/features/reader/core/application/reading_session_manager.dart';
+import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart';
+import 'package:zephyr_reader/features/reader/translation/application/translation_view_model.dart';
 import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
-import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
-import 'package:get_it/get_it.dart';
-import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
-import 'package:zephyr_reader/features/reader/core/application/reading_session_manager.dart';
-import 'package:zephyr_reader/features/reader/annotations/application/bookmark_view_model.dart';
-import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart';
-import 'package:zephyr_reader/features/reader/translation/application/translation_view_model.dart';
 
 // ===== Mocks =====
 
@@ -225,12 +225,7 @@ void main() {
       ChapterViewModel,
       ReaderRepositoryInterface,
       ReaderConfig
-    >(
-      (repo, config) => ChapterViewModel(
-        repo as ReaderRepositoryInterface,
-        config as ReaderConfig,
-      ),
-    );
+    >((repo, config) => ChapterViewModel(repo, config));
     GetIt.I.registerFactoryParam<ReadingSessionManager, ChapterViewModel, void>(
       (vm, _) => ReadingSessionManager(vm as ChapterViewModel),
     );

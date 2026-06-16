@@ -111,6 +111,8 @@ pub struct PageStreamer {
     first_of_paragraph: Vec<bool>,
     /// Indentation string (e.g., "  ") (eager mode)
     indent_str: String,
+    /// Pre-computed pages from KV cache (populated by from_pages)
+    cached_pages: Option<Vec<PageContent>>,
 }
 
 /// 主动模式内存阈值（100 MB），超过此大小记录警告
@@ -135,6 +137,24 @@ impl PageStreamer {
         let punct = optimize_punctuation(&content, lang);
         let optimized = optimize_spaces(&punct, lang);
         Self::new_eager(optimized.into_owned(), config)
+    }
+
+    /// Create a PageStreamer from pre-computed page content (KV cache hit).
+    /// Skips CPU-intensive typesetting — pages are served directly.
+    pub fn from_pages(pages: Vec<PageContent>) -> Self {
+        let total_pages = pages.len();
+        Self {
+            cached_pages: Some(pages),
+            content: String::new(),
+            current_page: 0,
+            lines_per_page: 1,
+            line_offsets: Vec::new(),
+            total_lines: total_pages,
+            chars_per_line: 0,
+            char_boundaries: Vec::new(),
+            first_of_paragraph: Vec::new(),
+            indent_str: String::new(),
+        }
     }
 
     fn new_eager(content: String, config: TypesetConfig) -> Self {
@@ -242,6 +262,7 @@ impl PageStreamer {
             char_boundaries: Vec::new(),
             first_of_paragraph,
             indent_str,
+            cached_pages: None,
         }
     }
 
@@ -278,6 +299,7 @@ impl PageStreamer {
             char_boundaries,
             first_of_paragraph: Vec::new(),
             indent_str: String::new(),
+            cached_pages: None,
         }
     }
 
@@ -306,6 +328,9 @@ impl PageStreamer {
 
     #[frb(sync)]
     pub fn get_page(&self, page_index: usize, chapter_index: i32) -> Option<PageContent> {
+        if let Some(ref pages) = self.cached_pages {
+            return pages.get(page_index).cloned();
+        }
         if self.line_offsets.is_empty() {
             return self.get_page_lazy(page_index, chapter_index);
         }
@@ -384,6 +409,9 @@ impl PageStreamer {
 
     #[frb(sync)]
     pub fn total_pages(&self) -> usize {
+        if let Some(ref pages) = self.cached_pages {
+            return pages.len();
+        }
         if self.total_lines == 0 {
             return 0;
         }
@@ -397,6 +425,12 @@ impl PageStreamer {
 
     #[frb(sync)]
     pub fn progress(&self) -> f32 {
+        if let Some(ref pages) = self.cached_pages {
+            if pages.is_empty() {
+                return 0.0;
+            }
+            return ((self.current_page + 1) as f32 / pages.len() as f32).min(1.0);
+        }
         if self.total_lines == 0 {
             return 0.0;
         }
@@ -425,6 +459,14 @@ impl PageStreamer {
     /// Lazy 模式基于 `char_boundaries` 估算偏移量。
     #[frb(sync)]
     pub fn get_descriptors(&self) -> Vec<PageDescriptor> {
+        if let Some(ref pages) = self.cached_pages {
+            return pages.iter().map(|p| PageDescriptor {
+                page_index: p.page_index,
+                start_offset: p.start_offset,
+                end_offset: p.end_offset,
+                is_last_page: p.is_last_page,
+            }).collect();
+        }
         if self.line_offsets.is_empty() {
             return self.get_descriptors_lazy();
         }

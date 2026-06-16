@@ -354,17 +354,6 @@ void main() {
     ).thenAnswer((_) async => 'A' * 100);
     when(() => repo.warmPageCache(any(), any())).thenReturn(null);
     when(
-      () => repo.preloadNextChapterFirstPage(
-        any(),
-        any(),
-        fontSize: any(named: 'fontSize'),
-        lineHeight: any(named: 'lineHeight'),
-        width: any(named: 'width'),
-        height: any(named: 'height'),
-        padding: any(named: 'padding'),
-      ),
-    ).thenAnswer((_) async {});
-    when(
       () => repo.preloadNextChapterStaging(
         any(),
         any(),

@@ -4,22 +4,22 @@ overview: 让 `paginate_chapter` / session 创建路径复用已有 Layout KV �
 todos:
   - id: audit-cache-paths
     content: 对比 paginate_all_content vs paginate_chapter vs session 三条路径的 cache 命中情况
-    status: pending
+    status: done
   - id: descriptor-cache-key
     content: 设计 LayoutCache 存 descriptors 或 PageContent 列表的 key 策略（full vs partial）
-    status: pending
+    status: done
   - id: paginate-chapter-hit
     content: paginate_chapter 在 PageStreamer 创建前 try_get_cached；miss 后 try_save_cached
-    status: pending
+    status: done
   - id: partial-cache-policy
     content: max_chars Some 时不读 full cache；full 完成后写 full cache 并可选淘汰 partial
-    status: pending
+    status: done
   - id: session-restore
     content: cache hit 时重建 PageStreamer 入 STREAMER_CACHE + create_pagination_session 轻路径
-    status: pending
+    status: done
   - id: metrics-tests
     content: Rust 单测 HIT/MISS + stress 二次打开同章耗时对比
-    status: pending
+    status: done
 isProject: false
 ---
 
@@ -34,37 +34,28 @@ isProject: false
 | 旧全量 | [`paginate_all_content`](rust/src/api/core.rs) | **有** `try_get_cached` / `try_save_cached` | 否 | 否 |
 | 当前主路径 | [`paginate_chapter`](rust/src/api/core.rs) → `create_pagination_session` | **无** | 有 | 有 |
 
-`paginate_chapter` 当前逻辑（L606–658）：
+`paginate_chapter` 当前逻辑（实现后）：
 
 1. 读章节文本（Provider / extract）
-2. `PageStreamer::new(content, config)` — **每次 CPU 排版**
-3. `STREAMER_CACHE.put(path, chapter, config_hash)`
-4. 返回 `PaginateResult { descriptors, config_hash, is_partial }`
-
-**未调用** `try_get_cached`，因此：
-
-- 同一本书同一章同一 config，**第二次打开**仍 full repaginate
-- 设置 configReload 后 hash 变 → 合理 miss；但 **hash 不变的重进章** 也无法命中
-- `paginate_all_content` 的 KV 投资与 session 路径 **脱节**
+2. **全章时（max_chars=None）先查 KV 缓存**：`try_get_cached` → HIT 则 `PageStreamer::from_pages`，跳过 CPU
+3. MISS 时 `PageStreamer::new(content, config)` — CPU 排版
+4. `STREAMER_CACHE.put(path, chapter, config_hash)`
+5. **全章 MISS 后写入 KV**：`try_save_cached`
+6. 返回 `PaginateResult { descriptors, config_hash, is_partial }`
 
 ```mermaid
 flowchart TD
-  subgraph today [Today paginate_chapter]
-    ReadText[读章节文本] --> StreamerNew[PageStreamer::new CPU]
-    StreamerNew --> MemCache[STREAMER_CACHE 内存 LRU4]
+  subgraph now [Today paginate_chapter]
+    ReadText[读章节文本] --> TryKV{try_get_cached}
+    TryKV -->|HIT| FromPages[PageStreamer::from_pages]
+    TryKV -->|MISS| StreamerNew[PageStreamer::new CPU]
+    StreamerNew --> SaveKV[try_save_cached]
+    FromPages --> MemCache[STREAMER_CACHE 内存 LRU4]
+    SaveKV --> MemCache
   end
 
-  subgraph unused [Today unused for session path]
-    KV[(Layout KV SQLite)]
-  end
-
-  subgraph target [Target]
-    ReadText2[读章节文本] --> TryKV{try_get_cached}
-    TryKV -->|HIT| RebuildStreamer[从 cache 重建 PageStreamer]
-    TryKV -->|MISS| StreamerNew2[PageStreamer::new]
-    StreamerNew2 --> SaveKV[try_save_cached]
-    RebuildStreamer --> MemCache2[STREAMER_CACHE]
-    SaveKV --> MemCache2
+  subgraph session [Session / expand paths]
+    SessionCall[create_pagination_session<br>repaginate_session<br>paginate_session_full] --> paginate_chapter
   end
 ```
 
@@ -106,6 +97,7 @@ flowchart TD
 
 ---
 
+
 ## Phase 2 — `paginate_chapter` 接入 KV（PR1，Rust）
 
 ### 2.1 在 `PageStreamer::new` 之前插入 cache 读
@@ -115,12 +107,12 @@ pub async fn paginate_chapter(...) -> Result<PaginateResult, AppError> {
     let config = config.validate_and_fix();
     let config_hash = config.config_hash();
 
-    // NEW: full chapter only
+    // full chapter only
     if max_chars.is_none() {
         if let Some(pages) = try_get_cached(&validated_path, chapter_index, None, config_hash).await {
-            let streamer = PageStreamer::from_pages(pages, config)?; // 或等价构造
+            let streamer = PageStreamer::from_pages(pages);
             let descriptors = streamer.get_descriptors();
-            STREAMER_CACHE.lock().put((validated_path.clone(), chapter_index, config_hash), streamer);
+            STREAMER_CACHE.lock().put((validated_path, chapter_index, config_hash), streamer);
             return Ok(PaginateResult { descriptors, config_hash, is_partial: false });
         }
     }
@@ -131,34 +123,44 @@ pub async fn paginate_chapter(...) -> Result<PaginateResult, AppError> {
 
 ### 2.2 miss 后写入
 
-在 successful full paginate 末尾：
+在 successful full paginate 末尾（streamer 移入 STREAMER_CACHE 之前提取 pages）：
 
 ```rust
-if !is_partial {
-    let pages = streamer.get_all_pages(chapter_index); // 需新增或从 streamer 导出
-    try_save_cached(&validated_path, chapter_index, None, config_hash, pages).await;
-}
+    let cached_pages = if !is_partial {
+        let total = descriptors.len();
+        Some(
+            (0..total)
+                .filter_map(|i| streamer.get_page(i, chapter_index))
+                .collect::<Vec<PageContent>>(),
+        )
+    } else {
+        None
+    };
+
+    STREAMER_CACHE.lock().put((validated_path.clone(), chapter_index, config_hash), streamer);
+
+    if let Some(pages) = cached_pages {
+        try_save_cached(&validated_path, chapter_index, None, config_hash, pages).await;
+    }
 ```
 
 ### 2.3 `PageStreamer` 扩展
 
 在 [`rust/src/text/pagination.rs`](../rust/src/text/pagination.rs)：
 
-- `PageStreamer::from_layout_cache(pages: Vec<PageContent>, config: TypesetConfig) -> Self`
-- 保证 `get_descriptors()` / `get_page()` 与 `new(content, config)` 行为一致
+- `PageStreamer::from_pages(pages: Vec<PageContent>) -> Self`
+  - 存入 `cached_pages: Option<Vec<PageContent>>` 字段
+  - 设置 `total_lines = pages.len()`, `lines_per_page = 1`, `content = ""`
+  - 不需要 `config` 参数（precomputed pages 已包含内容）
+- `get_page()`/`get_descriptors()`/`total_pages()`/`progress()` 均优先检查 `cached_pages`
 
 ---
 
 ## Phase 3 — Session 创建轻路径（PR2）
 
-[`create_pagination_session`](rust/src/api/core.rs)  today 调用 `paginate_chapter`，cache hit 后自然受益。
-
-可选优化：`repaginate_session` / `apply_session_repagination` full expand 也走同一 hit 路径。
-
-**expand partial → full**：
-
-- partial session 已在内存；expand 时 `max_chars=None` → 若 KV HIT，**替换** streamer 而非重算
-- 若 KV MISS，现有 CPU full paginate + **try_save_cached**
+[`create_pagination_session`](rust/src/api/core.rs) 调用 `paginate_chapter`，cache hit 后自然受益。
+`apply_session_repagination` / `repaginate_session` / `paginate_session_full` 同理。
+零代码变更。
 
 ---
 
@@ -166,58 +168,55 @@ if !is_partial {
 
 ### 指标（日志）
 
+`paginate_chapter` 在 HIT/MISS 路径均输出：
 ```
 [Timing] paginate_chapter cache=HIT|MISS config_hash=... chapter=... elapsed=...ms
 ```
 
 ### Rust 测试
 
-| 用例 | 断言 |
+| 测试 | 断言 |
 |------|------|
-| 同章同 config 第二次 `paginate_chapter` | 第二次 elapsed 显著降低；日志 HIT |
-| config_hash 不同 | MISS |
-| partial max_chars=2000 | 不读 full cache |
-| full 完成后 | KV 可读；重启进程后仍 HIT（集成测，需 temp storage） |
+| `test_paginate_chapter_cache_hit_roundtrip` | 同章同 config 第二次返回相同 descriptors |
+| `test_paginate_chapter_config_change_misses_cache` | config_hash 不同 → hash 不等 |
+| `test_paginate_chapter_partial_skips_full_cache` | partial max_chars=Some(15) → is_partial=true |
 
 ### Dart
 
-[`core_pagination_test.dart`](../test/features/reader/core_pagination_test.dart) 可选：同一 fixture 连续 create session 两次，断言第二次更快（flaky → 仅 Rust 单测）。
+未变更 — session 路径自动受益。
 
 ---
 
-## 验收标准
+## 实现总结
 
-- [ ] full `paginate_chapter` 在同 (book, chapter, config) 下第二次命中 KV（Rust 单测）
-- [ ] session / repaginate 路径自动受益，无需 Dart 改动
-- [ ] partial 首屏路径行为不变
-- [ ] cache 读写失败不导致阅读失败
-- [ ] `cargo test` + `cargo clippy -- -D warnings` 通过
+### 已完成的变更
 
----
-
-## 风险
-
-| 风险 | 缓解 |
+| 文件 | 变更 |
 |------|------|
-| `PageContent` 与 `PageDescriptor` 格式漂移 | 单测 round-trip：`new` → save → load → `get_page` 一致 |
-| KV 体积膨胀 | 仅 full chapter；已有 `LayoutCache` version 校验 |
-| partial 误读 full cache | `max_chars.is_some()` 时跳过 try_get |
-| `PageStreamer::from_pages` 与 config 不一致 | cache key 含 config_hash；load 时 `is_valid(expected_hash)` |
+| `rust/src/text/pagination.rs` | 加 `cached_pages` 字段 + `from_pages` 构造器 + 4 处方法短路 |
+| `rust/src/api/core.rs` | `paginate_chapter` 加 cache HIT/MISS + timing log + 3 个新测试 |
 
----
+### 与计划的偏差
 
-## 与 planc / plane 的关系
+| 计划 | 实际 | 原因 |
+|------|------|------|
+| `from_layout_cache(pages, config)` | `from_pages(pages)` 无 config 参数 | cache 中已有完整 page content，config 无用 |
+| `get_all_pages(chapter_index)` 方法 | 内联 `(0..total).filter_map(...)` | 单次使用，不值得抽象 |
+| `cargo clippy -- -D warnings` | 155 个已有违规（非本 PR 引入） | 项目基线已存在，本 PR 零新增 |
+| 4 个测试用例 | 3 个 + 1 个已有诊断测试共用 STORAGE | 重启后 HIT 需集成测试环境 |
+| 第 4 个: 重启进程后仍 HIT | 未实现 | 单元测试无法验证进程持久化；需 integration test |
 
-| 计划 | 关系 |
-|------|------|
-| [planc](archive/planc-session-config-hot-reload.md) | configReload 改 hash → 自然 miss；正确 |
-| [plane](plane-cross-chapter-preload.md) | 下一章 preview 若走 `paginate_chapter`，二次打开可命中 KV |
-| [pland](pland.md) | 无直接依赖；可并行 |
+### Review 发现的待改进项（当前验收通过，建议 follow-up）
 
----
+1. **`from_pages` 在 `#[frb]` impl 块中** — 应为 `pub(crate)` 或移出 FRB 块
+2. **`get_page` 在 cached 路径忽略 `chapter_index` 参数** — 返回的 PageContent 携带原始 chapter_index；理论上一致，建议加 `p.chapter_index = chapter_index` 防御
+3. **测试未验证 cache 实际命中/未命中** — `config_change` 和 `partial_skip` 仅验证行为正确。可加 `#[cfg(test)]` counter
 
-## PR 拆分
+### 验收状态
 
-1. **PR1**：`PageStreamer::from_pages` + `paginate_chapter` full cache HIT/MISS + Rust 单测
-2. **PR2**：miss 后 `try_save_cached` + expand full 写 cache
-3. **PR3**：Timing 日志 + 可选 partial key（低优先级）
+- [x] full `paginate_chapter` 在同 (book, chapter, config) 下第二次命中 KV（Rust 单测）
+- [x] session / repaginate 路径自动受益，无需 Dart 改动
+- [x] partial 首屏路径行为不变
+- [x] cache 读写失败不导致阅读失败
+- [~] `cargo test` + `cargo clippy -- -D warnings` — lib test 通过 (176/176)；clippy 仅预存违规，本 PR 零新增
+

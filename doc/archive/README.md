@@ -47,6 +47,7 @@
 - `repaginateInPlace` fallback 用真实 `bookId`/`chapterIndex`
 - `_debounceReloadChapter` 传 `preserveContent: true`（避免排版变更闪 loading）
 - `_runConfigReload` 按 `currentCharOffset + 新 descriptors` 重算 `pageIndex`
+- `expandToFullChapter` hash 未变时传 `config: null` 复用 session config（避免重复 validate）
 
 ---
 

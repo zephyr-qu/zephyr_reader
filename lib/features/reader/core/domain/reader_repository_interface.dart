@@ -52,26 +52,6 @@ abstract class ReaderRepositoryInterface {
   /// 预加载章节内容到缓存。
   Future<void> preloadChapter(String bookId, int chapterId);
 
-  /// 预加载下一章节首页，用于跨章节翻页动画。
-  Future<void> preloadNextChapterFirstPage(
-    String bookId,
-    int chapterIndex, {
-    double fontSize = 16,
-    double lineHeight = 1.6,
-    double width = 400,
-    double height = 600,
-    double padding = 20,
-  });
-
-  /// 是否有预加载的下一章首页。
-  bool get hasPreloadedNextChapter;
-
-  /// 获取预加载的下一章指定页内容。
-  String? getPreloadedNextChapterContent(int chapterIndex, {int pageIndex = 0});
-
-  /// 清除预加载的下一章缓存。
-  void clearPreloadedNextChapter();
-
   // ==================== 分页排版 ====================
 
   /// Dart 估算分页（毫秒级，无需 TextPainter）。

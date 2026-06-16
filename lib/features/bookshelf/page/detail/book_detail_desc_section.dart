@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-/// 书籍简介区�?class BookDetailDescSection extends StatelessWidget {
+
+class BookDetailDescSection extends StatelessWidget {
   final String description;
   const BookDetailDescSection({super.key, required this.description});
 

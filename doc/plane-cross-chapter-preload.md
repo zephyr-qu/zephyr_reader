@@ -3,7 +3,7 @@ name: 跨章无缝翻页预加载
 overview: 在 pageTurn 模式下，于当前章阅读时后台预建下一章 PaginationSession（descriptors + 首页 content），使 PageCurlWidget 跨章翻页不白屏、不依赖 firstSpine 纯文本占位。
 todos:
   - id: audit-current-preload
-    content: 梳理 preloadNextChapterFirstPage / preloadGeneration / PageCurl extendedTotal 现状与缺口
+    content: 梳理 preloadGeneration / PageCurl extendedTotal 现状与缺口（含旧 firstSpine 路径审计）
     status: completed
   - id: next-chapter-session-cache
     content: Dart 侧 NextChapterStaging（章 index + descriptors + 可选 handle 策略）
@@ -25,6 +25,9 @@ todos:
     status: completed
   - id: configreload-preload
     content: configReload 后重建 staging 预加载
+    status: completed
+  - id: remove-dead-firstspine-preload
+    content: 删除 preloadNextChapterFirstPage / getPreloadedNextChapterContent 等无 UI 消费者的旧路径
     status: completed
 isProject: false
 ---
@@ -109,12 +112,29 @@ Future<void> preloadNextChapterStaging(...) async {
 
 [`ReaderRenderDataSource`](../lib/features/reader/core/data/reader_render_data_source.dart) 已包含 `NextChapterStaging? get nextChapterStaging`。
 
-#### 6. 接口链
+#### 6. 接口链（唯一预加载路径）
 
-- `ChapterContentRepository`（domain 接口）— `preloadNextChapterStaging(bookId, chapterIndex, {fontSize, lineHeight, width, height, padding, devicePixelRatio, fontFamily})`, `nextChapterStaging`, `clearNextChapterStaging`
-- `ReaderRepositoryInterface`（domain 接口）— 同上
-- `ReaderRepository`（实现）— 委托到 `_chapterContent`
-- `RustChapterContentRepository`（实现）— 实际业务逻辑 + `_stagingGen` 防护
+跨章预加载**仅**保留 staging 单轨：
+
+```
+ChapterNavigator.preloadAdjacentFirstPages
+  → preloadNextChapterStaging
+  → _nextChapterStaging
+  → reader_content (pageTurn 虚拟跨章页)
+```
+
+已删除的遗留路径（2026-06-16 清理，无 UI 消费者）：
+
+- `preloadNextChapterFirstPage` → `_preloadedNextPageContent`
+- `getPreloadedNextChapterContent` / `hasPreloadedNextChapter` / `clearPreloadedNextChapter`
+
+来源：`plan-unify-typeset-truth.md` Phase 4 的 firstSpine 纯文本预取；staging 上线后未回头清理，属死生产。
+
+Domain / 实现接口：
+
+- `ChapterContentRepository` — `preloadNextChapterStaging(...)`, `nextChapterStaging`, `clearNextChapterStaging`
+- `ReaderRepositoryInterface` / `ReaderRepository` — 委托到 `_chapterContent`
+- `RustChapterContentRepository` — 实际业务逻辑 + `_stagingGen` 防护
 
 #### 7. 日志与可观测性
 
@@ -140,7 +160,7 @@ Future<void> preloadNextChapterStaging(...) async {
 | 2 | configReload 不触发预加载 | 改字体/边距后 staging 清空但未重建 | 已修复：`_runConfigReload` 末调用 `preloadAdjacentFirstPages` |
 | 3 | 无 staging 时虚拟页显示空白 | 跨章动画瞬间可能空 | 设计可接受（nextChapter 后异步加载新内容），不处理 |
 | 4 | 无 `_stagingGen` 竞态单元测试 | race 防护仅靠代码审查 | 功能测试覆盖触发路径，但无 time 竞态测试 |
-| 5 | 双轨预加载并存（`preloadNextChapterFirstPage` + staging） | 两条预加载路径，维护面×2 | scroll/pagination 模式仍依赖 firstSpine 纯文本，pageTurn 用 staging，合情但需注意 |
+| 5 | ~~双轨预加载并存~~ | ~~维护面×2~~ | **已清理**：删除无 UI 消费者的 firstSpine 预取路径，仅保留 staging 单轨 |
 
 ## 验收标准
 
@@ -167,3 +187,4 @@ Future<void> preloadNextChapterStaging(...) async {
 | 2026-06-16 | `preloadNextChapterStaging` 改用实参配置替代硬编码；加 Timing 日志；触发 `preloadGeneration` notifier |
 | 2026-06-16 | `_runConfigReload` 后补 `preloadAdjacentFirstPages` 调用（修复 config 变更后 staging 不重建） |
 | 2026-06-16 | `reader_content.dart` 虚拟页增加 `staging.chapterIndex == chapterId + 1` 防御校验 |
+| 2026-06-16 | 删除 `preloadNextChapterFirstPage` / `getPreloadedNextChapterContent` 等死生产路径；跨章预加载统一为 staging 单轨 |
