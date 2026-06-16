@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';

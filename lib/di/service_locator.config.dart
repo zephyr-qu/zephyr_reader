@@ -16,9 +16,6 @@ import 'package:zephyr_reader/core/local/file_storage.dart' as _i772;
 import 'package:zephyr_reader/core/local/preferences_service.dart' as _i985;
 import 'package:zephyr_reader/core/network/network_module.dart' as _i510;
 import 'package:zephyr_reader/core/network/wifi_transfer_service.dart' as _i82;
-import 'package:zephyr_reader/core/reader/custom_font_service.dart' as _i851;
-import 'package:zephyr_reader/core/reader/reader_config.dart' as _i849;
-import 'package:zephyr_reader/core/reader/tts_service.dart' as _i825;
 import 'package:zephyr_reader/core/theme/theme_manager.dart' as _i182;
 import 'package:zephyr_reader/di/app_module.dart' as _i431;
 import 'package:zephyr_reader/features/bookshelf/application/book_import_service.dart'
@@ -55,6 +52,12 @@ import 'package:zephyr_reader/features/reader/core/domain/progress_repository.da
     as _i768;
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart'
     as _i880;
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart'
+    as _i402;
+import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart'
+    as _i693;
+import 'package:zephyr_reader/features/reader/domain/service/tts_service.dart'
+    as _i1020;
 import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart'
     as _i466;
 import 'package:zephyr_reader/features/reader/translation/data/translation_module.dart'
@@ -85,18 +88,18 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i693.PaginationSessionFactory>(
       () => _i693.PaginationSessionFactory(),
     );
-    gh.singleton<_i849.ReaderBgColors>(() => _i849.ReaderBgColors());
+    gh.singleton<_i402.ReaderBgColors>(() => _i402.ReaderBgColors());
     gh.lazySingletonAsync<_i772.FileStorage>(() {
       final i = _i772.FileStorage();
       return i.init().then((_) => i);
     });
     gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
-    gh.lazySingleton<_i825.TtsService>(() => _i825.TtsService());
     gh.lazySingleton<_i339.BookImportService>(() => _i339.BookImportService());
     gh.lazySingleton<_i415.WebDavSyncService>(() => _i415.WebDavSyncService());
     gh.lazySingleton<_i880.VocabularyMarkerService>(
       () => _i880.VocabularyMarkerService(),
     );
+    gh.lazySingleton<_i1020.TtsService>(() => _i1020.TtsService());
     gh.lazySingleton<_i1.SearchViewModel>(() => _i1.SearchViewModel());
     gh.factory<_i291.ChapterContentRepository>(
       () => _i109.RustChapterContentRepository(),
@@ -123,17 +126,17 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i82.WifiTransferService>(
       () => _i82.WifiTransferService(gh<_i985.PreferencesService>()),
     );
-    gh.singleton<_i851.FontRepository>(
-      () => _i851.FontRepository(gh<_i985.PreferencesService>()),
+    gh.singleton<_i693.FontRepository>(
+      () => _i693.FontRepository(gh<_i985.PreferencesService>()),
     );
     gh.lazySingleton<_i1022.BackupViewModel>(
       () => _i1022.BackupViewModel(gh<_i985.PreferencesService>()),
     );
-    gh.singleton<_i849.ReaderConfig>(
-      () => _i849.ReaderConfig(gh<_i985.PreferencesService>()),
-    );
     gh.singleton<_i182.ThemeManager>(
       () => _i182.ThemeManager(gh<_i985.PreferencesService>()),
+    );
+    gh.singleton<_i402.ReaderConfig>(
+      () => _i402.ReaderConfig(gh<_i985.PreferencesService>()),
     );
     gh.singleton<_i466.TranslationConfig>(
       () => _i466.TranslationConfig(gh<_i985.PreferencesService>()),
@@ -143,7 +146,7 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i291.ChapterContentRepository>(),
         gh<_i768.ProgressRepository>(),
         gh<_i693.PaginationSessionFactory>(),
-        gh<_i849.ReaderConfig>(),
+        gh<_i402.ReaderConfig>(),
       ),
     );
     gh.lazySingleton<_i877.TranslationService>(

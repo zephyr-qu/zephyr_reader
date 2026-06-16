@@ -9,9 +9,9 @@ import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.d
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_slider_tile.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
-import 'package:zephyr_reader/core/reader/custom_font_service.dart';
-import 'package:zephyr_reader/core/reader/models/font_info.dart';
-import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart';
+import 'package:zephyr_reader/features/reader/domain/model/font_info.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/di/service_locator.dart';

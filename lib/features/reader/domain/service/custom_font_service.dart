@@ -14,7 +14,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/core/reader/models/font_info.dart';
+import 'package:zephyr_reader/features/reader/domain/model/font_info.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 
 /// 自动滚动定时器控制。
 class AutoScrollController {

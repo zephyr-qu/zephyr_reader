@@ -10,15 +10,15 @@
 
 | 阶段 | 状态 | 证据 |
 |------|------|------|
-| Phase 2 (core/reader → features/reader) | ⏳ 待办 | `lib/core/reader/` 仍存在；`lib/features/reader/domain/` 不存在 |
-| Phase 3 (ReaderPageState 拆分) | ⏳ 待办 | `ReaderPageState` 6 个 signal 仍共享 |
+| Phase 2 (core/reader → features/reader) | ✅ 已完成 | 4 文件已迁移；53+ import 路径已更新；DI 注册路径已通过 build_runner 重新生成 |
+| Phase 3 (ReaderPageState 拆分) | ⏳ 待办 | **15 文件** 依赖 ReaderPageState（远超原 ~6 估算）；跨 5 个分层 |
 | Phase 4 (reader_page.dart 拆分) | ✅ 已完成 | `reader_page.dart` 27 行（薄壳），7 个独立 widget 文件 |
 | Phase 5 (DI 自动注入) | ⏳ 待办 | `ReaderViewModel` 构造函数内 `new` 子 VM |
 | Phase 6 (遗留清理) | ⏳ 待办 | 4 项全部仍未动 |
 
 ---
 
-## Phase 2: `core/reader/` → `features/reader/domain/`
+## Phase 2: `core/reader/` → `features/reader/domain/` ✅
 
 **目标**：消除架构异味 — 将阅读器专属逻辑从 `core/` 迁回 `features/reader/`。
 
@@ -42,6 +42,19 @@ core/reader/
 5. 更新 DI 注册（`app_module.dart` 中的 binding 路径）
 6. `dart analyze` 验证
 
+
+**完成时间**：本次会话（2026-06）。
+
+**实际产出**：
+- `lib/core/reader/reader_config.dart` → `lib/features/reader/domain/config/reader_config.dart`
+- `lib/core/reader/tts_service.dart` → `lib/features/reader/domain/service/tts_service.dart`
+- `lib/core/reader/custom_font_service.dart` → `lib/features/reader/domain/service/custom_font_service.dart`
+- `lib/core/reader/models/font_info.dart` → `lib/features/reader/domain/model/font_info.dart`
+- 53+ import 路径已通过 codemod 统一更新
+- DI 注册路径（`service_locator.config.dart`）通过 `build_runner build` 重新生成
+- `lib/core/reader/` 目录已删除
+
+**实测范围**：实际涉及 53+ 文件，比计划文档估算的 ~8 文件大一个数量级。建议下期 PR 规划时重新评估依赖图。
 **风险**：低 — 纯搬移，无逻辑变更。需要确认无其他 feature 依赖 `core/reader/`。
 
 ---

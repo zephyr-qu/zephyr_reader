@@ -10,7 +10,7 @@ import 'package:zephyr_reader/features/reader/core/application/search_index_life
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-import 'package:zephyr_reader/core/reader/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 
 /// 章节视图模型
 ///

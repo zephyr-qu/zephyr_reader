@@ -261,8 +261,12 @@ impl TypesetConfig {
         bytes.push(self.punctuation_squeeze as u8);
         bytes.push(self.enable_hyphenation as u8);
         bytes.push(self.language as u8);
-        if let Some(ref lang) = self.hyphenation_language {
-            bytes.extend_from_slice(lang.as_bytes());
+        match &self.hyphenation_language {
+            None => bytes.push(0),
+            Some(lang) => {
+                bytes.push(1);
+                bytes.extend_from_slice(lang.as_bytes());
+            }
         }
         bytes.extend_from_slice(self.font_family.as_bytes());
         if let Some(ref cal) = self.calibration {

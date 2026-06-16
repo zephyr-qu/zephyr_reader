@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zephyr_reader/core/reader/tts_service.dart';
+import 'package:zephyr_reader/features/reader/domain/service/tts_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
