@@ -211,7 +211,7 @@ class TypographySettingsPage extends HookWidget {
     ReaderConfig config,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final currentAlign = useSignalValue<TextAlign, Signal<TextAlign>>(config.textAlign.signal);
+    final currentAlign = useSignalValue<TextAlign>(config.textAlign.signal);
     final options = [
       (
         TextAlign.justify,
@@ -307,7 +307,7 @@ class TypographySettingsPage extends HookWidget {
   }
   Widget _buildLanguageTile(BuildContext context, ReaderConfig config) {
     final l10n = AppLocalizations.of(context)!;
-    final currentLanguage = useSignalValue<LanguageType, Signal<LanguageType>>(config.language.signal);
+    final currentLanguage = useSignalValue<LanguageType>(config.language.signal);
     final options = [
       (LanguageType.auto, l10n.typesetLanguageAuto),
       (LanguageType.chinese, l10n.typesetLanguageChinese),

@@ -71,7 +71,7 @@ final searchResults = searchResultState.value;
 
 ### 3. ⚠️ 仍存在（已迁移）— 信号作 RPC 通道
 
-&#x20;
+
 **当前位置**: `lib/features/data/page/data_management_page.dart:318-333`
 
 ```dart
@@ -179,10 +179,6 @@ useSignalEffect(() {
 ```
 
 注释已加入，明确说明为何「效应写 + 组件读同一信号」不会形成回路。原报告中的「应加注释」建议已落实。
-
-***
-
-#
 
 ***
 

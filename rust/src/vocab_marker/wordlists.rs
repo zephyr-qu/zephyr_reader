@@ -68,3 +68,60 @@ pub fn ielts_words() -> Vec<String> {
 pub fn toefl_words() -> Vec<String> {
     TOEFL.iter().cloned().collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_contains_known_word() {
+        assert!(contains("abandon"));
+        assert!(contains("ability"));
+    }
+
+    #[test]
+    fn test_contains_unknown_word() {
+        assert!(!contains("xyzqwertyabc"));
+        assert!(!contains(""));
+    }
+
+    #[test]
+    fn test_contains_case_insensitive() {
+        assert!(contains("Abandon"));
+        assert!(contains("ABANDON"));
+        assert!(contains("AbAnDoN"));
+    }
+
+    #[test]
+    fn test_contains_punctuation_not_found() {
+        assert!(!contains("abandon!"));
+        assert!(!contains("ability."));
+    }
+
+    #[test]
+    fn test_total_words_positive() {
+        let total = total_words();
+        assert!(total > 0, "total_words should be non-zero");
+    }
+
+    #[test]
+    fn test_all_words_contains_known() {
+        let all = all_words();
+        assert!(all.iter().any(|w| w == "abandon"));
+        assert!(all.len() >= total_words());
+    }
+
+    #[test]
+    fn test_subset_word_counts() {
+        assert!(!cet4_words().is_empty());
+        assert!(!cet6_words().is_empty());
+        assert!(!ielts_words().is_empty());
+        assert!(!toefl_words().is_empty());
+        let total = total_words();
+        assert!(
+            cet4_words().len() + cet6_words().len() + ielts_words().len() + toefl_words().len()
+                >= total,
+            "individual subsets should sum to at least total"
+        );
+    }
+}

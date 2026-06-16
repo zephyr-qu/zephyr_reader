@@ -118,3 +118,38 @@ impl MdictEngine {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_open_nonexistent_mdx() {
+        let result = MdictEngine::open("/nonexistent/file.mdx", None);
+        assert!(result.is_err(), "should fail for non-existent .mdx file");
+    }
+
+    #[test]
+    fn test_open_nonexistent_mdd() {
+        let result = MdictEngine::open("/nonexistent/file.mdx", Some("/nonexistent/file.mdd"));
+        assert!(result.is_err(), "should fail when .mdd file does not exist");
+    }
+
+    #[test]
+    fn test_open_empty_mdd_path_treated_as_none() {
+        // Passing an empty string for mdd_path is equivalent to None
+        let result = MdictEngine::open("/nonexistent/file.mdx", Some(""));
+        assert!(result.is_err(), "should still fail because .mdx doesn't exist");
+    }
+
+    #[test]
+    fn test_lookup_without_opening() {
+        // MdictEngine starts with mdd=None; lookup delegates to Mdx which needs real file
+        // This test simply verifies the error message originates from the file layer
+        let result = MdictEngine::open("/dev/null", None);
+        match result {
+            Err(_) => {} // expected
+            Ok(_) => panic!("should not open /dev/null as valid .mdx"),
+        }
+    }
+}

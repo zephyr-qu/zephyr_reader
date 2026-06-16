@@ -9,6 +9,12 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/src/rust/api/backup.dart' as backup_api;
 
+/// 备份操作的最终结果。
+enum BackupResult { cancelled, success, error }
+
+/// 恢复操作的最终结果。
+enum RestoreResult { success, error }
+
 enum BackupStatus {
   idle,
   exporting,
@@ -63,20 +69,18 @@ class BackupViewModel {
       currentStats.value = AsyncState.data(await backup_api.getBackupStats());
     } catch (e) {
       Logging.warning('获取备份统计失败: $e');
-      currentStats.value = AsyncState.error(e);
     }
   }
-
-  // ============ 操作 ============
 
   /// 执行备份导出流程：
   /// 1. 弹出系统文件保存对话框让用户选择位置
   /// 2. 调用 Rust 侧导出数据库
   /// 3. 记录备份元信息并更新界面状态
   ///
-  /// 用户取消选择时不会产生任何副作用。
-  Future<void> performBackup() async {
-    if (status.value != BackupStatus.idle) return;
+  /// 用户取消选择时返回 [BackupResult.cancelled]，不产生任何副作用。
+  /// 返回值用于替代直接读取 `status` 信号作为结果通道的脆弱模式。
+  Future<BackupResult> performBackup() async {
+    if (status.value != BackupStatus.idle) return BackupResult.cancelled;
 
     batch(() {
       status.value = BackupStatus.exporting;
@@ -94,7 +98,7 @@ class BackupViewModel {
       );
       if (dirPath == null) {
         status.value = BackupStatus.idle;
-        return; // 用户取消
+        return BackupResult.cancelled; // 用户取消
       }
       final savePath = '$dirPath/$suggestedName';
 
@@ -108,11 +112,13 @@ class BackupViewModel {
         _readLastBackupMeta();
         status.value = BackupStatus.exportingDone;
       });
+      return BackupResult.success;
     } catch (e) {
       batch(() {
         errorMessage.value = AppErrorMapper.humanReadable(e);
         status.value = BackupStatus.error;
       });
+      return BackupResult.error;
     }
   }
 
@@ -120,12 +126,13 @@ class BackupViewModel {
   /// 1. 将指定备份文件恢复至本地数据库
   /// 2. 更新备份元信息
   ///
+  /// 返回 [RestoreResult] 用于替代直接读取 `status` 信号作为结果通道的脆弱模式。
   /// [filePath] 为备份文件路径，[manifest] 为备份时记录的清单信息。
-  Future<void> performRestore(
+  Future<RestoreResult> performRestore(
     String filePath,
     backup_api.BackupManifest manifest,
   ) async {
-    if (status.value != BackupStatus.idle) return;
+    if (status.value != BackupStatus.idle) return RestoreResult.error;
 
     batch(() {
       status.value = BackupStatus.restoring;
@@ -153,11 +160,13 @@ class BackupViewModel {
         _readLastBackupMeta();
         status.value = BackupStatus.restoringDone;
       });
+      return RestoreResult.success;
     } catch (e) {
       batch(() {
         errorMessage.value = AppErrorMapper.humanReadable(e);
         status.value = BackupStatus.error;
       });
+      return RestoreResult.error;
     }
   }
 

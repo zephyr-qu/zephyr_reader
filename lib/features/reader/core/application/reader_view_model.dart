@@ -65,7 +65,7 @@ class ReaderViewModel {
     : _repo = repo,
       _config = config ?? getIt<ReaderConfig>() {
     chapterManager = ChapterViewModel(_repo, _config);
-    sessionManager = ReadingSessionManager(state, chapterManager);
+    sessionManager = ReadingSessionManager(chapterManager);
     bookmarks = BookmarkViewModel(state);
     annotations = AnnotationViewModel(state);
     translation = TranslationViewModel(

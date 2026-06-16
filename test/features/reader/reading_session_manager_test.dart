@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
@@ -12,16 +12,14 @@ void main() {
   late ReadingSessionManager session;
 
   setUp(() {
-    final pageState = ReaderPageState();
-    pageState.bookId.value = 'book_test';
-    pageState.chapterIndex.value = 0;
-    pageState.currentCharOffset.value = 0;
-
     chapterManager = _MockChapterManager();
     when(() => chapterManager.pageIndex).thenReturn(signal<int>(0));
     when(() => chapterManager.totalPages).thenReturn(signal<int>(50));
+    when(() => chapterManager.bookId).thenReturn(signal<String>('book_test'));
+    when(() => chapterManager.chapterIndex).thenReturn(signal<int>(0));
+    when(() => chapterManager.currentCharOffset).thenReturn(signal<int>(0));
 
-    session = ReadingSessionManager(pageState, chapterManager);
+    session = ReadingSessionManager(chapterManager);
   });
 
   // ==================== 初始状态 ====================
