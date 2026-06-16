@@ -96,9 +96,10 @@ class ReaderContentArea extends HookWidget {
       vm.chapterManager.chapters,
     );
     final int bNumchapters = (chaptersState.value as List?)?.length ?? 0;
-    final vocabWordSet = useSignalValue<Set<String>>(vocabWords);
+    final vocabWordSet = useSignalValue<Set<String>, Signal<Set<String>>>(
+      vocabWords,
+    );
     final fontFamily = fontRepo.currentFontFamily;
-
     void cycleBrightness() {
       final current = vm.config.brightnessOverlay.value;
       final idx = _brightnessPresets.indexWhere(

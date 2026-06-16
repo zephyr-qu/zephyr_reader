@@ -25,7 +25,14 @@
   - `stat_dashboard_widget.dart` 移除冗余 `Row` 包装（§4.3）。
   - `VocabStatusChip` / `VocabStatsRow` 新增 `l10n` 参数并改用 i18n key。
 
-### 修复
+### 重构
+- **Signals Hooks 审查报告整改（`@issue/SIGNALS_HOOKS_REVIEW.md`）**
+  - **L2-1 BookDetailViewModel 封装**：`book_detail_page.dart:_onEditMetadata` 不再直接写 `vm.state.value`；新增 `applyEditedBook(Book updated)` 集中写入点（`book_detail_view_model.dart`）。
+  - **L2-3 BackupViewModel RPC 通道**：`performBackup()` 改返回 `Future<BackupResult>`（cancelled / success / error），`performRestore()` 改返回 `Future<RestoreResult>`（success / error）。`data_management_page.dart` 两处调用点改用 `switch` 处理枚举结果，替代读取 `status` 信号的脆弱模式。`status` / `errorMessage` 信号保留用于进度展示与 `dismissResult()` 收尾。
+  - **L3-1 冗余类型参数**：本审查报告声称 `useSignalValue<T, Signal<T>>` 第二参数冗余——已验证 `signals_hooks@7.1.0` 实际签名为 `useSignalValue<T, S extends ReadonlySignal<T>>(S value)`，调用方必须显式提供两个类型参数或两者均省略。**报告该建议错误，L3-1 不予实施。** 5 个文件 11 处调用维持原状。
+  - **L3-2 局部信号模式**：`bookmark_manage_page.dart` 的 `isSearchMode` 全局重建模式在审查中标注为「极低风险 / 性能优化建议」且当前用法合理。**不实施**，避免无收益的微优化。
+
+### 新增
 - **书架设置**：`显示阅读进度` 开关现在实际控制封面百分比显示，并修复开关只能点击一次的 reactivity 问题（底部弹出层内 `StatelessWidget` 未对信号变化重建）。
 - **i18n**：AppBar title、tooltip、Stat label 三处硬编码中文替换为 `AppLocalizations` key（§3.1-3.3）。
 - **LearningNotesViewModel**：`_loadNotes()` 初始不触发 → 加入 `initialize()` Future.wait（§2.1）。

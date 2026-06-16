@@ -13,43 +13,39 @@
 
 | #    | 原问题                                        | 严重度 | 当前状态        | 位置（当前）                              |
 | ---- | ------------------------------------------ | :-: | ----------- | ----------------------------------- |
-| L2-1 | `book_detail_page` 直接写 `vm.book.value`     |  🟡 | ⚠️ 仍存在      | `book_detail_page.dart:176`         |
-| L2-3 | `backup_page` 信号作 RPC 通道                   |  🟡 | ⚠️ 仍存在（已迁移） | `data_management_page.dart:323-331` |
-| L3-1 | `useSignalValue<T, Signal<T>>` 冗余类型参数      |  🔵 | 🟡 部分清理     | 5 个文件仍存在                            |
-| L3-2 | `bookmark_manage` 局部信号 + SignalBuilder 双订阅 |  🔵 | ⚠️ 模式仍存在    | `bookmark_manage_page.dart:42, 59`  |
+| L2-1 | `book_detail_page` 直接写 `vm.book.value`     |  🟡 | ✅ 已修复        | `book_detail_view_model.dart:26`（新增 `applyEditedBook`） |
+| L2-3 | `backup_page` 信号作 RPC 通道                   |  🟡 | ✅ 已修复        | `backup_view_model.dart:82, 131`（`performBackup`/`performRestore` 返回枚举） |
+| L3-1 | `useSignalValue<T, Signal<T>>` 冗余类型参数      |  🔵 | ❌ 报告建议有误    | `signals_hooks@7.1.0` 签名为 `<T, S extends ReadonlySignal<T>>`，第二参数不可省略 |
+| L3-2 | `bookmark_manage` 局部信号 + SignalBuilder 双订阅 |  🔵 | ⏭️ 不实施        | 当前模式被报告标注为「极低风险 / 性能微优化」，无收益      |
 
 ***
 
 ***
 
-## 🟡 问题级别 2：潜在正确性风险
+### 1. ✅ 已修复 — 直接绕过 ViewModel 修改状态
 
-### 1. ⚠️ 仍存在 — 直接绕过 ViewModel 修改状态
-
-**当前位置**: `lib/features/bookshelf/page/book_detail_page.dart:174-177`
+**修复位置**: `lib/features/bookshelf/application/book_detail_view_model.dart:24-31`
 
 ```dart
-final current = vm.state.value;
-if (current is AsyncData<book_api.BookDetail>) {
-  vm.state.value = AsyncState.data(current.value.copyWith(book: updated));
-}
-```
-
-**问题**: 页面上层直接写入 `vm.state.value`，绕过了 `BookDetailViewModel` 的封装。后续若 ViewModel 内部引入「编辑后持久化」逻辑，必须修改此调用点才能保持一致。
-
-**建议**: 在 `BookDetailViewModel` 中新增方法，例如：
-
-```dart
-void applyEditedBook(book_api.Book updated) {
+/// 将编辑后的 Book 写回当前 state（用于编辑元数据后的乐观更新）。
+/// 集中在此处以便未来加入持久化、通知等副作用。调用方不应直接写入 [state]。
+void applyEditedBook(Book updated) {
   final current = state.value;
-  if (current is AsyncData<BookDetail>) {
+  if (current is AsyncData<book_api.BookDetail>) {
     state.value = AsyncState.data(current.value.copyWith(book: updated));
-    // 未来: 持久化逻辑、通知逻辑集中在这里
   }
 }
 ```
 
-**风险评级**: 中。当前逻辑正确但扩展性差。优先级取决于未来是否计划添加自动持久化。
+**调用点** (`book_detail_page.dart:172-174`):
+
+```dart
+final updated = await showEditMetadataDialog(context, book);
+if (updated == null || !context.mounted) return;
+vm.applyEditedBook(updated);  // 之前直接写 vm.state.value
+```
+
+后续若 ViewModel 内部引入持久化/通知等副作用，仅需修改 `applyEditedBook` 即可。
 
 ### 2. ✅ 已收敛 — 重复订阅
 
@@ -69,93 +65,74 @@ final searchResults = searchResultState.value;
 
 **保留的可优化点**: 仍可考虑用单一 `useComputed` 计算 `(isLoading, hasResults, error)` 三态减少重建次数，但不再是「重复订阅」。
 
-### 3. ⚠️ 仍存在（已迁移）— 信号作 RPC 通道
+### 3. ✅ 已修复 — 信号作 RPC 通道
 
+**修复位置**: `lib/features/data/application/backup_view_model.dart:82, 131`
 
-**当前位置**: `lib/features/data/page/data_management_page.dart:318-333`
-
-```dart
-Future<void> _performBackup(BuildContext context, BackupViewModel vm) async {
-  final l10n = AppLocalizations.of(context)!;
-  await vm.performBackup();                      // 返回 void
-  if (!context.mounted) return;
-
-  if (vm.status.value == BackupStatus.exportingDone) {  // 通过信号读结果
-    ScaffoldMessenger.of(context).showSnackBar(...);
-  } else if (vm.status.value == BackupStatus.error) {
-    ScaffoldMessenger.of(context).showSnackBar(...);
-  }
-  await vm.dismissResult();
-}
-```
-
-**问题**: `performBackup()` 实际是一个 `async` 方法，本可以返回 `Future<BackupResult>` 直接传递结果。但当前设计将结果写入 `status` 信号并通过 `dismissResult()` 清除。这意味着：
-
-- 调用方必须记得在 await 之后立即检查 `status`。
-- 任何中间代码若修改 `status.value` 都会污染结果。
-- `dismissResult()` 与后续调用之间存在竞态窗口（实际由 `batch` 缓解）。
-
-**建议**: 让 `performBackup()` 返回一个枚举结果：
+`performBackup()` 改返回 `Future<BackupResult>`，`performRestore()` 改返回 `Future<RestoreResult>`。`status` / `errorMessage` 信号保留用于进度展示与 `dismissResult()` 收尾，但结果传递不再依赖信号读取。
 
 ```dart
-enum BackupResult { success, error, idle }
+enum BackupResult { cancelled, success, error }
+enum RestoreResult { success, error }
+
 Future<BackupResult> performBackup() async { ... }
+Future<RestoreResult> performRestore(String, BackupManifest) async { ... }
 ```
 
-调用点即可直接 `switch` 处理。但当前用法被 `dismissResult()` 收尾模式约束，改动面较大。
+**调用点** (`data_management_page.dart:_performBackup`):
 
-**风险评级**: 低-中。逻辑正确，但模式脆弱，未来应优先重构。
+```dart
+final result = await vm.performBackup();
+switch (result) {
+  case BackupResult.success:   showSnackBar(success);
+  case BackupResult.error:     showSnackBar(failed(vm.errorMessage.value ?? ''));
+  case BackupResult.cancelled: break;
+}
+await vm.dismissResult();
+```
+
+消除了「await 之后立即检查 status」的脆弱模式。
 
 ***
 
 ## 🔵 问题级别 3：冗余/风格问题
 
-### 1. 🟡 部分清理 — 冗余显式类型参数
+### 1. ❌ 报告建议有误 — 冗余显式类型参数
 
-**总体进展**: 大部分文件已清理完毕，但仍残留 5 个文件 7 处冗余 `<T, Signal<T>>`。
+原报告声称「本项目 `signals_hooks` 版本（>=0.4）支持 `useSignalValue<T>(Signal<T>)` 重载，第二个类型参数 `Signal<T>` 是冗余的」。该说法与实际库签名不符。
 
-**仍存在** ⚠️:
-
-| 文件                                                                    | 行                     | 形式                                                             |
-| --------------------------------------------------------------------- | --------------------- | -------------------------------------------------------------- |
-| `lib/features/reader/core/presentation/reader_chrome.dart`            | 36, 37, 107, 113, 114 | `useSignalValue<bool, Signal<bool>>(...)` 等                    |
-| `lib/features/reader/core/presentation/reader_content_area.dart`      | 99                    | `useSignalValue<Set<String>, Signal<Set<String>>>(vocabWords)` |
-| `lib/features/reader/core/presentation/reader_interaction_layer.dart` | 45, 104               | `useSignalValue<Offset?, Signal<Offset?>>(...)`                |
-| `lib/features/reader/core/presentation/reader_shell.dart`             | 37                    | `useSignalValue<TapLayout, Signal<TapLayout>>(...)`            |
-| `lib/features/profile/page/typography/typography_settings_page.dart`  | 214, 310              | `useSignalValue<TextAlign, Signal<TextAlign>>(...)` 等          |
-
-**清理方式**（以 `typography_settings_page.dart:214` 为例）:
+**库签名**（`signals_hooks@7.1.0/lib/src/core.dart:108`）:
 
 ```dart
-// Before
-final currentAlign = useSignalValue<TextAlign, Signal<TextAlign>>(config.textAlign.signal);
-
-// After
-final currentAlign = useSignalValue(config.textAlign.signal);
+T useSignalValue<T, S extends ReadonlySignal<T>>(
+  S value, {
+  List<Object?> keys = const <Object?>[],
+}) {
+  return useExistingSignal(value, keys: keys)();
+}
 ```
 
-由于本项目 `signals_hooks` 版本（>=0.4）支持 `useSignalValue<T>(Signal<T>)` 重载，第二个类型参数 `Signal<T>` 是冗余的。
+两个类型参数都需显式提供，**或两者均省略**（依赖 target typing 与 `S` 推断）。报告中给出的「清理方式」会引发 `wrong_number_of_type_arguments_element` 编译错误（已实测）。
 
-**优先级**: 低。纯风格减负，不影响行为；建议在下一次排版相关文件改动时顺手清理。
+5 个文件 11 处调用维持原状：
 
-### 2. ⚠️ 模式仍存在 — 局部信号 + SignalBuilder 混合订阅
+| 文件                                                                    | 行       | 形式                                                          |
+| --------------------------------------------------------------------- | ------- | ----------------------------------------------------------- |
+| `lib/features/reader/core/presentation/reader_chrome.dart`            | 36-37, 107, 113, 114 | `useSignalValue<bool, Signal<bool>>(...)` 等       |
+| `lib/features/reader/core/presentation/reader_content_area.dart`      | 99      | `useSignalValue<Set<String>, Signal<Set<String>>>(...)`     |
+| `lib/features/reader/core/presentation/reader_interaction_layer.dart` | 45, 104 | `useSignalValue<Offset?, Signal<Offset?>>(...)`             |
+| `lib/features/reader/core/presentation/reader_shell.dart`             | 37      | `useSignalValue<TapLayout, Signal<TapLayout>>(...)`         |
+| `lib/features/profile/page/typography/typography_settings_page.dart`  | 214, 310 | `useSignalValue<TextAlign, Signal<TextAlign>>(...)` 等       |
 
-**当前位置**: `lib/features/reader/annotations/presentation/bookmark_manage_page.dart:26, 42, 59`
+**结论**: 不予修改。报告该建议错误。
 
-```dart
-final isSearchMode = useSignal(false);  // L26: 全局 useSignal
+### 2. ⏭️ 不实施 — 局部信号 + SignalBuilder 混合订阅
 
-// L42 / L59: build 中读取
-title: isSearchMode.value ? TextField(...) : Text(...),
-// ...
-if (!isSearchMode.value) IconButton(...) else IconButton(...),
-```
+原报告对当前位置与模式的描述仍然准确，但报告自身已标注「极低风险 / 性能优化建议」且「当前用法是合理的『状态少→全局重建』取舍」。
 
-`isSearchMode` 的 `.value` 在 build 顶层被读取——这意味着 `isSearchMode` 变化时整个 widget 会重建，而内层并未用 `SignalBuilder` 包裹。这是常见用法，触发模式是「全局重建」而非「局部重建」。
+`isSearchMode` 变化触发整个 widget 重建对书签管理页（ListView 规模有限）影响微乎其微，且报告建议的「提取 `AppBar` 为子组件」会引入额外组件拆分与状态提升成本，**收益不抵开销**。
 
-**建议**: 如果想保持 `isSearchMode` 局部状态且只重建 `AppBar`，可以将 `AppBar` 提取为子组件并在那里用 `useSignal`。当前用法是合理的「状态少→全局重建」取舍，但 L3-2 描述的「用 `useState` 替代以避免全局重建」对仅在子树使用的小型 UI 状态是有效建议。
-
-**风险评级**: 极低。属于性能优化建议，不是正确性 bug。
+**结论**: 维持现状。
 
 <br />
 
@@ -182,37 +159,32 @@ useSignalEffect(() {
 
 ***
 
-## 修复进度总结
+
+## 整改结果
 
 按原报告 6 项修复建议核对：
 
 | # | 原建议                                                     |  状态 | 备注                                       |
 | - | ------------------------------------------------------- | :-: | ---------------------------------------- |
-| 3 | `book_detail_page` 抽取 `vm.book.value = ...` 到 ViewModel |  ⚠️ | 仍直接写 `vm.state.value = ...`（L176），建议后续重构 |
-| 5 | 全局清理 `<..., Signal<...>>` 冗余类型参数                        |  🟡 | 11/18 文件已清理；5 个文件仍有 7 处                  |
-| 6 | `app.dart` autoTheme 效应加注释                              |  ✅  | 注释已添加（L27-29）                            |
+| 3 | `book_detail_page` 抽取 `vm.book.value = ...` 到 ViewModel |  ✅ | `applyEditedBook` 已实现并迁移调用点（`book_detail_view_model.dart:26`） |
+| 5 | 全局清理 `<..., Signal<...>>` 冗余类型参数                        |  ❌ | 报告该建议错误——`signals_hooks@7.1.0` 签名为 `<T, S extends ReadonlySignal<T>>`，两个类型参数不可单独省略 |
+| 6 | `app.dart` autoTheme 效应加注释                              |  ✅  | 此前已添加（L27-29）                            |
+| L2-3 | `data_management_page` 信号 RPC 通道 | ✅ | `performBackup`/`performRestore` 改返回 `BackupResult`/`RestoreResult` 枚举；调用点改用 `switch` |
+| L3-2 | `bookmark_manage` 局部信号重构 | ⏭️ | 不实施，报告自评「极低风险 / 性能微优化」，收益不抵开销 |
 
-***
-
-## 仍需关注的问题
-
-按当前风险与改动面排序：
-
-1. **L3-1 (5 处冗余类型参数)** — 改动最小、收益清晰，建议在排版相关文件下一次改动时清理
-2. **L2-1 (book\_detail\_page 直接写 vm.state.value)** — 引入 ViewModel 方法，扩展性更佳
-3. **L2-3 (data\_management\_page 信号 RPC 通道)** — 重构 `performBackup` 返回枚举，模式更稳
-
-L3-2 是性能微优化，L1 全部修复，L3-3 已不再适用。
+剩余无未解决问题。
 
 ***
 
 ## 相关文件索引
 
-- `lib/features/reader/core/presentation/reader_shell.dart` — 阅读器壳（取代原 reader\_page 的实际逻辑）
-- `lib/features/bookshelf/page/book_detail_page.dart` — 仍含直接写状态
+- `lib/features/reader/core/presentation/reader_shell.dart` — 阅读器壳
+- `lib/features/bookshelf/application/book_detail_view_model.dart` — L2-1 修复位置
+- `lib/features/bookshelf/page/book_detail_page.dart` — L2-1 调用点
 - `lib/features/search/page/search_page.dart` — 重复订阅已消除
-- `lib/features/data/page/data_management_page.dart` — 备份 RPC 模式保留处
-- `lib/features/reader/annotations/presentation/bookmark_manage_page.dart` — 局部信号 + build 顶层读
+- `lib/features/data/application/backup_view_model.dart` — L2-3 修复位置
+- `lib/features/data/page/data_management_page.dart` — L2-3 调用点
+- `lib/features/reader/annotations/presentation/bookmark_manage_page.dart` — L3-2 维持现状
 - `lib/app.dart` — 已加注释
 - `lib/core/reader/custom_font_service.dart` — `currentFontFamily` getter（信号读取发生处）
 

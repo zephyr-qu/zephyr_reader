@@ -83,8 +83,8 @@ class ReaderViewModel {
   /// 初始化阅读器，加载章节列表、恢复阅读进度、加载书签并开始计时。
   Future<void> initialize(String bookId, {int initialChapterId = 0}) async {
     await resetForNewBook();
-    state.bookId.value = bookId;
-    state.currentCharOffset.value = 0;
+    chapterManager.bookId.value = bookId;
+    chapterManager.currentCharOffset.value = 0;
 
     chapterManager.isLoading.value = true;
     chapterManager.error.value = null;
