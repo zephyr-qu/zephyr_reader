@@ -1,5 +1,5 @@
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
-import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_loader.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
@@ -10,7 +10,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 class ChapterNavigator {
   final ReaderRepositoryInterface _repo;
   final ReaderConfig _config;
-  final ReaderPageState _pageState;
+  final ChapterViewModel _chapterVM;
   final ChapterLoader _loader;
   final PaginationCoordinator _pagination;
   final AsyncSignal<List<Chapter>> _chapters;
@@ -20,22 +20,21 @@ class ChapterNavigator {
   ChapterNavigator(
     this._repo,
     this._config,
-    this._pageState,
+    this._chapterVM,
     this._loader,
     this._pagination,
     this._chapters,
     this._totalPages,
     this._pageIndex,
   );
-
   Future<void> previousChapter() async {
-    if (_pageState.chapterIndex.value > 0) {
-      final newChapterIndex = _pageState.chapterIndex.value - 1;
+    if (_chapterVM.chapterIndex.value > 0) {
+      final newChapterIndex = _chapterVM.chapterIndex.value - 1;
       await _loader.loadChapter(newChapterIndex, preserveContent: true);
       _pageIndex.value = (_totalPages.value - 1).clamp(0, 0x7FFFFFFF);
       final descriptors = _repo.descriptors;
       if (descriptors != null && _pageIndex.value < descriptors.length) {
-        _pageState.currentCharOffset.value =
+        _chapterVM.currentCharOffset.value =
             descriptors[_pageIndex.value].endOffset;
       }
     }
@@ -43,8 +42,8 @@ class ChapterNavigator {
 
   Future<void> nextChapter() async {
     final chapterList = _chapters.value.value ?? [];
-    if (_pageState.chapterIndex.value < chapterList.length - 1) {
-      final newChapterIndex = _pageState.chapterIndex.value + 1;
+    if (_chapterVM.chapterIndex.value < chapterList.length - 1) {
+      final newChapterIndex = _chapterVM.chapterIndex.value + 1;
       await _loader.loadChapter(newChapterIndex, preserveContent: true);
     }
   }
@@ -82,19 +81,19 @@ class ChapterNavigator {
 
     final descriptors = _repo.descriptors;
     if (descriptors != null && pageIndex < descriptors.length) {
-      _pageState.currentCharOffset.value = descriptors[pageIndex].startOffset;
+      _chapterVM.currentCharOffset.value = descriptors[pageIndex].startOffset;
     }
 
     _repo.ensurePageWindow(pageIndex);
   }
 
   void updateCurrentCharOffset(int charOffset) {
-    final contentLength = _pageState.chapterContent.value.value?.length ?? 0;
-    _pageState.currentCharOffset.value = charOffset.clamp(0, contentLength);
+    final contentLength = _chapterVM.chapterContent.value.value?.length ?? 0;
+    _chapterVM.currentCharOffset.value = charOffset.clamp(0, contentLength);
   }
 
   void consumePendingJumpOffset() {
-    _pageState.pendingJumpCharOffset.value = null;
+    _chapterVM.pendingJumpCharOffset.value = null;
   }
 
   /// 预加载相邻章节的首页文本内容（当前章节 +1），用于跨章节翻页。
@@ -104,7 +103,7 @@ class ChapterNavigator {
     if (centerIndex + 1 < chapterList.length) {
       final nextIdx = centerIndex + 1;
       await _repo.preloadNextChapterFirstPage(
-        _pageState.bookId.value,
+        _chapterVM.bookId.value,
         nextIdx,
         fontSize: _config.fontSize.value,
         lineHeight: _config.lineHeight.value,

@@ -6,7 +6,7 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_load_orch
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
-import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -18,7 +18,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 class ChapterLoader {
   final ReaderRepositoryInterface _contentRepo;
   final ReaderConfig _config;
-  final ReaderPageState _pageState;
+  final ChapterViewModel _chapterVM;
   final PaginationCoordinator _pagination;
   late final ChapterLoadOrchestrator _orchestrator;
 
@@ -51,13 +51,13 @@ class ChapterLoader {
   ChapterLoader(
     this._contentRepo,
     this._config,
-    this._pageState,
+    this._chapterVM,
     this._pagination,
   ) {
     _orchestrator = ChapterLoadOrchestrator(
       contentRepo: _contentRepo,
       config: _config,
-      pageState: _pageState,
+      chapterVM: _chapterVM,
       pagination: _pagination,
       chapters: chapters,
       totalPages: totalPages,
@@ -78,7 +78,7 @@ class ChapterLoader {
   Future<void> loadChapters() async {
     chapters.value = AsyncState.loading();
     try {
-      final data = await _contentRepo.getChapters(_pageState.bookId.value);
+      final data = await _contentRepo.getChapters(_chapterVM.bookId.value);
       chapters.value = AsyncState.data(data);
     } catch (e) {
       chapters.value = AsyncState.error(e);
@@ -90,11 +90,11 @@ class ChapterLoader {
   Future<void> loadLastProgress() async {
     try {
       final progress = await _contentRepo.loadReadingProgress(
-        _pageState.bookId.value,
+        _chapterVM.bookId.value,
       );
       if (progress != null) {
-        _pageState.chapterIndex.value = progress.chapterIndex;
-        _pageState.currentCharOffset.value = progress.charOffset;
+        _chapterVM.chapterIndex.value = progress.chapterIndex;
+        _chapterVM.currentCharOffset.value = progress.charOffset;
       }
     } catch (e) {
       Logging.error('Failed to load reading progress', exception: e);

@@ -8,8 +8,8 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
-import 'package:zephyr_reader/features/reader/core/application/reader_page_state.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
@@ -23,7 +23,7 @@ class ChapterLoadOrchestrator {
   ChapterLoadOrchestrator({
     required ReaderRepositoryInterface contentRepo,
     required ReaderConfig config,
-    required ReaderPageState pageState,
+    required ChapterViewModel chapterVM,
     required PaginationCoordinator pagination,
     required AsyncSignal<List<Chapter>> chapters,
     required Signal<int> totalPages,
@@ -33,7 +33,7 @@ class ChapterLoadOrchestrator {
     required Signal<ChapterLoadPhase> loadPhase,
   }) : _contentRepo = contentRepo,
        _config = config,
-       _pageState = pageState,
+       _chapterVM = chapterVM,
        _pagination = pagination,
        _chapters = chapters,
        _totalPages = totalPages,
@@ -44,7 +44,7 @@ class ChapterLoadOrchestrator {
 
   final ReaderRepositoryInterface _contentRepo;
   final ReaderConfig _config;
-  final ReaderPageState _pageState;
+  final ChapterViewModel _chapterVM;
   final PaginationCoordinator _pagination;
   final AsyncSignal<List<Chapter>> _chapters;
   final Signal<int> _totalPages;
@@ -52,7 +52,6 @@ class ChapterLoadOrchestrator {
   final Signal<bool> _isLoading;
   final Signal<String?> _error;
   final Signal<ChapterLoadPhase> _loadPhase;
-
   int _generation = 0;
 
   bool _isStale(int gen) => gen != _generation;
@@ -84,7 +83,7 @@ class ChapterLoadOrchestrator {
       }
 
       final contentFuture = _contentRepo.loadChapterContent(
-        _pageState.bookId.value,
+        _chapterVM.bookId.value,
         request.chapterIndex,
         readingMode: request.readingMode,
       );
@@ -218,7 +217,7 @@ class ChapterLoadOrchestrator {
       });
     } catch (e) {
       _applyIfCurrent(gen, () {
-        _pageState.chapterContent.value = AsyncState.error(e);
+        _chapterVM.chapterContent.value = AsyncState.error(e);
         _error.value = AppErrorMapper.humanReadable(e);
         _loadPhase.value = ChapterLoadPhase.failed;
       });
@@ -234,7 +233,7 @@ class ChapterLoadOrchestrator {
     _setPhase(gen, ChapterLoadPhase.starting);
     if (!request.preserveContent) {
       _applyIfCurrent(gen, () {
-        _pageState.chapterContent.value = AsyncState.loading();
+        _chapterVM.chapterContent.value = AsyncState.loading();
         _isLoading.value = true;
       });
     }
@@ -249,7 +248,7 @@ class ChapterLoadOrchestrator {
     _setPhase(gen, ChapterLoadPhase.firstSpine);
 
     final firstText = await _contentRepo.loadChapterFirstSpine(
-      _pageState.bookId.value,
+      _chapterVM.bookId.value,
       request.chapterIndex,
     );
     if (_isStale(gen)) return null;
@@ -275,12 +274,12 @@ class ChapterLoadOrchestrator {
       );
 
       _applyIfCurrent(gen, () {
-        _pageState.chapterContent.value = AsyncState.data(firstText);
+        _chapterVM.chapterContent.value = AsyncState.data(firstText);
         _totalPages.value = quickResult.totalPages;
-        _pageState.chapterIndex.value = request.chapterIndex;
-        _pageState.currentCharOffset.value = charOffset;
+        _chapterVM.chapterIndex.value = request.chapterIndex;
+        _chapterVM.currentCharOffset.value = charOffset;
         _pageIndex.value = resolvedPage;
-        _pageState.pendingJumpCharOffset.value = charOffset;
+        _chapterVM.pendingJumpCharOffset.value = charOffset;
         _error.value = null;
         _isLoading.value = false;
       });
@@ -327,9 +326,9 @@ class ChapterLoadOrchestrator {
 
     _applyIfCurrent(gen, () {
       _totalPages.value = quickResult.totalPages;
-      _pageState.chapterIndex.value = request.chapterIndex;
+      _chapterVM.chapterIndex.value = request.chapterIndex;
       _pageIndex.value = resolvedPage;
-      _pageState.pendingJumpCharOffset.value = charOffset;
+      _chapterVM.pendingJumpCharOffset.value = charOffset;
       _error.value = null;
       _isLoading.value = false;
     });
@@ -381,7 +380,7 @@ class ChapterLoadOrchestrator {
     _setPhase(gen, ChapterLoadPhase.finalizing);
 
     _applyIfCurrent(gen, () {
-      _pageState.chapterContent.value = AsyncState.data(content);
+      _chapterVM.chapterContent.value = AsyncState.data(content);
     });
     if (_isStale(gen)) return;
 
@@ -395,13 +394,13 @@ class ChapterLoadOrchestrator {
 
       _applyIfCurrent(gen, () {
         _totalPages.value = fallback.totalPages;
-        _pageState.currentCharOffset.value = request.initialCharOffset.clamp(
+        _chapterVM.currentCharOffset.value = request.initialCharOffset.clamp(
           0,
           content.length,
         );
         _pageIndex.value = fallback.pageIndex;
-        _pageState.pendingJumpCharOffset.value =
-            _pageState.currentCharOffset.value;
+        _chapterVM.pendingJumpCharOffset.value =
+            _chapterVM.currentCharOffset.value;
         _error.value = null;
       });
       return;
@@ -416,13 +415,13 @@ class ChapterLoadOrchestrator {
 
     _applyIfCurrent(gen, () {
       _totalPages.value = applied.totalPages;
-      _pageState.currentCharOffset.value = request.initialCharOffset.clamp(
+      _chapterVM.currentCharOffset.value = request.initialCharOffset.clamp(
         0,
         content.length,
       );
       _pageIndex.value = applied.pageIndex;
-      _pageState.pendingJumpCharOffset.value =
-          _pageState.currentCharOffset.value;
+      _chapterVM.pendingJumpCharOffset.value =
+          _chapterVM.currentCharOffset.value;
       _error.value = null;
     });
   }
@@ -469,7 +468,7 @@ class ChapterLoadOrchestrator {
       await Future.wait(
         batch.map(
           (i) => _contentRepo
-              .preloadChapter(_pageState.bookId.value, i)
+              .preloadChapter(_chapterVM.bookId.value, i)
               .catchError((_) {}),
         ),
       );
