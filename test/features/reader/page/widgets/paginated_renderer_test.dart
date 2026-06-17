@@ -19,6 +19,10 @@ import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 class _MockDataSource extends Mock implements ReaderRenderDataSource {}
 
+void _stubDataSource(_MockDataSource dataSource) {
+  when(() => dataSource.preloadGeneration).thenReturn(ValueNotifier<int>(0));
+}
+
 ReaderRenderConfig _config({
   double fontSize = 16,
   double lineHeight = 1.5,
@@ -168,6 +172,7 @@ void main() {
   group('PaginatedModeRenderer', () {
     testWidgets('pageTurn 模式+descriptors 走 _buildPageTurn 分支', (tester) async {
       final dataSource = _MockDataSource();
+      _stubDataSource(dataSource);
       when(() => dataSource.descriptors).thenReturn([
         const PageDescriptor(
           pageIndex: 0,
@@ -202,6 +207,7 @@ void main() {
       tester,
     ) async {
       final dataSource = _MockDataSource();
+      _stubDataSource(dataSource);
       when(() => dataSource.descriptors).thenReturn([
         const PageDescriptor(
           pageIndex: 0,

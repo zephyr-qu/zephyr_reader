@@ -4,6 +4,7 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'reader_render_config.dart';
 import 'find_render_box.dart';
 
@@ -26,6 +27,8 @@ class PaginatedModeRenderer extends StatelessWidget {
   final void Function(Offset?)? onSelectionGlobalPosition;
   final ValueChanged<int>? onPageChanged;
   final ValueChanged<int>? onPositionChanged;
+  final bool hasNextChapter;
+  final VoidCallback? onReachEnd;
 
   const PaginatedModeRenderer({
     super.key,
@@ -43,6 +46,8 @@ class PaginatedModeRenderer extends StatelessWidget {
     this.onSelectionGlobalPosition,
     this.onPageChanged,
     this.onPositionChanged,
+    this.hasNextChapter = false,
+    this.onReachEnd,
     this.writingDirection = WritingDirection.horizontal,
   });
 
@@ -285,6 +290,27 @@ class PaginatedModeRenderer extends StatelessWidget {
     );
   }
 
+  Widget _buildCrossChapterPage(BuildContext context, int virtualIndex) {
+    final staging = dataSource.nextChapterStaging;
+    if (staging != null && staging.chapterIndex == chapterId + 1) {
+      dataSource.warmPageCache(virtualIndex, staging.firstPageContent);
+      final startOffset = staging.descriptors.isNotEmpty
+          ? staging.descriptors[0].startOffset
+          : 0;
+      return _buildPageContent(context, virtualIndex, startOffset);
+    }
+    return Container(color: config.backgroundColor);
+  }
+
+  void _handlePageChanged(List<PageDescriptor> descriptors, int index) {
+    if (index >= descriptors.length) {
+      onReachEnd?.call();
+      return;
+    }
+    onPageChanged?.call(index);
+    onPositionChanged?.call(descriptors[index].startOffset);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (readingMode == ReadingMode.pageTurn) {
@@ -292,16 +318,27 @@ class PaginatedModeRenderer extends StatelessWidget {
     }
     final descriptors = dataSource.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
-      return PageView.builder(
-        controller: pageController,
-        physics: adaptiveScrollPhysics(context),
-        itemCount: descriptors.length,
-        onPageChanged: (index) {
-          onPageChanged?.call(index);
-          onPositionChanged?.call(descriptors[index].startOffset);
+      final extendedCount = descriptors.length + (hasNextChapter ? 1 : 0);
+      return AnimatedBuilder(
+        animation: dataSource.preloadGeneration,
+        builder: (context, _) {
+          return PageView.builder(
+            controller: pageController,
+            physics: adaptiveScrollPhysics(context),
+            itemCount: extendedCount,
+            onPageChanged: (index) => _handlePageChanged(descriptors, index),
+            itemBuilder: (context, index) {
+              if (index >= descriptors.length) {
+                return _buildCrossChapterPage(context, index);
+              }
+              return _buildPageContent(
+                context,
+                index,
+                descriptors[index].startOffset,
+              );
+            },
+          );
         },
-        itemBuilder: (context, index) =>
-            _buildPageContent(context, index, descriptors[index].startOffset),
       );
     }
     return _buildFallbackPagination(context);

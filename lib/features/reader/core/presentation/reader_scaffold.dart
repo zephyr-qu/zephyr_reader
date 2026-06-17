@@ -151,40 +151,45 @@ class ReaderScaffold extends HookWidget {
                         uiState: uiState,
                       ),
                       ReaderSelectionToolbarLayer(vm: vm, uiState: uiState),
-                      AnimatedToolbarPanel(
-                        visible: showToolbar && activePanel == null,
-                        slideBeginY: 1,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ReaderProgressBar(
-                              pageIndex: pageIndex,
-                              totalPages: totalPages,
-                              onPageChanged: (targetPage) =>
-                                  vm.chapterManager.loadPage(targetPage),
-                            ),
-                            ReaderBottomToolbar(
-                              onShowCatalog: () =>
-                                  scaffoldKey.currentState?.openDrawer(),
-                              onShowNotes: () =>
-                                  scaffoldKey.currentState?.openEndDrawer(),
-                              onToggleTypesetting: () => uiState.activePanel.value =
-                                  uiState.activePanel.value ==
-                                      ReaderPanelType.typesetting
-                                  ? null
-                                  : ReaderPanelType.typesetting,
-                              onToggleDisplay: () => uiState.activePanel.value =
-                                  uiState.activePanel.value ==
-                                      ReaderPanelType.display
-                                  ? null
-                                  : ReaderPanelType.display,
-                              onToggleAssist: () => uiState.activePanel.value =
-                                  uiState.activePanel.value ==
-                                      ReaderPanelType.assist
-                                  ? null
-                                  : ReaderPanelType.assist,
-                            ),
-                          ],
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: AnimatedToolbarPanel(
+                          visible: showToolbar && activePanel == null,
+                          slideBeginY: 1,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ReaderProgressBar(
+                                pageIndex: pageIndex,
+                                totalPages: totalPages,
+                                onPageChanged: (targetPage) =>
+                                    vm.chapterManager.loadPage(targetPage),
+                              ),
+                              ReaderBottomToolbar(
+                                onShowCatalog: () =>
+                                    scaffoldKey.currentState?.openDrawer(),
+                                onShowNotes: () =>
+                                    scaffoldKey.currentState?.openEndDrawer(),
+                                onToggleTypesetting: () => uiState.activePanel.value =
+                                    uiState.activePanel.value ==
+                                        ReaderPanelType.typesetting
+                                    ? null
+                                    : ReaderPanelType.typesetting,
+                                onToggleDisplay: () => uiState.activePanel.value =
+                                    uiState.activePanel.value ==
+                                        ReaderPanelType.display
+                                    ? null
+                                    : ReaderPanelType.display,
+                                onToggleAssist: () => uiState.activePanel.value =
+                                    uiState.activePanel.value ==
+                                        ReaderPanelType.assist
+                                    ? null
+                                    : ReaderPanelType.assist,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
