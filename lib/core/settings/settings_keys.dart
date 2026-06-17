@@ -150,7 +150,7 @@ abstract final class SettingsKeys {
   /// Markdown 预览
   static const otherMarkdownPreview = 'feature.markdown_preview';
 
-  // ==================== 翻译 API ====================
+  // ==================== 自动翻译 ====================
 
   /// 翻译服务提供商 ("openai" | "custom")
   static const translationProvider = 'translation.provider';

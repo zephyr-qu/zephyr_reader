@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_orchestrator.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
@@ -24,12 +25,15 @@ void main() {
     when(() => repo.sessionConfigHash).thenReturn(null);
     when(() => repo.descriptors).thenReturn(null);
     when(() => repo.sessionChapterIndex).thenReturn(null);
+    when(() => repo.nextChapterStaging).thenReturn(null);
+    when(() => repo.prevChapterStaging).thenReturn(null);
   });
 
   group('resolveIntent', () {
     test('returns normalLoad when session is null (no configHash)', () {
       final intent = ChapterLoadOrchestrator.resolveIntent(
         chapterIndex: 0,
+        navigationKind: ChapterNavigationKind.manualJump,
         repo: repo,
         pagination: pagination,
       );
@@ -43,6 +47,7 @@ void main() {
 
       final intent = ChapterLoadOrchestrator.resolveIntent(
         chapterIndex: 0,
+        navigationKind: ChapterNavigationKind.manualJump,
         repo: repo,
         pagination: pagination,
       );
@@ -62,6 +67,7 @@ void main() {
 
       final intent = ChapterLoadOrchestrator.resolveIntent(
         chapterIndex: 1,
+        navigationKind: ChapterNavigationKind.manualJump,
         repo: repo,
         pagination: pagination,
       );
@@ -84,6 +90,7 @@ void main() {
 
       final intent = ChapterLoadOrchestrator.resolveIntent(
         chapterIndex: 0,
+        navigationKind: ChapterNavigationKind.manualJump,
         repo: repo,
         pagination: pagination,
       );
@@ -106,6 +113,7 @@ void main() {
 
       final intent = ChapterLoadOrchestrator.resolveIntent(
         chapterIndex: 0,
+        navigationKind: ChapterNavigationKind.manualJump,
         repo: repo,
         pagination: pagination,
       );

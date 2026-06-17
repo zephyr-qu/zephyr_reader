@@ -11,6 +11,7 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'reader_render_config.dart';
 import 'find_render_box.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
 
 /// 滚动模式渲染器。
 ///
@@ -22,6 +23,8 @@ class ScrollModeRenderer extends HookWidget {
   final String bookId;
   final int chapterId;
   final String content;
+  final List<ScrollChapterSegment> segments;
+  final int? segmentDividerIndex;
   final List<Note> highlights;
   final void Function(Note)? onHighlightTap;
   final void Function(String text, int start, int end)? onSelectionChanged;
@@ -37,6 +40,8 @@ class ScrollModeRenderer extends HookWidget {
     required this.bookId,
     required this.chapterId,
     required this.content,
+    this.segments = const [],
+    this.segmentDividerIndex,
     required this.highlights,
     this.onHighlightTap,
     this.onSelectionChanged,
@@ -145,6 +150,15 @@ class ScrollModeRenderer extends HookWidget {
       );
     }
 
+    // Plain text — multi-segment concatenation
+    if (segments.isNotEmpty) {
+      return _buildMultiSegmentPlainList(
+        context,
+        textStyle,
+        strutStyle,
+      );
+    }
+
     // Fallback: plain text content
     if (paragraphList.isEmpty) {
       return const Center(child: Text('内容为空'));
@@ -190,6 +204,99 @@ class ScrollModeRenderer extends HookWidget {
               ),
               contextMenuBuilder: (_, _) => const SizedBox.shrink(),
             ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// 多段拼接纯文本 ListView。遍历 [segments] 所有段落，按全局段落索引构建连续滚动列表。
+  Widget _buildMultiSegmentPlainList(
+    BuildContext context,
+    TextStyle textStyle,
+    StrutStyle strutStyle,
+  ) {
+    final globalParagraphs = <_GlobalPara>[];
+    for (var si = 0; si < segments.length; si++) {
+      final seg = segments[si];
+      for (var pi = 0; pi < seg.paragraphCount; pi++) {
+        globalParagraphs.add(_GlobalPara(
+          segIdx: si,
+          localIdx: pi,
+          text: seg.paragraphs[pi],
+          startOffset: seg.paragraphCharOffsets[pi],
+          isSegmentBoundary:
+              pi == 0 && si > 0 && segments[si - 1].chapterIndex != seg.chapterIndex,
+        ));
+      }
+    }
+
+    // 预过滤高亮：取 segments 涵盖章节的高亮
+    final chapterIds = segments.map((s) => s.chapterIndex).toSet();
+    final segHighlights =
+        highlights.where((h) => chapterIds.contains(h.chapterIndex.toInt())).toList();
+
+    return ListView.builder(
+      controller: scrollController,
+      physics: adaptiveScrollPhysics(context),
+      padding: EdgeInsets.symmetric(
+        horizontal: config.pageMargin,
+        vertical: 20,
+      ),
+      itemCount: globalParagraphs.length,
+      itemBuilder: (context, index) {
+        final gp = globalParagraphs[index];
+        final seg = segments[gp.segIdx];
+        final paraHighlights = segHighlights
+            .where((h) =>
+                h.chapterIndex.toInt() == seg.chapterIndex &&
+                h.charOffset.toInt() >= gp.startOffset &&
+                h.charOffset.toInt() + h.length.toInt() <=
+                    gp.startOffset + gp.text.length)
+            .toList();
+        final painted = HighlightPainter.paintPlain(
+          gp.text,
+          textStyle,
+          paraHighlights,
+          onHighlightTap: onHighlightTap,
+          vocabularyWords: config.effectiveVocabWords,
+        );
+        final children = <Widget>[
+          RepaintBoundary(
+            child: SelectableText.rich(
+              painted,
+              strutStyle: strutStyle,
+              textAlign: config.textAlign,
+              onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(
+                sel,
+                gp.text,
+                gp.startOffset,
+                context,
+              ),
+              contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+            ),
+          ),
+        ];
+        if (gp.isSegmentBoundary && segmentDividerIndex == index) {
+          children.add(
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Divider(
+                color: config.textColor.withAlpha(24),
+                height: 1,
+              ),
+            ),
+          );
+        }
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: index < globalParagraphs.length - 1
+                ? config.paragraphSpacing
+                : 0,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
           ),
         );
       },
@@ -514,4 +621,21 @@ class ScrollModeRenderer extends HookWidget {
     }
     return result;
   }
+}
+
+/// 全局段落辅助结构。
+class _GlobalPara {
+  final int segIdx;
+  final int localIdx;
+  final String text;
+  final int startOffset;
+  final bool isSegmentBoundary;
+
+  const _GlobalPara({
+    required this.segIdx,
+    required this.localIdx,
+    required this.text,
+    required this.startOffset,
+    required this.isSegmentBoundary,
+  });
 }

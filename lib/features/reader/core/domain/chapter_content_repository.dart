@@ -30,6 +30,9 @@ abstract class ChapterContentRepository {
   /// 后台预加载的下一章分页 staging。
   NextChapterStaging? get nextChapterStaging;
 
+  /// 后台预加载的上一章分页 staging（末页）。
+  NextChapterStaging? get prevChapterStaging;
+
   Future<void> preloadNextChapterStaging(
     String bookId,
     int chapterIndex, {
@@ -41,7 +44,23 @@ abstract class ChapterContentRepository {
     double devicePixelRatio = 1.0,
     String fontFamily = 'Noto Sans SC',
   });
+
+  /// 后台预加载上一章分页 staging（末页）。
+  Future<void> preloadPreviousChapterStaging(
+    String bookId,
+    int chapterIndex, {
+    double fontSize = 16,
+    double lineHeight = 1.6,
+    double width = 400,
+    double height = 600,
+    double padding = 20,
+    double devicePixelRatio = 1.0,
+    String fontFamily = 'Noto Sans SC',
+  });
+
   /// 清除预加载 staging。
   void clearNextChapterStaging();
 
+  /// 清除相邻双向 staging。
+  void clearAdjacentStaging();
 }

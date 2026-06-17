@@ -34,6 +34,15 @@ abstract class PaginationSession {
     BigInt? maxChars,
   });
 
+  /// 尝试从 Rust STREAMER_CACHE adopt 现有 session（零重 paginate）。
+  /// 未命中时退化到 [beginPaginate]（full createPaginationSession）。
+  Future<({int totalPages, bool isPartial})> beginPaginateFromCache({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+    BigInt? maxChars,
+  });
+
   /// 在同一会话上扩展到全章。
   Future<({int totalPages, bool isPartial})> expandToFullChapter({
     required String bookId,

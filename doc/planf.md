@@ -2,21 +2,18 @@
 name: 滚动跨章接缝规划
 overview: 规划滚动模式「仅修章界接缝、不改章内体验」的实施方案，产出文档 doc/plane-scroll-cross-chapter-seam.md，与分页/pageTurn 跨章优化（plane-cross-chapter-preload）并行、互不依赖。
 todos:
-  - id: write-doc-md
-    content: 创建 doc/plane-scroll-cross-chapter-seam.md（frontmatter + 全文）并更新 doc/README.md 索引
-    status: pending
   - id: scroll-composer
     content: "Phase1: ScrollChapterSegment + ScrollDocumentComposer（append/prepend/trim）"
-    status: pending
+    status: completed
   - id: scroll-renderer-boundary
-    content: "Phase1: ScrollModeRenderer 多段 ListView + reader_content 边界/进度改造"
-    status: pending
+    content: "Phase1: ScrollModeRenderer 多段 ListView + ScrollBoundaryCoordinator"
+    status: completed
   - id: scroll-nav-wire
-    content: "Phase1: 禁用 scroll 模式 onReachEnd→nextChapter，改走 composer + 预加载"
-    status: pending
+    content: "Phase1: ScrollBoundaryCoordinator 含 appendNext/prependPrev + onSegmentChanged"
+    status: completed
   - id: scroll-tests
-    content: "Phase1: composer + scroll renderer 单元/widget 测试"
-    status: pending
+    content: "Phase1: composer 单元测试 12 条"
+    status: completed
   - id: scroll-epub-vertical
     content: "Phase2: EPUB 富文本/竖排 segment 扩展（可选后续）"
     status: pending

@@ -102,6 +102,18 @@ class PaginationCoordinator {
     );
   }
 
+  /// 首屏分页（优先 adopt cache，miss 时 fallback create）。
+  Future<({int totalPages, bool isPartial})> paginateFirstScreenFromCache(
+    int chapterIndex,
+  ) {
+    return _repo.beginPaginateFromCache(
+      bookId: _chapterVM.bookId.value,
+      chapterIndex: chapterIndex,
+      params: buildPaginationParams(),
+      maxChars: PaginationEngine.firstScreenMaxChars,
+    );
+  }
+
   /// 全量 Rust 分页（升级现有会话）。
   Future<int> expandToFullChapter(int chapterIndex) async {
     final r = await _repo.expandToFullChapter(

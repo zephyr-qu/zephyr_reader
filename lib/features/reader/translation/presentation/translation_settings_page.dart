@@ -16,7 +16,7 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 part 'translation_settings_sections.dart';
 part 'translation_settings_widgets.dart';
 
-/// 翻译 API 设置页面。
+/// 自动翻译设置页面。
 ///
 /// 遵循设置页面统一布局规范：
 /// SettingsAppBar + [SectionLabel / SettingsCard] + 入场动画。

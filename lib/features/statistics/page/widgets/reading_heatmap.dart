@@ -5,8 +5,8 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 30 天阅读热力图组件。
 ///
-/// 以 3×10 网格展示前后各约 15 天的阅读情况，色块深浅反映当日阅读时长。
-/// 今天固定在网格第 15 格（0-indexed 14），每天自动滚动。
+/// 以 3×10 网格展示过去 30 天的阅读情况，色块深浅反映当日阅读时长。
+/// 今天固定在网格最后一格（index 29 = row 2 col 9），每天自动滚动。
 class ReadingHeatmap extends StatelessWidget {
   final List<ReadingStats> records;
 
@@ -19,7 +19,7 @@ class ReadingHeatmap extends StatelessWidget {
 
     final today = DateTime.now();
     final todayDate = DateTime(today.year, today.month, today.day);
-    final gridStart = todayDate.subtract(const Duration(days: 14));
+    final gridStart = todayDate.subtract(const Duration(days: 29));
     const totalDays = 30;
     const rows = 3;
     const cols = 10;
@@ -99,7 +99,7 @@ class ReadingHeatmap extends StatelessWidget {
     final isFuture = cellDate.isAfter(todayDate);
 
     final Color bgColor = isFuture
-        ? cs.surfaceContainerHighest.withValues(alpha: 0.4)
+        ? cs.surfaceContainerHighest.withValues(alpha: 0.3)
         : _heatmapColor(cs, seconds);
 
     return Container(
@@ -147,7 +147,7 @@ class ReadingHeatmap extends StatelessWidget {
   }
 
   Color _heatmapColor(ColorScheme cs, int seconds) {
-    if (seconds == 0) return cs.surfaceContainerHighest.withValues(alpha: 0.4);
+    if (seconds == 0) return cs.surfaceContainerHighest.withValues(alpha: 0.75);
     if (seconds < 600) return cs.primary.withValues(alpha: 0.15);
     if (seconds < 1800) return cs.primary.withValues(alpha: 0.35);
     return cs.primary.withValues(alpha: 0.6);

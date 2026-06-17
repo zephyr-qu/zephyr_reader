@@ -28,8 +28,9 @@ class PaginatedModeRenderer extends StatelessWidget {
   final ValueChanged<int>? onPageChanged;
   final ValueChanged<int>? onPositionChanged;
   final bool hasNextChapter;
+  final bool hasPreviousChapter;
   final VoidCallback? onReachEnd;
-
+  final VoidCallback? onReachStart;
   const PaginatedModeRenderer({
     super.key,
     required this.config,
@@ -47,7 +48,9 @@ class PaginatedModeRenderer extends StatelessWidget {
     this.onPageChanged,
     this.onPositionChanged,
     this.hasNextChapter = false,
+    this.hasPreviousChapter = false,
     this.onReachEnd,
+    this.onReachStart,
     this.writingDirection = WritingDirection.horizontal,
   });
 
@@ -302,15 +305,29 @@ class PaginatedModeRenderer extends StatelessWidget {
     return Container(color: config.backgroundColor);
   }
 
+  Widget _buildPreviousChapterPage(BuildContext context) {
+    // Phase 3 增加 prevChapterStaging 渲染
+    return Container(color: config.backgroundColor);
+  }
+
   void _handlePageChanged(List<PageDescriptor> descriptors, int index) {
-    if (index >= descriptors.length) {
+    // 向后虚拟页 → onReachStart
+    if (index == 0 && hasPreviousChapter) {
+      onReachStart?.call();
+      return;
+    }
+    final realIndex = hasPreviousChapter ? index - 1 : index;
+    if (realIndex < 0) {
+      onReachStart?.call();
+      return;
+    }
+    if (realIndex >= descriptors.length) {
       onReachEnd?.call();
       return;
     }
-    onPageChanged?.call(index);
-    onPositionChanged?.call(descriptors[index].startOffset);
+    onPageChanged?.call(realIndex);
+    onPositionChanged?.call(descriptors[realIndex].startOffset);
   }
-
   @override
   Widget build(BuildContext context) {
     if (readingMode == ReadingMode.pageTurn) {
@@ -318,7 +335,8 @@ class PaginatedModeRenderer extends StatelessWidget {
     }
     final descriptors = dataSource.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
-      final extendedCount = descriptors.length + (hasNextChapter ? 1 : 0);
+      final offset = hasPreviousChapter ? 1 : 0;
+      final extendedCount = descriptors.length + (hasNextChapter ? 1 : 0) + offset;
       return AnimatedBuilder(
         animation: dataSource.preloadGeneration,
         builder: (context, _) {
@@ -328,13 +346,17 @@ class PaginatedModeRenderer extends StatelessWidget {
             itemCount: extendedCount,
             onPageChanged: (index) => _handlePageChanged(descriptors, index),
             itemBuilder: (context, index) {
-              if (index >= descriptors.length) {
+              if (hasPreviousChapter && index == 0) {
+                return _buildPreviousChapterPage(context);
+              }
+              final realIndex = hasPreviousChapter ? index - 1 : index;
+              if (realIndex >= descriptors.length) {
                 return _buildCrossChapterPage(context, index);
               }
               return _buildPageContent(
                 context,
-                index,
-                descriptors[index].startOffset,
+                realIndex,
+                descriptors[realIndex].startOffset,
               );
             },
           );

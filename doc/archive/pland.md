@@ -1,35 +1,38 @@
----
+***
+
 name: Intent 与 PageContent 优化
 overview: 分两 PR 落地：PR1 在 RustPaginationSession.pageContent 实现 sync fetch-on-miss；PR2 在 orchestrator 内自动推导 ChapterPaginationIntent。已于 2026-06-16 全部完成。
 todos:
-  - id: pr1-sync-fetch
-    content: "PR1: RustPaginationSession 实现 _fetchAndCachePage + pageContent fetch-on-miss；统一 preload/ensureWindow 路径"
-    status: completed
-  - id: pr1-tests
-    content: "PR1: core_pagination 集成验证（rust_pagination_session 专用单测未建，见测试债）"
-    status: completed
-  - id: pr2-session-meta
-    content: "PR2: 新增 sessionChapterIndex/sessionIsPartial 并在 dispose 清空"
-    status: completed
-  - id: pr2-resolver
-    content: "PR2: 实现 resolveIntent + orchestrator 自动推导；preserveContent 默认策略"
-    status: completed
-  - id: pr2-callsite-cleanup
-    content: "PR2: 移除调用方 intent 参数；更新 chapter_manager/resolver 测试与 README"
-    status: completed
-isProject: false
----
+
+- id: pr1-sync-fetch
+  content: "PR1: RustPaginationSession 实现 \_fetchAndCachePage + pageContent fetch-on-miss；统一 preload/ensureWindow 路径"
+  status: completed
+- id: pr1-tests
+  content: "PR1: core\_pagination 集成验证（rust\_pagination\_session 专用单测未建，见测试债）"
+  status: completed
+- id: pr2-session-meta
+  content: "PR2: 新增 sessionChapterIndex/sessionIsPartial 并在 dispose 清空"
+  status: completed
+- id: pr2-resolver
+  content: "PR2: 实现 resolveIntent + orchestrator 自动推导；preserveContent 默认策略"
+  status: completed
+- id: pr2-callsite-cleanup
+  content: "PR2: 移除调用方 intent 参数；更新 chapter\_manager/resolver 测试与 README"
+  status: completed
+  isProject: false
+
+***
 
 # pageContent fetch-on-miss + 自动推导 ChapterPaginationIntent
 
 ## 当前状态总览
 
-| 阶段 | 状态 | 证据 |
-|------|------|------|
-| PR1 fetch-on-miss | ✅ 已完成 | `_fetchAndCachePage` + sync `getSessionPageContent`；预取路径统一 |
-| PR2 auto intent | ✅ 已完成 | `resolveIntent()` + 调用方移除 `intent`；`sessionChapterIndex` / `sessionIsPartial` |
-| README | ✅ 已完成 | Intent 决策树 + fetch-on-miss 语义 |
-| 测试 | ⚠️ 部分完成 | resolver 5 条单测 + chapter_manager 回归 + core_pagination 集成；PR1 Dart 层 miss/hit 单测未建 |
+| 阶段                | 状态      | 证据                                                                                  |
+| ----------------- | ------- | ----------------------------------------------------------------------------------- |
+| PR1 fetch-on-miss | ✅ 已完成   | `_fetchAndCachePage` + sync `getSessionPageContent`；预取路径统一                          |
+| PR2 auto intent   | ✅ 已完成   | `resolveIntent()` + 调用方移除 `intent`；`sessionChapterIndex` / `sessionIsPartial`       |
+| README            | ✅ 已完成   | Intent 决策树 + fetch-on-miss 语义                                                       |
+| 测试                | ⚠️ 部分完成 | resolver 5 条单测 + chapter\_manager 回归 + core\_pagination 集成；PR1 Dart 层 miss/hit 单测未建 |
 
 **完成时间**：2026-06-16。
 
@@ -40,7 +43,7 @@ isProject: false
 
 **整体结果**：加载 API 简化为 `loadChapter(index, {initialCharOffset, preserveContent?})`；渲染层对预取窗口依赖降低，翻页体验更稳。
 
----
+***
 
 ## PR1 — pageContent fetch-on-miss ✅
 
@@ -80,7 +83,7 @@ flowchart LR
 - [x] `ensureWindow` 仍负责滑动窗口 trim，行为不退化
 - [x] 无在 `build()` 中新增 async/await
 
----
+***
 
 ## PR2 — 自动推导 ChapterPaginationIntent ✅
 
@@ -88,10 +91,10 @@ flowchart LR
 
 **Session 元数据**（`RustPaginationSession` → `PaginationSession` → `ReaderRepositoryInterface`）：
 
-| 字段 | 来源 | 用途 |
-|------|------|------|
-| `sessionChapterIndex` | `beginPaginate` / `repaginateInPlace` | 换章检测 |
-| `sessionIsPartial` | `PaginateResult.isPartial` | expandOnly 跳过 redundant full expand |
+| 字段                    | 来源                                    | 用途                                  |
+| --------------------- | ------------------------------------- | ----------------------------------- |
+| `sessionChapterIndex` | `beginPaginate` / `repaginateInPlace` | 换章检测                                |
+| `sessionIsPartial`    | `PaginateResult.isPartial`            | expandOnly 跳过 redundant full expand |
 
 `dispose()` 与 `_sessionConfigHash` 同级清空。
 
@@ -120,11 +123,11 @@ flowchart TD
 
 **preserveContent 默认策略**：
 
-| 推导 intent | 默认 preserveContent |
-|-------------|---------------------|
-| `normalLoad` | `false`（`ChapterNavigator` 跨章显式传 `true`） |
-| `configReload` | `true` |
-| `expandOnly` | `true` |
+| 推导 intent      | 默认 preserveContent                       |
+| -------------- | ---------------------------------------- |
+| `normalLoad`   | `false`（`ChapterNavigator` 跨章显式传 `true`） |
+| `configReload` | `true`                                   |
+| `expandOnly`   | `true`                                   |
 
 **调用方简化**（已移除 `intent:`）：
 
@@ -140,49 +143,49 @@ flowchart TD
 - [x] `sessionChapterIndex` + `sessionIsPartial` 跟踪与 dispose 清空
 - [x] `resolveIntent()` + 调用方去掉 `intent` 参数
 - [x] preserveContent 默认策略
-- [x] resolver 单测 + chapter_manager 回归（不传 intent 仍走 beginPaginate）
+- [x] resolver 单测 + chapter\_manager 回归（不传 intent 仍走 beginPaginate）
 - [x] `lib/features/reader/README.md` Lifecycle 段更新
 
----
+***
 
 ## 执行偏差
 
 详见 [`issue/PLAN_EXECUTION_DEVIATIONS.md`](../issue/PLAN_EXECUTION_DEVIATIONS.md)。
 
-| # | 计划描述 | 实际情况 | 处理 |
-|---|----------|----------|------|
-| 1 | `TypesetConfig.config_hash()` 已通过 FRB 暴露，无需新增 Rust FFI | FRB 2.x 对 non_opaque struct 的 impl 方法不生成 Dart 绑定 | 新增 `compute_config_hash(config) -> u64` + `#[frb(sync)]` |
-| 2 | `computeConfigHash()` 可在单测中自由调用 | 需 `RustLib.init()` | resolver 单测 mock `computeConfigHash`；集成路径靠 `core_pagination_test` |
-| 3 | — | `_MockRepo` 缺 staging 相关 stub | 已补全 `clearNextChapterStaging` / `preloadNextChapterStaging` |
+| *#* | 计划描述                                                   | 实际情况                                              | 处理                                                                |
+| --- | ------------------------------------------------------ | ------------------------------------------------- | ----------------------------------------------------------------- |
+| 1   | `TypesetConfig.config_hash()` 已通过 FRB 暴露，无需新增 Rust FFI | FRB 2.x 对 non\_opaque struct 的 impl 方法不生成 Dart 绑定 | 新增 `compute_config_hash(config) -> u64` + `#[frb(sync)]`          |
+| 2   | `computeConfigHash()` 可在单测中自由调用                        | 需 `RustLib.init()`                                | resolver 单测 mock `computeConfigHash`；集成路径靠 `core_pagination_test` |
+| 3   | —                                                      | `_MockRepo` 缺 staging 相关 stub                     | 已补全 `clearNextChapterStaging` / `preloadNextChapterStaging`       |
 
 **无偏差（与计划一致）**：`get_session_page_content` 保留 `Result` 签名，仅加 `#[frb(sync)]`；FFI 错误抛 Dart 异常。
 
----
+***
 
 ## 测试与验证
 
 ### 验证结果（2026-06-16）
 
-| 检查项 | 结果 |
-|--------|------|
-| Rust `cargo test --lib` | 173 passed |
-| Dart `dart analyze lib/` | 0 error |
+| 检查项                             | 结果                         |
+| ------------------------------- | -------------------------- |
+| Rust `cargo test --lib`         | 173 passed                 |
+| Dart `dart analyze lib/`        | 0 error                    |
 | Flutter `test/features/reader/` | **119 passed**, 36 skipped |
 
 ### 测试覆盖
 
-| 计划项 | 状态 |
-|--------|------|
-| `chapter_pagination_intent_resolver_test.dart`（5 条矩阵） | ✅ |
-| `chapter_manager_test.dart` — 不传 intent 仍走 beginPaginate | ✅ |
-| `core_pagination_test.dart` — `getSessionPageContent` 集成 | ✅ |
-| `rust_pagination_session_test.dart` — miss/hit 单测 | ❌ 未建（测试债） |
-| `paginated_renderer_test` — null→有值可选用例 | ❌ 未建 |
-| chapter_manager — mock session 触发 configReload/expandOnly | ❌ 未建 |
+| 计划项                                                        | 状态        |
+| ---------------------------------------------------------- | --------- |
+| `chapter_pagination_intent_resolver_test.dart`（5 条矩阵）      | ✅         |
+| `chapter_manager_test.dart` — 不传 intent 仍走 beginPaginate   | ✅         |
+| `core_pagination_test.dart` — `getSessionPageContent` 集成   | ✅         |
+| `rust_pagination_session_test.dart` — miss/hit 单测          | ❌ 未建（测试债） |
+| `paginated_renderer_test` — null→有值可选用例                    | ❌ 未建      |
+| chapter\_manager — mock session 触发 configReload/expandOnly | ❌ 未建      |
 
 PR1 fetch-on-miss 的 Dart 层行为目前靠代码审查 + Rust 集成测试间接覆盖，非功能阻塞。
 
----
+***
 
 ## 涉及文件
 
@@ -206,29 +209,30 @@ PR1 fetch-on-miss 的 Dart 层行为目前靠代码审查 + Rust 集成测试间
 - `test/features/reader/core/application/chapter_pagination_intent_resolver_test.dart`（新增）
 - `test/features/reader/chapter_manager_test.dart`（更新 mock / 移除 intent）
 
----
+***
 
 ## 风险回顾（均已按设计缓解）
 
-| 风险 | 缓解 |
-|------|------|
-| sync FFI 在 UI 线程阻塞 | `get_session_page_content` 纯内存；profiling 未超阈值 |
-| hash 比较时 calibration 仍为 null | resolver 仅决定路径，calib 等待逻辑不变 |
-| 换章时 pageState.chapterIndex 尚未更新 | 用 `sessionChapterIndex` 而非 pageState |
-| mock 测试需新 stub | `_MockRepo` 已补 session / staging getter |
+| 风险                              | 缓解                                            |
+| ------------------------------- | --------------------------------------------- |
+| sync FFI 在 UI 线程阻塞              | `get_session_page_content` 纯内存；profiling 未超阈值 |
+| hash 比较时 calibration 仍为 null    | resolver 仅决定路径，calib 等待逻辑不变                   |
+| 换章时 pageState.chapterIndex 尚未更新 | 用 `sessionChapterIndex` 而非 pageState          |
+| mock 测试需新 stub                  | `_MockRepo` 已补 session / staging getter       |
 
----
+***
 
 ## 后续可选（非阻塞）
 
 - 补 `rust_pagination_session_test.dart`：mock `getSessionPageContent`，验证 miss→fetch→hit 不重复调用
-- chapter_manager 矩阵测试：mock `sessionConfigHash` + `sessionChapterIndex` 触发 configReload / expandOnly
+- chapter\_manager 矩阵测试：mock `sessionConfigHash` + `sessionChapterIndex` 触发 configReload / expandOnly
 
----
+***
 
 ## 改动历史
 
-| 日期 | 改动 |
-|------|------|
+| 日期         | 改动                                                        |
+| ---------- | --------------------------------------------------------- |
 | 2026-06-16 | PR1 + PR2 全部落地；偏差记录见 `issue/PLAN_EXECUTION_DEVIATIONS.md` |
-| 2026-06-16 | 本文档改为完成归档版 |
+| 2026-06-16 | 本文档改为完成归档版                                                |
+

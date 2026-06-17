@@ -74,20 +74,23 @@ class ChapterLoadOrchestrator {
     Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages,
   }) async {
     final gen = ++_generation;
-    // 新章节加载 → 无效化上一章预加载 staging
-    _contentRepo.clearNextChapterStaging();
+    // stagingPromote 路径保留 staging（promote 完成后自身 clear），normalLoad 清除
+    final isStagingPromote = request.navigationKind == ChapterNavigationKind.adjacentCrossChapter;
+    if (!isStagingPromote) {
+      _contentRepo.clearAdjacentStaging();
+    }
     final sw = Stopwatch()..start();
 
     try {
       // 自动推导分页意图（必须在 _runStarting 之前，以得到正确的 preserveContent 默认值）
       final intent = resolveIntent(
         chapterIndex: request.chapterIndex,
+        navigationKind: request.navigationKind,
         repo: _contentRepo,
         pagination: _pagination,
       );
       final effectivePreserveContent = request.preserveContent ??
           (intent != ChapterPaginationIntent.normalLoad);
-
       Logging.info(
         '[Timing] gen=$gen intent=$intent preserveContent=$effectivePreserveContent',
       );
@@ -149,11 +152,22 @@ class ChapterLoadOrchestrator {
             calibFuture: calibFuture,
             preloadAdjacentFirstPages: preloadAdjacentFirstPages,
           );
-      }
-
-      if (_isStale(gen) || quickResult == null) {
-        _setPhase(gen, ChapterLoadPhase.cancelled);
-        return;
+        case ChapterPaginationIntent.stagingPromoteForward:
+          quickResult = await _runStagingPromote(
+            gen,
+            request,
+            isForward: true,
+            calibFuture: calibFuture,
+            preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+          );
+        case ChapterPaginationIntent.stagingPromoteBackward:
+          quickResult = await _runStagingPromote(
+            gen,
+            request,
+            isForward: false,
+            calibFuture: calibFuture,
+            preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+          );
       }
 
       Logging.info(
@@ -180,7 +194,7 @@ class ChapterLoadOrchestrator {
       );
 
       int total;
-      if (quickResult.isPartial) {
+      if (quickResult!.isPartial) {
         _setPhase(gen, ChapterLoadPhase.fullPaginate);
         final fullPaginateFuture = _pagination.expandToFullChapter(
           request.chapterIndex,
@@ -377,6 +391,57 @@ class ChapterLoadOrchestrator {
     );
   }
 
+  Future<({int totalPages, bool isPartial})?> _runStagingPromote(
+    int gen,
+    ChapterLoadRequest request, {
+    required bool isForward,
+    required Future<CalibrationData?> calibFuture,
+    required Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages,
+  }) async {
+    _setPhase(gen, ChapterLoadPhase.firstSpine);
+
+    // 等待校准完成
+    final calibResult = await calibFuture;
+    if (_isStale(gen)) return null;
+    _pagination.calibration.value ??= calibResult;
+
+    // 释放旧 handle（不清除目标章 streamer cache）
+    _contentRepo.disposePagination();
+    final result = await _pagination.paginateFirstScreenFromCache(
+      request.chapterIndex,
+    );
+    if (_isStale(gen)) return null;
+
+    // 同步写 signals — promote handoff
+    final descriptors = _contentRepo.descriptors;
+    final pageIndex = isForward
+        ? 0
+        : ((descriptors?.length ?? 0) - 1).clamp(0, 0x7FFFFFFF);
+
+    _applyIfCurrent(gen, () {
+      _totalPages.value = result.totalPages;
+      _chapterVM.chapterIndex.value = request.chapterIndex;
+      _pageIndex.value = pageIndex;
+      _chapterVM.currentCharOffset.value = descriptors != null &&
+              pageIndex < descriptors.length
+          ? descriptors[pageIndex].startOffset
+          : 0;
+      _chapterVM.pendingJumpCharOffset.value = null;
+      _error.value = null;
+      _isLoading.value = false;
+    });
+    if (pageIndex >= 0) {
+      _contentRepo.ensurePageWindow(pageIndex);
+    }
+
+    // staging 已消费 → 清除双向旧 staging，预加载新相邻章
+    _contentRepo.clearAdjacentStaging();
+    unawaited(preloadAdjacentFirstPages?.call(request.chapterIndex));
+
+    Logging.info('[Timing] gen=$gen phase=firstSpine stagingPromote done');
+    return result;
+  }
+
   Future<void> _runFinalize(
     int gen,
     ChapterLoadRequest request, {
@@ -487,12 +552,33 @@ class ChapterLoadOrchestrator {
     _loadPhase.value = ChapterLoadPhase.idle;
   }
 
-  /// 根据当前 session 状态与请求参数自动推导分页意图。
+  /// 根据当前 session 状态、导航类型与 staging 自动推导分页意图。
   static ChapterPaginationIntent resolveIntent({
     required int chapterIndex,
+    required ChapterNavigationKind navigationKind,
     required ReaderRepositoryInterface repo,
     required PaginationCoordinator pagination,
   }) {
+    // stagingPromote 路径优先检查
+    if (navigationKind == ChapterNavigationKind.adjacentCrossChapter) {
+      // 先检查 staging 存在且 chapterIndex 匹配，再计算 configHash（避免 FFI 调用）
+      final nextStaging = repo.nextChapterStaging;
+      if (nextStaging != null && nextStaging.chapterIndex == chapterIndex) {
+        final currentHash = pagination.computeConfigHash();
+        if (nextStaging.configHash == currentHash) {
+          return ChapterPaginationIntent.stagingPromoteForward;
+        }
+      }
+      // 后退 staging（prevChapterStaging 末页）
+      final prevStaging = repo.prevChapterStaging;
+      if (prevStaging != null && prevStaging.chapterIndex == chapterIndex) {
+        final currentHash = pagination.computeConfigHash();
+        if (prevStaging.configHash == currentHash) {
+          return ChapterPaginationIntent.stagingPromoteBackward;
+        }
+      }
+    }
+
     final hash = repo.sessionConfigHash;
     final descriptors = repo.descriptors;
     final sessionChapterIndex = repo.sessionChapterIndex;

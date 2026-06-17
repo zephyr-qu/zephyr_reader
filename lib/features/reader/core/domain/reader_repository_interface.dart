@@ -104,6 +104,23 @@ abstract class ReaderRepositoryInterface {
   /// 当前分页会话的下一章预加载 staging。
   NextChapterStaging? get nextChapterStaging;
 
+  /// 当前分页会话的上一章预加载 staging（末页）。
+  NextChapterStaging? get prevChapterStaging;
+
+  /// 预加载上一章 descriptors + 末页 content。
+  Future<void> preloadPreviousChapterStaging(
+    String bookId,
+    int chapterIndex, {
+    double fontSize = 16,
+    double lineHeight = 1.6,
+    double width = 400,
+    double height = 600,
+    double padding = 20,
+    double devicePixelRatio = 1.0,
+    String fontFamily = 'Noto Sans SC',
+  });
+
+
   /// 预加载下一章 descriptors + 首页 content。
   Future<void> preloadNextChapterStaging(
     String bookId,
@@ -120,8 +137,20 @@ abstract class ReaderRepositoryInterface {
   /// 清除预加载 staging。
   void clearNextChapterStaging();
 
+  /// 清除相邻双向 staging。
+  void clearAdjacentStaging();
+
   /// 创建分页会话并分页。maxChars=null 表示全章。
   Future<({int totalPages, bool isPartial})> beginPaginate({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+    BigInt? maxChars,
+  });
+
+  /// 尝试从 Rust STREAMER_CACHE adopt 现有 session（零重 paginate）。
+  /// 未命中时退化到 [beginPaginate]（full createPaginationSession）。
+  Future<({int totalPages, bool isPartial})> beginPaginateFromCache({
     required String bookId,
     required int chapterIndex,
     required PaginationParams params,

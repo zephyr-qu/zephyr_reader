@@ -10,6 +10,7 @@ import 'package:zephyr_reader/features/reader/core/application/pagination_coordi
 import 'package:zephyr_reader/features/reader/core/application/search_index_lifecycle.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 
@@ -27,6 +28,9 @@ class ChapterViewModel {
   final chapterContent = asyncSignal<String>(AsyncState.data(''));
   final pendingJumpCharOffset = signal<int?>(null);
 
+  /// 当前章节切换是否显示 AnimatedSwitcher 过渡动画。
+  /// `manualJump` 时 true（默认），`adjacentCrossChapter` 时 false。
+  final showChapterTransition = signal<bool>(true);
   late final PaginationCoordinator _pagination;
   late final ChapterLoader _loader;
   late final SearchIndexLifecycle _searchIndex;
@@ -103,15 +107,18 @@ class ChapterViewModel {
     ReadingMode readingMode = ReadingMode.pagination,
     Future<void> Function()? onChapterLoaded,
     bool? preserveContent,
-  }) => _loader.loadChapter(
-    chapterIndex,
-    initialCharOffset: initialCharOffset,
-    readingMode: readingMode,
-    onChapterLoaded: onChapterLoaded,
-    preserveContent: preserveContent,
-  );
-  // ==================== 章节导航（委托 ChapterNavigator）====================
-
+    ChapterNavigationKind navigationKind = ChapterNavigationKind.manualJump,
+  }) {
+    showChapterTransition.value = (navigationKind == ChapterNavigationKind.manualJump);
+    return _loader.loadChapter(
+      chapterIndex,
+      initialCharOffset: initialCharOffset,
+      readingMode: readingMode,
+      onChapterLoaded: onChapterLoaded,
+      preserveContent: preserveContent,
+      navigationKind: navigationKind,
+    );
+  }
   Future<void> previousChapter() => _navigator.previousChapter();
   Future<void> nextChapter() => _navigator.nextChapter();
   Future<void> jumpToChapter(int chapterIndex) =>
