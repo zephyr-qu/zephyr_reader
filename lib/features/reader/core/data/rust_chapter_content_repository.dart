@@ -87,7 +87,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
       final isPaginated = readingMode == ReadingMode.pagination;
 
       Future<List<RichParagraph>>? epubRichFuture;
-      if (isEpub && !isPaginated) {
+      if (isEpub) {
         final config = buildTypesetConfig(
           width: 400,
           height: 600,
@@ -118,7 +118,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
         pages: (pages) => pages.map((p) => p.content).join('\n\n'),
       );
 
-      if (!isPaginated && isEpub && content.length > 500 * 1024) {
+      if (isEpub && content.length > 500 * 1024) {
         Logging.warning(
           'loadContent: content too large (${content.length} bytes), '
           'discarding rich text typesetting result',

@@ -167,6 +167,8 @@ mod tests {
                     is_last_page: false,
                     start_offset: 0,
                     end_offset: 8,
+                    first_paragraph_index: 0,
+                    last_paragraph_index: 0,
                 },
                 crate::domain::PageContent {
                     chapter_index: 0,
@@ -175,6 +177,8 @@ mod tests {
                     is_last_page: true,
                     start_offset: 8,
                     end_offset: 16,
+                    first_paragraph_index: 0,
+                    last_paragraph_index: 0,
                 },
             ],
         )

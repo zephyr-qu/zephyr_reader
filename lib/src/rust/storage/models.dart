@@ -97,6 +97,18 @@ sealed class Category with _$Category {
 }
 
 /// 章节信息
+/// 章节在书籍文件中的位置边界。
+///
+/// # `start_index` / `end_index` 语义按格式不同
+///
+/// | 格式 | 含义 |
+/// |---|---|
+/// | TXT / MD | 文件内的**字节偏移**。切片内容时需确保 UTF-8 字符边界对齐。 |
+/// | EPUB | spine item **序号**。用于索引 `Spine` 数组合并多个 HTML 资源。 |
+/// | PDF | **PDF 页码**（0-based）。通过 `PdfContentProvider` 按页访问。 |
+///
+/// 消费方必须根据 `Book.format` 判断如何解释这两个字段。
+/// 直接将其视为「字符索引」是错误的。
 @freezed
 sealed class Chapter with _$Chapter {
   const factory Chapter({

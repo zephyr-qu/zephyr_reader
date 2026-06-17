@@ -163,9 +163,7 @@ impl Hash for TypesetConfig {
         self.auto_space_ratio.to_bits().hash(state);
         self.first_line_indent.hash(state);
         self.punctuation_squeeze.hash(state);
-        self.enable_hyphenation.hash(state);
         self.language.hash(state);
-        self.hyphenation_language.hash(state);
         self.font_family.hash(state);
         if let Some(ref cal) = self.calibration {
             cal.hash(state);
@@ -259,15 +257,7 @@ impl TypesetConfig {
         bytes.extend_from_slice(&self.auto_space_ratio.to_le_bytes());
         bytes.push(self.first_line_indent);
         bytes.push(self.punctuation_squeeze as u8);
-        bytes.push(self.enable_hyphenation as u8);
         bytes.push(self.language as u8);
-        match &self.hyphenation_language {
-            None => bytes.push(0),
-            Some(lang) => {
-                bytes.push(1);
-                bytes.extend_from_slice(lang.as_bytes());
-            }
-        }
         bytes.extend_from_slice(self.font_family.as_bytes());
         if let Some(ref cal) = self.calibration {
             bytes.extend_from_slice(&cal.dpr.to_le_bytes());
@@ -508,20 +498,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_config_hash_zero_value_same_as_not_set() {
-        let with_hyphen = TypesetConfig {
-            enable_hyphenation: true,
-            hyphenation_language: Some("en-us".into()),
-            ..Default::default()
-        };
-        let without_hyphen = TypesetConfig::default();
-        assert_ne!(
-            with_hyphen.config_hash(),
-            without_hyphen.config_hash(),
-            "hyphenation fields change must affect hash",
-        );
-    }
 
     /// 已知确定性值：确保 xxh3 在不同平台给出相同结果
     #[test]

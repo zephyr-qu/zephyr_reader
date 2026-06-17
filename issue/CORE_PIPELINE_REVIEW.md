@@ -353,15 +353,14 @@ Scroll 模式:  HTML → RichParagraph → TextSpan → Flutter 真实排版
 ### P2 — 功能完整性
 
 9. **分页模式 Rich text 路径**（图片 + 样式）—— 参见 `issue/FINE_TYPESETTING_GAP.md`
-10. **PDF Dart 接入**
+10. **PDF Dart 接入**：Rust `get_pdf_page` / `get_pdf_total_pages` 已就绪（Pdfium 逐页提取文本 → `PageData.text`）。Dart 侧无消费方，章节阅读时返回 `InvalidInput`。需新增 PDF 阅读路径，将 PDF 文本直接 `SelectableText` 渲染（跳过 `PageStreamer` 排版管线），按页号导航。
 11. **导入去重**：`parse_book` 调用 `find_by_file_path` 预检，已存在则直接返回 book_id ✅ 已修复（Batch 7, 2026-06-17）
 12. **MD 纳入 scanFolder**：`book_import_service.dart` extensions 集合添加 `.md` ✅ 已修复（Batch 7, 2026-06-17）
 
 ### P3 — 架构清理
-
 13. **合并 EPUB 三套 extract 逻辑** 为单一 Provider 路径
-14. **删除或接入 `line_break.rs`**（hyphenation 要么实现要么从 config hash 移除）
-15. **字节/字符语义统一**：API 改名或内部统一用 char index
+14. **删除或接入 `line_break.rs`**：`enable_hyphenation` + `hyphenation_language` 已从 `Hash` 和 `config_hash()` 移除。✅ 已修复（Batch 8, 2026-06-17）
+15. **字节/字符语义统一**：`paginate_chapter` + `get_chapter_partial` 的 TXT/MD 路径改用字符计数；`Chapter.start_index` 增加格式语义文档 ✅ 已修复（Batch 9, 2026-06-17）
 
 ---
 
@@ -369,11 +368,11 @@ Scroll 模式:  HTML → RichParagraph → TextSpan → Flutter 真实排版
 
 | 链路 | 健康度 | 主要风险 |
 |------|--------|----------|
-| **解析** | 中等 | 多路径不一致、语义混用、重复导入 |
-| **排版** | 中等偏弱 | 近似排版 vs 真实渲染漂移；lazy/fallback 质量断崖 |
-| **渲染** | 偏弱 → 中等 | 图片/样式只在 scroll 可用；高亮/选区已修正 |
+| **解析** | 中等 | 多路径不一致、语义混用；重复导入已修复 ✅ |
+| **排版** | 中等偏弱 → 中等 | lazy 预处理 + padding 修齐 + fallback 隔离 + sync FFI 异步 |
+| **渲染** | 偏弱 → 中等 | 图片/样式只在 scroll 可用；高亮/选区/error UI 已修正 ✅ |
 
-最高 ROI 修复路径：**P0 四项**已全部完成 ✅（高亮 + 选区 + spine 上限 + latinExtWidth）。下一步可进入 P1 排版一致性修复。
+最高 ROI 修复路径：P0 四项 + P1 四项 + P2#11 导入去重 + P2#12 MD 均已修复 ✅（7 个 Batch, 12 项改动）。剩余 P2 Rich text / PDF、P3 架构清理为独立特征，需单独规划。
 ---
 
 ## 相关文档
@@ -402,6 +401,8 @@ Scroll 模式:  HTML → RichParagraph → TextSpan → Flutter 真实排版
 | B6 | 2026-06-17 | P1#8 sync FFI 异步 | `rust_pagination_session.dart`, `rust_reader_repository.dart` | `pageContent` 仅读缓存；miss 时返回 null + async fetch + `preloadGeneration++` |
 | B7 | 2026-06-17 | P2#11 导入去重 | `core.rs` | `parse_book` 先 `find_by_file_path` 预检，已存在则跳过解析 |
 | B7 | 2026-06-17 | P2#12 MD scanFolder | `book_import_service.dart` | extensions 添加 `.md` |
+| B8 | 2026-06-17 | P3#14 hypenation 去 hash | `typeset.rs` | `enable_hyphenation` / `hyphenation_language` 从 `Hash` + `config_hash` 移除 |
+| B9 | 2026-06-17 | P3#15 语义统一 | `core.rs`, `models.rs` | `paginate_chapter` / `get_chapter_partial` TXT/MD 路径改用字符计数；`Chapter.start_index` 加格式语义文档 |
 
 ### 修正项
 
