@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/pagination_session_factory.dart';
@@ -37,7 +38,17 @@ class ReaderRepository
   List<PageDescriptor>? get descriptors => _session.descriptors;
 
   @override
-  String? pageContent(int pageIndex) => _session.pageContent(pageIndex);
+  String? pageContent(int pageIndex) {
+    final cached = _session.pageContent(pageIndex);
+    if (cached != null) return cached;
+    // Cache miss：返回 null（Renderer 展示 placeholder），后台异步取
+    return null;
+  }
+
+  Future<void> _fetchMissedPage(int pageIndex) async {
+    _session.ensureWindow(pageIndex);
+    preloadGeneration.value++;
+  }
 
   @override
   void warmPageCache(int pageIndex, String content) {

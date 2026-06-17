@@ -5,6 +5,7 @@ use crate::domain::{LanguageType, PageContent, PageDescriptor, TypesetConfig};
 use crate::text::char_width::CharWidthTable;
 use crate::text::constants::{is_cjk_char, is_cjk_punctuation, is_start_avoid_punctuation};
 use crate::text::typeset::{optimize_punctuation, optimize_spaces};
+use std::borrow::Cow;
 use flutter_rust_bridge::frb;
 
 
@@ -126,19 +127,29 @@ const LAZY_PAGINATION_CHAR_THRESHOLD: usize = 50_000;
 #[frb]
 impl PageStreamer {
     pub fn new(content: String, config: TypesetConfig) -> Self {
-        // 先判断是否需要惰性分页，大章节直接跳过文本预处理（O(n) 字符串复制）
-        if content.chars().count() > LAZY_PAGINATION_CHAR_THRESHOLD {
-            return Self::new_lazy(content, config);
-        }
-        // 小章节：标点优化 + 空格优化（避头避尾、CJK/Latin 间距等）
+        // 标点/空格优化：避头避尾、CJK/Latin 间距等。
+        // 对任意大小都执行，但超过 OPTIMIZE_CHAR_LIMIT 时跳过以避免大 Vec<char> 分配。
+        const OPTIMIZE_CHAR_LIMIT: usize = 200_000;
         let lang = match config.language {
             LanguageType::Chinese => "zh",
             LanguageType::English => "en",
             LanguageType::Auto | LanguageType::Mixed => "auto",
         };
-        let punct = optimize_punctuation(&content, lang);
-        let optimized = optimize_spaces(&punct, lang);
-        Self::new_eager(optimized.into_owned(), config)
+        let content = if content.chars().count() <= OPTIMIZE_CHAR_LIMIT {
+            let punct = optimize_punctuation(&content, lang);
+            let opt = optimize_spaces(&punct, lang);
+            match opt {
+                Cow::Owned(s) => s,
+                Cow::Borrowed(_) => content, // 未修改则复用原文
+            }
+        } else {
+            content
+        };
+
+        if content.chars().count() > LAZY_PAGINATION_CHAR_THRESHOLD {
+            return Self::new_lazy(content, config);
+        }
+        Self::new_eager(content, config)
     }
 
     /// Create a PageStreamer from pre-computed page content (KV cache hit).

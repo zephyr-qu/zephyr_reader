@@ -299,9 +299,7 @@ class RustPaginationSession implements PaginationSession {
 
   @override
   String? pageContent(int pageIndex) {
-    final cached = _contentCache.get(pageIndex);
-    if (cached != null) return cached;
-    return _fetchAndCachePage(pageIndex);
+    return _contentCache.get(pageIndex);
   }
 
   /// Sync fetch-and-cache for a single page.

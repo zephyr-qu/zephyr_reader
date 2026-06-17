@@ -173,12 +173,12 @@ TypesetConfig buildTypesetConfig({
           digitWidth: calibration.digitWidth,
           punctWidth: calibration.punctWidth,
           otherWidth: calibration.otherWidth,
-          latinExtWidth: 0.0,
+          latinExtWidth: calibration.otherWidth,
         )
       : null;
 
   return TypesetConfig(
-    pageWidth: (width * devicePixelRatio).round(),
+    pageWidth: ((width - 2 * padding) * devicePixelRatio).round(),
     pageHeight: (height * devicePixelRatio).round(),
     fontSize: (fontSize * devicePixelRatio).round(),
     lineSpacing: lineHeight,

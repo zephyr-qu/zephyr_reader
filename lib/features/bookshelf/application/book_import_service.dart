@@ -42,7 +42,7 @@ class BookImportService {
     String folderPath, {
     void Function(int done, int total)? onProgress,
   }) async {
-    final extensions = {'.txt', '.epub', '.pdf'};
+    final extensions = {'.txt', '.epub', '.pdf', '.md'};
     final dir = Directory(folderPath);
     final files = await dir
         .list(recursive: true)
