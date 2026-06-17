@@ -53,3 +53,34 @@ PR1（pageContent fetch-on-miss）+ PR2（auto intent）已全部落地。
 - `chapter_navigator.dart` — staging 预加载路径
 - `reader_content.dart` — 虚拟跨章页 widget
 - `reader_content_test.dart` — 跨章页 widget 测试
+
+# staging-no-blank-plan 执行记录（2026-06-17）
+
+## 最终状态
+
+已落地：`reader_content.dart` 中 `extendedTotal` 从基于 `hasNext` 计算改为基于 `stagingReady` 门控，防止预加载未完成时暴露空白跨章页。
+
+## 偏差记录
+
+| # | plan 描述 | 实际情况 | 处理 |
+|---|-----------|----------|------|
+| 1 | 替换文本直接删除 `// ignore: unused_local_variable`，认为 `preloadGen` 变量已使用 | `preloadGen` 仅用于 `useListenable` 订阅副作用，Dart 静态分析仍报 `unused_local_variable` | **恢复注释**：在替换后的代码中重新加上 `// ignore: unused_local_variable`，保留变量订阅效果 |
+| 2 | Step 2（可选）：pageBuilder 内防御性检查可简化为 `staging!`（`stagingReady` 保证非空） | 选择保留原 `staging != null && staging.chapterIndex == chapterId + 1` 双重检查 | 不处理。防御性检查在 `dataSource.nextChapterStaging` 可能因外部变异返回不同值时仍有价值。成本为零，符合 plan 的 "MAY keep the guard" 选项 |
+
+## 无偏差（与 plan 一致）
+
+- 核心逻辑：`stagingReady = hasNextChapter && staging != null && staging.chapterIndex == chapterId + 1` 作为 `extendedTotal` 门控
+- `preloadGen` 变量保留用于 HookWidget 订阅 `preloadGeneration` notifier
+- PageCurlWidget._canGoForward 被 `extendedTotal` 间接阻隔空白页渲染
+- 防御性检查留在 pageBuilder 内
+
+## 验证结果
+
+| 检查项 | 结果 |
+|--------|------|
+| `dart analyze lib/features/reader/page/widgets/reader_content.dart` | 0 issues |
+| `flutter test test/features/reader/` | 119 passed, 36 skipped |
+
+## 涉及文件
+
+- `lib/features/reader/page/widgets/reader_content.dart` — 仅此一个文件改动（3 行逻辑替换 + 注释恢复）
