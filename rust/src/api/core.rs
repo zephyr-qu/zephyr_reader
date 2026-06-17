@@ -149,6 +149,17 @@ pub async fn parse_book(file_path: String) -> Result<String, AppError> {
         ).into(), path: validated_path.into() });
     }
 
+    // 导入去重：检查 file_path 是否已存在，避免重复导入
+    let pool = storage_pool()?;
+    if let Some(existing) = BookRepository::find_by_file_path(&pool, &validated_path).await? {
+        tracing::info!(
+            "[parse_book] already exists: book_id={}, path={}",
+            existing.book_id,
+            validated_path
+        );
+        return Ok(existing.book_id);
+    }
+
     let extension = std::path::Path::new(&validated_path)
         .extension()
         .and_then(|ext| ext.to_str())
@@ -167,7 +178,6 @@ pub async fn parse_book(file_path: String) -> Result<String, AppError> {
         result.chapters.len(),
         result.book_info.total_characters
     );
-    let pool = storage_pool()?;
     BookRepository::save(&pool, &result.book_info).await?;
     BookRepository::save_metadata(&pool, &result.book_info).await?;
     ChapterRepository::save(&pool, &result.book_info.book_id, &result.chapters).await?;

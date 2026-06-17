@@ -81,86 +81,31 @@ class PaginatedModeRenderer extends StatelessWidget {
     _reportSelectionPosition(context, sel);
   }
 
-  int _estimateCharsPerPage() {
-    final width = 400.0;
-    final height = 600.0;
-    final availableWidth = width - 32;
-    final availableHeight = height - 32;
-    final charsPerLine = (availableWidth / config.fontSize).floor();
-    final linesPerPage =
-        (availableHeight / (config.fontSize * config.lineHeight)).floor();
-    return (charsPerLine * linesPerPage).clamp(100, 5000);
-  }
 
-  List<String> _paginateContent(String text, int charsPerPage) {
-    if (text.isEmpty) return [];
-    final pages = <String>[];
-    final totalChars = text.length;
-    var offset = 0;
-    while (offset < totalChars) {
-      final endOffset = (offset + charsPerPage).clamp(0, totalChars);
-      var actualEndOffset = endOffset;
-      if (endOffset < totalChars) {
-        final searchRange = text.substring(
-          (endOffset - 100).clamp(0, totalChars),
-          endOffset,
-        );
-        final lastNewline = searchRange.lastIndexOf('\n');
-        if (lastNewline != -1) {
-          actualEndOffset = (endOffset - 100) + lastNewline + 1;
-        }
-      }
-      pages.add(text.substring(offset, actualEndOffset));
-      offset = actualEndOffset;
-    }
-    if (pages.isEmpty) pages.add(text);
-    return pages;
-  }
-
-  int _findFallbackPageStart(List<String> pages, int targetIndex) {
-    var offset = 0;
-    for (int i = 0; i < targetIndex && i < pages.length; i++) {
-      offset += pages[i].length;
-    }
-    return offset;
-  }
-
+  /// Fallback: 无分页数据时显示错误提示，而非静默近似分页。
   Widget _buildFallbackPagination(BuildContext context) {
-    final charsPerPage = _estimateCharsPerPage();
-    final pages = _paginateContent(content, charsPerPage);
-    if (pages.isEmpty) return const Center(child: Text('内容为空'));
-
-    var accOffset = 0;
-    return PageView.builder(
-      controller: pageController,
-      physics: adaptiveScrollPhysics(context),
-      itemCount: pages.length,
-      onPageChanged: (index) {
-        onPageChanged?.call(index);
-        onPositionChanged?.call(_findFallbackPageStart(pages, index));
-      },
-      itemBuilder: (context, index) {
-        final pageContent = pages[index];
-        final pageStart = accOffset;
-        accOffset += pageContent.length;
-        final textStyle = config.buildTextStyle();
-        final strutStyle = config.buildStrutStyle();
-        final painted = HighlightPainter.paintPlain(
-          pageContent,
-          textStyle,
-          highlights,
-          onHighlightTap: onHighlightTap,
-          vocabularyWords: config.effectiveVocabWords,
-        );
-        return _renderPageContent(
-          context,
-          pageContent,
-          painted,
-          textStyle,
-          strutStyle,
-          pageStart,
-        );
-      },
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 48,
+              color: Theme.of(context).colorScheme.error),
+            const SizedBox(height: 16),
+            Text(
+              '分页数据加载失败',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '无法为当前章节创建分页，请返回书架重试。',
+              style: Theme.of(context).textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -192,6 +137,7 @@ class PaginatedModeRenderer extends StatelessWidget {
       highlights,
       onHighlightTap: onHighlightTap,
       vocabularyWords: config.effectiveVocabWords,
+      contentStart: startOffset,
     );
     return _renderPageContent(
       context,
@@ -234,6 +180,7 @@ class PaginatedModeRenderer extends StatelessWidget {
               highlights,
               onHighlightTap: onHighlightTap,
               vocabularyWords: config.effectiveVocabWords,
+              contentStart: startOffset,
             );
             return Padding(
               padding: EdgeInsets.only(left: paragraphs.length > 1 ? 8 : 0),
@@ -433,6 +380,7 @@ Widget _buildPageContentVerticalStandalone(
             highlights,
             onHighlightTap: onHighlightTap,
             vocabularyWords: config.effectiveVocabWords,
+            contentStart: startOffset,
           );
           return Padding(
             padding: EdgeInsets.only(left: paragraphs.length > 1 ? 8 : 0),
@@ -487,6 +435,7 @@ Widget buildSinglePageContent({
     highlights,
     onHighlightTap: onHighlightTap,
     vocabularyWords: config.effectiveVocabWords,
+    contentStart: startOffset,
   );
 
   if (writingDirection == WritingDirection.vertical) {

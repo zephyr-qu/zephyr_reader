@@ -21,6 +21,7 @@ class HighlightPainter {
   static String _lastPlainContent = '';
   static List<Note> _lastPlainHighlights = [];
   static Set<String> _lastPlainVocab = const {};
+  static int _lastPlainContentStart = 0;
   static TextSpan? _cachedPlainResult;
 
   static int _lastRichVersion = -1;
@@ -31,42 +32,49 @@ class HighlightPainter {
   static TextSpan? _cachedRichResult;
 
   /// 给纯文本段落应用高亮背景色，可选搜索高亮和生词标记
+  ///
+  /// [contentStart] 是这段文本在章内的全局字符偏移（分页模式各页不同）。
+  /// 未传入时（默认 0），行为与原来一致。
   static TextSpan paintPlain(
     String content,
     TextStyle baseStyle,
     List<Note> highlights, {
     void Function(Note)? onHighlightTap,
     Set<String> vocabularyWords = const {},
+    int contentStart = 0,
   }) {
-    if (highlights.isEmpty || content.isEmpty) {
-      if (vocabularyWords.isNotEmpty) {
-        return _paintVocabulary(
-          content,
-          TextSpan(text: content, style: baseStyle),
-          vocabularyWords,
-        );
-      }
+    if ((highlights.isEmpty && vocabularyWords.isEmpty) || content.isEmpty) {
       return TextSpan(text: content, style: baseStyle);
     }
     if (_paintVersion == _lastPlainVersion &&
         _lastPlainContent == content &&
         _listEquals(_lastPlainHighlights, highlights) &&
-        _setEquals(_lastPlainVocab, vocabularyWords)) {
+        _setEquals(_lastPlainVocab, vocabularyWords) &&
+        _lastPlainContentStart == contentStart) {
       return _cachedPlainResult!;
     }
     final spans = <InlineSpan>[];
-    final offset = 0;
 
     // Build regions: highlight spans
     final regions = <_Region>[];
+    final pageEnd = contentStart + content.length;
+    var offset = 0;
 
     // Highlight regions
     for (final h in highlights) {
       final hStart = h.charOffset.toInt();
       final hEnd = hStart + h.length.toInt();
-      if (hEnd <= offset || hStart >= content.length) continue;
-      final overlapStart = hStart > offset ? hStart : offset;
-      final overlapEnd = hEnd < content.length ? hEnd : content.length;
+
+      // Skip highlights entirely outside this page's range
+      if (hEnd <= contentStart || hStart >= pageEnd) continue;
+
+      // Translate to page-local offsets
+      final localHStart = hStart > contentStart ? hStart - contentStart : 0;
+      final localHEnd = hEnd - contentStart;
+
+      if (localHEnd <= offset || localHStart >= content.length) continue;
+      final overlapStart = localHStart > offset ? localHStart : offset;
+      final overlapEnd = localHEnd < content.length ? localHEnd : content.length;
       if (overlapStart > offset) {
         regions.add(
           _Region.text(content.substring(offset, overlapStart), baseStyle),
@@ -85,6 +93,7 @@ class HighlightPainter {
           highlightColor,
         ),
       );
+      offset = overlapEnd;
     }
     if (offset < content.length) {
       regions.add(_Region.text(content.substring(offset), baseStyle));
@@ -123,6 +132,7 @@ class HighlightPainter {
     _lastPlainContent = content;
     _lastPlainHighlights = List.from(highlights);
     _lastPlainVocab = Set.from(vocabularyWords);
+    _lastPlainContentStart = contentStart;
     _cachedPlainResult = result;
     return result;
   }

@@ -224,6 +224,9 @@ class ReaderContentArea extends HookWidget {
                   onReachEnd: () => unawaited(vm.chapterManager.nextChapter()),
                   onReachStart: () => unawaited(vm.chapterManager.previousChapter()),
                   onHighlightTap: onHighlightTap,
+                  onSelectionChanged: vm.annotations.updateSelection,
+                  onSelectionGlobalPosition: (pos) =>
+                      selectionGlobalPos.value = pos,
                 ),
                 onPageChanged: vm.loadPage,
                 onRetry: () => vm.loadChapter(

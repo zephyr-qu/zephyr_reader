@@ -57,7 +57,7 @@ pub fn extract_chapters_from_epub(epub_file: &mut EpubFile, book_id: &str) -> Ve
 /// Without splitting, the chapter loads all spine items at once,
 /// causing 30+ second freezes. This constant limits each chapter's
 /// spine range so no single chapter has too many items.
-const MAX_SPINE_ITEMS_PER_CHAPTER: i64 = 30;
+const MAX_SPINE_ITEMS_PER_CHAPTER: i64 = 20;
 
 fn extract_toc_items(
     epub_file: &EpubFile,
