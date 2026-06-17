@@ -10,6 +10,8 @@ class TapZone extends StatelessWidget {
   final TapLayout tapLayout;
   final int pageIndex;
   final int totalPages;
+  final bool hasNextChapter;
+  final bool hasPreviousChapter;
   final VoidCallback onPreviousPage;
   final VoidCallback onNextPage;
   final VoidCallback onCenterTap;
@@ -19,6 +21,8 @@ class TapZone extends StatelessWidget {
     required this.tapLayout,
     required this.pageIndex,
     required this.totalPages,
+    this.hasNextChapter = false,
+    this.hasPreviousChapter = false,
     required this.onPreviousPage,
     required this.onNextPage,
     required this.onCenterTap,
@@ -42,10 +46,12 @@ class TapZone extends StatelessWidget {
               goBack = isRightZone;
               goForward = isLeftZone;
           }
-          if (goBack && pageIndex > 0) {
+          final canGoBack = pageIndex > 0 || hasPreviousChapter;
+          final canGoForward = pageIndex < totalPages - 1 || hasNextChapter;
+          if (goBack && canGoBack) {
             onPreviousPage();
             HapticFeedback.lightImpact();
-          } else if (goForward && pageIndex < totalPages - 1) {
+          } else if (goForward && canGoForward) {
             onNextPage();
             HapticFeedback.lightImpact();
           } else if (!goBack && !goForward) {

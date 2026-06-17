@@ -13,6 +13,7 @@ import 'package:zephyr_reader/features/reader/annotations/presentation/reader_an
 import 'package:zephyr_reader/features/reader/page/touch/selection_toolbar.dart';
 import 'package:zephyr_reader/features/reader/page/touch/tap_zone.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 double readerSelectionToolbarTop(double screenHeight, Offset? pos) {
   if (pos == null) return 80;
@@ -103,6 +104,11 @@ class ReaderTapZoneLayer extends HookWidget {
     final String bSelectedtext = useSignalValue(vm.annotations.selectedText);
     final int bPageindex = useSignalValue(vm.chapterManager.pageIndex);
     final int bTotalpages = useSignalValue(vm.chapterManager.totalPages);
+    final int bChapterindex = useSignalValue(vm.chapterManager.chapterIndex);
+    final AsyncState<List<Chapter>> chaptersState = useSignalValue(
+      vm.chapterManager.chapters,
+    );
+    final int bNumchapters = (chaptersState.value as List?)?.length ?? 0;
     final ReadingMode bCurrentreadingmode = useSignalValue(vm.readingMode);
 
     final showSelection = bSelectedtext.isNotEmpty;
@@ -117,6 +123,8 @@ class ReaderTapZoneLayer extends HookWidget {
       tapLayout: tapLayout,
       pageIndex: bPageindex,
       totalPages: bTotalpages,
+      hasNextChapter: bChapterindex < bNumchapters - 1,
+      hasPreviousChapter: bChapterindex > 0,
       onPreviousPage: () {
         unawaited(vm.chapterManager.previousPage());
         HapticFeedback.lightImpact();

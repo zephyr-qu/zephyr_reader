@@ -13,6 +13,8 @@ class PageCurlWidget extends StatefulWidget {
   final Widget Function(int pageIndex) pageBuilder;
   final ValueChanged<int> onPageChanged;
   final bool isForward;
+  final bool hasPreviousChapter;
+  final VoidCallback? onReachStart;
 
   const PageCurlWidget({
     super.key,
@@ -21,6 +23,8 @@ class PageCurlWidget extends StatefulWidget {
     required this.pageBuilder,
     required this.onPageChanged,
     this.isForward = true,
+    this.hasPreviousChapter = false,
+    this.onReachStart,
   });
 
   @override
@@ -66,7 +70,9 @@ class _PageCurlWidgetState extends State<PageCurlWidget>
   bool get _isForward => _direction == 1;
 
   bool get _canGoForward => widget.pageIndex < widget.totalPages - 1;
-  bool get _canGoBackward => widget.pageIndex > 0;
+  bool get _canGoBackward =>
+      widget.pageIndex > 0 ||
+      (widget.pageIndex == 0 && widget.hasPreviousChapter);
 
   void _onHorizontalDragUpdate(DragUpdateDetails d) {
     if (_ctrl.isAnimating) return;
@@ -130,6 +136,17 @@ class _PageCurlWidgetState extends State<PageCurlWidget>
   void _onTurnCompleted() {
     if (!_committed) return;
     _committed = false;
+    if (!_isForward && widget.pageIndex == 0 && widget.hasPreviousChapter) {
+      widget.onReachStart?.call();
+      if (mounted) {
+        setState(() {
+          _dragProgress = 0.0;
+          _totalDx = 0.0;
+        });
+      }
+      _ctrl.reset();
+      return;
+    }
     final newPage = _isForward ? widget.pageIndex + 1 : widget.pageIndex - 1;
     widget.onPageChanged(newPage);
     if (mounted) {

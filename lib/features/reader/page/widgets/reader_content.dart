@@ -37,7 +37,9 @@ class ReaderContent extends HookWidget {
   final int? jumpToCharOffset;
   final ValueChanged<int>? onPositionChanged;
   final VoidCallback? onReachEnd;
+  final VoidCallback? onReachStart;
   final bool hasNextChapter;
+  final bool hasPreviousChapter;
   final VoidCallback? onJumpHandled;
 
   final Widget Function(BuildContext context, ScrollController scrollController)
@@ -78,7 +80,9 @@ class ReaderContent extends HookWidget {
     this.onPositionChanged,
     this.onJumpHandled,
     this.onReachEnd,
+    this.onReachStart,
     this.hasNextChapter = false,
+    this.hasPreviousChapter = false,
   });
 
   @override
@@ -137,10 +141,14 @@ class ReaderContent extends HookWidget {
       return null;
     }, [bookId, chapterId, readingMode]);
 
-    // Guard against repeated reach-end triggers (auto-next-chapter)
+    // Guard against repeated reach-end/start triggers (auto chapter change)
     final reachEndTriggered = useRef(false);
+    final reachStartTriggered = useRef(false);
+    final hasScrolledBelowTop = useRef(false);
     useEffect(() {
       reachEndTriggered.value = false;
+      reachStartTriggered.value = false;
+      hasScrolledBelowTop.value = false;
       return null;
     }, [chapterId]);
 
@@ -195,9 +203,13 @@ class ReaderContent extends HookWidget {
         );
         onPositionChanged?.call(offset);
 
+        final threshold = renderConfig.textRowHeight * 1.5;
+        if (scrollController.offset > threshold) {
+          hasScrolledBelowTop.value = true;
+        }
+
         // Auto-next-chapter: detect near bottom of scroll
         if (onReachEnd != null && !isLoading) {
-          final threshold = renderConfig.textRowHeight * 1.5;
           if (scrollController.offset >= maxExtent - threshold) {
             if (!reachEndTriggered.value) {
               reachEndTriggered.value = true;
@@ -205,11 +217,21 @@ class ReaderContent extends HookWidget {
             }
           }
         }
+
+        // Auto-previous-chapter: detect near top after user scrolled down first
+        if (onReachStart != null &&
+            !isLoading &&
+            hasScrolledBelowTop.value &&
+            scrollController.offset <= threshold) {
+          if (!reachStartTriggered.value) {
+            reachStartTriggered.value = true;
+            onReachStart?.call();
+          }
+        }
       }
 
-      scrollController.addListener(handleScroll);
       return () => scrollController.removeListener(handleScroll);
-    }, [scrollController, readingMode, content, isLoading, onReachEnd]);
+    }, [scrollController, readingMode, content, isLoading, onReachEnd, onReachStart]);
 
     useEffect(() {
       if (jumpToCharOffset == null) {
@@ -312,14 +334,14 @@ class ReaderContent extends HookWidget {
       return PageCurlWidget(
         pageIndex: pageIndex,
         totalPages: extendedTotal,
+        hasPreviousChapter: hasPreviousChapter,
+        onReachStart: onReachStart,
         pageBuilder: pageBuilder,
         onPageChanged: (index) {
-          // 跨章节翻页 → 异步加载下一章
-          if (index >= totalPages && onReachEnd != null) {
-            onReachEnd!();
+          // 跨章节翻页 → 异步加载下一章（仍更新 pageIndex 防止 PageCurl 回弹）
+          if (index >= totalPages) {
+            onReachEnd?.call();
           }
-          // 必须更新 pageIndex signal，否则 PageCurlWidget 在动画完成后
-          // 会回退到旧页内容（widget.pageIndex 未改变）
           onPageChanged?.call(index);
           if (descriptors != null && index < descriptors.length) {
             onPositionChanged?.call(descriptors[index].startOffset);
