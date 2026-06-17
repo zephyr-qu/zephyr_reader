@@ -593,7 +593,8 @@ pub async fn paginate_chapter(
         }
     }
 
-    let streamer = PageStreamer::new(content, config);
+    let mut streamer = PageStreamer::new(content, config);
+    streamer.is_partial = is_partial;
     let descriptors = streamer.get_descriptors();
 
     // 提取全页内容用于 KV 缓存保存（在 streamer 移入 STREAMER_CACHE 之前完成）
@@ -695,6 +696,56 @@ pub async fn create_pagination_session(
     Ok((PaginationSessionHandle { session_id }, result))
 }
 
+
+/// Create a pagination session by adopting an existing streamer from cache.
+///
+/// 1. Look up `STREAMER_CACHE[(path, chapter_index, config_hash)]`
+/// 2. **Hit**: allocate a new session id + bind the cached `PageStreamer`,
+///    return its descriptors (**no** `paginate_chapter` call).
+/// 3. **Miss**: return `AppError::NotFound` — the caller should fall back to
+///    `create_pagination_session` + normal load.
+#[frb]
+pub async fn create_pagination_session_adopt(
+    file_path: String,
+    chapter_index: i32,
+    config: TypesetConfig,
+) -> Result<(PaginationSessionHandle, PaginateResult), AppError> {
+    let validated_path = validate_file_path(&file_path)?;
+    let config = config.validate_and_fix();
+    let config_hash = config.config_hash();
+    let key = (validated_path.clone(), chapter_index, config_hash);
+
+    let streamer = STREAMER_CACHE
+        .lock()
+        .get(&key)
+        .cloned()
+        .ok_or_else(|| AppError::NotFound {
+            entity: format!("page streamer for chapter {chapter_index} (config_hash={config_hash:016x})"),
+        })?;
+
+    let descriptors = streamer.get_descriptors();
+    let is_partial = streamer.is_partial;
+
+    let session_id = allocate_session_id();
+    SESSION_MAP.lock().insert(
+        session_id,
+        PaginationSessionEntry {
+            file_path: validated_path,
+            chapter_index,
+            config,
+            streamer,
+        },
+    );
+
+    Ok((
+        PaginationSessionHandle { session_id },
+        PaginateResult {
+            descriptors,
+            config_hash,
+            is_partial,
+        },
+    ))
+}
 /// Internal helper: re-paginate a session and atomically update config + streamer.
 ///
 /// `config` should already be validated. The old streamer cache entry is

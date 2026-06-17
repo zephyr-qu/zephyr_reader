@@ -111,6 +111,8 @@ pub struct PageStreamer {
     first_of_paragraph: Vec<bool>,
     /// Indentation string (e.g., "  ") (eager mode)
     indent_str: String,
+    /// Whether the streamer was created from partial content
+    pub(crate) is_partial: bool,
     /// Pre-computed pages from KV cache (populated by from_pages)
     cached_pages: Option<Vec<PageContent>>,
 }
@@ -154,6 +156,7 @@ impl PageStreamer {
             char_boundaries: Vec::new(),
             first_of_paragraph: Vec::new(),
             indent_str: String::new(),
+            is_partial: false,
         }
     }
 
@@ -251,7 +254,6 @@ impl PageStreamer {
             total_lines.div_ceil(lines_per_page),
             elapsed
         );
-
         Self {
             content,
             current_page: 0,
@@ -263,6 +265,7 @@ impl PageStreamer {
             first_of_paragraph,
             indent_str,
             cached_pages: None,
+            is_partial: false,
         }
     }
 
@@ -288,7 +291,6 @@ impl PageStreamer {
 
         // 预计算 char_indices 供 get_page_lazy 安全索引
         let char_boundaries: Vec<usize> = content.char_indices().map(|(i, _)| i).collect();
-
         Self {
             content,
             current_page: 0,
@@ -300,6 +302,7 @@ impl PageStreamer {
             first_of_paragraph: Vec::new(),
             indent_str: String::new(),
             cached_pages: None,
+            is_partial: false,
         }
     }
 

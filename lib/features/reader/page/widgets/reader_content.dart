@@ -285,11 +285,13 @@ class ReaderContent extends HookWidget {
         error == null &&
         content.isNotEmpty) {
       final descriptors = dataSource.descriptors;
-      // 始终允许跨章节翻页（preload 异步完成后通过 notifier 触发重建更新内容）
       // ignore: unused_local_variable
       final preloadGen = useListenable(dataSource.preloadGeneration);
-      final hasNext = hasNextChapter;
-      final extendedTotal = totalPages + (hasNext ? 1 : 0);
+      final staging = dataSource.nextChapterStaging;
+      final stagingReady = hasNextChapter &&
+          staging != null &&
+          staging.chapterIndex == chapterId + 1;
+      final extendedTotal = totalPages + (stagingReady ? 1 : 0);
       Widget pageBuilder(int idx) {
         // 虚拟跨章页：使用预加载 staging 内容
         if (idx >= totalPages) {

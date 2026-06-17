@@ -3,8 +3,8 @@
 mod common;
 
 use rust_lib_zephyr_reader::api::core::{
-    create_pagination_session, dispose_pagination_session, get_session_page_content,
-    paginate_session_full, repaginate_session,
+    create_pagination_session, create_pagination_session_adopt, dispose_pagination_session,
+    get_session_page_content, paginate_session_full, repaginate_session,
 };
 use rust_lib_zephyr_reader::domain::TypesetConfig;
 
@@ -322,4 +322,149 @@ async fn test_repaginate_font_size_change_preserves_handle() {
     let _ = get_session_page_content(handle.clone(), 1);
     // Step 5: dispose works normally
     dispose_pagination_session(handle).expect("dispose should succeed");
+}
+
+#[tokio::test]
+async fn test_adopt_from_cache_hit() {
+    // Step 1: create_session populates both SESSION_MAP and STREAMER_CACHE
+    let content = "Adopt test content.\nPage two content.\nPage three content.\n";
+    let (_dir, file_path) = setup_parsed_txt_book(content).await;
+    let config = TypesetConfig::default();
+
+    let (handle, original) = create_pagination_session(
+        file_path.clone(),
+        0,
+        config.clone(),
+        None,
+    )
+    .await
+    .expect("create should succeed");
+
+    // Step 2: adopt from cache — same params → hit (streamer still in STREAMER_CACHE)
+    let (adopted_handle, adopted) = create_pagination_session_adopt(
+        file_path.clone(),
+        0,
+        config.clone(),
+    )
+    .await
+    .expect("adopt should succeed (hit in STREAMER_CACHE)");
+
+    assert_eq!(
+        original.descriptors.len(),
+        adopted.descriptors.len(),
+        "adopted chapter should have same descriptor count"
+    );
+    assert!(
+        !adopted.descriptors.is_empty(),
+        "adopted chapter should have descriptors"
+    );
+    assert!(!adopted.is_partial, "full paginate should not be partial");
+
+    // Step 3: page content accessible via adopted handle
+    let page0 = get_session_page_content(adopted_handle.clone(), 0)
+        .expect("adopted session page 0 should be readable");
+    assert!(!page0.is_empty(), "page 0 content should not be empty");
+
+    // Cleanup
+    dispose_pagination_session(handle).expect("dispose should succeed");
+    dispose_pagination_session(adopted_handle).expect("dispose should succeed");
+}
+
+#[tokio::test]
+async fn test_adopt_miss_after_dispose() {
+    // Dispose evicts the streamer from STREAMER_CACHE → subsequent adopt misses
+    let content = "Miss after dispose.\n";
+    let (_dir, file_path) = setup_parsed_txt_book(content).await;
+    let config = TypesetConfig::default();
+
+    let (handle, _) = create_pagination_session(
+        file_path.clone(),
+        0,
+        config.clone(),
+        None,
+    )
+    .await
+    .expect("create should succeed");
+
+    // Dispose → evicts streamer from STREAMER_CACHE
+    dispose_pagination_session(handle).expect("dispose should succeed");
+
+    // Adopt → miss (streamer evicted)
+    let err = create_pagination_session_adopt(file_path.clone(), 0, config)
+        .await
+        .expect_err("adopt after dispose should fail");
+    assert!(
+        err.to_string().contains("page streamer"),
+        "expected NotFound for evicted streamer, got: {err}"
+    );
+}
+
+#[tokio::test]
+async fn test_adopt_miss_wrong_config_hash() {
+    // Different config hash → miss (no streamer for that key)
+    let content = "Wrong config hash.\n";
+    let (_dir, file_path) = setup_parsed_txt_book(content).await;
+    let mut config = TypesetConfig::default();
+    config.font_size = 16;
+
+    create_pagination_session(file_path.clone(), 0, config.clone(), None)
+        .await
+        .expect("create should succeed"); // only this one call — handle unused
+
+    // Try adopt with a different config → config_hash differs → miss
+    let mut wrong_config = TypesetConfig::default();
+    wrong_config.font_size = 22;
+    let err = create_pagination_session_adopt(file_path.clone(), 0, wrong_config)
+        .await
+        .expect_err("adopt with different config should fail");
+    assert!(
+        err.to_string().contains("page streamer"),
+        "expected NotFound for hash mismatch, got: {err}"
+    );
+}
+
+#[tokio::test]
+async fn test_adopt_partial_staging_streamer() {
+    // Simulate staging: paginate with max_chars → partial streamer in cache
+    let content: String = (0..50)
+        .map(|i| format!("Paragraph {i}. Some filler text for pagination.\n\n"))
+        .collect();
+    let (_dir, file_path) = setup_parsed_txt_book(content).await;
+    let config = TypesetConfig::default();
+
+    // create_session with max_chars → partial streamer in cache
+    let (handle, result) = create_pagination_session(
+        file_path.clone(),
+        0,
+        config.clone(),
+        Some(500),
+    )
+    .await
+    .expect("create partial session should succeed");
+    assert!(result.is_partial, "should be partial with max_chars");
+    let partial_count = result.descriptors.len();
+
+    // Adopt → should get the partial streamer with is_partial=true
+    let (adopted_handle, adopted) = create_pagination_session_adopt(
+        file_path.clone(),
+        0,
+        config.clone(),
+    )
+    .await
+    .expect("adopt partial should succeed");
+
+    assert_eq!(
+        adopted.descriptors.len(),
+        partial_count,
+        "partial adopt should have same count"
+    );
+    assert!(adopted.is_partial, "adopted partial should report is_partial");
+
+    // After adopt we can still access pages
+    let page0 = get_session_page_content(adopted_handle.clone(), 0)
+        .expect("adopted partial session page 0 should be readable");
+    assert!(!page0.is_empty(), "page 0 content should not be empty");
+
+    dispose_pagination_session(handle).expect("dispose should succeed");
+    dispose_pagination_session(adopted_handle).expect("dispose should succeed");
 }
