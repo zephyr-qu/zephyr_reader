@@ -1,13 +1,16 @@
+import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_segment_factory.dart';
 import 'package:zephyr_reader/features/reader/core/application/scroll_document_composer.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
+import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
 /// 滚动模式章界协调器。
 ///
 /// 管理 [ScrollDocumentComposer] 的生命周期、内容加载与信号更新。
-/// 绕过 [ChapterLoadOrchestrator] 全量分页 pipeline，仅负责纯文本拼接。
+/// 绕过 [ChapterLoadOrchestrator] 全量分页 pipeline，支持 plain + EPUB 富文本拼接。
 class ScrollBoundaryCoordinator {
   final ReaderRepositoryInterface _repo;
   final void Function(int chapterIndex, int charOffset) _onPositionChanged;
@@ -36,9 +39,23 @@ class ScrollBoundaryCoordinator {
       _composer?.segments ?? [];
 
   /// 初始化中心章节。
-  void init(int chapterIndex, String content) {
+  void init(
+    int chapterIndex,
+    String content, {
+    List<RichParagraph>? richParagraphs,
+    TextSpan? richRootSpan,
+  }) {
     _composer = ScrollDocumentComposer(centerChapterIndex: chapterIndex);
-    _composer!.reset(_contentToSegment(chapterIndex, content));
+    _composer!.reset(
+      ScrollSegmentFactory.fromPayload(
+        chapterIndex,
+        (
+          content: content,
+          richParagraphs: richParagraphs,
+          richRootSpan: richRootSpan,
+        ),
+      ),
+    );
     _emitSegments();
   }
 
@@ -54,13 +71,13 @@ class ScrollBoundaryCoordinator {
     _isLoadingNext = true;
     final gen = ++_loadingGen;
     try {
-      final content = await _repo.loadChapterContent(
+      final payload = await _repo.loadScrollSegment(
         bookId,
         nextIdx,
         readingMode: readingMode,
       );
       if (gen != _loadingGen || _composer == null) return;
-      _composer!.appendNext(_contentToSegment(nextIdx, content));
+      _composer!.appendNext(ScrollSegmentFactory.fromPayload(nextIdx, payload));
       _emitSegments();
     } catch (e) {
       Logging.debug('[ScrollCoord] appendNext failed: $e');
@@ -82,13 +99,15 @@ class ScrollBoundaryCoordinator {
     _isLoadingPrev = true;
     final gen = ++_loadingGen;
     try {
-      final content = await _repo.loadChapterContent(
+      final payload = await _repo.loadScrollSegment(
         bookId,
         prevIdx,
         readingMode: readingMode,
       );
       if (gen != _loadingGen || _composer == null) return;
-      _composer!.prependPrev(_contentToSegment(prevIdx, content));
+      _composer!.prependPrev(
+        ScrollSegmentFactory.fromPayload(prevIdx, payload),
+      );
       _emitSegments();
     } catch (e) {
       Logging.debug('[ScrollCoord] prependPrev failed: $e');
@@ -106,35 +125,31 @@ class ScrollBoundaryCoordinator {
   }
 
   /// 重置到指定章节。
-  void reset(String bookId, int chapterIndex, String content) {
+  void reset(
+    String bookId,
+    int chapterIndex,
+    String content, {
+    List<RichParagraph>? richParagraphs,
+    TextSpan? richRootSpan,
+  }) {
     _loadingGen++;
     _isLoadingNext = false;
     _isLoadingPrev = false;
     _composer = ScrollDocumentComposer(centerChapterIndex: chapterIndex);
-    _composer!.reset(_contentToSegment(chapterIndex, content));
+    _composer!.reset(
+      ScrollSegmentFactory.fromPayload(
+        chapterIndex,
+        (
+          content: content,
+          richParagraphs: richParagraphs,
+          richRootSpan: richRootSpan,
+        ),
+      ),
+    );
     _emitSegments();
   }
 
   void _emitSegments() {
     _onSegmentsChanged(_composer?.segments ?? []);
-  }
-
-  static ScrollChapterSegment _contentToSegment(
-      int chapterIndex, String content) {
-    final paragraphs = content
-        .split('\n\n')
-        .where((p) => p.trim().isNotEmpty)
-        .toList();
-    var acc = 0;
-    final offsets = paragraphs.map((p) {
-      final o = acc;
-      acc += p.length + 2;
-      return o;
-    }).toList();
-    return ScrollChapterSegment(
-      chapterIndex: chapterIndex,
-      paragraphs: paragraphs,
-      paragraphCharOffsets: offsets,
-    );
   }
 }

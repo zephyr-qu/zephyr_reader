@@ -38,14 +38,14 @@
 | 富文本（粗/斜/下划/删除/代码/链接） | ✅                                                                              | ✅                     | 无差距             |
 | 图片内嵌渲染               | ⚠️ scroll 模式支持（`scroll_mode_renderer.dart:87,340`），pagination/pageTurn **未接入** | ✅ 必备                  | **中** — 分页模式无图片 |
 | 两端对齐 / 左对齐切换         | ✅ `reader_config.dart` `textAlign` 信号                                          | ✅ 必备                  | **无差距**（已实现）    |
-| 连字符（hyphenation）     | ✅ `typeset_calibrator.dart` 传 `enableHyphenation` 到 Rust `line_break.rs`       | ✅                     | **无差距**（已实现）    |
+| 连字符（hyphenation）   | ❌ **已删除** — `enableHyphenation` 字段 + `line_break.rs` 模块已移除（2026-06-17 P2 cleanup） | ✅ | **小** — 英文连字符为锦上添花，非核心阅读功能 |
 | 首行缩进                 | ✅ TypesetConfig 支持 `first_line_indent`                                         | ✅                     | 无差距             |
 | 自定义 CSS              | ❌                                                                              | ⚠️（FBReader/KOReader） | **小** — 高级用户需求  |
 | 横屏双栏                 | ❌                                                                              | ⚠️（部分阅读器）             | **小**           |
 | 背景图片/纹理              | ❌                                                                              | ⚠️（部分阅读器）             | **小**           |
 | 大字模式                 | ⚠️ 字号 24-72 可调，无独立"大字模式"开关                                                     | ✅ 部分阅读器               | **小**           |
 
-**差距评估**: 排版渲染是项目优势区域（已补齐两端对齐、连字符），剩余差距在 EPUB 图片显示（分页模式）、自定义 CSS、横屏双栏、背景图、大字模式。
+**差距评估**: 排版渲染是项目优势区域（已补齐两端对齐）；剩余差距在 EPUB 图片显示（分页模式）、自定义 CSS、横屏双栏、背景图、大字模式。
 
 ***
 

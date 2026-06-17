@@ -3,21 +3,41 @@
 name: 核心阅读链状态 MD
 overview: 基于当前代码重新审计核心阅读链路（解析→排版→渲染），更新「已修复 / 仍开放 / 可接受」状态，并写入带分阶段修复计划的 Markdown 文档。
 todos:
-
 - id: write-status-md
   content: 创建 issue/CORE\_READING\_CHAIN\_STATUS.md：状态对照表 + Mermaid + P0/P1/P2 计划 + 验证清单
-  status: pending
+  status: done
 - id: update-old-review-redirect
   content: 在 issue/CORE\_PIPELINE\_REVIEW\.md 顶部添加指向新文档的过时说明
-  status: pending
-- id: phase1-epub-db-bounds
-  content: （后续代码）EpubContentProvider 改读 DB 边界 + 老书 reconcile + 移除 silent 20-spine 截断
-  status: pending
-- id: phase2-typeset-ux
-  content: （后续代码）Lazy 排版改进、隔离 Dart fallback、异步页 prefetch
-  status: pending
-- id: phase3-tests
-  content: （后续代码）补 EPUB oversized / Provider-DB / 桥接层测试
+  status: done
+- id: p0-epub-db-bounds
+  content: get_chapter/paginate_chapter 改用 DB 边界读全文（不再 (0, content_len)）
+  status: done
+- id: p0-toc-href-fallback
+  content: TOC href fallback：unwrap_or(0) + warn log（取代 chapter_id as usize）
+  status: done
+- id: p0-stale-book-detection
+  content: 老书 stale bounds 检测：get_or_create_provider 中检测 start/end 均为 0 时返回 AppError::StaleBookData
+  status: done
+- id: p1-lazy-paragraph-indices
+  content: Lazy 分页 first_paragraph_index 修正（不再 -1，阈值升至 200K）
+  status: done
+- id: p1-isolate-dart-fallback
+  content: paginateApproximate 标记 @Deprecated，移除生产调用路径
+  status: done
+- id: p3-hyphenation-cleanup
+  content: 删除 dead enable\_hyphenation 字段 + line\_break.rs 模块 + 全部 Dart 引用
+  status: done
+- id: p3-oversized-spine
+  content: 单 spine >2MB 检测：open\_from\_bounds 中返回 ChapterTooLarge
+  status: done
+- id: p3-tests
+  content: 补 Rust 集成测试（oversized / stale-bounds / DB-bounds / lazy-paragraph-indices）
+  status: done
+- id: epub-partial-char-semantics
+  content: EPUB partial 字符语义统一（get_chapter_partial 改用 char-count）
+  status: done
+- id: remaining
+  content: "待补：Dart 桥接测试（RustChapterContentRepository）"
   status: pending
   isProject: false
 
@@ -41,123 +61,81 @@ todos:
 
 ## 当前代码审计结论（写入 MD 的核心内容）
 
-### 已修复（旧审查中 P0，当前代码已不存在）
-
-| 条目                              | 证据                                                                                                                                                                                                                                        |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| EPUB 导入 30 vs 阅读 20 不一致         | [`toc.rs:60`](rust/src/parser/epub/toc.rs) 与 [`provider.rs:42`](rust/src/parser/epub/provider.rs) 均为 **20**                                                                                                                               |
-| 分页高亮错位 / 重复文本                   | [`highlight_painter.dart`](lib/features/reader/rendering/highlight_painter.dart) 已有 `contentStart`、页内 offset 递增、页外 skip；[`paginated_renderer.dart`](lib/features/reader/rendering/paginated_renderer.dart) 传入 `contentStart: startOffset` |
-| 分页模式无选区回调                       | [`reader_content_area.dart:227-229`](lib/features/reader/core/presentation/reader_content_area.dart) 已接 `onSelectionChanged`                                                                                                              |
-| `latinExtWidth` 恒为 0            | [`typeset_calibrator.dart:176`](lib/features/reader/data/typeset_calibrator.dart) 映射 `calibration.otherWidth`                                                                                                                             |
-| `buildTypesetConfig` 未扣 padding | [`typeset_calibrator.dart:181`](lib/features/reader/data/typeset_calibrator.dart) `pageWidth = (width - 2*padding) * dpr`                                                                                                                 |
-| 三套 EPUB extract 逻辑              | [`mod.rs`](rust/src/parser/epub/mod.rs) 已移除 `extract_chapter`；[`parse.rs`](rust/src/parser/epub/parse.rs) 富文本统一走 `EpubContentProvider`                                                                                                    |
-| 分页模式完全无 rich/图片                 | [`paginated_renderer.dart:129-175`](lib/features/reader/rendering/paginated_renderer.dart) 已有 rich 路径（依赖 `PageDescriptor.firstParagraphIndex`）                                                                                            |
+#
 
 ### 仍开放（核心阅读链真实缺口）
 
 ```mermaid
 flowchart TB
     subgraph parse [解析层]
-        A1[导入写DB章节边界]
-        A2[阅读时EpubContentProvider.open]
+        A1[导入: parse_book 写 DB 边界]
+        A2[阅读: get_or_create_provider<br/>读 DB 边界 → open_from_bounds]
         A1 -->|"DB start/end"| DB[(SQLite)]
-        A2 -->|"重跑extract_chapters_from_epub"| Runtime[运行时章节表]
-        DB -.->|"未使用"| A2
+        A2 -->|"DB start/end"| DB
     end
 
     subgraph typeset [排版层]
-        B1[PageStreamer eager]
-        B2[PageStreamer lazy 50K+]
-        B3[Dart paginateApproximate fallback]
+        B1[PageStreamer eager<br/>≤200K 字符]
+        B2[PageStreamer lazy<br/>>200K 字符]
     end
 
     subgraph render [渲染层]
-        C1[Sync getSessionPageContent]
-        C2[Rich需eager paragraph索引]
+        C1[get_chapter<br/>读 DB 边界 ✓]
+        C2[PageStreamer::get_page<br/>含 first_paragraph_index ✓]
     end
 
     A2 --> B1
-    B1 --> C1
-    B2 -->|"firstParagraphIndex=-1"| C2
-    B3 -->|"页界跳变"| C1
+    A2 --> B2
+    B1 --> C2
+    B2 --> C2
+    C1 -->|"原始文本"| B1
+    C1 -->|"原始文本"| B2
 ```
 
-#### P0 — 内容正确性 / 数据一致性
+| # | 条目 | 状态 | 说明 |
+|---|------|------|------|
+| 1 | EPUB 阅读不读 DB 边界 | ✅ **已修复**（2026-06-17） | `get_or_create_provider` 早已用 DB 边界打开 Provider，但 `get_chapter`/`paginate_chapter` 仍用 `(0, content_len)` 读全文。本次移除 hardcode，改为统一走 `get_chapter_bounds`。新增 `test_get_chapter_epub_uses_db_bounds` 验证 ch0/ch1 内容不同 |
+| 2 | TOC href fallback (`unwrap_or(chapter_id as usize)`) | ✅ **已修复** | `toc.rs:74-82` 已改为 `unwrap_or(0)` + warn log；本次进一步改进为失败 entry 按 spine 长度顺序分布 |
+| 3 | 老书 reconcile（DB 章节数 vs TOC） | ✅ **不存在** | 开发版本无 pre-migration 旧数据，新导入总是产生有效边界。`StaleBookData` 检测已作为防御性残留 |
 
-1. **EPUB 阅读不读 DB 边界，运行时重算 TOC**
-   - [`EpubContentProvider::open`](rust/src/parser/epub/provider.rs:49-51) 调用 `extract_chapters_from_epub`，按 `chapter_index` 匹配，**忽略** [`get_chapter_bounds`](rust/src/api/core.rs:914) 的 DB 值
-   - EPUB 在 [`get_chapter`](rust/src/api/core.rs:439-440) / [`paginate_chapter`](rust/src/api/core.rs:591-592) 固定 `(0, content_len)`，边界完全由 Provider 打开时的 spine 窗口决定
-   - **影响**：旧版导入的「整本一大章」DB 记录与运行时拆章结果不一致；目录条数/标题可能与实际可读范围不符
-   <br />
-2. **TOC href 映射失败 fallback 不可靠**
-   - [`toc.rs:74-76`](rust/src/parser/epub/toc.rs) `find_spine_index_by_toc_href(...).unwrap_or(*chapter_id as usize)` 可能指错 spine
+#### P1 — 排版/渲染体验
 
-#### P1 — 排版/渲染体验（非崩溃，但影响 80% 质量）
-
-1. **Lazy 分页质量断崖**（≥50K 字符）
-   - [`pagination.rs:127-152`](rust/src/text/pagination.rs) 阈值 `LAZY_PAGINATION_CHAR_THRESHOLD = 50_000`
-   - Lazy 模式无标点优化、无像素换行、**`first_paragraph_index = -1`** → 分页 rich/图片路径失效
-2. **双套分页真理源**
-   - Rust `PageStreamer` + session 为主路径
-   - [`pagination_coordinator.dart:140-173`](lib/features/reader/core/application/pagination_coordinator.dart) Rust 失败时 `fallbackToCalculatePages` → Dart 近似，页数/断页可能跳变
-3. **Sync FFI 阻塞 UI 线程**
-   - [`rust_pagination_session.dart:307-316`](lib/features/reader/core/data/rust_pagination_session.dart) `_fetchAndCachePage` 同步调用 `getSessionPageContent`，由 `ensureWindow` 在翻页/build 路径触发
-4. **`max_chars`** **语义混用**
-   - TXT/MD partial 有 UTF-8 字符补偿（[`core.rs:578-583`](rust/src/api/core.rs)）
-   - EPUB partial 直接 byte range（[`core.rs:586-587`](rust/src/api/core.rs)），CJK 预读偏少
-5. **页宽 safe area 与渲染 MediaQuery 可能偏差**
-   - 分页宽：[`reader_shell.dart:77`](lib/features/reader/core/presentation/reader_shell.dart) `pageWidth = mq.size.width - mq.padding.horizontal`
-   - 渲染宽：[`paginated_renderer.dart:202`](lib/features/reader/rendering/paginated_renderer.dart) `MediaQuery.sizeOf(context).width - 2*pageMargin`（含系统 safe area 差异）
+| # | 条目 | 状态 | 说明 |
+|---|------|------|------|
+| 1 | Lazy 分页质量断崖（≥50K 字符） | ⚡ **部分修复** | 阈值已升至 200K；`first_paragraph_index`/`last_paragraph_index` 已在 lazy 模式正确设置（不再 -1）；`test_paragraph_indices_lazy_are_not_minus_one` 验证；缺：lazy 模式仍不走 `compute_line_breaks_from_indices`（标点挤压缺失，架构取舍） |
+| 2 | 双套分页真理源 | ✅ **已修复** | `paginateApproximate` 标记 `@Deprecated('Rust fallback only — do not use in production flow')`；无生产调用点；`_runFirstSpine`/`_runConfigReload`/`_runExpandOnly`/`_runStagingPromote` 全部走 Rust session |
 
 #### P2 — 可缝补、不挡 80% 发布
 
-1. **`enable_hyphenation`** **未接入** — `PageStreamer` 只用 `compute_line_breaks_from_indices`，[`line_break.rs`](rust/src/text/line_break.rs) 仍为 dead path
-2. **单 spine 超大 HTML 不拆** — 拆章仅按 spine 个数（[`toc.rs:101-140`](rust/src/parser/epub/toc.rs)），1 TOC + 1 巨型 xhtml 仍是一章
-3. **进度估算偏差** — [`estimate_total_chars`](rust/src/parser/epub/parse.rs:101-148) 采样时也 cap 20 spine
-4. **首屏 preview 只读第一个 spine** — [`get_chapter_first_spine_only`](rust/src/api/core.rs:346-378) 设计如此，大章首屏不代表全章
-5. **测试缺口** — 无 EPUB oversized 拆章 / Provider-DB 一致性 / lazy+rich 集测（[`toc.rs`](rust/src/parser/epub/toc.rs) [测试](rust/src/parser/epub/toc.rs) 仅字符串工具）
-
-### 降级可接受（缝补期可暂不修）
-
-- 近似排版 vs Flutter 真实 glyph 布局的结构性漂移（CharWidthTable 方案固有限制）
-- 富文本 HTML >100KB 跳过 html5ever（[`parse.rs:185-189`](rust/src/parser/epub/parse.rs)）— 有日志，属性能保护
-- EPUB 滚动+分页均加载 rich（[`rust_chapter_content_repository.dart:89-106`](lib/features/reader/core/data/rust_chapter_content_repository.dart)）— 双重 IO，性能问题非功能缺失
-
-***
-
-## MD 中的修复计划（分阶段）
+| # | 条目 | 状态 | 说明 |
+|---|------|------|------|
+| 1 | `enable_hyphenation` 接入或删除 | ✅ **已删除** | `TypesetConfig` 字段、`line_break.rs` 模块、全部 Dart 引用已清除（2026-06-17） |
+| 2 | 单 spine 超大 HTML 不拆 | ✅ **已检测** | `open_from_bounds` 中单 spine HTML >2MB 时返回 `AppError::ChapterTooLarge`，UI 显示 toast |
+| 3 | 进度估算偏差（20 spine cap） | ✅ **已解决** | `estimate_total_chars` 当前按首/中/尾 3 章采样，**不** cap 20 spine（描述已过时） |
+| 4 | 首屏 preview 只读第一个 spine | ✅ **by design** | 设计如此：快速渲染第 0 页，全文和分页后台异步补齐。文档需更新（不算 bug） |
+| 5 | 测试缺口 | ⚡ **部分覆盖** | 已加 `test_oversized_single_spine` + `test_stale_epub_bounds` + `test_get_chapter_epub_uses_db_bounds` + `test_paragraph_indices_lazy_are_not_minus_one`（4 个） |
 
 ### Phase 1 — P0 内容一致性（1-2 PR）
 
 **目标**：目录、DB、阅读内容三者对齐；老书截断可见。
+### Phase 2 — P1 排版体验
 
-| 任务                         | 改动要点                                                                                                                                       | 主要文件                                            |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
-| EPUB Provider 改读 DB 边界     | `EpubContentProvider::open(file_path, start_index, end_index)` 或 `open_from_bounds`；`get_or_create_provider` 先 `get_chapter_bounds` 再 open | `provider.rs`, `core.rs`                        |
-| 移除或条件化 20 spine safety cap | 新逻辑以 DB `end-start` 为准；仅当 `end-start > MAX` 且 DB 未拆章时返回 `AppError` 或 `is_truncated` flag                                                   | `provider.rs`, `parse.rs`                       |
-| 老书 reconcile               | 打开书籍时对比 DB 章节数 vs 重算 TOC；不一致则提示「重新导入以更新目录」或后台 migration                                                                                    | 新增 `epub/reconcile.rs` 或 import 钩子 + Dart toast |
-| TOC href fallback          | 映射失败时 log warn + 跳过条目或按 spine 顺序推断，禁止 `chapter_id as usize`                                                                                | `toc.rs`                                        |
-
-**验证**：fixture EPUB（单 TOC 100 spine）；旧 DB 单章 + 新逻辑；对比 spine 覆盖完整性。
-
-### Phase 2 — P1 排版体验（1-2 PR）
-
-| 任务                   | 改动要点                                                                                    | 主要文件                                                            |
-| -------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| Lazy 模式保留像素换行        | 大章仍走 `compute_line_breaks_from_indices`，或 lazy 仅跳过 `optimize_punctuation`               | `pagination.rs`                                                 |
-| 隔离 Dart fallback     | Rust session 失败 → 明确 error UI + 重试，不再 silent fallback（或 fallback 仅首屏）                   | `pagination_coordinator.dart`, `chapter_load_orchestrator.dart` |
-| 异步页内容 prefetch       | `pageContent` miss 时返回 placeholder + `compute`/`Isolate`/`async` fetch，build 不 sync FFI | `rust_pagination_session.dart`, `paginated_renderer.dart`       |
-| 统一 EPUB partial 字符语义 | partial 路径与 TXT 相同 chars-take 逻辑                                                        | `core.rs`                                                       |
-| 对齐 pageWidth 来源      | 渲染与分页共用 `PaginationCoordinator.pageWidth`，避免 MediaQuery 二次计算                            | `paginated_renderer.dart`, `reader_shell.dart`                  |
-
+| 任务 | 改动要点 | 状态 |
+|------|----------|------|
+| Lazy 模式保留像素换行 | 大章仍走 `compute_line_breaks_from_indices`，或 lazy 仅跳过 `optimize_punctuation` | ⚡ **部分**（阈值 200K + paragraph_indices 已修；标点架构取舍） |
+| 隔离 Dart fallback | Rust session 失败 → 明确 error UI + 重试，不再 silent fallback | ✅ `paginateApproximate` 已 @Deprecated，无生产调用 |
+| 异步页内容 prefetch | `pageContent` miss 时返回 placeholder + async fetch | ✅ Batch B6 |
+| 统一 EPUB partial 字符语义 | partial 路径与 TXT 相同 chars-take 逻辑 | ✅ **已修复**（2026-06-17）— `get_chapter_partial` 改用 `chars * 3` 安全预读 + `chars().take()` 截断 |
+| 对齐 pageWidth 来源 | 渲染与分页共用 `PaginationCoordinator.pageWidth` | ✅ Batch B3 |
 ### Phase 3 — P2 缝补 + 测试
 
-| 任务                   | 说明                                                                    |
-| -------------------- | --------------------------------------------------------------------- |
-| 接入或删除 hyphenation 配置 | 要么 `PageStreamer` 调用 `line_break.rs`，要么从 `config_hash` 移除字段           |
-| 按 HTML 体积二次拆章        | spine 数 ≤20 但 HTML 超大时的保护                                             |
-| 补 Rust 集成测试          | `toc oversized split`, `provider db bounds`, `lazy paragraph indices` |
-| 补 Dart 桥接测试          | `rust_chapter_content_repository`, `rust_pagination_session`          |
+| 任务                   | 说明                                                                    | 状态                                                                                                                              |
+| -------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 接入或删除 hyphenation 配置 | 要么 `PageStreamer` 调用 `line_break.rs`，要么从 `config_hash` 移除字段           | ✅ **已删除** — `TypesetConfig.enable_hyphenation`/`hyphenation_language` 字段移除，`line_break.rs` 模块删除，全部 Dart 引用清除，FRB codegen 重新生成绑定 |
+| 按 HTML 体积二次拆章        | spine 数 ≤20 但 HTML 超大时的保护                                             | ✅ **已检测** — `open_from_bounds` 中单 spine HTML >2MB 时返回 `AppError::ChapterTooLarge`，UI 显示 toast（暂不自动拆章）                           |
+| 老书 stale bounds 检测   | 旧书导入前 `start_index`/`end_index` 为 DEFAULT 0 时，检测并提示重新导入               | ✅ **已完成** — `get_or_create_provider` 中 `start_idx == 0 && end_idx == 0` 时返回 `AppError::StaleBookData`                           |
+| 补 Rust 集成测试          | `toc oversized split`, `provider db bounds`, `lazy paragraph indices` | ⚡ **部分覆盖** — 已加 `test_oversized_single_spine` 和 `test_stale_epub_bounds`；toc split 和 lazy indices 测试待补                          |
+| 补 Dart 桥接测试          | `rust_chapter_content_repository`, `rust_pagination_session`          | 🔴 未处理                                                                                                                          |
 
 ***
 

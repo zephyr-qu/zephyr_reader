@@ -4,20 +4,20 @@ overview: 以 Rust PageDescriptor + PaginationSession 为唯一排版真理，�
 todos:
   - id: quick-paginate-api
     content: PaginationSession/Coordinator 新增 paginateQuickFirstScreen(maxChars=2000)
-    status: pending
+    status: done  # 已完成（Batch B1-B6, 2026-06-17）
   - id: orchestrator-pipeline
     content: "ChapterLoadOrchestrator: calib+spine 并行 → quick paginate 首屏 → 删除 approximate 与 50K partial"
-    status: pending
+    status: done  # 已完成（Batch B5-B6）
   - id: renderer-nav-unify
     content: ChapterNavigator + PaginatedModeRenderer 仅 descriptors，删除 PageInfo 生产回退
-    status: pending
+    status: done  # 已完成（Batch B5）
   - id: preload-fallback-cleanup
     content: preload/fallback 清理；Repository  deprecate paginateApproximate
-    status: pending
+    status: done  # `paginateApproximate` 已 @Deprecated，`fallbackToCalculatePages` 已删除
   - id: tests-verify
     content: 更新 chapter_manager_test + benchmark；dart analyze 验证
-    status: pending
-isProject: false
+    status: done  # 已完成（2026-06-17 Batch）
+  isProject: false
 ---
 
 # 统一排版真理（Rust 单源）

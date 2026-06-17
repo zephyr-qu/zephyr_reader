@@ -13,6 +13,7 @@ import 'package:zephyr_reader/features/reader/rendering/bilingual_renderer.dart'
 import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/rendering/scroll_mode_renderer.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
 import 'package:zephyr_reader/features/reader/page/ui/battery_indicator.dart';
 import 'package:zephyr_reader/features/reader/page/ui/brightness_mask.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/reader_content.dart';
@@ -92,6 +93,8 @@ class ReaderContentArea extends HookWidget {
     );
     final int bNumchapters = (chaptersState.value as List?)?.length ?? 0;
     final Set<String> vocabWordSet = useSignalValue(vocabWords);
+    final List<ScrollChapterSegment> scrollSegments =
+        useSignalValue(vm.chapterManager.scrollSegments);
     final fontFamily = fontRepo.currentFontFamily;
     void cycleBrightness() {
       final current = vm.config.brightnessOverlay.value;
@@ -175,6 +178,7 @@ class ReaderContentArea extends HookWidget {
                   bookId: bCurrentbookid,
                   chapterId: bChapterindex,
                   content: bContent,
+                  segments: scrollSegments,
                   highlights: bHighlights,
                   onHighlightTap: onHighlightTap,
                   onSelectionChanged: vm.annotations.updateSelection,
@@ -245,6 +249,11 @@ class ReaderContentArea extends HookWidget {
                 onReachEnd: () => unawaited(vm.chapterManager.nextChapter()),
                 onReachStart: () =>
                     unawaited(vm.chapterManager.previousChapter()),
+                scrollSegments: scrollSegments,
+                onScrollAppendNext: () =>
+                    vm.chapterManager.scrollAppendNext(bCurrentreadingmode),
+                onScrollPrependPrev: () =>
+                    vm.chapterManager.scrollPrependPrev(bCurrentreadingmode),
               );
             },
           ),

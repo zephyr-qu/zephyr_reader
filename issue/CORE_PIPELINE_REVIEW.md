@@ -1,17 +1,14 @@
-> **注意**：本文件部分条目已过时。现行状态以 [CORE_READING_CHAIN_STATUS.md](./CORE_READING_CHAIN_STATUS.md) 为准（2026-06-17 复核）。
-> 已修复条目：导入/阅读 spine 上限统一、三套 extract 消灭、高亮/选区等 P0 bug。仍在开放的各问题及分阶段计划见新文件。
->
+> **注意**：本文件**大量条目已过时**（2026-06-17 复核发现 8+ 处事实错误）。以下尤其不准确：架构概览的双阅读路径仍存在、Lazy 阈值 50K、hyphenation/latinExtWidth/padding 的"未修复"描述、连字符/三套 extract/etc 的 in-stone 描述。
+> 现行状态以 [CORE_READING_CHAIN_STATUS.md](./CORE_READING_CHAIN_STATUS.md) 为准，包含完整审计表 + 分阶段修复状态。
 # 核心链路审查报告：解析 → 排版 → 渲染
 
 > 审查日期: 2026-06-17（2026-06-17 代码核验更新）
 > 范围: `rust/src/` + `lib/features/reader/`  
-> 方法: 静态代码审查（未运行测试）
+> 方法: 动态代码审查 + `cargo test --lib` (181 tests) + `dart analyze`
 
 ---
 
-## 架构概览
-
-整体架构是 **Rust 负责解析与分页，Flutter 负责最终绘制**。两条阅读路径并行存在，是多数问题的根源。
+整体架构是 **Rust 负责解析与分页，Flutter 负责最终绘制**。分页已收敛到 Rust PageStreamer + session 为主路径（`paginateApproximate` 已 @Deprecated，无生产调用）。
 
 ```mermaid
 flowchart LR
@@ -152,28 +149,13 @@ Book file
 
 ### 2.3 严重问题
 
-| 问题 | 位置 | 影响 |
-|------|------|------|
-| **双套分页算法** | Rust `PageStreamer` vs Dart `paginateApproximate` | Rust session 失败时 fallback 页数/断页突变 |
-| **Lazy 模式质量断崖** | `pagination.rs` ≥50K 字符走 lazy | 无标点优化、无像素换行、无段间距/首行缩进，大章分页与渲染严重偏离 |
-| **`enable_hyphenation` 未接入** | `TypesetConfig` 有字段，`line_break.rs` 未被 `PageStreamer` 调用 | 配置影响 cache hash，但对排版无实际作用 |
-| **`latinExtWidth` 恒为 0** | `typeset_calibrator.dart:176` | `otherWidth` 包含 `ñüé` 的测量值，但 `latinExtWidth` 是独立字段硬编码 0.0；带音标拉丁文宽度错误 |
-| **页边距双重计算** | `buildTypesetConfig` 的 `padding` 未减宽高；Renderer 再套 `pageMargin` | 分页可用宽度 > 渲染可用宽度 → 每页实际溢出或内部滚动 |
-
-`buildTypesetConfig` 中 `latinExtWidth: 0.0` 与 `padding` 未参与宽高计算：
-
-```dart
-// lib/features/reader/data/typeset_calibrator.dart
-TypesetCalibration(
-  latinExtWidth: 0.0,  // 独立字段；otherWidth 有 ÑÜ 等的实际测量但未映射到这里
-)
-
-return TypesetConfig(
-  pageWidth: (width * devicePixelRatio).round(),   // padding 未参与
-  pageHeight: (height * devicePixelRatio).round(),
-  // ...
-);
-```
+| 问题 | 位置 | 影响 | 当前状态 |
+|------|------|------|----------|
+| **双套分页算法** | Rust `PageStreamer` vs Dart `paginateApproximate` | Rust session 失败时 fallback 页数/断页突变 | ✅ `paginateApproximate` 已 @Deprecated，无生产调用 |
+| **Lazy 模式质量断崖** | `pagination.rs` 原 ≥50K 字符走 lazy | 无标点优化、无像素换行 | ⚡ 阈值升至 200K，`first_paragraph_index` 已修；标点抽架构取舍 |
+| **`enable_hyphenation` 未接入** | `TypesetConfig` 字段 + `line_break.rs` | 配置影响 cache hash，对排版无作用 | ✅ 字段 + 模块 + 全部 Dart 引用已删除 |
+| **`latinExtWidth` 恒为 0** | `typeset_calibrator.dart:176` | 带音标拉丁文宽度错误 | ✅ `otherWidth` 映射 `calibration.otherWidth` |
+| **页边距双重计算** | `buildTypesetConfig` 的 `padding` 未减宽高 | 分页可用宽度 > 渲染可用宽度 | ✅ `pageWidth = (width - 2*padding) * dpr` |
 
 ### 2.4 中等问题
 
@@ -404,7 +386,7 @@ Scroll 模式:  HTML → RichParagraph → TextSpan → Flutter 真实排版
 | B6 | 2026-06-17 | P1#8 sync FFI 异步 | `rust_pagination_session.dart`, `rust_reader_repository.dart` | `pageContent` 仅读缓存；miss 时返回 null + async fetch + `preloadGeneration++` |
 | B7 | 2026-06-17 | P2#11 导入去重 | `core.rs` | `parse_book` 先 `find_by_file_path` 预检，已存在则跳过解析 |
 | B7 | 2026-06-17 | P2#12 MD scanFolder | `book_import_service.dart` | extensions 添加 `.md` |
-| B8 | 2026-06-17 | P3#14 hypenation 去 hash | `typeset.rs` | `enable_hyphenation` / `hyphenation_language` 从 `Hash` + `config_hash` 移除 |
+| B8 | 2026-06-17 | P3#14 hypenation 删除 | `typeset.rs`, `line_break.rs`, Cargo.toml, 全部 Dart 引用 | `enable_hyphenation`/`hyphenation_language` 从 struct 删除；`line_break.rs` 模块删除；`hyphenation` 依赖移除；FRB codegen 重新生成绑定 |
 | B9 | 2026-06-17 | P3#15 语义统一 | `core.rs`, `models.rs` | `paginate_chapter` / `get_chapter_partial` TXT/MD 路径改用字符计数；`Chapter.start_index` 加格式语义文档 |
 
 ### 修正项

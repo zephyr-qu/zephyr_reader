@@ -294,7 +294,13 @@ class RustPaginationSession implements PaginationSession {
 
   @override
   String? pageContent(int pageIndex) {
-    return _contentCache.get(pageIndex);
+    final cached = _contentCache.get(pageIndex);
+    if (cached != null) {
+      Logging.debug('[Session] pageContent HIT  page=$pageIndex (${cached.length} chars)');
+    } else {
+      Logging.debug('[Session] pageContent MISS page=$pageIndex');
+    }
+    return cached;
   }
 
   /// Async fetch-and-cache for a single page.
@@ -304,6 +310,7 @@ class RustPaginationSession implements PaginationSession {
     final handle = _handle;
     if (handle == null || _descriptors == null) return null;
     if (pageIndex < 0 || pageIndex >= _descriptors!.length) return null;
+    Logging.info('[Session] fetch page=$pageIndex start');
     try {
       final content = await Future.microtask(() => core_api.getSessionPageContent(
         handle: handle,
@@ -312,6 +319,7 @@ class RustPaginationSession implements PaginationSession {
       if (content.isNotEmpty) {
         _contentCache.put(pageIndex, content);
       }
+      Logging.info('[Session] fetch page=$pageIndex done (${content.length} chars)');
       return content.isEmpty ? null : content;
     } catch (e) {
       Logging.error('_fetchAndCachePage error for page $pageIndex: $e');
@@ -323,6 +331,7 @@ class RustPaginationSession implements PaginationSession {
   @override
   void ensureWindow(int centerPage) {
     if (_descriptors == null) return;
+    Logging.info('[Session] ensureWindow center=$centerPage total=${_descriptors!.length}');
 
     unawaited(_fetchAndCachePage(centerPage));
     _prefetchSurrounding(centerPage);
@@ -333,6 +342,7 @@ class RustPaginationSession implements PaginationSession {
     final total = _descriptors!.length;
     final start = math.max(0, center - 3);
     final end = math.min(total - 1, center + 3);
+    Logging.debug('[Session] prefetch surrounding pages=$start..$end (center=$center total=$total)');
 
     Future.microtask(() async {
       for (int i = start; i <= end; i++) {

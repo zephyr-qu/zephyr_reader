@@ -280,3 +280,75 @@ Phase 1 核心数据结构与 composer 已完成；`ScrollModeRenderer` 多段�
 - `lib/features/profile/page/typography/typography_settings_page.dart` — 删除 reset 行 + toggle tile
 - `lib/core/utils/app_error_mapper.dart` — 添加 `staleBookData` + `chapterTooLarge` handler
 - `lib/core/settings/settings_keys.dart` — 删除 `readerEnableHyphenation`
+
+# epub_reading_chain_tests 执行偏差记录（2026-06-17）
+
+## 最终状态
+
+所有 10 条测试已实现并通过。`paginate_chapter` 中修复了一个 EPUB 全量分页的字节偏移 bug。
+
+## 偏差记录
+
+| # | plan 描述 | 实际情况 | 处理 |
+|---|-----------|----------|------|
+| 1 | `test_epub_first_spine_matches_session_prefix`：spine 文本是 page 0 的 prefix | page 0 带有 `first_line_indent` 缩进空格，spine 文本没有；prefix 断言失败 | 改为比较 trimmed first line |
+| 2 | 所有测试可使用 `cargo test --test epub_reading_chain_test` 并行运行 | 全局 `STREAMER_CACHE`（容量 4）在测试并行时竞态驱逐，导致 `create_pagination_session` 抛出 `NotFound` | 文档注明需 `--test-threads=1`；该竞态同样影响现有的 `pagination_session_test.rs` |
+| 3 | EPUB 全量分页路径使用 `get_chapter_bounds` 作为 `read_text_range` 的字节偏移 | EPUB 的 `start_index/end_index` 是 spine 索引（非字节偏移），导致全量分页只读到 1-20 字节，产生 0 个描述符 | 修复 `paginate_chapter`：EPUB 全量路径改为 `(0, content_len)` |
+| 4 | `assert_all_pages_non_empty` 在测试中使用 | 定义了但未被当前测试用例调用 | 保留为共享断言函数供后续测试使用 |
+
+## 修复的 bug（计划外）
+
+`paginate_chapter` 中 EPUB 全量分页路径（`max_chars=None`）将 `get_chapter_bounds` 返回的 spine 索引作为字节偏移传递给 `provider.read_text_range()`。对于 EPUB，spine 索引是小整数（如 0、1、2…），而 `read_text_range` 期望的是字节偏移，导致实际只读取了几个字节。修复：EPUB 全量路径改为读取 `(0, content_len)`，因为 provider 已通过 `open_from_bounds` 限定在章节的 spine 范围内。
+
+**影响**：所有通过 `paginate_session_full(handle, None)` 升级 EPUB partial → full 的调用均受影响，会导致 0 个页面描述符。TXT 不受影响（TXT 的 bounds 本身就是字节偏移）。
+
+## 涉及文件
+
+### Rust 修改
+- `rust/src/api/core.rs` — `paginate_chapter` 中 EPUB 全量分页路径修复
+
+### Rust 新增
+- `rust/tests/epub_reading_chain_test.rs` — 10 条 P0/P1/P2 测试
+- `rust/tests/common/epub_local.rs` — fixture 路径 + skip 逻辑
+- `rust/tests/common/reading_chain.rs` — 共享 setup + 断言函数
+
+### Rust 修改（已有）
+- `rust/tests/common/mod.rs` — 新增 `pub mod epub_local; pub mod reading_chain;`
+
+### Docs
+- `issue/CORE_READING_CHAIN_STATUS.md` — 测试列表 + 运行命令
+- `issue/PLAN_EXECUTION_DEVIATIONS.md` — 本文件
+
+## 验证结果
+
+| 检查项 | 结果 |
+|--------|------|
+| `cargo test --test epub_reading_chain_test -- --test-threads=1` | 10/10 pass |
+| `cargo test --test pagination_session_test -- --test-threads=1` | 13/13 pass |
+
+# EPUB partial 字符语义统一 执行偏差（2026-06-17）
+
+## 最终状态
+
+全部完成。Rust 182 tests passed (新增 1 个)，Dart analyze 0 errors。
+
+## 偏差记录
+
+无偏差。与 `doc/plang.md` Phase 2 "统一 EPUB partial 字符语义" 描述一致。
+
+## 设计决策
+
+- 将 EPUB 和 TXT/MD 的 `get_chapter_partial` 分支合并为同一逻辑，不再分叉。语义正确性没有退化（TXT/MD 行为不变），EPUB 从 byte offset → char-count，CJK 内容读取量恢复正常。
+- 与 `paginate_chapter` 中已有的 "语义统一" Batch 9 保持一致：后者的 EPUB 分支在 2026-06-17 早期已用 chars-take 模式，但 `get_chapter_partial` 被漏掉。
+
+## 涉及文件
+
+### Rust（1 文件）
+- `rust/src/api/core.rs` — `get_chapter_partial` EPUB 分支从 `read_text_range(0, max_chars)`（byte offset）改为统一 chars-take 模式
+
+### 测试（1 新增）
+- `test_get_chapter_partial_epub_uses_char_count` — 验证 partial 返回 ≤max_chars 字符
+
+### 文档（2 文件）
+- `issue/CORE_READING_CHAIN_STATUS.md` — §6 清单 + §7 未来改进移除该条目
+- `doc/plang.md` — Phase 2 表统一 EPUB partial 标 ✅

@@ -7,6 +7,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'reader_render_config.dart';
 import 'find_render_box.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 
 /// 分页模式渲染器。
 ///
@@ -84,6 +85,7 @@ class PaginatedModeRenderer extends StatelessWidget {
 
   /// Fallback: 无分页数据时显示错误提示，而非静默近似分页。
   Widget _buildFallbackPagination(BuildContext context) {
+    Logging.warning('[Renderer] _buildFallbackPagination: no pagination data');
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -113,8 +115,10 @@ class PaginatedModeRenderer extends StatelessWidget {
     final descriptors = dataSource.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
       final index = pageIndex.clamp(0, descriptors.length - 1);
+      Logging.debug('[Renderer] _buildPageTurn: page=$index/${descriptors.length}');
       return _buildPageContent(context, index, descriptors[index].startOffset);
     }
+    Logging.warning('[Renderer] _buildPageTurn: descriptors null/empty → fallback');
     return _buildFallbackPagination(context);
   }
 
@@ -131,6 +135,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   ) {
     final pageContent = dataSource.pageContent(pageIndex);
     if (pageContent == null) {
+      Logging.info('[Renderer] _buildPageContent MISS page=$pageIndex → spinner + ensureWindow');
       WidgetsBinding.instance.addPostFrameCallback((_) {
         dataSource.ensureWindow(pageIndex);
       });
@@ -229,19 +234,25 @@ class PaginatedModeRenderer extends StatelessWidget {
         startOffset,
       );
     }
+    final vPad = ReaderRenderConfig.pageContentVerticalPadding;
     return RepaintBoundary(
-      child: SingleChildScrollView(
+      child: Padding(
         padding: EdgeInsets.symmetric(
           horizontal: config.pageMargin,
-          vertical: 20,
+          vertical: vPad,
         ),
-        child: SelectableText.rich(
-          paintedSpan,
-          strutStyle: strutStyle,
-          textAlign: config.textAlign,
-          onSelectionChanged: (sel, cause) =>
-              _onSelection(sel, pageContent, startOffset, context),
-          contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+        child: ClipRect(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: SelectableText.rich(
+              paintedSpan,
+              strutStyle: strutStyle,
+              textAlign: config.textAlign,
+              onSelectionChanged: (sel, cause) =>
+                  _onSelection(sel, pageContent, startOffset, context),
+              contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+            ),
+          ),
         ),
       ),
     );
@@ -250,12 +261,14 @@ class PaginatedModeRenderer extends StatelessWidget {
   Widget _buildCrossChapterPage(BuildContext context, int virtualIndex) {
     final staging = dataSource.nextChapterStaging;
     if (staging != null && staging.chapterIndex == chapterId + 1) {
+      Logging.debug('[Renderer] _buildCrossChapterPage HIT: chapter=${staging.chapterIndex} virtualIndex=$virtualIndex');
       dataSource.warmPageCache(virtualIndex, staging.firstPageContent);
       final startOffset = staging.descriptors.isNotEmpty
           ? staging.descriptors[0].startOffset
           : 0;
       return _buildPageContent(context, virtualIndex, startOffset);
     }
+    Logging.debug('[Renderer] _buildCrossChapterPage MISS: virtualIndex=$virtualIndex');
     return Container(color: config.backgroundColor);
   }
 
@@ -265,6 +278,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   }
 
   void _handlePageChanged(List<PageDescriptor> descriptors, int index) {
+    Logging.debug('[Renderer] _handlePageChanged: virtualIndex=$index');
     // 向后虚拟页 → onReachStart
     if (index == 0 && hasPreviousChapter) {
       onReachStart?.call();
@@ -282,6 +296,17 @@ class PaginatedModeRenderer extends StatelessWidget {
     onPageChanged?.call(realIndex);
     onPositionChanged?.call(descriptors[realIndex].startOffset);
   }
+
+  bool _stagingReadyForNext() {
+    if (!hasNextChapter) return false;
+    final staging = dataSource.nextChapterStaging;
+    return staging != null && staging.chapterIndex == chapterId + 1;
+  }
+
+  int _extendedPageCount(List<PageDescriptor> descriptors) {
+    final offset = hasPreviousChapter ? 1 : 0;
+    return descriptors.length + (_stagingReadyForNext() ? 1 : 0) + offset;
+  }
   @override
   Widget build(BuildContext context) {
     if (readingMode == ReadingMode.pageTurn) {
@@ -289,15 +314,13 @@ class PaginatedModeRenderer extends StatelessWidget {
     }
     final descriptors = dataSource.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
-      final offset = hasPreviousChapter ? 1 : 0;
-      final extendedCount = descriptors.length + (hasNextChapter ? 1 : 0) + offset;
       return AnimatedBuilder(
         animation: dataSource.preloadGeneration,
         builder: (context, _) {
           return PageView.builder(
             controller: pageController,
             physics: adaptiveScrollPhysics(context),
-            itemCount: extendedCount,
+            itemCount: _extendedPageCount(descriptors),
             onPageChanged: (index) => _handlePageChanged(descriptors, index),
             itemBuilder: (context, index) {
               if (hasPreviousChapter && index == 0) {
@@ -317,6 +340,7 @@ class PaginatedModeRenderer extends StatelessWidget {
         },
       );
     }
+    Logging.warning('[Renderer] build: descriptors null/empty → fallback');
     return _buildFallbackPagination(context);
   }
 }
@@ -434,6 +458,7 @@ Widget buildSinglePageContent({
   final pageContent = dataSource.pageContent(pageIndex);
   if (pageContent == null) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      Logging.info('[Renderer] buildSinglePageContent MISS page=$pageIndex → spinner + ensureWindow');
       dataSource.ensureWindow(pageIndex);
     });
     return const Center(child: CircularProgressIndicator());
@@ -465,24 +490,29 @@ Widget buildSinglePageContent({
   }
 
   return RepaintBoundary(
-    child: SingleChildScrollView(
+    child: Padding(
       padding: EdgeInsets.symmetric(
         horizontal: config.pageMargin,
-        vertical: 20,
+        vertical: ReaderRenderConfig.pageContentVerticalPadding,
       ),
-      child: SelectableText.rich(
-        paintedSpan,
-        strutStyle: strutStyle,
-        textAlign: config.textAlign,
-        onSelectionChanged: (sel, cause) => _handlePageContentSelection(
-          sel,
-          pageContent,
-          startOffset,
-          context,
-          onSelectionChanged,
-          onSelectionGlobalPosition,
+      child: ClipRect(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: SelectableText.rich(
+            paintedSpan,
+            strutStyle: strutStyle,
+            textAlign: config.textAlign,
+            onSelectionChanged: (sel, cause) => _handlePageContentSelection(
+              sel,
+              pageContent,
+              startOffset,
+              context,
+              onSelectionChanged,
+              onSelectionGlobalPosition,
+            ),
+            contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+          ),
         ),
-        contextMenuBuilder: (_, _) => const SizedBox.shrink(),
       ),
     ),
   );

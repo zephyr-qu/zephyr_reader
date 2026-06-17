@@ -3,6 +3,7 @@ import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/data/rich_text_converter.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
@@ -75,6 +76,28 @@ class RustChapterContentRepository implements ChapterContentRepository {
     int chapterId, {
     ReadingMode? readingMode,
   }) async {
+    final payload = await _loadChapterPayload(bookId, chapterId);
+    _applyCurrentRich(chapterId, payload);
+    return payload.content;
+  }
+
+  @override
+  Future<ScrollChapterPayload> loadScrollSegment(
+    String bookId,
+    int chapterId, {
+    ReadingMode? readingMode,
+  }) =>
+      _loadChapterPayload(bookId, chapterId);
+
+  void _applyCurrentRich(int chapterId, ScrollChapterPayload payload) {
+    _currentRichContent = payload.richRootSpan;
+    _currentRichParagraphs = payload.richParagraphs;
+  }
+
+  Future<ScrollChapterPayload> _loadChapterPayload(
+    String bookId,
+    int chapterId,
+  ) async {
     final sw = Stopwatch()..start();
     try {
       final book = await _getBook(bookId);
@@ -122,16 +145,17 @@ class RustChapterContentRepository implements ChapterContentRepository {
           'loadContent: content too large (${content.length} bytes), '
           'discarding rich text typesetting result',
         );
-        _currentRichContent = null;
-        _currentRichParagraphs = null;
       } else if (epubRichFuture != null && results[1] is List<RichParagraph>) {
         try {
           final paragraphs = results[1] as List<RichParagraph>;
           if (paragraphs.isNotEmpty) {
             final result = _richTextConverter.toTextSpan(paragraphs);
             content = result.$2;
-            _currentRichContent = result.$1;
-            _currentRichParagraphs = paragraphs;
+            return (
+              content: content,
+              richParagraphs: paragraphs,
+              richRootSpan: result.$1,
+            );
           }
         } catch (e) {
           Logging.error('loadContent EPUB rich typeset failed: $e');
@@ -148,8 +172,11 @@ class RustChapterContentRepository implements ChapterContentRepository {
           if (paragraphs.isNotEmpty) {
             final result = _richTextConverter.toTextSpan(paragraphs);
             content = result.$2;
-            _currentRichContent = result.$1;
-            _currentRichParagraphs = paragraphs;
+            return (
+              content: content,
+              richParagraphs: paragraphs,
+              richRootSpan: result.$1,
+            );
           }
         } catch (e) {
           Logging.error('loadContent MD rich typeset failed: $e');
@@ -166,7 +193,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
         '(EPUB=$isEpub MD=$isMd)',
       );
 
-      return content;
+      return (content: content, richParagraphs: null, richRootSpan: null);
     } catch (e) {
       Logging.error('loadContent error: $e');
       throw Exception('Failed to load chapter content: $e');

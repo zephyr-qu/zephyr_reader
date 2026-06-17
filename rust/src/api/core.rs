@@ -409,14 +409,12 @@ pub async fn get_chapter_partial(
 
     if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
         let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
-        if matches!(format, BookFormat::Txt | BookFormat::Md) {
-            // max_chars 是字符数，但 read_text_range 用字节偏移。
-            let read_end = (max_chars * 3).min(provider.content_length());
-            let content = provider.read_text_range(0, read_end)?;
-            Ok(content.chars().take(max_chars as usize).collect())
-        } else {
-            Ok(provider.read_text_range(0, max_chars)?)
-        }
+        let content_len = provider.content_length();
+        // max_chars 是字符数，但 read_text_range 用字节偏移。
+        // UTF-8 CJK 最多 3 字节/字符，预读 limit*3 字节再取 limit 个字符。
+        let read_end = (max_chars * 3).min(content_len);
+        let content = provider.read_text_range(0, read_end)?;
+        Ok(content.chars().take(max_chars as usize).collect())
     } else {
         let text = extract_chapter_content(&validated_path, chapter_index).await?;
         Ok(text.chars().take(max_chars as usize).collect())
@@ -440,9 +438,7 @@ pub async fn get_chapter(
         let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
         let content_len = provider.content_length();
 
-        let (start, end) = if format == BookFormat::Epub {
-            (0u64, content_len)
-        } else {
+        let (start, end) = {
             let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
             (cs.max(0) as u64, (ce.max(0) as u64).min(content_len))
         };
@@ -597,9 +593,14 @@ pub async fn paginate_chapter(
                 }
             }
             None => {
-                let (start, end) = if format == BookFormat::Epub {
+                let (start, end) = if matches!(format, BookFormat::Epub) {
+                    // EPUB provider is already scoped to the chapter's spine
+                    // bounds by `open_from_bounds`; `content_length` is the
+                    // total byte length across those spines.  Read from 0 so
+                    // we don't accidentally treat spine indices as byte offsets.
                     (0u64, content_len)
                 } else {
+                    // TXT/MD: chapter bounds are byte offsets in the file.
                     let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
                     (cs.max(0) as u64, (ce.max(0) as u64).min(content_len))
                 };
@@ -1188,9 +1189,14 @@ mod tests {
     #[tokio::test]
     async fn test_stale_epub_bounds_returns_stale_book_data() {
         ensure_shared_storage().await;
-        let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../test/fixtures/medium.epub");
-        let file_path = fixture.to_string_lossy().to_string();
+        // Use a unique copy so parallel tests don't share the same DB row
+        let unique_path = SHARED_DIR.join("test_stale_bounds.epub");
+        std::fs::copy(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../test/fixtures/medium.epub"),
+            &unique_path,
+        ).expect("copy fixture");
+        let file_path = unique_path.to_string_lossy().to_string();
 
         // Parse EPUB to populate DB with valid chapter data
         let book_id = parse_book(file_path.clone()).await
@@ -1210,12 +1216,78 @@ mod tests {
         let validated = validate_file_path(&file_path)
             .expect("validate should succeed");
 
-        // Clear provider cache and book_id cache for a clean slate
+        // Clear caches for a clean slate
         PROVIDER_CACHE.lock().clear();
         BOOK_ID_CACHE.lock().clear();
 
         let result = get_or_create_provider(&validated, 0, &BookFormat::Epub).await;
         assert!(result.as_ref().is_err_and(|e| matches!(e, AppError::StaleBookData { .. })),
             "expected StaleBookData, got {:?}", result.as_ref().err());
+    }
+
+    #[tokio::test]
+    async fn test_get_chapter_epub_uses_db_bounds() {
+        ensure_shared_storage().await;
+        // Use a unique copy so parallel tests don't share the same DB row
+        let unique_path = SHARED_DIR.join("test_db_bounds.epub");
+        std::fs::copy(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../test/fixtures/medium.epub"),
+            &unique_path,
+        ).expect("copy fixture");
+        let file_path = unique_path.to_string_lossy().to_string();
+
+        let book_id = parse_book(file_path.clone()).await
+            .expect("parse_book should succeed");
+        let pool = storage_pool().unwrap();
+        let chapters = ChapterRepository::find_by_book(&pool, &book_id).await
+            .expect("find_by_book should succeed");
+        assert!(chapters.len() >= 2, "medium.epub should have ≥2 chapters");
+
+        let ch0 = &chapters[0];
+        let ch1 = &chapters[1];
+        // ch0 spine range must not overlap ch1's
+        assert!(ch0.end_index <= ch1.start_index,
+            "chapters should have non-overlapping spine ranges, \
+             ch0.end={} ch1.start={}", ch0.end_index, ch1.start_index);
+
+        // Pre-fix bug: get_chapter returned full EPUB content for ANY chapter.
+        // Post-fix: get_chapter respects DB bounds, so ch0 and ch1 differ.
+        PROVIDER_CACHE.lock().clear();
+        BOOK_ID_CACHE.lock().clear();
+        let ch0_result = get_chapter(file_path.clone(), 0, None).await
+            .expect("get_chapter ch0 should succeed");
+        let ch1_result = get_chapter(file_path.clone(), 1, None).await
+            .expect("get_chapter ch1 should succeed");
+        if let (ChapterContent::Raw(ch0_text), ChapterContent::Raw(ch1_text)) =
+            (&ch0_result, &ch1_result)
+        {
+            assert_ne!(ch0_text, ch1_text,
+                "ch0 and ch1 should return different content per DB bounds");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_chapter_partial_epub_uses_char_count() {
+        ensure_shared_storage().await;
+        let unique_path = SHARED_DIR.join("test_partial_epub.epub");
+        std::fs::copy(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../test/fixtures/medium.epub"),
+            &unique_path,
+        ).expect("copy fixture");
+        let file_path = unique_path.to_string_lossy().to_string();
+        let _ = parse_book(file_path.clone()).await
+            .expect("parse_book should succeed");
+        PROVIDER_CACHE.lock().clear();
+        BOOK_ID_CACHE.lock().clear();
+
+        let partial = get_chapter_partial(file_path.clone(), 0, 100).await
+            .expect("partial should succeed");
+        let char_count = partial.chars().count();
+        assert!(char_count <= 100,
+            "partial should return ≤100 chars, got {char_count}");
+        assert!(char_count > 0,
+            "partial should return at least some content");
     }
 }

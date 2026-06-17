@@ -5,6 +5,7 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/pagination_session_factory.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/core/domain/pagination_session.dart';
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
@@ -15,6 +16,7 @@ import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 
 export 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart'
     show ReadingProgressData;
@@ -41,7 +43,7 @@ class ReaderRepository
   String? pageContent(int pageIndex) {
     final cached = _session.pageContent(pageIndex);
     if (cached != null) return cached;
-    // Cache miss：返回 null（Renderer 展示 placeholder），后台异步取
+    Logging.debug('[Repo] pageContent MISS page=$pageIndex');
     return null;
   }
 
@@ -82,6 +84,18 @@ class ReaderRepository
     ReadingMode? readingMode,
   }) =>
       _chapterContent.loadContent(bookId, chapterId, readingMode: readingMode);
+
+  @override
+  Future<ScrollChapterPayload> loadScrollSegment(
+    String bookId,
+    int chapterId, {
+    ReadingMode? readingMode,
+  }) =>
+      _chapterContent.loadScrollSegment(
+        bookId,
+        chapterId,
+        readingMode: readingMode,
+      );
 
   @override
   void disposePagination() => _session.dispose();
@@ -224,10 +238,14 @@ class ReaderRepository
   void ensurePageWindow(int centerPage) {
     _session.ensureWindow(centerPage);
     preloadGeneration.value++;
+    Logging.info('[Repo] ensurePageWindow center=$centerPage preloadGen=${preloadGeneration.value}');
   }
 
   @override
-  void ensureWindow(int centerPage) => ensurePageWindow(centerPage);
+  void ensureWindow(int centerPage) {
+    Logging.debug('[Repo] ensureWindow → ensurePageWindow center=$centerPage');
+    ensurePageWindow(centerPage);
+  }
 
   @override
   Future<ReadingProgressData?> loadReadingProgress(String bookId) =>

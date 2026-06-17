@@ -8,6 +8,7 @@ import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
+import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 /// 分页排版协调器：构建参数、局部分页、全量分页及 Dart 回退。
@@ -34,11 +35,14 @@ class PaginationCoordinator {
   String fontFamily = 'Noto Sans SC';
 
   PaginationParams buildPaginationParams() {
+    // 减去渲染层上下 padding，使 Rust 分页行数与 Flutter 可视区域一致。
+    final effectiveHeight = pageHeight -
+        2 * ReaderRenderConfig.pageContentVerticalPadding;
     return PaginationParams(
       fontSize: _config.fontSize.value,
       lineHeight: _config.lineHeight.value,
       width: pageWidth,
-      height: pageHeight,
+      height: effectiveHeight.clamp(100, pageHeight),
       padding: _config.padding.value,
       devicePixelRatio: devicePixelRatio,
       calibration: calibration.value,

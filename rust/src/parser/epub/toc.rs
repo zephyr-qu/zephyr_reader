@@ -67,19 +67,34 @@ fn extract_toc_items(
     book_id: &str,
 ) {
     let spine_len = epub_file.spine().len();
+    let mut unmapped_count: usize = 0;
+    let unmapped_total = items.iter()
+        .filter(|(_, href, _)| {
+            let pure = href.split('#').next().unwrap_or(href);
+            epub_file.find_spine_index_by_toc_href(pure).is_none()
+        })
+        .count();
 
     for (title, href, level) in items {
         let pure_href = href.split('#').next().unwrap_or(href);
 
-        let index = epub_file
-            .find_spine_index_by_toc_href(pure_href)
-            .unwrap_or_else(|| {
-                tracing::warn!(
-                    "[extract_toc_items] cannot map TOC href '{pure_href}' to any spine item. \
-                     Falling back to spine index 0."
-                );
+        let index = epub_file.find_spine_index_by_toc_href(pure_href).unwrap_or_else(|| {
+            // Distribute failed entries sequentially across the spine.
+            // Previously fell back to 0 unconditionally, causing all failed
+            // entries to collapse into the same chapter (and possibly empty).
+            let fallback = if unmapped_total > 0 && spine_len > 0 {
+                let step = (spine_len as f64 / unmapped_total as f64).ceil() as usize;
+                (step * unmapped_count).min(spine_len.saturating_sub(1))
+            } else {
                 0
-            });
+            };
+            unmapped_count += 1;
+            tracing::warn!(
+                "[extract_toc_items] cannot map TOC href '{pure_href}' to any spine item. \
+                 Falling back to spine index {fallback} (unmapped #{unmapped_count}/{unmapped_total})."
+            );
+            fallback
+        });
 
         chapters.push(Chapter::new(
             book_id, title, *chapter_id as i64, *level as i64, index as i64, 0,

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 import 'package:injectable/injectable.dart';
@@ -7,9 +8,12 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_load_phas
 import 'package:zephyr_reader/features/reader/core/application/chapter_loader.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_navigator.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
+import 'package:zephyr_reader/features/reader/core/application/scroll_boundary_coordinator.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
 import 'package:zephyr_reader/features/reader/core/application/search_index_lifecycle.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
@@ -31,6 +35,11 @@ class ChapterViewModel {
   /// 当前章节切换是否显示 AnimatedSwitcher 过渡动画。
   /// `manualJump` 时 true（默认），`adjacentCrossChapter` 时 false。
   final showChapterTransition = signal<bool>(true);
+
+  /// 滚动模式多章拼接段（plain text 跨章滚动）。
+  final scrollSegments = signal<List<ScrollChapterSegment>>([]);
+
+  late final ScrollBoundaryCoordinator _scrollBoundary;
   late final PaginationCoordinator _pagination;
   late final ChapterLoader _loader;
   late final SearchIndexLifecycle _searchIndex;
@@ -41,6 +50,19 @@ class ChapterViewModel {
     @factoryParam ReaderRepositoryInterface repo,
     @factoryParam ReaderConfig config,
   ) {
+    _scrollBoundary = ScrollBoundaryCoordinator(
+      repo: repo,
+      onPositionChanged: (chapterIdx, offset) {
+        chapterIndex.value = chapterIdx;
+        currentCharOffset.value = offset;
+      },
+      onChapterChanged: (chapterIdx) {
+        chapterIndex.value = chapterIdx;
+      },
+      onSegmentsChanged: (segments) {
+        scrollSegments.value = segments;
+      },
+    );
     _pagination = PaginationCoordinator(repo, config, this);
     _loader = ChapterLoader(repo, config, this, _pagination);
     _searchIndex = SearchIndexLifecycle(this, _loader.chapters);
@@ -135,6 +157,49 @@ class ChapterViewModel {
       _navigator.updateCurrentCharOffset(charOffset);
   void consumePendingJumpOffset() => _navigator.consumePendingJumpOffset();
 
+  /// 滚动模式：重置到单章（手动跳章 / 换书 / 配置重载）。
+  void resetScrollDocument(
+    String content,
+    int chapterIndex, {
+    List<RichParagraph>? richParagraphs,
+    TextSpan? richRootSpan,
+  }) {
+    _scrollBoundary.reset(
+      bookId.value,
+      chapterIndex,
+      content,
+      richParagraphs: richParagraphs,
+      richRootSpan: richRootSpan,
+    );
+  }
+
+  /// 滚动模式：滚近底时追加下一章。
+  Future<void> scrollAppendNext(ReadingMode readingMode) =>
+      _scrollBoundary.appendNext(
+        bookId: bookId.value,
+        readingMode: readingMode,
+      );
+
+  /// 滚动模式：滚近顶时前置上一章。返回新增段落数（用于补偿 scroll offset）。
+  Future<int> scrollPrependPrev(ReadingMode readingMode) async {
+    final before = _scrollBoundary.segments.fold<int>(
+      0,
+      (sum, s) => sum + s.paragraphCount,
+    );
+    await _scrollBoundary.prependPrev(
+      bookId: bookId.value,
+      readingMode: readingMode,
+    );
+    final after = _scrollBoundary.segments.fold<int>(
+      0,
+      (sum, s) => sum + s.paragraphCount,
+    );
+    return after - before;
+  }
+
+  /// 滚动模式是否已启用多章拼接（plain text）。
+  bool get hasScrollSegments => scrollSegments.value.isNotEmpty;
+
   // ==================== 自动滚动（委托 AutoScrollController）====================
 
   void startAutoScroll() => _autoScroll.startAutoScroll();
@@ -149,5 +214,6 @@ class ChapterViewModel {
     chapterContent.value = AsyncState.data('');
     currentCharOffset.value = 0;
     pendingJumpCharOffset.value = null;
+    scrollSegments.value = [];
   }
 }

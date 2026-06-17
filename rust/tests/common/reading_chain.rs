@@ -1,0 +1,135 @@
+use std::path::Path;
+use tempfile::TempDir;
+
+use rust_lib_zephyr_reader::api::core::{
+    get_session_page_content, PaginationSessionHandle,
+};
+use rust_lib_zephyr_reader::api::data::init::init_storage;
+use rust_lib_zephyr_reader::domain::{LanguageType, PageDescriptor, TypesetConfig};
+
+// ---------------------------------------------------------------------------
+// Config
+// ---------------------------------------------------------------------------
+
+/// Fixed `TypesetConfig` matching the strategy used by Dart
+/// `core_pagination_test.dart`.  A fixed small viewport avoids page-boundary
+/// drift that can happen with `Default`.
+pub fn test_typeset_config() -> TypesetConfig {
+    TypesetConfig {
+        page_width: 800,
+        page_height: 600,
+        font_size: 16,
+        line_spacing: 1.5,
+        language: LanguageType::Mixed,
+        ..Default::default()
+    }
+    .validate_and_fix()
+}
+
+// ---------------------------------------------------------------------------
+// Setup
+// ---------------------------------------------------------------------------
+
+/// Copy an EPUB fixture to a temporary directory, initialise storage, `parse_book`.
+///
+/// Returns `(TempDir, file_path, book_id)`.  Each test gets its own `TempDir`
+/// so SQLite state never leaks between tests.
+pub async fn setup_parsed_epub(fixture_path: &Path) -> (TempDir, String, String) {
+    let temp_dir = TempDir::new().expect("failed to create temp dir");
+    let data_dir = temp_dir.path().to_str().unwrap().to_string();
+
+    if let Err(e) = init_storage(data_dir).await {
+        if !e.to_string().contains("already initialized") {
+            panic!("failed to init storage: {e}");
+        }
+    }
+
+    // Copy fixture to temp with a unique name so `parse_book` can write a new
+    // DB row without conflicting with other copies of the same filename.
+    let file_name = fixture_path.file_name().unwrap().to_str().unwrap();
+    let dest = temp_dir.path().join(format!("test_{}", file_name));
+    std::fs::copy(fixture_path, &dest).expect("failed to copy fixture");
+    let file_path = dest.to_string_lossy().to_string();
+
+    let book_id = rust_lib_zephyr_reader::api::core::parse_book(file_path.clone())
+        .await
+        .expect("parse_book should succeed");
+
+    (temp_dir, file_path, book_id)
+}
+
+// ---------------------------------------------------------------------------
+// Shared assertions  (P0 regression checks)
+// ---------------------------------------------------------------------------
+
+/// Every page's `start_offset ≤ end_offset` and offsets are non-decreasing.
+pub fn assert_monotonic_descriptors(descriptors: &[PageDescriptor]) {
+    for (i, desc) in descriptors.iter().enumerate() {
+        assert!(
+            desc.start_offset <= desc.end_offset,
+            "page {}: start_offset {} > end_offset {}",
+            i,
+            desc.start_offset,
+            desc.end_offset,
+        );
+        if i > 0 {
+            assert!(
+                desc.start_offset >= descriptors[i - 1].end_offset,
+                "page {} start_offset {} < previous end_offset {}",
+                i,
+                desc.start_offset,
+                descriptors[i - 1].end_offset,
+            );
+        }
+    }
+}
+
+/// Every page content fetched via `get_session_page_content` is non-empty.
+pub async fn assert_all_pages_non_empty(
+    handle: &PaginationSessionHandle,
+    page_count: i32,
+) {
+    for i in 0..page_count {
+        let content = get_session_page_content(handle.clone(), i)
+            .expect("get_session_page_content should succeed");
+        assert!(
+            !content.is_empty(),
+            "page {} content should not be empty",
+            i,
+        );
+    }
+}
+
+/// Adjacent pages must not duplicate content: `page[N+1]` must NOT start with
+/// the full text of `page[N]`.
+pub async fn assert_no_cross_page_duplicate(
+    handle: &PaginationSessionHandle,
+    max_pages: i32,
+) {
+    let count = max_pages;
+    for i in 0..count.saturating_sub(1) {
+        let p0 = get_session_page_content(handle.clone(), i)
+            .expect("get_session_page_content should succeed");
+        let p1 = get_session_page_content(handle.clone(), i + 1)
+            .expect("get_session_page_content should succeed");
+        assert!(
+            !p1.starts_with(&p0),
+            "page {} content is duplicated as prefix of page {}",
+            i,
+            i + 1,
+        );
+    }
+}
+
+/// After a `partial → full` upgrade, page 0 must stay stable.
+pub async fn assert_partial_full_page0_stable(
+    handle: &PaginationSessionHandle,
+    page0_partial: &str,
+) {
+    let page0_full = get_session_page_content(handle.clone(), 0)
+        .expect("get_session_page_content should succeed");
+    assert_eq!(
+        page0_partial, page0_full,
+        "page 0 must stay stable after partial→full upgrade",
+    );
+}
