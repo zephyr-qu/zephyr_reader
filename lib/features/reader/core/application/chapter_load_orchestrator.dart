@@ -456,23 +456,11 @@ class ChapterLoadOrchestrator {
     if (_isStale(gen)) return;
 
     if (!_pagination.isPaginationValid(total)) {
-      final fallback = await _pagination.fallbackToCalculatePages(
-        chapterIndex: request.chapterIndex,
-        initialCharOffset: request.initialCharOffset,
-        content: content,
-      );
-      if (_isStale(gen)) return;
-
       _applyIfCurrent(gen, () {
-        _totalPages.value = fallback.totalPages;
-        _chapterVM.currentCharOffset.value = request.initialCharOffset.clamp(
-          0,
-          content.length,
+        _error.value = AppErrorMapper.humanReadable(
+          Exception('Pagination failed (total=$total)'),
         );
-        _pageIndex.value = fallback.pageIndex;
-        _chapterVM.pendingJumpCharOffset.value =
-            _chapterVM.currentCharOffset.value;
-        _error.value = null;
+        _loadPhase.value = ChapterLoadPhase.failed;
       });
       return;
     }

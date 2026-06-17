@@ -18,7 +18,6 @@ class PaginationParams {
   final double paragraphSpacing;
   final bool punctuationSqueeze;
   final bool firstLineIndent;
-  final bool enableHyphenation;
   final LanguageType language;
   final double autoSpaceRatio;
 
@@ -35,7 +34,6 @@ class PaginationParams {
     this.paragraphSpacing = 16,
     this.punctuationSqueeze = true,
     this.firstLineIndent = true,
-    this.enableHyphenation = false,
     this.language = LanguageType.auto,
     this.autoSpaceRatio = 0.25,
   });

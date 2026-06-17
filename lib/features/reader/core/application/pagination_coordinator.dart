@@ -47,7 +47,6 @@ class PaginationCoordinator {
       paragraphSpacing: _config.paragraphSpacing.value,
       punctuationSqueeze: _config.punctuationSqueeze.value,
       firstLineIndent: _config.firstLineIndent.value,
-      enableHyphenation: _config.enableHyphenation.value,
       language: _config.language.value,
       autoSpaceRatio: _config.autoSpaceRatio.value,
     );
@@ -68,10 +67,8 @@ class PaginationCoordinator {
         calibration: p.calibration,
         fontFamily: p.fontFamily,
         letterSpacing: p.letterSpacing,
-        paragraphSpacing: p.paragraphSpacing,
         punctuationSqueeze: p.punctuationSqueeze,
         firstLineIndent: p.firstLineIndent ? 2 : 0,
-        enableHyphenation: p.enableHyphenation,
         language: p.language,
         autoSpaceRatio: p.autoSpaceRatio,
       ),
@@ -137,40 +134,6 @@ class PaginationCoordinator {
     );
   }
 
-  /// Rust 分页失败时回退到 Dart 估算分页。
-  Future<({int totalPages, int pageIndex})> fallbackToCalculatePages({
-    required int chapterIndex,
-    required int initialCharOffset,
-    required String content,
-  }) async {
-    Logging.warning(
-      'loadChapter: Rust pagination fallback, using Dart approximate',
-    );
-    _repo.disposePagination();
-    final pages = await _repo.calculatePages(
-      bookId: _chapterVM.bookId.value,
-      chapterId: chapterIndex,
-      fontSize: _config.fontSize.value,
-      lineHeight: _config.lineHeight.value,
-      width: pageWidth,
-      height: pageHeight,
-      padding: _config.padding.value,
-    );
-
-    final charOffset = initialCharOffset.clamp(0, content.length);
-    final resolvedPage = PaginationEngine.resolvePageIndexFromPageInfo(
-      pages,
-      charOffset,
-    );
-    _repo.ensurePageWindow(resolvedPage);
-
-    Logging.debug(
-      'loadChapter (fallback): pages=${pages.length} '
-      'resolvePage=$resolvedPage off=$charOffset',
-    );
-
-    return (totalPages: pages.length, pageIndex: resolvedPage);
-  }
 
   /// 应用完整 Rust 分页结果。
   ({int totalPages, int pageIndex}) applyFullResult({

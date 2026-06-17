@@ -304,9 +304,20 @@ async fn get_or_create_provider(
             Arc::new(provider)
         }
         BookFormat::Epub => {
+            // Fetch spine bounds from DB *before* spawn_blocking —
+            // get_chapter_bounds is async (DB query).
+            let (start_idx, end_idx) = get_chapter_bounds(validated_path, chapter_index).await?;
+            // Detect stale pre-migration books: start/end both DEFAULT 0
+            if start_idx == 0 && end_idx == 0 {
+                return Err(AppError::StaleBookData {
+                    message: "Chapter bounds missing. Please re-import this book.".into(),
+                });
+            }
             let path = validated_path.to_string();
             let provider = tokio::task::spawn_blocking(move || {
-                crate::parser::epub::provider::EpubContentProvider::open(&path, chapter_index)
+                crate::parser::epub::provider::EpubContentProvider::open_from_bounds(
+                    &path, start_idx, end_idx,
+                )
             })
             .await
             .map_err(|e| AppError::TaskPanic { task_name: "epub provider".into(), details: e.to_string().into() })??;
@@ -344,25 +355,18 @@ pub async fn get_chapter_first_spine_only(
     let format = format_from_file_path(&validated_path)?;
 
     let text = if format == BookFormat::Epub {
+        let (start_idx, _) = get_chapter_bounds(&validated_path, chapter_index).await?;
         let path = validated_path.clone();
         let idx = chapter_index;
+        let spine_start = start_idx;
         tokio::task::spawn_blocking(move || -> Result<String, AppError> {
             let mut epub =
                 crate::parser::epub::unzip::EpubFile::open(&path)
                     .map_err(|e| AppError::ChapterExtractError { index: idx, reason: e.to_string().into() })?;
-            let chapters =
-                crate::parser::epub::toc::extract_chapters_from_epub(&mut epub, "");
-            let chapter = chapters
-                .iter()
-                .find(|c| c.chapter_index == idx as i64)
-                .ok_or_else(|| {
-                    AppError::ChapterExtractError { index: idx, reason: "chapter not found".into() }
-                })?;
-
             let spine = epub.spine();
-            let start = chapter.start_index as usize;
+            let start = spine_start.max(0) as usize;
             if start >= spine.len() {
-                return Ok(String::new()); // empty chapter
+                return Ok(String::new());
             }
 
             let href = &spine[start];
@@ -583,8 +587,13 @@ pub async fn paginate_chapter(
                     let partial: String = content.chars().take(limit as usize).collect();
                     (partial, true)
                 } else {
-                    let content = provider.read_text_range(0, limit)?;
-                    (content, true)
+                    // EPUB: same char-take logic as TXT/MD.
+                    // read_text_range uses byte offsets; pre-read limit*3
+                    // bytes then truncate to limit chars (CJK safety).
+                    let read_end = (limit * 3).min(content_len);
+                    let content = provider.read_text_range(0, read_end)?;
+                    let partial: String = content.chars().take(limit as usize).collect();
+                    (partial, true)
                 }
             }
             None => {
@@ -911,7 +920,7 @@ fn format_from_file_path(file_path: &str) -> Result<BookFormat, AppError> {
 }
 
 /// 从 DB 获取章节边界信息（TXT/MD 的文件字节偏移，EPUB/PDF 的 spine/页索引）
-async fn get_chapter_bounds(
+pub(crate) async fn get_chapter_bounds(
     validated_path: &str,
     chapter_index: i32,
 ) -> Result<(i32, i32), AppError> {
@@ -1174,5 +1183,39 @@ mod tests {
 
         assert!(partial_result.is_partial, "partial pagination should be marked partial");
         assert!(!partial_result.descriptors.is_empty(), "partial paginate should still produce pages");
+    }
+
+    #[tokio::test]
+    async fn test_stale_epub_bounds_returns_stale_book_data() {
+        ensure_shared_storage().await;
+        let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../test/fixtures/medium.epub");
+        let file_path = fixture.to_string_lossy().to_string();
+
+        // Parse EPUB to populate DB with valid chapter data
+        let book_id = parse_book(file_path.clone()).await
+            .expect("parse_book should succeed");
+
+        // Corrupt the first chapter's bounds to simulate stale pre-migration data
+        let pool = storage_pool().unwrap();
+        let mut chapters = ChapterRepository::find_by_book(&pool, &book_id).await
+            .expect("find_by_book should succeed");
+        assert!(!chapters.is_empty(), "EPUB fixture should have at least one chapter");
+
+        chapters[0].start_index = 0;
+        chapters[0].end_index = 0;
+        ChapterRepository::save(&pool, &book_id, &chapters[..1]).await
+            .expect("save corrupted chapter should succeed");
+
+        let validated = validate_file_path(&file_path)
+            .expect("validate should succeed");
+
+        // Clear provider cache and book_id cache for a clean slate
+        PROVIDER_CACHE.lock().clear();
+        BOOK_ID_CACHE.lock().clear();
+
+        let result = get_or_create_provider(&validated, 0, &BookFormat::Epub).await;
+        assert!(result.as_ref().is_err_and(|e| matches!(e, AppError::StaleBookData { .. })),
+            "expected StaleBookData, got {:?}", result.as_ref().err());
     }
 }

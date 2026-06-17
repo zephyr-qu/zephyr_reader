@@ -71,8 +71,6 @@ abstract final class SettingsKeys {
   /// 首行缩进
   static const readerFirstLineIndent = 'reader_first_line_indent';
 
-  /// 英文连字符断词
-  static const readerEnableHyphenation = 'reader_enable_hyphenation';
 
   /// 语言类型
   static const readerLanguage = 'reader_language';

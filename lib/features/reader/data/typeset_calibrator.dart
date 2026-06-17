@@ -145,8 +145,6 @@ double _measureWidth(String text, double fontSize, String fontFamily) {
 /// [fontFamily]: 当前字体系列名
 /// [letterSpacing]: 字间距（逻辑像素 dp）
 /// [paragraphSpacing]: 段落间距（逻辑像素 dp）
-/// [punctuationSqueeze]: 标点挤压
-/// [enableHyphenation]: 英文连字符断词
 /// [language]: 语言类型
 TypesetConfig buildTypesetConfig({
   required double width,
@@ -162,7 +160,6 @@ TypesetConfig buildTypesetConfig({
   double letterSpacing = 0,
   double paragraphSpacing = 16,
   bool punctuationSqueeze = true,
-  bool enableHyphenation = false,
   LanguageType language = LanguageType.auto,
 }) {
   final rustCalibration = calibration != null
@@ -187,8 +184,6 @@ TypesetConfig buildTypesetConfig({
     firstLineIndent: firstLineIndent,
     autoSpaceRatio: autoSpaceRatio,
     language: language,
-    enableHyphenation: enableHyphenation,
-    hyphenationLanguage: enableHyphenation ? 'en-US' : null,
     punctuationSqueeze: punctuationSqueeze,
     fontFamily: fontFamily,
     calibration: rustCalibration,

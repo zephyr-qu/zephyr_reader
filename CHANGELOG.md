@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### 修复
+- **分页缓存未命中空白占位**：`_buildPageContent`/`buildSinglePageContent` 在 `pageContent == null` 时显示 `CircularProgressIndicator` + 后帧 `dataSource.ensureWindow` 触发拉取，`ensurePageWindow` 完成后递增 `preloadGeneration` 触发 `AnimatedBuilder` 重建（不再显示 600px 空白）
+  - `ReaderRenderDataSource` 新增 `ensureWindow` 抽象方法
+  - `ReaderRepository.ensurePageWindow` 递增 `preloadGeneration`
+  - 删除 `_fetchMissedPage` 死代码（功能已合并至 `ensurePageWindow`）
+
+### 文件变更
+| 修改 | `lib/features/reader/core/data/reader_render_data_source.dart` — +ensureWindow |
+| 修改 | `lib/features/reader/data/repositories/rust_reader_repository.dart` — ensurePageWindow 增加 preloadGeneration++ |
+| 修改 | `lib/features/reader/rendering/paginated_renderer.dart` — null 分支改为 spinner + 后帧触发 |
+| 修改 | `issue/CORE_READING_CHAIN_STATUS.md` — 根因 3 状态 仍开放→已修 |
+
 ### 新增
 - **跨章丝滑体验优化**（#plane.md）：分页与仿真翻页模式跨章动效与延迟接近章内翻页
   - **Rust**：`PageStreamer.is_partial` 字段 + `create_pagination_session_adopt` FFI（从 `STREAMER_CACHE` 零重 paginate 创建 session）+ 4 条 adopt hit/miss/partial 单元测试（`rust/tests/pagination_session_test.rs`）

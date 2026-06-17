@@ -58,7 +58,6 @@ class RustPaginationSession implements PaginationSession {
     paragraphSpacing: p.paragraphSpacing,
     punctuationSqueeze: p.punctuationSqueeze,
     firstLineIndent: p.firstLineIndent ? 2 : 0,
-    enableHyphenation: p.enableHyphenation,
     language: p.language,
     autoSpaceRatio: p.autoSpaceRatio,
   );
@@ -75,10 +74,18 @@ class RustPaginationSession implements PaginationSession {
   }
 
   void _applyPaginateResult(PaginateResult result, {int? chapterIndex}) {
+    final descriptorsChanged = _descriptors != result.descriptors ||
+        _sessionIsPartial != result.isPartial ||
+        _sessionConfigHash != result.configHash.toInt();
     _descriptors = result.descriptors;
     _sessionConfigHash = result.configHash.toInt();
     _sessionIsPartial = result.isPartial;
     if (chapterIndex != null) _sessionChapterIndex = chapterIndex;
+    // 分页边界变化后必须清空页文本缓存，否则 partial→full 或重排版后会
+    // 用旧页内容配新 descriptors，导致空白页或重复行。
+    if (descriptorsChanged) {
+      _contentCache.clear();
+    }
   }
 
   Future<PaginateResult> _createSession({
@@ -112,11 +119,11 @@ class RustPaginationSession implements PaginationSession {
     return result;
   }
 
-  void _preloadPageRange(int count) {
+  Future<void> _preloadPageRange(int count) async {
     final total = _descriptors?.length ?? 0;
     final limit = count.clamp(0, total);
     for (int i = 0; i < limit; i++) {
-      _fetchAndCachePage(i);
+      await _fetchAndCachePage(i);
     }
   }
 
@@ -134,7 +141,7 @@ class RustPaginationSession implements PaginationSession {
         config: _buildConfig(params),
         maxChars: maxChars,
       );
-      _preloadPageRange(5);
+      await _preloadPageRange(5);
       return (
         totalPages: result.descriptors.length,
         isPartial: result.isPartial,
@@ -200,7 +207,6 @@ class RustPaginationSession implements PaginationSession {
     required PaginationParams params,
   }) async {
     try {
-      final oldLength = _descriptors?.length ?? 0;
       final newConfig = _buildConfig(params);
       late final PaginateResult result;
 
@@ -227,10 +233,7 @@ class RustPaginationSession implements PaginationSession {
       }
 
       _applyPaginateResult(result, chapterIndex: chapterIndex);
-      final preloadCount = 5.clamp(0, result.descriptors.length);
-      for (int i = oldLength; i < preloadCount; i++) {
-        _fetchAndCachePage(i);
-      }
+      await _preloadPageRange(5);
       return (
         totalPages: result.descriptors.length,
         isPartial: result.isPartial,
@@ -266,7 +269,6 @@ class RustPaginationSession implements PaginationSession {
     }
     try {
       final newConfig = _buildConfig(params);
-      final oldHash = _sessionConfigHash;
       final sw = Stopwatch()..start();
       final result = await core_api.repaginateSession(
         handle: handle,
@@ -279,14 +281,7 @@ class RustPaginationSession implements PaginationSession {
       );
 
       _applyPaginateResult(result, chapterIndex: chapterIndex);
-      // Config 变更时清空页缓存（页边界可能变了）
-      if (oldHash != result.configHash.toInt()) {
-        _contentCache.clear();
-      }
-      final preloadCount = 5.clamp(0, result.descriptors.length);
-      for (int i = 0; i < preloadCount; i++) {
-        _fetchAndCachePage(i);
-      }
+      await _preloadPageRange(5);
       return (
         totalPages: result.descriptors.length,
         isPartial: result.isPartial,
@@ -302,18 +297,18 @@ class RustPaginationSession implements PaginationSession {
     return _contentCache.get(pageIndex);
   }
 
-  /// Sync fetch-and-cache for a single page.
+  /// Async fetch-and-cache for a single page.
   /// Returns null on invalid state or fetch error.
-  String? _fetchAndCachePage(int pageIndex) {
+  Future<String?> _fetchAndCachePage(int pageIndex) async {
     if (_contentCache.containsKey(pageIndex)) return _contentCache.get(pageIndex);
     final handle = _handle;
     if (handle == null || _descriptors == null) return null;
     if (pageIndex < 0 || pageIndex >= _descriptors!.length) return null;
     try {
-      final content = core_api.getSessionPageContent(
+      final content = await Future.microtask(() => core_api.getSessionPageContent(
         handle: handle,
         pageIndex: pageIndex,
-      );
+      ));
       if (content.isNotEmpty) {
         _contentCache.put(pageIndex, content);
       }
@@ -329,7 +324,7 @@ class RustPaginationSession implements PaginationSession {
   void ensureWindow(int centerPage) {
     if (_descriptors == null) return;
 
-    _fetchAndCachePage(centerPage);
+    unawaited(_fetchAndCachePage(centerPage));
     _prefetchSurrounding(centerPage);
   }
 
@@ -339,9 +334,9 @@ class RustPaginationSession implements PaginationSession {
     final start = math.max(0, center - 3);
     final end = math.min(total - 1, center + 3);
 
-    Future.microtask(() {
+    Future.microtask(() async {
       for (int i = start; i <= end; i++) {
-        _fetchAndCachePage(i);
+        await _fetchAndCachePage(i);
       }
     });
 

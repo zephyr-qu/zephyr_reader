@@ -18,4 +18,7 @@ abstract class ReaderRenderDataSource {
   List<RichParagraph>? get currentRichParagraphs;
 
   NextChapterStaging? get nextChapterStaging;
+
+  /// Ensure the window around [centerPage] is cached and trigger widget rebuild.
+  void ensureWindow(int centerPage);
 }

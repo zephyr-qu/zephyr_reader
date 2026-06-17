@@ -68,7 +68,6 @@ class TypographySettingsPage extends HookWidget {
     config.textAlign.reset();
     config.baselineAlign.value = true;
     config.firstLineIndent.value = true;
-    config.enableHyphenation.reset();
     config.language.reset();
     config.autoSpaceRatio.reset();
     config.writingDirection.value = WritingDirection.horizontal;
@@ -453,14 +452,6 @@ class TypographySettingsPage extends HookWidget {
                   subtitle: l10n.firstLineIndentDesc,
                   value: useSignalValue(config.firstLineIndent.signal),
                   onChanged: (v) => config.firstLineIndent.value = v,
-                ),
-                SettingsToggleTile(
-                  icon: PhosphorIconsRegular.textBolder,
-                  semantic: MenuItemSemantic.typography,
-                  title: l10n.enableHyphenation,
-                  subtitle: l10n.enableHyphenationDesc,
-                  value: useSignalValue(config.enableHyphenation.signal),
-                  onChanged: (v) => config.enableHyphenation.value = v,
                 ),
                 _buildLanguageTile(context, config),
                 SettingsToggleTile(

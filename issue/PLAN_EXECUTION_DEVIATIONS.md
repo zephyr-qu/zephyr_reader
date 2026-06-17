@@ -224,3 +224,59 @@ Phase 1 核心数据结构与 composer 已完成；`ScrollModeRenderer` 多段�
 | 修改 | `lib/features/reader/rendering/scroll_mode_renderer.dart` — +segments/segmentDividerIndex +_buildMultiSegmentPlainList |
 | 修改 | `doc/planf.md` — todos 更新 |
 | 修改 | `CHANGELOG.md` — planf 条目 |
+
+# p2-reconcile-cleanup-plan 执行偏差（2026-06-17）
+
+## 最终状态
+
+全部 4 步已完成。Rust 180 tests passed (含 2 个新增)，Dart analyze 0 errors。
+
+## 偏差记录
+
+| # | plan 描述 | 实际情况 | 处理 |
+|---|-----------|----------|------|
+| 1 | `StaleBookData { book_id, message }` — `book_id` 字段用于标注旧书 | `get_or_create_provider` 函数签名只有 `validated_path`、`chapter_index`、`format`，没有 `book_id`。添加入参需改 5 处调用点，非本步必要。 | 简化为 `StaleBookData { message }`。错误消息已包含全部用户所需信息（"Chapter bounds missing. Please re-import this book."）。 |
+| 2 | `TypesetConfig` 字段编辑：SWAP 删除 `enable_hyphenation`/`hyphenation_language` | 第一次 SWAP 124.=128 仅用 `}` 替换，导致 struct 在 `language` 后提前闭合，`font_family`/`calibration` 悬空在 struct 外。Default impl 同理。 | 两次 `read` 后修复：重写 SWAP 合并被截断的字段，删除悬空的 `}`。 |
+| 3 | `PaginationParams` 删除 `enableHyphenation` 字段的 SWAP 编辑 | `SWAP 19.=23` 范围偏大，连带删除了 `paragraphSpacing` 字段。该字段在 `PaginationParams` 只声明一次，不在 SWAP 的目标行（原 18 行）。 | 重新读取后加回 `paragraphSpacing` 字段和构造器默认值。 |
+| 4 | 超大 spine 测试：用 `zip` crate 从头创建 EPUB | 自建 EPUB 被 `epub` crate 以 "XML Error: Invalid State" 拒绝，可能因 XML namespace 校验或 ZIP 结构兼容问题。 | 改用复制 `medium.epub` + 替换首个 spine XHTML 为 2.1MB 内容的方式。测试通过。 |
+| 5 | `tempfile` 在 dev-dependencies 中，`stress_test.rs` 使用它 | `stress_test.rs` 是 `[[bin]]` 目标（非 `[[test]]`），不能引用 dev-dependencies。CARGO_MANIFEST_DIR 解析到 `rust/` 目录。 | 将 `tempfile` 从 `[dev-dependencies]` 移到 `[dependencies]`。 |
+| 6 | FRB codegen 运行次数 | `enable_hyphenation` 字段删除（Step 2）和错误变体添加（Step 1+3）需独立的 FRB codegen 运行。Step 2 中 struct 字段删除后 cargo check 因 `frb_generated.rs` 引用不存在字段而失败。 | 分两次运行 `flutter_rust_bridge_codegen generate`（Step 2 后一次，Step 3 后一次）。 |
+| 7 | 错误变体新增后 `app_error_mapper.dart` 的 `when()` 需要更新 | FRB 生成的 `AppError.when()` 方法要求所有变体必须显式处理。`StaleBookData` 和 `ChapterTooLarge` 新增后 Dart analyze 报 `missing_required_argument`。 | 两次追加 handler 行。 |
+
+## 无偏差（与 plan 一致）
+
+- `ChapterTooLarge` 使用独立变体而非 `InvalidInput`（plan 的备选方案）— 独立变体更适合 UI 层模式匹配
+- 超大 spine 检测使用 `if let Ok` 包裹 `read_resource`，读取失败时静默降级（plan 隐式假设）
+- 旧书检测使用严格的 `start_idx == 0 && end_idx == 0` 而非带 total_chapters 的复杂条件（plan 提供了两种选项，选了保守的）
+
+## 验证结果
+
+| 检查项 | 结果 |
+|--------|------|
+| `cargo test --lib` | 180 passed, 0 failed, 8 ignored |
+| `dart analyze lib/` | 0 errors (1 warning + 6 infos, 均预存) |
+| `grep enableHyphenation lib/` (排除生成/l10n) | 空 |
+| `grep enable_hyphenation rust/src/` | 空 |
+| `cargo check` | OK |
+
+## 涉及文件
+
+### Rust（7 文件）
+- `rust/src/domain/error.rs` — `StaleBookData` + `ChapterTooLarge` 变体
+- `rust/src/api/core.rs` — 旧书检测 + 测试
+- `rust/src/parser/epub/provider.rs` — 超大 spine 检测 + 测试
+- `rust/src/domain/types/typeset.rs` — 删除 `enable_hyphenation`/`hyphenation_language`
+- `rust/src/text/mod.rs` — 删除 `pub mod line_break;`
+- `rust/src/text/line_break.rs` — 删除文件
+- `rust/Cargo.toml` — 删除 `hyphenation` 依赖 + 元数据；`tempfile` 移至 deps；新增 `zip` dev-dep
+- `rust/tools/stress_test.rs` — `default_config()` 清洁
+
+### Dart（7 文件）
+- `lib/features/reader/domain/config/reader_config.dart` — 删除 `enableHyphenation` signal/reset/dispose
+- `lib/features/reader/data/typeset_calibrator.dart` — 删除 `enableHyphenation` 参数
+- `lib/features/reader/data/pagination_params.dart` — 删除 `enableHyphenation` 字段
+- `lib/features/reader/core/application/pagination_coordinator.dart` — 删除 `enableHyphenation` 传参（2 处）
+- `lib/features/reader/core/data/rust_pagination_session.dart` — 删除 `enableHyphenation` 传参
+- `lib/features/profile/page/typography/typography_settings_page.dart` — 删除 reset 行 + toggle tile
+- `lib/core/utils/app_error_mapper.dart` — 添加 `staleBookData` + `chapterTooLarge` handler
+- `lib/core/settings/settings_keys.dart` — 删除 `readerEnableHyphenation`

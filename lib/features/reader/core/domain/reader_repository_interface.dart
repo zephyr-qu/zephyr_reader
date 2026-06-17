@@ -66,17 +66,6 @@ abstract class ReaderRepositoryInterface {
     required double padding,
   });
 
-  /// 完整分页加载（从 Rust 获取轻量级描述符，文本按需加载）。
-  /// 返回 [PageInfo] 列表。
-  Future<List<PageInfo>> calculatePages({
-    required String bookId,
-    required int chapterId,
-    required double fontSize,
-    required double lineHeight,
-    required double width,
-    required double height,
-    required double padding,
-  });
 
   // ==================== 缓存和页面内容 ====================
 

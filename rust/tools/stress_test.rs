@@ -76,8 +76,6 @@ fn default_config() -> TypesetConfig {
         auto_space_ratio: 0.25,
         first_line_indent: 2,
         language: LanguageType::Auto,
-        enable_hyphenation: false,
-        hyphenation_language: Some("en".to_string()),
         punctuation_squeeze: true,
         font_family: "Noto Sans SC".into(),
         calibration: None,
